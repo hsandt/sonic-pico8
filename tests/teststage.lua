@@ -1,5 +1,5 @@
 picotest = require("picotest")
-stage = require("src/stage")
+stage = require("stage")
 
 function run_test()
  picotest.test('stage', stage)

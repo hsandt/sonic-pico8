@@ -1,7 +1,7 @@
 picotest = require("picotest")
-helper = require("src/helper")
-flow = require("src/flow")
-titlemenu = require("src/titlemenu")
+helper = require("helper")
+flow = require("flow")
+titlemenu = require("titlemenu")
 
 function run_test()
  picotest.test('gamestates', test_gamestates)

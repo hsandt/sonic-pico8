@@ -1,5 +1,5 @@
 picotest = require("picotest")
-credits = require("src/credits")
+credits = require("credits")
 
 function run_test()
  picotest.test('credits', credits)

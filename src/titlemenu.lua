@@ -9,11 +9,11 @@ local state = {
 }
 
 function state:on_enter()
- printh("titlemenu:on_enter")
+ log("flow", "titlemenu:on_enter")
 end
 
 function state:on_exit()
- printh("titlemenu:on_exit")
+ log("flow", "titlemenu:on_exit")
 end
 
 function state:update()

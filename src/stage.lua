@@ -9,11 +9,11 @@ local state = {
 }
 
 function state:on_enter()
- printh("stage:on_enter")
+ log("flow", "stage:on_enter")
 end
 
 function state:on_exit()
- printh("stage:on_exit")
+ log("flow", "stage:on_exit")
 end
 
 function state:update()

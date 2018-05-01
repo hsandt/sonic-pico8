@@ -75,7 +75,7 @@
 		{
 			"file_exclude_patterns":
 			[
-				"*.p8"
+				// "*.p8"
 			],
 			"path": "."
 		},

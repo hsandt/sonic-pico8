@@ -18,7 +18,7 @@ local flow = {
 function flow:add_gamestate(gamestate)
  assert(gamestate ~= nil, "passed gamestate is nil")
  self.gamestates[gamestate.type] = gamestate
- printh("[flow] added gamestate "..gamestate.type)
+ log("flow", "added gamestate "..gamestate.type)
 end
 
 -- query a new gamestate
@@ -40,12 +40,12 @@ function flow:change_gamestate(new_gamestate)
  assert(new_gamestate ~= nil, "[flow] cannot change to nil gamestate")
  if self.current_gamestate then
   self.current_gamestate.on_exit()
-  printh("[flow] exited old gamestate "..self.current_gamestate.type)
+  log("flow", "exited old gamestate "..self.current_gamestate.type)
  end
  self.current_gamestate = new_gamestate
  new_gamestate.on_enter()
  self.next_gamestate = nil  -- clear any gamestate query
- printh("[flow] entered new gamestate "..new_gamestate.type)
+ log("flow", "entered new gamestate "..new_gamestate.type)
 end
 
 -- export

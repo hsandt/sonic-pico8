@@ -1,5 +1,5 @@
 picotest = require("picotest")
-main = require("src/main")
+main = require("main")
 
 function run_test()
 end

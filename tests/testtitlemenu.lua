@@ -1,5 +1,5 @@
 picotest = require("picotest")
-titlemenu = require("src/titlemenu")
+titlemenu = require("titlemenu")
 
 function run_test()
  picotest.test('titlemenu', titlemenu)

@@ -1,3 +1,7 @@
+-- deactivate log for testing
+require("debug")
+current_debug_level = debug_level.none
+
 -- https://github.com/jozanza/pico-test
 local test = {
  test=function(title,f)

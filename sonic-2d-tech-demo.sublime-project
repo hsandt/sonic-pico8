@@ -5,7 +5,8 @@
 			"path": "/home/wing/.lexaloffle/pico-8"
 		},
 		{
-			"path": "."
+			"path": ".",
+			"file_exclude_patterns": ["*.p8"]
 		}
 	],
 	"build_systems":

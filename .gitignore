@@ -1,0 +1,5 @@
+# Built game
+/build
+
+# Sublime Text
+*.sublime-workspace

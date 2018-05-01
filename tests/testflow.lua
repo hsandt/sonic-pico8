@@ -1,19 +1,34 @@
 picotest = require("picotest")
 flow = require("src/flow")
+titlemenu = require("src/titlemenu")
 
 function run_test()
- picotest.test('titlemenu', test_callback)
+ picotest.test('gamestates', test_gamestates)
 end
 
-function test_callback(desc,it)
- desc('flow.titlemenu_state.state_type', function()
-  it('should be titlemenu', function()
-   return flow.titlemenu_state.state_type == flow.gamestate_type.titlemenu
+function test_gamestates(desc,it)
+ desc('flow.add_gamestate', function ()
+  it('should add a gamestate by type key', function ()
+   if titlemenu.state then
+    add_gamestate(titlemenu.state)
+    local result = gamestates[titlemenu.state.state_type] == titlemenu.state
+    gamestates[titlemenu.state.state_type] = nil
+    return result
+   end
+   return false
+  end)
+ end)
+ desc('[after flow.add_gamestate] flow.change_state', function ()
+  it('should enter a gamestate by type', function ()
+   add_gamestate(titlemenu.state)
+   change_state(titlemenu.state.state_type)
+   return current_gamestate == gamestates[titlemenu.state.state_type]
   end)
  end)
 end
 
-add(picotest.test_suite, test_callback)
+add(picotest.test_suite, test_gamestates)
+
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 

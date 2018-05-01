@@ -1,28 +1,31 @@
 local flow = {}
 
--- game states (behave like singletons)
-
+-- enums
 local gamestate_type = {
  titlemenu = 1,
- stage = 2,
+ credits = 2,
+ stage = 3,
 }
 
-local titlemenu_state = {
- state_type = gamestate_type.titlemenu
-}
+-- parameters
+gamestates = {}
 
-function titlemenu_state:on_enter()
+-- state vars
+current_gamestate = nil
+
+-- add a gamestate
+function add_gamestate(gamestate)
+ assert(gamestate)
+ gamestates[gamestate.state_type] = gamestate
 end
 
-function titlemenu_state:update()
-end
-
-function titlemenu_state:render()
+-- enter a gamestate
+function change_state(gamestate_type)
+ current_gamestate = gamestates[gamestate_type]
+ assert(current_gamestate)
+ current_gamestate.on_enter()
 end
 
 -- export
-
 flow.gamestate_type = gamestate_type
-flow.titlemenu_state = titlemenu_state
-
 return flow

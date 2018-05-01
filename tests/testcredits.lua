@@ -6,9 +6,9 @@ function run_test()
 end
 
 function test_credits(desc,it)
- desc('credits.state.state_type', function ()
-  it('should be flow.gamestate_type.credits', function ()
-   return credits.state.state_type == flow.gamestate_type.credits
+ desc('credits.state.type', function ()
+  it('should be gamestate_type.credits', function ()
+   return credits.state.type == gamestate_type.credits
   end)
  end)
 end

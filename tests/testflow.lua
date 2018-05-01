@@ -8,21 +8,33 @@ end
 
 function test_gamestates(desc,it)
  desc('flow.add_gamestate', function ()
-  it('should add a gamestate by type key', function ()
-   if titlemenu.state then
-    add_gamestate(titlemenu.state)
-    local result = gamestates[titlemenu.state.state_type] == titlemenu.state
-    gamestates[titlemenu.state.state_type] = nil
-    return result
-   end
-   return false
+  flow:add_gamestate(titlemenu.state)
+  it('should add a gamestate', function ()
+    return flow.gamestates[titlemenu.state.type] == titlemenu.state
   end)
- end)
- desc('[after flow.add_gamestate] flow.change_state', function ()
-  it('should enter a gamestate by type', function ()
-   add_gamestate(titlemenu.state)
-   change_state(titlemenu.state.state_type)
-   return current_gamestate == gamestates[titlemenu.state.state_type]
+  desc('[after flow.add_gamestate] flow.query_gamestate_type', function ()
+   flow:query_gamestate_type(titlemenu.state.type)
+   it('should query a new gamestate', function ()
+    return flow.next_gamestate == flow.gamestates[titlemenu.state.type]
+   end)
+   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow.check_next_gamestate', function ()
+    flow:check_next_gamestate()
+    it('should enter a new gamestate', function ()
+     return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
+    end)
+    it('should clear the next gamestate query', function ()
+     return flow.next_gamestate == nil
+    end)
+    flow.current_gamestate = nil
+   end)
+   flow.next_gamestate = nil
+  end)
+  desc('[after flow.add_gamestate] flow.change_gamestate', function ()
+   flow:change_gamestate(titlemenu.state)
+   it('should directly enter a gamestate', function ()
+    return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
+   end)
+   flow.current_gamestate = nil
   end)
  end)
 end

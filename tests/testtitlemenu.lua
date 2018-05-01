@@ -6,9 +6,9 @@ function run_test()
 end
 
 function test_titlemenu(desc,it)
- desc('titlemenu.state.state_type', function ()
-  it('should be flow.gamestate_type.titlemenu', function ()
-   return titlemenu.state.state_type == flow.gamestate_type.titlemenu
+ desc('titlemenu.state.type', function ()
+  it('should be gamestate_type.titlemenu', function ()
+   return titlemenu.state.type == gamestate_type.titlemenu
   end)
  end)
 end

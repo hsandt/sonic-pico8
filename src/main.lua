@@ -1,19 +1,24 @@
--- modules
+require("debug")
 flow = require("flow")
 titlemenu = require("titlemenu")
+credits = require("credits")
+stage = require("stage")
 
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
 function _init()
- flow.add_gamestate(titlemenu.state)
- flow.change_state(titlemenu.state.state_type)
+ flow:add_gamestate(titlemenu.state)
+ flow:add_gamestate(credits.state)
+ flow:add_gamestate(stage.state)
+ flow:query_gamestate_type(titlemenu.state.type)
 end
 
 function _update()
- current_gamestate.update()
+ flow:check_next_gamestate()
+ flow.current_gamestate:update()
 end
 
 function _draw()
- current_gamestate.render()
+ flow.current_gamestate:render()
 end

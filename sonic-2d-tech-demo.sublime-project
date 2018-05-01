@@ -1,83 +1,94 @@
 {
+	"build_systems":
+	[
+		{
+			"cmd":
+			[
+				"./build.sh"
+			],
+			"name": "p8tool: build game",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./build.sh && ./test.sh all"
+			],
+			"name": "p8tool: build game and test all",
+			"shell": true,
+			"syntax": "Packages/ANSIescape/ANSI.tmLanguage",
+			"target": "ansi_color_build",
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./build.sh && pico8 -run build/game.p8"
+			],
+			"name": "p8tool: build and run game",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"pico8 -run data/data.p8"
+			],
+			"name": "p8tool: edit data",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh all"
+			],
+			"name": "p8tool: test all",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh main"
+			],
+			"name": "p8tool: test main",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh flow"
+			],
+			"name": "p8tool: test flow",
+			"shell": true,
+			"working_dir": "${project_path}"
+		}
+	],
 	"folders":
 	[
 		{
 			"path": "/home/wing/.lexaloffle/pico-8"
 		},
 		{
-			"path": ".",
-			"file_exclude_patterns": ["*.p8"]
+			"file_exclude_patterns":
+			[
+				"*.p8"
+			],
+			"path": "."
+		},
+		{
+			"path": "/home/wing/Developer/PICO-8/picotool-master-2018-01-31"
 		}
 	],
-	"build_systems":
-	[
-		{
-			"name": "p8tool: build game",
-			"cmd":
-			[
-				"./build.sh"
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-		},
-		{
-			"name": "p8tool: build game and test all",
-			"cmd":
-			[
-				"./build.sh && ./test.sh all"
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-			"target": "ansi_color_build",
-			"syntax": "Packages/ANSIescape/ANSI.tmLanguage"
-		},
-		{
-			"name": "p8tool: build and run game",
-			"cmd":
-			[
-				"./build.sh && pico8 -run build/game.p8"
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-		},
-		{
-			"name": "p8tool: edit data",
-			"cmd":
-			[
-				"pico8 -run data/data.p8"
-			],
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"name": "p8tool: test all",
-			"cmd":
-			[
-				"./test.sh all",
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-		},
-		{
-			"name": "p8tool: test main",
-			"cmd":
-			[
-				"./test.sh main",
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-		},
-		{
-			"name": "p8tool: test flow",
-			"cmd":
-			[
-				"./test.sh flow",
-			],
-			"shell": true,
-			"working_dir": "${project_path}",
-		},
-	],
-	"syntax_override": {
-		"\\.lua$": ["PICO-8", "PICO-8"]
+	"syntax_override":
+	{
+		"\\.lua$":
+		[
+			"PICO-8",
+			"PICO-8"
+		]
 	}
 }

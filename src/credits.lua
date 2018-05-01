@@ -5,13 +5,14 @@ local credits = {}
 -- game state
 
 local state = {
- state_type = flow.gamestate_type.credits
+ type = gamestate_type.credits
 }
 
 function state:on_enter()
 end
 
 function state:update()
+ flow:query_gamestate_type(gamestate_type.stage)
 end
 
 function state:render()

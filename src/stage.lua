@@ -5,7 +5,7 @@ local stage = {}
 -- game state
 
 local state = {
- state_type = flow.gamestate_type.stage
+ type = gamestate_type.stage
 }
 
 function state:on_enter()

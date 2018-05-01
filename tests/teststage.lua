@@ -6,9 +6,9 @@ function run_test()
 end
 
 function test_stage(desc,it)
- desc('stage.state.state_type', function ()
-  it('should be flow.gamestate_type.stage', function ()
-   return stage.state.state_type == flow.gamestate_type.stage
+ desc('stage.state.type', function ()
+  it('should be gamestate_type.stage', function ()
+   return stage.state.type == gamestate_type.stage
   end)
  end)
 end

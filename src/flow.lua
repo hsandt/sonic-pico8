@@ -32,15 +32,20 @@ end
 function flow:check_next_gamestate(gamestate_type)
  if self.next_gamestate then
   self:change_gamestate(self.next_gamestate)
-  self.next_gamestate = nil
  end
 end
 
 -- enter a new gamestate
-function flow:change_gamestate(gamestate)
- self.current_gamestate = gamestate
- self.current_gamestate.on_enter()
- printh("[flow] entered gamestate "..gamestate.type)
+function flow:change_gamestate(new_gamestate)
+ assert(new_gamestate ~= nil, "[flow] cannot change to nil gamestate")
+ if self.current_gamestate then
+  self.current_gamestate.on_exit()
+  printh("[flow] exited old gamestate "..self.current_gamestate.type)
+ end
+ self.current_gamestate = new_gamestate
+ new_gamestate.on_enter()
+ self.next_gamestate = nil  -- clear any gamestate query
+ printh("[flow] entered new gamestate "..new_gamestate.type)
 end
 
 -- export

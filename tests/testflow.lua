@@ -1,4 +1,5 @@
 picotest = require("picotest")
+helper = require("src/helper")
 flow = require("src/flow")
 titlemenu = require("src/titlemenu")
 
@@ -26,6 +27,18 @@ function test_gamestates(desc,it)
      return flow.next_gamestate == nil
     end)
     flow.current_gamestate = nil
+    flow:query_gamestate_type(titlemenu.state.type) -- restore query
+   end)
+   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow.change_gamestate', function ()
+    flow:change_gamestate(titlemenu.state)
+    it('should directly enter a gamestate', function ()
+     return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
+    end)
+    it('should cleanup the now obsolete next gamestate query', function ()
+     return flow.next_gamestate == nil
+    end)
+    flow.current_gamestate = nil
+    flow:query_gamestate_type(titlemenu.state.type) -- restore query
    end)
    flow.next_gamestate = nil
   end)
@@ -37,6 +50,7 @@ function test_gamestates(desc,it)
    flow.current_gamestate = nil
   end)
  end)
+ clear_table(flow.gamestates)
 end
 
 add(picotest.test_suite, test_gamestates)

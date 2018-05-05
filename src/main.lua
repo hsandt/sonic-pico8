@@ -15,8 +15,7 @@ function _init()
 end
 
 function _update()
- flow:check_next_gamestate()
- flow.current_gamestate:update()
+ flow:update()
 end
 
 function _draw()

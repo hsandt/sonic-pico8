@@ -3,28 +3,26 @@ require("flow")
 local credits = {}
 
 -- game state
-
-local state = {
- type = gamestate_type.credits
+local credits_state = {
+  type = gamestate_type.credits
 }
 
-function state:on_enter()
- log("flow", "credits:on_enter")
+function credits_state:on_enter()
 end
 
-function state:on_exit()
- log("credits:on_exit")
+function credits_state:on_exit()
 end
 
-function state:update()
- flow:query_gamestate_type(gamestate_type.stage)
+function credits_state:update()
 end
 
-function state:render()
+function credits_state:render()
+  cls()
+  print("credits state", 4*11, 6*12)
 end
 
 -- export
 
-credits.state = state
+credits.state = credits_state
 
 return credits

@@ -1,8 +1,8 @@
 -- global enums
 gamestate_type = {
- titlemenu = 1,
- credits = 2,
- stage = 3,
+ titlemenu = 'titlemenu',
+ credits = 'credits',
+ stage = 'stage',
 }
 
 local flow = {
@@ -14,11 +14,15 @@ local flow = {
  next_gamestate = nil,
 }
 
+function flow:update()
+ self:_check_next_gamestate()
+ self.current_gamestate:update()
+end
+
 -- add a gamestate
 function flow:add_gamestate(gamestate)
  assert(gamestate ~= nil, "passed gamestate is nil")
  self.gamestates[gamestate.type] = gamestate
- log("flow", "added gamestate "..gamestate.type)
 end
 
 -- query a new gamestate
@@ -29,23 +33,22 @@ function flow:query_gamestate_type(gamestate_type)
 end
 
 -- check if a new gamestate was queried, and enter it if so
-function flow:check_next_gamestate(gamestate_type)
+function flow:_check_next_gamestate(gamestate_type)
  if self.next_gamestate then
-  self:change_gamestate(self.next_gamestate)
+  self:_change_gamestate(self.next_gamestate)
  end
 end
 
 -- enter a new gamestate
-function flow:change_gamestate(new_gamestate)
+function flow:_change_gamestate(new_gamestate)
  assert(new_gamestate ~= nil, "[flow] cannot change to nil gamestate")
  if self.current_gamestate then
-  self.current_gamestate.on_exit()
-  log("flow", "exited old gamestate "..self.current_gamestate.type)
+  self.current_gamestate:on_exit()
  end
  self.current_gamestate = new_gamestate
- new_gamestate.on_enter()
+ new_gamestate:on_enter()
  self.next_gamestate = nil  -- clear any gamestate query
- log("flow", "entered new gamestate "..new_gamestate.type)
+ log("flow", "changed to gamestate "..new_gamestate.type)
 end
 
 -- export

@@ -3,27 +3,26 @@ require("flow")
 local stage = {}
 
 -- game state
-
-local state = {
- type = gamestate_type.stage
+local stage_state = {
+  type = gamestate_type.stage
 }
 
-function state:on_enter()
- log("flow", "stage:on_enter")
+function stage_state:on_enter()
 end
 
-function state:on_exit()
- log("flow", "stage:on_exit")
+function stage_state:on_exit()
 end
 
-function state:update()
+function stage_state:update()
 end
 
-function state:render()
+function stage_state:render()
+  cls()
+  print("stage state", 4*11, 6*12)
 end
 
 -- export
 
-stage.state = state
+stage.state = stage_state
 
 return stage

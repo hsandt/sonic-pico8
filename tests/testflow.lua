@@ -15,12 +15,18 @@ function test_gamestates(desc,it)
   end)
   desc('[after flow.add_gamestate] flow.query_gamestate_type', function ()
    flow:query_gamestate_type(titlemenu.state.type)
-   it('should query a new gamestate', function ()
+   it('should query a new gamestate with the correct type', function ()
+    return flow.next_gamestate.type == titlemenu.state.type
+   end)
+   it('should query a new gamestate with the correct reference', function ()
     return flow.next_gamestate == flow.gamestates[titlemenu.state.type]
    end)
-   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow.check_next_gamestate', function ()
-    flow:check_next_gamestate()
-    it('should enter a new gamestate', function ()
+   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow._check_next_gamestate', function ()
+    flow:_check_next_gamestate()
+    it('should enter a new gamestate with the correct type', function ()
+     return flow.current_gamestate.type == titlemenu.state.type
+    end)
+    it('should enter a new gamestate with the correct reference', function ()
      return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
     end)
     it('should clear the next gamestate query', function ()
@@ -29,8 +35,8 @@ function test_gamestates(desc,it)
     flow.current_gamestate = nil
     flow:query_gamestate_type(titlemenu.state.type) -- restore query
    end)
-   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow.change_gamestate', function ()
-    flow:change_gamestate(titlemenu.state)
+   desc('[after flow.add_gamestate, flow.query_gamestate_type] flow._change_gamestate', function ()
+    flow:_change_gamestate(titlemenu.state)
     it('should directly enter a gamestate', function ()
      return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
     end)
@@ -42,8 +48,8 @@ function test_gamestates(desc,it)
    end)
    flow.next_gamestate = nil
   end)
-  desc('[after flow.add_gamestate] flow.change_gamestate', function ()
-   flow:change_gamestate(titlemenu.state)
+  desc('[after flow.add_gamestate] flow._change_gamestate', function ()
+   flow:_change_gamestate(titlemenu.state)
    it('should directly enter a gamestate', function ()
     return flow.current_gamestate == flow.gamestates[titlemenu.state.type]
    end)

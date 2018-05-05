@@ -13,17 +13,6 @@
 		{
 			"cmd":
 			[
-				"./build.sh && ./test.sh all"
-			],
-			"name": "p8tool: build game and test all",
-			"shell": true,
-			"syntax": "Packages/ANSIescape/ANSI.tmLanguage",
-			"target": "ansi_color_build",
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
 				"./build.sh && pico8 -run build/game.p8"
 			],
 			"name": "p8tool: build and run game",
@@ -42,18 +31,18 @@
 		{
 			"cmd":
 			[
-				"./test.sh all"
+				"python3 -m postbuild.test"
 			],
-			"name": "p8tool: test all",
+			"name": "test replace_glyphs",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
 		{
 			"cmd":
 			[
-				"./test.sh main"
+				"./test.sh all"
 			],
-			"name": "p8tool: test main",
+			"name": "p8tool: test all",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
@@ -65,19 +54,50 @@
 			"name": "p8tool: test flow",
 			"shell": true,
 			"working_dir": "${project_path}"
-		}
+		},
+		{
+			"cmd":
+			[
+				"./test.sh titlemenu"
+			],
+			"name": "p8tool: test titlemenu",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh credits"
+			],
+			"name": "p8tool: test credits",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh stage"
+			],
+			"name": "p8tool: test stage",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
 	],
 	"folders":
 	[
 		{
-			"path": "/home/wing/.lexaloffle/pico-8"
+			"path": "/home/wing/.lexaloffle/pico-8",
+			"folder_exclude_patterns":
+			[
+				"backup"
+			],
 		},
 		{
+			"path": ".",
 			"file_exclude_patterns":
 			[
 				// "*.p8"
-			],
-			"path": "."
+			]
 		},
 		{
 			"path": "/home/wing/Developer/PICO-8/picotool-master-2018-01-31"

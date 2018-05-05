@@ -1,5 +1,8 @@
 # Built game
 /build
 
+# Python
+*.pyc
+
 # Sublime Text
 *.sublime-workspace

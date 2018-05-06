@@ -4,6 +4,15 @@
 		{
 			"cmd":
 			[
+				"./build.sh"
+			],
+			"name": "p8tool: build game",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./build.sh && (./reload.sh || pico8 -run build/game.p8)"
 			],
 			"name": "p8tool: build and run or reload game",
@@ -72,26 +81,24 @@
 			"name": "p8tool: test stage",
 			"shell": true,
 			"working_dir": "${project_path}"
-		},
+		}
 	],
 	"folders":
 	[
 		{
-			"path": "/home/wing/.lexaloffle/pico-8",
 			"folder_exclude_patterns":
 			[
 				"backup"
 			],
+			"path": "/home/wing/.lexaloffle/pico-8"
 		},
 		{
-			"path": ".",
-			"file_exclude_patterns":
+			"folder_exclude_patterns":
 			[
-				"*.p8"
-			]
-		},
-		{
-			"path": "/home/wing/Developer/PICO-8/picotool-master-2018-01-31"
+				"build",
+				"__pycache__"
+			],
+			"path": "."
 		}
 	],
 	"syntax_override":

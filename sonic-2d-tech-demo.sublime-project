@@ -4,18 +4,9 @@
 		{
 			"cmd":
 			[
-				"./build.sh"
+				"./build.sh && (./reload.sh || pico8 -run build/game.p8)"
 			],
-			"name": "p8tool: build game",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./build.sh && pico8 -run build/game.p8"
-			],
-			"name": "p8tool: build and run game",
+			"name": "p8tool: build and run or reload game",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
@@ -33,7 +24,7 @@
 			[
 				"python3 -m postbuild.test"
 			],
-			"name": "test replace_glyphs",
+			"name": "python: test replace_glyphs",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
@@ -96,7 +87,7 @@
 			"path": ".",
 			"file_exclude_patterns":
 			[
-				// "*.p8"
+				"*.p8"
 			]
 		},
 		{

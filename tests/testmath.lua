@@ -97,6 +97,12 @@ function test_math(desc,it)
     end)
   end)
 
+  desc('vector.__add', function ()
+    it('(3 2) + (5 3) => (8 5)', function ()
+      return vector(3, 2) + vector(5, 3) == vector(8, 5)
+    end)
+  end)
+
   desc('vector.__sub', function ()
     it('(3 2) - (5 3) => (-2 -1)', function ()
       return vector(3, 2) - vector(5, 3) == vector(-2, -1)

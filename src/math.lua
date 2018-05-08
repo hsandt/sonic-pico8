@@ -70,6 +70,10 @@ function vector.__eq(lhs, rhs)
     return lhs.x == rhs.x and lhs.y == rhs.y
 end
 
+function vector.__add(lhs, rhs)
+    return vector(lhs.x + rhs.x, lhs.y + rhs.y)
+end
+
 function vector.__sub(lhs, rhs)
     return vector(lhs.x - rhs.x, lhs.y - rhs.y)
 end

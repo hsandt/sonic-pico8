@@ -11,8 +11,9 @@ if [[ $# -lt 2 ]] ; then
     exit 1
 fi
 
-# clean up existing file (p8tool doesn't support parsing file with non-ascii chars, even just to replace appropriate blocks)
 OUTPUT_FILEPATH="build/$2.p8"
+
+# clean up existing file (p8tool doesn't support parsing file with non-ascii chars, even just to replace appropriate blocks)
 rm -f "$OUTPUT_FILEPATH"
 
 mkdir -p build

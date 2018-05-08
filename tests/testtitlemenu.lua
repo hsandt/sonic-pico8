@@ -13,6 +13,7 @@ function test_titlemenu(desc,it)
   end)
 
   desc('enter titlemenu state', function ()
+
     flow:add_gamestate(titlemenu.state)
     flow:add_gamestate(credits.state)
     flow:add_gamestate(stage.state)
@@ -25,54 +26,78 @@ function test_titlemenu(desc,it)
     end)
 
     desc('[after enter titlemenu state] titlemenu.state:move_cursor_up', function ()
+
       titlemenu.state:move_cursor_up()
+
       it('should not change current_cursor_index due to clamping', function ()
         return titlemenu.state.current_cursor_index == 0
       end)
+
       titlemenu.state.current_cursor_index = 0
+
     end)
 
     desc('[after enter titlemenu state] titlemenu.state:move_cursor_down', function ()
+
       titlemenu.state:move_cursor_down()
+
       it('should increase current_cursor_index', function ()
         return titlemenu.state.current_cursor_index == 1
       end)
+
       titlemenu.state.current_cursor_index = 0
+
     end)
 
     desc('[after enter titlemenu state] titlemenu.state:confirm_current_selection', function ()
+
       titlemenu.state:confirm_current_selection()
+
       it('should have queried stage state', function ()
         return flow.next_gamestate.type == gamestate_type.stage
       end)
+
       flow:_change_gamestate(titlemenu.state)
     end)
 
     desc('[after enter titlemenu state] current_cursor_index = 1', function ()
+
       titlemenu.state.current_cursor_index = 1
 
       desc('[after enter titlemenu state, current_cursor_index = 1] titlemenu.state:move_cursor_up', function ()
+
         titlemenu.state:move_cursor_up()
+
         it('should decrease current_cursor_index', function ()
           return titlemenu.state.current_cursor_index == 0
         end)
+
         titlemenu.state.current_cursor_index = 1
+
       end)
 
       desc('[after enter titlemenu state, current_cursor_index = 1] titlemenu.state:move_cursor_down', function ()
+
         titlemenu.state:move_cursor_down()
+
         it('should not change current_cursor_index due to clamping', function ()
           return titlemenu.state.current_cursor_index == 1
         end)
+
         titlemenu.state.current_cursor_index = 1
+
       end)
 
       desc('[after enter titlemenu state] titlemenu.state:confirm_current_selection', function ()
+
         titlemenu.state:confirm_current_selection()
+
         it('should have queried credits state', function ()
           return flow.next_gamestate.type == gamestate_type.credits
         end)
+
         flow:_change_gamestate(titlemenu.state)
+
       end)
 
     end)  -- current_cursor_index = 1

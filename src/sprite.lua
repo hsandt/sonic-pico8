@@ -1,8 +1,10 @@
--- sprite class
-sprite = {}
-sprite.__index = sprite
+require("math")
 
-setmetatable(sprite, {
+-- sprite class
+sprite_data = {}
+sprite_data.__index = sprite_data
+
+setmetatable(sprite_data, {
   __call = function (cls, ...)
     local self = setmetatable({}, cls)
     self:_init(...)
@@ -10,13 +12,14 @@ setmetatable(sprite, {
   end,
 })
 
--- i       int     sprite horizontal coordinate in the spritesheet
--- j       int     sprite vertical   coordinate in the spritesheet
--- span_i  int  1  width  of the range of sprites in the spritesheet
--- span_j  int  1  height of the range of sprites in the spritesheet
-function sprite:_init(i, j, span_i, span_j)
-  self.i = i
-  self.j = j
-  self.span_i = span_i or 1
-  self.span_j = span_j or 1
+-- sprite_id_loc   sprite_id_location                     sprite location on the spritesheet
+-- sprite_span     tile_vector         tile_vector(1, 1)  sprite span on the spritesheet
+function sprite_data:_init(sprite_id_loc, sprite_span)
+  self.sprite_id_loc = sprite_id_loc
+  self.sprite_span = sprite_span or tile_vector(1, 1)
+end
+
+-- draw this sprite at position, optionally flipped
+function sprite_data:render(position, flip_x, flip_y)
+  spr(sprite_id_loc:to_sprite_id(), position.x, position.y, self.sprite_span.i, self.sprite_span.j, flip_x, flip_y)
 end

@@ -31,12 +31,23 @@ end
 
 function stage_state:render()
   cls()
-  print("stage state", 4*11, 6*12)
+  print("stage state", 4*11, 1*12)
+  self:render_player_character()
 end
 
+-- setup
+
+-- spawn the player character at the stage spawn location
 function stage_state:spawn_player_character()
   local spawn_position = stage_data.spawn_location:to_position()
   self.player_character = player_character(spawn_position)
+end
+
+-- render
+
+-- render the player character at its current position
+function stage_state:render_player_character()
+  self.player_character:render()
 end
 
 -- export

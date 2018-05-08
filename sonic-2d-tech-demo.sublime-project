@@ -103,9 +103,27 @@
 		{
 			"cmd":
 			[
+				"./test.sh helper"
+			],
+			"name": "p8tool: test helper",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh math"
 			],
 			"name": "p8tool: test math",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh sprite"
+			],
+			"name": "p8tool: test sprite",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},

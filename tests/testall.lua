@@ -1,9 +1,12 @@
 picotest = require("picotest")
 
-require("testflow")
-require("testtitlemenu")
+require("testclass")
 require("testcredits")
+require("testflow")
+require("testmath")
+require("testplayercharacter")
 require("teststage")
+require("testtitlemenu")
 
 function run_all_tests()
   picotest.test('all', function(desc,it)

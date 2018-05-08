@@ -4,7 +4,7 @@
 		{
 			"cmd":
 			[
-				"./build.sh"
+				"./build.sh main game"
 			],
 			"name": "p8tool: build game",
 			"shell": true,
@@ -13,9 +13,18 @@
 		{
 			"cmd":
 			[
-				"./build.sh && (./reload.sh || pico8 -run build/game.p8)"
+				"./build.sh main game && (./reload.sh || pico8 -run build/game.p8)"
 			],
 			"name": "p8tool: build and run or reload game",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./build.sh sandbox sandbox && (./reload.sh || pico8 -run build/sandbox.p8)"
+			],
+			"name": "p8tool: build and run or reload sandbox",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
@@ -81,7 +90,34 @@
 			"name": "p8tool: test stage",
 			"shell": true,
 			"working_dir": "${project_path}"
-		}
+		},
+		{
+			"cmd":
+			[
+				"./test.sh class"
+			],
+			"name": "p8tool: test class",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh math"
+			],
+			"name": "p8tool: test math",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh playercharacter"
+			],
+			"name": "p8tool: test playercharacter",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
 	],
 	"folders":
 	[

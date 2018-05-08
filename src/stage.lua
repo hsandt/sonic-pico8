@@ -1,12 +1,13 @@
-require("math")
+require("color")
 require("flow")
+require("math")
 require("playercharacter")
 
 local stage = {}
 
 -- stage data
 local stage_data = {
-  spawn_location = location(0, -3)
+  spawn_location = location(1, 1)
 }
 
 -- game state
@@ -31,7 +32,14 @@ end
 
 function stage_state:render()
   cls()
+
+  -- background
+  rectfill(0, 0, 127, 127, colors.dark_purple)
+  rectfill(0, 0, 7, 7, colors.pink)
+  rectfill(8, 8, 15, 15, colors.pink)
+
   print("stage state", 4*11, 1*12)
+
   self:render_player_character()
 end
 
@@ -39,7 +47,7 @@ end
 
 -- spawn the player character at the stage spawn location
 function stage_state:spawn_player_character()
-  local spawn_position = stage_data.spawn_location:to_position()
+  local spawn_position = stage_data.spawn_location:to_center_position()
   self.player_character = player_character(spawn_position)
 end
 

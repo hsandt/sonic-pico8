@@ -43,6 +43,15 @@ function test_math(desc,it)
     end)
   end)
 
+  desc('sprite_id_location.to_sprite_id', function ()
+    it('(2 2) => 34', function ()
+      return sprite_id_location(2, 2):to_sprite_id() == 34
+    end)
+    it('(15 1) => 31', function ()
+      return sprite_id_location(15, 1):to_sprite_id() == 31
+    end)
+  end)
+
   desc('location.__eq', function ()
     it('should return true if locations have the same coordinates', function ()
       local loc1 = location(1, -4)
@@ -56,10 +65,15 @@ function test_math(desc,it)
     end)
   end)
 
-  desc('location.to_position', function ()
-    it('should return the vector in pixel coordinates corresponding to this tile location', function ()
-      local pos = location(1, -2):to_position()
-      return pos.x == 8 and pos.y == -16
+  desc('location.to_topleft_position', function ()
+    it('(1 2) => (8 16)', function ()
+      return location(1, 2):to_topleft_position() == vector(8, 16)
+    end)
+  end)
+
+  desc('location.to_center_position', function ()
+    it('(1 2) => (12 20)', function ()
+      return location(1, 2):to_center_position() == vector(12, 20)
     end)
   end)
 
@@ -80,6 +94,12 @@ function test_math(desc,it)
       local vec1 = vector(1, -4)
       local vec2 = vector(1, -5)
       return vec1 ~= vec2
+    end)
+  end)
+
+  desc('vector.__sub', function ()
+    it('(3 2) - (5 3) => (-2 -1)', function ()
+      return vector(3, 2) - vector(5, 3) == vector(-2, -1)
     end)
   end)
 

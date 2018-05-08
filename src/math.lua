@@ -26,27 +26,34 @@ end
 -- and associated conversion methods
 sprite_id_location = derived_class(tile_vector)
 
--- return the sprite id  corresponding to a sprite location on a spritesheet
-function sprite_id_location:to_sprite_id()
-  return 16 * j + i
-end
-
 function sprite_id_location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
 end
+
+-- return the sprite id  corresponding to a sprite location on a spritesheet
+function sprite_id_location:to_sprite_id()
+  return 16 * self.j + self.i
+end
+
 
 -- location is a special tile_vector with the semantics of a tilemap location
 -- and associated conversion methods
 location = derived_class(tile_vector)
 
--- return the position corresponding to a location
-function location:to_position()
-  return vector(8 * self.i, 8 * self.j)
-end
-
 function location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
 end
+
+-- return the topleft position corresponding to a tile location
+function location:to_topleft_position()
+  return vector(8 * self.i, 8 * self.j)
+end
+
+-- return the center position corresponding to a tile location
+function location:to_center_position()
+  return vector(8 * self.i + 4, 8 * self.j + 4)
+end
+
 
 -- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
@@ -61,4 +68,8 @@ end
 
 function vector.__eq(lhs, rhs)
     return lhs.x == rhs.x and lhs.y == rhs.y
+end
+
+function vector.__sub(lhs, rhs)
+    return vector(lhs.x - rhs.x, lhs.y - rhs.y)
 end

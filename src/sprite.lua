@@ -12,14 +12,20 @@ setmetatable(sprite_data, {
   end,
 })
 
--- sprite_id_loc   sprite_id_location                     sprite location on the spritesheet
--- sprite_span     tile_vector         tile_vector(1, 1)  sprite span on the spritesheet
-function sprite_data:_init(sprite_id_loc, sprite_span)
-  self.sprite_id_loc = sprite_id_loc
-  self.sprite_span = sprite_span or tile_vector(1, 1)
+-- id_loc   sprite_id_location                      sprite location on the spritesheet
+-- span     tile_vector         tile_vector(1, 1)   sprite span on the spritesheet
+-- pivot    vector              (0, 0)              reference center to draw (top-left is (0 ,0))
+function sprite_data:_init(id_loc, span, pivot)
+  self.id_loc = id_loc
+  self.span = span or tile_vector(1, 1)
+  self.pivot = pivot or vector(0, 0)
 end
 
 -- draw this sprite at position, optionally flipped
 function sprite_data:render(position, flip_x, flip_y)
-  spr(sprite_id_loc:to_sprite_id(), position.x, position.y, self.sprite_span.i, self.sprite_span.j, flip_x, flip_y)
+  local draw_pos = position - self.pivot
+  spr(self.id_loc:to_sprite_id(),
+    draw_pos.x, draw_pos.y,
+    self.span.i, self.span.j,
+    flip_x, flip_y)
 end

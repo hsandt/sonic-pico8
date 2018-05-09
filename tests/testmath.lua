@@ -3,6 +3,21 @@ math = require("math")
 
 function test_math(desc,it)
 
+  desc('almost_eq', function ()
+    it('2.506 ~ 2.515', function ()
+      return almost_eq(2.506, 2.515)
+    end)
+    it('2.505 ~! 2.516', function ()
+      return not almost_eq(2.505, 2.516)
+    end)
+    it('-5.984 ~ -5.9835 with eps=0.001', function ()
+      return almost_eq(-5.984, -5.9835, 0.001)
+    end)
+    it('-5.984 !~ -5.9828 with eps=0.001', function ()
+      return not almost_eq(-5.984, -5.9828, 0.001)
+    end)
+  end)
+
   desc('tile_vector._init', function ()
     it('should create a new tile vector with the right coordinates', function ()
       local loc = tile_vector(2, -6)
@@ -12,34 +27,41 @@ function test_math(desc,it)
 
   desc('tile_vector._tostring', function ()
     it('should return a string representation with the right coordinates', function ()
-      local loc = tile_vector(2, -6)
-      return loc:_tostring() == "tile_vector(2, -6)"
+      local tile_vec = tile_vector(2, -6)
+      return tile_vec:_tostring() == "tile_vector(2, -6)"
     end)
   end)
 
   desc('tile_vector.__eq', function ()
     it('should return true if tile vectors have the same coordinates', function ()
-      local loc1 = tile_vector(1, -4)
-      local loc2 = tile_vector(1, -4)
-      return loc1 == loc2
+      local tile_vec1 = tile_vector(1, -4)
+      local tile_vec2 = tile_vector(1, -4)
+      return tile_vec1 == tile_vec2
     end)
     it('should return false if tile vectors have different coordinates', function ()
-      local loc1 = tile_vector(1, -4)
-      local loc2 = tile_vector(1, -5)
-      return loc1 ~= loc2
+      local tile_vec1 = tile_vector(1, -4)
+      local tile_vec2 = tile_vector(1, -5)
+      return tile_vec1 ~= tile_vec2
+    end)
+  end)
+
+  desc('sprite_id_location._tostring', function ()
+    it('should return a string representation with the right coordinates', function ()
+      local sprite_id_loc = sprite_id_location(2, -6)
+      return sprite_id_loc:_tostring() == "sprite_id_location(2, -6)"
     end)
   end)
 
   desc('sprite_id_location.__eq', function ()
     it('should return true if sprite locations have the same coordinates', function ()
-      local loc1 = sprite_id_location(1, -4)
-      local loc2 = sprite_id_location(1, -4)
-      return loc1 == loc2
+      local tile_vec1 = sprite_id_location(1, -4)
+      local tile_vec2 = sprite_id_location(1, -4)
+      return tile_vec1 == tile_vec2
     end)
     it('should return false if sprite locations have different coordinates', function ()
-      local loc1 = sprite_id_location(1, -4)
-      local loc2 = sprite_id_location(1, -5)
-      return loc1 ~= loc2
+      local tile_vec1 = sprite_id_location(1, -4)
+      local tile_vec2 = sprite_id_location(1, -5)
+      return tile_vec1 ~= tile_vec2
     end)
   end)
 
@@ -49,6 +71,13 @@ function test_math(desc,it)
     end)
     it('(15 1) => 31', function ()
       return sprite_id_location(15, 1):to_sprite_id() == 31
+    end)
+  end)
+
+  desc('location._tostring', function ()
+    it('should return a string representation with the right coordinates', function ()
+      local loc = location(2, -6)
+      return loc:_tostring() == "location(2, -6)"
     end)
   end)
 
@@ -84,6 +113,13 @@ function test_math(desc,it)
     end)
   end)
 
+  desc('vector._tostring', function ()
+    it('should return a string representation with the right coordinates', function ()
+      local vec = vector(2, -6)
+      return vec:_tostring() == "vector(2, -6)"
+    end)
+  end)
+
   desc('vector.__eq', function ()
     it('should return true if vectors have the same coordinates', function ()
       local vec1 = vector(1, -4)
@@ -97,6 +133,25 @@ function test_math(desc,it)
     end)
   end)
 
+  desc('vector._almost_eq and vector:almost_eq', function ()
+    it('vector(2.50501 5.8) ~ vector(2.515 5.79) (static version)', function ()
+      -- due to precision issues, 2.505 !~ 2.515 with default eps=0.01!
+      return vector._almost_eq(vector(2.50501, 5.8), vector(2.515, 5.79))
+    end)
+    it('vector(2.50501 5.8) ~ vector(2.515 5.79)', function ()
+      return vector(2.50501, 5.8):almost_eq(vector(2.515, 5.79))
+    end)
+    it('vector(2.505 5.8) !~ vector(2.515 5.788)', function ()
+      return not vector(2.505, 5.8):almost_eq(vector(2.515, 5.788))
+    end)
+    it('vector(2.505 5.8) ~ vector(2.5049 5.799) with eps=0.001', function ()
+      return vector(2.505, 5.8):almost_eq(vector(2.5049, 5.799), 0.001)
+    end)
+    it('vector(2.505 5.8) !~ vector(2.5047 5.789) with eps=0.001', function ()
+      return not vector(2.505, 5.8):almost_eq(vector(2.5047, 5.789), 0.001)
+    end)
+  end)
+
   desc('vector.__add', function ()
     it('(3 2) + (5 3) => (8 5)', function ()
       return vector(3, 2) + vector(5, 3) == vector(8, 5)
@@ -106,6 +161,15 @@ function test_math(desc,it)
   desc('vector.__sub', function ()
     it('(3 2) - (5 3) => (-2 -1)', function ()
       return vector(3, 2) - vector(5, 3) == vector(-2, -1)
+    end)
+  end)
+
+  desc('vector.__mul', function ()
+    it('(3 2) * -2 => (-6 -4)', function ()
+      return vector(3, 2) * -2 == vector(-6, -4)
+    end)
+    it('4 * (-3 2) => (-12 8)', function ()
+      return 4 * vector(-3, 2) == vector(-12, 8)
     end)
   end)
 

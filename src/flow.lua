@@ -1,4 +1,5 @@
--- global enums
+-- global variables
+
 gamestate_type = {
  titlemenu = 'titlemenu',
  credits = 'credits',

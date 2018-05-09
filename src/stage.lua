@@ -28,6 +28,8 @@ function stage_state:on_exit()
 end
 
 function stage_state:update()
+  self:handle_input()
+  self.player_character:update()
 end
 
 function stage_state:render()
@@ -43,6 +45,7 @@ function stage_state:render()
   self:render_player_character()
 end
 
+
 -- setup
 
 -- spawn the player character at the stage spawn location
@@ -50,6 +53,29 @@ function stage_state:spawn_player_character()
   local spawn_position = stage_data.spawn_location:to_center_position()
   self.player_character = player_character(spawn_position)
 end
+
+
+-- input
+
+-- handle player input
+function stage_state:handle_input()
+  local player_move_intention = vector(0, 0)
+
+  if btn(##l) then
+    player_move_intention += vector(-1, 0)
+  elseif btn(##r) then
+    player_move_intention += vector(1, 0)
+  end
+
+  if btn(##u) then
+    player_move_intention += vector(0, -1)
+  elseif btn(##d) then
+    player_move_intention += vector(0, 1)
+  end
+
+  self.player_character.move_intention = player_move_intention
+end
+
 
 -- render
 

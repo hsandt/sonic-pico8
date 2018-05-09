@@ -12,7 +12,7 @@ function test_stage(desc,it)
     end)
   end)
 
-  desc('stage.state.spawn_player_character', function ()
+  desc('stage.state:spawn_player_character', function ()
 
     stage_state:spawn_player_character()
 
@@ -38,7 +38,8 @@ function test_stage(desc,it)
       end)
 
       it('should be located at stage spawn location', function ()
-        return stage_state.player_character ~= nil and stage_state.player_character.position == stage.data.spawn_location:to_center_position()
+        return stage_state.player_character ~= nil and
+          stage_state.player_character.position == stage.data.spawn_location:to_center_position()
       end)
 
     end)

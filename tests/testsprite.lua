@@ -32,6 +32,31 @@ function test_sprite(desc,it)
     end)
   end)
 
+  desc('sprite._tostring', function ()
+
+    it('sprite_data(sprite_id_location(1, 3), ...) => "sprite_data(sprite_id_location(1, 3), ...)"', function ()
+      local spr_data = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))
+      return spr_data:_tostring() == "sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))"
+    end)
+
+  end)
+
+  desc('sprite.__eq', function ()
+
+    local spr_data = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))
+    local spr_data2 = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))
+    local spr_data3 = sprite_data(sprite_id_location(1, 5), tile_vector(2, 3), vector(2, 4))
+
+    it('sprite_data(sprite_id_location(1, 3), ...) == sprite_data(sprite_id_location(1, 3), ...)', function ()
+      return spr_data == spr_data2
+    end)
+
+    it('sprite_data(sprite_id_location(1, 3), ...) == sprite_data(sprite_id_location(1, 5), ...)', function ()
+      return spr_data ~= spr_data3
+    end)
+
+  end)
+
 end
 
 add(picotest.test_suite, test_sprite)

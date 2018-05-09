@@ -26,9 +26,9 @@ end
 
 function titlemenustate:update()
   if btnp(##u) then
-    titlemenustate:move_cursor_up()
+    self:move_cursor_up()
   elseif btnp(##d) then
-    titlemenustate:move_cursor_down()
+    self:move_cursor_down()
   elseif btnp(##x) then
     self:confirm_current_selection()
   end

@@ -13,7 +13,7 @@
 		{
 			"cmd":
 			[
-				"./build.sh main game && (./reload.sh || pico8 -run build/game.p8)"
+				"./build.sh main game && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\")"
 			],
 			"name": "p8tool: build and run or reload game",
 			"shell": true,
@@ -22,7 +22,7 @@
 		{
 			"cmd":
 			[
-				"./build.sh sandbox sandbox && (./reload.sh || pico8 -run build/sandbox.p8)"
+				"./build.sh sandbox sandbox && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"
 			],
 			"name": "p8tool: build and run or reload sandbox",
 			"shell": true,

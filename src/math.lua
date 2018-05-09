@@ -1,5 +1,12 @@
 require("class")
 
+-- numeric helpers
+function almost_eq(lhs, rhs, eps)
+  eps = eps or 0.01
+  return abs(lhs - rhs) <= eps
+end
+
+
 -- tile_vector class: a pair of integer coords (i, j) that represents a position
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
 -- for sprite locations and tilemap locations, use sprite_id_location and location resp.
@@ -26,6 +33,10 @@ end
 -- and associated conversion methods
 sprite_id_location = derived_class(tile_vector)
 
+function sprite_id_location:_tostring()
+  return "sprite_id_location("..self.i..", "..self.j..")"
+end
+
 function sprite_id_location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
 end
@@ -39,6 +50,10 @@ end
 -- location is a special tile_vector with the semantics of a tilemap location
 -- and associated conversion methods
 location = derived_class(tile_vector)
+
+function location:_tostring()
+  return "location("..self.i..", "..self.j..")"
+end
 
 function location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
@@ -66,14 +81,37 @@ function vector:_init(x, y)
   self.y = y
 end
 
+function vector:_tostring()
+  return "vector("..self.x..", "..self.y..")"
+end
+
 function vector.__eq(lhs, rhs)
-    return lhs.x == rhs.x and lhs.y == rhs.y
+  return lhs.x == rhs.x and lhs.y == rhs.y
+end
+
+function vector._almost_eq(lhs, rhs, eps)
+  return almost_eq(lhs.x, rhs.x, eps) and almost_eq(lhs.y, rhs.y, eps)
+end
+
+function vector:almost_eq(other, eps)
+  return vector._almost_eq(self, other, eps)
 end
 
 function vector.__add(lhs, rhs)
-    return vector(lhs.x + rhs.x, lhs.y + rhs.y)
+  return vector(lhs.x + rhs.x, lhs.y + rhs.y)
 end
 
 function vector.__sub(lhs, rhs)
-    return vector(lhs.x - rhs.x, lhs.y - rhs.y)
+  return vector(lhs.x - rhs.x, lhs.y - rhs.y)
+end
+
+function vector.__mul(lhs, rhs)
+  if type(lhs) == "number" then
+    return vector(lhs * rhs.x, lhs * rhs.y)
+  elseif type(rhs) == "number" then
+    return vector (rhs * lhs.x, rhs * lhs.y)
+  else
+    assert(false, "vector multiplication is only supported with a scalar,
+      tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
+  end
 end

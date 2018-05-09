@@ -14,7 +14,7 @@ function _init()
  flow:query_gamestate_type(titlemenu.state.type)
 end
 
-function _update()
+function _update60()
  flow:update()
 end
 

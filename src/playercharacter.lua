@@ -29,6 +29,10 @@ function player_character:_init(position)
  self.move_intention = vector(0, 0)
 end
 
+function player_character:_tostring()
+ return "[player_character at "..self.position.."]"
+end
+
 -- update player position
 function player_character:update()
  self:move(self.move_intention * self.debug_move_speed * delta_time)

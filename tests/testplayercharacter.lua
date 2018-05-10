@@ -12,6 +12,14 @@ function test_player_character(desc,it)
     end)
   end)
 
+  desc('player_character:_tostring', function ()
+    it('=> [player_character at vector(45comma 2)]', function ()
+      -- test only passed parameters since we cannot access local data from the module
+      local player_character = player_character(vector(45, 2))
+      return player_character:_tostring() == "[player_character at vector(45, 2)]"
+    end)
+  end)
+
   desc('player_character:move', function ()
     it('at (4 -4) move (-5 4) => at (-1 0)', function ()
       -- test only passed parameters since we cannot access local data from the module

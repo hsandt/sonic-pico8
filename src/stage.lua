@@ -59,7 +59,7 @@ end
 
 -- handle player input
 function stage_state:handle_input()
-  local player_move_intention = vector(0, 0)
+  local player_move_intention = vector.zero()
 
   if btn(##l) then
     player_move_intention += vector(-1, 0)

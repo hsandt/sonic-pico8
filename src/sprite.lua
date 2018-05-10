@@ -18,7 +18,7 @@ setmetatable(sprite_data, {
 function sprite_data:_init(id_loc, span, pivot)
   self.id_loc = id_loc
   self.span = span or tile_vector(1, 1)
-  self.pivot = pivot or vector(0, 0)
+  self.pivot = pivot or vector.zero()
 end
 
 function sprite_data:_tostring()

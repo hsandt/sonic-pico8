@@ -1,11 +1,13 @@
 -- require("constants")
--- require("debug")
+require("debug")
 -- require("flow")
 require("math")
 require("class")
 -- require("playercharacter")
 -- stage = require("stage")
 -- flow = require("flow")
+
+warn("test")
 
 local dummy_class = new_class()
 
@@ -57,6 +59,11 @@ end
 printh("dummy_derived_class(11, 45)..\"str\": "..dummy_derived_class(11, 45).."str")
 
 printh("dummy_derived_class(11, 45)..true: "..dummy_derived_class(11, 45)..true)
+
+local immutable_dummy_class = immutable_class(dummy_class)
+
+printh("immutable_dummy_class(12):_tostring(): "..immutable_dummy_class(12):_tostring())
+printh("immutable_dummy_class(11)..\"str\": "..immutable_dummy_class(11).."str")
 
 -- caveats
 

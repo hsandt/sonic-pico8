@@ -6,28 +6,33 @@ debug_level = {
 }
 
 active_debug_categories = {
+ default = true,
  flow = true,
+ player = true,
 }
 
 current_debug_level = debug_level.log
 
 -- print a log message to the console in a category string
-function log(category, message)
- if active_debug_categories[category] and current_debug_level <= debug_level.log then
-  printh(message)
- end
+function log(message, category)
+  category = category or "default"
+  if active_debug_categories[category] and current_debug_level <= debug_level.log then
+    printh("["..category.."]"..message)
+  end
 end
 
 -- print a warning message to the console in a category string
-function warn(category, message)
- if active_debug_categories[category] and current_debug_level <= debug_level.warning then
-  printh(message)
- end
+function warn(message, category)
+  category = category or "default"
+  if active_debug_categories[category] and current_debug_level <= debug_level.warning then
+    printh("["..category.."]"..message)
+  end
 end
 
 -- print an error message to the console in a category string
-function err(category, message)
- if active_debug_categories[category] and current_debug_level <= debug_level.error then
-  printh(message)
- end
+function err(message, category)
+  category = category or "default"
+  if active_debug_categories[category] and current_debug_level <= debug_level.error then
+    printh("["..category.."]"..message)
+  end
 end

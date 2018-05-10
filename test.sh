@@ -22,4 +22,5 @@ p8tool build --lua "tests/test$1.lua" "$TEST_FILEPATH" --lua-path="?.lua;$(pwd)/
 python3.6 postbuild/replace_glyphs.py "$TEST_FILEPATH" &&
 # if a runtime error occurs during the test, exec bash will allow us to keep the terminal open to see it
 gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\" | pico-test; exec bash;" &&
+# gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\"; exec bash;" &&
 echo "Running $TEST_FILEPATH"

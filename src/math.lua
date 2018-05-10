@@ -73,6 +73,7 @@ end
 -- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
 vector = new_class()
+immutable_vector = immutable_class(vector)
 
 -- x       int     horizontal coordinate in pixels
 -- y       int     vertical   coordinate in pixels
@@ -116,10 +117,79 @@ function vector.__mul(lhs, rhs)
   end
 end
 
+function vector.__div(lhs, rhs)
+  if type(rhs) == "number" then
+    assert(rhs ~= 0, "cannot divide vector "..lhs:_tostring().." by zero")
+    return vector(lhs.x / rhs, lhs.y / rhs)
+  else
+    assert(false, "vector division is only supported with a scalar as rhs,
+      tried to multiply "..tostring(lhs).." and "..rhs:_tostring())
+  end
+end
+
+function vector.zero()
+  return vector(0, 0)
+end
+
+function vector:is_zero()
+  return self.x == 0 and self.y == 0
+end
+
 function vector:sqr_magnitude()
   return self.x ^ 2 + self.y ^ 2
 end
 
 function vector:magnitude()
   return sqrt(self:sqr_magnitude())
+end
+
+-- return a normalized vector is non-zero, else a zero vector
+function vector:normalized()
+  local magnitude = self:magnitude()
+  if magnitude > 0 then
+    return self / magnitude
+  else
+    return vector.zero()
+  end
+end
+
+function vector:normalize()
+  local magnitude = self:magnitude()
+  if magnitude > 0 then
+    self.x /= magnitude
+    self.y /= magnitude
+  end
+end
+
+function vector:with_clamped_magnitude(max_magnitude)
+  assert(max_magnitude >= 0)
+  local magnitude = self:magnitude()
+  if magnitude > max_magnitude then
+      return max_magnitude * self / magnitude
+  end
+  return self
+end
+
+function vector:clamp_magnitude(max_magnitude)
+  assert(max_magnitude >= 0)
+  local magnitude = self:magnitude()
+  if magnitude > max_magnitude then
+    self.x *= max_magnitude / magnitude
+    self.y *= max_magnitude / magnitude
+  end
+end
+
+function vector:with_clamped_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
+  -- if 1 arg is passed, use the same max for x and y
+  max_magnitude_y = max_magnitude_y or max_magnitude_x
+  assert(max_magnitude_x >= 0 and max_magnitude_y >= 0)
+  return vector(mid(-max_magnitude_x, self.x, max_magnitude_x), mid(-max_magnitude_y, self.y, max_magnitude_y))
+end
+
+function vector:clamp_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
+  -- if 1 arg is passed, use the same max for x and y
+  max_magnitude_y = max_magnitude_y or max_magnitude_x
+  assert(max_magnitude_x >= 0 and max_magnitude_y >= 0)
+  self.x = mid(-max_magnitude_x, self.x, max_magnitude_x)
+  self.y = mid(-max_magnitude_y, self.y, max_magnitude_y)
 end

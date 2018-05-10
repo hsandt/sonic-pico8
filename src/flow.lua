@@ -49,7 +49,7 @@ function flow:_change_gamestate(new_gamestate)
  self.current_gamestate = new_gamestate
  new_gamestate:on_enter()
  self.next_gamestate = nil  -- clear any gamestate query
- log("flow", "changed gamestate to "..new_gamestate.type)
+ log("changed gamestate to "..new_gamestate.type, "flow")
 end
 
 -- export

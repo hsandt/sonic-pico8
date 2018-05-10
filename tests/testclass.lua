@@ -11,7 +11,7 @@ function test_class(desc,it)
       self.value = value
     end
 
-    function dummy_class:_tostring(value)
+    function dummy_class:_tostring()
       return "dummy:"..self.value
     end
 
@@ -32,6 +32,25 @@ function test_class(desc,it)
       return dummy_class(12):_tostring() == "dummy:12"
     end)
 
+    it('... concatenate with a string', function ()
+      return dummy_class(11).."str" == "dummy:11str"
+    end)
+    it('... concatenate with a boolean', function ()
+      return dummy_class(11)..true == "dummy:11true"
+    end)
+    it('... concatenate with a number', function ()
+      return dummy_class(11)..24 == "dummy:1124"
+    end)
+    it('... concatenate with a number on the left', function ()
+      return "27"..dummy_class(11) == "27dummy:11"
+    end)
+    it('... concatenate with another instance of dummy', function ()
+      return dummy_class(11)..dummy_class(46) == "dummy:11dummy:46"
+    end)
+    it('... concatenate within a chain of objects', function ()
+      return dummy_class(11)..", and "..dummy_class(46) == "dummy:11, and dummy:46"
+    end)
+
     it('... and an equality test on value', function ()
       return dummy_class(-5) == dummy_class(-5)
     end)
@@ -44,7 +63,7 @@ function test_class(desc,it)
       return dummy_class(-5):get_incremented_value() == -4
     end)
 
-    desc('dummy derived class', function ()
+    desc('dummy_derived class', function ()
 
       local dummy_derived_class = derived_class(dummy_class)
 
@@ -53,8 +72,8 @@ function test_class(desc,it)
         self.value2 = value2
       end
 
-      function dummy_derived_class:_tostring(value)
-        return "dummy derived:"..self.value..","..self.value2
+      function dummy_derived_class:_tostring()
+        return "dummy_derived:"..self.value..","..self.value2
       end
 
       function dummy_derived_class.__eq(lhs, rhs)
@@ -67,8 +86,30 @@ function test_class(desc,it)
       end)
 
       it('... and a tostring', function ()
-        return dummy_derived_class(12, 45):_tostring() == "dummy derived:12,45"
+        return dummy_derived_class(12, 45):_tostring() == "dummy_derived:12,45"
       end)
+
+      it('... concatenate with a string', function ()
+        return dummy_derived_class(11, 45).."str" == "dummy_derived:11,45str"
+      end)
+      -- it('... concatenate with a boolean', function ()
+      --   return dummy_derived_class(11, 45)..true == "dummy_derived:11,45true"
+      -- end)
+      -- it('... concatenate with a number', function ()
+      --   return dummy_derived_class(11, 45)..24 == "dummy_derived:11,4524"
+      -- end)
+      -- it('... concatenate with a number on the left', function ()
+      --   return "27"..dummy_derived_class(11, 45) == "27dummy_derived:11,45"
+      -- end)
+      -- it('... concatenate with another instance of dummy_derived', function ()
+      --   return dummy_derived_class(11, 45)..dummy_derived_class(46) == "dummy_derived:11,45dummy_derived:46"
+      -- end)
+      -- it('... concatenate with an instance of dummy', function ()
+      --   return dummy_derived_class(11, 45)..dummy_class(46) == "dummy_derived:11,45dummy:46"
+      -- end)
+      -- it('... concatenate within a chain of objects', function ()
+      --   return dummy_derived_class(11, 45)..", and "..dummy_class(46) == "dummy_derived:11,45, and dummy:46"
+      -- end)
 
       it('... and an equality test on value', function ()
         return dummy_derived_class(-5, 45) == dummy_derived_class(-5, 45)

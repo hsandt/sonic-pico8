@@ -1,21 +1,69 @@
-require("constants")
-require("debug")
-require("flow")
+-- require("constants")
+-- require("debug")
+-- require("flow")
 require("math")
-require("playercharacter")
-stage = require("stage")
-flow = require("flow")
+require("class")
+-- require("playercharacter")
+-- stage = require("stage")
+-- flow = require("flow")
 
-local stage_state = stage.state
+local dummy_class = new_class()
 
-flow:add_gamestate(stage_state)
-flow:_change_gamestate(stage_state)
+function dummy_class:_init(value)
+self.value = value
+end
 
-stage_state.player_character.move_intention = vector(1, -1)
--- won't work unless i have input hijack
-stage_state:update()
+function dummy_class:_tostring(value)
+return "dummy:"..self.value
+end
 
-local expected_position = stage.data.spawn_location:to_center_position() +
-  vector(1, -1) * stage_state.player_character.debug_move_speed * delta_time
-printh(stage_state.player_character.position:_tostring())
-printh(expected_position:_tostring())
+function dummy_class.__eq(lhs, rhs)
+return lhs.value == rhs.value
+end
+
+function dummy_class:get_incremented_value()
+return self.value + 1
+end
+
+local dummy = dummy_class(3)
+
+printh(dummy_class(12):_tostring())
+
+printh(dummy_class(11).."str")
+printh(dummy_class(11)..true)
+printh(dummy_class(11)..24)
+-- caveats
+
+-- syntax error: malformed number near 27..d
+-- this error will block the output stream, getting picotest stuck!
+-- correct:
+printh("27"..dummy_class(11))
+
+local dummy_derived_class = derived_class(dummy_class)
+
+function dummy_derived_class:_init(value, value2)
+  dummy_class:_init(value)
+  self.value2 = value2
+end
+
+function dummy_derived_class:_tostring()
+  return "dummy derived:"..self.value..","..self.value2
+end
+
+function dummy_derived_class.__eq(lhs, rhs)
+  return lhs.value == rhs.value and lhs.value2 == rhs.value2
+end
+
+printh("dummy_derived_class(11, 45)..\"str\": "..dummy_derived_class(11, 45).."str")
+
+printh("dummy_derived_class(11, 45)..true: "..dummy_derived_class(11, 45)..true)
+
+-- caveats
+
+-- syntax error: malformed number near 27..d
+-- this error will block the output stream, getting picotest stuck!
+-- printh(27..vector(11, 45))
+-- correct:
+printh("27"..vector(11, 45))
+-- or
+printh(tostr(27)..vector(11, 45))

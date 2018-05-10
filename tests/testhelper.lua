@@ -1,5 +1,6 @@
 picotest = require("picotest")
 helper = require("helper")
+math = require("math")  -- just to test tostring
 
 function test_helper(desc,it)
 
@@ -44,6 +45,34 @@ function test_helper(desc,it)
       end
       return foo(unpack({45, 1, "foo", 20.2, 50}, 2, 4))
     end)
+  end)
+
+  desc('tostring', function ()
+    it('nil => "nil"', function ()
+      return tostring(nil) == "[nil]"
+    end)
+    it('"string" => "string"', function ()
+      return tostring("string") == "string"
+    end)
+    it('true => "true"', function ()
+      return tostring(true) == "true"
+    end)
+    it('false => "false"', function ()
+      return tostring(false) == "false"
+    end)
+    it('56 => "56"', function ()
+      return tostring("56") == "56"
+    end)
+    it('56.2 => "56.2"', function ()
+      return tostring("56.2") == "56.2"
+    end)
+    it('vector(2, 3) => "vector(2, 3)" (_tostring implemented)', function ()
+      return tostring(vector(2, 3)) == "vector(2, 3)"
+    end)
+    it('{} => "[table]" (:_tostring not implemented)', function ()
+      return tostring({}) == "[table]"
+    end)
+
   end)
 
 end

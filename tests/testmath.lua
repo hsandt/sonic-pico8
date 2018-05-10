@@ -173,6 +173,36 @@ function test_math(desc,it)
     end)
   end)
 
+  desc('vector.sqr_magnitude', function ()
+    it('(4 3) => 25', function ()
+      return vector(4, 3):sqr_magnitude() == 25
+    end)
+    it('(-4 3) => 25', function ()
+      return vector(-4, 3):sqr_magnitude() == 25
+    end)
+    it('(9 -14.2) => 282.64', function ()
+      return almost_eq(vector(9, -14.2):sqr_magnitude(), 282.64)
+    end)
+    it('(0 0) => 0', function ()
+      return vector(0, 0):sqr_magnitude() == 0
+    end)
+  end)
+
+  desc('vector.magnitude', function ()
+    it('(4 3) => 5', function ()
+      return almost_eq(vector(4, 3):magnitude(), 5)
+    end)
+    it('(-4 3) => 5', function ()
+      return almost_eq(vector(-4, 3):magnitude(), 5)
+    end)
+    it('(9 -14.2) => 16.811900547', function ()
+      return almost_eq(vector(9, -14.2):magnitude(), 16.811900547)
+    end)
+    it('(0 0) => 0', function ()
+      return vector(0, 0):magnitude() == 0
+    end)
+  end)
+
 end
 
 add(picotest.test_suite, test_math)

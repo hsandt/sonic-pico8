@@ -115,3 +115,11 @@ function vector.__mul(lhs, rhs)
       tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
   end
 end
+
+function vector:sqr_magnitude()
+  return self.x ^ 2 + self.y ^ 2
+end
+
+function vector:magnitude()
+  return sqrt(self:sqr_magnitude())
+end

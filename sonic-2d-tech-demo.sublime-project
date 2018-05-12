@@ -58,6 +58,24 @@
 		{
 			"cmd":
 			[
+				"./test.sh lowlevel"
+			],
+			"name": "p8tool: test lowlevel",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh gamestates"
+			],
+			"name": "p8tool: test gamestates",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh flow"
 			],
 			"name": "p8tool: test flow",

@@ -112,6 +112,15 @@
 		{
 			"cmd":
 			[
+				"./test.sh coroutine"
+			],
+			"name": "p8tool: test coroutine",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh math"
 			],
 			"name": "p8tool: test math",

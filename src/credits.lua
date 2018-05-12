@@ -18,6 +18,7 @@ end
 
 function credits_state:render()
   cls()
+  color(colors.white)
   print("credits state", 4*11, 6*12)
 end
 

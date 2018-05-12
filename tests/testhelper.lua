@@ -66,11 +66,82 @@ function test_helper(desc,it)
     it('56.2 => "56.2"', function ()
       return tostring("56.2") == "56.2"
     end)
-    it('vector(2, 3) => "vector(2, 3)" (_tostring implemented)', function ()
+    it('vector(2 3) => "vector(2 3)" (_tostring implemented)', function ()
       return tostring(vector(2, 3)) == "vector(2, 3)"
     end)
-    it('{} => "[table]" (:_tostring not implemented)', function ()
+    it('{} => "[table]" (_tostring not implemented)', function ()
       return tostring({}) == "[table]"
+    end)
+
+  end)
+
+  desc('joinstr', function ()
+    it('joinstr("" nil 5 "at") => "[nil]5at"', function ()
+      warn(joinstr("", nil, 5, "at"))
+      return joinstr("", nil, 5, "at") == "[nil]5at"
+    end)
+    it('joinstr("comma " nil 5 "at" {}) => "[nil], 5, at, [table]"', function ()
+      warn(joinstr(", ", nil, 5, "at", {}))
+      return joinstr(", ", nil, 5, "at", {}) == "[nil], 5, at, [table]"
+    end)
+  end)
+
+  desc('yield_delay (wrapped in set_var_after_delay_async)', function ()
+
+    local test_var = 0
+
+    local function set_var_after_delay_async()
+      yield_delay(1)  -- 60 frames
+      test_var = 1
+    end
+
+    local function set_var_after_delay_async2()
+      yield_delay(1.01)  -- 60.6 frames
+      test_var = 1
+    end
+
+    local coroutine = cocreate(set_var_after_delay_async)
+
+    it('should start suspended', function ()
+      return costatus(coroutine) == "suspended",
+        test_var == 0
+    end)
+    it('should not stop after 59/60 frames', function ()
+      for t=1,59 do
+        coresume(coroutine)
+      end
+      return costatus(coroutine) == "suspended",
+        test_var == 0
+    end)
+    it('should stop after the 60th frame', function ()
+      coresume(coroutine)  -- one more
+      return costatus(coroutine) == "dead"
+    end)
+    it('should continue execution of body after 1s', function ()
+      return test_var == 1
+    end)
+
+    test_var = 0  -- reset
+
+    local coroutine = cocreate(set_var_after_delay_async2)
+
+    it('should start suspended', function ()
+      return costatus(coroutine) == "suspended",
+        test_var == 0
+    end)
+    it('should not stop after 60/60.6 frames', function ()
+      for t=1,60 do
+        coresume(coroutine)
+      end
+      return costatus(coroutine) == "suspended",
+        test_var == 0
+    end)
+    it('should stop after the 61th frame (ceil of 60.6)', function ()
+      coresume(coroutine)  -- one more
+      return costatus(coroutine) == "dead"
+    end)
+    it('... and continue execution of body', function ()
+      return test_var == 1
     end)
 
   end)

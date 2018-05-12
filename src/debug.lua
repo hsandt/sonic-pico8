@@ -17,7 +17,7 @@ current_debug_level = debug_level.log
 function log(message, category)
   category = category or "default"
   if active_debug_categories[category] and current_debug_level <= debug_level.log then
-    printh("["..category.."] "..message)
+    printh("["..category.."] "..tostring(message))
   end
 end
 
@@ -25,7 +25,7 @@ end
 function warn(message, category)
   category = category or "default"
   if active_debug_categories[category] and current_debug_level <= debug_level.warning then
-    printh("["..category.."] "..message)
+    printh("["..category.."] warning: "..tostring(message))
   end
 end
 
@@ -33,6 +33,6 @@ end
 function err(message, category)
   category = category or "default"
   if active_debug_categories[category] and current_debug_level <= debug_level.error then
-    printh("["..category.."] "..message)
+    printh("["..category.."] error: "..tostring(message))
   end
 end

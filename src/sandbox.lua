@@ -1,13 +1,17 @@
 -- require("constants")
 require("debug")
--- require("flow")
+require("helper")
 require("math")
 require("class")
 -- require("playercharacter")
 -- stage = require("stage")
 -- flow = require("flow")
+require("coroutine")
 
-warn("test")
+function test_fun_async_with_args(var1, var2)
+end
+
+printh('joinstr("", nil, 5, "at") : '..joinstr("", nil, 5, "at") )
 
 local dummy_class = new_class()
 

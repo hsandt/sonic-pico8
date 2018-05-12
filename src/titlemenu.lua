@@ -1,3 +1,4 @@
+require("color")
 require("flow")
 
 local titlemenu = {}
@@ -36,6 +37,7 @@ end
 
 function titlemenustate:render()
   cls()
+  color(colors.white)
   print("start", 4*11, 6*12)
   print("credits", 4*11, 6*13)
   print(">", 4*10, 6*(12+self.current_cursor_index))

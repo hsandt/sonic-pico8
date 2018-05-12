@@ -1,6 +1,7 @@
 picotest = require("picotest")
 
 require("testclass")
+require("testcoroutine")
 require("testcredits")
 require("testflow")
 require("testhelper")

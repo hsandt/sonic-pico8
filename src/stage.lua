@@ -24,7 +24,7 @@ local stage_data = {
   spawn_location = location(0, 0),
 
   -- the x to reach to finish the stage
-  goal_x = 10
+  goal_x = 80
 }
 
 -- game state
@@ -209,6 +209,7 @@ function stage_state:render_environment()
   -- dummy tiles
   rectfill(0, 0, 7, 7, colors.pink)
   rectfill(8, 8, 15, 15, colors.pink)
+  rectfill(80, 0, 95, 15, colors.yellow)
 end
 
 

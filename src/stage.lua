@@ -17,31 +17,43 @@ local stage_state = {
   -- state vars
 
   -- player character
-  player_character = nil
+  player_character = nil,
+
+  camera_position = vector(0, 0)
 }
 
 function stage_state:on_enter()
   self:spawn_player_character()
+  self.camera_position = vector(0, 0)
 end
 
 function stage_state:on_exit()
+  -- reinit camera offset for other states
+  camera()
 end
 
 function stage_state:update()
   self:handle_input()
   self.player_character:update()
+  self:update_camera()
 end
 
 function stage_state:render()
   cls()
 
   -- background
+  camera()
   rectfill(0, 0, 127, 127, colors.dark_purple)
+  print("stage state", 3*11, 1*12)
+
+  -- update camera offset
+  camera(self.camera_position.x - screen_width / 2, self.camera_position.y - screen_height / 2)
+
+  -- dummy tiles
   rectfill(0, 0, 7, 7, colors.pink)
   rectfill(8, 8, 15, 15, colors.pink)
 
-  print("stage state", 4*11, 1*12)
-
+  -- player character
   self:render_player_character()
 end
 
@@ -76,6 +88,14 @@ function stage_state:handle_input()
   self.player_character.move_intention = player_move_intention
 end
 
+
+-- camera
+
+function stage_state:update_camera()
+  -- following player character with stiff motion
+  self.camera_position.x = self.player_character.position.x
+  self.camera_position.y = self.player_character.position.y
+end
 
 -- render
 

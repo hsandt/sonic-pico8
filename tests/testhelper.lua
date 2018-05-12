@@ -75,13 +75,20 @@ function test_helper(desc,it)
 
   end)
 
-  desc('joinstr', function ()
-    it('joinstr("" nil 5 "at") => "[nil]5at"', function ()
-      warn(joinstr("", nil, 5, "at"))
-      return joinstr("", nil, 5, "at") == "[nil]5at"
+  desc('joinstr_table', function ()
+    it('joinstr_table("_" {nil 5 "at" nil}) => "[nil]_5_at"', function ()
+      return joinstr_table("_", {nil, 5, "at", nil}) == "[nil]_5_at"
     end)
-    it('joinstr("comma " nil 5 "at" {}) => "[nil], 5, at, [table]"', function ()
-      warn(joinstr(", ", nil, 5, "at", {}))
+    it('joinstr_table("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
+      return joinstr_table(", ", {nil, 5, "at", {}}) == "[nil], 5, at, [table]"
+    end)
+  end)
+
+  desc('joinstr', function ()
+    it('joinstr("" nil 5 "at" nil) => "[nil]5at"', function ()
+      return joinstr("", nil, 5, "at", nil) == "[nil]5at"
+    end)
+    it('joinstr("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
       return joinstr(", ", nil, 5, "at", {}) == "[nil], 5, at, [table]"
     end)
   end)
@@ -90,13 +97,8 @@ function test_helper(desc,it)
 
     local test_var = 0
 
-    local function set_var_after_delay_async()
-      yield_delay(1)  -- 60 frames
-      test_var = 1
-    end
-
-    local function set_var_after_delay_async2()
-      yield_delay(1.01)  -- 60.6 frames
+    local function set_var_after_delay_async(delay)
+      yield_delay(delay)
       test_var = 1
     end
 
@@ -107,8 +109,9 @@ function test_helper(desc,it)
         test_var == 0
     end)
     it('should not stop after 59/60 frames', function ()
-      for t=1,59 do
-        coresume(coroutine)
+      coresume(coroutine, 1.0)  -- pass delay of 60 frames in 1st call
+      for t=2,59 do
+        coresume(coroutine)  -- further calls don't need arg, it's only used as yield() return value
       end
       return costatus(coroutine) == "suspended",
         test_var == 0
@@ -123,14 +126,15 @@ function test_helper(desc,it)
 
     test_var = 0  -- reset
 
-    local coroutine = cocreate(set_var_after_delay_async2)
+    local coroutine = cocreate(set_var_after_delay_async)
 
     it('should start suspended', function ()
       return costatus(coroutine) == "suspended",
         test_var == 0
     end)
     it('should not stop after 60/60.6 frames', function ()
-      for t=1,60 do
+      coresume(coroutine, 1.01)  -- pass delay of 60.6 frames in 1st call
+      for t=2,60 do
         coresume(coroutine)
       end
       return costatus(coroutine) == "suspended",

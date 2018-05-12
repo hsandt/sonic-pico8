@@ -97,6 +97,8 @@ function stage_state:update_coroutines()
     if status == "suspended" then
       -- resume the coroutine and assert if failed
       -- (assertions don't work from inside coroutines, but will return false)
+      -- pass the curry arguments now (most of the time they are only useful
+      -- on the 1st coresume call, since other times they are just yield() return values)
       assert(coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args)))
     elseif status == "dead" then
       -- remove the coroutine for garbage collection

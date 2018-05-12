@@ -24,6 +24,7 @@ function tostring(value)
 end
 
 -- concatenate a sequence of strings or stringables with a separator
+-- embedded nil values won't be ignored, but nils at the end will be
 function joinstr_table(separator, args)
   local n = #args
 

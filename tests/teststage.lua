@@ -119,8 +119,9 @@ function test_stage(desc,it)
                 costatus(stage_state.coroutine_curries[1].coroutine) == "suspended"
           end)
 
-          stage_state.player_character.position = stage.data.spawn_location:to_center_position()
           clear_table(stage_state.coroutine_curries)  -- important to prevent changing state and mess up further tests
+          stage_state.has_reached_goal = false
+          stage_state.player_character.position = stage.data.spawn_location:to_center_position()
 
         end)
 
@@ -139,8 +140,9 @@ function test_stage(desc,it)
                 costatus(stage_state.coroutine_curries[1].coroutine) == "suspended"
           end)
 
-          stage_state.player_character.position = stage.data.spawn_location:to_center_position()
           clear_table(stage_state.coroutine_curries)  -- important to prevent changing state and mess up further tests
+          stage_state.has_reached_goal = false
+          stage_state.player_character.position = stage.data.spawn_location:to_center_position()
 
         end)
 
@@ -149,21 +151,30 @@ function test_stage(desc,it)
       desc('stage_state.on_reached_goal_async', function ()
 
         stage_state:on_reached_goal_async()
-        for i = 1, stage.global_params.finish_stage_delay * fps do
-          flow:update()
-        end
+
+        it('should set substate to result', function ()
+          return stage_state.current_substate == stage.substates.result
+        end)
 
         it('should change gamestate to titlemenu after 1.0s', function ()
+          for i = 1, stage.global_params.back_to_titlemenu_delay * fps do
+            flow:update()
+          end
           return flow.current_gamestate.type == gamestate_type.titlemenu
         end)
 
-        flow:_change_gamestate(stage_state)
+        flow:_change_gamestate(stage_state)  -- will also reset current_substate
 
       end)
 
-      desc('stage_state.finish_stage', function ()
+      desc('stage_state.feedback_reached_goal', function ()
+        stage_state:feedback_reached_goal()
+        return true  -- hard to test sfx, but at least it didn't crash
+      end)
 
-        stage_state:finish_stage()
+      desc('stage_state.back_to_titlemenu', function ()
+
+        stage_state:back_to_titlemenu()
         flow:update()
 
         it('should change gamestate to titlemenu on next update', function ()

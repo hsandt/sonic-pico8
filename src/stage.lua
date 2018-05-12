@@ -3,12 +3,19 @@ require("coroutine")
 require("math")
 require("playercharacter")
 local flow = require("flow")
+local audio = require("audio")
 
 local stage = {}
 
+-- enums
+local substates = {
+  play = "play",     -- playing and moving around
+  result = "result"  -- result screen
+}
+
 -- stage global data
 local global_params = {
-  finish_stage_delay = 1.0
+  back_to_titlemenu_delay = 1.0
 }
 
 -- stage data
@@ -29,6 +36,9 @@ local stage_state = {
   -- current coroutines
   coroutine_curries = {},
 
+  -- substate
+  current_substate = substates.play,
+
   -- player character
   player_character = nil,
   -- has the player character already reached the goal once?
@@ -38,6 +48,7 @@ local stage_state = {
 }
 
 function stage_state:on_enter()
+  self.current_substate = substates.play
   self:spawn_player_character()
   self.has_reached_goal = false
   self.camera_position = vector.zero()
@@ -54,11 +65,14 @@ end
 function stage_state:update()
   self:update_coroutines()
 
-  self:handle_input()
+  if self.current_substate == substates.play then
+    self:handle_input()
+    self.player_character:update()
+    self:check_reached_goal()
+    self:update_camera()
+  else
 
-  self.player_character:update()
-  self:check_reached_goal()
-  self:update_camera()
+  end
 end
 
 function stage_state:render()
@@ -144,20 +158,25 @@ end
 -- gameplay events
 
 function stage_state:check_reached_goal()
-  printh("self.player_character.position.x: "..self.player_character.position.x)
-  printh("stage_data.goal_x: "..stage_data.goal_x)
-  if self.player_character.position.x >= stage_data.goal_x then
+  if not self.has_reached_goal and
+      self.player_character.position.x >= stage_data.goal_x then
     self.has_reached_goal = true
     self:add_coroutine_method(self.on_reached_goal_async)
   end
 end
 
 function stage_state:on_reached_goal_async()
-  yield_delay(global_params.finish_stage_delay)
-  self:finish_stage()
+  self:feedback_reached_goal()
+  self.current_substate = substates.result
+  yield_delay(global_params.back_to_titlemenu_delay)
+  self:back_to_titlemenu()
 end
 
-function stage_state:finish_stage()
+function stage_state:feedback_reached_goal()
+  sfx(audio.sfx_ids.goal_reached)
+end
+
+function stage_state:back_to_titlemenu()
   flow:query_gamestate_type(gamestate_type.titlemenu)
 end
 
@@ -195,8 +214,9 @@ end
 
 -- export
 
-stage.state = stage_state
+stage.substates = substates
 stage.global_params = global_params
 stage.data = stage_data
+stage.state = stage_state
 
 return stage

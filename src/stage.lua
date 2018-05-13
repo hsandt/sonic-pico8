@@ -21,10 +21,10 @@ local global_params = {
 -- stage data
 local stage_data = {
   -- where the player character spawns on stage start
-  spawn_location = location(0, 0),
+  spawn_location = location(0, 10),
 
   -- the x to reach to finish the stage
-  goal_x = 80
+  goal_x = 16 * 8
 }
 
 -- game state
@@ -206,10 +206,12 @@ end
 
 -- render the stage environment (tiles)
 function stage_state:render_environment()
-  -- dummy tiles
-  rectfill(0, 0, 7, 7, colors.pink)
-  rectfill(8, 8, 15, 15, colors.pink)
-  rectfill(80, 0, 95, 15, colors.yellow)
+  -- optimize: don't draw the whole stage offset by camera,
+  -- instead just draw the portion of the level of interest
+  -- (and either keep camera offset or offset manually and subtract from camera offset)
+  map(0, 0, 0, 0, 16, 14)
+  -- goal as vertical line
+  rectfill(stage_data.goal_x, 0, stage_data.goal_x + 5, 15*8, colors.yellow)
 end
 
 

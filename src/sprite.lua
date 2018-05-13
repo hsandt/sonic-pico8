@@ -33,6 +33,9 @@ function sprite_data.__eq(lhs, rhs)
 end
 
 -- draw this sprite at position, optionally flipped
+-- position  vector
+-- flip_x    bool
+-- flip_y    bool
 function sprite_data:render(position, flip_x, flip_y)
   local draw_pos = position - self.pivot
   spr(self.id_loc:to_sprite_id(),

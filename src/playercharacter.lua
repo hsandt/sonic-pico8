@@ -57,6 +57,7 @@ function player_character:update()
 end
 
 -- update the velocity component for coordinate "x" or "y"
+-- coord  string  "x" or "y"
 function player_character:update_velocity_component(coord)
   if self.move_intention[coord] ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)

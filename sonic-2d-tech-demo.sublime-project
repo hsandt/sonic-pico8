@@ -148,6 +148,24 @@
 		{
 			"cmd":
 			[
+				"./test.sh input"
+			],
+			"name": "p8tool: test input",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh ui"
+			],
+			"name": "p8tool: test ui",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh sprite"
 			],
 			"name": "p8tool: test sprite",

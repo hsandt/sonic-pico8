@@ -1,5 +1,6 @@
 require("color")
 require("flow")
+local ui = require("ui")
 
 local titlemenu = {}
 
@@ -41,6 +42,8 @@ function titlemenustate:render()
   print("start", 4*11, 6*12)
   print("credits", 4*11, 6*13)
   print(">", 4*10, 6*(12+self.current_cursor_index))
+
+  ui.draw_cursor()
 end
 
 function titlemenustate:move_cursor_up()

@@ -148,7 +148,6 @@ function test_stage(desc,it)
       return #stage_state.coroutine_curries == 0
     end)
 
-
     clear_table(stage_state.coroutine_curries)
 
   end)
@@ -171,6 +170,14 @@ function test_stage(desc,it)
     flow:add_gamestate(stage_state)
     flow:add_gamestate(titlemenu.state)  -- for transition on reached goal
     flow:_change_gamestate(stage_state)
+
+    it('current substate should be play', function ()
+      return stage_state.current_substate == stage.substates.play
+    end)
+
+    it('should not have reached goal', function ()
+      return not stage_state.has_reached_goal
+    end)
 
     desc('[after enter stage state] stage.stage.player_character', function ()
 
@@ -198,6 +205,10 @@ function test_stage(desc,it)
       end)
 
       desc('stage_state.check_reached_goal', function ()
+
+        -- clear any intro coroutines so the tests on coroutine curries
+        -- are not messed up
+        clear_table(stage_state.coroutine_curries)
 
         desc('(before the goal)', function ()
 
@@ -292,6 +303,30 @@ function test_stage(desc,it)
         end)
 
         flow:_change_gamestate(stage_state)
+
+      end)
+
+      desc('stage_state render methods', function ()
+
+        it('set_camera_offset_stage should not crash', function ()
+          stage_state:set_camera_offset_stage()
+          return true
+        end)
+
+        it('show_stage_title_async should not crash', function ()
+          stage_state:show_stage_title_async()
+          return true
+        end)
+
+        it('render_player_character should not crash', function ()
+          stage_state:render_player_character()
+          return true
+        end)
+
+        it('render_environment should not crash', function ()
+          stage_state:render_environment()
+          return true
+        end)
 
       end)
 

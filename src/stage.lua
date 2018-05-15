@@ -20,6 +20,9 @@ local global_params = {
 
 -- stage data
 local stage_data = {
+  -- stage title
+  title = "proto zone",
+
   -- where the player character spawns on stage start
   spawn_location = location(0, 10),
 
@@ -52,6 +55,8 @@ function stage_state:on_enter()
   self:spawn_player_character()
   self.has_reached_goal = false
   self.camera_position = vector.zero()
+
+  self:start_coroutine_method(self.show_stage_title_async)
 end
 
 function stage_state:on_exit()
@@ -81,8 +86,6 @@ function stage_state:render()
   camera()
   -- background
   rectfill(0, 0, 127, 127, colors.dark_purple)
-  -- debug label
-  print("stage state", 3*11, 1*12)
 
   -- update camera offset
   self:set_camera_offset_stage()
@@ -195,6 +198,13 @@ end
 function stage_state:set_camera_offset_stage()
   -- the camera position is used to render the stage, subtracting a half screen to center the view
   camera(self.camera_position.x - screen_width / 2, self.camera_position.y - screen_height / 2)
+end
+
+
+-- ui
+
+function stage_state:show_stage_title_async()
+  print(10, 10, stage_data.title, colors.white)
 end
 
 

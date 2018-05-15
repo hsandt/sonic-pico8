@@ -18,7 +18,6 @@ function test_coroutine(desc,it)
 
   desc('coroutine_curry._tostring', function ()
     it('should return "[coroutine_curry] (arg1 arg2 ...)"', function ()
-      warn(coroutine_curry(test_fun_async_with_args, 5, {}):_tostring())
       return coroutine_curry(test_fun_async_with_args, 5, {}):_tostring() == "[coroutine_curry] (5, [table])"
     end)
   end)

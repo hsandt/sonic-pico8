@@ -13,7 +13,7 @@ function test_stage(desc,it)
     end)
   end)
 
-  desc('add_coroutine(set_var_after_delay_async) and update_coroutines', function ()
+  desc('start_coroutine(set_var_after_delay_async) and update_coroutines', function ()
 
     local test_var = 0
 
@@ -22,7 +22,7 @@ function test_stage(desc,it)
       test_var = 1
     end
 
-    stage_state:add_coroutine(set_var_after_delay_async)
+    stage_state:start_coroutine(set_var_after_delay_async)
 
     it('should start a coroutine', function ()
       return #stage_state.coroutine_curries == 1,
@@ -31,13 +31,123 @@ function test_stage(desc,it)
         test_var == 0
     end)
 
-    it('should set test_var to 1 after 1s (60 frames) end and remove coroutine', function ()
-      for t = 1, fps+20 do
+    it('should not set test_var to 1 only after 59 frames', function ()
+      for t = 1, 1.0*fps-1 do
         stage_state:update_coroutines()
       end
-      return #stage_state.coroutine_curries == 0,
+      return #stage_state.coroutine_curries == 1,
+        #stage_state.coroutine_curries == 1 and
+          costatus(stage_state.coroutine_curries[1].coroutine) == "suspended",
+        test_var == 0
+    end)
+
+    it('should set test_var to 1 after 1s (60 frames) with coroutine dead', function ()
+      stage_state:update_coroutines()  -- one more to reach 60
+      return #stage.state.coroutine_curries == 1 and
+        costatus(stage_state.coroutine_curries[1].coroutine) == "dead",
         test_var == 1
     end)
+
+    it('should remove the now dead coroutine', function ()
+      stage_state:update_coroutines()  -- just to remove dead coroutine
+      return #stage.state.coroutine_curries == 0
+    end)
+
+    clear_table(stage_state.coroutine_curries)
+
+  end)
+
+  desc('start_coroutine(set_value_after_delay instance) and update_coroutines', function ()
+
+    local test_class = new_class()
+
+    function test_class:_init(value)
+      self.value = value
+    end
+
+    function test_class:set_value_after_delay(new_value)
+      yield_delay(1.0)
+      self.value = new_value
+    end
+
+    -- create an instance and pass it to start_coroutine as the future self arg
+    -- (start_coroutine_method only works for the instance of stage_state itself)
+    test_instance = test_class(-10)
+    stage_state:start_coroutine(test_class.set_value_after_delay, test_instance, 99)
+
+    it('should start a coroutine with passed instance', function ()
+      return #stage_state.coroutine_curries == 1,
+        #stage_state.coroutine_curries == 1 and
+          costatus(stage_state.coroutine_curries[1].coroutine) == "suspended",
+        test_instance.value == -10
+    end)
+
+    it('should not set test_instance.value to 99 only after 59 frames', function ()
+      for t = 1, 1.0*fps-1 do
+        stage_state:update_coroutines()
+      end
+      return #stage_state.coroutine_curries == 1,
+        #stage_state.coroutine_curries == 1 and
+          costatus(stage_state.coroutine_curries[1].coroutine) == "suspended",
+        test_instance.value == -10
+    end)
+
+    it('should set test_instance.value to 99 after 1s with coroutine dead', function ()
+      stage_state:update_coroutines()  -- one more to reach 60
+      return #stage.state.coroutine_curries == 1 and
+        costatus(stage_state.coroutine_curries[1].coroutine) == "dead",
+        test_instance.value == 99
+    end)
+
+    it('should remove the now dead coroutine', function ()
+      stage_state:update_coroutines()  -- just to remove dead coroutine
+      return #stage.state.coroutine_curries == 0
+    end)
+
+    clear_table(stage_state.coroutine_curries)
+
+  end)
+
+  desc('start_coroutine_method(set_value_after_delay) and update_coroutines', function ()
+
+    -- create a dummy method and add it to stage.state
+    function stage_state:set_extra_value_after_delay(new_value)
+      yield_delay(1.0)
+      self.extra_value = new_value
+    end
+
+    stage_state.extra_value = -10
+    stage_state:start_coroutine_method(stage_state.set_extra_value_after_delay, 99)
+
+    it('should start a coroutine method', function ()
+      return #stage_state.coroutine_curries == 1,
+        #stage_state.coroutine_curries == 1 and
+          costatus(stage_state.coroutine_curries[1].coroutine) == "suspended",
+        stage_state.extra_value == -10
+    end)
+
+    it('should not set self.extra_value to 99 only after 59 frames', function ()
+      for t = 1, 1.0*fps-1 do
+        stage_state:update_coroutines()
+      end
+      return #stage_state.coroutine_curries == 1,
+        #stage_state.coroutine_curries == 1 and
+          costatus(stage_state.coroutine_curries[1].coroutine) == "suspended",
+        stage_state.extra_value == -10
+    end)
+
+    it('should set stage_state.extra_value to 99 after 1s (60 frames) with coroutine dead not removed', function ()
+      stage_state:update_coroutines()  -- one more to reach 60
+      return #stage.state.coroutine_curries == 1 and
+        costatus(stage_state.coroutine_curries[1].coroutine) == "dead",
+        stage_state.extra_value == 99
+    end)
+
+    it('should remove the now dead coroutine', function ()
+      stage_state:update_coroutines()  -- just to remove dead coroutine
+      return #stage_state.coroutine_curries == 0
+    end)
+
 
     clear_table(stage_state.coroutine_curries)
 

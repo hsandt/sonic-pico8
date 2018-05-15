@@ -94,14 +94,14 @@ end
 -- coroutines
 
 -- create and register coroutine with optional arguments
-function stage_state:add_coroutine(async_function, ...)
+function stage_state:start_coroutine(async_function, ...)
  coroutine = cocreate(async_function)
  add(self.coroutine_curries, coroutine_curry(coroutine, ...))
 end
 
 -- variant for methods that apply self argument automatically
-function stage_state:add_coroutine_method(async_function)
-  self:add_coroutine(async_function, self)
+function stage_state:start_coroutine_method(async_function, ...)
+  self:start_coroutine(async_function, self, ...)
 end
 
 -- update emit coroutine if active, remove if dead
@@ -116,6 +116,7 @@ function stage_state:update_coroutines()
       assert(coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args)))
     elseif status == "dead" then
       -- remove the coroutine for garbage collection
+      -- note that this will only happen on the frame after the last coresume
       self.coroutine_curries[i] = nil
     else  -- status == "running"
       warn("flow", "warning: coroutine should not be running outside its body")
@@ -161,7 +162,7 @@ function stage_state:check_reached_goal()
   if not self.has_reached_goal and
       self.player_character.position.x >= stage_data.goal_x then
     self.has_reached_goal = true
-    self:add_coroutine_method(self.on_reached_goal_async)
+    self:start_coroutine_method(self.on_reached_goal_async)
   end
 end
 

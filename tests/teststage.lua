@@ -318,13 +318,18 @@ function test_stage(desc,it)
           return true
         end)
 
+        it('render_environment should not crash', function ()
+          stage_state:render_environment()
+          return true
+        end)
+
         it('render_player_character should not crash', function ()
           stage_state:render_player_character()
           return true
         end)
 
-        it('render_environment should not crash', function ()
-          stage_state:render_environment()
+        it('render_title_overlay should not crash', function ()
+          stage_state:render_title_overlay()
           return true
         end)
 

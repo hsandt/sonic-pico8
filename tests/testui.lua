@@ -1,3 +1,4 @@
+require("color")
 local picotest = require("picotest")
 local ui = require("ui")
 local input = require("input")
@@ -13,16 +14,16 @@ function test_ui(desc,it)
     desc('_init', function ()
 
       it('should init label with layer', function ()
-        local lab = label("great", vector(24, 68))
-        return lab.text == "great", lab.position == vector(24, 68)
+        local lab = label("great", vector(24, 68), colors.red)
+        return lab.text == "great", lab.position == vector(24, 68), lab.colour == colors.red
       end)
 
     end)
 
     desc('_tostring', function ()
 
-      it('should return "label(\'[text]\' @ [position])"', function ()
-        return label("good", vector(22, 62)):_tostring() == "label('good' @ vector(22, 62))"
+      it('should return "label(\'[text]\' @ [position] in [colour])"', function ()
+        return label("good", vector(22, 62), colors.yellow):_tostring() == "label('good' @ vector(22, 62) in yellow)"
       end)
 
     end)
@@ -66,7 +67,6 @@ function test_ui(desc,it)
 
       it('should add a new label', function ()
         overlay_instance:add_label("test", "content", vector(2, 4))
-        warn(overlay_instance.labels["test"])
         return overlay_instance.labels["test"] == label("content", vector(2, 4))
       end)
 
@@ -92,6 +92,21 @@ function test_ui(desc,it)
         overlay_instance:remove_label("test")  -- rely on previous removal succeeding
         return true
       end)
+
+    end)
+
+    desc('draw_labels', function ()
+
+      overlay_instance:add_label("test", "content", vector(2, 8))
+      overlay_instance:add_label("test2", "content2", vector(12, 18))
+
+      it('should not crash', function ()
+        -- remove the label added in the previous test
+        overlay_instance:draw_labels()
+        return true
+      end)
+
+      clear_table(overlay_instance.labels)
 
     end)
 

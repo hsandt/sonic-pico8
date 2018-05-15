@@ -4,6 +4,7 @@ require("math")
 require("playercharacter")
 local flow = require("flow")
 local audio = require("audio")
+local ui = require("ui")
 
 local stage = {}
 
@@ -47,7 +48,10 @@ local stage_state = {
   -- has the player character already reached the goal once?
   has_reached_goal = false,
   -- position of the main camera, at the center of the view
-  camera_position = vector.zero()
+  camera_position = vector.zero(),
+
+  -- title overlay
+  title_overlay = ui.overlay(0)
 }
 
 function stage_state:on_enter()
@@ -88,9 +92,8 @@ function stage_state:render()
   rectfill(0, 0, 127, 127, colors.dark_purple)
 
   -- update camera offset
-  self:set_camera_offset_stage()
-  self:render_environment()
-  self:render_player_character()
+  self:render_stage_elements()
+  self:render_title_overlay()
 end
 
 
@@ -122,7 +125,7 @@ function stage_state:update_coroutines()
       -- note that this will only happen on the frame after the last coresume
       self.coroutine_curries[i] = nil
     else  -- status == "running"
-      warn("flow", "warning: coroutine should not be running outside its body")
+      warn("flow", "stage_state:update_coroutines: coroutine should not be running outside its body")
     end
   end
 end
@@ -204,15 +207,19 @@ end
 -- ui
 
 function stage_state:show_stage_title_async()
-  print(10, 10, stage_data.title, colors.white)
+  self.title_overlay:add_label("title", stage_data.title, vector(50, 30), colors.white)
 end
 
 
 -- render
 
--- render the player character at its current position
-function stage_state:render_player_character()
-  self.player_character:render()
+-- render the stage elements with the main camera:
+-- - environment
+-- - player character
+function stage_state:render_stage_elements()
+  self:set_camera_offset_stage()
+  self:render_environment()
+  self:render_player_character()
 end
 
 -- render the stage environment (tiles)
@@ -223,6 +230,17 @@ function stage_state:render_environment()
   map(0, 0, 0, 0, 16, 14)
   -- goal as vertical line
   rectfill(stage_data.goal_x, 0, stage_data.goal_x + 5, 15*8, colors.yellow)
+end
+
+-- render the player character at its current position
+function stage_state:render_player_character()
+  self.player_character:render()
+end
+
+-- render the title overlay with a fixed ui camera
+function stage_state:render_title_overlay()
+  camera(0, 0)
+  self.title_overlay:draw_labels()
 end
 
 

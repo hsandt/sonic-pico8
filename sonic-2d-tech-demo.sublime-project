@@ -148,6 +148,15 @@
 		{
 			"cmd":
 			[
+				"./test.sh color"
+			],
+			"name": "p8tool: test color",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh input"
 			],
 			"name": "p8tool: test input",

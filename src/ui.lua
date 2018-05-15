@@ -9,13 +9,15 @@ local label = new_class()
 
 -- text      string  text content to draw
 -- position  vector  position to draw the label at
-function label:_init(text, position)
+-- colour    int     color index to draw the label with
+function label:_init(text, position, colour)
   self.text = text
   self.position = position
+  self.colour = colour
 end
 
 function label:_tostring()
-  return "label('"..self.text.."' @ "..self.position..")"
+  return "label('"..self.text.."' @ "..self.position.." in "..color_tostring(self.colour)..")"
 end
 
 function label.__eq(lhs, rhs)
@@ -39,17 +41,22 @@ function overlay:_tostring()
   return "overlay(layer: "..self.layer..")"
 end
 
--- add a label identified by a name, containing a text string, at a position vector
+-- add a label identified by a name, containing a text string,
+-- at a position vector, with a given color
 -- if a label with the same name already exists, replace it
-function overlay:add_label(name, text, position)
+function overlay:add_label(name, text, position, colour)
+  if not colour then
+    warn("overlay:add_label no colour passed, will default to black (0)")
+  end
   if self.labels[name] == nil then
     -- create new label and add it
-    self.labels[name] = label(text, position)
+    self.labels[name] = label(text, position, colour)
   else
     -- set existing label properties
     local label = self.labels[name]
     label.text = text
     label.position = position
+    label.colour = colour
   end
 end
 
@@ -59,7 +66,14 @@ function overlay:remove_label(name, text, position)
   if self.labels[name] ~= nil then
     self.labels[name] = nil
   else
-    warn("overlay:remove_label could not find label with name: '"..name.."'", "ui")
+    warn("overlay:remove_label: could not find label with name: '"..name.."'", "ui")
+  end
+end
+
+-- draw all labels in the overlay. order is not guaranteed
+function overlay:draw_labels()
+  for name, label in pairs(self.labels) do
+    print(label.text, label.position.x, label.position.y, label.colour)
   end
 end
 

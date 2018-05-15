@@ -31,12 +31,13 @@ function test_ui(desc,it)
     desc('__eq', function ()
 
       it('should return true for label with same text and position', function ()
-        return label("good", vector(22, 62)) == label("good", vector(22, 62))
+        return label("good", vector(22, 62), colors.orange) == label("good", vector(22, 62), colors.orange)
       end)
 
       it('should return false for label with different text or position', function ()
-        return label("good", vector(22, 62)) ~= label("bad", vector(22, 62)),
-          label("good", vector(23, 62)) ~= label("good", vector(22, 62))
+        return label("good", vector(22, 62), colors.orange) ~= label("bad", vector(22, 62), colors.orange),
+          label("good", vector(23, 62), colors.orange) ~= label("good", vector(22, 62), colors.orange),
+          label("good", vector(23, 62), colors.orange) ~= label("good", vector(23, 62), colors.peach)
       end)
 
     end)
@@ -66,14 +67,14 @@ function test_ui(desc,it)
     desc('add_label', function ()
 
       it('should add a new label', function ()
-        overlay_instance:add_label("test", "content", vector(2, 4))
-        return overlay_instance.labels["test"] == label("content", vector(2, 4))
+        overlay_instance:add_label("test", "content", vector(2, 4), colors.red)
+        return overlay_instance.labels["test"] == label("content", vector(2, 4), colors.red)
       end)
 
       it('should replace an existing label', function ()
         -- replace the label added in the previous test
-        overlay_instance:add_label("test", "content2", vector(3, 7))
-        return overlay_instance.labels["test"] == label("content2", vector(3, 7))
+        overlay_instance:add_label("test", "content2", vector(3, 7), colors.white)
+        return overlay_instance.labels["test"] == label("content2", vector(3, 7), colors.white)
       end)
 
     end)
@@ -90,15 +91,27 @@ function test_ui(desc,it)
         -- you can also check this by reading terminal output near this method,
         -- with warn active (ugly)
         overlay_instance:remove_label("test")  -- rely on previous removal succeeding
-        return true
+        return overlay_instance.labels["test"] == nil
+      end)
+
+    end)
+
+    desc('clear_labels', function ()
+
+      it('should clear any existing label', function ()
+        -- remove the label added in the previous test
+        overlay_instance:add_label("test", "content", vector(2, 4), colors.red)
+        overlay_instance:add_label("test", "content2", vector(3, 7), colors.red)
+        overlay_instance:clear_labels()
+        return is_empty(overlay_instance.labels)
       end)
 
     end)
 
     desc('draw_labels', function ()
 
-      overlay_instance:add_label("test", "content", vector(2, 8))
-      overlay_instance:add_label("test2", "content2", vector(12, 18))
+      overlay_instance:add_label("test", "content", vector(2, 8), colors.red)
+      overlay_instance:add_label("test2", "content2", vector(12, 18), colors.red)
 
       it('should not crash', function ()
         -- remove the label added in the previous test

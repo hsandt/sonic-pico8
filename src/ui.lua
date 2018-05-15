@@ -21,7 +21,7 @@ function label:_tostring()
 end
 
 function label.__eq(lhs, rhs)
-  return lhs.text == rhs.text and lhs.position == rhs.position
+  return lhs.text == rhs.text and lhs.position == rhs.position and lhs.colour == rhs.colour
 end
 
 
@@ -68,6 +68,11 @@ function overlay:remove_label(name, text, position)
   else
     warn("overlay:remove_label: could not find label with name: '"..name.."'", "ui")
   end
+end
+
+-- remove all the labels
+function overlay:clear_labels()
+  clear_table(self.labels)
 end
 
 -- draw all labels in the overlay. order is not guaranteed

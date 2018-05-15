@@ -1,5 +1,13 @@
 require("constants")
 
+-- return true if the table is empty
+function is_empty(t)
+  for k, v in pairs(t) do
+    return false
+  end
+  return true
+end
+
 -- clear a table
 function clear_table(t)
  for k in pairs(t) do

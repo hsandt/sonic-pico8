@@ -13,16 +13,16 @@ function test_stage(desc,it)
     end)
   end)
 
-  desc('start_coroutine(set_var_after_delay_async) and update_coroutines', function ()
+  desc('start_coroutine(set_var_after_delay_d) and update_coroutines', function ()
 
     local test_var = 0
 
-    local function set_var_after_delay_async()
+    local function set_var_after_delay_d()
       yield_delay(1.0)
       test_var = 1
     end
 
-    stage_state:start_coroutine(set_var_after_delay_async)
+    stage_state:start_coroutine(set_var_after_delay_d)
 
     it('should start a coroutine', function ()
       return #stage_state.coroutine_curries == 1,
@@ -313,11 +313,6 @@ function test_stage(desc,it)
           return true
         end)
 
-        it('show_stage_title_async should not crash', function ()
-          stage_state:show_stage_title_async()
-          return true
-        end)
-
         it('render_environment should not crash', function ()
           stage_state:render_environment()
           return true
@@ -333,6 +328,45 @@ function test_stage(desc,it)
           return true
         end)
 
+      end)
+
+    end)
+
+    desc('on exit stage state', function ()
+
+      flow:_change_gamestate(titlemenu.state)
+
+      it('player character should be nil', function ()
+        return stage_state.player_character == nil
+      end)
+
+      it('title overlay should be empty', function ()
+        return not stage_state.title_overlay ~= nil,
+          stage_state.title_overlay ~= nil and
+            stage_state.title_overlay.labels ~= nil,
+          stage_state.title_overlay ~= nil and
+            stage_state.title_overlay.labels ~= nil and
+            is_empty(stage_state.title_overlay.labels)
+      end)
+
+    end)
+
+    desc('reenter stage state', function ()
+
+      flow:_change_gamestate(stage_state)
+
+      it('current substate should be play', function ()
+        return stage_state.current_substate == stage.substates.play
+      end)
+
+      it('player character should not be nil and respawned at the spawn location', function ()
+        return stage_state.player_character ~= nil,
+          stage_state.player_character ~= nil and
+            stage_state.player_character.position == stage.data.spawn_location:to_center_position()
+      end)
+
+      it('should not have reached goal', function ()
+        return not stage_state.has_reached_goal
       end)
 
     end)

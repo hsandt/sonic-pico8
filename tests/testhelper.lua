@@ -4,6 +4,21 @@ math = require("math")  -- just to test tostring
 
 function test_helper(desc,it)
 
+  desc('is_empty', function ()
+    it('return true if the table is empty', function ()
+      return is_empty({})
+    end)
+    it('return false if the sequence is not empty', function ()
+      return not is_empty({2, "ah"})
+    end)
+    it('return false if the table has only non-sequence entries', function ()
+      return not is_empty({a = "str"})
+    end)
+    it('return false if the table has a mix of entries', function ()
+      return not is_empty({4, 5, d = "dummy"})
+    end)
+  end)
+
   desc('clear_table', function ()
     it('should clear a sequence', function ()
       local t = {1, 5, -5}
@@ -13,10 +28,7 @@ function test_helper(desc,it)
     it('should clear a table', function ()
       local t = {1, 5, a = "b", b = 50.1}
       clear_table(t)
-      for k, v in pairs(t) do
-        return false
-      end
-      return true
+      return is_empty(t)
     end)
   end)
 

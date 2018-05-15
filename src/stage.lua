@@ -16,7 +16,8 @@ local substates = {
 
 -- stage global data
 local global_params = {
-  back_to_titlemenu_delay = 1.0
+  back_to_titlemenu_delay = 1.0,
+  show_state_title_delay = 4.0
 }
 
 -- stage data
@@ -66,6 +67,10 @@ end
 function stage_state:on_exit()
   -- clear all coroutines
   clear_table(self.coroutine_curries)
+
+  -- clear object state vars
+  self.player_character = nil
+  self.title_overlay:clear_labels()
 
   -- reinit camera offset for other states
   camera()
@@ -208,6 +213,8 @@ end
 
 function stage_state:show_stage_title_async()
   self.title_overlay:add_label("title", stage_data.title, vector(50, 30), colors.white)
+  yield_delay(global_params.show_state_title_delay)
+  self.title_overlay:remove_label("title")
 end
 
 

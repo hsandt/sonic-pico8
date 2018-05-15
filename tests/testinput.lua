@@ -3,8 +3,6 @@ local input = require("input")
 
 function test_input(desc,it)
 
-  local input_state = input.state
-
   desc('input.toggle_mouse', function ()
     it('(true) => activate mouse devkit', function ()
       input.toggle_mouse(true)

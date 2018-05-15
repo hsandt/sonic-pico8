@@ -4,7 +4,98 @@ local input = require("input")
 
 function test_ui(desc,it)
 
-  local ui_state = ui.state
+  local label = ui.label
+  local overlay = ui.overlay
+
+  desc('label', function ()
+
+
+    desc('_init', function ()
+
+      it('should init label with layer', function ()
+        local lab = label("great", vector(24, 68))
+        return lab.text == "great", lab.position == vector(24, 68)
+      end)
+
+    end)
+
+    desc('_tostring', function ()
+
+      it('should return "label(\'[text]\' @ [position])"', function ()
+        return label("good", vector(22, 62)):_tostring() == "label('good' @ vector(22, 62))"
+      end)
+
+    end)
+
+    desc('__eq', function ()
+
+      it('should return true for label with same text and position', function ()
+        return label("good", vector(22, 62)) == label("good", vector(22, 62))
+      end)
+
+      it('should return false for label with different text or position', function ()
+        return label("good", vector(22, 62)) ~= label("bad", vector(22, 62)),
+          label("good", vector(23, 62)) ~= label("good", vector(22, 62))
+      end)
+
+    end)
+
+  end)
+
+  desc('overlay', function ()
+
+    desc('_init', function ()
+
+      it('should init overlay with layer', function ()
+        return overlay(6).layer == 6
+      end)
+
+    end)
+
+    desc('_tostring', function ()
+
+      it('should return "overlay(layer [layer])"', function ()
+        return overlay(8):_tostring() == "overlay(layer: 8)"
+      end)
+
+    end)
+
+    local overlay_instance = overlay(4)
+
+    desc('add_label', function ()
+
+      it('should add a new label', function ()
+        overlay_instance:add_label("test", "content", vector(2, 4))
+        warn(overlay_instance.labels["test"])
+        return overlay_instance.labels["test"] == label("content", vector(2, 4))
+      end)
+
+      it('should replace an existing label', function ()
+        -- replace the label added in the previous test
+        overlay_instance:add_label("test", "content2", vector(3, 7))
+        return overlay_instance.labels["test"] == label("content2", vector(3, 7))
+      end)
+
+    end)
+
+    desc('remove_label', function ()
+
+      it('should remove an existing label', function ()
+        -- remove the label added in the previous test
+        overlay_instance:remove_label("test")
+        return overlay_instance.labels["test"] == nil
+      end)
+
+      it('should warn if the label name is not found', function ()
+        -- you can also check this by reading terminal output near this method,
+        -- with warn active (ugly)
+        overlay_instance:remove_label("test")  -- rely on previous removal succeeding
+        return true
+      end)
+
+    end)
+
+  end)
 
   desc('[after toggle_mouse] ui.draw_cursor', function ()
 

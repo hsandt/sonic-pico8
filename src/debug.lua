@@ -9,6 +9,7 @@ active_debug_categories = {
  default = true,
  flow = true,
  player = true,
+ ui = true,
 }
 
 current_debug_level = debug_level.log

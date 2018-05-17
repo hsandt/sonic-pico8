@@ -17,8 +17,12 @@ local substates = {
 
 -- stage global data
 local global_params = {
+  -- delay between stage enter and showing stage title (s)
+  show_stage_title_delay = 4.0,
+  -- delay between reaching goal and going back to title menu (s)
   back_to_titlemenu_delay = 1.0,
-  show_state_title_delay = 4.0
+  -- duration of bgm fade out after reaching goal (s)
+  bgm_fade_out_duration = 1.0
 }
 
 -- stage data
@@ -188,6 +192,7 @@ end
 function stage_state:on_reached_goal_async()
   self:feedback_reached_goal()
   self.current_substate = substates.result
+  self:stop_bgm(global_params.bgm_fade_out_duration)
   yield_delay(global_params.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
@@ -221,7 +226,7 @@ end
 
 function stage_state:show_stage_title_async()
   self.title_overlay:add_label("title", stage_data.title, vector(50, 30), colors.white)
-  yield_delay(global_params.show_state_title_delay)
+  yield_delay(global_params.show_stage_title_delay)
   self.title_overlay:remove_label("title")
 end
 
@@ -266,8 +271,13 @@ function stage_state:play_bgm()
 end
 
 function stage_state:stop_bgm(fade_duration)
-  fade_duration = fade_duration or 0
-  music(-1, fade_duration)
+  -- convert duration from seconds to milliseconds
+  if fade_duration then
+    fade_duration_ms = 1000 * fade_duration
+  else
+    fade_duration_ms = 0
+  end
+  music(-1, fade_duration_ms)
 end
 
 

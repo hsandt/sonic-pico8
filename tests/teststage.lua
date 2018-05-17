@@ -339,6 +339,7 @@ function test_stage(desc,it)
 
         it('stop_bgm should not crash', function ()
           stage_state:stop_bgm()
+          stage_state:stop_bgm(2.0)
           return true
         end)
 

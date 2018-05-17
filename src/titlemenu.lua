@@ -1,5 +1,6 @@
 require("color")
 require("flow")
+local input = require("input")
 local ui = require("ui")
 
 local titlemenu = {}
@@ -27,11 +28,11 @@ function titlemenustate:on_exit()
 end
 
 function titlemenustate:update()
-  if btnp(##u) then
+  if btnp(input.button_ids.up) then
     self:move_cursor_up()
-  elseif btnp(##d) then
+  elseif btnp(input.button_ids.down) then
     self:move_cursor_down()
-  elseif btnp(##x) then
+  elseif btnp(input.button_ids.x) then
     self:confirm_current_selection()
   end
 end

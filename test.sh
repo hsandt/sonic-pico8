@@ -18,8 +18,6 @@ mkdir -p build
 # of package variables values just after the require line, such as debug_level.
 # See remarks on require on https://github.com/dansanderson/picotool
 p8tool build --lua "tests/test$1.lua" "$TEST_FILEPATH" --lua-path="?.lua;$(pwd)/src/?.lua" &&
-# replace non-ascii glyphs from special codes
-python3.6 postbuild/replace_glyphs.py "$TEST_FILEPATH" &&
 # if a runtime error occurs during the test, exec bash will allow us to keep the terminal open to see it
 gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\" | pico-test; exec bash;" &&
 # gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\"; exec bash;" &&

@@ -1,5 +1,5 @@
-local visual = require("visual")
 local input = require("input")
+local visual = require("visual")
 
 local ui = {}
 

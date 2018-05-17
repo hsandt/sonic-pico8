@@ -4,6 +4,7 @@ require("math")
 require("playercharacter")
 local flow = require("flow")
 local audio = require("audio")
+local input = require("input")
 local ui = require("ui")
 
 local stage = {}
@@ -158,15 +159,15 @@ end
 function stage_state:handle_input()
   local player_move_intention = vector.zero()
 
-  if btn(##l) then
+  if btn(input.button_ids.left) then
     player_move_intention += vector(-1, 0)
-  elseif btn(##r) then
+  elseif btn(input.button_ids.right) then
     player_move_intention += vector(1, 0)
   end
 
-  if btn(##u) then
+  if btn(input.button_ids.up) then
     player_move_intention += vector(0, -1)
-  elseif btn(##d) then
+  elseif btn(input.button_ids.down) then
     player_move_intention += vector(0, 1)
   end
 

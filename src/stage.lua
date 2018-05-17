@@ -29,7 +29,10 @@ local stage_data = {
   spawn_location = location(0, 10),
 
   -- the x to reach to finish the stage
-  goal_x = 16 * 8
+  goal_x = 16 * 8,
+
+  -- bgm id
+  bgm_id = audio.music_pattern_ids.green_hill
 }
 
 -- game state
@@ -62,6 +65,7 @@ function stage_state:on_enter()
   self.camera_position = vector.zero()
 
   self:start_coroutine_method(self.show_stage_title_async)
+  self:play_bgm()
 end
 
 function stage_state:on_exit()
@@ -74,6 +78,9 @@ function stage_state:on_exit()
 
   -- reinit camera offset for other states
   camera()
+
+  -- stop audio
+  self:stop_bgm()
 end
 
 function stage_state:update()
@@ -248,6 +255,18 @@ end
 function stage_state:render_title_overlay()
   camera(0, 0)
   self.title_overlay:draw_labels()
+end
+
+
+-- audio
+
+function stage_state:play_bgm()
+  music(stage_data.bgm_id, 0)
+end
+
+function stage_state:stop_bgm(fade_duration)
+  fade_duration = fade_duration or 0
+  music(-1, fade_duration)
 end
 
 

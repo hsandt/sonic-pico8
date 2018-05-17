@@ -33,6 +33,6 @@ See LICENSE.md
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, SEGA, adapted and used for the sole purpose of training with PICO-8, which uses an 8-bit palette and synthetized audio. I only retain copyright for the work of adaptation.
+Most assets are derivative works of Sonic the Hedgehog, SEGA, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico). I only retain copyright for the manual work of adaptation.
 
 Assets that are not derivative works are under CC BY 4.0.

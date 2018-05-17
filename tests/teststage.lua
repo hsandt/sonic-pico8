@@ -330,6 +330,20 @@ function test_stage(desc,it)
 
       end)
 
+      desc('stage_state audio methods', function ()
+
+        it('play_bgm should not crash', function ()
+          stage_state:play_bgm()
+          return true
+        end)
+
+        it('stop_bgm should not crash', function ()
+          stage_state:stop_bgm()
+          return true
+        end)
+
+      end)
+
     end)
 
     desc('on exit stage state', function ()

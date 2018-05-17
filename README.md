@@ -33,6 +33,6 @@ See LICENSE.md
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, SEGA, adapted and used for the sole purpose of training with PICO-8, whichs uses an 8-bit palette. I only retain copyright for the work of adaptation.
+Most assets are derivative works of Sonic the Hedgehog, SEGA, adapted and used for the sole purpose of training with PICO-8, which uses an 8-bit palette and synthetized audio. I only retain copyright for the work of adaptation.
 
 Assets that are not derivative works are under CC BY 4.0.

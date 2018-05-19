@@ -7,9 +7,9 @@ local ui = {}
 -- label class: container for a text to draw at a given position
 local label = new_class()
 
--- text      string  text content to draw
--- position  vector  position to draw the label at
--- colour    int     color index to draw the label with
+-- text      printable  text content to draw (mainly string or number)
+-- position  vector     position to draw the label at
+-- colour    int        color index to draw the label with
 function label:_init(text, position, colour)
   self.text = text
   self.position = position

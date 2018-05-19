@@ -1,5 +1,5 @@
 require("color")
-require("flow")
+local flow = require("flow")
 local input = require("input")
 local ui = require("ui")
 
@@ -38,7 +38,6 @@ function titlemenustate:update()
 end
 
 function titlemenustate:render()
-  cls()
   color(colors.white)
   print("start", 4*11, 6*12)
   print("credits", 4*11, 6*13)

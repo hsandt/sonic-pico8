@@ -2,10 +2,12 @@ picotest = require("picotest")
 
 require("testclass")
 require("testcoroutine")
+require("testdebug")
 require("testhelper")
 require("testinput")
 require("testmath")
 require("testplayercharacter")
+require("testprofiler")
 require("testsprite")
 require("testui")
 

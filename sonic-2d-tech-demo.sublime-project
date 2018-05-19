@@ -22,6 +22,15 @@
 		{
 			"cmd":
 			[
+				"gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\""
+			],
+			"name": "p8tool: run game",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./build.sh sandbox sandbox && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"
 			],
 			"name": "p8tool: build and run or reload sandbox",
@@ -160,6 +169,24 @@
 				"./test.sh input"
 			],
 			"name": "p8tool: test input",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh debug"
+			],
+			"name": "p8tool: test debug",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
+				"./test.sh profiler"
+			],
+			"name": "p8tool: test profiler",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},

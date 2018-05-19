@@ -102,8 +102,6 @@ function stage_state:update()
 end
 
 function stage_state:render()
-  cls()
-
   camera()
   -- background
   rectfill(0, 0, 127, 127, colors.dark_purple)

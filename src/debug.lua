@@ -1,3 +1,5 @@
+require("helper")
+
 debug_level = {
  log = 1,   -- show all messages
  warning = 2,  -- show warnings and errors

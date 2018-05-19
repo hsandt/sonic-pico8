@@ -3,44 +3,35 @@ local profiler = require("profiler")
 
 function test_profiler(desc,it)
 
+  desc('profiler.get_stat_function', function ()
+
+    it('should return a function that returns a stat name padded', function ()
+      local mem_stat_function = profiler.get_stat_function(1)
+      -- hard to test for current stat value, but we can test the padded stat name
+      -- and at least the beginning of the stat value number which should be stable enough
+      -- ex: memory     152
+      return sub(mem_stat_function(), 1, 14) == "memory     "..sub(stat(0), 1, 3)
+    end)
+
+  end)
+
   desc('profiler.lazy_init', function ()
 
     profiler:lazy_init()
 
-    it('should initialize the profiler with stat labels and correct values', function ()
+    it('should initialize the profiler with stat labels and correct callbacks', function ()
       return profiler.initialized,
-      profiler.stat_overlay.labels["memory"] ~= nil,
-      profiler.stat_overlay.labels["memory (value)"] ~= nil,
-      profiler.stat_overlay.labels["total cpu"] ~= nil,
-      profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
-      profiler.stat_overlay.labels["system cpu"] ~= nil,
-      profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
-      profiler.stat_overlay.labels["fps"] ~= nil,
-      profiler.stat_overlay.labels["fps (value)"] ~= nil,
-      profiler.stat_overlay.labels["target fps"] ~= nil,
-      profiler.stat_overlay.labels["target fps (value)"] ~= nil,
-      profiler.stat_overlay.labels["actual fps"] ~= nil,
-      profiler.stat_overlay.labels["actual fps (value)"] ~= nil
+      profiler.gui ~= nil,
+      profiler.gui ~= nil and #profiler.gui.children == 6,  -- size of stats_info
+      profiler.gui ~= nil and #profiler.gui.children == 6 and
+        type(profiler.gui.children[1].text) == "function",
+      profiler.gui ~= nil and #profiler.gui.children == 6 and
+        type(profiler.gui.children[1].text) == "function" and
+        sub(profiler.gui.children[1].text(), 1, 14) == "memory     "..sub(stat(0), 1, 3)
     end)
 
     profiler.initialized = false
-    clear_table(profiler.stat_overlay.labels)
-
-  end)
-
-  desc('profiler.update_stats', function ()
-
-    profiler:lazy_init()
-
-    -- hard to test that stats were correctly updated
-    -- because cpu will change between 2 calls of stat()
-    it('should not crash if already initialized', function ()
-      profiler:update_stats()
-      return true
-    end)
-
-    profiler.initialized = false
-    clear_table(profiler.stat_overlay.labels)
+    clear_table(profiler.gui.children)
 
   end)
 
@@ -49,43 +40,17 @@ function test_profiler(desc,it)
     profiler:render()
 
     it('should lazy init if not already initialized"', function ()
-      return profiler.initialized,
-        profiler.stat_overlay.labels["memory"] ~= nil,
-        profiler.stat_overlay.labels["memory (value)"] ~= nil,
-        profiler.stat_overlay.labels["total cpu"] ~= nil,
-        profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
-        profiler.stat_overlay.labels["system cpu"] ~= nil,
-        profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
-        profiler.stat_overlay.labels["fps"] ~= nil,
-        profiler.stat_overlay.labels["fps (value)"] ~= nil,
-        profiler.stat_overlay.labels["target fps"] ~= nil,
-        profiler.stat_overlay.labels["target fps (value)"] ~= nil,
-        profiler.stat_overlay.labels["actual fps"] ~= nil,
-        profiler.stat_overlay.labels["actual fps (value)"] ~= nil
+      return profiler.initialized
     end)
 
     profiler:render()
 
-    -- hard to test that stats were correctly updated
-    -- because cpu will change between 2 calls of stat()
-    it('should preserve labels if already initialized"', function ()
-      return profiler.initialized,
-        profiler.stat_overlay.labels["memory"] ~= nil,
-        profiler.stat_overlay.labels["memory (value)"] ~= nil,
-        profiler.stat_overlay.labels["total cpu"] ~= nil,
-        profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
-        profiler.stat_overlay.labels["system cpu"] ~= nil,
-        profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
-        profiler.stat_overlay.labels["fps"] ~= nil,
-        profiler.stat_overlay.labels["fps (value)"] ~= nil,
-        profiler.stat_overlay.labels["target fps"] ~= nil,
-        profiler.stat_overlay.labels["target fps (value)"] ~= nil,
-        profiler.stat_overlay.labels["actual fps"] ~= nil,
-        profiler.stat_overlay.labels["actual fps (value)"] ~= nil
+    it('should continue rendering with no crash if already initialized"', function ()
+      return profiler.initialized
     end)
 
     profiler.initialized = false
-    clear_table(profiler.stat_overlay.labels)
+    clear_table(profiler.gui.children)
 
   end)
 

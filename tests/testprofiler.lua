@@ -10,8 +10,17 @@ function test_profiler(desc,it)
     it('should initialize the profiler with stat labels and correct values', function ()
       return profiler.initialized,
       profiler.stat_overlay.labels["memory"] ~= nil,
+      profiler.stat_overlay.labels["memory (value)"] ~= nil,
       profiler.stat_overlay.labels["total cpu"] ~= nil,
-      profiler.stat_overlay.labels["system cpu"] ~= nil
+      profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
+      profiler.stat_overlay.labels["system cpu"] ~= nil,
+      profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
+      profiler.stat_overlay.labels["fps"] ~= nil,
+      profiler.stat_overlay.labels["fps (value)"] ~= nil,
+      profiler.stat_overlay.labels["target fps"] ~= nil,
+      profiler.stat_overlay.labels["target fps (value)"] ~= nil,
+      profiler.stat_overlay.labels["actual fps"] ~= nil,
+      profiler.stat_overlay.labels["actual fps (value)"] ~= nil
     end)
 
     profiler.initialized = false
@@ -42,8 +51,17 @@ function test_profiler(desc,it)
     it('should lazy init if not already initialized"', function ()
       return profiler.initialized,
         profiler.stat_overlay.labels["memory"] ~= nil,
+        profiler.stat_overlay.labels["memory (value)"] ~= nil,
         profiler.stat_overlay.labels["total cpu"] ~= nil,
-        profiler.stat_overlay.labels["system cpu"] ~= nil
+        profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
+        profiler.stat_overlay.labels["system cpu"] ~= nil,
+        profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
+        profiler.stat_overlay.labels["fps"] ~= nil,
+        profiler.stat_overlay.labels["fps (value)"] ~= nil,
+        profiler.stat_overlay.labels["target fps"] ~= nil,
+        profiler.stat_overlay.labels["target fps (value)"] ~= nil,
+        profiler.stat_overlay.labels["actual fps"] ~= nil,
+        profiler.stat_overlay.labels["actual fps (value)"] ~= nil
     end)
 
     profiler:render()
@@ -53,8 +71,17 @@ function test_profiler(desc,it)
     it('should preserve labels if already initialized"', function ()
       return profiler.initialized,
         profiler.stat_overlay.labels["memory"] ~= nil,
+        profiler.stat_overlay.labels["memory (value)"] ~= nil,
         profiler.stat_overlay.labels["total cpu"] ~= nil,
-        profiler.stat_overlay.labels["system cpu"] ~= nil
+        profiler.stat_overlay.labels["total cpu (value)"] ~= nil,
+        profiler.stat_overlay.labels["system cpu"] ~= nil,
+        profiler.stat_overlay.labels["system cpu (value)"] ~= nil,
+        profiler.stat_overlay.labels["fps"] ~= nil,
+        profiler.stat_overlay.labels["fps (value)"] ~= nil,
+        profiler.stat_overlay.labels["target fps"] ~= nil,
+        profiler.stat_overlay.labels["target fps (value)"] ~= nil,
+        profiler.stat_overlay.labels["actual fps"] ~= nil,
+        profiler.stat_overlay.labels["actual fps (value)"] ~= nil
     end)
 
     profiler.initialized = false

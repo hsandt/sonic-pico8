@@ -1,6 +1,15 @@
 require("color")
 local ui = require("ui")
 
+local stats_info = {
+  {"memory",     0},
+  {"total cpu",  1},
+  {"system cpu", 2},
+  {"fps",        7},
+  {"target fps", 8},
+  {"actual fps", 9}
+}
+
 local profiler = {
   -- parameters
 
@@ -13,26 +22,34 @@ local profiler = {
 }
 
 -- hard to test because cpu changes every line
-local function get_stats()
-  return stat(0), stat(1), stat(2)
+local function get_stat_values()
+  local stat_values = {}
+  for stat_info in all(stats_info) do
+    add(stat_values, stat(stat_info[2]))
+  end
+  return stat_values
 end
 
 function profiler:lazy_init()
-  local memory, total_cpu, system_cpu = get_stats()
+  local stat_values = get_stat_values()
 
   self.initialized = true
-  self.stat_overlay:add_label("memory", memory, vector(10, 10), colors.white)
-  self.stat_overlay:add_label("total cpu", total_cpu, vector(10, 16), colors.white)
-  self.stat_overlay:add_label("system cpu", system_cpu, vector(10, 22), colors.white)
+  for i= 1, #stat_values do
+    -- example: "total cpu   0.032"
+    warn(stats_info[i][1])
+    self.stat_overlay:add_label(stats_info[i][1], stats_info[i][1], vector(1, 1 + 6*(i-1)), colors.white)
+    self.stat_overlay:add_label(stats_info[i][1].." (value)", stat_values[i], vector(45, 1 + 6*(i-1)), colors.white)
+  end
 end
 
 function profiler:update_stats()
   assert(self.initialized)
-  local memory, total_cpu, system_cpu = get_stats()
+  local stat_values = get_stat_values()
 
-  self.stat_overlay.labels["memory"].text = memory
-  self.stat_overlay.labels["total cpu"].text = total_cpu
-  self.stat_overlay.labels["system cpu"].text = system_cpu
+  for i= 1, #stat_values do
+    -- example: "total cpu -> 0.034"
+    self.stat_overlay.labels[stats_info[i][1].." (value)"].text = stat_values[i]
+  end
 end
 
 function profiler:render()

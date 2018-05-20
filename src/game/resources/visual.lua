@@ -1,4 +1,4 @@
-require("sprite")
+require("engine/render/sprite")
 
 local visual = {}
 

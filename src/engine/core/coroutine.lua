@@ -1,4 +1,4 @@
-require("class")
+require("engine/core/class")
 
 coroutine_curry = new_class()
 

@@ -1,7 +1,7 @@
 local picotest = require("picotest")
-local stage = require("stage")
-local flow = require("flow")
-local titlemenu = require("titlemenu")
+local stage = require("game/ingame/stage")
+local flow = require("engine/application/flow")
+local titlemenu = require("game/menu/titlemenu")
 
 function test_stage(desc,it)
 

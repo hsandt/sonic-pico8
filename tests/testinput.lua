@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-local input = require("input")
+local input = require("engine/input/input")
 
 function test_input(desc,it)
 

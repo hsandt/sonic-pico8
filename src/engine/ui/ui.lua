@@ -1,5 +1,5 @@
-local input = require("input")
-local visual = require("visual")
+local input = require("engine/input/input")
+local visual = require("game/resources/visual")
 
 local ui = {
   show_mouse = false

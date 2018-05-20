@@ -1,8 +1,8 @@
 picotest = require("picotest")
-titlemenu = require("titlemenu")
-flow = require("flow")
-credits = require("credits")
-stage = require("stage")
+titlemenu = require("game/menu/titlemenu")
+flow = require("engine/application/flow")
+credits = require("game/menu/credits")
+stage = require("game/ingame/stage")
 
 function test_titlemenu(desc,it)
 

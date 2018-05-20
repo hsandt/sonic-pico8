@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-local codetuner = require("codetuner")
+local codetuner = require("engine/debug/codetuner")
 
 function test_codetuner(desc,it)
 

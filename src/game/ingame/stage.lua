@@ -1,11 +1,11 @@
-require("color")
-require("coroutine")
-require("math")
-require("playercharacter")
-local flow = require("flow")
-local audio = require("audio")
-local input = require("input")
-local ui = require("ui")
+require("engine/render/color")
+require("engine/core/coroutine")
+require("engine/core/math")
+require("game/ingame/playercharacter")
+local flow = require("engine/application/flow")
+local audio = require("game/resources/audio")
+local input = require("engine/input/input")
+local ui = require("engine/ui/ui")
 
 local stage = {}
 

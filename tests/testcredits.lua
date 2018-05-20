@@ -1,5 +1,5 @@
 picotest = require("picotest")
-credits = require("credits")
+credits = require("game/menu/credits")
 
 function test_credits(desc,it)
  desc('credits.state.type', function ()

@@ -1,4 +1,4 @@
-require("math")
+require("engine/core/math")
 
 local input = {}
 

@@ -1,5 +1,5 @@
 picotest = require("picotest")
-math = require("math")
+math = require("engine/core/math")
 
 function test_math(desc,it)
 

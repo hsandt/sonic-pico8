@@ -1,5 +1,5 @@
 -- deactivate log for testing
-require("debug")
+require("engine/debug/debug")
 current_debug_level = debug_level.warning
 
 -- https://github.com/jozanza/pico-test

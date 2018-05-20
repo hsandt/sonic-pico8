@@ -1,5 +1,5 @@
 picotest = require("picotest")
-class = require("class")
+class = require("engine/core/class")
 
 function test_class(desc,it)
 

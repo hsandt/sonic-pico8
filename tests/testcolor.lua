@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-require("color")
+require("engine/render/color")
 
 function test_ui(desc,it)
 

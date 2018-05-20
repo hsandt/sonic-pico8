@@ -1,7 +1,7 @@
-require("color")
-local flow = require("flow")
-local input = require("input")
-local ui = require("ui")
+require("engine/render/color")
+local flow = require("engine/application/flow")
+local input = require("engine/input/input")
+local ui = require("engine/ui/ui")
 
 local titlemenu = {}
 

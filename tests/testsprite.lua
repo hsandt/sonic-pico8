@@ -1,5 +1,5 @@
 picotest = require("picotest")
-sprite = require("sprite")
+sprite = require("engine/render/sprite")
 
 function test_sprite(desc,it)
 

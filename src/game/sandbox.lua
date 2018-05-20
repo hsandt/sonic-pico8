@@ -1,12 +1,8 @@
--- require("constants")
-require("debug")
-require("helper")
-require("math")
-require("class")
--- require("playercharacter")
--- stage = require("stage")
--- flow = require("flow")
-require("coroutine")
+require("engine/debug/debug")
+require("engine/core/helper")
+require("engine/core/math")
+require("engine/core/class")
+require("engine/core/coroutine")
 
 function test_fun_async_with_args(var1, var2)
 end

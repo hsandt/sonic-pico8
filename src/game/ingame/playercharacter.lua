@@ -1,8 +1,8 @@
-require("class")
-require("constants")
-require("helper")
-require("math")
-require("sprite")
+require("engine/core/class")
+require("engine/core/constants")
+require("engine/core/helper")
+require("engine/core/math")
+require("engine/render/sprite")
 
 player_character = new_class()
 

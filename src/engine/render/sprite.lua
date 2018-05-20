@@ -1,4 +1,4 @@
-require("math")
+require("engine/core/math")
 
 -- sprite class
 sprite_data = {}

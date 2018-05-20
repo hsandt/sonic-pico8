@@ -1,4 +1,4 @@
-require("helper")
+require("engine/core/helper")
 
 debug_level = {
  log = 1,   -- show all messages

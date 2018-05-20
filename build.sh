@@ -18,6 +18,6 @@ rm -f "$OUTPUT_FILEPATH"
 
 mkdir -p build
 # build the game from the different modules
-p8tool build --lua "src/$1.lua" --lua-path="?.lua;$(pwd)/src/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "$OUTPUT_FILEPATH" &&
+p8tool build --lua "src/game/$1.lua" --lua-path="$(pwd)/src/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "$OUTPUT_FILEPATH" &&
 echo "Build succeeded: $OUTPUT_FILEPATH" ||
 (echo "Build failed: $OUTPUT_FILEPATH" && exit 1)

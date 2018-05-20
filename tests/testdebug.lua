@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-require("debug")
+require("engine/debug/debug")
 
 function test_debug(desc,it)
 

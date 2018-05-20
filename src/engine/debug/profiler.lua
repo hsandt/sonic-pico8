@@ -1,4 +1,4 @@
-require("color")
+require("engine/render/color")
 local wtk = require("wtk/pico8wtk")
 
 local stats_info = {

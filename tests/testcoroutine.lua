@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-require("coroutine")
+require("engine/core/coroutine")
 
 function test_coroutine(desc,it)
 

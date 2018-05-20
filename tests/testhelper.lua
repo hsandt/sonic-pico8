@@ -1,6 +1,6 @@
 picotest = require("picotest")
-helper = require("helper")
-math = require("math")  -- just to test tostring
+helper = require("engine/core/helper")
+math = require("engine/core/math")  -- just to test tostring
 
 function test_helper(desc,it)
 

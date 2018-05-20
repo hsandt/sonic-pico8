@@ -1,4 +1,4 @@
-require("helper")
+require("engine/core/helper")
 
 -- generic call metamethod (requires _init method)
 local function call(cls, ...)

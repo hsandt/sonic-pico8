@@ -1,4 +1,4 @@
-require("class")
+require("engine/core/class")
 
 -- numeric helpers
 function almost_eq(lhs, rhs, eps)

@@ -1,6 +1,6 @@
 picotest = require("picotest")
-require("playercharacter")
-require("math")
+require("game/ingame/playercharacter")
+require("engine/core/math")
 
 function test_player_character(desc,it)
 

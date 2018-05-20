@@ -1,7 +1,7 @@
-require("color")
 local picotest = require("picotest")
-local ui = require("ui")
-local input = require("input")
+require("engine/render/color")
+local ui = require("engine/ui/ui")
+local input = require("engine/input/input")
 
 function test_ui(desc,it)
 

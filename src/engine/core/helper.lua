@@ -1,4 +1,4 @@
-require("constants")
+require("engine/core/constants")
 
 -- return true if the table is empty
 function is_empty(t)

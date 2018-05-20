@@ -1,5 +1,5 @@
-require("class")
-require("color")
+require("engine/core/class")
+require("engine/render/color")
 local wtk = require("wtk/pico8wtk")
 
 -- utilities from widget toolkit demo

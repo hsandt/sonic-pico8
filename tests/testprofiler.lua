@@ -1,5 +1,5 @@
 local picotest = require("picotest")
-local profiler = require("profiler")
+local profiler = require("engine/debug/profiler")
 
 function test_profiler(desc,it)
 

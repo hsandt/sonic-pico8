@@ -1,5 +1,5 @@
+require("engine/application/constants")
 require("engine/core/class")
-require("engine/core/constants")
 require("engine/core/helper")
 require("engine/core/math")
 require("engine/render/sprite")

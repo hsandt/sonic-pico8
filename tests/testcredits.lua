@@ -1,10 +1,11 @@
 picotest = require("picotest")
+require("game/application/gamestates")
 credits = require("game/menu/credits")
 
 function test_credits(desc,it)
  desc('credits.state.type', function ()
-  it('should be gamestate_type.credits', function ()
-   return credits.state.type == gamestate_type.credits
+  it('should be gamestate_types.credits', function ()
+   return credits.state.type == gamestate_types.credits
   end)
  end)
 end

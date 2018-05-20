@@ -1,10 +1,11 @@
 require("engine/application/flow")
+require("game/application/gamestates")
 
 local credits = {}
 
 -- game state
 local credits_state = {
-  type = gamestate_type.credits
+  type = gamestate_types.credits
 }
 
 function credits_state:on_enter()

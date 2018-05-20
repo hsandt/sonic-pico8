@@ -2,12 +2,13 @@ require("engine/render/color")
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
+require("game/application/gamestates")
 
 local titlemenu = {}
 
 -- game state
 local titlemenustate = {
-  type = gamestate_type.titlemenu,
+  type = gamestate_types.titlemenu,
 
   -- parameters
 
@@ -58,9 +59,9 @@ end
 
 function titlemenustate:confirm_current_selection()
   if self.current_cursor_index == 0 then
-    flow:query_gamestate_type(gamestate_type.stage)
+    flow:query_gamestate_type(gamestate_types.stage)
   else  -- current_cursor_index == 1
-    flow:query_gamestate_type(gamestate_type.credits)
+    flow:query_gamestate_type(gamestate_types.credits)
   end
 end
 

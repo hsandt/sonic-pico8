@@ -2,14 +2,15 @@ local picotest = require("picotest")
 local stage = require("game/ingame/stage")
 local flow = require("engine/application/flow")
 local titlemenu = require("game/menu/titlemenu")
+require("game/application/gamestates")
 
 function test_stage(desc,it)
 
   local stage_state = stage.state
 
   desc('stage.state.type', function ()
-    it('should be gamestate_type.stage', function ()
-      return stage_state.type == gamestate_type.stage
+    it('should be gamestate_types.stage', function ()
+      return stage_state.type == gamestate_types.stage
     end)
   end)
 
@@ -281,7 +282,7 @@ function test_stage(desc,it)
           for i = 1, stage.global_params.back_to_titlemenu_delay * fps do
             flow:update()
           end
-          return flow.current_gamestate.type == gamestate_type.titlemenu
+          return flow.current_gamestate.type == gamestate_types.titlemenu
         end)
 
         flow:_change_gamestate(stage_state)  -- will also reset current_substate
@@ -299,7 +300,7 @@ function test_stage(desc,it)
         flow:update()
 
         it('should change gamestate to titlemenu on next update', function ()
-          return flow.current_gamestate.type == gamestate_type.titlemenu
+          return flow.current_gamestate.type == gamestate_types.titlemenu
         end)
 
         flow:_change_gamestate(stage_state)

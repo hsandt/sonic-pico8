@@ -2,6 +2,7 @@ require("engine/render/color")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("game/ingame/playercharacter")
+require("game/application/gamestates")
 local flow = require("engine/application/flow")
 local audio = require("game/resources/audio")
 local input = require("engine/input/input")
@@ -42,7 +43,7 @@ local stage_data = {
 
 -- game state
 local stage_state = {
-  type = gamestate_type.stage,
+  type = gamestate_types.stage,
 
   -- state vars
 
@@ -200,7 +201,7 @@ function stage_state:feedback_reached_goal()
 end
 
 function stage_state:back_to_titlemenu()
-  flow:query_gamestate_type(gamestate_type.titlemenu)
+  flow:query_gamestate_type(gamestate_types.titlemenu)
 end
 
 

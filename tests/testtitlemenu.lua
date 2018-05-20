@@ -1,14 +1,15 @@
 picotest = require("picotest")
 titlemenu = require("game/menu/titlemenu")
 flow = require("engine/application/flow")
+require("game/application/gamestates")
 credits = require("game/menu/credits")
 stage = require("game/ingame/stage")
 
 function test_titlemenu(desc,it)
 
   desc('titlemenu.state.type', function ()
-    it('should be gamestate_type.titlemenu', function ()
-      return titlemenu.state.type == gamestate_type.titlemenu
+    it('should be gamestate_types.titlemenu', function ()
+      return titlemenu.state.type == gamestate_types.titlemenu
     end)
   end)
 
@@ -54,7 +55,7 @@ function test_titlemenu(desc,it)
       titlemenu.state:confirm_current_selection()
 
       it('should have queried stage state', function ()
-        return flow.next_gamestate.type == gamestate_type.stage
+        return flow.next_gamestate.type == gamestate_types.stage
       end)
 
       flow:_change_gamestate(titlemenu.state)
@@ -93,7 +94,7 @@ function test_titlemenu(desc,it)
         titlemenu.state:confirm_current_selection()
 
         it('should have queried credits state', function ()
-          return flow.next_gamestate.type == gamestate_type.credits
+          return flow.next_gamestate.type == gamestate_types.credits
         end)
 
         flow:_change_gamestate(titlemenu.state)

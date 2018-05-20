@@ -1,11 +1,3 @@
--- global variables
-
-gamestate_type = {
- titlemenu = 'titlemenu',
- credits = 'credits',
- stage = 'stage',
-}
-
 local flow = {
  -- parameters
  gamestates = {},

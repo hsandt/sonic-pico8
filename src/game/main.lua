@@ -1,12 +1,13 @@
-require("engine/debug/debug")
 local flow = require("engine/application/flow")
-local titlemenu = require("game/menu/titlemenu")
-local credits = require("game/menu/credits")
-local stage = require("game/ingame/stage")
+local codetuner = require("engine/debug/codetuner")
+require("engine/debug/debug")
+local profiler = require("engine/debug/profiler")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
-local profiler = require("engine/debug/profiler")
-local codetuner = require("engine/debug/codetuner")
+local credits = require("game/menu/credits")
+local stage = require("game/ingame/stage")
+local titlemenu = require("game/menu/titlemenu")
+local visual = require("game/resources/visual")
 
 -- config
 profiler:show()
@@ -17,6 +18,7 @@ profiler:show()
 
 function _init()
   input.toggle_mouse(true)
+  ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 
   flow:add_gamestate(titlemenu.state)
   flow:add_gamestate(credits.state)

@@ -2,16 +2,26 @@ local input = require("engine/input/input")
 local visual = require("game/resources/visual")
 
 local ui = {
-  show_mouse = false
+  show_mouse = false,
+  cursor_sprite_data = nil
 }
+
+-- setup
+
+-- injection function: call it from game to set the sprite data
+-- for the mouse cursor. this avoids accessing game data
+-- from an engine script
+function ui:set_cursor_sprite_data(cursor_sprite_data)
+  self.cursor_sprite_data = cursor_sprite_data
+end
 
 -- helper functions
 
 function ui:render_mouse()
-  if self.show_mouse then
+  if self.show_mouse and self.cursor_sprite_data then
     camera(0, 0)
     local cursor_position = input.get_cursor_position()
-    visual.sprite_data_t.cursor:render(cursor_position)
+    self.cursor_sprite_data:render(cursor_position)
   end
 end
 

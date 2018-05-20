@@ -1,6 +1,6 @@
 require("engine/core/class")
 require("engine/render/color")
-local wtk = require("wtk/pico8wtk")
+local wtk = require("engine/wtk/pico8wtk")
 
 -- utilities from widget toolkit demo
 local function next_to(w, dist)

@@ -4,10 +4,14 @@ local titlemenu = require("titlemenu")
 local credits = require("credits")
 local stage = require("stage")
 local input = require("input")
+local ui = require("ui")
 local profiler = require("profiler")
+local codetuner = require("codetuner")
 
 -- config
-profiler.active = true
+profiler:show()
+-- codetuner:show()
+-- codetuner.active = true
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
@@ -22,13 +26,14 @@ end
 
 function _update60()
   flow:update()
+  profiler:update_window()
+  codetuner:update_window()
 end
 
 function _draw()
   cls()
   flow.current_gamestate:render()
-
-  if profiler.active then
-    profiler:render()
-  end
+  profiler:render_window()
+  codetuner:render_window()
+  ui:render_mouse()
 end

@@ -12,6 +12,7 @@ active_debug_categories = {
  flow = true,
  player = true,
  ui = true,
+ codetuner = true
 }
 
 current_debug_level = debug_level.log

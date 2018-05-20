@@ -1,8 +1,19 @@
 local input = require("input")
 local visual = require("visual")
 
-local ui = {}
+local ui = {
+  show_mouse = false
+}
 
+-- helper functions
+
+function ui:render_mouse()
+  if self.show_mouse then
+    camera(0, 0)
+    local cursor_position = input.get_cursor_position()
+    visual.sprite_data_t.cursor:render(cursor_position)
+  end
+end
 
 -- label class: container for a text to draw at a given position
 local label = new_class()
@@ -83,16 +94,7 @@ function overlay:draw_labels()
 end
 
 
--- helper functions
-
-local function draw_cursor()
-  camera(0, 0)
-  local cursor_position = input.get_cursor_position()
-  visual.sprite_data_t.cursor:render(cursor_position)
-end
-
 -- export
 ui.label = label
 ui.overlay = overlay
-ui.draw_cursor = draw_cursor
 return ui

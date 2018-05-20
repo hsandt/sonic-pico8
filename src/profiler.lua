@@ -20,18 +20,11 @@ end
 local stat_value_char_offset = max_stat_name_length + 1
 
 local profiler = {
-  -- parameters
-
-  -- should the profiler overlay be rendered? checked in main loop
-  active = false,
-
-  -- state vars
-
   -- has the profiler been lazy initialized?
   initialized = false,
 
   -- gui root
-  gui = nil
+  gui = wtk.gui_root.new()
 }
 
 -- return a callback function to use for stat labels
@@ -51,23 +44,33 @@ function profiler.get_stat_function(stat_index)
   end
 end
 
-function profiler:lazy_init()
-  self.gui = wtk.gui_root.new()
+function profiler:show()
+  if not self.initialized then
+    self:init_window()
+  end
 
+  self.gui.visible = true
+end
+
+function profiler:hide()
+  self.gui.visible = false
+end
+
+function profiler:init_window()
   -- add stat labels to draw with their text callbacks
   for i = 1, #stats_info do
     local stat_label = wtk.label.new(profiler.get_stat_function(i), colors.light_gray)
-    self.gui:add_child(stat_label, 1, 1 + 6*(i-1))
+    self.gui:add_child(stat_label, 1, 1 + 6*(i-1))  -- aligned vertically
   end
 
   self.initialized = true
 end
 
-function profiler:render()
-  if not self.initialized then
-    self:lazy_init()
-  end
+function profiler:update_window()
+  self.gui:update()
+end
 
+function profiler:render_window()
   camera()
   self.gui:draw()
 end

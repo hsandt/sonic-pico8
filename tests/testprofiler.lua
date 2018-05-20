@@ -15,9 +15,36 @@ function test_profiler(desc,it)
 
   end)
 
-  desc('profiler.lazy_init', function ()
+  desc('profiler.show', function ()
 
-    profiler:lazy_init()
+    profiler:show()
+
+    it('should initialize the profiler if not already', function ()
+      return profiler.initialized
+    end)
+
+    it('should make the gui visible', function ()
+      return profiler.gui.visible
+    end)
+
+  end)
+
+  desc('profiler.hide', function ()
+
+    profiler:hide()
+
+    it('should make the gui invisible', function ()
+      return not profiler.gui.visible
+    end)
+
+  end)
+
+  profiler.initialized = false
+  clear_table(profiler.gui.children)
+
+  desc('profiler.init_window', function ()
+
+    profiler:init_window()
 
     it('should initialize the profiler with stat labels and correct callbacks', function ()
       return profiler.initialized,
@@ -35,22 +62,21 @@ function test_profiler(desc,it)
 
   end)
 
-  desc('profiler.render', function ()
+  desc('profiler.update_window', function ()
 
-    profiler:render()
-
-    it('should lazy init if not already initialized"', function ()
-      return profiler.initialized
+    it('should not crash"', function ()
+      profiler:update_window()
+      return true
     end)
 
-    profiler:render()
+  end)
 
-    it('should continue rendering with no crash if already initialized"', function ()
-      return profiler.initialized
+  desc('profiler.render_window', function ()
+
+    it('should not crash"', function ()
+      profiler:render_window()
+      return true
     end)
-
-    profiler.initialized = false
-    clear_table(profiler.gui.children)
 
   end)
 

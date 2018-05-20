@@ -125,12 +125,12 @@ function test_ui(desc,it)
 
   end)
 
-  desc('[after toggle_mouse] ui.draw_cursor', function ()
+  desc('[after toggle_mouse] ui.render_mouse', function ()
 
     input.toggle_mouse(true)
 
     it('should draw the cursor (no crash test)', function ()
-      ui.draw_cursor()
+      ui:render_mouse()
       return true
     end)
 

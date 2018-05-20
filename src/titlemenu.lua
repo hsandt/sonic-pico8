@@ -21,10 +21,12 @@ local titlemenustate = {
 }
 
 function titlemenustate:on_enter()
+  ui.show_mouse = true
   self.current_cursor_index = 0
 end
 
 function titlemenustate:on_exit()
+  ui.show_mouse = false
 end
 
 function titlemenustate:update()
@@ -42,8 +44,6 @@ function titlemenustate:render()
   print("start", 4*11, 6*12)
   print("credits", 4*11, 6*13)
   print(">", 4*10, 6*(12+self.current_cursor_index))
-
-  ui.draw_cursor()
 end
 
 function titlemenustate:move_cursor_up()

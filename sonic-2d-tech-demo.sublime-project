@@ -184,6 +184,15 @@
 		{
 			"cmd":
 			[
+				"./test.sh codetuner"
+			],
+			"name": "p8tool: test codetuner",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd":
+			[
 				"./test.sh profiler"
 			],
 			"name": "p8tool: test profiler",

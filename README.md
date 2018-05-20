@@ -25,6 +25,12 @@ The .sublime-project file contains the most used commands for building the game.
 
 If you use the scripts of this project to create a new game, in order to use *p8tool: edit data* you need to create a pico8 file at data/data.p8 first. To do this, open PICO-8, type *save data*, then copy the boilerplate file to data/data.p8.
 
+## Runtime third-party libraries
+
+### PICO8-WTK
+
+[PICO8-WTK](https://github.com/Saffith/PICO8-WTK) has been integrated as a submodule. I use a special branch I created for p8tool integration, which uses exports instead of global variables to avoid importing many symbols in the global namespaces.
+
 ## License
 
 ### Code

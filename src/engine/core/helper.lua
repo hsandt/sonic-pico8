@@ -23,11 +23,14 @@ function unpack(t, from, to)
   return t[from], unpack(t, from+1, to)
 end
 
-function tostring(value)
-  if type(value) == "table" and value._tostring then
-    return value:_tostring()
-  else
-    return tostr(value)
+-- luaunit fix: keep native tostring
+if not tostring then
+  function tostring(value)
+    if type(value) == "table" and value._tostring then
+      return value:_tostring()
+    else
+      return tostr(value)
+    end
   end
 end
 

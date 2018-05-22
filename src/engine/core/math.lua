@@ -112,8 +112,8 @@ function vector.__mul(lhs, rhs)
   elseif type(rhs) == "number" then
     return vector (rhs * lhs.x, rhs * lhs.y)
   else
-    assert(false, "vector multiplication is only supported with a scalar,
-      tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
+    assert(false, [[vector multiplication is only supported with a scalar,
+      tried to multiply ]]..lhs:_tostring().." and "..rhs:_tostring())
   end
 end
 
@@ -122,8 +122,8 @@ function vector.__div(lhs, rhs)
     assert(rhs ~= 0, "cannot divide vector "..lhs:_tostring().." by zero")
     return vector(lhs.x / rhs, lhs.y / rhs)
   else
-    assert(false, "vector division is only supported with a scalar as rhs,
-      tried to multiply "..tostring(lhs).." and "..rhs:_tostring())
+    assert(false, [[vector division is only supported with a scalar as rhs,
+      tried to multiply ]]..tostring(lhs).." and "..rhs:_tostring())
   end
 end
 
@@ -156,8 +156,11 @@ end
 function vector:normalize()
   local magnitude = self:magnitude()
   if magnitude > 0 then
-    self.x /= magnitude
-    self.y /= magnitude
+    -- self.x /= magnitude
+    -- self.y /= magnitude
+    -- temporarily changed for lua test... convert in real time for final ver
+    self.x = self.x / magnitude
+    self.y = self.y / magnitude
   end
 end
 
@@ -174,8 +177,10 @@ function vector:clamp_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
   if magnitude > max_magnitude then
-    self.x *= max_magnitude / magnitude
-    self.y *= max_magnitude / magnitude
+    -- self.x *= max_magnitude / magnitude
+    -- self.y *= max_magnitude / magnitude
+    self.x = self.x * max_magnitude / magnitude
+    self.y = self.y * max_magnitude / magnitude
   end
 end
 

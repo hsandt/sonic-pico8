@@ -1,4 +1,5 @@
 require("engine/core/class")
+require("engine/debug/debug")
 require("engine/render/color")
 local wtk = require("engine/wtk/pico8wtk")
 

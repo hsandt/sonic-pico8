@@ -99,7 +99,7 @@ end
 -- draw all labels in the overlay. order is not guaranteed
 function overlay:draw_labels()
   for name, label in pairs(self.labels) do
-    print(label.text, label.position.x, label.position.y, label.colour)
+    api.print(label.text, label.position.x, label.position.y, label.colour)
   end
 end
 

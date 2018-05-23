@@ -1,3 +1,5 @@
+require("engine/debug/debug")
+
 local flow = {
  -- parameters
  gamestates = {},

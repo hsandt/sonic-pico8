@@ -1,129 +1,150 @@
-local picotest = require("picotest")
+require("test")
 local codetuner = require("engine/debug/codetuner")
 
-function test_codetuner(desc,it)
+describe('(codetuner active)', function ()
+  local warn_stub
 
-  desc('codetuner.get_spinner_callback', function ()
-
+  setup(function ()
     codetuner.active = true  -- needed to create tuned vars
+    warn_stub = stub(_G, "warn")
+  end)
+
+  teardown(function ()
+    codetuner.active = false
+    warn_stub:revert()
+  end)
+
+  after_each(function ()
+    clear_table(codetuner.tuned_vars)
+    clear_table(codetuner.main_panel.children)
+    warn_stub:clear()
+  end)
+
+  describe('get_spinner_callback', function ()
 
     it('should return a function that sets an existing tuned var', function ()
-      tuned("myvar", 17)
-      local f = codetuner:get_spinner_callback("myvar")
+      tuned("tuned_var", 17)
+      local f = codetuner:get_spinner_callback("tuned_var")
       -- simulate spinner via duck-typing
       local fake_spinnner = {value = 11}
       f(fake_spinnner)
-      return codetuner.tuned_vars["myvar"] == 11
-    end)
-
-    it('do nothing if it doesn\'t exist', function ()
-      codetuner:set_tuned_var("f", 28)
-      return codetuner.tuned_vars["f"] == nil
+      assert.are_equal(11, codetuner.tuned_vars["tuned_var"])
     end)
 
   end)
 
-  desc('codetuner.get_or_create_tuned_var', function ()
+  describe('get_or_create_tuned_var', function ()
 
-    it('if inactive return default value even if one exists', function ()
-      codetuner.active = false
+    it('when name doesn\'t exist it should create tuned var with default value and return it', function ()
+      local result = tuned("unknown", 14)
+      assert.are_same({14, 14}, {codetuner.tuned_vars["unknown"], result})
+    end)
+
+    it('when name exists it should return the current tuned value', function ()
+      tuned("tuned_var", 20)
+      -- we normally avoid conflicting default values,
+      -- but this example is to show we use the actual current value
+      local tuned_var_before_set = tuned("tuned_var", -20)
+      codetuner:set_tuned_var("tuned_var", 170)
+      local tuned_var_after_set = tuned("tuned_var", -25)
+      assert.are_same({20, 170}, {tuned_var_before_set, tuned_var_after_set})
+    end)
+
+    it('should add corresponding children to the panel', function ()
+      tuned("tuned_var1", 1)
+      tuned("tuned_var2", 2)
+      assert.is_not_nil(codetuner.main_panel)
+      assert.are_equal(2, #codetuner.main_panel.children)
+    end)
+
+  end)
+
+  describe('set_tuned_var', function ()
+
+    it('should set tuned value if it exists', function ()
+      tuned("tuned_var", 24)
+      codetuner:set_tuned_var("tuned_var", 26)
+      return codetuner.tuned_vars["tuned_var"] == 26
+    end)
+
+    it('should do nothing if the passed tuned var doesn\'t exist', function ()
+      codetuner:set_tuned_var("unknown", 28)
+      assert.is_nil(codetuner.tuned_vars["unknown"])
+      assert.spy(warn_stub).was.called(1)
+      assert.spy(warn_stub).was.called_with(match.matches('codetuner:set_tuned_var: no tuned var found with name: .*'), "codetuner")
+    end)
+
+  end)
+
+end)
+
+describe('(codetuner inactive)', function ()
+
+  after_each(function ()
+    clear_table(codetuner.tuned_vars)
+    clear_table(codetuner.main_panel.children)
+  end)
+
+  describe('get_or_create_tuned_var', function ()
+
+    it('should not create a new tuned var, not return any existing tuned var and return default value', function ()
       -- avoid conflicting default values, but this example is to show we use the passed one
-      return tuned("a", 12) == 12,
-        tuned("a", -12) == -12
+      codetuner.active = false
+      local inactive_tuned_var_before_set = tuned("tuned_var", 12)
+      local inactive_tuned_var_after_set = tuned("tuned_var", 18)
+      -- if a new default is provided, it is used whatever
+      assert.is_nil(codetuner.tuned_vars["tuned var"])
+      assert.are_same({inactive_tuned_var_before_set, inactive_tuned_var_after_set},
+        {12, 18})
     end)
-
-    it('if active and name doesn\'t exist create with default value and return it', function ()
-      codetuner.active = true
-      local result = tuned("b", 14)
-      return codetuner.tuned_vars["b"] == 14,
-        result == 14
-    end)
-
-    it('if active and name exists return tuned value (default)', function ()
-      codetuner.active = true
-      tuned("c", 20)
-      -- avoid conflicting default values, but this example is to show we use the actual value
-      return tuned("c", -20) == 20
-    end)
-
-    it('if active and name exists return tuned value (changed)', function ()
-      codetuner.active = true
-      tuned("d", 20)
-      codetuner:set_tuned_var("d", 22)
-      return tuned("d", 20) == 22
-    end)
-
   end)
 
-  desc('codetuner.set_tuned_var', function ()
+end)
 
-    codetuner.active = true  -- needed to create tuned vars
+describe('(on start) codetuner:init_window', function ()
 
-    it('set tuned value if it exists', function ()
-      tuned("e", 24)
-      codetuner:set_tuned_var("e", 26)
-      return codetuner.tuned_vars["e"] == 26
-    end)
-
-    it('do nothing if it doesn\'t exist', function ()
-      codetuner:set_tuned_var("f", 28)
-      return codetuner.tuned_vars["f"] == nil
-    end)
-
+  it('should have constructed a gui root with a panel of tuned values', function ()
+    assert.is_not_nil(codetuner.gui)
+    assert.are_equal(1, #codetuner.gui.children)
+    assert.are_equal(codetuner.main_panel, codetuner.gui.children[1])
   end)
 
-  clear_table(codetuner.tuned_vars)
+end)
 
-  desc('codetuner.init_window', function ()
+describe('codetuner:update_window', function ()
+  local update_stub
 
-    codetuner:init_window()
-
-    it('should construct a gui root with a panel of tuned values', function ()
-      return codetuner.gui ~= nil,
-        codetuner.gui ~= nil and #codetuner.gui.children == 1,
-        codetuner.gui ~= nil and #codetuner.gui.children == 1 and
-          codetuner.gui.children[1] == codetuner.main_panel
-
-    end)
-
-    it('get_or_create_tuned_var will add corresponding children to the panel', function ()
-      tuned("a", 1)
-      tuned("b", 2)
-      return codetuner.main_panel ~= nil,
-        #codetuner.main_panel.children == 2
-    end)
-
+  setup(function ()
+    update_stub = stub(codetuner.gui, "update")
   end)
 
-  desc('codetuner.update_window', function ()
-
-    it('should not crash', function ()
-      codetuner:update_window()
-      return true
-    end)
-
+  teardown(function ()
+    update_stub:revert()
   end)
 
-  desc('codetuner.render_window', function ()
-
-    it('should not crash', function ()
-      codetuner:render_window()
-      return true
-    end)
-
+  it('should call gui:update', function ()
+    codetuner:update_window()
+    assert.spy(update_stub).was.called()
+    assert.spy(update_stub).was.called_with(codetuner.gui)
   end)
 
-end
+end)
 
-add(picotest.test_suite, test_codetuner)
+describe('codetuner:render_window', function ()
+  local draw_stub
 
+  setup(function ()
+    draw_stub = stub(codetuner.gui, "draw")
+  end)
 
--- pico-8 functions must be placed at the end to be parsed by p8tool
+  teardown(function ()
+    draw_stub:revert()
+  end)
 
-function _init()
-  picotest.test('codetuner', test_codetuner)
-end
+  it('should call gui:draw', function ()
+    codetuner:render_window()
+    assert.spy(draw_stub).was.called()
+    assert.spy(draw_stub).was.called_with(codetuner.gui)
+  end)
 
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+end)

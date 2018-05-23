@@ -1,183 +1,166 @@
-picotest = require("picotest")
+require("test")
 helper = require("engine/core/helper")
-math = require("engine/core/math")  -- just to test tostring
+math = require("engine/core/math")  -- just to test stringify
 
-function test_helper(desc,it)
-
-  desc('is_empty', function ()
-    it('return true if the table is empty', function ()
-      return is_empty({})
-    end)
-    it('return false if the sequence is not empty', function ()
-      return not is_empty({2, "ah"})
-    end)
-    it('return false if the table has only non-sequence entries', function ()
-      return not is_empty({a = "str"})
-    end)
-    it('return false if the table has a mix of entries', function ()
-      return not is_empty({4, 5, d = "dummy"})
-    end)
+describe('is_empty', function ()
+  it('return true if the table is empty', function ()
+    assert.is_true(is_empty({}))
   end)
-
-  desc('clear_table', function ()
-    it('should clear a sequence', function ()
-      local t = {1, 5, -5}
-      clear_table(t)
-      return #t == 0
-    end)
-    it('should clear a table', function ()
-      local t = {1, 5, a = "b", b = 50.1}
-      clear_table(t)
-      return is_empty(t)
-    end)
+  it('return false if the sequence is not empty', function ()
+    assert.is_false(is_empty({2, "ah"}))
   end)
-
-  desc('unpack', function ()
-    it('should unpack a sequence fully by default', function ()
-      local function foo(a, b, c)
-        return a == 1 and b == "foo" and c == 20.2
-      end
-      return foo(unpack({1, "foo", 20.2}))
-    end)
-    it('should unpack a sequence from start if from is not passed', function ()
-      local function foo(a, b, c, d)
-        return a == 1 and b == "foo" and c == 20.2 and d ~= 50
-      end
-      return foo(unpack({1, "foo", 20.2, 50}, nil, 3))
-    end)
-    it('should unpack a sequence to the end if to is not passed', function ()
-      local function foo(a, b, c)
-        return a == 1 and b == "foo" and c == 20.2
-      end
-      return foo(unpack({45, 1, "foo", 20.2}, 2))
-    end)
-    it('should unpack a sequence from from to to', function ()
-      local function foo(a, b, c, d)
-        return a == 1 and b == "foo" and c == 20.2 and d ~= 50
-      end
-      return foo(unpack({45, 1, "foo", 20.2, 50}, 2, 4))
-    end)
+  it('return false if the table has only non-sequence entries', function ()
+    assert.is_false(is_empty({a = "str"}))
   end)
-
-  desc('tostring', function ()
-    it('nil => "[nil]"', function ()
-      return tostring(nil) == "[nil]"
-    end)
-    it('"string" => "string"', function ()
-      return tostring("string") == "string"
-    end)
-    it('true => "true"', function ()
-      return tostring(true) == "true"
-    end)
-    it('false => "false"', function ()
-      return tostring(false) == "false"
-    end)
-    it('56 => "56"', function ()
-      return tostring(56) == "56"
-    end)
-    it('56.2 => "56.2"', function ()
-      return tostring(56.2) == "56.2"
-    end)
-    it('vector(2 3) => "vector(2 3)" (_tostring implemented)', function ()
-      return tostring(vector(2, 3)) == "vector(2, 3)"
-    end)
-    it('{} => "[table]" (_tostring not implemented)', function ()
-      return tostring({}) == "[table]"
-    end)
-    it('function => "[function]"', function ()
-      local f = function ()
-      end
-      return tostring(f) == "[function]"
-    end)
-
+  it('return false if the table has a mix of entries', function ()
+    assert.is_false(is_empty({4, 5, d = "dummy"}))
   end)
+end)
 
-  desc('joinstr_table', function ()
-    it('joinstr_table("_" {nil 5 "at" nil}) => "[nil]_5_at"', function ()
-      return joinstr_table("_", {nil, 5, "at", nil}) == "[nil]_5_at"
-    end)
-    it('joinstr_table("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
-      return joinstr_table(", ", {nil, 5, "at", {}}) == "[nil], 5, at, [table]"
-    end)
+describe('clear_table', function ()
+  it('should clear a sequence', function ()
+    local t = {1, 5, -5}
+    clear_table(t)
+    assert.are_equal(0, #t)
   end)
-
-  desc('joinstr', function ()
-    it('joinstr("" nil 5 "at" nil) => "[nil]5at"', function ()
-      return joinstr("", nil, 5, "at", nil) == "[nil]5at"
-    end)
-    it('joinstr("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
-      return joinstr(", ", nil, 5, "at", {}) == "[nil], 5, at, [table]"
-    end)
+  it('should clear a table', function ()
+    local t = {1, 5, a = "b", b = 50.1}
+    clear_table(t)
+    assert.is_true(is_empty(t))
   end)
+end)
 
-  desc('yield_delay (wrapped in set_var_after_delay_async)', function ()
-
-    local test_var = 0
-
-    local function set_var_after_delay_async(delay)
-      yield_delay(delay)
-      test_var = 1
+describe('unpack', function ()
+  it('should unpack a sequence fully by default', function ()
+    local function foo(a, b, c)
+      assert.are_same({1, "foo", 20.2}, {a, b, c})
     end
+    foo(unpack({1, "foo", 20.2}))
+  end)
+  it('should unpack a sequence from start if from is not passed', function ()
+    local function foo(a, b, c, d)
+      assert.are_same({1, "foo", 20.2}, {a, b, c})
+      assert.are_not_equal(50, d)
+    end
+    foo(unpack({1, "foo", 20.2, 50}, nil, 3))
+  end)
+  it('should unpack a sequence to the end if to is not passed', function ()
+    local function foo(a, b, c)
+      assert.are_same({1, "foo", 20.2}, {a, b, c})
+    end
+    foo(unpack({45, 1, "foo", 20.2}, 2))
+  end)
+  it('should unpack a sequence from from to to', function ()
+    local function foo(a, b, c, d)
+      assert.are_same({1, "foo", 20.2}, {a, b, c})
+      assert.are_not_equal(50, d)
+    end
+    foo(unpack({45, 1, "foo", 20.2, 50}, 2, 4))
+  end)
+end)
 
-    local coroutine = cocreate(set_var_after_delay_async)
-
-    it('should start suspended', function ()
-      return costatus(coroutine) == "suspended",
-        test_var == 0
-    end)
-    it('should not stop after 59/60 frames', function ()
-      coresume(coroutine, 1.0)  -- pass delay of 60 frames in 1st call
-      for t=2,59 do
-        coresume(coroutine)  -- further calls don't need arg, it's only used as yield() return value
-      end
-      return costatus(coroutine) == "suspended",
-        test_var == 0
-    end)
-    it('should stop after the 60th frame', function ()
-      coresume(coroutine)  -- one more
-      return costatus(coroutine) == "dead"
-    end)
-    it('should continue execution of body after 1s', function ()
-      return test_var == 1
-    end)
-
-    test_var = 0  -- reset
-
-    local coroutine = cocreate(set_var_after_delay_async)
-
-    it('should start suspended', function ()
-      return costatus(coroutine) == "suspended",
-        test_var == 0
-    end)
-    it('should not stop after 60/60.6 frames', function ()
-      coresume(coroutine, 1.01)  -- pass delay of 60.6 frames in 1st call
-      for t=2,60 do
-        coresume(coroutine)
-      end
-      return costatus(coroutine) == "suspended",
-        test_var == 0
-    end)
-    it('should stop after the 61th frame (ceil of 60.6)', function ()
-      coresume(coroutine)  -- one more
-      return costatus(coroutine) == "dead"
-    end)
-    it('... and continue execution of body', function ()
-      return test_var == 1
-    end)
-
+describe('stringify', function ()
+  it('nil => "[nil]"', function ()
+    assert.are_equal("[nil]", stringify(nil))
+  end)
+  it('"string" => "string"', function ()
+    assert.are_equal("string", stringify("string"))
+  end)
+  it('true => "true"', function ()
+    assert.are_equal("true", stringify(true))
+  end)
+  it('false => "false"', function ()
+    assert.are_equal("false", stringify(false))
+  end)
+  it('56 => "56"', function ()
+    assert.are_equal("56", stringify(56))
+  end)
+  it('56.2 => "56.2"', function ()
+    assert.are_equal("56.2", stringify(56.2))
+  end)
+  it('vector(2 3) => "vector(2 3)" (_tostring implemented)', function ()
+    assert.are_equal("vector(2, 3)", stringify(vector(2, 3)))
+  end)
+  it('{} => "[table]" (_tostring not implemented)', function ()
+    assert.are_equal("[table]", stringify({}))
+  end)
+  it('function => "[function]"', function ()
+    local f = function ()
+    end
+    assert.are_equal("[function]", stringify(f))
   end)
 
-end
+end)
 
-add(picotest.test_suite, test_helper)
+describe('joinstr_table', function ()
+  it('joinstr_table("_" {nil 5 "at" nil}) => "[nil]_5_at"', function ()
+    assert.are_equal("[nil]_5_at", joinstr_table("_", {nil, 5, "at", nil}))
+  end)
+  it('joinstr_table("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
+    assert.are_equal("[nil], 5, at, [table]", joinstr_table(", ", {nil, 5, "at", {}}))
+  end)
+end)
 
+describe('joinstr', function ()
+  it('joinstr("" nil 5 "at" nil) => "[nil]5at"', function ()
+    assert.are_equal("[nil]5at", joinstr("", nil, 5, "at", nil))
+  end)
+  it('joinstr("comma " nil 5 "at" {}) => "[nil]comma 5comma atcomma [table]"', function ()
+    assert.are_equal("[nil], 5, at, [table]", joinstr(", ", nil, 5, "at", {}))
+  end)
+end)
 
--- pico-8 functions must be placed at the end to be parsed by p8tool
+describe('yield_delay (wrapped in set_var_after_delay_async)', function ()
+  local test_var
+  local coroutine
 
-function _init()
-  picotest.test('helper', test_helper)
-end
+  local function set_var_after_delay_async(delay)
+    yield_delay(delay)
+    test_var = 1
+  end
 
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+  before_each(function ()
+    test_var = 0
+    coroutine = cocreate(set_var_after_delay_async)
+  end)
+
+  it('should start suspended', function ()
+    assert.are_equal("suspended", costatus(coroutine))
+    assert.are_equal(0, test_var)
+  end)
+
+  it('should not stop after 59/60 frames (for a delay of 1s)', function ()
+    coresume(coroutine, 1.0)  -- pass delay of 60 frames in 1st call
+    for t = 2, 1.0 * fps - 1 do
+      coresume(coroutine)  -- further calls don't need arg, it's only used as yield() return value
+    end
+    assert.are_equal("suspended", costatus(coroutine))
+    assert.are_equal(0, test_var)
+  end)
+  it('should stop after the 60th frame, and continue body execution', function ()
+    coresume(coroutine, 1.0)
+    for t=2, 1.0 * fps do
+      coresume(coroutine)
+    end
+    assert.are_equal("dead", costatus(coroutine))
+    assert.are_equal(1, test_var)
+  end)
+
+  it('should not stop after 60/60.6 frames (for a delay of 1.01s)', function ()
+    coresume(coroutine, 1.01)  -- pass delay of 60.6 frames in 1st call
+    for t=2, 1.0 * fps do
+      coresume(coroutine)
+    end
+    assert.are_equal("suspended", costatus(coroutine))
+    assert.are_equal(0, test_var)
+  end)
+  it('should stop after the 61th frame (ceil of 60.6), and continue body execution', function ()
+    coresume(coroutine, 1.01)  -- pass delay of 60.6 frames in 1st call
+    for t=2, 1.0 * fps + 1 do
+      coresume(coroutine)
+    end
+    assert.are_equal("dead", costatus(coroutine))
+    assert.are_equal(1, test_var)
+  end)
+
+end)

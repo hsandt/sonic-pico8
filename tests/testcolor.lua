@@ -1,48 +1,30 @@
-local picotest = require("picotest")
+require("test")
 require("engine/render/color")
 
-function test_ui(desc,it)
+describe('color_tostring', function ()
 
-  desc('color_tostring', function ()
-
-    it('should return the name of a known color by index', function ()
-      return color_tostring(2) == "dark_purple"
-    end)
-
-    it('should return the name of a known color by enum', function ()
-      return color_tostring(colors.pink) == "pink"
-    end)
-
-    it('should return "unknown color" for nil', function ()
-      return color_tostring(nil) == "unknown color"
-    end)
-
-
-    it('should return "unknown color" for -1', function ()
-      return color_tostring(-1) == "unknown color"
-    end)
-
-    it('should return "unknown color" for 16', function ()
-      return color_tostring(16) == "unknown color"
-    end)
-
-    it('should return "unknown color" for a table', function ()
-      return color_tostring({}) == "unknown color"
-    end)
-
+  it('should return the name of a known color by index', function ()
+    assert.are_equal("dark_purple", color_tostring(2))
   end)
 
-end
+  it('should return the name of a known color by enum', function ()
+    assert.are_equal("pink", color_tostring(colors.pink))
+  end)
 
-add(picotest.test_suite, test_ui)
+  it('should return "unknown color" for nil', function ()
+    assert.are_equal("unknown color", color_tostring(nil))
+  end)
 
+  it('should return "unknown color" for -1', function ()
+    assert.are_equal("unknown color", color_tostring(-1))
+  end)
 
--- pico-8 functions must be placed at the end to be parsed by p8tool
+  it('should return "unknown color" for 16', function ()
+    assert.are_equal("unknown color", color_tostring(16))
+  end)
 
-function _init()
-  picotest.test('ui', test_ui)
-end
+  it('should return "unknown color" for a table', function ()
+    assert.are_equal("unknown color", color_tostring({}))
+  end)
 
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+end)

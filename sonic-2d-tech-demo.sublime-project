@@ -2,49 +2,49 @@
 	"build_systems":
 	[
 		{
+			"name": "p8tool: build game",
+			"working_dir": "${project_path}",
+			"shell": true,
 			"cmd":
 			[
 				"./build.sh main game"
-			],
-			"name": "p8tool: build game",
-			"shell": true,
-			"working_dir": "${project_path}"
+			]
 		},
 		{
+			"name": "p8tool: build and run or reload game",
+			"working_dir": "${project_path}",
+			"shell": true,
 			"cmd":
 			[
 				"./build.sh main game && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\")"
-			],
-			"name": "p8tool: build and run or reload game",
-			"shell": true,
-			"working_dir": "${project_path}"
+			]
 		},
 		{
+			"name": "p8tool: run game",
+			"working_dir": "${project_path}",
+			"shell": true,
 			"cmd":
 			[
 				"gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\""
-			],
-			"name": "p8tool: run game",
-			"shell": true,
-			"working_dir": "${project_path}"
+			]
 		},
 		{
+			"name": "p8tool: build and run or reload sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
 			"cmd":
 			[
 				"./build.sh sandbox sandbox && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"
-			],
-			"name": "p8tool: build and run or reload sandbox",
-			"shell": true,
-			"working_dir": "${project_path}"
+			]
 		},
 		{
+			"name": "p8tool: run sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
 			"cmd":
 			[
 				"gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\""
-			],
-			"name": "p8tool: run sandbox",
-			"shell": true,
-			"working_dir": "${project_path}"
+			]
 		},
 		{
 			"cmd":
@@ -58,182 +58,112 @@
 		{
 			"cmd":
 			[
-				"python3 -m postbuild.test"
+				"python3 -m postbuild.test_replace_strings"
 			],
-			"name": "python: test replace_glyphs",
+			"name": "python: test replace_strings",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
 		{
-			"cmd":
-			[
-				"./test.sh all"
-			],
-			"name": "p8tool: test all",
+			"name": "busted: test",
+			"working_dir": "${project_path}",
 			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
+			// use current file name to decide what to test
+			// works from both src module and the corresponding test
+			"cmd": ["./test.sh $file_base_name"],
+			// file regex works fine except for last \n which apparently doesn't work in build output
+			"file_regex": "((?:src|tests)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
+			"env": {
+				"SUBLIME_TEXT": "YES"
+			},
+			"syntax": "Packages/Rust Enhanced/RustEnhanced.sublime-syntax",
+			"variants":
 			[
-				"./test.sh lowlevel"
+				{
+					"name": "current (solo)",
+					"cmd": ["./test.sh $file_base_name solo"],
+				},
+				{
+					"name": "current (all)",
+					"cmd": ["./test.sh $file_base_name all"],
+				},
+				{
+					"name": "all",
+					"cmd": ["./test.sh all"],
+				},
+				{
+					"name": "all (solo)",
+					"cmd": ["./test.sh all solo"],
+				},
+				{
+					"name": "all (all)",
+					"cmd": ["./test.sh all all"],
+				},
+				{
+					"name": "class",
+					"cmd": ["./test.sh class"],
+				},
+				{
+					"name": "codetuner",
+					"cmd": ["./test.sh codetuner"],
+				},
+				{
+					"name": "color",
+					"cmd": ["./test.sh color"],
+				},
+				{
+					"name": "coroutine",
+					"cmd": ["./test.sh coroutine"],
+				},
+				{
+					"name": "credits",
+					"cmd": ["./test.sh credits"],
+				},
+				{
+					"name": "debug",
+					"cmd": ["./test.sh debug"],
+				},
+				{
+					"name": "flow",
+					"cmd": ["./test.sh flow"],
+				},
+				{
+					"name": "helper",
+					"cmd": ["./test.sh helper"],
+				},
+				{
+					"name": "input",
+					"cmd": ["./test.sh input"],
+				},
+				{
+					"name": "math",
+					"cmd": ["./test.sh math"],
+				},
+				{
+					"name": "playercharacter",
+					"cmd": ["./test.sh playercharacter"],
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./test.sh profiler"],
+				},
+				{
+					"name": "sprite",
+					"cmd": ["./test.sh sprite"],
+				},
+				{
+					"name": "stage",
+					"cmd": ["./test.sh stage"],
+				},
+				{
+					"name": "titlemenu",
+					"cmd": ["./test.sh titlemenu"],
+				},
+				{
+					"name": "ui",
+					"cmd": ["./test.sh ui"],
+				},
 			],
-			"name": "p8tool: test lowlevel",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh gamestates"
-			],
-			"name": "p8tool: test gamestates",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh flow"
-			],
-			"name": "p8tool: test flow",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh titlemenu"
-			],
-			"name": "p8tool: test titlemenu",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh credits"
-			],
-			"name": "p8tool: test credits",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh stage"
-			],
-			"name": "p8tool: test stage",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh class"
-			],
-			"name": "p8tool: test class",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh helper"
-			],
-			"name": "p8tool: test helper",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh coroutine"
-			],
-			"name": "p8tool: test coroutine",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh math"
-			],
-			"name": "p8tool: test math",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh color"
-			],
-			"name": "p8tool: test color",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh input"
-			],
-			"name": "p8tool: test input",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh debug"
-			],
-			"name": "p8tool: test debug",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh codetuner"
-			],
-			"name": "p8tool: test codetuner",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh profiler"
-			],
-			"name": "p8tool: test profiler",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh ui"
-			],
-			"name": "p8tool: test ui",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh sprite"
-			],
-			"name": "p8tool: test sprite",
-			"shell": true,
-			"working_dir": "${project_path}"
-		},
-		{
-			"cmd":
-			[
-				"./test.sh playercharacter"
-			],
-			"name": "p8tool: test playercharacter",
-			"shell": true,
-			"working_dir": "${project_path}"
 		},
 	],
 	"folders":
@@ -249,7 +179,7 @@
 			"folder_exclude_patterns":
 			[
 				".git",
-				// "build",
+				"build",
 				"__pycache__"
 			],
 			"path": "."

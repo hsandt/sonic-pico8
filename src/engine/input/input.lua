@@ -1,6 +1,9 @@
 require("engine/core/math")
+-- require("engine/ui/ui")
 
-local input = {}
+local input = {
+  mouse_active = false
+}
 
 local mouse_devkit_address = 0x5f2d
 local cursor_x_stat = 32
@@ -16,8 +19,13 @@ local button_ids = {
 }
 
 -- activate mouse devkit
-local function toggle_mouse(active)
+function input:toggle_mouse(active)
+  if active == nil then
+    -- no argument => reverse value
+    active = not self.mouse_active
+  end
   value = active and 1 or 0
+  self.mouse_active = active
   poke(mouse_devkit_address, value)
 end
 
@@ -27,7 +35,6 @@ local function get_cursor_position()
 end
 
 input.button_ids = button_ids
-input.toggle_mouse = toggle_mouse
 input.get_cursor_position = get_cursor_position
 
 return input

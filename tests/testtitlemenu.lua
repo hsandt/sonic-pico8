@@ -1,122 +1,142 @@
-picotest = require("picotest")
+require("test")
 titlemenu = require("game/menu/titlemenu")
 flow = require("engine/application/flow")
 require("game/application/gamestates")
 credits = require("game/menu/credits")
 stage = require("game/ingame/stage")
 
-function test_titlemenu(desc,it)
+describe('titlemenu', function ()
 
-  desc('titlemenu.state.type', function ()
+  describe('state.type', function ()
     it('should be gamestate_types.titlemenu', function ()
-      return titlemenu.state.type == gamestate_types.titlemenu
+      assert.are_equal(gamestate_types.titlemenu, titlemenu.state.type)
     end)
   end)
 
-  desc('enter titlemenu state', function ()
+  describe('(stage states added)', function ()
 
-    flow:add_gamestate(titlemenu.state)
-    flow:add_gamestate(credits.state)
-    flow:add_gamestate(stage.state)
-    flow:_change_gamestate(titlemenu.state)
-
-    desc('[after enter titlemenu state] titlemenu.state.current_cursor_index', function ()
-      it('should be set to 0', function ()
-        return titlemenu.state.current_cursor_index == 0
-      end)
+    setup(function ()
+      flow:add_gamestate(titlemenu.state)
+      flow:add_gamestate(credits.state)
+      flow:add_gamestate(stage.state)
     end)
 
-    desc('[after enter titlemenu state] titlemenu.state:move_cursor_up', function ()
-
-      titlemenu.state:move_cursor_up()
-
-      it('should not change current_cursor_index due to clamping', function ()
-        return titlemenu.state.current_cursor_index == 0
-      end)
-
-      titlemenu.state.current_cursor_index = 0
-
+    teardown(function ()
+      clear_table(flow.gamestates)
     end)
 
-    desc('[after enter titlemenu state] titlemenu.state:move_cursor_down', function ()
+    describe('(titlemenu state entered)', function ()
 
-      titlemenu.state:move_cursor_down()
-
-      it('should increase current_cursor_index', function ()
-        return titlemenu.state.current_cursor_index == 1
+      setup(function ()
+        flow:_change_gamestate(titlemenu.state)
       end)
 
-      titlemenu.state.current_cursor_index = 0
-
-    end)
-
-    desc('[after enter titlemenu state] titlemenu.state:confirm_current_selection', function ()
-
-      titlemenu.state:confirm_current_selection()
-
-      it('should have queried stage state', function ()
-        return flow.next_gamestate.type == gamestate_types.stage
+      teardown(function ()
+        flow.current_gamestate:on_exit()
+        flow.current_gamestate = nil
       end)
 
-      flow:_change_gamestate(titlemenu.state)
-    end)
+      describe('state.current_cursor_index', function ()
+        it('should be set to 0', function ()
+          assert.are_equal(0, titlemenu.state.current_cursor_index)
+        end)
+      end)
 
-    desc('[after enter titlemenu state] current_cursor_index = 1', function ()
+      describe('(cursor start at index 0)', function ()
 
-      titlemenu.state.current_cursor_index = 1
-
-      desc('[after enter titlemenu state, current_cursor_index = 1] titlemenu.state:move_cursor_up', function ()
-
-        titlemenu.state:move_cursor_up()
-
-        it('should decrease current_cursor_index', function ()
-          return titlemenu.state.current_cursor_index == 0
+        before_each(function ()
+          titlemenu.state.current_cursor_index = 0
         end)
 
-        titlemenu.state.current_cursor_index = 1
-
-      end)
-
-      desc('[after enter titlemenu state, current_cursor_index = 1] titlemenu.state:move_cursor_down', function ()
-
-        titlemenu.state:move_cursor_down()
-
-        it('should not change current_cursor_index due to clamping', function ()
-          return titlemenu.state.current_cursor_index == 1
+        after_each(function ()
+          titlemenu.state.current_cursor_index = 0
         end)
 
-        titlemenu.state.current_cursor_index = 1
+        describe('state:move_cursor_up', function ()
+
+          it('should not change current_cursor_index due to clamping', function ()
+            titlemenu.state:move_cursor_up()
+            assert.are_equal(0, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
+
+        describe('state:move_cursor_down', function ()
+
+          it('should increase current_cursor_index', function ()
+            titlemenu.state:move_cursor_down()
+            assert.are_equal(1, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
 
       end)
 
-      desc('[after enter titlemenu state] titlemenu.state:confirm_current_selection', function ()
+      describe('(cursor start at index 1)', function ()
 
-        titlemenu.state:confirm_current_selection()
+        before_each(function ()
+          titlemenu.state.current_cursor_index = 1
+        end)
+
+        after_each(function ()
+          titlemenu.state.current_cursor_index = 0
+        end)
+
+        describe('state:move_cursor_up', function ()
+
+          it('should decrease current_cursor_index', function ()
+            titlemenu.state:move_cursor_up()
+            assert.are_equal(0, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
+
+        describe('state:move_cursor_down', function ()
+
+          it('should not change current_cursor_index due to clamping', function ()
+            titlemenu.state:move_cursor_down()
+            assert.are_equal(1, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
+
+      end)
+
+    end)  -- (titlemenu state entered)
+
+    describe('(enter titlemenu state each time)', function ()
+
+      before_each(function ()
+        flow:_change_gamestate(titlemenu.state)
+      end)
+
+      after_each(function ()
+        flow.current_gamestate:on_exit()  -- whatever the current gamestate is
+        flow.current_gamestate = nil
+      end)
+
+      describe('state:confirm_current_selection', function ()
+
+        it('should have queried stage state', function ()
+          titlemenu.state.current_cursor_index = 0
+          titlemenu.state:confirm_current_selection()
+          assert.are_equal(gamestate_types.stage, flow.next_gamestate.type)
+        end)
+
+      end)
+
+      describe('state:confirm_current_selection', function ()
 
         it('should have queried credits state', function ()
-          return flow.next_gamestate.type == gamestate_types.credits
+          titlemenu.state.current_cursor_index = 1
+          titlemenu.state:confirm_current_selection()
+          assert.are_equal(gamestate_types.credits, flow.next_gamestate.type)
         end)
-
-        flow:_change_gamestate(titlemenu.state)
 
       end)
 
-    end)  -- current_cursor_index = 1
-    titlemenu.state.current_cursor_index = 0
+    end)  -- (enter titlemenu state each time)
 
-  end)  -- enter titlemenu state
+  end)  -- (stage states added)
 
-end
-
-add(picotest.test_suite, test_titlemenu)
-
-
--- pico-8 functions must be placed at the end to be parsed by p8tool correctly
-
-function _init()
-  picotest.test('titlemenu', test_titlemenu)
-end
-
--- empty update allows to close test window with ctrl+c on success
-function _update()
-end
+end)

@@ -62,7 +62,7 @@ function player_character:update_velocity_component(coord)
   if self.move_intention[coord] ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
     local clamped_move_intention_comp = mid(-1, self.move_intention[coord], 1)
-    self.velocity[coord] += self.debug_move_accel * delta_time * clamped_move_intention_comp
+    self.velocity[coord] = self.velocity[coord] + self.debug_move_accel * delta_time * clamped_move_intention_comp
     self.velocity[coord] = mid(-self.debug_move_max_speed, self.velocity[coord], self.debug_move_max_speed)
   else
     -- no input => decelerate
@@ -72,12 +72,12 @@ function player_character:update_velocity_component(coord)
   end
 end
 
+-- move the player from delta_vector in px
+function player_character:move(delta_vector)
+  self.position = self.position + delta_vector
+end
+
 -- render the player character sprite at its current position
 function player_character:render()
  self.spr_data:render(self.position)
-end
-
--- move the player from delta_vector in px
-function player_character:move(delta_vector)
-  self.position += delta_vector
 end

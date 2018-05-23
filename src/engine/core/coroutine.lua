@@ -10,5 +10,5 @@ function coroutine_curry:_init(coroutine, ...)
 end
 
 function coroutine_curry:_tostring()
-  return "[coroutine_curry] ("..joinstr_table(", ", self.args)..")"
+  return "[coroutine_curry] ("..costatus(self.coroutine)..") ("..joinstr_table(", ", self.args)..")"
 end

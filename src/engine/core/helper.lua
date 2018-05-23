@@ -23,14 +23,11 @@ function unpack(t, from, to)
   return t[from], unpack(t, from+1, to)
 end
 
--- luaunit fix: keep native tostring
-if not tostring then
-  function tostring(value)
-    if type(value) == "table" and value._tostring then
-      return value:_tostring()
-    else
-      return tostr(value)
-    end
+function stringify(value)
+  if type(value) == "table" and value._tostring then
+    return value:_tostring()
+  else
+    return tostr(value)
   end
 end
 
@@ -44,7 +41,7 @@ function joinstr_table(separator, args)
   -- iterate by index instead of for all, so we don't skip nil values
   -- and #n (which counts nil values) match the used index
   for index = 1, n do
-    joined_string = joined_string..tostring(args[index])
+    joined_string = joined_string..stringify(args[index])
     if index < n then
       joined_string = joined_string..separator
     end

@@ -9,7 +9,7 @@ end
 
 -- generic concat metamethod (requires _tostring method on tables)
 local function concat(lhs, rhs)
-  return tostring(lhs)..tostring(rhs)
+  return stringify(lhs)..stringify(rhs)
 end
 
 -- create and return a new class
@@ -44,25 +44,11 @@ function derived_class(base_class)
   return derived
 end
 
--- create and return an immutable class from a base class
--- immutable classes don't add new features to the base class besides immutability
--- the base class must implement :_copy() if you intend to assign the instance value
--- to mutable variables of the base class.
-function immutable_class(base_class)
-  local immutable = {}
-  immutable.__index = base_class  -- don't add new members to your immutable
-  immutable.__concat = concat
-  immutable.__eq = base_class.__eq
-
-  setmetatable(immutable, {
-    __call = function (cls, ...)
-      self = call(cls, ...)
-      function self:_tostring()
-        return "_"..base_class._tostring(self).."_"  -- just to differenciate immutables from the rest
-      end
-      return self
-    end
+-- create a new singleton from a table (at the same time class and instance)
+-- must implement _tostring method
+function singleton(table)
+  setmetatable(table, {
+    __concat = concat
   })
-
-  return immutable
+  return table
 end

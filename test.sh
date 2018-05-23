@@ -2,23 +2,33 @@
 # $1: test name (module name)
 
 if [[ $# -lt 1 ]] ; then
-    echo 'test.sh takes 1 params:
-    $1: test name'
+    echo "test.sh takes 1 mandatory param and 1 optional param:
+    $1: test file pattern
+    $2: test filter mode: (default 'standard') 'standard' to filter out all #mute, 'solo' to filter #solo, 'all' to include #mute"
     exit 1
 fi
 
-TEST_FILEPATH="build/test$1.p8"
+TEST_FILE_PATTERN=32
+if [[ $1 = "all" ]] ; then
+	TEST_FILE_PATTERN="test"
+else
+	TEST_FILE_PATTERN="$1"
+fi
 
-# clean up existing file (p8tool doesn't support parsing file with non-ascii chars, even just to replace appropriate blocks)
-rm -f "$TEST_FILEPATH"
+if [[ $2 = "all" ]] ; then
+	FILTER=""
+	FILTER_OUT=""
+elif [[ $2 = "solo" ]]; then
+	FILTER="#solo"
+	FILTER_OUT=""
+else
+	FILTER=""
+	FILTER_OUT="--filter-out \"#mute\""
+fi
 
-mkdir -p build
-# I replaced $(pwd)/?.lua with $(pwd)/src/?.lua so I am forced to write the same exact package names as in the src files
-# instead of src/{package}. This avoids having duplicate package contents on build, which would prevent correct overriding
-# of package variables values just after the require line, such as debug_level.
-# See remarks on require on https://github.com/dansanderson/picotool
-p8tool build --lua "tests/test$1.lua" "$TEST_FILEPATH" --lua-path="$(pwd)/tests/?.lua;$(pwd)/src/?.lua" &&
-# if a runtime error occurs during the test, exec bash will allow us to keep the terminal open to see it
-gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\" | pico-test; exec bash;" &&
-# gnome-terminal -x bash -x -c "pico8 -run -x \"$TEST_FILEPATH\"; exec bash;" &&
-echo "Running $TEST_FILEPATH"
+LUA_PATH="src/?.lua;tests/?.lua"
+TEST_COMMAND="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" --filter \"$FILTER\" $FILTER_OUT -v"
+
+echo "Testing $1..."
+echo "> $TEST_COMMAND"
+bash -c "$TEST_COMMAND"

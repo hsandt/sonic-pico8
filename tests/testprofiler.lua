@@ -1,96 +1,122 @@
-local picotest = require("picotest")
+require("test")
 local profiler = require("engine/debug/profiler")
 
-function test_profiler(desc,it)
+describe('profiler', function ()
 
-  desc('profiler.get_stat_function', function ()
+  setup(function ()
+    pico8.memory_usage = 152
+    profiler.gui.visible = false
+  end)
+
+  describe('get_stat_function', function ()
 
     it('should return a function that returns a stat name padded', function ()
       local mem_stat_function = profiler.get_stat_function(1)
-      -- hard to test for current stat value, but we can test the padded stat name
-      -- and at least the beginning of the stat value number which should be stable enough
-      -- ex: memory     152
-      return sub(mem_stat_function(), 1, 14) == "memory     "..sub(stat(0), 1, 3)
+      assert.are_equal("memory     152", mem_stat_function())
     end)
 
   end)
 
-  desc('profiler.show', function ()
+  describe('init_window', function ()
 
-    profiler:show()
+    setup(function ()
+      profiler:init_window()
+    end)
+
+    teardown(function ()
+      profiler.initialized = false
+      clear_table(profiler.gui.children)
+    end)
+
+    it('should initialize the profiler with stat labels and correct callbacks', function ()
+      assert.is_true(profiler.initialized)
+      assert.is_not_nil(profiler.gui)
+      assert.are_equal(6, #profiler.gui.children)  -- size of stats_info
+      assert.are_equal("function", type(profiler.gui.children[1].text))
+      assert.are_equal("memory     152", profiler.gui.children[1].text())
+    end)
+
+  end)
+
+  describe('update_window', function ()
+
+    local update_stub
+
+    setup(function ()
+      update_stub = stub(profiler.gui, "update")
+    end)
+
+    teardown(function ()
+      update_stub:revert()
+    end)
+
+    it('should call gui.update', function ()
+      profiler:update_window()
+      assert.spy(update_stub).was_called(1)
+      assert.spy(update_stub).was_called_with(profiler.gui)
+    end)
+
+  end)
+
+  describe('show', function ()
+
+    setup(function ()
+      profiler:show()
+    end)
+
+    teardown(function ()
+      profiler:hide()
+      clear_table(profiler.gui.children)
+      profiler.initialized = false
+    end)
 
     it('should initialize the profiler if not already', function ()
-      return profiler.initialized
+      assert.is_true(profiler.initialized)
     end)
 
     it('should make the gui visible', function ()
-      return profiler.gui.visible
+      assert.is_true(profiler.gui.visible)
+    end)
+
+    describe('render_window', function ()
+
+      local draw_stub
+
+      setup(function ()
+        draw_stub = stub(profiler.gui, "draw")
+      end)
+
+      teardown(function ()
+        draw_stub:revert()
+      end)
+
+      it('should call gui.draw', function ()
+        profiler:render_window()
+        assert.spy(draw_stub).was_called(1)
+        assert.spy(draw_stub).was_called_with(profiler.gui)
+      end)
+
     end)
 
   end)
 
-  desc('profiler.hide', function ()
+  describe('hide', function ()
 
-    profiler:hide()
+    setup(function ()
+      profiler:show()
+    end)
+
+    teardown(function ()
+      profiler.gui.visible = false
+      clear_table(profiler.gui.children)
+      profiler.initialized = false
+    end)
 
     it('should make the gui invisible', function ()
-      return not profiler.gui.visible
+      profiler:hide()
+      assert.is_false(profiler.gui.visible)
     end)
 
   end)
 
-  profiler.initialized = false
-  clear_table(profiler.gui.children)
-
-  desc('profiler.init_window', function ()
-
-    profiler:init_window()
-
-    it('should initialize the profiler with stat labels and correct callbacks', function ()
-      return profiler.initialized,
-      profiler.gui ~= nil,
-      profiler.gui ~= nil and #profiler.gui.children == 6,  -- size of stats_info
-      profiler.gui ~= nil and #profiler.gui.children == 6 and
-        type(profiler.gui.children[1].text) == "function",
-      profiler.gui ~= nil and #profiler.gui.children == 6 and
-        type(profiler.gui.children[1].text) == "function" and
-        sub(profiler.gui.children[1].text(), 1, 14) == "memory     "..sub(stat(0), 1, 3)
-    end)
-
-    profiler.initialized = false
-    clear_table(profiler.gui.children)
-
-  end)
-
-  desc('profiler.update_window', function ()
-
-    it('should not crash"', function ()
-      profiler:update_window()
-      return true
-    end)
-
-  end)
-
-  desc('profiler.render_window', function ()
-
-    it('should not crash"', function ()
-      profiler:render_window()
-      return true
-    end)
-
-  end)
-
-end
-
-add(picotest.test_suite, test_profiler)
-
-
--- pico-8 functions must be placed at the end to be parsed by p8tool
-
-function _init()
-  picotest.test('profiler', test_profiler)
-end
-
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+end)

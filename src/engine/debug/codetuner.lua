@@ -1,6 +1,6 @@
 require("engine/core/class")
-require("engine/debug/debug")
 require("engine/render/color")
+local debug = require("engine/debug/debug")
 local wtk = require("engine/wtk/pico8wtk")
 
 -- utilities from widget toolkit demo
@@ -25,7 +25,7 @@ function tuned_variable:_init(name, default_value)
 end
 
 
-local codetuner = {
+local codetuner = singleton {
   -- parameters
 
   -- if true, tuned values are used, else default values are used
@@ -40,6 +40,10 @@ local codetuner = {
   gui = nil,
   main_panel = nil
 }
+
+function codetuner:_tostring()
+ return "[codetuner]"
+end
 
 -- return a function callback for the spinner, that sets the corresponding tuned variable
 -- exposed via codetuner for testing

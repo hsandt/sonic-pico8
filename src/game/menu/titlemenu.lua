@@ -7,7 +7,7 @@ require("game/application/gamestates")
 local titlemenu = {}
 
 -- game state
-local titlemenustate = {
+local titlemenustate = singleton {
   type = gamestate_types.titlemenu,
 
   -- parameters
@@ -21,13 +21,17 @@ local titlemenustate = {
   current_cursor_index = 0,
 }
 
+function titlemenustate:_tostring()
+  return "[titlemenu state]"
+end
+
 function titlemenustate:on_enter()
-  ui.show_mouse = true
+  input:toggle_mouse(true)
   self.current_cursor_index = 0
 end
 
 function titlemenustate:on_exit()
-  ui.show_mouse = false
+  input:toggle_mouse(false)
 end
 
 function titlemenustate:update()

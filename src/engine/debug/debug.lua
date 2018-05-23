@@ -1,45 +1,56 @@
+require("engine/core/class")
 require("engine/core/helper")
 
-debug_level = {
- log = 1,   -- show all messages
- warning = 2,  -- show warnings and errors
- error = 3, -- show errors only
- none = 4,  -- show nothing
+local debug = singleton {
+  level = {
+    log = 1,   -- show all messages
+    warning = 2,  -- show warnings and errors
+    error = 3, -- show errors only
+    none = 4,  -- show nothing
+  },
+
+  active_categories = {
+    default = true,
+    flow = true,
+    player = true,
+    ui = true,
+    codetuner = true
+  },
+
+  current_level = nil
 }
 
-active_debug_categories = {
- default = true,
- flow = true,
- player = true,
- ui = true,
- codetuner = true
-}
+debug.current_level = debug.level.log
 
-current_debug_level = debug_level.log
+function debug:_tostring()
+  return "[debug]"
+end
 
 -- print a log message to the console in a category string
 function log(message, category)
   category = category or "default"
-  if active_debug_categories[category] and current_debug_level <= debug_level.log then
-    printh("["..category.."] "..tostring(message))
+  if debug.active_categories[category] and debug.current_level <= debug.level.log then
+    printh("["..category.."] "..stringify(message))
   end
 end
 
 -- print a warning message to the console in a category string
 function warn(message, category)
   category = category or "default"
-  if active_debug_categories[category] and current_debug_level <= debug_level.warning then
-    printh("["..category.."] warning: "..tostring(message))
+  if debug.active_categories[category] and debug.current_level <= debug.level.warning then
+    printh("["..category.."] warning: "..stringify(message))
   end
 end
 
 -- print an error message to the console in a category string
 function err(message, category)
   category = category or "default"
-  if active_debug_categories[category] and current_debug_level <= debug_level.error then
-    printh("["..category.."] error: "..tostring(message))
+  if debug.active_categories[category] and debug.current_level <= debug.level.error then
+    printh("["..category.."] error: "..stringify(message))
   end
 end
+
+debug.dump_max_recursion_level = 2
 
 -- return a precise variable content, including table entries
 -- for sequence containing nils, nil not not shown but nil's index will be skipped
@@ -52,7 +63,7 @@ function dump(dumped_value, as_key, level)
   local repr
 
   if type(dumped_value) == "table" then
-    if level < 2 then
+    if level < debug.dump_max_recursion_level then
       local entries = {}
       for key, value in pairs(dumped_value) do
         local key_repr = dump(key, true, level + 1)
@@ -78,3 +89,5 @@ function dump(dumped_value, as_key, level)
 
   return repr
 end
+
+return debug

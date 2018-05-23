@@ -1,88 +1,110 @@
-picotest = require("picotest")
+require("test")
 require("game/ingame/playercharacter")
 require("engine/core/math")
 
-function test_player_character(desc,it)
+describe('player_character', function ()
 
-  desc('player_character:_init', function ()
-    it('should create a player character with the right state', function ()
-      -- test only passed parameters since we cannot access local data from the module
+  describe('_init', function ()
+    it('should create a player character at the given position', function ()
       local player_character = player_character(vector(4, -4))
-      return player_character ~= nil,
-        player_character ~= nil and player_character.position == vector(4, -4)
+      assert.is_not_nil(player_character)
+      assert.are_equal(vector(4, -4), player_character.position)
     end)
   end)
 
-  desc('player_character:_tostring', function ()
-    it('=> [player_character at vector(45comma 2)]', function ()
-      local player_character = player_character(vector(45, 2))
-      return player_character:_tostring() == "[player_character at vector(45, 2)]"
+  describe('(with player character at (4, -4), speed 60, debug accel 480)', function ()
+    local player_char
+
+    setup(function ()
+      player_char = player_character(vector(4, -4))
+      player_char.debug_move_max_speed = 60.
+      player_char.debug_move_accel = 480.
+      player_char.debug_move_decel = 480.
     end)
+
+    after_each(function ()
+      player_char.position = vector(4, -4)
+      player_char.velocity = vector(0, 0)
+      player_char.move_intention = vector(0, 0)
+    end)
+
+    describe('_tostring', function ()
+      it('should return "[player_character at vector(4, -4)]"', function ()
+        assert.are_equal("[player_character at vector(4, -4)]", player_char:_tostring())
+      end)
+    end)
+
+    describe('move', function ()
+      it('at (4 -4) move (-5 4) => at (-1 0)', function ()
+        player_char:move(vector(-5, 4))
+        assert.are_equal(vector(-1, 0), player_char.position)
+      end)
+    end)
+
+
+    describe('update_velocity_component', function ()
+
+      it('should accelerate when there is some input', function ()
+        player_char.move_intention = vector(-1, 1)
+        player_char:update_velocity_component("x")
+        assert.is_true(almost_eq_with_message(
+          vector(- player_char.debug_move_accel * delta_time, 0),
+          player_char.velocity))
+        player_char:update_velocity_component("y")
+        assert.is_true(almost_eq_with_message(
+          vector(- player_char.debug_move_accel * delta_time, player_char.debug_move_accel * delta_time),
+          player_char.velocity))
+      end)
+
+    end)
+
+    describe('update ()', function ()
+
+      after_each(function ()
+        player_char.move_intention = vector(-1, 1)
+      end)
+
+      it('when move intention is (-1, 1), update 1 frame => at (3.867 -3.867)', function ()
+        player_char.move_intention = vector(-1, 1)
+        player_char:update()
+        assert.is_true(almost_eq_with_message(vector(3.8667, -3.8667), player_char.position))
+      end)
+
+      it('when move intention is (-1, 1), update 11 frame => at (−2.73 2.73)', function ()
+        player_char.move_intention = vector(-1, 1)
+        for i=1,10 do
+          player_char:update()
+        end
+        assert.is_true(almost_eq_with_message(vector(-2.73, 2.73), player_char.position))
+        assert.is_true(almost_eq_with_message(vector(-60, 60), player_char.velocity))  -- at max speed
+      end)
+
+      it('when move intention is (0, 0) after 11 frames, update 16 frames more => character should have decelerated', function ()
+        player_char.move_intention = vector(-1, 1)
+        for i=1,10 do
+          player_char:update()
+        end
+        player_char.move_intention = vector.zero()
+        for i=1,5 do
+          player_char:update()
+        end
+        assert.is_true(almost_eq_with_message(vector(-20, 20), player_char.velocity, 0.01))
+      end)
+
+      it('when move intention is (0, 0) after 11 frames, update 19 frames more => character should have stopped', function ()
+        player_char.move_intention = vector(-1, 1)
+        for i=1,10 do
+          player_char:update()
+        end
+        player_char.move_intention = vector.zero()
+        for i=1,8 do
+          player_char:update()
+        end
+        assert.is_true(almost_eq_with_message(vector.zero(), player_char.velocity))
+      end)
+
+    end)
+
   end)
 
-  desc('player_character:move', function ()
-    it('at (4 -4) move (-5 4) => at (-1 0)', function ()
-      local player_character = player_character(vector(4, -4))
-      player_character:move(vector(-5, 4))
-      return player_character.position == vector(-1, 0)
-    end)
-  end)
-
-  desc('player_character:update', function ()
-
-    local player_character = player_character(vector(4, -4))
-    player_character.debug_move_max_speed = 60
-    player_character.debug_move_accel = 480.
-    player_character.debug_move_decel = 480.
-
-    it('at (4 -4) intent (-1 1) spd 60 accel 480 update 1 => at (3.867 -3.867)', function ()
-      player_character.move_intention = vector(-1, 1)
-      player_character:update()
-      return player_character.position:almost_eq(vector(3.8667, -3.8667))
-    end)
-
-    player_character.position = vector(4, -4)
-    player_character.velocity = vector.zero()
-
-    it('... update 10 frame => at (−2.73 2.73)', function ()
-      player_character.move_intention = vector(-1, 1)
-      for i=1,10 do
-        player_character:update()
-      end
-      return player_character.position:almost_eq(vector(-2.73, 2.73)),
-        player_character.velocity:almost_eq(vector(-60, 60))  -- at max speed
-    end)
-
-    it('from here no intent => character should have decelerated', function ()
-      player_character.move_intention = vector(0, 0)
-      for i=1,5 do
-        player_character:update()
-      end
-      return almost_eq(player_character.velocity.x, -20, 0.01),
-        almost_eq(player_character.velocity.y, 20, 0.01)
-    end)
-
-    it('sill no intent => character should have stopped', function ()
-      player_character.move_intention = vector(0, 0)
-      for i=1,3 do
-        player_character:update()
-      end
-      return player_character.velocity:almost_eq(vector(0, 0))
-    end)
-
-  end)
-
-end
-
-add(picotest.test_suite, test_player_character)
-
-
--- pico-8 functions must be placed at the end to be parsed by p8tool
-
-function _init()
-  picotest.test('player_character', test_player_character)
-end
-
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+end)

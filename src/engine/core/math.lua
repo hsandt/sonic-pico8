@@ -3,8 +3,15 @@ require("engine/core/class")
 -- numeric helpers
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
-  return abs(lhs - rhs) <= eps
+  if type(lhs) == "number" and type(rhs) == "number" then
+    return abs(lhs - rhs) <= eps
+  elseif lhs.almost_eq then
+    return lhs:almost_eq(rhs, eps)
+  else
+    assert(false, "almost_eq cannot compare "..lhs.." and "..rhs)
+  end
 end
+
 
 
 -- tile_vector class: a pair of integer coords (i, j) that represents a position
@@ -73,7 +80,6 @@ end
 -- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
 vector = new_class()
-immutable_vector = immutable_class(vector)
 
 -- x       int     horizontal coordinate in pixels
 -- y       int     vertical   coordinate in pixels
@@ -90,31 +96,48 @@ function vector.__eq(lhs, rhs)
   return lhs.x == rhs.x and lhs.y == rhs.y
 end
 
-function vector._almost_eq(lhs, rhs, eps)
+-- almost_eq can be used as static function of method, since self would simply replace lhs
+function vector.almost_eq(lhs, rhs, eps)
+  assert(getmetatable(lhs) == vector and getmetatable(rhs) == vector, "vector.almost_eq: lhs and rhs are not both vectors (lhs: "..dump(lhs)..", rhs: "..dump(rhs)..")")
   return almost_eq(lhs.x, rhs.x, eps) and almost_eq(lhs.y, rhs.y, eps)
-end
-
-function vector:almost_eq(other, eps)
-  return vector._almost_eq(self, other, eps)
 end
 
 function vector.__add(lhs, rhs)
   return vector(lhs.x + rhs.x, lhs.y + rhs.y)
 end
 
+-- in-place operation as native lua replacements for pico-8 +=
+function vector:add_inplace(other)
+  self.x = self.x + other.x
+  self.y = self.y + other.y
+end
+
 function vector.__sub(lhs, rhs)
   return vector(lhs.x - rhs.x, lhs.y - rhs.y)
+end
+
+-- in-place operation as native lua replacements for pico-8 -=
+function vector:sub_inplace(other)
+  self.x = self.x - other.x
+  self.y = self.y - other.y
 end
 
 function vector.__mul(lhs, rhs)
   if type(lhs) == "number" then
     return vector(lhs * rhs.x, lhs * rhs.y)
   elseif type(rhs) == "number" then
-    return vector (rhs * lhs.x, rhs * lhs.y)
+    return vector(rhs * lhs.x, rhs * lhs.y)
   else
-    assert(false, [[vector multiplication is only supported with a scalar,
-      tried to multiply ]]..lhs:_tostring().." and "..rhs:_tostring())
+    assert(false, "vector multiplication is only supported with a scalar, "..
+      "tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
   end
+end
+
+-- in-place operation as native lua replacements for pico-8 *=
+function vector:mul_inplace(number)
+  local product = self * number
+  self.x = product.x
+  self.y = product.y
 end
 
 function vector.__div(lhs, rhs)
@@ -122,9 +145,16 @@ function vector.__div(lhs, rhs)
     assert(rhs ~= 0, "cannot divide vector "..lhs:_tostring().." by zero")
     return vector(lhs.x / rhs, lhs.y / rhs)
   else
-    assert(false, [[vector division is only supported with a scalar as rhs,
-      tried to multiply ]]..tostring(lhs).." and "..rhs:_tostring())
+    assert(false, "vector division is only supported with a scalar as rhs, "..
+      "tried to multiply "..stringify(lhs).." and "..rhs)
   end
+end
+
+-- in-place operation as native lua replacements for pico-8 /=
+function vector:div_inplace(number)
+  local product = self / number
+  self.x = product.x
+  self.y = product.y
 end
 
 function vector.zero()
@@ -153,12 +183,10 @@ function vector:normalized()
   end
 end
 
+-- normalize vector in-place
 function vector:normalize()
   local magnitude = self:magnitude()
   if magnitude > 0 then
-    -- self.x /= magnitude
-    -- self.y /= magnitude
-    -- temporarily changed for lua test... convert in real time for final ver
     self.x = self.x / magnitude
     self.y = self.y / magnitude
   end
@@ -177,8 +205,6 @@ function vector:clamp_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
   if magnitude > max_magnitude then
-    -- self.x *= max_magnitude / magnitude
-    -- self.y *= max_magnitude / magnitude
     self.x = self.x * max_magnitude / magnitude
     self.y = self.y * max_magnitude / magnitude
   end

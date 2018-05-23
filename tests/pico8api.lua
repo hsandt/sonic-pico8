@@ -14,6 +14,9 @@ bit = require("bit32")
 
 pico8={
   fps=60,  -- changed from 30 to 60
+  memory_usage=0,
+  total_cpu=0,
+  system_cpu=0,
   frames=0,
   pal_transparent={},
   resolution={128, 128},
@@ -84,6 +87,7 @@ pico8={
   display_palette={},
   pal_transparent={},
   map={},  -- should be initialized with 0 or game data, but ok for tests
+  poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
 local function getMouseX()
@@ -249,6 +253,7 @@ function fillp(p)
 end
 
 function map(cel_x, cel_y, sx, sy, cel_w, cel_h, bitmask)
+end
 
 function mget(x, y)
   x=flr(x or 0)
@@ -308,221 +313,34 @@ end
 function sset(x, y, c)
 end
 
-function music(n, fade_len, channel_mask)
-  if n==-1 then
-    if pico8.current_music then
-      for i=0, 3 do
-        if pico8.music[pico8.current_music.music][i]<64 then
-          pico8.audio_channels[i].sfx=nil
-          pico8.audio_channels[i].offset=0
-          pico8.audio_channels[i].last_step=-1
-        end
-      end
-      pico8.current_music=nil
-    end
-    return
+function music(n, fadems, channel_mask)
+  n = n or -1
+  if n < -1 then
+    n = 0
   end
-  if n>63 then
-    n=64
-  elseif n<0 then
-    n=0
-  end
-  local m=pico8.music[n]
-  local music_speed=nil
-  local music_channel=nil
-  for i=0, 3 do
-    if m[i]<64 then
-      local sfx=pico8.sfx[m[i]]
-      if sfx.loop_start>=sfx.loop_end then
-        music_speed=sfx.speed
-        music_channel=i
-        break
-      elseif music_speed==nil or music_speed>sfx.speed then
-        music_speed=sfx.speed
-        music_channel=i
-      end
-    end
-  end
-  if not music_channel then
-    return music(-1)
-  end
-  pico8.audio_channels[music_channel].loop=false
-  pico8.current_music={music=n, offset=0, channel_mask=channel_mask or 15, speed=music_speed}
-  for i=0, 3 do
-    if pico8.music[n][i]<64 then
-      pico8.audio_channels[i].sfx=pico8.music[n][i]
-      pico8.audio_channels[i].offset=0
-      pico8.audio_channels[i].last_step=-1
-    end
+  if n >= 0 then
+    -- simulate music currently played
+    -- this will be correct for a looping music (without knowing the used channels and current play time)
+    -- however for a non-looping music we won't detect when the music is supposed to end in integration tests
+    fadems = fadems or 0
+    channel_mask = channel_mask or 0
+    pico8.current_music={music=n, fadems=fadems, channel_mask=channel_mask}
+  else
+    pico8.current_music = nil
   end
 end
 
 function sfx(n, channel, offset)
-  -- n=-1 stop sound on channel
-  -- n=-2 to stop looping on channel
-  channel=channel or -1
-  if n==-1 then
-    if channel>=0 then pico8.audio_channels[channel].sfx=nil end
-    return
-  elseif n==-2 then
-    if channel>=0 then pico8.audio_channels[channel].loop=false end
-    return
-  end
-  offset=offset or 0
-  if n>63 then
-    n=63
-  elseif n<0 then
-    n=0
-  end
-  if offset>31 then
-    offset=31
-  elseif offset<0 then
-    offset=0
-  end
-  if channel==-1 then
-    -- find a free channel
-    for i=0, 3 do
-      if pico8.audio_channels[i].sfx==nil then
-        channel=i
-        break
-      elseif pico8.audio_channels[i].sfx==n then
-        channel=i
-      end
-    end
-  end
-  if channel==-1 then return end
-  local ch=pico8.audio_channels[channel]
-  ch.sfx=n
-  ch.offset=offset
-  ch.last_step=offset-1
-  ch.loop=true
+  -- most sfx are non-looping so it's not so useful to have a current sfx, and it's tedious
+  -- to keep a list of played sfx history, so we just do nothing and will spy on sfx if needed
 end
 
 function peek(addr)
-  addr=flr(addr)
-  if addr<0 then
-    return 0
-  elseif addr<0x2000 then
-    -- screen pixels are not simulated
-    local lo=0
-    local hi=0
-    return hi*16+lo
-  elseif addr<0x3000 then
-    addr=addr-0x2000
-    return pico8.map[flr(addr/128)][addr%128]
-  elseif addr<0x3100 then
-    return pico8.spriteflags[addr-0x3000]
-  elseif addr<0x3200 then
-    local music=pico8.music[flr((addr-0x3100)/4)]
-    local channel=addr%4
-    return bit.lshift(bit.band(music.loop, bit.lshift(1, channel)), 7-channel) + music[channel]
-  elseif addr<0x4300 then
-    local sfx=pico8.sfx[flr((addr-0x3200)/68)]
-    local step=(addr-0x3200)%68
-    if step<64 then
-      local note=sfx[flr(step/2)]
-      if addr%2==0 then
-        return bit.lshift(bit.band(note[2], 0x3), 6)+note[1]
-      else
-        return bit.lshift(note[4], 4)+bit.lshift(note[3], 1)+bit.rshift(bit.band(note[2], 0x4), 2)
-      end
-    elseif step==64 then
-      return sfx.editor_mode
-    elseif step==65 then
-      return sfx.speed
-    elseif step==66 then
-      return sfx.loop_start
-    elseif step==67 then
-      return sfx.loop_end
-    end
-  elseif addr<0x5e00 then
-    return pico8.usermemory[addr-0x4300]
-  elseif addr<0x5f00 then
-    local val=pico8.cartdata[math.floor((addr-0x5e00)/4)]*0x10000
-    local shift=(addr%4)*8
-    return bit.rshift(bit.band(val, bit.lshift(0xFF, shift)), shift)
-  elseif addr<0x5f80 then
-    -- TODO: Hardware state
-    if addr==0x5f26 then
-      return pico8.cursor[1]
-    elseif addr==0x5f27 then
-      return pico8.cursor[2]
-    end
-  elseif addr<0x5fc0 then
-    -- FIXME: Persistence data
-  elseif addr<0x6000 then
-    -- FIXME: Unused but memory
-  elseif addr<0x8000 then
-    addr=addr-0x6000
-    -- __scrimg, screen pixels
-    return 0
-  end
-  return 0
+  return pico8.poked_addresses[addr]
 end
 
 function poke(addr, val)
-  addr, val=flr(addr), flr(val)%256
-  if addr<0 or addr>=0x8000 then
-    error("bad memory access")
-  elseif addr<0x1000 then
-    -- set screen pixels
-  elseif addr<0x2000 then
-    -- set screen pixels
-    pico8.map[flr(addr/128)][addr%128]=val
-  elseif addr<0x3000 then
-    addr=addr-0x2000
-    pico8.map[flr(addr/128)][addr%128]=val
-  elseif addr<0x3100 then
-    pico8.spriteflags[addr-0x3000]=val
-  elseif addr<0x3200 then
-    local music=pico8.music[flr((addr-0x3100)/4)]
-    music[addr%4]=bit.band(val, 0x7F)
-    local loop=bit.lshift(1, addr%4)
-    if bit.band(val, 0x80)~=0 then
-      music.loop=bit.bor(music.loop, loop)
-    else
-      music.loop=bit.band(music.loop, bit.bnot(loop))
-    end
-  elseif addr<0x4300 then
-    local sfx=pico8.sfx[flr((addr-0x3200)/68)]
-    local step=(addr-0x3200)%68
-    if step<64 then
-      local note=sfx[flr(step/2)]
-      if addr%2==0 then
-        note[1]=bit.band(val, 0x3f)
-        note[2]=bit.rshift(bit.band(val, 0xc0), 6)+bit.band(note[2], 0x4)
-      else
-        note[2]=bit.lshift(bit.band(val, 0x1), 2)+bit.band(note[2], 0x3)
-        note[3]=bit.rshift(bit.band(val, 0xe), 1)
-        note[4]=bit.rshift(bit.band(val, 0x70), 4)
-      end
-    elseif step==64 then
-      sfx.editor_mode=val
-    elseif step==65 then
-      sfx.speed=val
-    elseif step==66 then
-      sfx.loop_start=val
-    elseif step==67 then
-      sfx.loop_end=val
-    end
-  elseif addr<0x5e00 then
-    pico8.usermemory[addr-0x4300]=val
-  elseif addr<0x5f00 then
-    local ind=math.floor((addr-0x5e00)/4)
-    local oval=pico8.cartdata[ind]*0x10000
-    local shift=(addr%4)*8
-    pico8.cartdata[ind]=bit.bor(bit.band(oval, bit.bnot(bit.lshift(0xFF, shift))), bit.lshift(val, shift))/0x10000
-  elseif addr<0x5f80 then
-    -- FIXME: Draw state
-  elseif addr<0x5fc0 then
-    -- FIXME: Persistence data
-  elseif addr<0x6000 then
-    -- FIXME: Unused but memory
-  elseif addr<0x8000 then
-    addr=addr-0x6000
-    -- __scrblit or draw
-    end
-  end
+  pico8.poked_addresses[addr] = val
 end
 
 function peek4(addr)
@@ -738,14 +556,20 @@ end
 
 local tfield={[0]="year", "month", "day", "hour", "min", "sec"}
 function stat(x)
-  if x == 4 then
+  if x == 0 then
+    return pico8.memory_usage
+  elseif x == 1 then
+    return pico8.total_cpu
+  elseif x == 2 then
+    return pico8.system_cpu
+  elseif x == 4 then
     return pico8.clipboard
   elseif x == 7 then
     return pico8.fps
   elseif x == 8 then
     return pico8.fps
   elseif x == 9 then
-    return love.timer.getFPS()
+    return pico8.fps
   elseif x >= 16 and x <= 23 then
     local ch=pico8.audio_channels[x%4]
     if not ch.sfx then

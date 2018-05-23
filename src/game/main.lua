@@ -1,6 +1,6 @@
 local flow = require("engine/application/flow")
 local codetuner = require("engine/debug/codetuner")
-require("engine/debug/debug")
+local debug = require("engine/debug/debug")
 local profiler = require("engine/debug/profiler")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
@@ -17,7 +17,6 @@ profiler:show()
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
 function _init()
-  input.toggle_mouse(true)
   ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 
   flow:add_gamestate(titlemenu.state)

@@ -1,208 +1,151 @@
-picotest = require("picotest")
-class = require("engine/core/class")
+require("test")
+local class = require("engine/core/class")
 
-function test_class(desc,it)
+describe('new_class', function ()
 
-  desc('dummy class', function ()
+  local dummy_class = new_class()
 
-    local dummy_class = new_class()
+  function dummy_class:_init(value)
+    self.value = value
+  end
 
-    function dummy_class:_init(value)
-      self.value = value
+  function dummy_class:_tostring()
+    return "dummy:"..tostr(self.value)
+  end
+
+  function dummy_class.__eq(lhs, rhs)
+    return lhs.value == rhs.value
+  end
+
+  function dummy_class:get_incremented_value()
+    return self.value + 1
+  end
+
+  it('should create a new class with _init()', function ()
+    local dummy = dummy_class(3)
+    assert.are_equal(3, dummy.value)
+  end)
+
+  it('should support custom method: _tostring', function ()
+    assert.are_equal("dummy:12", dummy_class(12):_tostring())
+  end)
+
+  it('should support instance concatenation with a string', function ()
+    assert.are_equal("dummy:11str", dummy_class(11).."str")
+  end)
+  it('should support instance concatenation with a boolean', function ()
+    assert.are_equal("dummy:11true", dummy_class(11)..true)
+  end)
+  it('should support instance concatenation with a number', function ()
+    assert.are_equal("dummy:1124", dummy_class(11)..24)
+  end)
+  it('should support instance concatenation with a number on the left', function ()
+    assert.are_equal("27dummy:11", "27"..dummy_class(11))
+  end)
+  it('should support instance concatenation with another instance', function ()
+    assert.are_equal("dummy:11dummy:46", dummy_class(11)..dummy_class(46))
+  end)
+  it('should support instance concatenation with a chain of objects', function ()
+    assert.are_equal("dummy:11, and dummy:46", dummy_class(11)..", and "..dummy_class(46))
+  end)
+
+  it('should support metamethod: __eq for equality', function ()
+    assert.are_equal(dummy_class(-5), dummy_class(-5))
+  end)
+
+  it('should support metamethod: __eq for inequality', function ()
+    assert.are_not_equal(dummy_class(-5), dummy_class(-3))
+  end)
+
+  it('should support custom method: get_incremented_value', function ()
+    assert.are_equal(-4, dummy_class(-5):get_incremented_value())
+  end)
+
+  describe('dummy_derived class', function ()
+
+    local dummy_derived_class = derived_class(dummy_class)
+
+    function dummy_derived_class:_init(value, value2)
+      -- always call ._init on base class, never :_init which would set static members
+      dummy_class._init(self, value)
+      self.value2 = value2
     end
 
-    function dummy_class:_tostring()
-      return "dummy:"..tostr(self.value)
+    function dummy_derived_class:_tostring()
+      return "dummy_derived:"..tostr(self.value)..","..tostr(self.value2)
     end
 
-    function dummy_class.__eq(lhs, rhs)
-      return lhs.value == rhs.value
+    function dummy_derived_class.__eq(lhs, rhs)
+      return lhs.value == rhs.value and lhs.value2 == rhs.value2
     end
 
-    function dummy_class:get_incremented_value()
-      return self.value + 1
-    end
-
-    it('should create a new dummy_class with a value attribute', function ()
-      local dummy = dummy_class(3)
-      return dummy.value == 3
+    it('should create a new dummy_derived_class with a value attribute', function ()
+      local dummy_derived = dummy_derived_class(3, 7)
+      assert.are_same({3, 7}, {dummy_derived.value, dummy_derived.value2})
     end)
 
-    it('... and a tostring', function ()
-      return dummy_class(12):_tostring() == "dummy:12"
+    it('should support custom method: _tostring', function ()
+      assert.are_equal("dummy_derived:12,45", dummy_derived_class(12, 45):_tostring())
     end)
 
-    it('... concatenate with a string', function ()
-      return dummy_class(11).."str" == "dummy:11str"
+    it('should support instance concatenation with a string', function ()
+      assert.are_equal("dummy_derived:11,45str", dummy_derived_class(11, 45).."str")
     end)
-    it('... concatenate with a boolean', function ()
-      return dummy_class(11)..true == "dummy:11true"
+    it('should support instance concatenation with a boolean', function ()
+      assert.are_equal("dummy_derived:11,45true", dummy_derived_class(11, 45)..true)
     end)
-    it('... concatenate with a number', function ()
-      return dummy_class(11)..24 == "dummy:1124"
+    it('should support instance concatenation with a number', function ()
+      assert.are_equal("dummy_derived:11,4524", dummy_derived_class(11, 45)..24)
     end)
-    it('... concatenate with a number on the left', function ()
-      return "27"..dummy_class(11) == "27dummy:11"
+    it('should support instance concatenation with a number on the left', function ()
+      assert.are_equal("27dummy_derived:11,45", "27"..dummy_derived_class(11, 45))
     end)
-    it('... concatenate with another instance of dummy', function ()
-      return dummy_class(11)..dummy_class(46) == "dummy:11dummy:46"
+    it('should support instance concatenation with another instance of dummy_derived', function ()
+      assert.are_equal("dummy_derived:11,45dummy_derived:46,23", dummy_derived_class(11, 45)..dummy_derived_class(46, 23))
     end)
-    it('... concatenate within a chain of objects', function ()
-      return dummy_class(11)..", and "..dummy_class(46) == "dummy:11, and dummy:46"
+    it('should support instance concatenation with an instance of dummy', function ()
+      assert.are_equal("dummy_derived:11,45dummy:46", dummy_derived_class(11, 45)..dummy_class(46))
     end)
-
-    it('... and an equality test on value', function ()
-      return dummy_class(-5) == dummy_class(-5)
-    end)
-
-    it('... and an inequality test on value', function ()
-      return dummy_class(-5) ~= dummy_class(-3)
+    it('should support instance concatenation within a chain of objects', function ()
+      assert.are_equal("dummy_derived:11,45, and dummy:46", dummy_derived_class(11, 45)..", and "..dummy_class(46))
     end)
 
-    it('... and an incremented function', function ()
-      return dummy_class(-5):get_incremented_value() == -4
+    it('should support metamethod: __eq for equality', function ()
+      assert.are_equal(dummy_derived_class(-5, 45), dummy_derived_class(-5, 45))
     end)
 
-    it('... and an incremented function', function ()
-      return dummy_class(-5):get_incremented_value() == -4
+    it('should support metamethod: __eq for inequality', function ()
+      assert.are_not_equal(dummy_derived_class(-5, 45), dummy_derived_class(-5, 43))
     end)
 
-    desc('dummy_derived class', function ()
-
-      local dummy_derived_class = derived_class(dummy_class)
-
-      function dummy_derived_class:_init(value, value2)
-        -- always call ._init on base class, never :_init which would set static members
-        dummy_class._init(self, value)
-        self.value2 = value2
-      end
-
-      function dummy_derived_class:_tostring()
-        return "dummy_derived:"..tostr(self.value)..","..tostr(self.value2)
-      end
-
-      function dummy_derived_class.__eq(lhs, rhs)
-        return lhs.value == rhs.value and lhs.value2 == rhs.value2
-      end
-
-      it('should create a new dummy_derived_class with a value attribute', function ()
-        local dummy_derived = dummy_derived_class(3, 7)
-        return dummy_derived.value == 3 and dummy_derived.value2 == 7
-      end)
-
-      it('... and a tostring', function ()
-        return dummy_derived_class(12, 45):_tostring() == "dummy_derived:12,45"
-      end)
-
-      it('... concatenate with a string', function ()
-        return dummy_derived_class(11, 45).."str" == "dummy_derived:11,45str"
-      end)
-      it('... concatenate with a boolean', function ()
-        return dummy_derived_class(11, 45)..true == "dummy_derived:11,45true"
-      end)
-      it('... concatenate with a number', function ()
-        return dummy_derived_class(11, 45)..24 == "dummy_derived:11,4524"
-      end)
-      it('... concatenate with a number on the left', function ()
-        return "27"..dummy_derived_class(11, 45) == "27dummy_derived:11,45"
-      end)
-      it('... concatenate with another instance of dummy_derived', function ()
-        return dummy_derived_class(11, 45)..dummy_derived_class(46, 23) == "dummy_derived:11,45dummy_derived:46,23"
-      end)
-      it('... concatenate with an instance of dummy', function ()
-        return dummy_derived_class(11, 45)..dummy_class(46) == "dummy_derived:11,45dummy:46"
-      end)
-      it('... concatenate within a chain of objects', function ()
-        return dummy_derived_class(11, 45)..", and "..dummy_class(46) == "dummy_derived:11,45, and dummy:46"
-      end)
-
-      it('... and an equality test on value', function ()
-        return dummy_derived_class(-5, 45) == dummy_derived_class(-5, 45)
-      end)
-
-      it('... and an inequality test on value', function ()
-        return dummy_derived_class(-5, 45) ~= dummy_derived_class(-5, 43)
-      end)
-
-      it('... and kept the incremented function from the base class', function ()
-        return dummy_derived_class(-5, 45):get_incremented_value() == -4
-      end)
-
-    end)
-
-    desc('immutable_class', function ()
-
-      local immutable_dummy_class = immutable_class(dummy_class)
-
-      it('should create a new immutable with a value attribute', function ()
-        local immutable_dummy = immutable_dummy_class(3)
-        return immutable_dummy ~= nil,
-          immutable_dummy ~= nil and immutable_dummy.value == 3
-      end)
-
-      it('... and a tostring with _ marks', function ()
-        return immutable_dummy_class(12):_tostring() == "_dummy:12_"
-      end)
-
-      it('immutable_dummy_class(11).."str" => "_dummy:11_str"', function ()
-        return immutable_dummy_class(11).."str" == "_dummy:11_str"
-      end)
-      it('... concatenate with a boolean', function ()
-        return immutable_dummy_class(11)..true == "_dummy:11_true"
-      end)
-      it('... concatenate with a number', function ()
-        return immutable_dummy_class(11)..24 == "_dummy:11_24"
-      end)
-      it('... concatenate with a number on the left', function ()
-        return "27"..immutable_dummy_class(11) == "27_dummy:11_"
-      end)
-      it('... concatenate with an instance of dummy', function ()
-        return immutable_dummy_class(11)..dummy_class(46) == "_dummy:11_dummy:46"
-      end)
-      it('... concatenate with another instance of immutable dummy', function ()
-        return immutable_dummy_class(11)..immutable_dummy_class(46, 23) == "_dummy:11__dummy:46_"
-      end)
-      it('... concatenate within a chain of objects', function ()
-        return immutable_dummy_class(11)..", and "..dummy_class(46) == "_dummy:11_, and dummy:46"
-      end)
-
-      it('... and an equality test on value', function ()
-        return immutable_dummy_class(-5) == immutable_dummy_class(-5)
-      end)
-
-      it('... same with mutable values of the same base class', function ()
-        return immutable_dummy_class(-5) == dummy_class(-5)
-      end)
-
-      it('... and an inequality test on value', function ()
-        return immutable_dummy_class(-5) ~= immutable_dummy_class(6)
-      end)
-
-      it('... and kept the (const) incremented function from the base class', function ()
-        return immutable_dummy_class(-5):get_incremented_value() == -4
-      end)
-
-      it('cannot change immutable content', function ()
-        -- this would assert
-         local imm = immutable_dummy_class(-5)
-         imm.value = 3
-      end)
-
+    it('should allow access to base class custom method: get_incremented_value', function ()
+      assert.are_equal(-4, dummy_derived_class(-5, 45):get_incremented_value())
     end)
 
   end)
 
-end
+end)
 
-add(picotest.test_suite, test_class)
+describe('singleton', function ()
 
+  local my_singleton = singleton {
+    type = "custom"
+  }
 
--- pico-8 functions must be placed at the end to be parsed by p8tool
+  function my_singleton:_tostring()
+    return "[my_singleton "..self.type.."]"
+  end
 
-function _init()
-  picotest.test('class', test_class)
-end
+  it('should define a singleton with unique members', function ()
+    assert.are_equal("custom", my_singleton.type)
+  end)
 
--- empty update allows to close test window with ctrl+c
-function _update()
-end
+  it('should support custom method: _tostring', function ()
+    assert.are_equal("[my_singleton custom]", my_singleton:_tostring())
+  end)
+
+  it('should support string concatenation with _tostring', function ()
+    assert.are_equal("this is [my_singleton custom]", "this is "..my_singleton)
+  end)
+
+end)

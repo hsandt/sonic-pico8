@@ -1,8 +1,8 @@
+local debug = require("engine/debug/debug")
 local input = require("engine/input/input")
 local visual = require("game/resources/visual")
 
 local ui = {
-  show_mouse = false,
   cursor_sprite_data = nil
 }
 
@@ -18,7 +18,7 @@ end
 -- helper functions
 
 function ui:render_mouse()
-  if self.show_mouse and self.cursor_sprite_data then
+  if input.mouse_active and self.cursor_sprite_data then
     camera(0, 0)
     local cursor_position = input.get_cursor_position()
     self.cursor_sprite_data:render(cursor_position)

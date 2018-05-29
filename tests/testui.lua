@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("engine/render/color")
 local ui = require("engine/ui/ui")
 local input = require("engine/input/input")

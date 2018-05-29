@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local debug = require("engine/debug/debug")
 
 describe('log functions', function ()

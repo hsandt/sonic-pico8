@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 titlemenu = require("game/menu/titlemenu")
 flow = require("engine/application/flow")
 require("game/application/gamestates")

@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("engine/render/color")
 
 describe('color_tostring', function ()

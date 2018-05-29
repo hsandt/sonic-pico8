@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local input = require("engine/input/input")
 
 describe('input', function ()

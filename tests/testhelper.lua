@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 helper = require("engine/core/helper")
 math = require("engine/core/math")  -- just to test stringify
 

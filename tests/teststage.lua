@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local stage = require("game/ingame/stage")
 local flow = require("engine/application/flow")
 local titlemenu = require("game/menu/titlemenu")

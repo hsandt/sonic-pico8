@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local class = require("engine/core/class")
 
 describe('new_class', function ()

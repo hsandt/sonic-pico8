@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("game/application/gamestates")
 credits = require("game/menu/credits")
 

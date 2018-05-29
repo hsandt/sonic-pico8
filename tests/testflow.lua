@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local flow = require("engine/application/flow")
 local helper = require("engine/core/helper")
 local titlemenu = require("game/menu/titlemenu")

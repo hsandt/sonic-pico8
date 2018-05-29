@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local profiler = require("engine/debug/profiler")
 
 describe('profiler', function ()

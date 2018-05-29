@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 sprite = require("engine/render/sprite")
 
 describe('sprite', function ()

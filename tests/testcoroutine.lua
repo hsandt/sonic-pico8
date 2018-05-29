@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("engine/core/coroutine")
 
 describe('coroutine_curry', function ()

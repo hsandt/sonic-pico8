@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("game/ingame/playercharacter")
 require("engine/core/math")
 

@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 local codetuner = require("engine/debug/codetuner")
 
 describe('(codetuner active)', function ()

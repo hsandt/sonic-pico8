@@ -1,4 +1,4 @@
-require("test")
+require("bustedhelper")
 require("engine/core/math")
 
 describe('almost_eq', function ()

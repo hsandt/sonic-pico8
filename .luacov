@@ -1,9 +1,13 @@
-include = {
-	"src",
-	"tests/bustedhelper",
-	"pico8api"
-}
+return {
 
-exclude = {
-	"src/engine/wtk"
+	include = {
+		"src",
+		"tests/bustedhelper",
+		"pico8api"
+	},
+
+	exclude = {
+		"src/engine/wtk"
+	}
+
 }

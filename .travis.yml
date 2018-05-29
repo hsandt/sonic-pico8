@@ -16,7 +16,8 @@ install:
   - luarocks install busted
 
 script:
-  - busted busted tests --lpath="src/?.lua;tests/?.lua" -p test -c -v
+  - ./test.sh all all
 
 after_success:
+  - ls
   - bash <(curl -s https://codecov.io/bash)

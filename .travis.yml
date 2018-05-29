@@ -14,6 +14,7 @@ before_install:
 
 install:
   - luarocks install busted
+  - luarocks install luacov
 
 script:
   - ./test.sh all all

@@ -1,0 +1,9 @@
+include = {
+	"src",
+	"tests/bustedhelper",
+	"pico8api"
+}
+
+exclude = {
+	"src/engine/wtk"
+}

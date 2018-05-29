@@ -27,8 +27,8 @@ else
 fi
 
 LUA_PATH="src/?.lua;tests/?.lua"
-TEST_COMMAND="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" --filter \"$FILTER\" $FILTER_OUT -v"
+TEST_COMMAND="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" --filter \"$FILTER\" $FILTER_OUT -c -v"
 
 echo "Testing $1..."
 echo "> $TEST_COMMAND"
-bash -c "$TEST_COMMAND"
+bash -c "$TEST_COMMAND && luacov"

@@ -1,3 +1,7 @@
+[![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/master/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8/tree/master)
+[![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/develop/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8/tree/develop)
+[![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/busted/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8/tree/busted)
+
 # Sonic PICO-8
 
 A partial clone of classic Sonic the Hedgehog games made with PICO-8

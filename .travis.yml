@@ -17,3 +17,6 @@ install:
 
 script:
   - busted busted tests --lpath="src/?.lua;tests/?.lua" -p test -v
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

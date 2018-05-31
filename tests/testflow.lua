@@ -6,6 +6,10 @@ local credits = require("game/menu/credits")
 
 describe('flow', function ()
 
+  describe('_tostring', function ()
+    assert.are_equal("[flow]", flow:_tostring())
+  end)
+
   describe('add_gamestate', function ()
 
     after_each(function ()

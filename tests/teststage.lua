@@ -1,4 +1,6 @@
 require("bustedhelper")
+local input = require("engine/input/input")
+local ui = require("engine/ui/ui")
 local stage = require("game/ingame/stage")
 local flow = require("engine/application/flow")
 local titlemenu = require("game/menu/titlemenu")
@@ -106,6 +108,39 @@ describe('stage', function ()
       end)  -- (2 coroutines started with yield_delays of 1.0 and 2.0 resp.)
 
     end)  -- working coroutine function
+
+    describe('coroutine updating coroutines', function ()
+
+      local test_var = 0
+      local warn_stub
+
+      local function update_coroutine_recursively_async()
+        test_var = test_var + 1
+        stage.state:update_coroutines()
+      end
+
+      setup(function ()
+        stage.state:start_coroutine(update_coroutine_recursively_async)
+        warn_stub = stub(_G, "warn")
+      end)
+
+      teardown(function ()
+        clear_table(stage.state.coroutine_curries)
+        warn_stub:revert()
+      end)
+
+      after_each(function ()
+        warn_stub:clear()
+      end)
+
+      it('should resume the coroutine on 1 level only and warn that you shouldn\'t update resume already running coroutines', function ()
+        stage.state:update_coroutines()
+        assert.are_equal(1, test_var)  -- proves we entered the coroutine function only once
+        assert.spy(warn_stub).was_called(1)
+        assert.spy(warn_stub).was_called_with(match.matches("stage.state:update_coroutines: coroutine should not be running outside its body: "), "flow")
+      end)
+
+    end)
 
     describe('(failing coroutine started)', function ()
 
@@ -323,6 +358,88 @@ describe('stage', function ()
           assert.are_equal(stage.data.spawn_location:to_center_position(), stage.state.player_character.position)
         end)
 
+        describe('state:handle_input', function ()
+
+          before_each(function ()
+          end)
+
+          after_each(function ()
+            pico8.keypressed[0][input.button_ids.left] = false
+            pico8.keypressed[0][input.button_ids.right] = false
+            pico8.keypressed[0][input.button_ids.up] = false
+            pico8.keypressed[0][input.button_ids.down] = false
+
+            stage.state.player_character.move_intention = vector.zero()
+          end)
+
+          it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
+            pico8.keypressed[0][input.button_ids.left] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
+            pico8.keypressed[0][input.button_ids.right] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(1, 0), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
+            pico8.keypressed[0][input.button_ids.left] = true
+            pico8.keypressed[0][input.button_ids.right] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
+          end)
+
+           it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
+            pico8.keypressed[0][input.button_ids.up] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
+            pico8.keypressed[0][input.button_ids.down] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(0, 1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
+            pico8.keypressed[0][input.button_ids.up] = true
+            pico8.keypressed[0][input.button_ids.down] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
+            pico8.keypressed[0][input.button_ids.left] = true
+            pico8.keypressed[0][input.button_ids.up] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(-1, -1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
+            pico8.keypressed[0][input.button_ids.left] = true
+            pico8.keypressed[0][input.button_ids.down] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(-1, 1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
+            pico8.keypressed[0][input.button_ids.right] = true
+            pico8.keypressed[0][input.button_ids.up] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(1, -1), stage.state.player_character.move_intention)
+          end)
+
+          it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
+            pico8.keypressed[0][input.button_ids.right] = true
+            pico8.keypressed[0][input.button_ids.down] = true
+            stage.state:handle_input()
+            assert.are_equal(vector(1, 1), stage.state.player_character.move_intention)
+          end)
+
+        end)
+
       end)
 
       describe('stage.state.update_camera', function ()
@@ -342,6 +459,109 @@ describe('stage', function ()
         end)
 
       end)
+
+      describe('state.update', function ()
+
+        local update_coroutines_stub
+        local handle_input_stub
+        local player_character_update
+        local check_reached_goal_stub
+        local update_camera_stub
+
+        setup(function ()
+          update_coroutines_stub = stub(stage.state, "update_coroutines")
+          handle_input_stub = stub(stage.state, "handle_input")
+          player_character_update = stub(stage.state.player_character, "update")
+          check_reached_goal_stub = stub(stage.state, "check_reached_goal")
+          update_camera_stub = stub(stage.state, "update_camera")
+        end)
+
+        teardown(function ()
+          update_coroutines_stub:revert()
+          handle_input_stub:revert()
+          player_character_update:revert()
+          check_reached_goal_stub:revert()
+          update_camera_stub:revert()
+        end)
+
+        after_each(function ()
+          update_coroutines_stub:clear()
+          handle_input_stub:clear()
+          player_character_update:clear()
+          check_reached_goal_stub:clear()
+          update_camera_stub:clear()
+        end)
+
+        describe('(current substate is play)', function ()
+
+          it('should call handle_input, player_character:update, check_reached_goal and update_camera', function ()
+            stage.state.current_substate = stage.substates.play
+            stage.state:update()
+            assert.spy(update_coroutines_stub).was_called(1)
+            assert.spy(update_coroutines_stub).was_called_with(stage.state)
+            assert.spy(handle_input_stub).was_called(1)
+            assert.spy(handle_input_stub).was_called_with(stage.state)
+            assert.spy(player_character_update).was_called(1)
+            assert.spy(player_character_update).was_called_with(stage.state.player_character)
+            assert.spy(check_reached_goal_stub).was_called(1)
+            assert.spy(check_reached_goal_stub).was_called_with(stage.state)
+            assert.spy(update_camera_stub).was_called(1)
+            assert.spy(update_camera_stub).was_called_with(stage.state)      end)
+        end)
+
+        describe('(current substate is result)', function ()
+
+          it('should call handle_input, player_character:update, check_reached_goal and update_camera', function ()
+            stage.state.current_substate = stage.substates.result
+            stage.state:update()
+            assert.spy(update_coroutines_stub).was_called(1)
+            assert.spy(update_coroutines_stub).was_called_with(stage.state)
+            assert.spy(handle_input_stub).was_called(0)
+            assert.spy(player_character_update).was_called(0)
+            assert.spy(check_reached_goal_stub).was_called(0)
+            assert.spy(update_camera_stub).was_called(0)
+          end)
+
+        end)
+
+      end)  -- state.update
+
+      describe('state.render', function ()
+
+        local rectfill_stub
+        local render_stage_elements_stub
+        local render_title_overlay_stub
+
+        setup(function ()
+          rectfill_stub = stub(_G, "rectfill")
+          render_stage_elements_stub = stub(stage.state, "render_stage_elements")
+          render_title_overlay_stub = stub(stage.state, "render_title_overlay")
+        end)
+
+        teardown(function ()
+          rectfill_stub:revert()
+          render_stage_elements_stub:revert()
+          render_title_overlay_stub:revert()
+        end)
+
+        after_each(function ()
+          rectfill_stub:clear()
+          render_stage_elements_stub:clear()
+          render_title_overlay_stub:clear()
+        end)
+
+        it('should reset camera, call rectfill, render_stage_elements, render_title_overlay', function ()
+          stage.state:render()
+          assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
+          assert.spy(rectfill_stub).was_called(1)
+          assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_purple)
+          assert.spy(render_stage_elements_stub).was_called(1)
+          assert.spy(render_stage_elements_stub).was_called_with(stage.state)
+          assert.spy(render_title_overlay_stub).was_called(1)
+          assert.spy(render_title_overlay_stub).was_called_with(stage.state)
+        end)
+
+      end)  -- state.render
 
     end)  -- (enter stage state)
 
@@ -476,6 +696,24 @@ describe('stage', function ()
 
       end)
 
+      describe('(no overlay labels)', function ()
+
+        before_each(function ()
+          clear_table(stage.state.title_overlay.labels)
+        end)
+
+        it('show_stage_title_async should add a title label and remove it after global.show_stage_title_delay', function ()
+          stage.state:start_coroutine_method(stage.state.show_stage_title_async)
+          stage.state:update_coroutines()
+          assert.are_equal(ui.label(stage.data.title, vector(50, 30), colors.white), stage.state.title_overlay.labels["title"])
+          for i = 2, stage.global_params.show_stage_title_delay*fps do
+            stage.state:update_coroutines()
+          end
+          assert.is_nil(stage.state.title_overlay.labels["title"])
+        end)
+
+      end)
+
       describe('stage.state render methods', function ()
 
         local map_stub
@@ -501,13 +739,22 @@ describe('stage', function ()
         after_each(function ()
           map_stub:clear()
           player_character_render_stub:clear()
-          player_character_render_stub:clear()
         end)
 
-        it('set_camera_offset_stage should not crash', function ()
+        it('set_camera_offset_stage should set the pico8 camera so that it is centered on the camera position', function ()
           stage.state.camera_position = vector(24, 13)
           stage.state:set_camera_offset_stage()
           assert.are_equal(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
+        end)
+
+        it('render_stage_elements should set camera position, call map for environment and player_character:render', function ()
+          stage.state.camera_position = vector(24, 13)
+          stage.state:render_stage_elements()
+          assert.are_equal(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
+          assert.spy(map_stub).was_called(1)
+          assert.spy(map_stub).was_called_with(0, 0, 0, 0, 16, 14)
+          assert.spy(player_character_render_stub).was_called(1)
+          assert.spy(player_character_render_stub).was_called_with(stage.state.player_character)
         end)
 
         it('render_environment should call map', function ()

@@ -11,8 +11,8 @@ local visual = require("game/resources/visual")
 
 -- config
 profiler:show()
--- codetuner:show()
--- codetuner.active = true
+codetuner:show()
+codetuner.active = true
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 

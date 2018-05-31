@@ -1,4 +1,5 @@
 require("engine/application/flow")
+require("engine/render/color")
 require("game/application/gamestates")
 
 local credits = {}
@@ -19,7 +20,7 @@ end
 
 function credits_state:render()
   color(colors.white)
-  print("credits state", 4*11, 6*12)
+  api.print("credits state", 4*11, 6*12)
 end
 
 -- export

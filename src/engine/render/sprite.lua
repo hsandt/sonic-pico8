@@ -1,16 +1,7 @@
 require("engine/core/math")
 
 -- sprite class
-sprite_data = {}
-sprite_data.__index = sprite_data
-
-setmetatable(sprite_data, {
-  __call = function (cls, ...)
-    local self = setmetatable({}, cls)
-    self:_init(...)
-    return self
-  end,
-})
+sprite_data = new_class()
 
 -- id_loc   sprite_id_location                      sprite location on the spritesheet
 -- span     tile_vector         tile_vector(1, 1)   sprite span on the spritesheet

@@ -14,7 +14,7 @@ describe('ui', function ()
 
       it('should init label with layer', function ()
         local lab = label("great", vector(24, 68), colors.red)
-        return lab.text == "great", lab.position == vector(24, 68), lab.colour == colors.red
+        assert.are_same({"great", vector(24, 68), colors.red}, {lab.text, lab.position, lab.colour})
       end)
 
     end)
@@ -22,7 +22,7 @@ describe('ui', function ()
     describe('_tostring', function ()
 
       it('should return "label(\'[text]\' @ [position] in [colour])"', function ()
-        return label("good", vector(22, 62), colors.yellow):_tostring() == "label('good' @ vector(22, 62) in yellow)"
+        assert.are_equal("label('good' @ vector(22, 62) in yellow)", label("good", vector(22, 62), colors.yellow):_tostring())
       end)
 
     end)
@@ -30,13 +30,13 @@ describe('ui', function ()
     describe('__eq', function ()
 
       it('should return true for label with same text and position', function ()
-        return label("good", vector(22, 62), colors.orange) == label("good", vector(22, 62), colors.orange)
+        assert.are_equal(label("good", vector(22, 62), colors.orange), label("good", vector(22, 62), colors.orange))
       end)
 
       it('should return false for label with different text or position', function ()
-        return label("good", vector(22, 62), colors.orange) ~= label("bad", vector(22, 62), colors.orange),
-          label("good", vector(23, 62), colors.orange) ~= label("good", vector(22, 62), colors.orange),
-          label("good", vector(23, 62), colors.orange) ~= label("good", vector(23, 62), colors.peach)
+        assert.are_not_equal(label("good", vector(22, 62), colors.orange), label("bad", vector(22, 62), colors.orange))
+        assert.are_not_equal(label("good", vector(23, 62), colors.orange), label("good", vector(22, 62), colors.orange))
+        assert.are_not_equal(label("good", vector(23, 62), colors.orange), label("good", vector(23, 62), colors.peach))
       end)
 
     end)
@@ -48,7 +48,7 @@ describe('ui', function ()
     describe('_init', function ()
 
       it('should init overlay with layer', function ()
-        return overlay(6).layer == 6
+        assert.are_equal(6, overlay(6).layer)
       end)
 
     end)
@@ -56,7 +56,7 @@ describe('ui', function ()
     describe('_tostring', function ()
 
       it('should return "overlay(layer [layer])"', function ()
-        return overlay(8):_tostring() == "overlay(layer: 8)"
+        assert.are_equal("overlay(layer: 8)", overlay(8):_tostring())
       end)
 
     end)
@@ -75,9 +75,34 @@ describe('ui', function ()
           clear_table(overlay_instance.labels)
         end)
 
-        it('should add a new label', function ()
-          overlay_instance:add_label("test", "content", vector(2, 4), colors.red)
-          return overlay_instance.labels["test"] == label("content", vector(2, 4), colors.red)
+        describe('add_label', function ()
+
+          local warn_stub
+
+          setup(function ()
+            warn_stub = stub(_G, "warn")
+          end)
+
+          teardown(function ()
+            warn_stub:revert()
+          end)
+
+          after_each(function ()
+            warn_stub:clear()
+          end)
+
+          it('should add a new label', function ()
+            overlay_instance:add_label("test", "content", vector(2, 4), colors.red)
+            assert.are_equal(label("content", vector(2, 4), colors.red), overlay_instance.labels["test"])
+          end)
+
+          it('should add a new black label with warning if no colour is passed', function ()
+            overlay_instance:add_label("test", "content", vector(2, 4))
+            assert.spy(warn_stub).was_called()
+            assert.spy(warn_stub).was_called_with('overlay:add_label no colour passed, will default to black (0)', 'ui')
+            assert.are_equal(label("content", vector(2, 4), colors.black), overlay_instance.labels["test"])
+          end)
+
         end)
 
       end)
@@ -97,7 +122,7 @@ describe('ui', function ()
 
           it('should replace an existing label', function ()
             overlay_instance:add_label("mock", "mock content 2", vector(3, 7), colors.white)
-            return overlay_instance.labels["mock"] == label("mock content 2", vector(3, 7), colors.white)
+            assert.are_equal(label("mock content 2", vector(3, 7), colors.white), overlay_instance.labels["mock"])
           end)
 
         end)
@@ -120,14 +145,14 @@ describe('ui', function ()
 
           it('should remove an existing label', function ()
             overlay_instance:remove_label("mock")
-            return overlay_instance.labels["mock"] == nil
+            assert.is_nil(overlay_instance.labels["mock"])
           end)
 
           it('should warn if the label name is not found', function ()
             overlay_instance:remove_label("test")
-            assert.spy(warn_stub).was.called()
-            assert.spy(warn_stub).was.called_with(match.matches('overlay:remove_label: could not find label with name: \'test\''), 'ui')
-            return overlay_instance.labels["test"] == nil
+            assert.spy(warn_stub).was_called()
+            assert.spy(warn_stub).was_called_with('overlay:remove_label: could not find label with name: \'test\'', 'ui')
+            assert.is_nil(overlay_instance.labels["test"])
           end)
 
         end)
@@ -159,9 +184,9 @@ describe('ui', function ()
 
           it('should call print', function ()
             overlay_instance:draw_labels()
-            assert.spy(print_stub).was.called(2)
-            assert.spy(print_stub).was.called_with("mock content", 1, 1, colors.blue)
-            assert.spy(print_stub).was.called_with("mock content 2", 2, 2, colors.dark_purple)
+            assert.spy(print_stub).was_called(2)
+            assert.spy(print_stub).was_called_with("mock content", 1, 1, colors.blue)
+            assert.spy(print_stub).was_called_with("mock content 2", 2, 2, colors.dark_purple)
           end)
 
         end)
@@ -245,8 +270,8 @@ describe('ui', function ()
         it('should call cursor sprite render at (12, 48)', function ()
           ui:render_mouse()
           assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
-          assert.spy(cursor_render_stub).was.called(1)
-          assert.spy(cursor_render_stub).was.called_with(ui.cursor_sprite_data, vector(12, 48))
+          assert.spy(cursor_render_stub).was_called(1)
+          assert.spy(cursor_render_stub).was_called_with(ui.cursor_sprite_data, vector(12, 48))
         end)
 
       end)

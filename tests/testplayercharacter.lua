@@ -41,7 +41,6 @@ describe('player_character', function ()
       end)
     end)
 
-
     describe('update_velocity_component', function ()
 
       it('should accelerate when there is some input', function ()
@@ -103,6 +102,29 @@ describe('player_character', function ()
         assert.is_true(almost_eq_with_message(vector.zero(), player_char.velocity))
       end)
 
+    end)
+
+    describe('render', function ()
+
+      local spr_data_render_stub
+
+      before_each(function ()
+        spr_data_render_stub = stub(player_char.spr_data, "render")
+      end)
+
+      after_each(function ()
+        spr_data_render_stub:revert()
+      end)
+
+      after_each(function ()
+        spr_data_render_stub:clear()
+      end)
+
+      it('should call spr_data:render with the character\'s position', function ()
+        player_char:render()
+        assert.spy(spr_data_render_stub).was_called(1)
+        assert.spy(spr_data_render_stub).was_called_with(player_char.spr_data, player_char.position)
+      end)
     end)
 
   end)

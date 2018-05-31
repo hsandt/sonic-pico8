@@ -67,7 +67,8 @@ end
 -- if a label with the same name already exists, replace it
 function overlay:add_label(name, text, position, colour)
   if not colour then
-    warn("overlay:add_label no colour passed, will default to black (0)")
+    colour = colors.black
+    warn("overlay:add_label no colour passed, will default to black (0)", "ui")
   end
   if self.labels[name] == nil then
     -- create new label and add it

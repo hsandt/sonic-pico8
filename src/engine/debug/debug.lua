@@ -53,27 +53,33 @@ end
 debug.dump_max_recursion_level = 2
 
 -- return a precise variable content, including table entries
--- for sequence containing nils, nil not not shown but nil's index will be skipped
+-- for sequence containing nils, nil is not shown but nil's index will be skipped
 -- if as_key is true and t is not a string, surround it with []
--- stop recursion after 2 levels
-function dump(dumped_value, as_key, level)
+-- by default table recursion will stop at a call depth of debug.dump_max_recursion_level
+-- however, you can pass a custom number of remaining levels to see more
+-- if use_tostring is true, use any implemented _tostring method for tables
+function dump(dumped_value, as_key, level, use_tostring)
   as_key = as_key or false
-  level = level or 0
+  level = level or debug.dump_max_recursion_level
 
   local repr
 
   if type(dumped_value) == "table" then
-    if level < debug.dump_max_recursion_level then
-      local entries = {}
-      for key, value in pairs(dumped_value) do
-        local key_repr = dump(key, true, level + 1)
-        local value_repr = dump(value, false, level + 1)
-        add(entries, key_repr.." = "..value_repr)
-      end
-      repr = "{"..joinstr_table(", ", entries).."}"
+    if use_tostring and dumped_value._tostring then
+      repr = dumped_value:_tostring()
     else
-      -- we already surround with [], so even if as_key, don't add extra []
-      return "[table]"
+      if level > 0 then
+        local entries = {}
+        for key, value in pairs(dumped_value) do
+          local key_repr = dump(key, true, level - 1, use_tostring)
+          local value_repr = dump(value, false, level - 1, use_tostring)
+          add(entries, key_repr.." = "..value_repr)
+        end
+        repr = "{"..joinstr_table(", ", entries).."}"
+      else
+        -- we already surround with [], so even if as_key, don't add extra []
+        return "[table]"
+      end
     end
   else
     -- for most types
@@ -88,6 +94,10 @@ function dump(dumped_value, as_key, level)
   end
 
   return repr
+end
+
+function nice_dump(value)
+  return dump(value, false, nil, true)
 end
 
 return debug

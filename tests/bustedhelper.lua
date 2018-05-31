@@ -20,12 +20,22 @@ function contains(t, searched_value)
 end
 
 function contains_with_message(sequence, passed)
-  return contains(sequence, passed), "Expected object to be one of the entries of the sequence.\nPassed in:\n"..dump(passed).."\nSequence:\n"..dump(sequence).."\n--- Ignore below ---"
+  local result = contains(sequence, passed)
+  if result then
+    return result, ""
+  else
+    return result, "Expected object to be one of the entries of the sequence.\nPassed in:\n"..nice_dump(passed).."\nSequence:\n"..nice_dump(sequence).."\n--- Ignore below ---"
+  end
 end
 
 function almost_eq_with_message(expected, passed, eps)
   eps = eps or 0.01
-  return almost_eq(expected, passed, eps), "Expected objects to be almost equal with eps: "..eps..".\nPassed in:\n"..dump(passed).."\nExpected:\n"..dump(expected).."\n--- Ignore below ---"
+  local result = almost_eq(expected, passed, eps)
+  if result then
+    return result, ""
+  else
+    return result, "Expected objects to be almost equal with eps: "..eps..".\nPassed in:\n"..nice_dump(passed).."\nExpected:\n"..nice_dump(expected).."\n--- Ignore below ---"
+  end
 end
 
 -- return the current file line in the format "{file}:{line}" to make it easy to navigate there from the printed message

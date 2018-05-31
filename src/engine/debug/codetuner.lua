@@ -3,28 +3,6 @@ require("engine/render/color")
 local debug = require("engine/debug/debug")
 local wtk = require("engine/wtk/pico8wtk")
 
--- utilities from widget toolkit demo
-local function next_to(w, dist)
- return w.x+w.w+(dist or 2), w.y
-end
-
-local function below(w, dist)
- return w.x, w.y+w.h+(dist or 2)
-end
-
--- tuned variable class, represents a variable to tune in the code tuner
--- currently unused, it will replace the free vars in codetuner.tuned_vars
--- to provide better information (type, range, default value)
-local tuned_variable = new_class()
-
--- name           string   tuned variable identifier
--- default_value  any      value used for tuned variable if codetuner is inactive
-function tuned_variable:_init(name, default_value)
-  self.name = name
-  self.default_value = default_value
-end
-
-
 local codetuner = singleton {
   -- parameters
 
@@ -43,6 +21,40 @@ local codetuner = singleton {
 
 function codetuner:_tostring()
  return "[codetuner]"
+end
+
+-- utilities from widget toolkit demo
+
+-- return a new position on the right of a widget w at position (x, y), of width w, plus a margin dist
+function codetuner.next_to(w, dist)
+ return w.x+w.w+(dist or 2), w.y
+end
+
+-- return a new position below a widget w at position (x, y), of height h, plus a margin dist
+function codetuner.below(w, dist)
+ return w.x, w.y+w.h+(dist or 2)
+end
+
+-- tuned variable class, represents a variable to tune in the code tuner
+-- currently unused, it will replace the free vars in codetuner.tuned_vars
+-- to provide better information (type, range, default value)
+codetuner.tuned_variable = new_class()
+
+-- name           string   tuned variable identifier
+-- default_value  any      value used for tuned variable if codetuner is inactive
+function codetuner.tuned_variable:_init(name, default_value)
+  self.name = name
+  self.default_value = default_value
+end
+
+-- return a string with format: tuned_variable "{name}" (default: {default_value})
+function codetuner.tuned_variable:_tostring(name, default_value)
+  return "tuned_variable \""..self.name.."\" (default: "..self.default_value..")"
+end
+
+-- return true if both tuned vars have the same name *and* default
+function codetuner.tuned_variable:__eq(other)
+  return self.name == other.name and self.default_value == other.default_value
 end
 
 -- return a function callback for the spinner, that sets the corresponding tuned variable
@@ -74,7 +86,7 @@ function codetuner:create_tuned_var(name, default_value)
   local tuning_spinner = wtk.spinner.new(-10, 10, default_value, 1, self:get_spinner_callback(name))
   local next_pos_x, next_pos_y
   if #self.main_panel.children > 0 then
-    next_pos_x, next_pos_y = below(self.main_panel.children[#self.main_panel.children])
+    next_pos_x, next_pos_y = codetuner.below(self.main_panel.children[#self.main_panel.children])
   else
     next_pos_x, next_pos_y = 1, 1
   end

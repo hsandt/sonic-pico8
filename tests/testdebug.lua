@@ -1,4 +1,5 @@
 require("bustedhelper")
+require("engine/core/math")
 local debug = require("engine/debug/debug")
 
 describe('debug', function ()
@@ -587,7 +588,10 @@ describe('debug', function ()
 
   describe('dump', function ()
 
-    debug.dump_max_recursion_level = 2
+    setup(function ()
+      debug.dump_max_recursion_level = 2
+    end)
+
 
     -- basic types
     it('nil => "[nil]"', function ()
@@ -650,11 +654,28 @@ describe('debug', function ()
       assert.are_equal("{[{[1] = 1, [2] = 3, key = \"value\"}] = {[1] = true, [2] = false}}", dump({[{1, 3, key = "value"}] = {true, false}}))
     end)
 
-    -- infinite recursion prevention
-    it('{} => [table]', function ()
-      assert.are_same({"[table]", "[table]"}, {dump({}, false, 2), dump({}, true, 2)})
+    -- tables with tostring
+
+    it('{1, "text", vector(2, 4)} => "{[1] = 1, [2] = "text", [3] = vector(2, 4)}" #solo', function ()
+      assert.are_equal("{[1] = 1, [2] = \"text\", [3] = vector(2, 4)}", dump({1, "text", vector(2, 4)}, false, 1, true))
     end)
-    it('{...} => "{{[1] = 1 [2] = [table] [3] = "rest"} = {idem}', function ()
+
+    it('{1, "text", vector(2, 4)} => "{[1] = 1, [2] = "text", [3] = vector(2, 4)}" #solo', function ()
+      assert.are_equal("{[1] = 1, [2] = \"text\", [3] = vector(2, 4)}", nice_dump({1, "text", vector(2, 4)}))
+    end)
+
+    -- infinite recursion prevention
+
+    it('at level 0: {} => [table]', function ()
+      assert.are_same({"[table]", "[table]"}, {dump({}, false, 0), dump({}, true, 0)})
+    end)
+    it('at level 1: {1, {}} => {1, [table]}', function ()
+      assert.are_same({"{[1] = 1, [2] = [table]}", "[{[1] = 1, [2] = [table]}]"}, {dump({1, {}}, false, 1), dump({1, {}}, true, 1)})
+    end)
+    it('at level 2: {...} => "{{[1] = 1 [2] = [table] [3] = "rest"} = {idem}', function ()
+      assert.are_equal("{[{[1] = 1, [2] = [table], [3] = \"rest\"}] = {[1] = 1, [2] = [table], [3] = \"rest\"}}", dump({[{1, {2, {3, {4}}}, "rest"}] = {1, {2, {3, {4}}}, "rest"}}, false, 2))
+    end)
+    it('without level arg, use default level (2): {...} => "{{[1] = 1 [2] = [table] [3] = "rest"} = {idem}', function ()
       assert.are_equal("{[{[1] = 1, [2] = [table], [3] = \"rest\"}] = {[1] = 1, [2] = [table], [3] = \"rest\"}}", dump({[{1, {2, {3, {4}}}, "rest"}] = {1, {2, {3, {4}}}, "rest"}}))
     end)
 

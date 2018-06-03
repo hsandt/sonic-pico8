@@ -1,7 +1,3 @@
-local lu = require("game/luaunit")
-
--- lu.LuaUnit.run()
-
 require("engine/core/math")
 
 -- caveats

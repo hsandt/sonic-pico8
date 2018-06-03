@@ -1,0 +1,24 @@
+# https://github.com/mpeterv/hererocks
+
+language: python # Can use any language here, but if it's not 'python'
+                 # it becomes necessary to pass '--user' to pip when installing hererocks.
+sudo: false      # Use container-based infrastructure.
+
+env:
+  - LUA="lua 5.3"
+
+before_install:
+  - pip install hererocks
+  - hererocks env --$LUA -rlatest    # Use latest LuaRocks, install into 'env' directory.
+  - source env/bin/activate          # Add directory with all installed binaries to PATH.
+
+install:
+  - luarocks install busted
+  - luarocks install luacov
+
+script:
+  - ./test.sh all all
+
+after_success:
+  - ls
+  - bash <(curl -s https://codecov.io/bash)

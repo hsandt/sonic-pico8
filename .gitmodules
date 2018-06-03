@@ -1,0 +1,3 @@
+[submodule "src/engine/wtk"]
+	path = src/engine/wtk
+	url = https://github.com/hsandt/PICO8-WTK.git

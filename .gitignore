@@ -1,5 +1,11 @@
-# Built game
+# Build
 /build
+
+# Code coverage report
+*.out
+
+# Python
+*.pyc
 
 # Sublime Text
 *.sublime-workspace

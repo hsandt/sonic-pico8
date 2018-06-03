@@ -1,0 +1,13 @@
+return {
+
+	include = {
+		"src",
+		"tests/bustedhelper",
+		"tests/pico8api"
+	},
+
+	exclude = {
+		"src/engine/wtk"
+	}
+
+}

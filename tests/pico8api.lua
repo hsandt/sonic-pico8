@@ -1,6 +1,3 @@
--- unlike picolove we don't use LuaJIT, so use bit32 instead of bit
-bit = require("bit32")
-
 -- pico-8 api placeholders for tests run under vanilla lua
 
 -- functions taken from gamax92's fork of picolove
@@ -12,63 +9,23 @@ bit = require("bit32")
 -- both under zlib license
 -- see readme.md for more information
 
+-- Lua 5.3 supports binary ops but still useful for advanced ops
+local bit = require("bit32")
+
 pico8={
-  fps=60,  -- changed from 30 to 60
+  fps=60,
   memory_usage=0,
   total_cpu=0,
   system_cpu=0,
   frames=0,
-  pal_transparent={},
-  resolution={128, 128},
-  palette={
-    {0,  0,  0,  255},
-    {29, 43, 83, 255},
-    {126,37, 83, 255},
-    {0,  135,81, 255},
-    {171,82, 54, 255},
-    {95, 87, 79, 255},
-    {194,195,199,255},
-    {255,241,232,255},
-    {255,0,  77, 255},
-    {255,163,0,  255},
-    {255,240,36, 255},
-    {0,  231,86, 255},
-    {41, 173,255,255},
-    {131,118,156,255},
-    {255,119,168,255},
-    {255,204,170,255}
-  },
   spriteflags={},
-  audio_channels={},
-  sfx={},
-  music={},
   current_music=nil,
-  usermemory={},
   cartdata={},
   clipboard="",
   keypressed={
     [0]={},
     [1]={},
     counter=0
-  },
-  kbdbuffer={},
-  keymap={
-    [0]={
-      [0]={'left'},
-      [1]={'right'},
-      [2]={'up'},
-      [3]={'down'},
-      [4]={'z', 'n'},
-      [5]={'x', 'm'},
-    },
-    [1]={
-      [0]={'s'},
-      [1]={'f'},
-      [2]={'e'},
-      [3]={'d'},
-      [4]={'tab', 'lshift'},
-      [5]={'q', 'a'},
-    }
   },
   mousepos={  -- simulate mouse position
     x=0,
@@ -80,46 +37,30 @@ pico8={
     false
   },
   mwheel=0,
-  cursor={0, 0},
   camera_x=0,
   camera_y=0,
-  draw_palette={},
-  display_palette={},
   pal_transparent={},
   map={},  -- should be initialized with 0 or game data, but ok for tests
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
-local function warning(msg)
-  print(debug.traceback("WARNING: "..msg, 3))
-end
-
 function camera(x, y)
-  if x~=nil then
-    pico8.camera_x=flr(x)
-    pico8.camera_y=flr(y)
-  else
-    pico8.camera_x=0
-    pico8.camera_y=0
-  end
+  pico8.camera_x=flr(x)
+  pico8.camera_y=flr(y)
 end
 
 function clip(x, y, w, h)
+  -- almost like pico8: if an arg is not missing but explicitly
+  -- passed as nil, it will become 0 (but that's impossible to check in Lua)
   if x and y and w and h then
-    pico8.clip={x, y, w, h}
+    pico8.clip={flr(x), flr(y), flr(w), flr(h)}
   else
     pico8.clip=nil
   end
 end
 
 function cls(c)
-  c = tonumber(c) or 0
-  if c == nil then
-    c = 0
-  end
-
   pico8.clip=nil
-  pico8.cursor={0, 0}
 end
 
 function pset(x, y, c)
@@ -138,7 +79,6 @@ function color(c)
 end
 
 function cursor(x, y)
-  pico8.cursor={x or 0, y or 0}
 end
 
 function tonum(val)
@@ -152,8 +92,8 @@ function tostr(val, hex)
   elseif kind == "number" then
     if hex then
       val=val*0x10000
-      local part1=bit.rshift(bit.band(val, 0xFFFF0000), 4)
-      local part2=bit.band(val, 0xFFFF)
+      local part1=(val & 0xFFFF0000) >> 16  -- fixed from original api.lua
+      local part2=val & 0xFFFF
       return string.format("0x%04x.%04x", part1, part2)
     else
       return tostring(val)
@@ -202,42 +142,22 @@ function line(x0, y0, x1, y1, col)
 end
 
 function pal(c0, c1, p)
-  if c0==nil then
-    for i=0, 15 do
-      if pico8.draw_palette[i]~=i then
-        pico8.draw_palette[i]=i
-      end
-      if pico8.display_palette[i]~=pico8.palette[i+1] then
-        pico8.display_palette[i]=pico8.palette[i+1]
-      end
-      local alpha=i==0 and 0 or 1
-      if pico8.pal_transparent[i]~=alpha then
-        pico8.pal_transparent[i]=alpha
-      end
-    end
-  elseif p==1 and c1~=nil then
-    c0=flr(c0)%16
-    c1=flr(c1)%16
-    if pico8.draw_palette[c0]~=pico8.palette[c1+1] then
-      pico8.display_palette[c0]=pico8.palette[c1+1]
-    end
-  elseif c1~=nil then
-    c0=flr(c0)%16
-    c1=flr(c1)%16
-    if pico8.draw_palette[c0]~=c1 then
-      pico8.draw_palette[c0]=c1
-    end
+  -- the 2nd nil means undefined here, but we can't check in Lua
+  if c0 == nil and c1 == nil then
+    palt()
   end
 end
 
 function palt(c, t)
-  if c==nil then
+  -- the 2nd nil means undefined
+  if c==nil or t==nil then
     for i=0, 15 do
-      pico8.pal_transparent[i]=i==0 and 0 or 1
+      -- reset all but black to opaque, black to transparent
+      pico8.pal_transparent[i] = i == 0 and true or false
     end
   else
     c=flr(c)%16
-    pico8.pal_transparent[c]=t and 0 or 1
+    pico8.pal_transparent[c] = t
   end
 end
 
@@ -270,10 +190,9 @@ function fget(n, f)
   if f~=nil then
     -- return just that bit as a boolean
     if not pico8.spriteflags[flr(n)] then
-      warning(string.format('fget(%d, %d)', n, f))
       return false
     end
-    return bit.band(pico8.spriteflags[flr(n)], bit.lshift(1, flr(f)))~=0
+    return pico8.spriteflags[flr(n)] & (1 << flr(f)) ~= 0
   end
   return pico8.spriteflags[flr(n)] or 0
 end
@@ -283,14 +202,14 @@ function fset(n, f, v)
   -- f is the flag index 0..7
   -- v is boolean
   if v==nil then
-    v, f=f, nil
+    v, f = f, nil
   end
   if f then
     -- set specific bit to v (true or false)
     if v then
-      pico8.spriteflags[n]=bit.bor(pico8.spriteflags[n], bit.lshift(1, f))
+      pico8.spriteflags[n]=pico8.spriteflags[n] | (1 << f)
     else
-      pico8.spriteflags[n]=bit.band(pico8.spriteflags[n], bit.bnot(bit.lshift(1, f)))
+      pico8.spriteflags[n]=pico8.spriteflags[n] & ~(1 << f)
     end
   else
     -- set bitfield to v (number)
@@ -346,10 +265,10 @@ end
 
 function poke4(addr, val)
   val=val*0x10000
-  poke(addr+0, bit.rshift(bit.band(val, 0x000000FF),  0))
-  poke(addr+1, bit.rshift(bit.band(val, 0x0000FF00),  8))
-  poke(addr+2, bit.rshift(bit.band(val, 0x00FF0000), 16))
-  poke(addr+3, bit.rshift(bit.band(val, 0xFF000000), 24))
+  poke(addr+0, (val & 0x000000FF) >>  0)
+  poke(addr+1, (val & 0x0000FF00) >>  8)
+  poke(addr+2, (val & 0x00FF0000) >> 16)
+  poke(addr+3, (val & 0xFF000000) >> 24)
 end
 
 function memcpy(dest_addr, source_addr, len)
@@ -369,7 +288,8 @@ function memcpy(dest_addr, source_addr, len)
       poke(i, peek(i-offset))
     end
   end
-  -- __scrimg and __scrblit
+
+  -- __scrimg and __scrblit (removed)
 end
 
 function memset(dest_addr, val, len)
@@ -395,8 +315,21 @@ function srand(seed)
   math.randomseed(flr(seed*0x10000))
 end
 
-flr=math.floor
-ceil=math.ceil
+function flr(value)
+  if value ~= nil then
+    return math.floor(value)
+  else
+    return 0
+  end
+end
+
+function ceil(value)
+  if value ~= nil then
+    return math.ceil(value)
+  else
+    return 0
+  end
+end
 
 function sgn(x)
   return x<0 and-1 or 1
@@ -406,7 +339,6 @@ abs=math.abs
 
 function min(a, b)
   if a==nil or b==nil then
-    warning('min a or b are nil returning 0')
     return 0
   end
   if a<b then return a end
@@ -415,7 +347,6 @@ end
 
 function max(a, b)
   if a==nil or b==nil then
-    warning('max a or b are nil returning 0')
     return 0
   end
   if a>b then return a end
@@ -441,23 +372,23 @@ function atan2(x, y)
 end
 
 function band(x, y)
-  return bit.band(x*0x10000, y*0x10000)/0x10000
+  return (x*0x10000 & y*0x10000)/0x10000
 end
 
 function bor(x, y)
-  return bit.bor(x*0x10000, y*0x10000)/0x10000
+  return (x*0x10000 | y*0x10000)/0x10000
 end
 
 function bxor(x, y)
-  return bit.bxor(x*0x10000, y*0x10000)/0x10000
+  return (x*0x10000 ~ y*0x10000)/0x10000
 end
 
 function bnot(x)
-  return bit.bnot(x*0x10000)/0x10000
+  return ~(x*0x10000)/0x10000
 end
 
 function shl(x, y)
-  return bit.lshift(x*0x10000, y)/0x10000
+  return (x*0x10000 << y)/0x10000
 end
 
 function shr(x, y)
@@ -465,19 +396,19 @@ function shr(x, y)
 end
 
 function lshr(x, y)
-  return bit.rshift(x*0x10000, y)/0x10000
+  return (x*0x10000 >> y)/0x10000
 end
 
 function rotl(x, y)
-  return bit.rol(x*0x10000, y)/0x10000
+  return bit.lrotate(x*0x10000, y)/0x10000
 end
 
 function rotr(x, y)
-  return bit.ror(x*0x10000, y)/0x10000
+  return bit.rrotate(x*0x10000, y)/0x10000
 end
 
 function time()
-  return pico8.frames/30
+  return pico8.frames/60
 end
 t=time
 
@@ -531,8 +462,8 @@ end
 function dget(index)
   index=flr(index)
   if index<0 or index>63 then
-    warning('cartdata index out of range')
-    return
+    -- out of range
+    return nil
   end
   return pico8.cartdata[index]
 end
@@ -540,7 +471,7 @@ end
 function dset(index, value)
   index=flr(index)
   if index<0 or index>63 then
-    warning('cartdata index out of range')
+    -- out of range
     return
   end
   pico8.cartdata[index]=value
@@ -563,18 +494,11 @@ function stat(x)
   elseif x == 9 then
     return pico8.fps
   elseif x >= 16 and x <= 23 then
-    local ch=pico8.audio_channels[x%4]
-    if not ch.sfx then
-      return -1
-    elseif x < 20 then
-      return ch.sfx
-    else
-      return flr(ch.offset)
-    end
+    return 0  -- audio channels not supported
   elseif x == 30 then
-    return #pico8.kbdbuffer ~= 0
+    return 0  -- devkit keyboard not supported
   elseif x == 31 then
-    return (table.remove(pico8.kbdbuffer, 1) or "")
+    return "" -- devkit keyboard not supported
   elseif x == 32 then
     return pico8.mousepos.x
   elseif x == 33 then
@@ -583,7 +507,7 @@ function stat(x)
     local btns=0
     for i=0, 2 do
       if pico8.mousebtnpressed[i+1] then
-        btns=bit.band(btns, bit.lshift(1, i))
+        btns=btns | (1 << i)
       end
     end
     return btns
@@ -672,20 +596,5 @@ api = {}
 function api.print(str, x, y, col)
   if col then
     color(col)
-  end
-  if x and y then
-    pico8.cursor[1]=flr(tonumber(x) or 0)
-    pico8.cursor[2]=flr(tonumber(y) or 0)
-  end
-  local str=tostring(str):gsub("[%z\1-\9\11-\31\154-\255]", " "):gsub("[\128-\153]", "\194%1").."\n"
-  local size=0
-  for line in str:gmatch("(.-)\n") do
-    size=size+6
-  end
-  if not x and not y then
-    if pico8.cursor[2]+size>122 then
-    else
-      pico8.cursor[2]=pico8.cursor[2]+size
-    end
   end
 end

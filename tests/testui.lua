@@ -168,25 +168,25 @@ describe('ui', function ()
 
         describe('draw_labels', function ()
 
-          local print_stub
+          local api_print_stub
 
           setup(function ()
-            print_stub = stub(api, "print")
+            api_print_stub = stub(api, "print")
           end)
 
           teardown(function ()
-            print_stub:revert()
+            api_print_stub:revert()
           end)
 
           after_each(function ()
-            print_stub:clear()
+            api_print_stub:clear()
           end)
 
           it('should call print', function ()
             overlay_instance:draw_labels()
-            assert.spy(print_stub).was_called(2)
-            assert.spy(print_stub).was_called_with("mock content", 1, 1, colors.blue)
-            assert.spy(print_stub).was_called_with("mock content 2", 2, 2, colors.dark_purple)
+            assert.spy(api_print_stub).was_called(2)
+            assert.spy(api_print_stub).was_called_with("mock content", 1, 1, colors.blue)
+            assert.spy(api_print_stub).was_called_with("mock content 2", 2, 2, colors.dark_purple)
           end)
 
         end)

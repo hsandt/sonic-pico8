@@ -74,8 +74,8 @@ describe('sprite', function ()
 
     it('should render the sprite from the id location, at the draw position minus pivot, with correct span and flip', function ()
       spr_data:render(vector(4, 8), false, true)
-      assert.spy(spr_stub).was.called(1)
-      assert.spy(spr_stub).was.called_with(49, 2, 4, 2, 3, false, true)
+      assert.spy(spr_stub).was_called(1)
+      assert.spy(spr_stub).was_called_with(49, 2, 4, 2, 3, false, true)
     end)
 
   end)

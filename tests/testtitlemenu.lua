@@ -1,4 +1,5 @@
 require("bustedhelper")
+input = require("engine/input/input")
 titlemenu = require("game/menu/titlemenu")
 flow = require("engine/application/flow")
 require("game/application/gamestates")
@@ -10,6 +11,12 @@ describe('titlemenu', function ()
   describe('state.type', function ()
     it('should be gamestate_types.titlemenu', function ()
       assert.are_equal(gamestate_types.titlemenu, titlemenu.state.type)
+    end)
+  end)
+
+  describe('state._tostring', function ()
+    it('should return [titlemenu state]', function ()
+      assert.are_equal("[titlemenu state]", titlemenu.state._tostring())
     end)
   end)
 
@@ -42,6 +49,64 @@ describe('titlemenu', function ()
         end)
       end)
 
+      describe('state.on_enter', function ()
+      end)
+
+      describe('state.on_exit', function ()
+      end)
+
+      describe('state.update', function ()
+
+        local move_cursor_up_stub
+
+        setup(function ()
+          move_cursor_up_stub = stub(titlemenu.state, "move_cursor_up")
+          move_cursor_down_stub = stub(titlemenu.state, "move_cursor_down")
+          confirm_current_selection_stub = stub(titlemenu.state, "confirm_current_selection")
+        end)
+
+        teardown(function ()
+          move_cursor_up_stub:revert()
+          move_cursor_down_stub:revert()
+          confirm_current_selection_stub:revert()
+        end)
+
+        after_each(function ()
+          pico8.keypressed[0][input.button_ids.up] = false
+          pico8.keypressed[0][input.button_ids.down] = false
+          pico8.keypressed[0][input.button_ids.x] = false
+
+          move_cursor_up_stub:clear()
+          move_cursor_down_stub:clear()
+          confirm_current_selection_stub:clear()
+        end)
+
+        it('(when input up in down) it should be move cursor up', function ()
+          pico8.keypressed[0][input.button_ids.up] = true
+          pico8.keypressed.counter = 1
+          titlemenu.state:update()
+          assert.spy(move_cursor_up_stub).was_called(1)
+          assert.spy(move_cursor_up_stub).was_called_with(titlemenu.state)
+        end)
+
+        it('(when input down in down) it should be move cursor down', function ()
+          pico8.keypressed[0][input.button_ids.down] = true
+          pico8.keypressed.counter = 1
+          titlemenu.state:update()
+          assert.spy(move_cursor_down_stub).was_called(1)
+          assert.spy(move_cursor_down_stub).was_called_with(titlemenu.state)
+        end)
+
+        it('(when input x in down) it should be move cursor x', function ()
+          pico8.keypressed[0][input.button_ids.x] = true
+          pico8.keypressed.counter = 1
+          titlemenu.state:update()
+          assert.spy(confirm_current_selection_stub).was_called(1)
+          assert.spy(confirm_current_selection_stub).was_called_with(titlemenu.state)
+        end)
+
+      end)
+
       describe('(cursor start at index 0)', function ()
 
         before_each(function ()
@@ -66,6 +131,33 @@ describe('titlemenu', function ()
           it('should increase current_cursor_index', function ()
             titlemenu.state:move_cursor_down()
             assert.are_equal(1, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
+
+        describe('render', function ()
+
+          local api_print_stub
+
+          setup(function ()
+            api_print_stub = stub(api, "print")
+          end)
+
+          teardown(function ()
+            api_print_stub:revert()
+          end)
+
+          after_each(function ()
+            api_print_stub:clear()
+          end)
+
+          it('should print "starts", "credits" and cursor ">" in front of start in white', function ()
+            titlemenu.state:render()
+            assert.are_equal(colors.white, pico8.color)
+            assert.spy(api_print_stub).was_called(3)
+            assert.spy(api_print_stub).was_called_with("start", 4*11, 6*12)
+            assert.spy(api_print_stub).was_called_with("credits", 4*11, 6*13)
+            assert.spy(api_print_stub).was_called_with(">", 4*10, 6*12)
           end)
 
         end)
@@ -96,6 +188,34 @@ describe('titlemenu', function ()
           it('should not change current_cursor_index due to clamping', function ()
             titlemenu.state:move_cursor_down()
             assert.are_equal(1, titlemenu.state.current_cursor_index)
+          end)
+
+        end)
+
+
+        describe('render', function ()
+
+          local api_print_stub
+
+          setup(function ()
+            api_print_stub = stub(api, "print")
+          end)
+
+          teardown(function ()
+            api_print_stub:revert()
+          end)
+
+          after_each(function ()
+            api_print_stub:clear()
+          end)
+
+          it('should print "starts", "credits" and cursor ">" in front of credits in white', function ()
+            titlemenu.state:render()
+            assert.are_equal(colors.white, pico8.color)
+            assert.spy(api_print_stub).was_called(3)
+            assert.spy(api_print_stub).was_called_with("start", 4*11, 6*12)
+            assert.spy(api_print_stub).was_called_with("credits", 4*11, 6*13)
+            assert.spy(api_print_stub).was_called_with(">", 4*10, 6*13)
           end)
 
         end)

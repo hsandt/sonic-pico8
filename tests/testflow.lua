@@ -194,8 +194,8 @@ describe('flow', function ()
       end)
 
       it('should call the gamestate:on_enter', function ()
-        assert.spy(titlemenu_on_enter_stub).was.called(1)
-        -- assert.spy(titlemenu_on_enter_stub).was.called_with()
+        assert.spy(titlemenu_on_enter_stub).was_called(1)
+        assert.spy(titlemenu_on_enter_stub).was_called_with(titlemenu.state)
       end)
 
       describe('(credits gamestate added)', function ()
@@ -237,13 +237,13 @@ describe('flow', function ()
           end)
 
           it('should call the old gamestate:on_exit', function ()
-            assert.spy(titlemenu_on_exit_stub).was.called(1)
-            -- assert.spy(titlemenu_on_exit_stub).was.called_with()
+            assert.spy(titlemenu_on_exit_stub).was_called(1)
+            assert.spy(titlemenu_on_exit_stub).was_called_with(titlemenu.state)
           end)
 
           it('should call the new gamestate:on_enter', function ()
-            assert.spy(credits_on_enter_stub).was.called(1)
-            -- assert.spy(credits_on_enter_stub).was.called_with()
+            assert.spy(credits_on_enter_stub).was_called(1)
+            assert.spy(credits_on_enter_stub).was_called_with(credits.state)
           end)
 
         end)

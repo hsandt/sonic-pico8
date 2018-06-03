@@ -66,6 +66,10 @@ stage.state = {
   title_overlay = ui.overlay(0)
 }
 
+function stage.state:_tostring()
+  return "[stage state]"
+end
+
 function stage.state:on_enter()
   self.current_substate = stage.substates.play
   self:spawn_player_character()

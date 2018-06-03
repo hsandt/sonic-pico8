@@ -90,14 +90,6 @@ pico8={
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
-local function getMouseX()
-  return pico8.mousepos.x
-end
-
-local function getMouseY()
-  return pico8.mousepos.y
-end
-
 local function warning(msg)
   print(debug.traceback("WARNING: "..msg, 3))
 end
@@ -584,9 +576,9 @@ function stat(x)
   elseif x == 31 then
     return (table.remove(pico8.kbdbuffer, 1) or "")
   elseif x == 32 then
-    return getMouseX()
+    return pico8.mousepos.x
   elseif x == 33 then
-    return getMouseY()
+    return pico8.mousepos.y
   elseif x == 34 then
     local btns=0
     for i=0, 2 do

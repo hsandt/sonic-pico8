@@ -46,9 +46,9 @@ end
 
 function titlemenustate:render()
   color(colors.white)
-  print("start", 4*11, 6*12)
-  print("credits", 4*11, 6*13)
-  print(">", 4*10, 6*(12+self.current_cursor_index))
+  api.print("start", 4*11, 6*12)
+  api.print("credits", 4*11, 6*13)
+  api.print(">", 4*10, 6*(12+self.current_cursor_index))
 end
 
 function titlemenustate:move_cursor_up()

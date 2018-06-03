@@ -10,19 +10,19 @@ describe('credits.state', function ()
     end)
   end)
 
-  describe('on_enter', function ()
-    pending('should ...', function ()
+  describe('state._tostring', function ()
+    it('should return [credits state]', function ()
+      assert.are_equal("[credits state]", credits.state._tostring())
     end)
+  end)
+
+  describe('on_enter', function ()
   end)
 
   describe('on_exit', function ()
-    pending('should ...', function ()
-    end)
   end)
 
   describe('update', function ()
-    pending('should ...', function ()
-    end)
   end)
 
   describe('render', function ()
@@ -47,7 +47,6 @@ describe('credits.state', function ()
       assert.spy(print_stub).was_called(1)
       assert.spy(print_stub).was_called_with("credits state", 4*11, 6*12)
     end)
-
 
   end)
 

@@ -15,6 +15,12 @@ describe('stage', function ()
     end)
   end)
 
+  describe('state._tostring', function ()
+    it('should return [stage state]', function ()
+      assert.are_equal("[stage state]", stage.state._tostring())
+    end)
+  end)
+
   describe('coroutine', function ()
 
     describe('working coroutine function', function ()
@@ -458,6 +464,12 @@ describe('stage', function ()
           assert.are_equal(vector(12, 24), stage.state.camera_position)
         end)
 
+      end)
+
+      describe('state.on_enter', function ()
+      end)
+
+      describe('state.on_exit', function ()
       end)
 
       describe('state.update', function ()

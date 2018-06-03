@@ -5,26 +5,28 @@ require("game/application/gamestates")
 local credits = {}
 
 -- game state
-local credits_state = {
+credits.state = {
   type = gamestate_types.credits
 }
 
-function credits_state:on_enter()
+function credits.state:_tostring()
+  return "[credits state]"
 end
 
-function credits_state:on_exit()
+function credits.state:on_enter()
 end
 
-function credits_state:update()
+function credits.state:on_exit()
 end
 
-function credits_state:render()
+function credits.state:update()
+end
+
+function credits.state:render()
   color(colors.white)
   api.print("credits state", 4*11, 6*12)
 end
 
 -- export
-
-credits.state = credits_state
 
 return credits

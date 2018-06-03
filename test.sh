@@ -8,18 +8,25 @@ if [[ $# -lt 1 ]] ; then
     exit 1
 fi
 
-TEST_FILE_PATTERN=32
-if [[ $1 = "all" ]] ; then
-	TEST_FILE_PATTERN="test"
+if [[ ${1::4} = "test" ]] ; then
+	MODULE=${1:4}
 else
-	TEST_FILE_PATTERN="$1"
+	MODULE=$1
+fi
+
+if [[ $MODULE = "all" || -z $MODULE ]] ; then
+	TEST_FILE_PATTERN="test"
+	COVERAGE_OPTIONS=""
+else
+	TEST_FILE_PATTERN="$MODULE"
+	COVERAGE_OPTIONS="-c .luacov_current \"$MODULE\""
 fi
 
 if [[ $2 = "all" ]] ; then
 	FILTER=""
 	FILTER_OUT=""
 elif [[ $2 = "solo" ]]; then
-	FILTER="#solo"
+	FILTER="--filter \"#solo\""
 	FILTER_OUT=""
 else
 	FILTER=""
@@ -27,8 +34,9 @@ else
 fi
 
 LUA_PATH="src/?.lua;tests/?.lua"
-TEST_COMMAND="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" --filter \"$FILTER\" $FILTER_OUT -c -v"
+TEST_COMMAND="rm -f luacov.stats.out luacov.report.out && busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v && luacov $COVERAGE_OPTIONS && grep -P \"(?:[ *]\*0|%)\" luacov.report.out"
 
 echo "Testing $1..."
 echo "> $TEST_COMMAND"
-bash -c "$TEST_COMMAND && luacov"
+# Generate luacov report and display all uncovered lines
+bash -c "$TEST_COMMAND"

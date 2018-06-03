@@ -3,7 +3,7 @@ return {
 	include = {
 		"src",
 		"tests/bustedhelper",
-		"pico8api"
+		"tests/pico8api"
 	},
 
 	exclude = {

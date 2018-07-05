@@ -4,8 +4,21 @@ language: python # Can use any language here, but if it's not 'python'
                  # it becomes necessary to pass '--user' to pip when installing hererocks.
 sudo: false      # Use container-based infrastructure.
 
+os:
+  - linux
+
 env:
   - LUA="lua 5.3"
+
+cache:
+  apt: true  # private repositories only
+  directories:
+    - tool
+
+addons:
+  apt:
+    packages:
+      - unzip
 
 before_install:
   - pip install hererocks
@@ -16,13 +29,19 @@ install:
   - luarocks install busted
   - luarocks install luacov
 
+before_script:
+  - mkdir -p tool
+  - pushd tool
+  - wget https://github.com/dansanderson/picotool/archive/master.zip
+  - unzip master.zip
+  - ln -s picotool-master/p8tool "$HOME/bin/p8tool"
+  - popd
+
 script:
   - ./test.sh all all
-
-after_success:
-  - ./build.sh main game
   - ls
   - bash <(curl -s https://codecov.io/bash)
+  - ./build.sh main game
 
 deploy:
   provider: releases

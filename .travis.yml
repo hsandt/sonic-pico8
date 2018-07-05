@@ -20,5 +20,13 @@ script:
   - ./test.sh all all
 
 after_success:
+  - ./build.sh main game
   - ls
   - bash <(curl -s https://codecov.io/bash)
+
+deploy:
+  provider: releases
+  file: "build/game.p8"
+  skip_cleanup: true
+  on:
+    tags: true

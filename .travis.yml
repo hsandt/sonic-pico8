@@ -26,6 +26,8 @@ after_success:
 
 deploy:
   provider: releases
+  api_key:
+    secure: vDFGY/etZht3H0tNDZle2+3+wNDuIV6ao49rnit5MvO39PiBdzlGk0D39XWFma91dou9r+WtTVwV8EY/cSIOhUONp3DrcY1HJBSRwHG2+6NzWJr+1EcOtKJ8A95Zm80aFsWOMSX6VgN1A66Onj8ND1QCLMVJ/hrWecjR08yw+hBEemFYfEpcgYZi7wP+SlBTFFGvCdSQp2mxP2n3uw49Sghi5lQ47vR/gYd/15FRJIdUvcvwD1G74N/tuafF77xMWJrw5cMAroVyVMEL4GqSBYipPLXD7cvFuwcW12nd4xTT7p6qZk1PoAXksc0lpebeKVnQZiKod6gM2sHQGGgmpg4NaMQomFF2pc9gh3qzRPG8TNhdjfb7DX4k+O1fIrUFBkj8k6GxDpmcAN0jeohO/TIdtWpBsbR+s0WOazFGzisR2kHTEHFek8x5nb7xOMrhospu238cAmlPbNFoIngesOdqDlJNaVgA78ou2FAtcifv8OroAkK6G9o43VWbzJjr+G+mJFt9gf7r2Scnugm/550c+9ax/mKlAxI9JRvrJ2B5nKDgYP8RDvpcYdtUDDxRa92BePMQtFD55lQF/1tcQowo0V4DK93F7nmm6Dv6NfnqbfTcF3xH1b/1wIbd8hr8rl4u7Js/ZOkxod9BeDVynyE0PxVdVFNJZIuMDQ0l3Q0=
   file: "build/game.p8"
   skip_cleanup: true
   on:

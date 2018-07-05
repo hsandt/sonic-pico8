@@ -13,7 +13,8 @@ env:
 cache:
   apt: true  # private repositories only
   directories:
-    - tool
+    - env  # for hererocks
+    - tool # remember to "travis cache --delete" from travis CL if p8tool needs upgrade
 
 addons:
   apt:
@@ -30,12 +31,16 @@ install:
   - luarocks install luacov
 
 before_script:
-  - mkdir -p tool
-  - pushd tool
-  - wget https://github.com/dansanderson/picotool/archive/master.zip
-  - unzip master.zip
-  - ln -s picotool-master/p8tool "$HOME/bin/p8tool"
-  - popd
+  # tool directory is automatically created when added to cache,
+  # so it's important to check if the executable itself already exists
+  - |
+    if [[ ! -d tool || ! -x "tool/picotool-master/p8tool" ]]; then
+      pushd tool
+      wget https://github.com/dansanderson/picotool/archive/master.zip
+      unzip master.zip
+      popd
+    fi
+  - ln -s tool/picotool-master/p8tool "$HOME/bin/p8tool"
 
 script:
   - ./test.sh all all

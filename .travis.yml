@@ -40,9 +40,7 @@ before_script:
       unzip master.zip
       popd
     fi
-  - mkdir "$HOME/bin" -p
-  - ln -s tool/picotool-master/p8tool "$HOME/bin/p8tool"
-  - ls -n "$HOME/bin"
+  - ln -s tool/picotool-master/p8tool "$HOME/.local/bin/p8tool"
 
 script:
   - ./test.sh all all

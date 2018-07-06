@@ -2,6 +2,9 @@
 
 language: python # Can use any language here, but if it's not 'python'
                  # it becomes necessary to pass '--user' to pip when installing hererocks.
+python:
+  - "3.6"
+
 sudo: false      # Use container-based infrastructure.
 
 os:
@@ -13,50 +16,52 @@ env:
 cache:
   apt: true  # private repositories only
   directories:
-    - env  # for hererocks
-    - tool # remember to "travis cache --delete" from travis CL if p8tool needs upgrade
-
-addons:
-  apt:
-    packages:
-      - unzip
+    - lua5.3  # for hererocks
+    - tool    # remember to "travis cache --delete" from travis CL if p8tool needs upgrade
+    - $HOME/.cache
 
 before_install:
-  - pip install hererocks
-  - hererocks env --$LUA -rlatest    # Use latest LuaRocks, install into 'env' directory.
-  - source env/bin/activate          # Add directory with all installed binaries to PATH.
+  # install hererocks if needed
+  - |
+    if [[ ! -d lua5.3 || ! -x lua5.3/bin/activate ]]; then
+      pip install hererocks
+      hererocks lua5.3 --$LUA -rlatest
+    fi
+  - source lua5.3/bin/activate  # Add directory with all installed binaries to PATH.
 
 install:
+  # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
 
 before_script:
+  # download picotool if needed
   # tool directory is automatically created when added to cache,
   # so it's important to check if the executable itself already exists
   - |
-    if [[ ! -d tool || ! -x "tool/picotool-master/p8tool" ]]; then
+    if [[ ! -d tool || ! -x tool/picotool-master/p8tool ]]; then
       pushd tool
       wget https://github.com/dansanderson/picotool/archive/master.zip
       unzip master.zip
       popd
     fi
+  # make a symlink to p8tool in the PATH
   - mkdir -p "$HOME/.local/bin"
-  - echo $PATH
-  - echo $HOME
-  - ln -s tool/picotool-master/p8tool "$HOME/.local/bin/p8tool"
-  - sudo ln -s tool/picotool-master/p8tool "/usr/local/bin/p8tool"
+  - ln -s "$(pwd)/tool/picotool-master/p8tool" "$HOME/.local/bin/p8tool"
 
 script:
+  # test
   - ./test.sh all all
-  - ls
+  # coverage
   - bash <(curl -s https://codecov.io/bash)
+  # build for deploy
   - ./build.sh main game
 
 deploy:
   provider: releases
-  api_key:
-    secure: vDFGY/etZht3H0tNDZle2+3+wNDuIV6ao49rnit5MvO39PiBdzlGk0D39XWFma91dou9r+WtTVwV8EY/cSIOhUONp3DrcY1HJBSRwHG2+6NzWJr+1EcOtKJ8A95Zm80aFsWOMSX6VgN1A66Onj8ND1QCLMVJ/hrWecjR08yw+hBEemFYfEpcgYZi7wP+SlBTFFGvCdSQp2mxP2n3uw49Sghi5lQ47vR/gYd/15FRJIdUvcvwD1G74N/tuafF77xMWJrw5cMAroVyVMEL4GqSBYipPLXD7cvFuwcW12nd4xTT7p6qZk1PoAXksc0lpebeKVnQZiKod6gM2sHQGGgmpg4NaMQomFF2pc9gh3qzRPG8TNhdjfb7DX4k+O1fIrUFBkj8k6GxDpmcAN0jeohO/TIdtWpBsbR+s0WOazFGzisR2kHTEHFek8x5nb7xOMrhospu238cAmlPbNFoIngesOdqDlJNaVgA78ou2FAtcifv8OroAkK6G9o43VWbzJjr+G+mJFt9gf7r2Scnugm/550c+9ax/mKlAxI9JRvrJ2B5nKDgYP8RDvpcYdtUDDxRa92BePMQtFD55lQF/1tcQowo0V4DK93F7nmm6Dv6NfnqbfTcF3xH1b/1wIbd8hr8rl4u7Js/ZOkxod9BeDVynyE0PxVdVFNJZIuMDQ0l3Q0=
+  api_key: $DEPLOY_API_KEY
   file: "build/game.p8"
   skip_cleanup: true
   on:
+    branch: master
     tags: true

@@ -16,8 +16,8 @@ OUTPUT_FILEPATH="build/$2.p8"
 # clean up existing file (p8tool doesn't support parsing file with non-ascii chars, even just to replace appropriate blocks)
 rm -f "$OUTPUT_FILEPATH"
 
-mkdir -p build
 # Build: build the game from the different modules (${@:3} will pass remaining args after the first 2)
+mkdir -p build
 p8tool build --lua "src/game/$1.lua" --lua-path="$(pwd)/src/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "$OUTPUT_FILEPATH" "${@:3}" &&
 # Post-build: replace strings
 python3.6 postbuild/replace_strings.py "$OUTPUT_FILEPATH" &&

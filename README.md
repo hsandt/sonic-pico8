@@ -1,6 +1,5 @@
 [![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/master/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
 [![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/develop/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
-[![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/busted/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
 
 # Sonic PICO-8
 

@@ -2,23 +2,66 @@
 
 language: python # Can use any language here, but if it's not 'python'
                  # it becomes necessary to pass '--user' to pip when installing hererocks.
+python:
+  - "3.6"
+
 sudo: false      # Use container-based infrastructure.
+
+os:
+  - linux
 
 env:
   - LUA="lua 5.3"
 
+cache:
+  apt: true  # private repositories only
+  directories:
+    - lua5.3  # for hererocks
+    - tool    # remember to "travis cache --delete" from travis CL if p8tool needs upgrade
+    - $HOME/.cache
+
 before_install:
-  - pip install hererocks
-  - hererocks env --$LUA -rlatest    # Use latest LuaRocks, install into 'env' directory.
-  - source env/bin/activate          # Add directory with all installed binaries to PATH.
+  # install hererocks if needed
+  - |
+    if [[ ! -d lua5.3 || ! -x lua5.3/bin/activate ]]; then
+      pip install hererocks
+      hererocks lua5.3 --$LUA -rlatest
+    fi
+  - source lua5.3/bin/activate  # Add directory with all installed binaries to PATH.
 
 install:
+  # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
 
-script:
-  - ./test.sh all all
+before_script:
+  # download picotool if needed
+  # tool directory is automatically created when added to cache,
+  # so it's important to check if the executable itself already exists
+  - |
+    if [[ ! -d tool || ! -x tool/picotool-master/p8tool ]]; then
+      pushd tool
+      wget https://github.com/dansanderson/picotool/archive/master.zip
+      unzip master.zip
+      popd
+    fi
+  # make a symlink to p8tool in the PATH
+  - mkdir -p "$HOME/.local/bin"
+  - ln -s "$(pwd)/tool/picotool-master/p8tool" "$HOME/.local/bin/p8tool"
 
-after_success:
-  - ls
+script:
+  # test
+  - ./test.sh all all
+  # coverage
   - bash <(curl -s https://codecov.io/bash)
+  # build for deploy
+  - ./build.sh main game
+
+deploy:
+  provider: releases
+  api_key: $DEPLOY_API_KEY
+  file: "build/game.p8"
+  skip_cleanup: true
+  on:
+    branch: master
+    tags: true

@@ -55,12 +55,12 @@ script:
   # coverage
   - bash <(curl -s https://codecov.io/bash)
   # build for deploy
-  - ./build.sh main game
+  - ./build.sh main sonic-pico8
 
 deploy:
   provider: releases
   api_key: $DEPLOY_API_KEY
-  file: "build/game.p8"
+  file: "build/sonic-pico8.p8"
   skip_cleanup: true
   on:
     branch: master

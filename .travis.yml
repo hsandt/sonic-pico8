@@ -55,7 +55,7 @@ script:
   # coverage
   - bash <(curl -s https://codecov.io/bash)
   # build for deploy
-  - ./build.sh main sonic-pico8
+  - ./build.sh main sonic-pico8 release
 
 deploy:
   provider: releases

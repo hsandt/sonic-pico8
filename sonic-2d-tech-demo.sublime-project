@@ -5,61 +5,99 @@
 			"name": "p8tool: build game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./build.sh main sonic-pico8_debug debug"],
+			"variants":
 			[
-				"./build.sh main game"
+				{
+					"name": "release",
+					"cmd": ["./build.sh main sonic-pico8_release release"]
+				}
 			]
 		},
 		{
 			"name": "p8tool: build and run or reload game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\")"],
+			"variants":
 			[
-				"./build.sh main game && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\")"
+				{
+					"name": "release",
+					"cmd": ["./build.sh main sonic-pico8_release release && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\")"]
+				}
 			]
 		},
 		{
 			"name": "p8tool: run game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\""],
+			"variants":
 			[
-				"gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\""
+				{
+					"name": "release",
+					"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\""]
+				}
+			]
+		},
+		{
+			"name": "p8tool: install game",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install.sh sonic-pico8_debug.p8"],
+			"variants":
+			[
+				{
+					"name": "release",
+					"cmd": ["./install.sh sonic-pico8_release.p8"],
+				}
+			]
+		},
+		{
+			"name": "p8tool: install game cartridge",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install.sh sonic-pico8_debug.p8.png"],
+			"variants":
+			[
+				{
+					"name": "release",
+					"cmd": ["./install.sh sonic-pico8_release.p8.png"],
+				}
 			]
 		},
 		{
 			"name": "p8tool: build and run or reload sandbox",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
-			[
-				"./build.sh sandbox sandbox && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"
-			]
+			"cmd": ["./build.sh sandbox sandbox debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"]
 		},
 		{
 			"name": "p8tool: run sandbox",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
-			[
-				"gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\""
-			]
+			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\""]
 		},
 		{
-			"cmd":
-			[
-				"pico8 -run data/data.p8"
-			],
+			"cmd": ["pico8 -run data/data.p8"],
 			"name": "p8tool: edit data",
 			"shell": true,
 			"working_dir": "${project_path}"
 		},
 		{
-			"cmd":
-			[
-				"python3 -m postbuild.test_replace_strings"
-			],
+			"cmd": ["python3 -m prebuild.test_preprocess"],
+			"name": "python: test preprocess",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd": ["python3 -m postbuild.test_add_metadata"],
+			"name": "python: test add_metadata",
+			"shell": true,
+			"working_dir": "${project_path}"
+		},
+		{
+			"cmd": ["python3 -m postbuild.test_replace_strings"],
 			"name": "python: test replace_strings",
 			"shell": true,
 			"working_dir": "${project_path}"
@@ -180,6 +218,7 @@
 			[
 				".git",
 				"build",
+				"intermediate",
 				"__pycache__"
 			],
 			"path": "."

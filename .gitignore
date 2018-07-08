@@ -1,4 +1,5 @@
 # Build
+/intermediate
 /build
 
 # Code coverage report

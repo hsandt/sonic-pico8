@@ -1,8 +1,7 @@
 #!/usr/bin/python3.6
 # -*- coding: utf-8 -*-
-import os
-import re
 import argparse
+import os
 
 # This script replace glyph identifiers and some functions with the corresponding
 # unicode characters and substitute function names.
@@ -35,9 +34,20 @@ FUNCTION_SUBSTITUTE_TABLE = {
     'api.print': 'print'
 }
 
+def replace_all_strings_in_dir(dirpath):
+    """
+    Replace all the glyph identifiers in all source files in a given directory
+
+    """
+    for root, dirs, files in os.walk(dirpath):
+        for file in files:
+            if file.endswith(".lua"):
+                replace_all_strings_in_file(os.path.join(root, file))
+
+
 def replace_all_strings_in_file(filepath):
     """
-    Replace all the glyph identifiers
+    Replace all the glyph identifiers in a given file
 
     test.txt:
         ##d or ##u
@@ -56,6 +66,8 @@ def replace_all_strings_in_file(filepath):
         data = f.read()
         data = replace_all_glyphs_in_string(data)
         data = replace_all_functions_in_string(data)
+        # replace file content (this works because our string replacements
+        # don't change the number of lines, so we don't need to truncate)
         f.seek(0)
         f.write(data)
 
@@ -86,8 +98,7 @@ def replace_all_functions_in_string(text):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Replace predetermined strings in a file.')
-    parser.add_argument('filepath', type=str,
-                        help='path of the file where strings should be replaced')
+    parser = argparse.ArgumentParser(description='Replace predetermined strings in all source files in a directory.')
+    parser.add_argument('dirpath', type=str, help='path containing source files where strings should be replaced')
     args = parser.parse_args()
-    replace_all_strings_in_file(args.filepath)
+    replace_all_strings_in_dir(args.dirpath)

@@ -2,7 +2,7 @@
 # $1: test name (module name)
 
 if [[ $# -lt 1 ]] ; then
-    echo "test.sh takes 1 mandatory param and 1 optional param:
+    echo "test.sh takes 1 mandatory param and 1 optional param, provided $#:
     $1: test file pattern
     $2: test filter mode: (default 'standard') 'standard' to filter out all #mute, 'solo' to filter #solo, 'all' to include #mute"
     exit 1
@@ -40,5 +40,5 @@ luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:[ *]\*0|\d+%)\" luacov.report.out"
 
 echo "Testing $1..."
 echo "> $TEST_COMMAND"
-# Generate luacov report and display all uncovered lines
+# Generate luacov report and display all uncovered lines and cover percentages
 bash -c "$TEST_COMMAND"

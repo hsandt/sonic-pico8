@@ -24,7 +24,7 @@ local profiler = {
   initialized = false,
 
   -- gui root
-  gui = wtk.gui_root.new()
+  gui = nil
 }
 
 -- return a callback function to use for stat labels
@@ -57,6 +57,9 @@ function profiler:hide()
 end
 
 function profiler:init_window()
+  print("profiler:init_window")
+  self.gui = wtk.gui_root.new()
+  self.gui.visible = false
   -- add stat labels to draw with their text callbacks
   for i = 1, #stats_info do
     local stat_label = wtk.label.new(profiler.get_stat_function(i), colors.light_gray)
@@ -67,12 +70,16 @@ function profiler:init_window()
 end
 
 function profiler:update_window()
-  self.gui:update()
+  if self.gui then
+    self.gui:update()
+  end
 end
 
 function profiler:render_window()
-  camera()
-  self.gui:draw()
+  if self.gui then
+    camera()
+    self.gui:draw()
+  end
 end
 
 return profiler

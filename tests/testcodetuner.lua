@@ -209,6 +209,7 @@ describe('codetuner', function ()
 
     it('should have constructed a gui root with a panel of tuned values', function ()
       assert.is_not_nil(codetuner.gui)
+      assert.is_false(codetuner.gui.visible)
       assert.are_equal(1, #codetuner.gui.children)
       assert.are_equal(codetuner.main_panel, codetuner.gui.children[1])
     end)

@@ -118,6 +118,7 @@ end
 
 function codetuner:init_window()
   self.gui = wtk.gui_root.new()
+  self.gui.visible = false
   self.main_panel = wtk.panel.new(1, 1, colors.dark_gray, true)
   self.gui:add_child(self.main_panel)
 end

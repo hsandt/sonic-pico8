@@ -5,7 +5,6 @@ describe('profiler', function ()
 
   setup(function ()
     pico8.memory_usage = 152
-    profiler.gui.visible = false
   end)
 
   describe('get_stat_function', function ()
@@ -28,9 +27,10 @@ describe('profiler', function ()
       clear_table(profiler.gui.children)
     end)
 
-    it('should initialize the profiler with stat labels and correct callbacks', function ()
+    it('should initialize the profiler, invisible, with stat labels and correct callbacks', function ()
       assert.is_true(profiler.initialized)
       assert.is_not_nil(profiler.gui)
+      assert.is_false(profiler.gui.visible)
       assert.are_equal(6, #profiler.gui.children)  -- size of stats_info
       assert.are_equal("function", type(profiler.gui.children[1].text))
       assert.are_equal("memory     152", profiler.gui.children[1].text())

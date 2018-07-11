@@ -174,6 +174,10 @@
 					"cmd": ["./test.sh input"],
 				},
 				{
+					"name": "integrationtest",
+					"cmd": ["./test.sh integrationtest"],
+				},
+				{
 					"name": "math",
 					"cmd": ["./test.sh math"],
 				},

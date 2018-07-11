@@ -57,7 +57,6 @@ function profiler:hide()
 end
 
 function profiler:init_window()
-  print("profiler:init_window")
   self.gui = wtk.gui_root.new()
   self.gui.visible = false
   -- add stat labels to draw with their text callbacks

@@ -36,7 +36,7 @@ fi
 LUA_PATH="src/?.lua;tests/?.lua"
 TEST_COMMAND="rm -f luacov.stats.out luacov.report.out &&
 busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v &&
-luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:[ *]\*0|\d+%)\" luacov.report.out"
+luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:(?:^|[ *])\*0|\d+%)\" luacov.report.out"
 
 echo "Testing $1..."
 echo "> $TEST_COMMAND"

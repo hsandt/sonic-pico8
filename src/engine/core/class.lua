@@ -13,11 +13,12 @@ local function concat(lhs, rhs)
 end
 
 -- create and return a new class
--- every class should implement :_init(), :_tostring() and .__eq()
--- note that .__eq() is only duck-typing lhs and rhs, so we can compare
--- two instances of different classes (maybe related by inheritance)
+-- every class should implement :_init(), :_tostring() and if relevant .__eq()
+-- note that most .__eq() definitions are only duck-typing lhs and rhs,
+-- so we can compare two instances of different classes (maybe related by inheritance)
 -- with the same members. slicing will occur when comparing a base instance
--- and a derived instance with more members
+-- and a derived instance with more members. add a class type member to simulate rtti
+-- and make sure only objects of the same class are considered equal (but we often don't need this)
 function new_class()
   local class = {}
   class.__index = class  -- 1st class as instance metatable

@@ -24,6 +24,10 @@
 				{
 					"name": "release",
 					"cmd": ["./build.sh main sonic-pico8_release release && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\")"]
+				},
+				{
+					"name": "headless",
+					"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run -x build/sonic-pico8_release.p8\")"]
 				}
 			]
 		},
@@ -37,6 +41,10 @@
 				{
 					"name": "release",
 					"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\""]
+				},
+				{
+					"name": "headless",
+					"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run -x build/sonic-pico8_headless.p8\""]
 				}
 			]
 		},

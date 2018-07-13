@@ -15,7 +15,7 @@ else
 fi
 
 if [[ $MODULE = "all" || -z $MODULE ]] ; then
-	TEST_FILE_PATTERN="test"
+	TEST_FILE_PATTERN="utest"
 	COVERAGE_OPTIONS=""
 else
 	TEST_FILE_PATTERN="$MODULE"

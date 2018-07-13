@@ -42,19 +42,19 @@ describe('bustedhelper', function ()
 
   describe('get_file_line', function ()
     it('should return "file:line" of the get_file_line call by default', function ()
-      assert.are_equal("@tests/testbustedhelper.lua:45", get_file_line())
+      assert.are_equal("@tests/utestbustedhelper.lua:45", get_file_line())
     end)
     it('should return "file:line" of the function calling get_file_line with extra_level 1', function ()
       local function inside()
-        assert.are_equal("@tests/testbustedhelper.lua:51", get_file_line(1))
+        assert.are_equal("@tests/utestbustedhelper.lua:51", get_file_line(1))
       end
       inside()  -- line 51
     end)
     it('should return "file:line" of the function calling the function calling get_file_line with extra_level 1', function ()
       local function outside()
         local function inside()
-          assert.are_equal("@tests/testbustedhelper.lua:59", get_file_line(1))
-          assert.are_equal("@tests/testbustedhelper.lua:61", get_file_line(2))
+          assert.are_equal("@tests/utestbustedhelper.lua:59", get_file_line(1))
+          assert.are_equal("@tests/utestbustedhelper.lua:61", get_file_line(2))
         end
         inside()  -- line 59
       end
@@ -81,7 +81,7 @@ describe('bustedhelper', function ()
     it('should print the current file:line with a message', function ()
       print_at_line("text")
       assert.spy(native_print_stub).was_called(1)
-      assert.spy(native_print_stub).was_called_with("@tests/testbustedhelper.lua:82: text")
+      assert.spy(native_print_stub).was_called_with("@tests/utestbustedhelper.lua:82: text")
     end)
 
   end)

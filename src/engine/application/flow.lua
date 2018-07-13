@@ -15,7 +15,15 @@ end
 
 function flow:update()
  self:_check_next_gamestate()
- self.current_gamestate:update()
+ if self.current_gamestate then
+  self.current_gamestate:update()
+ end
+end
+
+function flow:render()
+ if self.current_gamestate then
+  self.current_gamestate:render()
+ end
 end
 
 -- add a gamestate

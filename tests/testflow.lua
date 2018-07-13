@@ -10,6 +10,14 @@ describe('flow', function ()
     assert.are_equal("[flow]", flow:_tostring())
   end)
 
+  describe('update', function ()
+
+    it('should not crash when there is no current gamestate not next gamestate set', function ()
+      assert.has_no_errors(function () flow:update() end)
+    end)
+
+  end)
+
   describe('add_gamestate', function ()
 
     after_each(function ()
@@ -253,5 +261,43 @@ describe('flow', function ()
     end)  -- changed gamestate 1st time
 
   end)  -- (titlemenu gamestate added)
+
+  describe('render', function ()
+
+    it('should not crash when there is no current gamestate not next gamestate set', function ()
+      assert.has_no_errors(function () flow:render() end)
+    end)
+
+    describe('(when current gamestate is set)', function ()
+
+      local titlemenu_render_stub
+
+      setup(function ()
+        titlemenu_render_stub = stub(titlemenu.state, "render")
+      end)
+
+      teardown(function ()
+        titlemenu_render_stub:revert()
+      end)
+
+      before_each(function ()
+        flow:_change_gamestate(titlemenu.state)
+      end)
+
+      after_each(function ()
+        flow.current_gamestate:on_exit()
+        flow.current_gamestate = nil
+        titlemenu_render_stub:clear()
+      end)
+
+      it('should not delegate render to current gamestate', function ()
+        flow:render()
+        assert.spy(titlemenu_render_stub).was_called(1)
+        assert.spy(titlemenu_render_stub).was_called_with(titlemenu.state)
+      end)
+
+    end)
+
+  end)
 
 end)

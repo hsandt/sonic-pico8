@@ -24,11 +24,7 @@ function integration_test_runner:start(test)
   if test.setup then
     test:setup()
   end
-  -- if action sequence is empty, end immediately
-  -- todo: factorize with update equivalent check
-  if #self.current_test.action_sequence == 0 then
-    self.current_result = test_result.success
-  end
+  self:check_end()
 end
 
 function integration_test_runner:update()
@@ -51,14 +47,29 @@ function integration_test_runner:update()
     self.last_trigger_time = self.current_time - late_time
     self.next_action_index = self.next_action_index + 1
 
-    -- check if last action was applied, end now
-    -- this means you can define an 'end' action just by adding an empty action at the end
-    if self.next_action_index > #self.current_test.action_sequence then
-      -- end test
-      self.current_result = test_result.success
-    end
+    self:check_end()
   end
 
+end
+
+function integration_test_runner:check_end()
+  -- check if last action was applied, end now
+  -- this means you can define an 'end' action just by adding an empty action at the end
+  if self.next_action_index > #self.current_test.action_sequence then
+    self:end_with_final_assertion()
+  end
+end
+
+function integration_test_runner:end_with_final_assertion()
+  -- check the final assertion so we know if we should end with success or failure
+  result, message = self.current_test:check_final_assertion()
+  if result then
+    self.current_result = test_result.success
+    log("integration test '"..self.current_test.name.."' succeeded", "test runner")
+  else
+    self.current_result = test_result.failure
+    log("integration test '"..self.current_test.name.."' failed: "..message, "test runner")
+  end
 end
 
 -- stop the current test and reset all values
@@ -129,7 +140,7 @@ integration_test = new_class()
 -- name               string                         test name
 -- setup              function                       setup callback - called on test start
 -- action_sequence    [scripted_action]              sequence of scripted actions - run during test
--- final_assertion    function () => (bool, string)  assertion function with message called on test end
+-- final_assertion    function () => (bool, string)  assertion function that returns (assertion passed, error message if failed) - called on test end
 function integration_test:_init(name)
   self.name = name
   self.setup = nil
@@ -143,4 +154,13 @@ end
 
 function integration_test:add_action(trigger, callback, name)
   add(self.action_sequence, scripted_action(trigger, callback, name))
+end
+
+-- return true if final assertion passes, (false, error message) else
+function integration_test:check_final_assertion()
+  if self.final_assertion then
+    return self.final_assertion()
+  else
+   return true
+  end
 end

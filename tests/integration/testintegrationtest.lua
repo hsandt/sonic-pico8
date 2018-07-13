@@ -14,15 +14,29 @@ describe('integration_test_runner', function ()
 
   setup(function ()
     test = integration_test('character walks')
-    test.setup = spy.new(function () end)
   end)
 
   after_each(function ()
     integration_test_runner:stop()
-    test.setup:clear()
   end)
 
   describe('start', function ()
+
+    setup(function ()
+      test = integration_test('character walks')
+      test.setup = spy.new(function () end)
+      spy.on(integration_test_runner, "check_end")
+    end)
+
+    teardown(function ()
+      test.setup = nil
+      integration_test_runner.check_end:revert()
+    end)
+
+    after_each(function ()
+      test.setup:clear()
+      integration_test_runner.check_end:clear()
+    end)
 
     it('should set the current test to the passed test', function ()
       integration_test_runner:start(test)
@@ -41,28 +55,13 @@ describe('integration_test_runner', function ()
     it('should call the test setup callback', function ()
       integration_test_runner:start(test)
       assert.spy(test.setup).was_called(1)
+      assert.spy(test.setup).was_called_with(test)
     end)
 
-    it('should end immediately when there are no actions', function ()
+    it('should call check_end', function ()
       integration_test_runner:start(test)
-      assert.are_equal(test_result.success, integration_test_runner.current_result)
-    end)
-
-    describe('start', function ()
-
-      setup(function ()
-        test:add_action(time_trigger(0.0), function () end, 'start_action')
-      end)
-
-      teardown(function ()
-        clear_table(test.action_sequence)
-      end)
-
-      it('should not end immediately when there are some actions (even at t=0.)', function ()
-        integration_test_runner:start(test)
-        assert.are_equal(test_result.none, integration_test_runner.current_result)
-      end)
-
+      assert.spy(integration_test_runner.check_end).was_called(1)
+      assert.spy(integration_test_runner.check_end).was_called_with(match.is_ref(integration_test_runner))
     end)
 
     describe('(after a first start)', function ()
@@ -163,6 +162,181 @@ describe('integration_test_runner', function ()
 
     end)
 
+  end)
+
+  describe('check_end', function ()
+
+    before_each(function ()
+      integration_test_runner:start(test)
+    end)
+
+    describe('(when no actions left)', function ()
+
+      describe('(when no final assertion)', function ()
+
+        it('should end immediately with success', function ()
+          integration_test_runner:check_end(test)
+          assert.are_equal(test_result.success, integration_test_runner.current_result)
+        end)
+
+      end)
+
+      describe('(when final assertion passes)', function ()
+
+        setup(function ()
+          test.final_assertion = function ()
+            return true
+          end
+        end)
+
+        teardown(function ()
+          test.final_assertion = nil
+        end)
+
+        it('should check the final assertion immediately and end with success', function ()
+          integration_test_runner:check_end(test)
+          assert.are_equal(test_result.success, integration_test_runner.current_result)
+        end)
+
+      end)
+
+      describe('(when final assertion passes)', function ()
+
+        setup(function ()
+          test.final_assertion = function ()
+            return false, "error message"
+          end
+        end)
+
+        teardown(function ()
+          test.final_assertion = nil
+        end)
+
+        it('should check the final assertion immediately and end with failure', function ()
+          integration_test_runner:check_end(test)
+          assert.are_equal(test_result.failure, integration_test_runner.current_result)
+        end)
+
+      end)
+
+    end)
+
+    describe('(when some actions left)', function ()
+
+      setup(function ()
+        test:add_action(time_trigger(1.0), function () end, 'check_end_test_action')
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+      end)
+
+      it('should do nothing', function ()
+        assert.has_no_errors(function() integration_test_runner:check_end(test) end)
+      end)
+
+    end)
+
+    it('should reset the current test', function ()
+      integration_test_runner:stop(test)
+      assert.is_nil(integration_test_runner.current_test)
+    end)
+
+    it('should reset state vars', function ()
+      integration_test_runner:stop(test)
+      assert.are_same({0., 0., 1, test_result.none}, {
+        integration_test_runner.current_time,
+        integration_test_runner.last_trigger_time,
+        integration_test_runner.next_action_index,
+        integration_test_runner.current_result
+      })
+    end)
+
+  end)
+
+  describe('end_with_final_assertion', function ()
+
+    before_each(function ()
+      integration_test_runner:start(test)
+    end)
+
+    describe('(when no final assertion)', function ()
+
+      it('should end with success', function ()
+        integration_test_runner:end_with_final_assertion(test)
+        assert.are_equal(test_result.success, integration_test_runner.current_result)
+      end)
+
+    end)
+
+    describe('(when final assertion passes)', function ()
+
+      setup(function ()
+        test.final_assertion = function ()
+          return true
+        end
+      end)
+
+      teardown(function ()
+        test.final_assertion = nil
+      end)
+
+      it('should check the final assertion and end with success', function ()
+        integration_test_runner:check_end(test)
+        assert.are_equal(test_result.success, integration_test_runner.current_result)
+      end)
+
+    end)
+
+    describe('(when final assertion passes)', function ()
+
+      setup(function ()
+        test.final_assertion = function ()
+          return false, "error message"
+        end
+      end)
+
+      teardown(function ()
+        test.final_assertion = nil
+      end)
+
+      it('should check the final assertion and end with failure', function ()
+        integration_test_runner:check_end(test)
+        assert.are_equal(test_result.failure, integration_test_runner.current_result)
+      end)
+
+    end)
+
+    describe('(when some actions left)', function ()
+
+      setup(function ()
+        test:add_action(time_trigger(1.0), function () end, 'check_end_test_action')
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+      end)
+
+      it('should do nothing', function ()
+        assert.has_no_errors(function() integration_test_runner:check_end(test) end)
+      end)
+
+    end)
+
+    it('should reset the current test', function ()
+      integration_test_runner:stop(test)
+      assert.is_nil(integration_test_runner.current_test)
+    end)
+
+    it('should reset state vars', function ()
+      integration_test_runner:stop(test)
+      assert.are_same({0., 0., 1, test_result.none}, {
+        integration_test_runner.current_time,
+        integration_test_runner.last_trigger_time,
+        integration_test_runner.next_action_index,
+        integration_test_runner.current_result
+      })
+    end)
 
   end)
 
@@ -287,6 +461,16 @@ describe('integration_test', function ()
       test:add_action(time_trigger(1.0), action_callback, 'my_action')
       assert.are_equal(1, #test.action_sequence)
       assert.are_same({time_trigger(1.0), action_callback, 'my_action'}, {test.action_sequence[1].trigger, test.action_sequence[1].callback, test.action_sequence[1].name})
+    end)
+  end)
+
+  describe('check_final_assertion', function ()
+    it('should call the final assertion and return the result', function ()
+      local test = integration_test('character follows ground', function () end)
+      test.final_assertion = function()
+        return false, 'error message'
+      end
+      assert.are_same({false, 'error message'}, {test:check_final_assertion()})
     end)
   end)
 

@@ -35,6 +35,10 @@ function titlemenustate:on_exit()
 end
 
 function titlemenustate:update()
+  if not input.active then
+    return
+  end
+  
   if btnp(input.button_ids.up) then
     self:move_cursor_up()
   elseif btnp(input.button_ids.down) then

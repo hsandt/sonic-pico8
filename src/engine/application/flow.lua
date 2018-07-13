@@ -59,5 +59,12 @@ function flow:_change_gamestate(new_gamestate)
   log("changed gamestate to "..self.current_gamestate.type, "flow")
 end
 
+-- immediately enter a new gamestate without calling transition functions (for use in itests)
+function flow:change_gamestate_silent(new_gamestate)
+  assert(new_gamestate ~= nil, "[flow] cannot change to nil gamestate")
+  self.current_gamestate = new_gamestate
+  self.next_gamestate = nil  -- clear any gamestate query
+end
+
 -- export
 return flow

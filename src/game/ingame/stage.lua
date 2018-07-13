@@ -171,6 +171,10 @@ end
 
 -- handle player input
 function stage.state:handle_input()
+  if not input.active then
+    return
+  end
+
   local player_move_intention = vector.zero()
 
   if btn(input.button_ids.left) then

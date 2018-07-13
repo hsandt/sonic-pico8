@@ -175,6 +175,42 @@ describe('flow', function ()
 
       end)
 
+      describe('change_gamestate_silent', function ()
+
+        local titlemenu_on_enter_stub
+
+        setup(function ()
+          titlemenu_on_enter_stub = stub(titlemenu.state, "on_enter")
+        end)
+
+        teardown(function ()
+          titlemenu_on_enter_stub:revert()
+        end)
+
+        before_each(function ()
+          flow:change_gamestate_silent(titlemenu.state)
+        end)
+
+        after_each(function ()
+          flow.current_gamestate = nil
+          titlemenu_on_enter_stub:clear()
+        end)
+
+        it('should directly enter a gamestate', function ()
+          assert.are_equal(flow.gamestates[titlemenu.state.type], flow.current_gamestate)
+          assert.are_equal(titlemenu.state.type, flow.current_gamestate.type)
+        end)
+
+        it('should cleanup the now obsolete next gamestate query', function ()
+          assert.is_nil(flow.next_gamestate)
+        end)
+
+        it('should not call the entered state on_enter', function ()
+          assert.spy(titlemenu_on_enter_stub).was_not_called()
+        end)
+
+      end)
+
     end)
 
     describe('_change_gamestate 1st time', function ()

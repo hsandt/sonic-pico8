@@ -354,7 +354,7 @@ describe('stage', function ()
         assert.is_false(stage.state.has_reached_goal)
       end)
 
-      describe('stage.player_character', function ()
+      describe('stage.state.player_character', function ()
 
         it('should not be nil', function ()
           assert.is_not_nil(stage.state.player_character)

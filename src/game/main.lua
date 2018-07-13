@@ -7,7 +7,7 @@ function _init()
 end
 
 function _update60()
-  gameapp.update60()
+  gameapp.update()
 end
 
 function _draw()

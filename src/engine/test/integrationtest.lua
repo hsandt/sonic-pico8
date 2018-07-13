@@ -1,5 +1,22 @@
 require("engine/application/constants")
 require("engine/core/class")
+require("engine/test/assertions")
+local debug = require("engine/debug/debug")
+local input = require("engine/input/input")
+
+-- deactivate input completely during itests
+input.active = false
+
+-- all itests should only print itest logs
+for category in pairs(debug.active_categories) do
+  local value
+  if category == 'itest' then
+    value = true
+  else
+    value = false
+  end
+  debug.active_categories[category] = value
+end
 
 test_result = {
   none    = 'none',       -- no test started or the test is not over yet
@@ -65,10 +82,10 @@ function integration_test_runner:end_with_final_assertion()
   result, message = self.current_test:check_final_assertion()
   if result then
     self.current_result = test_result.success
-    log("integration test '"..self.current_test.name.."' succeeded", "test runner")
+    log("itest '"..self.current_test.name.."': final assertion succeeded", "itest")
   else
     self.current_result = test_result.failure
-    log("integration test '"..self.current_test.name.."' failed: "..message, "test runner")
+    log("itest '"..self.current_test.name.."': final assertion failed: "..message, "itest")
   end
 end
 
@@ -153,6 +170,8 @@ function integration_test:_tostring()
 end
 
 function integration_test:add_action(trigger, callback, name)
+  assert(trigger ~= nil, "integration_test:add_action: passed trigger is nil")
+  assert(callback ~= nil, "integration_test:add_action: passed callback is nil")
   add(self.action_sequence, scripted_action(trigger, callback, name))
 end
 

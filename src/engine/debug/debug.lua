@@ -14,7 +14,8 @@ local debug = singleton {
     flow = true,
     player = true,
     ui = true,
-    codetuner = true
+    codetuner = true,
+    itest = true
   },
 
   current_level = nil

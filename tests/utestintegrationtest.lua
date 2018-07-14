@@ -2,9 +2,13 @@ require("bustedhelper")
 require("engine/test/integrationtest")
 require("engine/core/helper")
 
-function repeat_update(time, update_callback)
-  for i = 1, time*fps do
-   update_callback()
+local function repeat_callback(time, callback)
+  -- ceil is just for times with precision of 0.01 or deeper,
+  -- so the last frame is reached (e.g. an action at t=0.01 is applied)
+  -- caution: this may make fractional times advance too much and apply actions they shouldn't,
+  -- so tune your times carefully for testing
+  for i = 1, ceil(time*fps) do
+   callback()
   end
 end
 
@@ -78,7 +82,7 @@ describe('integration_test_runner', function ()
 
       before_each(function ()
         integration_test_runner:start(test)
-        repeat_update(1.0, function ()
+        repeat_callback(1.0, function ()
           integration_test_runner:update()
         end)
       end)
@@ -111,7 +115,7 @@ describe('integration_test_runner', function ()
 
       setup(function ()
         action_callback = spy.new(function () end)
-        test:add_action(time_trigger(1.0), action_callback, 'update_test_action')
+        test:add_action(time_trigger(1.01), action_callback, 'update_test_action')
       end)
 
       teardown(function ()
@@ -122,27 +126,42 @@ describe('integration_test_runner', function ()
         integration_test_runner:start(test)
       end)
 
-      it('should call an initial action (t=0.) immediately', function ()
+      it('should advance the current time by delta_time', function ()
+        integration_test_runner:update()
+        assert.are_equal(delta_time, integration_test_runner.current_time)
+      end)
+
+      it('should call an initial action (t=0.) immediately, preserving last trigger time to 0 and incrementing the next_action_index', function ()
         integration_test_runner:update()
         assert.spy(action_callback).was_called(0)
+        assert.are_equal(0., integration_test_runner.last_trigger_time)
+        assert.are_equal(1, integration_test_runner.next_action_index)
       end)
-      it('should not call a later action (t=1.) before the expected time (1.0s)', function ()
-        repeat_update(0.9, function ()
+
+      it('should not call a later action (t=1.01) before the expected time (1.0s)', function ()
+        repeat_callback(1.0, function ()
           integration_test_runner:update()
         end)
         assert.spy(action_callback).was_called(0)
+        assert.are_equal(0., integration_test_runner.last_trigger_time)
+        assert.are_equal(1, integration_test_runner.next_action_index)
       end)
-      it('should call a later action (t=1.) after the action time has been reached', function ()
-        repeat_update(1.0, function ()
+
+      it('should call a later action (t=1.01) after the action time has been reached', function ()
+        repeat_callback(1.01, function ()
           integration_test_runner:update()
         end)
         assert.spy(action_callback).was_called(1)
+        assert.are_equal(1.01, integration_test_runner.last_trigger_time)
+        assert.are_equal(2, integration_test_runner.next_action_index)
       end)
+
       it('should end the test once the last action has been applied', function ()
-        repeat_update(1.0, function ()
+        repeat_callback(1.01, function ()
           integration_test_runner:update()
         end)
         assert.are_equal(test_result.success, integration_test_runner.current_result)
+        assert.are_equal(2, integration_test_runner.next_action_index)
       end)
 
     end)

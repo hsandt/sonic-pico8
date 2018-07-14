@@ -54,13 +54,12 @@ function integration_test_runner:update()
 
   -- advance time
   self.current_time = self.current_time + delta_time
-
   -- check if next action should be applied
-  self.next_action = self.current_test.action_sequence[self.next_action_index]
-  should_trigger_next_action, late_time = self.next_action.trigger:check(self.current_time - self.last_trigger_time)
+  local next_action = self.current_test.action_sequence[self.next_action_index]
+  should_trigger_next_action, late_time = next_action.trigger:check(self.current_time - self.last_trigger_time)
   if should_trigger_next_action then
     -- apply next action and update time/index
-    self.next_action.callback()
+    next_action.callback()
     self.last_trigger_time = self.current_time - late_time
     self.next_action_index = self.next_action_index + 1
 

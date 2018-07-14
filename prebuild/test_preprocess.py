@@ -1,11 +1,36 @@
 import unittest
 from . import preprocess
 
+import logging
 from os import path
 import shutil, tempfile
 
 
 class TestPreprocess(unittest.TestCase):
+
+    def test_strip_comments_full_line(self):
+        test_line = '-- my comment'
+        self.assertEqual(preprocess.strip_comments(test_line), '')
+
+    def test_strip_comments_after_code(self):
+        test_line = 'print("hi") -- prints hi'
+        self.assertEqual(preprocess.strip_comments(test_line), 'print("hi") ')
+
+    def test_preprocess_strip_blanks_after_comments(self):
+        test_lines = [
+            'print ("hi")  ',
+            '',
+            'if true:  ',
+            '    -- prints hello',
+            '    print("hello")  -- comment',
+            ''
+        ]
+        expected_processed_lines = [
+            'print ("hi")',
+            'if true:',
+            'print("hello")'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
     def test_preprocess_no_directives(self):
         test_lines = [
@@ -14,40 +39,44 @@ class TestPreprocess(unittest.TestCase):
         ]
         expected_processed_lines = [
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
     def test_preprocess_if_debug_in_debug(self):
         test_lines = [
             'print("always")',
+            '',
             '--#if debug',
             'print("debug")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            '    print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'print("always")',
             'print("debug")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
     def test_preprocess_if_debug_in_release(self):
         test_lines = [
             'print("always")',
+            '',
             '--#if debug',
             'print("debug")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            'print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'print("always")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
@@ -57,13 +86,14 @@ class TestPreprocess(unittest.TestCase):
             '--#if debug',
             'print("debug")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            'print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'print("debug")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
@@ -72,11 +102,11 @@ class TestPreprocess(unittest.TestCase):
         test_lines = [
             '--#endif',
             'if true:',
-            '    print("hello")'
+            '    print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
@@ -85,8 +115,9 @@ class TestPreprocess(unittest.TestCase):
         test_lines = [
             '--#if debug',
             'print("debug")',
+            '',
             'if true:',
-            '    print("hello")'
+            'print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
         ]
@@ -107,17 +138,19 @@ class TestPreprocessFile(unittest.TestCase):
     def test_preprocess_file_in_debug(self):
         test_lines = [
             'print("always")',
+            '',
             '--#if debug',
             'print("debug")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            'print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'print("always")',
             'print("debug")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
@@ -129,16 +162,18 @@ class TestPreprocessFile(unittest.TestCase):
     def test_preprocess_file_in_release(self):
         test_lines = [
             'print("always")',
+            '',
             '--#if debug',
             'print("debug")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            '   print("hello")  -- prints hello'
         ]
         expected_processed_lines = [
             'print("always")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
@@ -160,31 +195,35 @@ class TestPreprocessDir(unittest.TestCase):
     def test_preprocess_dir_in_debug(self):
         test_lines1 = [
             'print("file1")',
+            '',
             '--#if debug',
             'print("debug1")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            '    print("hello")  -- prints hello'
         ]
         test_lines2 = [
             'print("file2")',
+            '',
             '--#if debug',
             'print("debug2")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello2")'
+            '   print("hello2")  -- prints hello'
         ]
         expected_processed_lines1 = [
             'print("file1")',
             'print("debug1")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         expected_processed_lines2 = [
             'print("file2")',
             'print("debug2")',
             'if true:',
-            '    print("hello2")'
+            'print("hello2")'
         ]
         # files must end with .lua to be processed
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
@@ -202,29 +241,33 @@ class TestPreprocessDir(unittest.TestCase):
     def test_preprocess_dir_in_debug(self):
         test_lines1 = [
             'print("file1")',
+            '',
             '--#if debug',
             'print("debug1")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello")'
+            '    print("hello")  -- prints hello'
         ]
         test_lines2 = [
             'print("file2")',
+            '',
             '--#if debug',
             'print("debug2")',
             '--#endif',
+            '',
             'if true:',
-            '    print("hello2")'
+            '    print("hello2")  -- prints hello'
         ]
         expected_processed_lines1 = [
             'print("file1")',
             'if true:',
-            '    print("hello")'
+            'print("hello")'
         ]
         expected_processed_lines2 = [
             'print("file2")',
             'if true:',
-            '    print("hello2")'
+            'print("hello2")'
         ]
         # files must end with .lua to be processed
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
@@ -240,4 +283,5 @@ class TestPreprocessDir(unittest.TestCase):
             self.assertEqual(f2.read(), '\n'.join(expected_processed_lines2))
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.ERROR)
     unittest.main()

@@ -105,22 +105,24 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"cmd": ["python3 -m prebuild.test_preprocess"],
 			"name": "python: test preprocess",
+			"working_dir": "${project_path}",
 			"shell": true,
-			"working_dir": "${project_path}"
+			"cmd": ["python3 -m prebuild.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
 		{
-			"cmd": ["python3 -m postbuild.test_add_metadata"],
 			"name": "python: test add_metadata",
+			"working_dir": "${project_path}",
 			"shell": true,
-			"working_dir": "${project_path}"
+			"cmd": ["python3 -m postbuild.test_add_metadata"]
 		},
 		{
-			"cmd": ["python3 -m postbuild.test_replace_strings"],
 			"name": "python: test replace_strings",
+			"working_dir": "${project_path}",
 			"shell": true,
-			"working_dir": "${project_path}"
+			"cmd": ["python3 -m postbuild.test_replace_strings"]
 		},
 		{
 			"name": "busted: test",
@@ -134,7 +136,7 @@
 			"env": {
 				"SUBLIME_TEXT": "YES"
 			},
-			"syntax": "Packages/Rust Enhanced/RustEnhanced.sublime-syntax",
+			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{

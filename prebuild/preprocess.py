@@ -1,12 +1,15 @@
 #!/usr/bin/python3.6
 # -*- coding: utf-8 -*-
 import argparse
+import logging
 import os
 import re
 from enum import Enum
 
-# This script applies preprocessor directives on the code.
-# It will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
+# This script applies preprocessing and stripping to the code:
+# 1. it will strip leading and trailing whitespace, ignoring empty lines completely
+# 2. it will remove all line comments (doesn't support block comments)
+# 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
 
 # Config to defined symbols
 defined_symbols = {
@@ -23,6 +26,7 @@ class ParsingMode(Enum):
 # Regex patterns
 if_pattern = re.compile("--#if (\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile("--#endif")
+comment_pattern = re.compile("--.*")
 
 def preprocess_dir(dirpath, config):
     """Apply preprocessor directives to all the source files inside the given directory, for the given config"""
@@ -70,17 +74,18 @@ def preprocess_file(filepath, config):
 
 def preprocess_lines(lines, config):
     """
-    Apply preprocessor directives to iterable lines of source code, for the given config
+    Apply stripping and preprocessor directives to iterable lines of source code, for the given config
     It is possible to pass a file as lines iterator
 
     """
     preprocessed_lines = []
     current_mode = ParsingMode.NORMAL
     for line in lines:
+        # 3. preprocess directives
         match = if_pattern.match(line)
         if match:
             if current_mode is not ParsingMode.NORMAL:
-                print('Warning: --#if found inside previous --#if block, ignoring directive')
+                logging.warning('--#if found inside previous --#if block, ignoring directive')
                 continue
             symbol = match.group(1)
             if symbol in defined_symbols[config]:
@@ -91,14 +96,25 @@ def preprocess_lines(lines, config):
                 current_mode = ParsingMode.IF_IGNORED
         elif endif_pattern.match(line):
             if current_mode is ParsingMode.NORMAL:
-                print('Warning: --#endif found outside --#if block, ignoring directive')
+                logging.warning('--#endif found outside --#if block, ignoring directive')
                 continue
             current_mode = ParsingMode.NORMAL
         elif current_mode in (ParsingMode.NORMAL, ParsingMode.IF_ACCEPTED):
-            preprocessed_lines.append(line)
+            # 2. strip comments first (so we can trim whitespace left by after-code comment afterward)
+            line = strip_comments(line)
+            # if resulting line is empty or blank, ignore it. Full strip is needed for the test because '\n' evaluates to true
+            if line.strip():
+                # 1. strip blanks (explicitly pass whitespace to avoid stripping \n at end of line)
+                line = line.strip(' ')
+                preprocessed_lines.append(line)
+
     if current_mode is not ParsingMode.NORMAL:
-        print('Warning: file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
+        logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
     return preprocessed_lines
+
+def strip_comments(line):
+    # this will keep trailing whitespaces, but we count on strip to finish the job
+    return comment_pattern.sub('', line)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Apply preprocessor directives.')

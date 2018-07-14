@@ -8,6 +8,7 @@ function setup()
   -- we still need on_enter to spawn character
   flow:_change_gamestate(stage.state)
   stage.state.player_character.position = vector(0., 80.)
+  stage.state.player_character.control_mode = control_modes.puppet
 end
 
 function define_itest()

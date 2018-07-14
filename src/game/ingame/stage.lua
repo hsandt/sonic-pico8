@@ -171,25 +171,23 @@ end
 
 -- handle player input
 function stage.state:handle_input()
-  if not input.active then
-    return
+  if self.player_character.control_mode == control_modes.human then
+    local player_move_intention = vector.zero()
+
+    if input:is_down(button_ids.left) then
+      player_move_intention:add_inplace(vector(-1, 0))
+    elseif input:is_down(button_ids.right) then
+      player_move_intention:add_inplace(vector(1, 0))
+    end
+
+    if input:is_down(button_ids.up) then
+      player_move_intention:add_inplace(vector(0, -1))
+    elseif input:is_down(button_ids.down) then
+      player_move_intention:add_inplace(vector(0, 1))
+    end
+
+    self.player_character.move_intention = player_move_intention
   end
-
-  local player_move_intention = vector.zero()
-
-  if input:is_down(input.button_ids.left) then
-    player_move_intention:add_inplace(vector(-1, 0))
-  elseif input:is_down(input.button_ids.right) then
-    player_move_intention:add_inplace(vector(1, 0))
-  end
-
-  if input:is_down(input.button_ids.up) then
-    player_move_intention:add_inplace(vector(0, -1))
-  elseif input:is_down(input.button_ids.down) then
-    player_move_intention:add_inplace(vector(0, 1))
-  end
-
-  self.player_character.move_intention = player_move_intention
 end
 
 

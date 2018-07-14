@@ -99,56 +99,31 @@ describe('titlemenu', function ()
         end)
 
         after_each(function ()
-          input.players_button_states[0][input.button_ids.up] = input.button_state.released
-          input.players_button_states[0][input.button_ids.down] = input.button_state.released
-          input.players_button_states[0][input.button_ids.x] = input.button_state.released
+          input.players_button_states[0][button_ids.up] = button_states.released
+          input.players_button_states[0][button_ids.down] = button_states.released
+          input.players_button_states[0][button_ids.x] = button_states.released
 
           move_cursor_up_stub:clear()
           move_cursor_down_stub:clear()
           confirm_current_selection_stub:clear()
         end)
 
-        describe('(when input is inactive)', function ()
-
-          setup(function ()
-            input.active = false
-          end)
-
-          teardown(function ()
-            input.active = true
-          end)
-
-          it('should do nothing', function ()
-            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
-            titlemenu.state:update()
-            input.players_button_states[0][input.button_ids.up] = input.button_state.released
-            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
-            titlemenu.state:update()
-            input.players_button_states[0][input.button_ids.down] = input.button_state.released
-            input.players_button_states[0][input.button_ids.x] = input.button_state.just_pressed
-            titlemenu.state:update()
-            assert.spy(move_cursor_up_stub).was_called(0)
-            assert.spy(confirm_current_selection_stub).was_called(0)
-          end)
-
-        end)
-
         it('(when input up in down) it should be move cursor up', function ()
-          input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
+          input.players_button_states[0][button_ids.up] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_up_stub).was_called(1)
           assert.spy(move_cursor_up_stub).was_called_with(titlemenu.state)
         end)
 
         it('(when input down in down) it should be move cursor down', function ()
-          input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
+          input.players_button_states[0][button_ids.down] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_down_stub).was_called(1)
           assert.spy(move_cursor_down_stub).was_called_with(titlemenu.state)
         end)
 
         it('(when input x in down) it should be move cursor x', function ()
-          input.players_button_states[0][input.button_ids.x] = input.button_state.just_pressed
+          input.players_button_states[0][button_ids.x] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(confirm_current_selection_stub).was_called(1)
           assert.spy(confirm_current_selection_stub).was_called_with(titlemenu.state)

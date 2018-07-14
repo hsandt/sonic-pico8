@@ -370,29 +370,29 @@ describe('stage', function ()
           end)
 
           after_each(function ()
-            input.players_button_states[0][input.button_ids.left] = input.button_state.released
-            input.players_button_states[0][input.button_ids.right] = input.button_state.released
-            input.players_button_states[0][input.button_ids.up] = input.button_state.released
-            input.players_button_states[0][input.button_ids.down] = input.button_state.released
+            input.players_button_states[0][button_ids.left] = button_states.released
+            input.players_button_states[0][button_ids.right] = button_states.released
+            input.players_button_states[0][button_ids.up] = button_states.released
+            input.players_button_states[0][button_ids.down] = button_states.released
 
             stage.state.player_character.move_intention = vector.zero()
           end)
 
-          describe('(when input is inactive)', function ()
+          describe('(when player character control mode is not human)', function ()
 
             setup(function ()
-              input.active = false
+              stage.state.player_character.control_mode = control_modes.ai
             end)
 
             teardown(function ()
-              input.active = true
+              stage.state.player_character.control_mode = control_modes.human
             end)
 
             it('should do nothing', function ()
-              input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
+              input.players_button_states[0][button_ids.left] = button_states.pressed
               stage.state:handle_input()
               assert.are_equal(vector:zero(), stage.state.player_character.move_intention)
-              input.players_button_states[0][input.button_ids.up] = input.button_state.pressed
+              input.players_button_states[0][button_ids.up] = button_states.pressed
               stage.state:handle_input()
               assert.are_equal(vector:zero(), stage.state.player_character.move_intention)
             end)
@@ -400,67 +400,67 @@ describe('stage', function ()
           end)
 
           it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
-            input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
+            input.players_button_states[0][button_ids.left] = button_states.pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
           end)
 
           it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
-            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.right] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, 0), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
-            input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
-            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.left] = button_states.pressed
+            input.players_button_states[0][button_ids.right] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
           end)
 
            it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
-            input.players_button_states[0][input.button_ids.up] = input.button_state.pressed
+            input.players_button_states[0][button_ids.up] = button_states.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
-            input.players_button_states[0][input.button_ids.down] = input.button_state.pressed
+            input.players_button_states[0][button_ids.down] = button_states.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, 1), stage.state.player_character.move_intention)
           end)
 
           it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
-            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
-            input.players_button_states[0][input.button_ids.down] = input.button_state.pressed
+            input.players_button_states[0][button_ids.up] = button_states.just_pressed
+            input.players_button_states[0][button_ids.down] = button_states.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
-            input.players_button_states[0][input.button_ids.left] = input.button_state.just_pressed
-            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.left] = button_states.just_pressed
+            input.players_button_states[0][button_ids.up] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
-            input.players_button_states[0][input.button_ids.left] = input.button_state.just_pressed
-            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.left] = button_states.just_pressed
+            input.players_button_states[0][button_ids.down] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 1), stage.state.player_character.move_intention)
           end)
 
           it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
-            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
-            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.right] = button_states.just_pressed
+            input.players_button_states[0][button_ids.up] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
-            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
-            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
+            input.players_button_states[0][button_ids.right] = button_states.just_pressed
+            input.players_button_states[0][button_ids.down] = button_states.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, 1), stage.state.player_character.move_intention)
           end)

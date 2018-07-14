@@ -35,15 +35,11 @@ function titlemenustate:on_exit()
 end
 
 function titlemenustate:update()
-  if not input.active then
-    return
-  end
-
-  if input:is_just_pressed(input.button_ids.up) then
+  if input:is_just_pressed(button_ids.up) then
     self:move_cursor_up()
-  elseif input:is_just_pressed(input.button_ids.down) then
+  elseif input:is_just_pressed(button_ids.down) then
     self:move_cursor_down()
-  elseif input:is_just_pressed(input.button_ids.x) then
+  elseif input:is_just_pressed(button_ids.x) then
     self:confirm_current_selection()
   end
 end

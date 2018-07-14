@@ -4,8 +4,8 @@ require("engine/test/assertions")
 local debug = require("engine/debug/debug")
 local input = require("engine/input/input")
 
--- deactivate input completely during itests
-input.active = false
+-- use simulated input during itests
+input.mode = input_modes.simulated
 
 -- all itests should only print itest logs
 for category in pairs(debug.active_categories) do

@@ -4,6 +4,12 @@ require("engine/core/helper")
 require("engine/core/math")
 require("engine/render/sprite")
 
+control_modes = {
+  human = 0,      -- player controls character
+  ai = 1,         -- ai controls character
+  puppet = 2      -- itest script controls character
+}
+
 player_character = new_class()
 
 -- character data
@@ -27,6 +33,7 @@ local character_sprite_pivot = vector(4, 12)           -- center of bottom part 
 -- debug_move_max_speed number        move max speed in debug mode
 -- debug_move_accel     number        move acceleration in debug mode
 -- debug_move_decel     number        move deceleration in debug mode
+-- control_mode         control_modes control mode: human (default) or ai
 -- state vars
 -- position             vector        current position
 -- velocity             vector        current velocity
@@ -36,6 +43,7 @@ function player_character:_init(position)
  self.debug_move_max_speed = debug_move_max_speed
  self.debug_move_accel = debug_move_accel
  self.debug_move_decel = debug_move_decel
+ self.control_mode = control_modes.human
 
  self.position = position
  self.velocity = vector.zero()

@@ -8,15 +8,15 @@ if [[ $# -lt 1 ]] ; then
     exit 1
 fi
 
-if [[ ${1::4} = "test" ]] ; then
-	MODULE=${1:4}
+if [[ ${1::5} = "utest" ]] ; then
+	MODULE=${1:5}
 else
 	MODULE=$1
 fi
 
 if [[ $MODULE = "all" || -z $MODULE ]] ; then
 	TEST_FILE_PATTERN="utest"
-	COVERAGE_OPTIONS=""
+	COVERAGE_OPTIONS=""  # default is -c .luacov
 else
 	TEST_FILE_PATTERN="$MODULE"
 	COVERAGE_OPTIONS="-c .luacov_current \"$MODULE\""

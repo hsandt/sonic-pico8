@@ -112,22 +112,155 @@ end)
 describe('(mouse toggled)', function ()
 
   setup(function ()
-    input:toggle_mouse(true)
+    pico8.mousepos = vector(24, 36)
   end)
 
   teardown(function ()
-    input:toggle_mouse(false)
+    pico8.mousepos = vector.zero()
   end)
 
   describe('get_cursor_position', function ()
 
     it('should return the current cursor position (sign test)', function ()
       local cursor_position = input.get_cursor_position()
-      -- in headless mode, we cannot predict the mouse position
-      -- (it seems to start at (0, 15097) but this may change)
-      -- so we just do a simple sign test
-      assert.is_true(cursor_position.x >= 0)
-      assert.is_true(cursor_position.y >= 0)
+      assert.are_equal(24, cursor_position.x)
+      assert.are_equal(36, cursor_position.y)
+    end)
+
+  end)
+
+  describe('(when both players have some input)', function ()
+
+    setup(function ()
+      input.players_button_states = {
+        [0] = {
+          [input.button_ids.left] = input.button_state.released,
+          [input.button_ids.right] = input.button_state.just_pressed,
+          [input.button_ids.up] = input.button_state.released,
+          [input.button_ids.down] = input.button_state.just_pressed,
+          [input.button_ids.o] = input.button_state.pressed,
+          [input.button_ids.x] = input.button_state.just_released
+        },
+        [1] = {
+          [input.button_ids.left] = input.button_state.just_pressed,
+          [input.button_ids.right] = input.button_state.pressed,
+          [input.button_ids.up] = input.button_state.just_released,
+          [input.button_ids.down] = input.button_state.released,
+          [input.button_ids.o] = input.button_state.pressed,
+          [input.button_ids.x] = input.button_state.pressed
+        }
+      }
+    end)
+
+    teardown(function ()
+      input.players_button_states = {
+        [0] = generate_initial_button_states(),
+        [1] = generate_initial_button_states()
+      }
+    end)
+
+    describe('get_button_state', function ()
+
+      it('should return a button state for player 0 by default', function ()
+        assert.are_equal(input.button_state.released, input:get_button_state(input.button_ids.left))
+      end)
+
+      it('should return a button state for player 0', function ()
+        assert.are_equal(input.button_state.just_released, input:get_button_state(input.button_ids.x, 0))
+      end)
+
+      it('should return a button state for player 1', function ()
+        assert.are_equal(input.button_state.released, input:get_button_state(input.button_ids.down, 1))
+      end)
+
+    end)
+
+    describe('is_up', function ()
+
+      it('should return true if button is released for player 0 by default', function ()
+        assert.is_true(input:is_up(input.button_ids.left))
+      end)
+
+      it('should return true if button is just released for player 0 by default', function ()
+        assert.is_true(input:is_up(input.button_ids.x))
+      end)
+
+      it('should return true if button is released for player 0', function ()
+        assert.is_true(input:is_up(input.button_ids.left, 0))
+      end)
+
+      it('should return true if button is released for player 0', function ()
+        assert.is_true(input:is_up(input.button_ids.x, 0))
+      end)
+
+      it('should return false if button is pressed for player 0', function ()
+        assert.is_false(input:is_up(input.button_ids.o, 0))
+      end)
+
+      it('should return false if button is just pressed for player 0', function ()
+        assert.is_false(input:is_up(input.button_ids.right, 0))
+      end)
+
+      it('should return true if button is released for player 1', function ()
+        assert.is_true(input:is_up(input.button_ids.down, 1))
+      end)
+
+      it('should return true if button is released for player 1', function ()
+        assert.is_true(input:is_up(input.button_ids.up, 1))
+      end)
+
+      it('should return false if button is pressed for player 1', function ()
+        assert.is_false(input:is_up(input.button_ids.o, 1))
+      end)
+
+      it('should return false if button is just pressed for player 1', function ()
+        assert.is_false(input:is_up(input.button_ids.right, 1))
+      end)
+
+    end)
+
+    describe('is_down', function ()
+
+      it('should return the opposite of is_up', function ()
+        assert.is_true(input:is_down(input.button_ids.left) == not input:is_up(input.button_ids.left))
+        assert.is_true(input:is_down(input.button_ids.up, 0) == not input:is_up(input.button_ids.up, 0))
+        assert.is_true(input:is_down(input.button_ids.x, 1) == not input:is_up(input.button_ids.x, 1))
+      end)
+
+    end)
+
+    describe('is_just_released', function ()
+
+      it('should return true if the button was just released', function ()
+        assert.is_true(input:is_just_released(input.button_ids.x, 0))
+      end)
+
+      it('should return false if the button was not just released', function ()
+        assert.are_same({false, false, false},
+          {
+            input:is_just_released(input.button_ids.up, 0),
+            input:is_just_released(input.button_ids.left, 1),
+            input:is_just_released(input.button_ids.right, 1)
+          })
+      end)
+
+    end)
+
+    describe('is_just_pressed', function ()
+
+      it('should return true if the button was just released', function ()
+        assert.is_true(input:is_just_pressed(input.button_ids.down, 0))
+      end)
+
+      it('should return false if the button was not just released', function ()
+        assert.are_same({false, false, false},
+          {
+            input:is_just_pressed(input.button_ids.up, 0),
+            input:is_just_pressed(input.button_ids.up, 1),
+            input:is_just_pressed(input.button_ids.right, 1)
+          })
+      end)
+
     end)
 
   end)

@@ -60,6 +60,36 @@ function input.get_cursor_position()
   return vector(stat(cursor_x_stat), stat(cursor_y_stat))
 end
 
+-- return a button state for player id (0 by default)
+function input:get_button_state(button_id, player_id)
+  assert(type(button_id) == "number" and button_id >= 0 and button_id < 6, "input:get_button_state: button_id ("..tostr(button_id)..") is not between 0 and 5")
+  player_id = player_id or 0
+  return self.players_button_states[player_id][button_id]
+end
+
+-- return true if button is released or just released for player id (0 by default)
+function input:is_up(button_id, player_id)
+  local button_state = self:get_button_state(button_id, player_id)
+  return button_state == input.button_state.released or button_state == input.button_state.just_released
+end
+
+-- return true if button is pressed or just pressed for player id (0 by default)
+function input:is_down(button_id, player_id)
+  return not self:is_up(button_id, player_id)
+end
+
+-- return true if button is just released for player id (0 by default)
+function input:is_just_released(button_id, player_id)
+  local button_state = self:get_button_state(button_id, player_id)
+  return button_state == input.button_state.just_released
+end
+
+-- return true if button is just pressed for player id (0 by default)
+function input:is_just_pressed(button_id, player_id)
+  local button_state = self:get_button_state(button_id, player_id)
+  return button_state == input.button_state.just_pressed
+end
+
 -- update button states for each player based on previous and current button states
 function input:process_players_inputs()
   for player_id = 0, 1 do

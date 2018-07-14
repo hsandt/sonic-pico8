@@ -370,76 +370,97 @@ describe('stage', function ()
           end)
 
           after_each(function ()
-            pico8.keypressed[0][input.button_ids.left] = false
-            pico8.keypressed[0][input.button_ids.right] = false
-            pico8.keypressed[0][input.button_ids.up] = false
-            pico8.keypressed[0][input.button_ids.down] = false
+            input.players_button_states[0][input.button_ids.left] = input.button_state.released
+            input.players_button_states[0][input.button_ids.right] = input.button_state.released
+            input.players_button_states[0][input.button_ids.up] = input.button_state.released
+            input.players_button_states[0][input.button_ids.down] = input.button_state.released
 
             stage.state.player_character.move_intention = vector.zero()
           end)
 
+          describe('(when input is inactive)', function ()
+
+            setup(function ()
+              input.active = false
+            end)
+
+            teardown(function ()
+              input.active = true
+            end)
+
+            it('should do nothing', function ()
+              input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
+              stage.state:handle_input()
+              assert.are_equal(vector:zero(), stage.state.player_character.move_intention)
+              input.players_button_states[0][input.button_ids.up] = input.button_state.pressed
+              stage.state:handle_input()
+              assert.are_equal(vector:zero(), stage.state.player_character.move_intention)
+            end)
+
+          end)
+
           it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
-            pico8.keypressed[0][input.button_ids.left] = true
+            input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
           end)
 
           it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
-            pico8.keypressed[0][input.button_ids.right] = true
+            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, 0), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
-            pico8.keypressed[0][input.button_ids.left] = true
-            pico8.keypressed[0][input.button_ids.right] = true
+            input.players_button_states[0][input.button_ids.left] = input.button_state.pressed
+            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 0), stage.state.player_character.move_intention)
           end)
 
            it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
-            pico8.keypressed[0][input.button_ids.up] = true
+            input.players_button_states[0][input.button_ids.up] = input.button_state.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
-            pico8.keypressed[0][input.button_ids.down] = true
+            input.players_button_states[0][input.button_ids.down] = input.button_state.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, 1), stage.state.player_character.move_intention)
           end)
 
           it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
-            pico8.keypressed[0][input.button_ids.up] = true
-            pico8.keypressed[0][input.button_ids.down] = true
+            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
+            input.players_button_states[0][input.button_ids.down] = input.button_state.pressed
             stage.state:handle_input()
             assert.are_equal(vector(0, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
-            pico8.keypressed[0][input.button_ids.left] = true
-            pico8.keypressed[0][input.button_ids.up] = true
+            input.players_button_states[0][input.button_ids.left] = input.button_state.just_pressed
+            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
-            pico8.keypressed[0][input.button_ids.left] = true
-            pico8.keypressed[0][input.button_ids.down] = true
+            input.players_button_states[0][input.button_ids.left] = input.button_state.just_pressed
+            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(-1, 1), stage.state.player_character.move_intention)
           end)
 
           it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
-            pico8.keypressed[0][input.button_ids.right] = true
-            pico8.keypressed[0][input.button_ids.up] = true
+            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
+            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, -1), stage.state.player_character.move_intention)
           end)
 
           it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
-            pico8.keypressed[0][input.button_ids.right] = true
-            pico8.keypressed[0][input.button_ids.down] = true
+            input.players_button_states[0][input.button_ids.right] = input.button_state.just_pressed
+            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
             stage.state:handle_input()
             assert.are_equal(vector(1, 1), stage.state.player_character.move_intention)
           end)

@@ -32,6 +32,39 @@ describe('titlemenu', function ()
       clear_table(flow.gamestates)
     end)
 
+
+    describe('state:on_enter', function ()
+
+      setup(function ()
+        titlemenu.state:on_enter()
+      end)
+
+      teardown(function ()
+        input:toggle_mouse(false)
+        titlemenu.state.current_cursor_index = 0
+      end)
+
+      it('should show the mouse', function ()
+        titlemenu.state:on_enter()
+        assert.is_true(input.mouse_active)
+      end)
+
+      it('should initialize cursor at index 0', function ()
+        titlemenu.state:on_enter()
+        assert.are_equal(0, titlemenu.state.current_cursor_index)
+      end)
+
+    end)
+
+    describe('state:on_exit', function ()
+
+      it('should hide the mouse', function ()
+        titlemenu.state:on_exit()
+        assert.is_false(input.mouse_active)
+      end)
+
+    end)
+
     describe('(titlemenu state entered)', function ()
 
       setup(function ()
@@ -49,13 +82,7 @@ describe('titlemenu', function ()
         end)
       end)
 
-      describe('state.on_enter', function ()
-      end)
-
-      describe('state.on_exit', function ()
-      end)
-
-      describe('state.update', function ()
+      describe('state:update', function ()
 
         local move_cursor_up_stub
 
@@ -72,34 +99,56 @@ describe('titlemenu', function ()
         end)
 
         after_each(function ()
-          pico8.keypressed[0][input.button_ids.up] = false
-          pico8.keypressed[0][input.button_ids.down] = false
-          pico8.keypressed[0][input.button_ids.x] = false
+          input.players_button_states[0][input.button_ids.up] = input.button_state.released
+          input.players_button_states[0][input.button_ids.down] = input.button_state.released
+          input.players_button_states[0][input.button_ids.x] = input.button_state.released
 
           move_cursor_up_stub:clear()
           move_cursor_down_stub:clear()
           confirm_current_selection_stub:clear()
         end)
 
+        describe('(when input is inactive)', function ()
+
+          setup(function ()
+            input.active = false
+          end)
+
+          teardown(function ()
+            input.active = true
+          end)
+
+          it('should do nothing', function ()
+            input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
+            titlemenu.state:update()
+            input.players_button_states[0][input.button_ids.up] = input.button_state.released
+            input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
+            titlemenu.state:update()
+            input.players_button_states[0][input.button_ids.down] = input.button_state.released
+            input.players_button_states[0][input.button_ids.x] = input.button_state.just_pressed
+            titlemenu.state:update()
+            assert.spy(move_cursor_up_stub).was_called(0)
+            assert.spy(confirm_current_selection_stub).was_called(0)
+          end)
+
+        end)
+
         it('(when input up in down) it should be move cursor up', function ()
-          pico8.keypressed[0][input.button_ids.up] = true
-          pico8.keypressed.counter = 1
+          input.players_button_states[0][input.button_ids.up] = input.button_state.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_up_stub).was_called(1)
           assert.spy(move_cursor_up_stub).was_called_with(titlemenu.state)
         end)
 
         it('(when input down in down) it should be move cursor down', function ()
-          pico8.keypressed[0][input.button_ids.down] = true
-          pico8.keypressed.counter = 1
+          input.players_button_states[0][input.button_ids.down] = input.button_state.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_down_stub).was_called(1)
           assert.spy(move_cursor_down_stub).was_called_with(titlemenu.state)
         end)
 
         it('(when input x in down) it should be move cursor x', function ()
-          pico8.keypressed[0][input.button_ids.x] = true
-          pico8.keypressed.counter = 1
+          input.players_button_states[0][input.button_ids.x] = input.button_state.just_pressed
           titlemenu.state:update()
           assert.spy(confirm_current_selection_stub).was_called(1)
           assert.spy(confirm_current_selection_stub).was_called_with(titlemenu.state)

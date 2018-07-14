@@ -177,15 +177,15 @@ function stage.state:handle_input()
 
   local player_move_intention = vector.zero()
 
-  if btn(input.button_ids.left) then
+  if input:is_down(input.button_ids.left) then
     player_move_intention:add_inplace(vector(-1, 0))
-  elseif btn(input.button_ids.right) then
+  elseif input:is_down(input.button_ids.right) then
     player_move_intention:add_inplace(vector(1, 0))
   end
 
-  if btn(input.button_ids.up) then
+  if input:is_down(input.button_ids.up) then
     player_move_intention:add_inplace(vector(0, -1))
-  elseif btn(input.button_ids.down) then
+  elseif input:is_down(input.button_ids.down) then
     player_move_intention:add_inplace(vector(0, 1))
   end
 

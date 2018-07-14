@@ -93,10 +93,22 @@
 			"cmd": ["./build.sh itests/itestplayercharacter itestplayercharacter debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/itestplayercharacter.p8\")"]
 		},
 		{
+			"name": "p8tool: build and run or reload itesttitlemenu",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build.sh itests/itesttitlemenu itesttitlemenu debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/itesttitlemenu.p8\")"]
+		},
+		{
 			"name": "p8tool: run itest playercharacter",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/itestplayercharacter.p8\""]
+		},
+		{
+			"name": "p8tool: run itest titlemenu",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/itesttitlemenu.p8\""]
 		},
 		{
 			"cmd": ["pico8 -run data/data.p8"],

@@ -26,7 +26,9 @@ class ParsingMode(Enum):
 # Regex patterns
 if_pattern = re.compile("--#if (\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile("--#endif")
-comment_pattern = re.compile("--.*")
+# https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
+# https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
+comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(--.*)')
 
 def preprocess_dir(dirpath, config):
     """Apply preprocessor directives to all the source files inside the given directory, for the given config"""
@@ -114,7 +116,8 @@ def preprocess_lines(lines, config):
 
 def strip_comments(line):
     # this will keep trailing whitespaces, but we count on strip to finish the job
-    return comment_pattern.sub('', line)
+    # \1 will preserve the original code
+    return comment_pattern.sub('\\1', line)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Apply preprocessor directives.')

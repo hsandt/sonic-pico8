@@ -16,6 +16,14 @@ class TestPreprocess(unittest.TestCase):
         test_line = 'print("hi") -- prints hi'
         self.assertEqual(preprocess.strip_comments(test_line), 'print("hi") ')
 
+    def test_strip_comments_outside_quotes(self):
+        test_line = 'print("hi  -- this is \"not\" a comment") -- prints hi'
+        self.assertEqual(preprocess.strip_comments(test_line), 'print("hi  -- this is \"not\" a comment") ')
+
+    def test_strip_comments_after_code(self):
+        test_line = '"some \\"text" print("hi  -- this is \"not\" a comment") -- prints hi  "more text"  -- more comment'
+        self.assertEqual(preprocess.strip_comments(test_line), '"some \\"text" print("hi  -- this is "not" a comment") ')
+
     def test_preprocess_strip_blanks_after_comments(self):
         test_lines = [
             'print ("hi")  ',

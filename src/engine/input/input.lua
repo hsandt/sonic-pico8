@@ -23,8 +23,26 @@ input_modes = {
 }
 
 local input = {
-  mode = input_modes.native,
-  mouse_active = false         -- is the mouse specifically active? only useful when active is true
+  mode = input_modes.native,  -- current input mode
+  mouse_active = false,       -- is the mouse active?
+  simulated_buttons_down = {  -- mimic pico8 btn() data for simulated mode only
+    [0] = {
+      [button_ids.left] = false,
+      [button_ids.right] = false,
+      [button_ids.up] = false,
+      [button_ids.down] = false,
+      [button_ids.o] = false,
+      [button_ids.x] = false
+    },
+    [1] = {
+      [button_ids.left] = false,
+      [button_ids.right] = false,
+      [button_ids.up] = false,
+      [button_ids.down] = false,
+      [button_ids.o] = false,
+      [button_ids.x] = false
+    }
+  }
 }
 
 local mouse_devkit_address = 0x5f2d
@@ -108,11 +126,23 @@ end
 function input:_process_player_inputs(player_id)
   local player_button_states = self.players_button_states[player_id]
   for button_id, _ in pairs(player_button_states) do
-    -- note that btnp should always return true when just pressed, but the reverse is not true because pico8
-    -- has a repeat input feature, that we are not reproducing
-    assert(player_button_states[button_id] ~= button_states.released and player_button_states[button_id] ~= button_states.just_released or
-      not btn(button_id, player_id) or btnp(button_id, player_id), "input:_update_button_state: button "..button_id.." was released and is now pressed, but btnp("..button_id..") returns false")
-    player_button_states[button_id] = self:_compute_next_button_state(player_button_states[button_id], btn(button_id, player_id))
+    if self.mode == input_modes.native then
+      -- note that btnp should always return true when just pressed, but the reverse is not true because pico8
+      -- has a repeat input feature, that we are not reproducing
+      assert(player_button_states[button_id] ~= button_states.released and player_button_states[button_id] ~= button_states.just_released or
+        not btn(button_id, player_id) or btnp(button_id, player_id), "input:_update_button_state: button "..button_id.." was released and is now pressed, but btnp("..button_id..") returns false")
+    end
+    player_button_states[button_id] = self:_compute_next_button_state(player_button_states[button_id], self:_btn_proxy(button_id, player_id))
+  end
+end
+
+-- return true if the button is considered down by the current low-level i/o: native or simulated
+function input:_btn_proxy(button_id, player_id)
+  if self.mode == input_modes.native then
+    return btn(button_id, player_id)
+  else  -- self.mode == input_modes.simulated
+    player_id = player_id or 0
+    return self.simulated_buttons_down[player_id][button_id]
   end
 end
 

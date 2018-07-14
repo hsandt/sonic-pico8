@@ -305,92 +305,242 @@ describe('(mouse toggled)', function ()
       pico8.keypressed.counter = 0
     end)
 
-    describe('(when player 0 has button left & up: released, right & down: just pressed, o & x: pressed)', function ()
+    describe('(when input mode is native)', function ()
 
-      before_each(function ()
-        input.players_button_states[0] = {
-          [button_ids.left] = button_states.released,
-          [button_ids.right] = button_states.just_pressed,
-          [button_ids.up] = button_states.released,
-          [button_ids.down] = button_states.just_pressed,
-          [button_ids.o] = button_states.pressed,
-          [button_ids.x] = button_states.pressed
-        }
-        pico8.keypressed[0] = {
-          [0] = false,  -- left
-          false,        -- right
-          true,         -- up
-          true,         -- down
-          false,        -- o
-          true          -- x
-        }
-        -- counter should be 1 (or a multiple of the repeat period) if a button is supposed to be just pressed this frame
-        pico8.keypressed.counter = 1
+      describe('(when player 0 has button left & up: released, right & down: just pressed, o & x: pressed)', function ()
+
+        before_each(function ()
+          input.players_button_states[0] = {
+            [button_ids.left] = button_states.released,
+            [button_ids.right] = button_states.just_pressed,
+            [button_ids.up] = button_states.released,
+            [button_ids.down] = button_states.just_pressed,
+            [button_ids.o] = button_states.pressed,
+            [button_ids.x] = button_states.pressed
+          }
+          pico8.keypressed[0] = {
+            [0] = false,  -- left
+            false,        -- right
+            true,         -- up
+            true,         -- down
+            false,        -- o
+            true          -- x
+          }
+          -- counter should be 1 (or a multiple of the repeat period) if a button is supposed to be just pressed this frame
+          pico8.keypressed.counter = 1
+        end)
+
+        it('should update all button states for player 0 in parallel', function ()
+          input:_process_player_inputs(0)
+          assert.are_same({
+              [button_ids.left] = button_states.released,
+              [button_ids.right] = button_states.just_released,
+              [button_ids.up] = button_states.just_pressed,
+              [button_ids.down] = button_states.pressed,
+              [button_ids.o] = button_states.just_released,
+              [button_ids.x] = button_states.pressed
+            },
+            input.players_button_states[0])
+        end)
+
       end)
 
-      it('should update all button states for player 0 in parallel', function ()
-        input:_process_player_inputs(0)
-        assert.are_same({
+      describe('(when player 1 has button left & up: released, right & down: just released, o & x: pressed)', function ()
+
+        before_each(function ()
+          input.players_button_states[1] = {
             [button_ids.left] = button_states.released,
             [button_ids.right] = button_states.just_released,
-            [button_ids.up] = button_states.just_pressed,
-            [button_ids.down] = button_states.pressed,
-            [button_ids.o] = button_states.just_released,
+            [button_ids.up] = button_states.released,
+            [button_ids.down] = button_states.just_released,
+            [button_ids.o] = button_states.pressed,
             [button_ids.x] = button_states.pressed
-          },
-          input.players_button_states[0])
+          }
+          pico8.keypressed[1] = {
+            [0] = false,  -- left
+            false,        -- right
+            true,         -- up
+            true,         -- down
+            false,        -- o
+            true          -- x
+          }
+          -- counter should be 1 (or a multiple of the repeat period) if a button is supposed to be just pressed this frame
+          pico8.keypressed.counter = 1
+        end)
+
+        it('should update all button states for player 1 in parallel', function ()
+          input:_process_player_inputs(1)
+          assert.are_same({
+              [button_ids.left] = button_states.released,
+              [button_ids.right] = button_states.released,
+              [button_ids.up] = button_states.just_pressed,
+              [button_ids.down] = button_states.just_pressed,
+              [button_ids.o] = button_states.just_released,
+              [button_ids.x] = button_states.pressed
+            },
+            input.players_button_states[1])
+        end)
+
+      end)
+
+      describe('(when button has just been pressed but is incorrect state because btnp counter is wrong)', function ()
+
+        before_each(function ()
+          input.players_button_states[0][button_ids.left] = button_states.released
+          pico8.keypressed[0][button_ids.left] = true
+          -- leave pico8.keypressed.counter at 0
+        end)
+
+        it('should update the different button states in parallel', function ()
+          assert.has_error(function() input:_process_player_inputs(0) end)
+        end)
+
       end)
 
     end)
 
-    describe('(when player 1 has button left & up: released, right & down: just released, o & x: pressed)', function ()
+    describe('(when input mode is simulated)', function ()
 
-      before_each(function ()
-        input.players_button_states[1] = {
-          [button_ids.left] = button_states.released,
-          [button_ids.right] = button_states.just_released,
-          [button_ids.up] = button_states.released,
-          [button_ids.down] = button_states.just_released,
-          [button_ids.o] = button_states.pressed,
-          [button_ids.x] = button_states.pressed
-        }
-        pico8.keypressed[1] = {
-          [0] = false,  -- left
-          false,        -- right
-          true,         -- up
-          true,         -- down
-          false,        -- o
-          true          -- x
-        }
-        -- counter should be 1 (or a multiple of the repeat period) if a button is supposed to be just pressed this frame
-        pico8.keypressed.counter = 1
+      setup(function ()
+        input.mode = input_modes.simulated
       end)
 
-      it('should update all button states for player 1 in parallel', function ()
-        input:_process_player_inputs(1)
-        assert.are_same({
-            [button_ids.left] = button_states.released,
-            [button_ids.right] = button_states.released,
-            [button_ids.up] = button_states.just_pressed,
-            [button_ids.down] = button_states.just_pressed,
-            [button_ids.o] = button_states.just_released,
-            [button_ids.x] = button_states.pressed
-          },
-          input.players_button_states[1])
+      teardown(function ()
+        input.mode = input_modes.native
+      end)
+
+      describe('(when player 0 has some simulated input)', function ()
+
+        setup(function ()
+          input.players_button_states[0][button_ids.up] = button_states.just_pressed
+          input.simulated_buttons_down[0][button_ids.left] = true
+          input.simulated_buttons_down[0][button_ids.up] = true
+        end)
+
+        teardown(function ()
+          input.players_button_states[0][button_ids.up] = button_states.released
+          input.simulated_buttons_down[0][button_ids.left] = false
+          input.simulated_buttons_down[0][button_ids.up] = false
+        end)
+
+        it('should update the buttons states for player 0 based on the simulated button static states', function ()
+          input:_process_player_inputs(0)
+          assert.are_same({
+              button_states.just_pressed,
+              button_states.pressed,
+            },
+            {
+              input.players_button_states[0][button_ids.left],
+              input.players_button_states[0][button_ids.up],
+            })
+        end)
+
+      end)
+
+      describe('(when player 1 has some simulated input)', function ()
+
+        setup(function ()
+          input.players_button_states[1][button_ids.down] = button_states.just_released
+          input.players_button_states[1][button_ids.o] = button_states.pressed
+          input.simulated_buttons_down[1][button_ids.down] = true
+        end)
+
+        teardown(function ()
+          input.players_button_states[1][button_ids.down] = button_states.released
+          input.players_button_states[1][button_ids.o] = button_states.released
+          input.simulated_buttons_down[1][button_ids.down] = false
+        end)
+
+        it('should update the buttons states for player 1 based on the simulated button static states', function ()
+          input:_process_player_inputs(1)
+          assert.are_same({
+              button_states.just_pressed,
+              button_states.just_released
+            },
+            {
+              input.players_button_states[1][button_ids.down],
+              input.players_button_states[1][button_ids.o]
+            })
+        end)
+
       end)
 
     end)
 
-    describe('(when button has just been pressed but is incorrect state because btnp counter is wrong)', function ()
+  end)
 
-      before_each(function ()
-        input.players_button_states[0][button_ids.left] = button_states.released
-        pico8.keypressed[0][button_ids.left] = true
-        -- leave pico8.keypressed.counter at 0
+  describe('_btn_proxy', function ()
+
+    after_each(function ()
+    end)
+
+    describe('(when input mode is native)', function ()
+
+      setup(function ()
+        pico8.keypressed[0][button_ids.up] = true
+        pico8.keypressed[1][button_ids.o] = true
       end)
 
-      it('should update the different button states in parallel', function ()
-        assert.has_error(function() input:_process_player_inputs(0) end)
+      teardown(function ()
+        clear_table(pico8.keypressed[0])
+        clear_table(pico8.keypressed[1])
+      end)
+
+      it('should return btn(button_id, player_id)', function ()
+        assert.are_same(
+          {
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          },
+          {
+            input:_btn_proxy(button_ids.left),
+            input:_btn_proxy(button_ids.left, 0),
+            input:_btn_proxy(button_ids.up),
+            input:_btn_proxy(button_ids.up, 0),
+            input:_btn_proxy(button_ids.down, 1),
+            input:_btn_proxy(button_ids.o, 1),
+          })
+      end)
+
+    end)
+
+    describe('(when input mode is simulated)', function ()
+
+      setup(function ()
+        input.mode = input_modes.simulated
+        input.simulated_buttons_down[0][button_ids.up] = true
+        input.simulated_buttons_down[1][button_ids.o] = true
+      end)
+
+      teardown(function ()
+        input.mode = input_modes.native
+        input.simulated_buttons_down[0][button_ids.up] = false
+        input.simulated_buttons_down[1][button_ids.o] = false
+      end)
+
+      it('should return true if simulated input is down', function ()
+
+        assert.are_same(
+          {
+            false,
+            false,
+            true,
+            true,
+            false,
+            true
+          },
+          {
+            input:_btn_proxy(button_ids.left),
+            input:_btn_proxy(button_ids.left, 0),
+            input:_btn_proxy(button_ids.up),
+            input:_btn_proxy(button_ids.up, 0),
+            input:_btn_proxy(button_ids.down, 1),
+            input:_btn_proxy(button_ids.o, 1),
+          })
       end)
 
     end)

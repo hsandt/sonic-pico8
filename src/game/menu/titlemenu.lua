@@ -1,6 +1,6 @@
 require("engine/render/color")
-local flow = require("engine/application/flow")
 local input = require("engine/input/input")
+local flow = require("engine/application/flow")
 local ui = require("engine/ui/ui")
 require("game/application/gamestates")
 

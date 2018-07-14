@@ -2,6 +2,7 @@ require("bustedhelper")
 local gameapp = require("game/application/gameapp")
 
 local flow = require("engine/application/flow")
+local input = require("engine/input/input")
 local titlemenu = require("game/menu/titlemenu")
 local credits = require("game/menu/credits")
 local stage = require("game/ingame/stage")
@@ -31,19 +32,29 @@ describe('gameapp', function ()
 
   describe('update', function ()
 
+    local process_players_inputs_stub
     local flow_update_stub
 
     setup(function ()
       gameapp.init()
+      process_players_inputs_stub = stub(input, "process_players_inputs")
       flow_update_stub = stub(flow, "update")
     end)
 
     teardown(function ()
+      process_players_inputs_stub:revert()
       flow_update_stub:revert()
     end)
 
     after_each(function ()
+      process_players_inputs_stub:clear()
       flow_update_stub:clear()
+    end)
+
+    it('should update the input', function ()
+      gameapp.update()
+      assert.spy(process_players_inputs_stub).was_called(1)
+      assert.spy(process_players_inputs_stub).was_called_with(input)
     end)
 
     it('should update the flow', function ()

@@ -1,3 +1,4 @@
+local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local codetuner = require("engine/debug/codetuner")
 local profiler = require("engine/debug/profiler")
@@ -25,6 +26,7 @@ function gameapp.init()
 end
 
 function gameapp.update()
+  input:process_players_inputs()
   flow:update()
   profiler:update_window()
   codetuner:update_window()

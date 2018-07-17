@@ -4,20 +4,6 @@ require("engine/test/assertions")
 local debug = require("engine/debug/debug")
 local input = require("engine/input/input")
 
--- use simulated input during itests
-input.mode = input_modes.simulated
-
--- all itests should only print itest logs
-for category in pairs(debug.active_categories) do
-  local value
-  if category == 'itest' then
-    value = true
-  else
-    value = false
-  end
-  debug.active_categories[category] = value
-end
-
 test_result = {
   none    = 'none',       -- no test started or the test is not over yet
   success = 'success',    -- the test has just succeeded
@@ -27,9 +13,9 @@ test_result = {
 -- integration test runner singleton
 integration_test_runner = singleton {
   current_test = nil,
-  current_time = 0.,
-  last_trigger_time = 0.,
-  next_action_index = 1,
+  current_frame = 0.,
+  _last_trigger_frame = 0.,
+  _next_action_index = 1,
   current_result = test_result.none
 }
 
@@ -41,7 +27,11 @@ function integration_test_runner:start(test)
   if test.setup then
     test:setup()
   end
-  self:check_end()
+  -- edge case: 0 actions in the action sequence. check end
+  -- immediately to avoid out of bounds index in _check_next_action
+  if not self:_check_end() then
+    self:_check_next_action()
+  end
 end
 
 function integration_test_runner:update()
@@ -53,32 +43,37 @@ function integration_test_runner:update()
   end
 
   -- advance time
-  self.current_time = self.current_time + delta_time
+  self.current_frame = self.current_frame + 1
+  self:_check_end()
+  self:_check_next_action()
+end
+
+function integration_test_runner:_check_next_action()
   -- check if next action should be applied
-  local next_action = self.current_test.action_sequence[self.next_action_index]
-  should_trigger_next_action, late_time = next_action.trigger:check(self.current_time - self.last_trigger_time)
+  local next_action = self.current_test.action_sequence[self._next_action_index]
+  should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
   if should_trigger_next_action then
     -- apply next action and update time/index
     next_action.callback()
-    self.last_trigger_time = self.current_time - late_time
-    self.next_action_index = self.next_action_index + 1
-
-    self:check_end()
+    self._last_trigger_frame = self.current_frame
+    self._next_action_index = self._next_action_index + 1
+    self:_check_end()
   end
-
 end
 
-function integration_test_runner:check_end()
+function integration_test_runner:_check_end()
   -- check if last action was applied, end now
   -- this means you can define an 'end' action just by adding an empty action at the end
-  if self.next_action_index > #self.current_test.action_sequence then
-    self:end_with_final_assertion()
+  if self._next_action_index > #self.current_test.action_sequence then
+    self:_end_with_final_assertion()
+    return true
   end
+  return false
 end
 
-function integration_test_runner:end_with_final_assertion()
+function integration_test_runner:_end_with_final_assertion()
   -- check the final assertion so we know if we should end with success or failure
-  result, message = self.current_test:check_final_assertion()
+  result, message = self.current_test:_check_final_assertion()
   if result then
     self.current_result = test_result.success
     log("itest '"..self.current_test.name.."': final assertion succeeded", "itest")
@@ -93,9 +88,9 @@ end
 -- in particular, you won't be able to retrieve the test result
 function integration_test_runner:stop()
   self.current_test = nil
-  self.current_time = 0.
-  self.last_trigger_time = 0.
-  self.next_action_index = 1
+  self.current_frame = 0.
+  self._last_trigger_frame = 0.
+  self._next_action_index = 1
   self.current_result = test_result.none
 end
 
@@ -103,28 +98,25 @@ end
 time_trigger = new_class()
 
 -- parameters
--- time              number (float)      relative time to run callback since last trigger
+-- frames      int   number of frames to wait before running callback after last trigger (defined from float time in s)
 function time_trigger:_init(time)
-  self.time = time
+  self.frames = flr(time * fps)
 end
 
 function time_trigger:_tostring()
-  return "time_trigger("..self.time..")"
+  return "time_trigger("..self.frames..")"
 end
 
 function time_trigger.__eq(lhs, rhs)
-  return lhs.time == rhs.time
+  return lhs.frames == rhs.frames
 end
 
--- return (true, late_time) if the trigger condition is verified in this context
---  where late_time is the estimated time since the trigger condition was actually verified
---  (it should be less than delta_time and just a way to catch back a little when a time was not a multiple of fps)
--- else return (false, nil)
--- elapsed time     number (float)    time elapsed since the last trigger
-function time_trigger:check(elapsed_time)
-  time_diff = elapsed_time - self.time
-  if time_diff >= 0 then
-    return true, time_diff
+-- return true if the trigger condition is verified in this context
+-- else return false
+-- elapsed_frames     int   number of frames elapsed since the last trigger
+function time_trigger:_check(elapsed_frames)
+  if elapsed_frames >= self.frames then
+    return true
   else
     return false
   end
@@ -175,7 +167,7 @@ function integration_test:add_action(trigger, callback, name)
 end
 
 -- return true if final assertion passes, (false, error message) else
-function integration_test:check_final_assertion()
+function integration_test:_check_final_assertion()
   if self.final_assertion then
     return self.final_assertion()
   else

@@ -29,17 +29,20 @@ describe('integration_test_runner', function ()
     setup(function ()
       test = integration_test('character walks')
       test.setup = spy.new(function () end)
-      spy.on(integration_test_runner, "check_end")
+      spy.on(integration_test_runner, "_check_end")
+      spy.on(integration_test_runner, "_check_next_action")
     end)
 
     teardown(function ()
       test.setup = nil
-      integration_test_runner.check_end:revert()
+      integration_test_runner._check_end:revert()
+      integration_test_runner._check_next_action:revert()
     end)
 
     after_each(function ()
       test.setup:clear()
-      integration_test_runner.check_end:clear()
+      integration_test_runner._check_end:clear()
+      integration_test_runner._check_next_action:clear()
     end)
 
     it('should set the current test to the passed test', function ()
@@ -49,10 +52,10 @@ describe('integration_test_runner', function ()
 
     it('should initialize state vars', function ()
       integration_test_runner:start(test)
-      assert.are_same({0., 0., 1}, {
-        integration_test_runner.current_time,
-        integration_test_runner.last_trigger_time,
-        integration_test_runner.next_action_index
+      assert.are_same({0, 0, 1}, {
+        integration_test_runner.current_frame,
+        integration_test_runner._last_trigger_frame,
+        integration_test_runner._next_action_index
       })
     end)
 
@@ -62,15 +65,46 @@ describe('integration_test_runner', function ()
       assert.spy(test.setup).was_called_with(test)
     end)
 
-    it('should call check_end', function ()
+    it('should call _check_end', function ()
       integration_test_runner:start(test)
-      assert.spy(integration_test_runner.check_end).was_called(1)
-      assert.spy(integration_test_runner.check_end).was_called_with(match.is_ref(integration_test_runner))
+      assert.spy(integration_test_runner._check_end).was_called(1)
+      assert.spy(integration_test_runner._check_end).was_called_with(match.is_ref(integration_test_runner))
+    end)
+
+    it('should call _check_end', function ()
+      integration_test_runner:start(test)
+      assert.spy(integration_test_runner._check_end).was_called(1)
+      assert.spy(integration_test_runner._check_end).was_called_with(match.is_ref(integration_test_runner))
+    end)
+
+    describe('(when no actions)', function ()
+
+      it('should not check the next action', function ()
+        integration_test_runner:start(test)
+        assert.spy(integration_test_runner._check_next_action).was_called(0)
+      end)
+
+    end)
+
+    describe('(when some actions)', function ()
+
+      setup(function ()
+        test:add_action(time_trigger(1.0), function () end, 'some_action')
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+      end)
+
+      it('should not check the next action', function ()
+        integration_test_runner:start(test)
+        assert.spy(integration_test_runner._check_next_action).was_called(1)
+        assert.spy(integration_test_runner._check_next_action).was_called_with(match.is_ref(integration_test_runner))
+      end)
+
     end)
 
     describe('(after a first start)', function ()
-
-      local action_callback
 
       setup(function ()
         test:add_action(time_trigger(1.0), function () end, 'restart_action')
@@ -81,6 +115,7 @@ describe('integration_test_runner', function ()
       end)
 
       before_each(function ()
+        -- some progress
         integration_test_runner:start(test)
         repeat_callback(1.0, function ()
           integration_test_runner:update()
@@ -89,10 +124,10 @@ describe('integration_test_runner', function ()
 
       it('should automatically stop before restarting, effectively resetting state vars', function ()
         integration_test_runner:start(test)
-        assert.are_same({0., 0., 1, test_result.none}, {
-          integration_test_runner.current_time,
-          integration_test_runner.last_trigger_time,
-          integration_test_runner.next_action_index,
+        assert.are_same({0, 0, 1, test_result.none}, {
+          integration_test_runner.current_frame,
+          integration_test_runner._last_trigger_frame,
+          integration_test_runner._next_action_index,
           integration_test_runner.current_result
         })
       end)
@@ -115,7 +150,8 @@ describe('integration_test_runner', function ()
 
       setup(function ()
         action_callback = spy.new(function () end)
-        test:add_action(time_trigger(1.01), action_callback, 'update_test_action')
+        -- need at least 1/60=0.1666s above 1.0s so it's not called after 1.0s converted to frames
+        test:add_action(time_trigger(1.02), action_callback, 'update_test_action')
       end)
 
       teardown(function ()
@@ -126,42 +162,42 @@ describe('integration_test_runner', function ()
         integration_test_runner:start(test)
       end)
 
-      it('should advance the current time by delta_time', function ()
+      it('should advance the current time by 1', function ()
         integration_test_runner:update()
-        assert.are_equal(delta_time, integration_test_runner.current_time)
+        assert.are_equal(1, integration_test_runner.current_frame)
       end)
 
-      it('should call an initial action (t=0.) immediately, preserving last trigger time to 0 and incrementing the next_action_index', function ()
+      it('should call an initial action (t=0.) immediately, preserving last trigger time to 0 and incrementing the _next_action_index', function ()
         integration_test_runner:update()
         assert.spy(action_callback).was_called(0)
-        assert.are_equal(0., integration_test_runner.last_trigger_time)
-        assert.are_equal(1, integration_test_runner.next_action_index)
+        assert.are_equal(0., integration_test_runner._last_trigger_frame)
+        assert.are_equal(1, integration_test_runner._next_action_index)
       end)
 
-      it('should not call a later action (t=1.01) before the expected time (1.0s)', function ()
+      it('should not call a later action (t=1.02) before the expected time (1.0s)', function ()
         repeat_callback(1.0, function ()
           integration_test_runner:update()
         end)
         assert.spy(action_callback).was_called(0)
-        assert.are_equal(0., integration_test_runner.last_trigger_time)
-        assert.are_equal(1, integration_test_runner.next_action_index)
+        assert.are_equal(0., integration_test_runner._last_trigger_frame)
+        assert.are_equal(1, integration_test_runner._next_action_index)
       end)
 
-      it('should call a later action (t=1.01) after the action time has been reached', function ()
-        repeat_callback(1.01, function ()
+      it('should call a later action (t=1.02) after the action time has been reached', function ()
+        repeat_callback(1.02, function ()
           integration_test_runner:update()
         end)
         assert.spy(action_callback).was_called(1)
-        assert.are_equal(1.01, integration_test_runner.last_trigger_time)
-        assert.are_equal(2, integration_test_runner.next_action_index)
+        assert.are_equal(61, integration_test_runner._last_trigger_frame)
+        assert.are_equal(2, integration_test_runner._next_action_index)
       end)
 
       it('should end the test once the last action has been applied', function ()
-        repeat_callback(1.01, function ()
+        repeat_callback(1.02, function ()
           integration_test_runner:update()
         end)
         assert.are_equal(test_result.success, integration_test_runner.current_result)
-        assert.are_equal(2, integration_test_runner.next_action_index)
+        assert.are_equal(2, integration_test_runner._next_action_index)
       end)
 
     end)
@@ -183,7 +219,7 @@ describe('integration_test_runner', function ()
 
   end)
 
-  describe('check_end', function ()
+  describe('_check_end', function ()
 
     before_each(function ()
       integration_test_runner:start(test)
@@ -193,8 +229,9 @@ describe('integration_test_runner', function ()
 
       describe('(when no final assertion)', function ()
 
-        it('should end immediately with success', function ()
-          integration_test_runner:check_end(test)
+        it('should make test end immediately with success and return true', function ()
+          local result = integration_test_runner:_check_end(test)
+          assert.is_true(result)
           assert.are_equal(test_result.success, integration_test_runner.current_result)
         end)
 
@@ -212,8 +249,9 @@ describe('integration_test_runner', function ()
           test.final_assertion = nil
         end)
 
-        it('should check the final assertion immediately and end with success', function ()
-          integration_test_runner:check_end(test)
+        it('should check the final assertion immediately, end with success and return true', function ()
+          local result = integration_test_runner:_check_end(test)
+          assert.is_true(result)
           assert.are_equal(test_result.success, integration_test_runner.current_result)
         end)
 
@@ -231,8 +269,9 @@ describe('integration_test_runner', function ()
           test.final_assertion = nil
         end)
 
-        it('should check the final assertion immediately and end with failure', function ()
-          integration_test_runner:check_end(test)
+        it('should check the final assertion immediately, end with failure and return true', function ()
+          local result = integration_test_runner:_check_end(test)
+          assert.is_true(result)
           assert.are_equal(test_result.failure, integration_test_runner.current_result)
         end)
 
@@ -250,30 +289,15 @@ describe('integration_test_runner', function ()
         clear_table(test.action_sequence)
       end)
 
-      it('should do nothing', function ()
-        assert.has_no_errors(function() integration_test_runner:check_end(test) end)
+      it('should return false', function ()
+        assert.is_false(integration_test_runner:_check_end(test))
       end)
 
     end)
 
-    it('should reset the current test', function ()
-      integration_test_runner:stop(test)
-      assert.is_nil(integration_test_runner.current_test)
-    end)
-
-    it('should reset state vars', function ()
-      integration_test_runner:stop(test)
-      assert.are_same({0., 0., 1, test_result.none}, {
-        integration_test_runner.current_time,
-        integration_test_runner.last_trigger_time,
-        integration_test_runner.next_action_index,
-        integration_test_runner.current_result
-      })
-    end)
-
   end)
 
-  describe('end_with_final_assertion', function ()
+  describe('_end_with_final_assertion', function ()
 
     before_each(function ()
       integration_test_runner:start(test)
@@ -282,7 +306,7 @@ describe('integration_test_runner', function ()
     describe('(when no final assertion)', function ()
 
       it('should end with success', function ()
-        integration_test_runner:end_with_final_assertion(test)
+        integration_test_runner:_end_with_final_assertion(test)
         assert.are_equal(test_result.success, integration_test_runner.current_result)
       end)
 
@@ -301,7 +325,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with success', function ()
-        integration_test_runner:check_end(test)
+        integration_test_runner:_check_end(test)
         assert.are_equal(test_result.success, integration_test_runner.current_result)
       end)
 
@@ -320,7 +344,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with failure', function ()
-        integration_test_runner:check_end(test)
+        integration_test_runner:_check_end(test)
         assert.are_equal(test_result.failure, integration_test_runner.current_result)
       end)
 
@@ -337,24 +361,9 @@ describe('integration_test_runner', function ()
       end)
 
       it('should do nothing', function ()
-        assert.has_no_errors(function() integration_test_runner:check_end(test) end)
+        assert.has_no_errors(function() integration_test_runner:_check_end(test) end)
       end)
 
-    end)
-
-    it('should reset the current test', function ()
-      integration_test_runner:stop(test)
-      assert.is_nil(integration_test_runner.current_test)
-    end)
-
-    it('should reset state vars', function ()
-      integration_test_runner:stop(test)
-      assert.are_same({0., 0., 1, test_result.none}, {
-        integration_test_runner.current_time,
-        integration_test_runner.last_trigger_time,
-        integration_test_runner.next_action_index,
-        integration_test_runner.current_result
-      })
     end)
 
   end)
@@ -372,10 +381,10 @@ describe('integration_test_runner', function ()
 
     it('should reset state vars', function ()
       integration_test_runner:stop(test)
-      assert.are_same({0., 0., 1, test_result.none}, {
-        integration_test_runner.current_time,
-        integration_test_runner.last_trigger_time,
-        integration_test_runner.next_action_index,
+      assert.are_same({0, 0, 1, test_result.none}, {
+        integration_test_runner.current_frame,
+        integration_test_runner._last_trigger_frame,
+        integration_test_runner._next_action_index,
         integration_test_runner.current_result
       })
     end)
@@ -390,13 +399,13 @@ describe('time_trigger', function ()
     it('should create a time trigger with a time', function ()
       local time_t = time_trigger(1.0)
       assert.is_not_nil(time_t)
-      assert.are_equal(time_t.time, 1.0)
+      assert.are_equal(time_t.frames, 60)
     end)
   end)
 
   describe('_tostring', function ()
     it('should return "time_trigger({self.time})"', function ()
-      assert.are_equal("time_trigger(2.0)", time_trigger(2.0):_tostring())
+      assert.are_equal("time_trigger(120)", time_trigger(2.0):_tostring())
     end)
   end)
 
@@ -409,18 +418,15 @@ describe('time_trigger', function ()
     end)
   end)
 
-  describe('check', function ()
-    it('should return (true, late_time) if elapsed time is equal to {self.time}', function ()
-      checked, late_time = time_trigger(2.0):check(2.0)
-      assert.are_same({true, 0.0}, {checked, late_time})
+  describe('_check', function ()
+    it('should return true if elapsed time is equal to {self.frames}', function ()
+      assert.is_true(time_trigger(2.0):_check(120))
     end)
-    it('should return (true, late_time) if elapsed time is greater than {self.time}', function ()
-      checked, late_time = time_trigger(2.0):check(2.2)
-      assert.is_true(checked)
-      assert.is_true(almost_eq_with_message(0.2, late_time))
+    it('should return true if elapsed time is greater than {self.frames}', function ()
+      assert.is_true(time_trigger(2.0):_check(121))
     end)
-    it('should return false if elapsed time is less than {self.time}', function ()
-      assert.is_false(time_trigger(2.0):check(1.9))
+    it('should return false if elapsed time is less than {self.frames}', function ()
+      assert.is_false(time_trigger(2.0):_check(119))
     end)
   end)
 
@@ -446,11 +452,11 @@ describe('scripted_action', function ()
   describe('_tostring', function ()
     it('should return "scripted_action \'unnamed\' @ {self.trigger}"" if no name', function ()
       local act = scripted_action(time_trigger(2.0), function () end)
-      assert.are_equal("[scripted_action 'unnamed' @ time_trigger(2.0)]", act:_tostring())
+      assert.are_equal("[scripted_action 'unnamed' @ time_trigger(120)]", act:_tostring())
     end)
     it('should return "scripted_action \'{self.name}\' @ {self.trigger}" if some name', function ()
       local act = scripted_action(time_trigger(2.0), function () end, 'do_something')
-      assert.are_equal("[scripted_action 'do_something' @ time_trigger(2.0)]", act:_tostring())
+      assert.are_equal("[scripted_action 'do_something' @ time_trigger(120)]", act:_tostring())
     end)
   end)
 end)
@@ -483,13 +489,13 @@ describe('integration_test', function ()
     end)
   end)
 
-  describe('check_final_assertion', function ()
+  describe('_check_final_assertion', function ()
     it('should call the final assertion and return the result', function ()
       local test = integration_test('character follows ground', function () end)
       test.final_assertion = function()
         return false, 'error message'
       end
-      assert.are_same({false, 'error message'}, {test:check_final_assertion()})
+      assert.are_same({false, 'error message'}, {test:_check_final_assertion()})
     end)
   end)
 

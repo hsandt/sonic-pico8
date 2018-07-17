@@ -3,6 +3,8 @@ require("engine/core/class")
 -- numeric helpers
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
+  assert(lhs)
+  assert(rhs)
   if type(lhs) == "number" and type(rhs) == "number" then
     return abs(lhs - rhs) <= eps
   elseif lhs.almost_eq then

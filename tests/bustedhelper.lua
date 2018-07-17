@@ -4,7 +4,14 @@ require("engine/test/assertions")
 
 -- mute all messages during tests
 local debug = require("engine/debug/debug")
-debug.current_level = debug.level.none
+debug.active_categories = {
+  default = false,
+  flow = false,
+  player = false,
+  ui = false,
+  codetuner = false,
+  itest = false
+}
 
 local lua_debug = require("debug")
 

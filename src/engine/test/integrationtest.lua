@@ -1,11 +1,14 @@
 require("engine/application/constants")
 require("engine/core/class")
+require("engine/render/color")
 require("engine/test/assertions")
 local debug = require("engine/debug/debug")
+local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
-test_result = {
-  none    = 'none',       -- no test started or the test is not over yet
+test_states = {
+  none = 'none',          -- no test started
+  running = 'running',    -- the test is still running
   success = 'success',    -- the test has just succeeded
   failure = 'failure'     -- the test has just failed
 }
@@ -14,11 +17,35 @@ test_result = {
 integration_test_runner = singleton {
   initialized = false,
   current_test = nil,
-  current_frame = 0.,
-  _last_trigger_frame = 0.,
+  current_frame = 0,
+  _last_trigger_frame = 0,
   _next_action_index = 1,
-  current_result = test_result.none
+  current_state = test_states.none,
+  current_message = nil              -- only defined when current_state is failure
 }
+
+-- helper method to use in rendered itest _init
+function integration_test_runner:init_game_and_start(test)
+  gameapp.init()
+  integration_test_runner:start(test)
+end
+
+-- helper method to use in rendered itest _update60
+function integration_test_runner:update_game_and_test()
+  if self.current_state == test_states.running then
+    gameapp.update()
+    self:update()
+    if self.current_state ~= test_states.running then
+      log("itest '"..self.current_test.name.."' ended with "..self.current_state, "itest")
+    end
+  end
+end
+
+-- helper method to use in rendered itest _draw
+function integration_test_runner:draw_game_and_test()
+  gameapp.draw()
+  self:draw()
+end
 
 function integration_test_runner:start(test)
   if not self.initialized then
@@ -28,10 +55,14 @@ function integration_test_runner:start(test)
   if self.current_test then
     self:stop()
   end
+
   self.current_test = test
+  self.current_state = test_states.running
+
   if test.setup then
     test:setup()
   end
+
   -- edge case: 0 actions in the action sequence. check end
   -- immediately to avoid out of bounds index in _check_next_action
   if not self:_check_end() then
@@ -41,9 +72,10 @@ end
 
 function integration_test_runner:update()
   assert(self.current_test, "integration_test_runner:update: current_test is not set")
-  if self.current_result ~= test_result.none then
+  if self.current_state ~= test_states.running then
     -- the current test is over and we already got the result
-    -- do nothing and fail silently (to avoid crashing just because we repeated update a bit too much)
+    -- do nothing and fail silently (to avoid crashing
+    -- just because we repeated update a bit too much in utests)
     return
   end
 
@@ -51,6 +83,11 @@ function integration_test_runner:update()
   self.current_frame = self.current_frame + 1
   self:_check_end()
   self:_check_next_action()
+end
+
+function integration_test_runner:draw()
+  assert(self.current_test, "integration_test_runner:draw: current_test is not set")
+  api.print(self.current_test.name..": "..self.current_state, 5, 5, colors.white)
 end
 
 function integration_test_runner:_init()
@@ -98,11 +135,10 @@ function integration_test_runner:_end_with_final_assertion()
   -- check the final assertion so we know if we should end with success or failure
   result, message = self.current_test:_check_final_assertion()
   if result then
-    self.current_result = test_result.success
-    log("itest '"..self.current_test.name.."': final assertion succeeded", "itest")
+    self.current_state = test_states.success
   else
-    self.current_result = test_result.failure
-    log("itest '"..self.current_test.name.."': final assertion failed: "..message, "itest")
+    self.current_state = test_states.failure
+    self.current_message = message
   end
 end
 
@@ -111,10 +147,10 @@ end
 -- in particular, you won't be able to retrieve the test result
 function integration_test_runner:stop()
   self.current_test = nil
-  self.current_frame = 0.
-  self._last_trigger_frame = 0.
+  self.current_frame = 0
+  self._last_trigger_frame = 0
   self._next_action_index = 1
-  self.current_result = test_result.none
+  self.current_state = test_states.none
 end
 
 -- time trigger struct

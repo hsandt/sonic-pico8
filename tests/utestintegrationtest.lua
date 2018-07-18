@@ -1,7 +1,9 @@
 require("bustedhelper")
 require("engine/test/integrationtest")
 require("engine/core/helper")
+require("engine/render/color")
 local debug = require("engine/debug/debug")
+local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
 local function repeat_callback(time, callback)
@@ -29,7 +31,7 @@ describe('integration_test_runner', function ()
     integration_test_runner.current_frame = 0.
     integration_test_runner._last_trigger_frame = 0.
     integration_test_runner._next_action_index = 1
-    integration_test_runner.current_result = test_result.none
+    integration_test_runner.current_state = test_states.none
 
     input.mode = input_modes.native
 
@@ -43,10 +45,140 @@ describe('integration_test_runner', function ()
     }
   end)
 
+  describe('init_game_and_start', function ()
+
+    setup(function ()
+      gameapp_init_stub = stub(gameapp, "init")
+      itest_runner_start_stub = stub(integration_test_runner, "start")
+    end)
+
+    teardown(function ()
+      gameapp_init_stub:revert()
+      itest_runner_start_stub:revert()
+    end)
+
+    after_each(function ()
+      gameapp_init_stub:clear()
+      itest_runner_start_stub:clear()
+    end)
+
+    it('should init the gameapp and the passed test', function ()
+      integration_test_runner:init_game_and_start(test)
+      assert.spy(gameapp_init_stub).was_called(1)
+      assert.spy(gameapp_init_stub).was_called_with()
+      assert.spy(itest_runner_start_stub).was_called(1)
+      assert.spy(itest_runner_start_stub).was_called_with(match.is_ref(integration_test_runner), test)
+    end)
+
+  end)
+
+  describe('update_game_and_test', function ()
+
+    setup(function ()
+      gameapp_update_stub = stub(gameapp, "update")
+      spy.on(integration_test_runner, "update")
+    end)
+
+    teardown(function ()
+      gameapp_update_stub:revert()
+      integration_test_runner.update:revert()
+    end)
+
+    after_each(function ()
+      gameapp_update_stub:clear()
+      integration_test_runner.update:clear()
+    end)
+
+    describe('(when state is not running)', function ()
+
+      it('should do nothing', function ()
+        integration_test_runner:update_game_and_test()
+        assert.spy(gameapp_update_stub).was_called(0)
+        assert.spy(integration_test_runner.update).was_called(0)
+      end)
+
+    end)
+
+    describe('(when state is running for some actions)', function ()
+
+      setup(function ()
+        test:add_action(time_trigger(1.0), function () end, 'some_action')
+        integration_test_runner:start(test)
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+      end)
+
+      it('should update the gameapp and the passed test', function ()
+        integration_test_runner:update_game_and_test()
+        assert.spy(gameapp_update_stub).was_called(1)
+        assert.spy(gameapp_update_stub).was_called_with()
+        assert.spy(integration_test_runner.update).was_called(1)
+        assert.spy(integration_test_runner.update).was_called_with(match.is_ref(integration_test_runner))
+      end)
+
+    end)
+
+    describe('(when test ends on this update)', function ()
+
+      local log_stub
+
+      setup(function ()
+        test:add_action(time_trigger(0.017), function () end, 'some_action')
+        integration_test_runner:start(test)
+        log_stub = stub(_G, "log")
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+        log_stub:revert()
+      end)
+
+      after_each(function ()
+        log_stub:clear()
+      end)
+
+      it('should also log the result', function ()
+        integration_test_runner:update_game_and_test()
+        assert.spy(log_stub).was_called(1)
+        assert.spy(log_stub).was_called_with("itest 'character walks' ended with success", "itest")
+      end)
+
+    end)
+
+  end)
+
+  describe('draw_game_and_test', function ()
+
+    setup(function ()
+      gameapp_draw_stub = stub(gameapp, "draw")
+      itest_runner_draw_stub = stub(integration_test_runner, "draw")
+    end)
+
+    teardown(function ()
+      gameapp_draw_stub:revert()
+      itest_runner_draw_stub:revert()
+    end)
+
+    after_each(function ()
+      gameapp_draw_stub:clear()
+      itest_runner_draw_stub:clear()
+    end)
+
+    it('should draw the gameapp and the passed test information', function ()
+      integration_test_runner:draw_game_and_test()
+      assert.spy(gameapp_draw_stub).was_called(1)
+      assert.spy(gameapp_draw_stub).was_called_with()
+      assert.spy(itest_runner_draw_stub).was_called(1)
+      assert.spy(itest_runner_draw_stub).was_called_with(match.is_ref(integration_test_runner))
+    end)
+
+  end)
+
   describe('start', function ()
 
     setup(function ()
-      test = integration_test('character walks')
       test.setup = spy.new(function () end)
       spy.on(integration_test_runner, "_init")
       spy.on(integration_test_runner, "_check_end")
@@ -106,6 +238,11 @@ describe('integration_test_runner', function ()
         assert.spy(integration_test_runner._check_next_action).was_called(0)
       end)
 
+      it('should immediately end the run (result depends on final assertion)', function ()
+        integration_test_runner:start(test)
+        assert.are_not_equal(test_states.running, integration_test_runner.current_state)
+      end)
+
     end)
 
     describe('(when some actions)', function ()
@@ -118,10 +255,15 @@ describe('integration_test_runner', function ()
         clear_table(test.action_sequence)
       end)
 
-      it('should check the next action immediately', function ()
+      it('should check the next action immediately (if at time 0, will also call it)', function ()
         integration_test_runner:start(test)
         assert.spy(integration_test_runner._check_next_action).was_called(1)
         assert.spy(integration_test_runner._check_next_action).was_called_with(match.is_ref(integration_test_runner))
+      end)
+
+      it('should enter running state', function ()
+        integration_test_runner:start(test)
+        assert.are_equal(test_states.running, integration_test_runner.current_state)
       end)
 
     end)
@@ -144,13 +286,13 @@ describe('integration_test_runner', function ()
         end)
       end)
 
-      it('should automatically stop before restarting, effectively resetting state vars', function ()
+      it('should automatically stop before restarting, effectively resetting state vars but the current test and state', function ()
         integration_test_runner:start(test)
-        assert.are_same({0, 0, 1, test_result.none}, {
+        assert.are_same({0, 0, 1, test_states.running}, {
           integration_test_runner.current_frame,
           integration_test_runner._last_trigger_frame,
           integration_test_runner._next_action_index,
-          integration_test_runner.current_result
+          integration_test_runner.current_state
         })
       end)
 
@@ -226,7 +368,7 @@ describe('integration_test_runner', function ()
         repeat_callback(1.02, function ()
           integration_test_runner:update()
         end)
-        assert.are_equal(test_result.success, integration_test_runner.current_result)
+        assert.are_equal(test_states.success, integration_test_runner.current_state)
         assert.are_equal(2, integration_test_runner._next_action_index)
       end)
 
@@ -240,9 +382,45 @@ describe('integration_test_runner', function ()
       end)
 
       it('should do nothing', function ()
-        assert.are_equal(integration_test_runner.current_result, test_result.success)
+        assert.are_equal(integration_test_runner.current_state, test_states.success)
         assert.has_no_errors(function () integration_test_runner:update() end)
-        assert.are_equal(integration_test_runner.current_result, test_result.success)
+        assert.are_equal(integration_test_runner.current_state, test_states.success)
+      end)
+
+    end)
+
+  end)
+
+  describe('draw', function ()
+
+    it('should assert if no current test is set', function ()
+      assert.has_error(function ()
+        integration_test_runner:draw()
+      end)
+    end)
+
+    describe('(when curent test is set)', function ()
+
+      local api_print_stub
+
+      setup(function ()
+        integration_test_runner.current_test = test
+        integration_test_runner.current_state = test_states.running
+        api_print_stub = stub(api, "print")
+      end)
+
+      teardown(function ()
+        api_print_stub:revert()
+      end)
+
+      after_each(function ()
+        api_print_stub:clear()
+      end)
+
+      it('should draw information on the current test', function ()
+        integration_test_runner:draw()
+        assert.spy(api_print_stub).was_called(1)
+        assert.spy(api_print_stub).was_called_with("character walks: running", 5, 5, colors.white)
       end)
 
     end)
@@ -289,7 +467,8 @@ describe('integration_test_runner', function ()
         it('should make test end immediately with success and return true', function ()
           local result = integration_test_runner:_check_end(test)
           assert.is_true(result)
-          assert.are_equal(test_result.success, integration_test_runner.current_result)
+          assert.are_same({test_states.success, nil},
+            {integration_test_runner.current_state, integration_test_runner.current_message})
         end)
 
       end)
@@ -309,7 +488,8 @@ describe('integration_test_runner', function ()
         it('should check the final assertion immediately, end with success and return true', function ()
           local result = integration_test_runner:_check_end(test)
           assert.is_true(result)
-          assert.are_equal(test_result.success, integration_test_runner.current_result)
+          assert.are_same({test_states.success, nil},
+            {integration_test_runner.current_state, integration_test_runner.current_message})
         end)
 
       end)
@@ -329,7 +509,7 @@ describe('integration_test_runner', function ()
         it('should check the final assertion immediately, end with failure and return true', function ()
           local result = integration_test_runner:_check_end(test)
           assert.is_true(result)
-          assert.are_equal(test_result.failure, integration_test_runner.current_result)
+          assert.are_equal(test_states.failure, integration_test_runner.current_state)
         end)
 
       end)
@@ -364,7 +544,7 @@ describe('integration_test_runner', function ()
 
       it('should end with success', function ()
         integration_test_runner:_end_with_final_assertion(test)
-        assert.are_equal(test_result.success, integration_test_runner.current_result)
+        assert.are_equal(test_states.success, integration_test_runner.current_state)
       end)
 
     end)
@@ -383,7 +563,7 @@ describe('integration_test_runner', function ()
 
       it('should check the final assertion and end with success', function ()
         integration_test_runner:_check_end(test)
-        assert.are_equal(test_result.success, integration_test_runner.current_result)
+        assert.are_equal(test_states.success, integration_test_runner.current_state)
       end)
 
     end)
@@ -402,7 +582,8 @@ describe('integration_test_runner', function ()
 
       it('should check the final assertion and end with failure', function ()
         integration_test_runner:_check_end(test)
-        assert.are_equal(test_result.failure, integration_test_runner.current_result)
+        assert.are_same({test_states.failure, "error message"},
+          {integration_test_runner.current_state, integration_test_runner.current_message})
       end)
 
     end)
@@ -438,11 +619,11 @@ describe('integration_test_runner', function ()
 
     it('should reset state vars', function ()
       integration_test_runner:stop(test)
-      assert.are_same({0, 0, 1, test_result.none}, {
+      assert.are_same({0, 0, 1, test_states.none}, {
         integration_test_runner.current_frame,
         integration_test_runner._last_trigger_frame,
         integration_test_runner._next_action_index,
-        integration_test_runner.current_result
+        integration_test_runner.current_state
       })
     end)
 

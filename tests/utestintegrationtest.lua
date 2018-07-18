@@ -485,6 +485,10 @@ describe('integration_test_runner', function ()
       assert.are_equal(colors.red, integration_test_runner:_get_test_state_color(test_states.failure))
     end)
 
+    it('should return dark purple for timeout', function ()
+      assert.are_equal(colors.dark_purple, integration_test_runner:_get_test_state_color(test_states.timeout))
+    end)
+
   end)
 
   describe('_init', function ()

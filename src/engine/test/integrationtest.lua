@@ -104,8 +104,10 @@ function integration_test_runner:_get_test_state_color(test_state)
     return colors.white
   elseif test_state == test_states.success then
     return colors.green
-  else  -- test_state == test_states.failure then
+  elseif test_state == test_states.failure then
     return colors.red
+  else  -- test_state == test_states.timeout then
+    return colors.dark_purple
   end
 end
 

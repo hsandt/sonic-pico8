@@ -327,10 +327,15 @@ describe('integration_test_runner', function ()
 
       teardown(function ()
         clear_table(test.action_sequence)
+        action_callback:revert()
       end)
 
       before_each(function ()
         integration_test_runner:start(test)
+      end)
+
+      after_each(function ()
+        action_callback:clear()
       end)
 
       it('should advance the current time by 1', function ()
@@ -369,6 +374,43 @@ describe('integration_test_runner', function ()
         end)
         assert.are_equal(test_states.success, integration_test_runner.current_state)
         assert.are_equal(2, integration_test_runner._next_action_index)
+      end)
+
+      describe('(with timeout set to 2s and more actions after that, usually unmet conditions)', function ()
+
+        setup(function ()
+          test:add_action(time_trigger(3.0), function () end, 'more action')
+          test:set_timeout(2.0)
+        end)
+
+        describe('(when next frame is below 120)', function ()
+
+          before_each(function ()
+            integration_test_runner.current_frame = 118
+          end)
+
+          it('should call next action (no time out)', function ()
+            integration_test_runner:update()
+            assert.are_equal(test_states.running, integration_test_runner.current_state)
+            assert.spy(action_callback).was_called(1)
+          end)
+
+        end)
+
+        describe('(when next frame is 120 or above)', function ()
+
+          before_each(function ()
+            integration_test_runner.current_frame = 119
+          end)
+
+          it('should time out without calling next action', function ()
+            integration_test_runner:update()
+            assert.are_equal(test_states.timeout, integration_test_runner.current_state)
+            assert.spy(action_callback).was_called(0)
+          end)
+
+        end)
+
       end)
 
     end)
@@ -468,6 +510,107 @@ describe('integration_test_runner', function ()
     it('should set initialized to true', function ()
       integration_test_runner:_init()
       assert.is_true(integration_test_runner.initialized)
+    end)
+
+  end)
+
+
+  describe('_check_next_action', function ()
+
+    local action_callback
+
+    setup(function ()
+      action_callback = spy.new(function () end)
+      test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+      -- don't stub a function if the return value matters, as in start
+      spy.on(integration_test_runner, "_check_end")
+    end)
+
+    teardown(function ()
+      clear_table(test.action_sequence)
+      action_callback:revert()
+      integration_test_runner._check_end:revert()
+    end)
+
+    before_each(function ()
+      integration_test_runner:start(test)
+    end)
+
+    after_each(function ()
+      action_callback:clear()
+      integration_test_runner._check_end:clear()
+    end)
+
+    describe('(when next action index is 1/1)', function ()
+
+      before_each(function ()
+        integration_test_runner._next_action_index = 1
+      end)
+
+      describe('(when next action time trigger is not reached yet)', function ()
+
+        before_each(function ()
+          -- time trigger uses relative frames, so compare the difference since last trigger to 60
+          integration_test_runner.current_frame = 158
+          integration_test_runner._last_trigger_frame = 100
+          test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+        end)
+
+        after_each(function ()
+          clear_table(test.action_sequence)
+        end)
+
+        it('should not call the action nor advance the time/index', function ()
+          integration_test_runner._check_end:clear()  -- was called on start in before_each
+          integration_test_runner:_check_next_action()
+          assert.spy(action_callback).was_called(0)
+          assert.are_equal(100, integration_test_runner._last_trigger_frame)
+          assert.are_equal(1, integration_test_runner._next_action_index)
+          assert.spy(integration_test_runner._check_end).was_called(0)
+        end)
+
+      end)
+
+      describe('(when next action time trigger is reached)', function ()
+
+        before_each(function ()
+          -- time trigger uses relative frames, so compare the difference since last trigger to 60
+          integration_test_runner.current_frame = 160
+          integration_test_runner._last_trigger_frame = 100
+          test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+        end)
+
+        after_each(function ()
+          clear_table(test.action_sequence)
+        end)
+
+        it('should call the action and advance the timeindex', function ()
+          integration_test_runner._check_end:clear()  -- was called on start in before_each
+          integration_test_runner:_check_next_action()
+          assert.spy(action_callback).was_called(1)
+          assert.spy(action_callback).was_called_with()
+          assert.are_equal(160, integration_test_runner._last_trigger_frame)
+          assert.are_equal(2, integration_test_runner._next_action_index)
+          assert.spy(integration_test_runner._check_end).was_called(1)
+          assert.spy(integration_test_runner._check_end).was_called_with(integration_test_runner)
+        end)
+
+      end)
+
+    end)
+
+    describe('(when next action index is 2/1)', function ()
+
+      before_each(function ()
+        integration_test_runner._next_action_index = 2
+      end)
+
+      it('should assert', function ()
+        assert.has_error(function ()
+          integration_test_runner:_check_next_action()
+        end)
+      end)
+
     end)
 
   end)
@@ -724,7 +867,8 @@ describe('integration_test', function ()
     it('should create an integration test with a name', function ()
       local test = integration_test('character follows ground')
       assert.is_not_nil(test)
-      assert.are_same({'character follows ground', nil, {}, nil}, {test.name, test.setup, test.action_sequence, test.final_assertion})
+      assert.are_same({'character follows ground', nil, {}, nil, 0},
+        {test.name, test.setup, test.action_sequence, test.final_assertion, test.timeout_frames})
     end)
   end)
 
@@ -745,6 +889,36 @@ describe('integration_test', function ()
     end)
   end)
 
+  describe('set_timeout', function ()
+    it('should set the timeout by converting time in s to frames', function ()
+      local test = integration_test('character follows ground', function () end)
+      test:set_timeout(2.0)
+      assert.are_equal(120, test.timeout_frames)
+    end)
+  end)
+
+  describe('check_timeout', function ()
+
+    it('should return false if timeout is 0', function ()
+      local test = integration_test('character follows ground', function () end)
+      test:set_timeout(0.0)
+      assert.is_false(test:check_timeout(50))
+    end)
+
+    it('should return false if frame is less than timeout (119 < 120)', function ()
+      local test = integration_test('character follows ground', function () end)
+      test:set_timeout(2.0)
+      assert.is_false(test:check_timeout(119))
+    end)
+
+    it('should return true if frame is greater than or equal to timeout', function ()
+      local test = integration_test('character follows ground', function () end)
+      test:set_timeout(2.0)
+      assert.is_true(test:check_timeout(120))
+    end)
+
+  end)
+
   describe('_check_final_assertion', function ()
     it('should call the final assertion and return the result', function ()
       local test = integration_test('character follows ground', function () end)
@@ -754,5 +928,6 @@ describe('integration_test', function ()
       assert.are_same({false, 'error message'}, {test:_check_final_assertion()})
     end)
   end)
+
 
 end)

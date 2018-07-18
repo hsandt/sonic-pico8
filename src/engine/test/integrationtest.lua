@@ -10,7 +10,8 @@ test_states = {
   none = 'none',          -- no test started
   running = 'running',    -- the test is still running
   success = 'success',    -- the test has just succeeded
-  failure = 'failure'     -- the test has just failed
+  failure = 'failure',    -- the test has just failed
+  timeout = 'timeout'     -- the test has timed out
 }
 
 -- integration test runner singleton
@@ -81,8 +82,13 @@ function integration_test_runner:update()
 
   -- advance time
   self.current_frame = self.current_frame + 1
-  self:_check_end()
-  self:_check_next_action()
+
+  -- check for timeout (if not 0)
+  if self.current_test:check_timeout(self.current_frame) then
+    self.current_state = test_states.timeout
+  else
+    self:_check_next_action()
+  end
 end
 
 function integration_test_runner:draw()
@@ -122,9 +128,11 @@ function integration_test_runner:_init()
 end
 
 function integration_test_runner:_check_next_action()
+  assert(self._next_action_index <= #self.current_test.action_sequence, "self._next_action_index ("..self._next_action_index..") is out of bounds for self.current_test.action_sequence (size "..#self.current_test.action_sequence..")")
+
   -- check if next action should be applied
   local next_action = self.current_test.action_sequence[self._next_action_index]
-  should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
+  local should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
   if should_trigger_next_action then
     -- apply next action and update time/index
     next_action.callback()
@@ -187,11 +195,7 @@ end
 -- else return false
 -- elapsed_frames     int   number of frames elapsed since the last trigger
 function time_trigger:_check(elapsed_frames)
-  if elapsed_frames >= self.frames then
-    return true
-  else
-    return false
-  end
+  return elapsed_frames >= self.frames
 end
 
 
@@ -221,11 +225,13 @@ integration_test = new_class()
 -- setup              function                       setup callback - called on test start
 -- action_sequence    [scripted_action]              sequence of scripted actions - run during test
 -- final_assertion    function () => (bool, string)  assertion function that returns (assertion passed, error message if failed) - called on test end
+-- timeout_frames     int                            number of frames before timeout (0 for no timeout, if you know the time triggers will do the job)
 function integration_test:_init(name)
   self.name = name
   self.setup = nil
   self.action_sequence = {}
   self.final_assertion = nil
+  self.timeout_frames = 0
 end
 
 function integration_test:_tostring()
@@ -236,6 +242,16 @@ function integration_test:add_action(trigger, callback, name)
   assert(trigger ~= nil, "integration_test:add_action: passed trigger is nil")
   assert(callback ~= nil, "integration_test:add_action: passed callback is nil")
   add(self.action_sequence, scripted_action(trigger, callback, name))
+end
+
+-- set the timeout with a time parameter in s
+function integration_test:set_timeout(time)
+  self.timeout_frames = flr(time * fps)
+end
+
+-- return true if the test has timed out at given frame
+function integration_test:check_timeout(frame)
+  return self.timeout_frames > 0 and frame >= self.timeout_frames
 end
 
 -- return true if final assertion passes, (false, error message) else

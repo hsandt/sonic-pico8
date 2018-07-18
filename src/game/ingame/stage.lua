@@ -111,7 +111,7 @@ end
 function stage.state:render()
   camera()
   -- background
-  rectfill(0, 0, 127, 127, colors.dark_purple)
+  rectfill(0, 0, 127, 127, colors.blue)
 
   -- update camera offset
   self:render_stage_elements()

@@ -16,6 +16,69 @@ local function repeat_callback(time, callback)
   end
 end
 
+
+describe('itest_manager', function ()
+
+  describe('register', function ()
+
+    after_each(function ()
+      clear_table(itest_manager.itests)
+    end)
+
+    it('should register a new test', function ()
+      local itest = integration_test('test 1')
+      itest_manager:register(itest)
+      assert.are_equal(itest, itest_manager.itests['test 1'])
+    end)
+
+    it('should override a registered test with the same name', function ()
+      local itest = integration_test('test 1')
+      local itest_clone = integration_test('test 1')
+      itest_manager:register(itest)
+      itest_manager:register(itest_clone)
+      assert.are_equal(itest_clone, itest_manager.itests['test 1'])
+    end)
+
+  end)
+
+  describe('init_game_and_start', function ()
+
+    setup(function ()
+      itest_runner_own_method = stub(integration_test_runner, "init_game_and_start")
+    end)
+
+    teardown(function ()
+      itest_runner_own_method:revert()
+    end)
+
+    after_each(function ()
+      itest_runner_own_method:clear()
+    end)
+
+    after_each(function ()
+      clear_table(itest_manager.itests)
+    end)
+
+    it('should delegate to itest runner', function ()
+      local itest = integration_test('test 1')
+      itest_manager:register(itest)
+      itest_manager:init_game_and_start(itest.name)
+      assert.spy(itest_runner_own_method).was_called(1)
+      assert.spy(itest_runner_own_method).was_called_with(integration_test_runner, itest)
+    end)
+
+    it('should assert if no test with the given name is found', function ()
+      local itest = integration_test('test 1')
+      assert.has_error(function ()
+        itest_manager:init_game_and_start(itest)
+      end)
+    end)
+
+  end)
+
+end)
+
+
 describe('integration_test_runner', function ()
 
   local test

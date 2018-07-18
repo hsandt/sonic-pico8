@@ -14,6 +14,24 @@ test_states = {
   timeout = 'timeout'     -- the test has timed out
 }
 
+-- integration test manager: registers all itests
+itest_manager = singleton {
+  itests = {}
+}
+
+function itest_manager:register(itest)
+  -- caution: unnamed itests will override each other as table keys!
+  -- so we recommend to name all tests except for quick testing
+  self.itests[itest.name] = itest
+end
+
+-- proxy method for itest runner helper method
+function itest_manager:init_game_and_start(test_name)
+  local itest = self.itests[test_name]
+  assert(itest, "itest_manager:init_game_and_start: itest named '"..test_name.."' could not be found")
+  integration_test_runner:init_game_and_start(itest)
+end
+
 -- integration test runner singleton
 integration_test_runner = singleton {
   initialized = false,

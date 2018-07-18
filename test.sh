@@ -25,18 +25,29 @@ fi
 if [[ $2 = "all" ]] ; then
 	FILTER=""
 	FILTER_OUT=""
+	USE_COVERAGE=true
 elif [[ $2 = "solo" ]]; then
 	FILTER="--filter \"#solo\""
 	FILTER_OUT=""
+	# coverage on a file is not relevant when testing one or two functions
+	USE_COVERAGE=false
 else
 	FILTER=""
 	FILTER_OUT="--filter-out \"#mute\""
+	USE_COVERAGE=true
+fi
+
+if [[ "$USE_COVERAGE" = true ]]; then
+	PRE_TEST="rm -f luacov.stats.out luacov.report.out &&"
+	POST_TEST="&& luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:(?:^|[ *])\*0|\d+%)\" luacov.report.out"
+else
+	PRE_TEST=""
+	POST_TEST=""
 fi
 
 LUA_PATH="src/?.lua;tests/?.lua"
-TEST_COMMAND="rm -f luacov.stats.out luacov.report.out &&
-busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v &&
-luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:(?:^|[ *])\*0|\d+%)\" luacov.report.out"
+CORE_TEST="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v"
+TEST_COMMAND="$PRE_TEST $CORE_TEST $POST_TEST"
 
 echo "Testing $1..."
 echo "> $TEST_COMMAND"

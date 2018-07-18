@@ -87,7 +87,20 @@ end
 
 function integration_test_runner:draw()
   assert(self.current_test, "integration_test_runner:draw: current_test is not set")
-  api.print(self.current_test.name..": "..self.current_state, 5, 5, colors.white)
+  api.print(self.current_test.name, 2, 2, colors.yellow)
+  api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
+end
+
+function integration_test_runner:_get_test_state_color(test_state)
+  if test_state == test_states.none then
+    return colors.white
+  elseif test_state == test_states.running then
+    return colors.white
+  elseif test_state == test_states.success then
+    return colors.green
+  else  -- test_state == test_states.failure then
+    return colors.red
+  end
 end
 
 function integration_test_runner:_init()

@@ -11,12 +11,6 @@ local visual = require("game/resources/visual")
 local gameapp = {}
 
 function gameapp.init()
---#if debug
-  profiler:show()
-  codetuner:show()
-  codetuner.active = true
---#endif
-
   ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 
   flow:add_gamestate(titlemenu.state)

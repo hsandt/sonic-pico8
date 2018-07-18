@@ -142,7 +142,6 @@ describe('integration_test_runner', function ()
       it('should also log the result', function ()
         integration_test_runner:update_game_and_test()
         assert.spy(log_stub).was_called(1)
-        assert.spy(log_stub).was_called_with("itest 'character walks' ended with success", "itest")
       end)
 
     end)
@@ -419,10 +418,29 @@ describe('integration_test_runner', function ()
 
       it('should draw information on the current test', function ()
         integration_test_runner:draw()
-        assert.spy(api_print_stub).was_called(1)
-        assert.spy(api_print_stub).was_called_with("character walks: running", 5, 5, colors.white)
+        assert.spy(api_print_stub).was_called(2)
       end)
 
+    end)
+
+  end)
+
+  describe('_get_test_state_color', function ()
+
+    it('should return white for none', function ()
+      assert.are_equal(colors.white, integration_test_runner:_get_test_state_color(test_states.none))
+    end)
+
+    it('should return white for none', function ()
+      assert.are_equal(colors.white, integration_test_runner:_get_test_state_color(test_states.running))
+    end)
+
+    it('should return green for success', function ()
+      assert.are_equal(colors.green, integration_test_runner:_get_test_state_color(test_states.success))
+    end)
+
+    it('should return red for failure', function ()
+      assert.are_equal(colors.red, integration_test_runner:_get_test_state_color(test_states.failure))
     end)
 
   end)

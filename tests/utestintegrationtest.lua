@@ -1,6 +1,8 @@
 require("bustedhelper")
 require("engine/test/integrationtest")
 require("engine/core/helper")
+local debug = require("engine/debug/debug")
+local input = require("engine/input/input")
 
 local function repeat_callback(time, callback)
   -- ceil is just for times with precision of 0.01 or deeper,
@@ -21,7 +23,24 @@ describe('integration_test_runner', function ()
   end)
 
   after_each(function ()
-    integration_test_runner:stop()
+    -- full reset
+    integration_test_runner.initialized = false
+    integration_test_runner.current_test = nil
+    integration_test_runner.current_frame = 0.
+    integration_test_runner._last_trigger_frame = 0.
+    integration_test_runner._next_action_index = 1
+    integration_test_runner.current_result = test_result.none
+
+    input.mode = input_modes.native
+
+    debug.active_categories = {
+      default = true,
+      flow = true,
+      player = true,
+      ui = true,
+      codetuner = true,
+      itest = true
+    }
   end)
 
   describe('start', function ()
@@ -29,18 +48,21 @@ describe('integration_test_runner', function ()
     setup(function ()
       test = integration_test('character walks')
       test.setup = spy.new(function () end)
+      spy.on(integration_test_runner, "_init")
       spy.on(integration_test_runner, "_check_end")
       spy.on(integration_test_runner, "_check_next_action")
     end)
 
     teardown(function ()
       test.setup = nil
+      integration_test_runner._init:revert()
       integration_test_runner._check_end:revert()
       integration_test_runner._check_next_action:revert()
     end)
 
     after_each(function ()
       test.setup:clear()
+      integration_test_runner._init:clear()
       integration_test_runner._check_end:clear()
       integration_test_runner._check_next_action:clear()
     end)
@@ -65,10 +87,10 @@ describe('integration_test_runner', function ()
       assert.spy(test.setup).was_called_with(test)
     end)
 
-    it('should call _check_end', function ()
+    it('should call _init the first time', function ()
       integration_test_runner:start(test)
-      assert.spy(integration_test_runner._check_end).was_called(1)
-      assert.spy(integration_test_runner._check_end).was_called_with(match.is_ref(integration_test_runner))
+      assert.spy(integration_test_runner._init).was_called(1)
+      assert.spy(integration_test_runner._init).was_called_with(match.is_ref(integration_test_runner))
     end)
 
     it('should call _check_end', function ()
@@ -96,7 +118,7 @@ describe('integration_test_runner', function ()
         clear_table(test.action_sequence)
       end)
 
-      it('should not check the next action', function ()
+      it('should check the next action immediately', function ()
         integration_test_runner:start(test)
         assert.spy(integration_test_runner._check_next_action).was_called(1)
         assert.spy(integration_test_runner._check_next_action).was_called_with(match.is_ref(integration_test_runner))
@@ -130,6 +152,14 @@ describe('integration_test_runner', function ()
           integration_test_runner._next_action_index,
           integration_test_runner.current_result
         })
+      end)
+
+      it('should not call _init the second time', function ()
+        -- in this specific case, start was called in before_each so we need to clear manually
+        -- just before we call start ourselves to have the correct count
+        integration_test_runner._init:clear()
+        integration_test_runner:start(test)
+        assert.spy(integration_test_runner._init).was_called(0)
       end)
 
     end)
@@ -215,6 +245,33 @@ describe('integration_test_runner', function ()
         assert.are_equal(integration_test_runner.current_result, test_result.success)
       end)
 
+    end)
+
+  end)
+
+  describe('_init', function ()
+
+    it('should set the input mode to simulated', function ()
+      integration_test_runner:_init()
+      assert.are_equal(input_modes.simulated, input.mode)
+    end)
+
+    it('should set all debug categories to inactive except itest', function ()
+      integration_test_runner:_init()
+      assert.are_same({
+          default = false,
+          flow = false,
+          player = false,
+          ui = false,
+          codetuner = false,
+          itest = true
+        },
+        debug.active_categories)
+    end)
+
+    it('should set initialized to true', function ()
+      integration_test_runner:_init()
+      assert.is_true(integration_test_runner.initialized)
     end)
 
   end)

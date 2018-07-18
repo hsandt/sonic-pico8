@@ -12,6 +12,7 @@ test_result = {
 
 -- integration test runner singleton
 integration_test_runner = singleton {
+  initialized = false,
   current_test = nil,
   current_frame = 0.,
   _last_trigger_frame = 0.,
@@ -20,6 +21,10 @@ integration_test_runner = singleton {
 }
 
 function integration_test_runner:start(test)
+  if not self.initialized then
+    self:_init()
+  end
+
   if self.current_test then
     self:stop()
   end
@@ -46,6 +51,24 @@ function integration_test_runner:update()
   self.current_frame = self.current_frame + 1
   self:_check_end()
   self:_check_next_action()
+end
+
+function integration_test_runner:_init()
+  -- use simulated input during itests
+  input.mode = input_modes.simulated
+
+  -- all itests should only print itest logs
+  for category in pairs(debug.active_categories) do
+    local value
+    if category == 'itest' then
+      value = true
+    else
+      value = false
+    end
+    debug.active_categories[category] = value
+  end
+
+  self.initialized = true
 end
 
 function integration_test_runner:_check_next_action()

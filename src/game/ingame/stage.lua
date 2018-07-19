@@ -110,6 +110,7 @@ end
 
 function stage.state:render()
   camera()
+  
   -- background
   rectfill(0, 0, 127, 127, colors.blue)
 

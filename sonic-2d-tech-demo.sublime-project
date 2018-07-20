@@ -18,16 +18,12 @@
 			"name": "p8tool: build and run or reload game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\")"],
+			"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\")"],
 			"variants":
 			[
 				{
 					"name": "release",
-					"cmd": ["./build.sh main sonic-pico8_release release && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\")"]
-				},
-				{
-					"name": "headless",
-					"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run -x build/sonic-pico8_release.p8\")"]
+					"cmd": ["./build.sh main sonic-pico8_release release && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_release.p8\")"]
 				}
 			]
 		},
@@ -35,16 +31,12 @@
 			"name": "p8tool: run game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\""],
+			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\""],
 			"variants":
 			[
 				{
 					"name": "release",
-					"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sonic-pico8_release.p8\""]
-				},
-				{
-					"name": "headless",
-					"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run -x build/sonic-pico8_headless.p8\""]
+					"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_release.p8\""]
 				}
 			]
 		},
@@ -78,37 +70,37 @@
 			"name": "p8tool: build and run or reload sandbox",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh sandbox sandbox debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"]
+			"cmd": ["./build.sh sandbox sandbox debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sandbox.p8\")"]
 		},
 		{
 			"name": "p8tool: run sandbox",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\""]
+			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sandbox.p8\""]
 		},
 		{
 			"name": "p8tool: build and run or reload itestplayercharacter",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh itests/itestplayercharacter itestplayercharacter debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/itestplayercharacter.p8\")"]
+			"cmd": ["./build.sh itests/itestplayercharacter itestplayercharacter debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/itestplayercharacter.p8\")"]
 		},
 		{
 			"name": "p8tool: build and run or reload itesttitlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh itests/itesttitlemenu itesttitlemenu debug && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/itesttitlemenu.p8\")"]
+			"cmd": ["./build.sh itests/itesttitlemenu itesttitlemenu debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/itesttitlemenu.p8\")"]
 		},
 		{
 			"name": "p8tool: run itest playercharacter",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/itestplayercharacter.p8\""]
+			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/itestplayercharacter.p8\""]
 		},
 		{
 			"name": "p8tool: run itest titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["gnome-terminal -x bash -x -c \"pico8 -run build/itesttitlemenu.p8\""]
+			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/itesttitlemenu.p8\""]
 		},
 		{
 			"cmd": ["pico8 -run data/data.p8"],
@@ -122,19 +114,23 @@
 			"shell": true,
 			"cmd": ["python3 -m prebuild.test_preprocess"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax",
-		},
-		{
-			"name": "python: test add_metadata",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["python3 -m postbuild.test_add_metadata"]
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "python: test replace_strings",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["python3 -m postbuild.test_replace_strings"]
+			"cmd": ["python3 -m prebuild.test_replace_strings"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "python: test add_metadata",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m postbuild.test_add_metadata"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "busted: test",
@@ -254,7 +250,7 @@
 				"backup",
 				"carts"
 			],
-			"path": "/home/wing/.lexaloffle/pico-8"
+			"path": "~/.lexaloffle/pico-8"
 		},
 		{
 			"folder_exclude_patterns":

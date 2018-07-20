@@ -1,4 +1,6 @@
 local gameapp = require("game/application/gameapp")
+local profiler = require("engine/debug/profiler")
+local codetuner = require("engine/debug/codetuner")
 
 --#if debug
 profiler:show()

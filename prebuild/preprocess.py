@@ -12,7 +12,7 @@ from enum import Enum
 # 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
 
 # Config to defined symbols
-defined_symbols = {
+defined_symbols_table = {
     'debug': ['debug', 'test'],
     'release': []
 }
@@ -80,6 +80,10 @@ def preprocess_lines(lines, config):
     It is possible to pass a file as lines iterator
 
     """
+    if config not in defined_symbols_table:
+        raise ValueError(f"config '{config}' is not a key in defined_symbols_table ({list(defined_symbols_table.keys())})")
+    defined_symbols = defined_symbols_table[config]
+
     preprocessed_lines = []
     current_mode = ParsingMode.NORMAL
     for line in lines:
@@ -90,7 +94,7 @@ def preprocess_lines(lines, config):
                 logging.warning('--#if found inside previous --#if block, ignoring directive')
                 continue
             symbol = match.group(1)
-            if symbol in defined_symbols[config]:
+            if symbol in defined_symbols:
                 # symbol is defined, keep the surrounded lines
                 # still remove the preprocessor directives (don't add it to accepted lines)
                 current_mode = ParsingMode.IF_ACCEPTED

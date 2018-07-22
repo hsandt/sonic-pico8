@@ -132,6 +132,10 @@ class TestPreprocess(unittest.TestCase):
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
+    def test_preprocess_with_unknown_config(self):
+        test_lines = []
+        self.assertRaises(ValueError, preprocess.preprocess_lines, test_lines, 'unknown')
+
 
 class TestPreprocessFile(unittest.TestCase):
 

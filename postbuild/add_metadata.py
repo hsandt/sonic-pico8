@@ -130,3 +130,4 @@ if __name__ == '__main__':
     add_title_author_info(args.filepath, args.title, args.author)
     if args.label_filepath != '-':
         add_label_info(args.filepath, args.label_filepath)
+    print(f"Added metadata (title: {args.title}, author: {args.author}) to {args.filepath} based on label {args.label_filepath}.")

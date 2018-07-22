@@ -5,7 +5,18 @@ from os import path
 import shutil, tempfile
 
 
-class TestReplaceGlyphsInString(unittest.TestCase):
+class TestParsing(unittest.TestCase):
+
+    def test_parse_arg_substitutes(self):
+        test_arg_substitutes = ['itest=character', 'optimization=3']
+        self.assertEqual(replace_strings.parse_arg_substitutes(test_arg_substitutes), {'itest': 'character', 'optimization': '3'})
+
+    def test_parse_arg_substitutes_parsing_error(self):
+        test_arg_substitutes = ['itest character']
+        self.assertRaises(ValueError, replace_strings.parse_arg_substitutes, test_arg_substitutes)
+
+
+class TestReplaceStrings(unittest.TestCase):
 
     def test_replace_all_glyphs_in_string(self):
         test_string = '##d and ##x ##d'
@@ -16,7 +27,12 @@ class TestReplaceGlyphsInString(unittest.TestCase):
         self.assertEqual(replace_strings.replace_all_functions_in_string(test_string), 'print("hello")')
 
 
-class TestReplaceGlyphsInFile(unittest.TestCase):
+    def test_replace_all_args_in_string(self):
+        test_string = 'require("itest_$itest")'
+        self.assertEqual(replace_strings.replace_all_args_in_string(test_string, {'itest': 'character'}), 'require("itest_character")')
+
+
+class TestReplaceStringsInFile(unittest.TestCase):
 
     def setUp(self):
         # Create a temporary directory
@@ -29,12 +45,12 @@ class TestReplaceGlyphsInFile(unittest.TestCase):
     def test_replace_strings(self):
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
-            f.write('##d or ##u\nand ##x\napi.print("press ##x")')
-        replace_strings.replace_all_strings_in_file(test_filepath)
+            f.write('require("itest_$itest")\n##d or ##u\nand ##x\napi.print("press ##x")')
+        replace_strings.replace_all_strings_in_file(test_filepath, {'itest': 'character'})
         with open(test_filepath, 'r') as f:
-            self.assertEqual(f.read(), '⬇️ or ⬆️\nand ❎\nprint("press ❎")')
+            self.assertEqual(f.read(), 'require("itest_character")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
 
-class TestReplaceGlyphsInDir(unittest.TestCase):
+class TestReplaceStringsInDir(unittest.TestCase):
 
     def setUp(self):
         # Create a temporary directory
@@ -47,15 +63,15 @@ class TestReplaceGlyphsInDir(unittest.TestCase):
     def test_replace_all_strings_in_dir(self):
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
         with open(test_filepath1, 'w') as f:
-            f.write('##d or ##u\nand ##x\napi.print("press ##x")')
+            f.write('require("itest_$itest")\n##d or ##u\nand ##x\napi.print("press ##x")')
         test_filepath2 = path.join(self.test_dir, 'test2.lua')
         with open(test_filepath2, 'w') as f:
-            f.write('##l or ##r\nand ##o\napi.print("press ##o")')
-        replace_strings.replace_all_strings_in_dir(self.test_dir)
+            f.write('require("itest_$itest")\n##l or ##r\nand ##o\napi.print("press ##o")')
+        replace_strings.replace_all_strings_in_dir(self.test_dir, {'itest': 'character'})
         with open(test_filepath1, 'r') as f:
-            self.assertEqual(f.read(), '⬇️ or ⬆️\nand ❎\nprint("press ❎")')
+            self.assertEqual(f.read(), 'require("itest_character")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
         with open(test_filepath2, 'r') as f:
-            self.assertEqual(f.read(), '⬅️ or ➡️\nand 🅾️\nprint("press 🅾️")')
+            self.assertEqual(f.read(), 'require("itest_character")\n⬅️ or ➡️\nand 🅾️\nprint("press 🅾️")')
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,12 +3,12 @@
 import argparse
 import os
 
-# This script replace glyph identifiers and some functions with the corresponding
-# unicode characters and substitute function names.
+# This script replace glyph identifiers, some functions and arg substitutes ($arg)
+# with the corresponding unicode characters and substitute function names.
 # Set the glyphs and functions to replace in GLYPH_TABLE and FUNCTION_SUBSTITUTE_TABLE.
 
 # input glyphs
-# when using input functions (btn, btnp), prefer enum input.button_ids
+# (when using input functions (btn, btnp), prefer enum input.button_ids)
 GLYPH_UP = '⬆️'
 GLYPH_DOWN = '⬇️'
 GLYPH_LEFT = '⬅️'
@@ -34,29 +34,34 @@ FUNCTION_SUBSTITUTE_TABLE = {
     'api.print': 'print'
 }
 
-def replace_all_strings_in_dir(dirpath):
+# prefix of all arg identifiers
+ARG_PREFIX = '$'
+
+def replace_all_strings_in_dir(dirpath, arg_substitutes_table):
     """
-    Replace all the glyph identifiers in all source files in a given directory
+    Replace all the glyph identifiers, functions and arg substitutes in all source files in a given directory
 
     """
     for root, dirs, files in os.walk(dirpath):
         for file in files:
             if file.endswith(".lua"):
-                replace_all_strings_in_file(os.path.join(root, file))
+                replace_all_strings_in_file(os.path.join(root, file), arg_substitutes_table)
 
 
-def replace_all_strings_in_file(filepath):
+def replace_all_strings_in_file(filepath, arg_substitutes_table):
     """
-    Replace all the glyph identifiers in a given file
+    Replace all the glyph identifiers, functions and arg substitutes in a given file
 
     test.txt:
+        require('itest_$itest')
         ##d or ##u
         and ##x
         api.print("press ##x")
 
-    >>> replace_all_glyphs_in_file('test.txt')
+    >>> replace_all_glyphs_in_file('test.txt', {'itest': 'character'})
 
     test.txt:
+        require('itest_character')
         ⬇️ or ⬆️
         and ❎
         print("press ❎")
@@ -66,6 +71,7 @@ def replace_all_strings_in_file(filepath):
         data = f.read()
         data = replace_all_glyphs_in_string(data)
         data = replace_all_functions_in_string(data)
+        data = replace_all_args_in_string(data, arg_substitutes_table)
         # replace file content (this works because our string replacements
         # don't change the number of lines, so we don't need to truncate)
         f.seek(0)
@@ -87,7 +93,7 @@ def replace_all_functions_in_string(text):
     """
     Replace functions with the corresponding substitutes
 
-    >>> replace_all_functions_in_string("api.print("hello")")
+    >>> replace_all_functions_in_string("api.print(\"hello\")")
     'print("hello")'
 
     """
@@ -96,9 +102,41 @@ def replace_all_functions_in_string(text):
     return text
 
 
+def replace_all_args_in_string(text, arg_substitutes_table):
+    """
+    Replace args with the corresponding substitutes
+
+    >>> replace_all_args_in_string("require('itest_$itest')", {"itest": "character"})
+    'require("itest_character")'
+
+    """
+    for arg, substitute in arg_substitutes_table.items():
+        text = text.replace(ARG_PREFIX + arg, substitute)
+    return text
+
+
+def parse_arg_substitutes(arg_substitutes):
+    """Parse a list of arg substitutes in the format 'arg1=substitute1 arg2=substitute2 ...' into a dictionary of {arg: substitute}"""
+    arg_substitutes_table = {}
+    for arg_definition in arg_substitutes:
+        # arg_definition should have format 'arg1=substitute1'
+        members = arg_definition.split("=")
+        if len(members) == 2:
+            arg, substitute = arg_definition.split("=")
+            # we do not support surrounding quotes which would be integrated in the names, so don't use names with spaces
+            arg_substitutes_table[arg] = substitute
+        else:
+            raise ValueError(f"arg_substitutes contain definition with not exactly 2 '=' signs: {arg_definition.split}")
+    return arg_substitutes_table
 
 if __name__ == '__main__':
+    import sys
     parser = argparse.ArgumentParser(description='Replace predetermined strings in all source files in a directory.')
     parser.add_argument('dirpath', type=str, help='path containing source files where strings should be replaced')
+    parser.add_argument('--substitutes', type=str, nargs='*', default=[],
+        help='extra substitutes table in the format "arg1=substitute1 arg2=substitute2 ...". \
+            Does not support spaces in names because surrounding quotes would be part of the names')
     args = parser.parse_args()
-    replace_all_strings_in_dir(args.dirpath)
+    arg_substitutes_table = parse_arg_substitutes(args.substitutes)
+    replace_all_strings_in_dir(args.dirpath, arg_substitutes_table)
+    print(f"Replaced all strings in all files in {args.dirpath} with substitutes: {arg_substitutes_table}.")

@@ -119,9 +119,11 @@ def strip_comments(line):
     # \1 will preserve the original code
     return comment_pattern.sub('\\1', line)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Apply preprocessor directives.')
     parser.add_argument('path', type=str, help='path containing source files to preprocess')
     parser.add_argument('config', type=str, help="config used: 'debug' or 'release'")
     args = parser.parse_args()
     preprocess_dir(args.path, args.config)
+    print(f"Preprocessed all files in {args.path} with config {args.config}.")

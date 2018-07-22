@@ -10,11 +10,7 @@ if [[ $# -lt 2 ]] ; then
     exit 1
 fi
 
-# make sure paths passed are not absolute or backward relative to avoid deletion of upper paths
-function is_unsafe_path () {
-	[[ $1 == /* ]] || [[ $1 == *..* ]]
-}
-
+. helper/path_helper.sh
 
 if is_unsafe_path "$1"; then
 	echo "$0: source folder path is unsafe: '$1'"
@@ -37,5 +33,6 @@ pushd "$1" > /dev/null
 shopt -s globstar
 # copy the source folder content to the output location
 # -u will only copy if the timestamp has changed, which is enough to check in our case
-cp -u --parents **/*.lua "../$2"
+cp -u --parents **/*.lua "../$2" &&
+echo "Copied folder '$1' to '$2'."
 popd > /dev/null

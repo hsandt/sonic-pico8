@@ -510,37 +510,69 @@ describe('(mouse toggled)', function ()
 
     describe('(when input mode is simulated)', function ()
 
-      setup(function ()
-        input.mode = input_modes.simulated
-        input.simulated_buttons_down[0][button_ids.up] = true
-        input.simulated_buttons_down[1][button_ids.o] = true
+      describe('(in initial state)', function ()
+
+        it('should return false for all buttons', function ()
+          assert.are_same(
+            {
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false
+            },
+            {
+              input:_btn_proxy(button_ids.left),
+              input:_btn_proxy(button_ids.left, 0),
+              input:_btn_proxy(button_ids.up),
+              input:_btn_proxy(button_ids.up, 0),
+              input:_btn_proxy(button_ids.x, 0),
+              input:_btn_proxy(button_ids.down, 1),
+              input:_btn_proxy(button_ids.o, 1),
+              input:_btn_proxy(button_ids.x, 1),
+            })
+        end)
+
       end)
 
-      teardown(function ()
-        input.mode = input_modes.native
-        input.simulated_buttons_down[0][button_ids.up] = false
-        input.simulated_buttons_down[1][button_ids.o] = false
-      end)
+      describe('(when some simulated buttons are down)', function ()
 
-      it('should return true if simulated input is down', function ()
+        setup(function ()
+          input.mode = input_modes.simulated
+          input.simulated_buttons_down[0][button_ids.up] = true
+          input.simulated_buttons_down[1][button_ids.o] = true
+        end)
 
-        assert.are_same(
-          {
-            false,
-            false,
-            true,
-            true,
-            false,
-            true
-          },
-          {
-            input:_btn_proxy(button_ids.left),
-            input:_btn_proxy(button_ids.left, 0),
-            input:_btn_proxy(button_ids.up),
-            input:_btn_proxy(button_ids.up, 0),
-            input:_btn_proxy(button_ids.down, 1),
-            input:_btn_proxy(button_ids.o, 1),
-          })
+        teardown(function ()
+          input.mode = input_modes.native
+          input.simulated_buttons_down[0][button_ids.up] = false
+          input.simulated_buttons_down[1][button_ids.o] = false
+        end)
+
+        it('should return true if simulated input is down', function ()
+
+          assert.are_same(
+            {
+              false,
+              false,
+              true,
+              true,
+              false,
+              true
+            },
+            {
+              input:_btn_proxy(button_ids.left),
+              input:_btn_proxy(button_ids.left, 0),
+              input:_btn_proxy(button_ids.up),
+              input:_btn_proxy(button_ids.up, 0),
+              input:_btn_proxy(button_ids.down, 1),
+              input:_btn_proxy(button_ids.o, 1),
+            })
+        end)
+
       end)
 
     end)

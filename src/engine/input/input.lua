@@ -1,5 +1,4 @@
 require("engine/core/math")
--- require("engine/ui/ui")
 
 button_ids = {
   left = 0,
@@ -25,25 +24,35 @@ input_modes = {
 local input = {
   mode = input_modes.native,  -- current input mode
   mouse_active = false,       -- is the mouse active?
-  simulated_buttons_down = {  -- mimic pico8 btn() data for simulated mode only
-    [0] = {
-      [button_ids.left] = false,
-      [button_ids.right] = false,
-      [button_ids.up] = false,
-      [button_ids.down] = false,
-      [button_ids.o] = false,
-      [button_ids.x] = false
-    },
-    [1] = {
-      [button_ids.left] = false,
-      [button_ids.right] = false,
-      [button_ids.up] = false,
-      [button_ids.down] = false,
-      [button_ids.o] = false,
-      [button_ids.x] = false
-    }
-  }
+  simulated_buttons_down = {} -- mimic pico8 btn() data for simulated mode only
 }
+
+-- fill simulated_buttons_down with false values. compressed form equivalent to:
+-- simulated_buttons_down = {
+--   [0] = {
+--     [button_ids.left] = false,
+--     [button_ids.right] = false,
+--     [button_ids.up] = false,
+--     [button_ids.down] = false,
+--     [button_ids.o] = false,
+--     [button_ids.x] = false
+--   },
+--   [1] = {
+--     [button_ids.left] = false,
+--     [button_ids.right] = false,
+--     [button_ids.up] = false,
+--     [button_ids.down] = false,
+--     [button_ids.o] = false,
+--     [button_ids.x] = false
+--   }
+-- }
+for i = 0, 1 do
+  local t = {}
+  for i = 0, 5 do
+    t[i] = false
+  end
+  input.simulated_buttons_down[i] = t
+end
 
 local mouse_devkit_address = 0x5f2d
 local cursor_x_stat = 32
@@ -53,14 +62,20 @@ local cursor_y_stat = 33
 
 -- generate the initial player_button_states table for a player
 function generate_initial_button_states()
-  return {
-    [button_ids.left] = button_states.released,
-    [button_ids.right] = button_states.released,
-    [button_ids.up] = button_states.released,
-    [button_ids.down] = button_states.released,
-    [button_ids.o] = button_states.released,
-    [button_ids.x] = button_states.released
-  }
+  -- compressed form equivalent to:
+  -- return {
+  --   [button_ids.left] = button_states.released,
+  --   [button_ids.right] = button_states.released,
+  --   [button_ids.up] = button_states.released,
+  --   [button_ids.down] = button_states.released,
+  --   [button_ids.o] = button_states.released,
+  --   [button_ids.x] = button_states.released
+  -- }
+  local t = {}
+  for i = 0, 5 do
+    t[i] = button_states.released
+  end
+  return t
 end
 
 -- player_button_states tables, indexed by played ID

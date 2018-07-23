@@ -167,14 +167,15 @@ describe('stage', function ()
 
         it('should not assert when an error doesn\'t occurs inside the coroutine resume yet', function ()
           assert.has_no_errors(function () stage.state:update_coroutines() end)
-          assert.has_errors(function ()
-            for t = 1, 1.0 * fps - 1 do
-              stage.state:update_coroutines()
-            end
-          end)
         end)
 
         it('should assert when an error occurs inside the coroutine resume', function ()
+          assert.has_errors(function ()
+              for t = 1, 1.0 * fps do
+                stage.state:update_coroutines()
+              end
+            end,
+            "Assertion failed in coroutine update for: [coroutine_curry] (dead) (1.0)")
         end)
 
       end)

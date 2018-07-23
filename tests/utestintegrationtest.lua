@@ -62,7 +62,7 @@ describe('itest_manager', function ()
     it('should delegate to itest runner', function ()
       local itest = integration_test('test 1')
       itest_manager:register(itest)
-      itest_manager:init_game_and_start(itest.name)
+      itest_manager:init_game_and_start_by_name(itest.name)
       assert.spy(itest_runner_own_method).was_called(1)
       assert.spy(itest_runner_own_method).was_called_with(integration_test_runner, itest)
     end)
@@ -70,8 +70,9 @@ describe('itest_manager', function ()
     it('should assert if no test with the given name is found', function ()
       local itest = integration_test('test 1')
       assert.has_error(function ()
-        itest_manager:init_game_and_start(itest)
-      end)
+        itest_manager:init_game_and_start_by_name(itest)
+      end,
+      "itest_manager:init_game_and_start: itest named '[integration_test 'test 1']' could not be found")
     end)
 
   end)
@@ -375,7 +376,8 @@ describe('integration_test_runner', function ()
     it('should assert when no test has been started', function ()
       assert.has_error(function()
         integration_test_runner:update()
-      end)
+      end,
+      "integration_test_runner:update: current_test is not set")
     end)
 
     describe('(after test started)', function ()
@@ -500,7 +502,8 @@ describe('integration_test_runner', function ()
     it('should assert if no current test is set', function ()
       assert.has_error(function ()
         integration_test_runner:draw()
-      end)
+      end,
+      "integration_test_runner:draw: current_test is not set")
     end)
 
     describe('(when curent test is set)', function ()
@@ -669,13 +672,15 @@ describe('integration_test_runner', function ()
     describe('(when next action index is 2/1)', function ()
 
       before_each(function ()
+        test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
         integration_test_runner._next_action_index = 2
       end)
 
       it('should assert', function ()
         assert.has_error(function ()
           integration_test_runner:_check_next_action()
-        end)
+        end,
+        "self._next_action_index (2) is out of bounds for self.current_test.action_sequence (size 1)")
       end)
 
     end)

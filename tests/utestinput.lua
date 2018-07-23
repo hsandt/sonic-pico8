@@ -391,8 +391,11 @@ describe('(mouse toggled)', function ()
           -- leave pico8.keypressed.counter at 0
         end)
 
-        it('should update the different button states in parallel', function ()
-          assert.has_error(function() input:_process_player_inputs(0) end)
+        it('should detect and assert if btnp returns false while our model says it should be true', function ()
+          assert.has_error(function()
+              input:_process_player_inputs(0)
+            end,
+            "input:_update_button_state: button 0 was released and is now pressed, but btnp(0) returns false")
         end)
 
       end)

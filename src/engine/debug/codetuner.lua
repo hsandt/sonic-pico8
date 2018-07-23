@@ -1,3 +1,5 @@
+--#if tuner
+
 require("engine/core/class")
 require("engine/render/color")
 local debug = require("engine/debug/debug")
@@ -136,3 +138,5 @@ end
 codetuner:init_window()
 
 return codetuner
+
+--#endif

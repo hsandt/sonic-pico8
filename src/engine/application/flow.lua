@@ -9,9 +9,11 @@ local flow = singleton {
  next_gamestate = nil,
 }
 
+--#if log
 function flow:_tostring()
  return "[flow]"
 end
+--#endif
 
 function flow:update()
  self:_check_next_gamestate()

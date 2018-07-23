@@ -3,7 +3,12 @@ require("game/itests/itest$itest")
 
 
 function _init()
-  integration_test_runner:init_game_and_start(itest)
+  -- temporary way to run single itest
+  -- when itest files start having multiple tests, you'll need a name-based search test running
+  for itest_name, itest in pairs(itest_manager.itests) do
+    itest_manager:init_game_and_start_by_name(itest_name)
+    break
+  end
 end
 
 function _update60()

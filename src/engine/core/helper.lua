@@ -23,6 +23,8 @@ function unpack(t, from, to)
   return t[from], unpack(t, from+1, to)
 end
 
+--#if log
+
 function stringify(value)
   if type(value) == "table" and value._tostring then
     return value:_tostring()
@@ -54,6 +56,8 @@ end
 function joinstr(separator, ...)
   return joinstr_table(separator, {...})
 end
+
+--#endif
 
 -- wait for [time]s. only works if you update your coroutines each frame.
 function yield_delay(delay)

@@ -21,17 +21,23 @@ local titlemenustate = singleton {
   current_cursor_index = 0,
 }
 
+--#if log
 function titlemenustate:_tostring()
   return "[titlemenu state]"
 end
+--#endif
 
 function titlemenustate:on_enter()
+--#if mouse
   input:toggle_mouse(true)
+--#endif
   self.current_cursor_index = 0
 end
 
 function titlemenustate:on_exit()
+--#if mouse
   input:toggle_mouse(false)
+--#endif
 end
 
 function titlemenustate:update()

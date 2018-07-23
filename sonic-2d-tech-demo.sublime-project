@@ -2,55 +2,68 @@
 	"build_systems":
 	[
 		{
-			"name": "p8tool: build game",
+			"name": "p8tool: build current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh main sonic-pico8_debug debug"],
+			"cmd": ["./build.sh $file_base_name debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./build.sh $file_base_name log"]
+				},
+				{
 					"name": "release",
-					"cmd": ["./build.sh main sonic-pico8_release release"]
-				}
+					"cmd": ["./build.sh $file_base_name release"]
+				},
 			]
 		},
 		{
-			"name": "p8tool: build and run or reload game",
+			"name": "p8tool: build and run or reload current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build.sh main sonic-pico8_debug debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\")"],
+			"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./build.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
+				},
+				{
 					"name": "release",
-					"cmd": ["./build.sh main sonic-pico8_release release && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_release.p8\")"]
-				}
+					"cmd": ["./build.sh $file_base_name release && (./reload.sh || ./run.sh $file_base_name release)"]
+				},
 			]
 		},
 		{
-			"name": "p8tool: run game",
+			"name": "p8tool: run current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_debug.p8\""],
+			"cmd": ["./run.sh $file_base_name debug"],
 			"variants":
 			[
 				{
-					"name": "release",
-					"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sonic-pico8_release.p8\""]
-				}
-			]
-		},
-		{
-			"name": "p8tool: install game",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./install.sh sonic-pico8_debug.p8"],
-			"variants":
-			[
+					"name": "itest",
+					"cmd": ["./run.sh $file_base_name itest"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./run.sh $file_base_name log"]
+				},
 				{
 					"name": "release",
-					"cmd": ["./install.sh sonic-pico8_release.p8"],
-				}
+					"cmd": ["./run.sh $file_base_name release"]
+				},
 			]
 		},
 		{
@@ -61,51 +74,23 @@
 			"variants":
 			[
 				{
+					"name": "itest",
+					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+				},
+				{
+					"name": "log",
+					"cmd": ["./install.sh sonic-pico8_log.p8.png"],
+				},
+				{
 					"name": "release",
 					"cmd": ["./install.sh sonic-pico8_release.p8.png"],
-				}
+				},
 			]
 		},
 		{
-			"name": "p8tool: build and run or reload sandbox",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./build.sh sandbox sandbox debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/sandbox.p8\")"]
-		},
-		{
-			"name": "p8tool: run sandbox",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/sandbox.p8\""]
-		},
-		{
-			"name": "p8tool: build and run or reload itestplayercharacter",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./build.sh itests/itestplayercharacter itestplayercharacter debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/itestplayercharacter.p8\")"]
-		},
-		{
-			"name": "p8tool: build and run or reload itesttitlemenu",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./build.sh itests/itesttitlemenu itesttitlemenu debug && (./reload.sh || gnome-terminal -- bash -x -c \"pico8 -run build/itesttitlemenu.p8\")"]
-		},
-		{
-			"name": "p8tool: run itest playercharacter",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/itestplayercharacter.p8\""]
-		},
-		{
-			"name": "p8tool: run itest titlemenu",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["gnome-terminal -- bash -x -c \"pico8 -run build/itesttitlemenu.p8\""]
-		},
-		{
-			"cmd": ["pico8 -run data/data.p8"],
 			"name": "p8tool: edit data",
 			"shell": true,
+			"cmd": ["pico8 -run data/data.p8"],
 			"working_dir": "${project_path}"
 		},
 		{

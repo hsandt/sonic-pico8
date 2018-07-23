@@ -84,6 +84,8 @@ input.players_button_states = {
   [1] = generate_initial_button_states()
 }
 
+--#if mouse
+
 -- activate mouse devkit
 function input:toggle_mouse(active)
   if active == nil then
@@ -99,6 +101,8 @@ end
 function input.get_cursor_position()
   return vector(stat(cursor_x_stat), stat(cursor_y_stat))
 end
+
+--#endif
 
 -- return a button state for player id (0 by default)
 function input:get_button_state(button_id, player_id)

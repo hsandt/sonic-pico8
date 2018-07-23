@@ -8,6 +8,8 @@ local ui = {
 
 -- setup
 
+--#if mouse
+
 -- injection function: call it from game to set the sprite data
 -- for the mouse cursor. this avoids accessing game data
 -- from an engine script
@@ -25,6 +27,8 @@ function ui:render_mouse()
   end
 end
 
+--#endif
+
 -- label class: container for a text to draw at a given position
 local label = new_class()
 
@@ -37,9 +41,11 @@ function label:_init(text, position, colour)
   self.colour = colour
 end
 
+--#if log
 function label:_tostring()
   return "label('"..self.text.."' @ "..self.position.." in "..color_tostring(self.colour)..")"
 end
+--#endif
 
 function label.__eq(lhs, rhs)
   return lhs.text == rhs.text and lhs.position == rhs.position and lhs.colour == rhs.colour
@@ -58,9 +64,11 @@ function overlay:_init(layer)
   self.labels = {}
 end
 
+--#if log
 function overlay:_tostring()
   return "overlay(layer: "..self.layer..")"
 end
+--#endif
 
 -- add a label identified by a name, containing a text string,
 -- at a position vector, with a given color

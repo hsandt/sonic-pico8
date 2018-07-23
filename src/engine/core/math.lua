@@ -1,6 +1,8 @@
 require("engine/core/class")
 
 -- numeric helpers
+
+--#if assert
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
   assert(lhs)
@@ -13,8 +15,7 @@ function almost_eq(lhs, rhs, eps)
     assert(false, "almost_eq cannot compare "..lhs.." and "..rhs)
   end
 end
-
-
+--#endif
 
 -- tile_vector class: a pair of integer coords (i, j) that represents a position
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
@@ -29,22 +30,25 @@ function tile_vector:_init(i, j)
   self.j = j
 end
 
+--#if log
 function tile_vector:_tostring()
   return "tile_vector("..self.i..", "..self.j..")"
 end
+--#endif
 
 function tile_vector.__eq(lhs, rhs)
   return lhs.i == rhs.i and lhs.j == rhs.j
 end
 
-
 -- sprite location is a special tile_vector with the semantics of a spritesheet location
 -- and associated conversion methods
 sprite_id_location = derived_class(tile_vector)
 
+--#if log
 function sprite_id_location:_tostring()
   return "sprite_id_location("..self.i..", "..self.j..")"
 end
+--#endif
 
 function sprite_id_location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
@@ -60,9 +64,11 @@ end
 -- and associated conversion methods
 location = derived_class(tile_vector)
 
+--#if log
 function location:_tostring()
   return "location("..self.i..", "..self.j..")"
 end
+--#endif
 
 function location.__eq(lhs, rhs)
   return tile_vector.__eq(lhs, rhs)
@@ -90,9 +96,11 @@ function vector:_init(x, y)
   self.y = y
 end
 
+--#if log
 function vector:_tostring()
   return "vector("..self.x..", "..self.y..")"
 end
+--#endif
 
 function vector.__eq(lhs, rhs)
   return lhs.x == rhs.x and lhs.y == rhs.y

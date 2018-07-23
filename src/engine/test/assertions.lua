@@ -1,3 +1,5 @@
+--#if assert
+
 local debug = require("engine/debug/debug")
 
 -- custom assertions to extend luaassert in utests and provide assertion with messages in itests
@@ -30,3 +32,5 @@ function almost_eq_with_message(expected, passed, eps)
     return false, "Expected objects to be almost equal with eps: "..eps..".\nPassed in:\n"..nice_dump(passed).."\nExpected:\n"..nice_dump(expected).."\n--- Ignore below ---"
   end
 end
+
+--#endif

@@ -1,3 +1,5 @@
+--#if log
+
 require("engine/core/class")
 require("engine/core/helper")
 
@@ -102,3 +104,5 @@ function nice_dump(value)
 end
 
 return debug
+
+--#endif

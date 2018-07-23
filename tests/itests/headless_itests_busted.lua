@@ -27,7 +27,7 @@ for name, itest in pairs(itest_manager.itests) do
   describe(name, function ()
 
     it('should succeed', function ()
-      itest_manager:init_game_and_start(name)
+      itest_manager:init_game_and_start_by_name(name)
       while integration_test_runner.current_state == test_states.running do
         integration_test_runner:update_game_and_test()
       end

@@ -12,10 +12,12 @@ function sprite_data:_init(id_loc, span, pivot)
   self.pivot = pivot or vector.zero()
 end
 
+--#if log
 function sprite_data:_tostring()
   return "sprite_data("..(self.id_loc:_tostring())..", "..(self.span:_tostring())..", "..
     (self.pivot:_tostring())..")"
 end
+--#endif
 
 function sprite_data.__eq(lhs, rhs)
   return lhs.id_loc == rhs.id_loc and

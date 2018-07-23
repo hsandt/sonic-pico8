@@ -26,7 +26,7 @@ function itest_manager:register(itest)
 end
 
 -- proxy method for itest runner helper method
-function itest_manager:init_game_and_start(test_name)
+function itest_manager:init_game_and_start_by_name(test_name)
   local itest = self.itests[test_name]
   assert(itest, "itest_manager:init_game_and_start: itest named '"..test_name.."' could not be found")
   integration_test_runner:init_game_and_start(itest)
@@ -203,9 +203,11 @@ function time_trigger:_init(time)
   self.frames = flr(time * fps)
 end
 
+--#if log
 function time_trigger:_tostring()
   return "time_trigger("..self.frames..")"
 end
+--#endif
 
 function time_trigger.__eq(lhs, rhs)
   return lhs.frames == rhs.frames
@@ -232,9 +234,11 @@ function scripted_action:_init(trigger, callback, name)
   self.name = name or "unnamed"
 end
 
+--#if log
 function scripted_action:_tostring()
   return "[scripted_action ".."'"..self.name.."' ".."@ "..self.trigger.."]"
 end
+--#endif
 
 
 -- integration test class
@@ -254,9 +258,11 @@ function integration_test:_init(name)
   self.timeout_frames = 0
 end
 
+--#if log
 function integration_test:_tostring()
   return "[integration_test '"..self.name.."']"
 end
+--#endif
 
 function integration_test:add_action(trigger, callback, name)
   assert(trigger ~= nil, "integration_test:add_action: passed trigger is nil")

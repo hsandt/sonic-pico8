@@ -10,11 +10,24 @@ from enum import Enum
 # 1. it will strip leading and trailing whitespace, ignoring empty lines completely
 # 2. it will remove all line comments (doesn't support block comments)
 # 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
+# 4. it will strip debug function calls like log() or assert()
 
-# Config to defined symbols
+# Config for defined symbols
 defined_symbols_table = {
-    'debug': ['debug', 'test'],
+    'debug': ['assert', 'log', 'tuner', 'profiler', 'mouse'],
+    'itest': ['assert', 'log'],
+    'log': ['log'],
     'release': []
+}
+
+# Functions to strip for each config (not all configs need to be present as keys)
+# Make sure you never insert gameplay code inside a log or assert (such as assert(coresume(coroutine)))
+# and always split gameplay/debug code in 2 lines
+stripped_functions_table = {
+    'debug': [],
+    'itest': [],
+    'log': ['assert'],
+    'release': ['assert', 'log', 'warn', 'err']
 }
 
 # Parsing state machine modes
@@ -24,11 +37,21 @@ class ParsingMode(Enum):
     IF_IGNORED  = 3
 
 # Regex patterns
-if_pattern = re.compile("--#if (\w+)")  # ! ignore anything after 1st symbol
+if_pattern = re.compile("--#if (\\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile("--#endif")
-# https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
-# https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
 comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(--.*)')
+stripped_function_call_patterns_table = {}
+for config, stripped_functions in stripped_functions_table.items():
+    # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
+    # so we use a very simple regex, but remember to never put anything fancy on a log/assert line that may have side effects, since they will be stripped on release
+    # ex: '^(?:log|warn|err)\(.*\)$'
+    # for better regex with PCRE, see:
+    # https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
+    # https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
+    # https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets#546457
+    # https://stackoverflow.com/questions/18906514/regex-for-matching-functions-and-capturing-their-arguments#18908330
+    function_name_alternative_pattern = f"(?:{'|'.join(stripped_functions)})"
+    stripped_function_call_patterns_table[config] = re.compile(f'^{function_name_alternative_pattern}\\(.*\\)$')
 
 def preprocess_dir(dirpath, config):
     """Apply preprocessor directives to all the source files inside the given directory, for the given config"""
@@ -43,7 +66,7 @@ def preprocess_file(filepath, config):
 
     test.lua:
         print("always")
-        --#if debug
+        --#if log
         print("debug")
         --#endif
         if true:
@@ -71,8 +94,7 @@ def preprocess_file(filepath, config):
         preprocessed_lines = preprocess_lines(f, config)
         f.seek(0)
         f.truncate(0)  # after preprocessing, file tends to have fewer lines so it's important to remove previous content
-        for line in preprocessed_lines:
-            f.write(line)
+        f.writelines(preprocessed_lines)
 
 def preprocess_lines(lines, config):
     """
@@ -106,22 +128,37 @@ def preprocess_lines(lines, config):
                 continue
             current_mode = ParsingMode.NORMAL
         elif current_mode in (ParsingMode.NORMAL, ParsingMode.IF_ACCEPTED):
-            # 2. strip comments first (so we can trim whitespace left by after-code comment afterward)
-            line = strip_comments(line)
-            # if resulting line is empty or blank, ignore it. Full strip is needed for the test because '\n' evaluates to true
-            if line.strip():
-                # 1. strip blanks (explicitly pass whitespace to avoid stripping \n at end of line)
-                line = line.strip(' ')
-                preprocessed_lines.append(line)
+            line = strip_line_content(line, config)
+            # if resulting line is empty, ignore it
+            if line:
+                # we stripped eol, so re-add it now
+                preprocessed_lines.append(line + '\n')
 
     if current_mode is not ParsingMode.NORMAL:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
     return preprocessed_lines
 
+def strip_line_content(line, config):
+    """Strip line content as much as possible. Return line without eol. May be empty."""
+    # 2. strip comments first (so we can trim whitespace left by after-code comment afterward)
+    line = strip_comments(line)
+    # 1. strip blanks (this includes any remaining end of line)
+    line = line.strip()
+    # 4. strip debug function calls if not debug
+    line = strip_function_calls(line, config)
+    return line
+
 def strip_comments(line):
-    # this will keep trailing whitespaces, but we count on strip to finish the job
+    # this will keep trailing whitespaces as well as eol, but we count on strip to finish the job
     # \1 will preserve the original code
     return comment_pattern.sub('\\1', line)
+
+
+def strip_function_calls(line, config):
+    if config in stripped_function_call_patterns_table and stripped_function_call_patterns_table[config].match(line):
+        return ''
+    else:
+        return line
 
 
 if __name__ == '__main__':

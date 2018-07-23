@@ -1,3 +1,5 @@
+--#if profiler
+
 require("engine/render/color")
 local wtk = require("engine/wtk/pico8wtk")
 
@@ -82,3 +84,5 @@ function profiler:render_window()
 end
 
 return profiler
+
+--#endif

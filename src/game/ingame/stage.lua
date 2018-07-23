@@ -66,9 +66,11 @@ stage.state = {
   title_overlay = ui.overlay(0)
 }
 
+--#if log
 function stage.state:_tostring()
   return "[stage state]"
 end
+--#endif
 
 function stage.state:on_enter()
   self.current_substate = stage.substates.play
@@ -110,7 +112,7 @@ end
 
 function stage.state:render()
   camera()
-  
+
   -- background
   rectfill(0, 0, 127, 127, colors.blue)
 
@@ -143,7 +145,8 @@ function stage.state:update_coroutines()
       -- (assertions don't work from inside coroutines, but will return false)
       -- pass the curry arguments now (most of the time they are only useful
       -- on the 1st coresume call, since other times they are just yield() return values)
-      assert(coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args)), "Assertion failed in coroutine update for: "..coroutine_curry)
+      local result = coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args))
+      assert(result, "Assertion failed in coroutine update for: "..coroutine_curry)
     elseif status == "dead" then
       -- register the coroutine for removal from the sequence (don't delete it now since we are iterating over it)
       -- note that this block is only entered on the frame after the last coresume

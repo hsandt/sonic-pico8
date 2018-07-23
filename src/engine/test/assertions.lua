@@ -1,6 +1,6 @@
 --#if assert
 
-local debug = require("engine/debug/debug")
+local logger = require("engine/debug/logger")
 
 -- custom assertions to extend luaassert in utests and provide assertion with messages in itests
 

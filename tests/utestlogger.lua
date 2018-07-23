@@ -1,13 +1,13 @@
 require("bustedhelper")
 require("engine/core/math")
-local debug = require("engine/debug/debug")
+local logger = require("engine/debug/logger")
 
-describe('debug', function ()
+describe('logger', function ()
 
   describe('_tostring', function ()
 
-    it('should return "[debug]"', function ()
-      assert.are_equal("[debug]", debug:_tostring())
+    it('should return "[logger]"', function ()
+      assert.are_equal("[logger]", logger:_tostring())
     end)
 
   end)
@@ -16,7 +16,7 @@ describe('debug', function ()
     local printh_stub
 
     setup(function ()
-      debug.active_categories.flow = true
+      logger.active_categories.flow = true
       printh_stub = stub(_G, "printh")
     end)
 
@@ -28,25 +28,25 @@ describe('debug', function ()
       printh_stub:clear()
     end)
 
-    describe('(debug level set to log)', function ()
+    describe('(logger level set to log)', function ()
 
       setup(function ()
-        debug.current_level = debug.level.log
+        logger.current_level = logger.level.log
       end)
 
       teardown(function ()
-        debug.current_level = debug.level.none
+        logger.current_level = logger.level.none
       end)
 
       describe('(default category active)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = true
+          logger.active_categories.default = true
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('log', function ()
@@ -100,14 +100,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category active)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = true
+          logger.active_categories.flow = true
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('log', function ()
@@ -143,14 +143,14 @@ describe('debug', function ()
       end)
 
       describe('(default category inactive)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = false
+          logger.active_categories.default = false
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('log', function ()
@@ -198,14 +198,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category inactive)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = false
+          logger.active_categories.flow = false
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('log', function ()
@@ -239,14 +239,14 @@ describe('debug', function ()
 
     end)
 
-    describe('(debug level set to warning)', function ()
+    describe('(logger level set to warning)', function ()
 
       setup(function ()
-        debug.current_level = debug.level.warning
+        logger.current_level = logger.level.warning
       end)
 
       teardown(function ()
-        debug.current_level = debug.level.none
+        logger.current_level = logger.level.none
       end)
 
       describe('log', function ()
@@ -261,14 +261,14 @@ describe('debug', function ()
       end)
 
       describe('(default category active)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = true
+          logger.active_categories.default = true
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('warn', function ()
@@ -306,14 +306,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category active)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = true
+          logger.active_categories.flow = true
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('warn', function ()
@@ -339,14 +339,14 @@ describe('debug', function ()
       end)
 
       describe('(default category inactive)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = false
+          logger.active_categories.default = false
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('warn', function ()
@@ -380,14 +380,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category inactive)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = false
+          logger.active_categories.flow = false
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('warn', function ()
@@ -412,13 +412,13 @@ describe('debug', function ()
 
     end)
 
-    describe('(debug level set to error)', function ()
+    describe('(logger level set to error)', function ()
       setup(function ()
-        debug.current_level = debug.level.error
+        logger.current_level = logger.level.error
       end)
 
       teardown(function ()
-        debug.current_level = debug.level.none
+        logger.current_level = logger.level.none
       end)
 
 
@@ -445,14 +445,14 @@ describe('debug', function ()
       end)
 
       describe('(default category active)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = true
+          logger.active_categories.default = true
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('err', function ()
@@ -474,14 +474,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category active)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = true
+          logger.active_categories.flow = true
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('err', function ()
@@ -497,14 +497,14 @@ describe('debug', function ()
       end)
 
       describe('(default category inactive)', function ()
-        local old_active_categories_default = debug.active_categories.default
+        local old_active_categories_default = logger.active_categories.default
 
         setup(function ()
-          debug.active_categories.default = false
+          logger.active_categories.default = false
         end)
 
         teardown(function ()
-          debug.active_categories.default = old_active_categories_default
+          logger.active_categories.default = old_active_categories_default
         end)
 
         describe('err', function ()
@@ -524,14 +524,14 @@ describe('debug', function ()
       end)
 
       describe('(flow category inactive)', function ()
-        local old_active_categories_flow = debug.active_categories.flow
+        local old_active_categories_flow = logger.active_categories.flow
 
         setup(function ()
-          debug.active_categories.flow = false
+          logger.active_categories.flow = false
         end)
 
         teardown(function ()
-          debug.active_categories.flow = old_active_categories_flow
+          logger.active_categories.flow = old_active_categories_flow
         end)
 
         describe('err', function ()
@@ -547,7 +547,7 @@ describe('debug', function ()
 
     end)
 
-    describe('(debug level set to none)', function ()
+    describe('(logger level set to none)', function ()
 
       describe('log', function ()
 
@@ -589,7 +589,7 @@ describe('debug', function ()
   describe('dump', function ()
 
     setup(function ()
-      debug.dump_max_recursion_level = 2
+      logger.dump_max_recursion_level = 2
     end)
 
 

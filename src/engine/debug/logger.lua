@@ -3,7 +3,7 @@
 require("engine/core/class")
 require("engine/core/helper")
 
-local debug = singleton {
+local logger = singleton {
   level = {
     log = 1,   -- show all messages
     warning = 2,  -- show warnings and errors
@@ -23,16 +23,16 @@ local debug = singleton {
   current_level = nil
 }
 
-debug.current_level = debug.level.log
+logger.current_level = logger.level.log
 
-function debug:_tostring()
-  return "[debug]"
+function logger:_tostring()
+  return "[logger]"
 end
 
 -- print a log message to the console in a category string
 function log(message, category)
   category = category or "default"
-  if debug.active_categories[category] and debug.current_level <= debug.level.log then
+  if logger.active_categories[category] and logger.current_level <= logger.level.log then
     printh("["..category.."] "..stringify(message))
   end
 end
@@ -40,7 +40,7 @@ end
 -- print a warning message to the console in a category string
 function warn(message, category)
   category = category or "default"
-  if debug.active_categories[category] and debug.current_level <= debug.level.warning then
+  if logger.active_categories[category] and logger.current_level <= logger.level.warning then
     printh("["..category.."] warning: "..stringify(message))
   end
 end
@@ -48,22 +48,22 @@ end
 -- print an error message to the console in a category string
 function err(message, category)
   category = category or "default"
-  if debug.active_categories[category] and debug.current_level <= debug.level.error then
+  if logger.active_categories[category] and logger.current_level <= logger.level.error then
     printh("["..category.."] error: "..stringify(message))
   end
 end
 
-debug.dump_max_recursion_level = 2
+logger.dump_max_recursion_level = 2
 
 -- return a precise variable content, including table entries
 -- for sequence containing nils, nil is not shown but nil's index will be skipped
 -- if as_key is true and t is not a string, surround it with []
--- by default table recursion will stop at a call depth of debug.dump_max_recursion_level
+-- by default table recursion will stop at a call depth of logger.dump_max_recursion_level
 -- however, you can pass a custom number of remaining levels to see more
 -- if use_tostring is true, use any implemented _tostring method for tables
 function dump(dumped_value, as_key, level, use_tostring)
   as_key = as_key or false
-  level = level or debug.dump_max_recursion_level
+  level = level or logger.dump_max_recursion_level
 
   local repr
 
@@ -103,6 +103,6 @@ function nice_dump(value)
   return dump(value, false, nil, true)
 end
 
-return debug
+return logger
 
 --#endif

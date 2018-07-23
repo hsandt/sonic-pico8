@@ -1,4 +1,4 @@
-local debug = require("engine/debug/debug")
+local logger = require("engine/debug/logger")
 local input = require("engine/input/input")
 local visual = require("game/resources/visual")
 

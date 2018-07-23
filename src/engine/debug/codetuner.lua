@@ -2,7 +2,7 @@
 
 require("engine/core/class")
 require("engine/render/color")
-local debug = require("engine/debug/debug")
+local logger = require("engine/debug/logger")
 local wtk = require("engine/wtk/pico8wtk")
 
 local codetuner = singleton {

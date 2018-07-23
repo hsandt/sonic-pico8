@@ -2,7 +2,7 @@ require("bustedhelper")
 require("engine/test/integrationtest")
 require("engine/core/helper")
 require("engine/render/color")
-local debug = require("engine/debug/debug")
+local logger = require("engine/debug/logger")
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
@@ -99,7 +99,7 @@ describe('integration_test_runner', function ()
 
     input.mode = input_modes.native
 
-    debug.active_categories = {
+    logger.active_categories = {
       default = true,
       flow = true,
       player = true,
@@ -564,7 +564,7 @@ describe('integration_test_runner', function ()
       assert.are_equal(input_modes.simulated, input.mode)
     end)
 
-    it('should set all debug categories to inactive except itest', function ()
+    it('should set all logger categories to inactive except itest', function ()
       integration_test_runner:_init()
       assert.are_same({
           default = false,
@@ -574,7 +574,7 @@ describe('integration_test_runner', function ()
           codetuner = false,
           itest = true
         },
-        debug.active_categories)
+        logger.active_categories)
     end)
 
     it('should set initialized to true', function ()

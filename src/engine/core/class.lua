@@ -1,7 +1,7 @@
 require("engine/core/helper")
 
--- generic call metamethod (requires _init method)
-local function call(cls, ...)
+-- generic new metamethod (requires _init method)
+local function new(cls, ...)
   local self = setmetatable({}, cls)  -- cls as instance metatable
   self:_init(...)
   return self
@@ -25,7 +25,7 @@ function new_class()
   class.__concat = concat
 
   setmetatable(class, {
-    __call = call
+    __call = new
   })
 
   return class
@@ -39,7 +39,7 @@ function derived_class(base_class)
 
   setmetatable(derived, {
     __index = base_class,
-    __call = call
+    __call = new
   })
 
   return derived

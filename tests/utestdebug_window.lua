@@ -4,6 +4,10 @@ local wtk = require("engine/wtk/pico8wtk")
 
 describe('debug_window', function ()
 
+  after_each(function ()
+    debug_window:init()
+  end)
+
   describe('init', function ()
 
     it('should initialize the gui root, invisible', function ()
@@ -46,8 +50,17 @@ describe('debug_window', function ()
 
   describe('render_window', function ()
 
+    local draw_stub
+
+    setup(function ()
+      draw_stub = stub(debug_window.gui, "draw")
+    end)
+
+    teardown(function ()
+      draw_stub:revert()
+    end)
+
     it('should reset camera and call gui.draw', function ()
-      local draw_stub = stub(debug_window.gui, "draw")
       debug_window:render()
       assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
       assert.spy(draw_stub).was_called(1)
@@ -58,8 +71,18 @@ describe('debug_window', function ()
 
   describe('add_label', function ()
 
+    local add_child_stub
+
+    setup(function ()
+      add_child_stub = stub(debug_window.gui, "add_child")
+    end)
+
+    teardown(function ()
+      add_child_stub:revert()
+    end)
+
+
     it('should call gui.add_child, passing a label(text, color) at position (x, y)', function ()
-      local add_child_stub = stub(debug_window.gui, "add_child")
       debug_window:add_label("hello", 5, 12, 45)
       assert.spy(add_child_stub).was_called(1)
       local label = wtk.label.new("hello", 5)  -- will be matched by table content

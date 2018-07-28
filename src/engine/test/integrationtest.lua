@@ -15,9 +15,9 @@ test_states = {
 }
 
 -- integration test manager: registers all itests
-itest_manager = singleton {
-  itests = {}
-}
+itest_manager = singleton(function (self)
+  self.itests = {}
+end)
 
 function itest_manager:register(itest)
   -- caution: unnamed itests will override each other as table keys!
@@ -33,15 +33,15 @@ function itest_manager:init_game_and_start_by_name(test_name)
 end
 
 -- integration test runner singleton
-integration_test_runner = singleton {
-  initialized = false,
-  current_test = nil,
-  current_frame = 0,
-  _last_trigger_frame = 0,
-  _next_action_index = 1,
-  current_state = test_states.none,
-  current_message = nil              -- only defined when current_state is failure
-}
+integration_test_runner = singleton(function (self)
+  self.initialized = false
+  self.current_test = nil
+  self.current_frame = 0
+  self._last_trigger_frame = 0
+  self._next_action_index = 1
+  self.current_state = test_states.none
+  self.current_message = nil              -- only defined when current_state is failure
+end)
 
 -- helper method to use in rendered itest _init
 function integration_test_runner:init_game_and_start(test)
@@ -67,8 +67,9 @@ function integration_test_runner:draw_game_and_test()
 end
 
 function integration_test_runner:start(test)
+  -- lazy initialization
   if not self.initialized then
-    self:_init()
+    self:_initialize()
   end
 
   if self.current_test then
@@ -129,7 +130,7 @@ function integration_test_runner:_get_test_state_color(test_state)
   end
 end
 
-function integration_test_runner:_init()
+function integration_test_runner:_initialize()
   -- use simulated input during itests
   input.mode = input_modes.simulated
 

@@ -8,7 +8,8 @@ local audio = require("game/resources/audio")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
 
-local stage = singleton {
+local stage = {
+
   -- enums
   substates = {
     play = "play",     -- playing and moving around
@@ -44,27 +45,27 @@ local stage = singleton {
 }
 
 -- game state
-stage.state = {
-  type = gamestate_types.stage,
+stage.state = singleton(function (self)
+  self.type = gamestate_types.stage
 
   -- state vars
 
   -- current coroutines
-  coroutine_curries = {},
+  self.coroutine_curries = {}
 
   -- substate
-  current_substate = stage.substates.play,
+  self.current_substate = stage.substates.play
 
   -- player character
-  player_character = nil,
+  self.player_character = nil
   -- has the player character already reached the goal once?
-  has_reached_goal = false,
+  self.has_reached_goal = false
   -- position of the main camera, at the center of the view
-  camera_position = vector.zero(),
+  self.camera_position = vector.zero()
 
   -- title overlay
-  title_overlay = ui.overlay(0)
-}
+  self.title_overlay = ui.overlay(0)
+end)
 
 --#if log
 function stage.state:_tostring()

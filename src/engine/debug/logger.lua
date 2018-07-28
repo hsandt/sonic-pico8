@@ -3,9 +3,9 @@
 require("engine/core/class")
 require("engine/core/helper")
 
-local logger = singleton {
+local logger = {
   level = {
-    log = 1,   -- show all messages
+    info = 1,   -- show all messages
     warning = 2,  -- show warnings and errors
     error = 3, -- show errors only
     none = 4,  -- show nothing
@@ -23,16 +23,16 @@ local logger = singleton {
   current_level = nil
 }
 
-logger.current_level = logger.level.log
+logger.current_level = logger.level.info
 
 function logger:_tostring()
   return "[logger]"
 end
 
--- print a log message to the console in a category string
+-- print an info message to the console in a category string
 function log(message, category)
   category = category or "default"
-  if logger.active_categories[category] and logger.current_level <= logger.level.log then
+  if logger.active_categories[category] and logger.current_level <= logger.level.info then
     printh("["..category.."] "..stringify(message))
   end
 end
@@ -61,9 +61,11 @@ logger.dump_max_recursion_level = 2
 -- by default table recursion will stop at a call depth of logger.dump_max_recursion_level
 -- however, you can pass a custom number of remaining levels to see more
 -- if use_tostring is true, use any implemented _tostring method for tables
+-- you can also use dump on strings just to surround them with quotes
 function dump(dumped_value, as_key, level, use_tostring)
   as_key = as_key or false
   level = level or logger.dump_max_recursion_level
+  use_tostring = use_tostring or false
 
   local repr
 
@@ -99,6 +101,7 @@ function dump(dumped_value, as_key, level, use_tostring)
   return repr
 end
 
+-- dump using _tostring method when possible
 function nice_dump(value)
   return dump(value, false, nil, true)
 end

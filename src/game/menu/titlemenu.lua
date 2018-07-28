@@ -7,19 +7,19 @@ require("game/application/gamestates")
 local titlemenu = {}
 
 -- game state
-local titlemenustate = singleton {
-  type = gamestate_types.titlemenu,
+local titlemenustate = singleton(function (self)
+  self.type = gamestate_types.titlemenu
 
   -- parameters
 
   -- number of items in the menu
-  items_count = 2,
+  self.items_count = 2
 
   -- state vars
 
   -- current cursor index (0: start, 1: credits)
-  current_cursor_index = 0,
-}
+  self.current_cursor_index = 0
+end)
 
 --#if log
 function titlemenustate:_tostring()

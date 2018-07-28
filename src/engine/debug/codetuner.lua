@@ -5,21 +5,21 @@ require("engine/render/color")
 local logger = require("engine/debug/logger")
 local wtk = require("engine/wtk/pico8wtk")
 
-local codetuner = singleton {
-  -- parameters
+local codetuner = singleton(function (self)
+    -- parameters
 
-  -- if true, tuned values are used, else default values are used
-  active = false,
+    -- if true, tuned values are used, else default values are used
+    self.active = false
 
-  -- state vars
+    -- state vars
 
-  -- table of tuned variables, identified by their names
-  tuned_vars = {},
+    -- table of tuned variables, identified by their names
+    self.tuned_vars = {}
 
-  -- gui
-  gui = nil,
-  main_panel = nil
-}
+    -- gui
+    self.gui = nil
+    self.main_panel = nil
+end)
 
 function codetuner:_tostring()
  return "[codetuner]"

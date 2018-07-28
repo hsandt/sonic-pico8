@@ -1,13 +1,13 @@
 local logger = require("engine/debug/logger")
 
-local flow = singleton {
- -- parameters
- gamestates = {},
+local flow = singleton(function (self)
+  -- parameters
+  self.gamestates = {}
 
- -- state vars
- current_gamestate = nil,
- next_gamestate = nil,
-}
+  -- state vars
+  self.current_gamestate = nil
+  self.next_gamestate = nil
+end)
 
 --#if log
 function flow:_tostring()

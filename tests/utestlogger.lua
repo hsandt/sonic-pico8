@@ -28,10 +28,10 @@ describe('logger', function ()
       printh_stub:clear()
     end)
 
-    describe('(logger level set to log)', function ()
+    describe('(logger level set to info)', function ()
 
       setup(function ()
-        logger.current_level = logger.level.log
+        logger.current_level = logger.level.info
       end)
 
       teardown(function ()
@@ -592,8 +592,8 @@ describe('logger', function ()
       logger.dump_max_recursion_level = 2
     end)
 
-
     -- basic types
+
     it('nil => "[nil]"', function ()
       assert.are_equal("[nil]", dump(nil))
     end)

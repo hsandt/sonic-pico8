@@ -90,12 +90,7 @@ describe('integration_test_runner', function ()
 
   after_each(function ()
     -- full reset
-    integration_test_runner.initialized = false
-    integration_test_runner.current_test = nil
-    integration_test_runner.current_frame = 0.
-    integration_test_runner._last_trigger_frame = 0.
-    integration_test_runner._next_action_index = 1
-    integration_test_runner.current_state = test_states.none
+    integration_test_runner:init()
 
     input.mode = input_modes.native
 
@@ -243,21 +238,21 @@ describe('integration_test_runner', function ()
 
     setup(function ()
       test.setup = spy.new(function () end)
-      spy.on(integration_test_runner, "_init")
+      spy.on(integration_test_runner, "_initialize")
       spy.on(integration_test_runner, "_check_end")
       spy.on(integration_test_runner, "_check_next_action")
     end)
 
     teardown(function ()
       test.setup = nil
-      integration_test_runner._init:revert()
+      integration_test_runner._initialize:revert()
       integration_test_runner._check_end:revert()
       integration_test_runner._check_next_action:revert()
     end)
 
     after_each(function ()
       test.setup:clear()
-      integration_test_runner._init:clear()
+      integration_test_runner._initialize:clear()
       integration_test_runner._check_end:clear()
       integration_test_runner._check_next_action:clear()
     end)
@@ -282,10 +277,10 @@ describe('integration_test_runner', function ()
       assert.spy(test.setup).was_called_with(test)
     end)
 
-    it('should call _init the first time', function ()
+    it('should call _initialize the first time', function ()
       integration_test_runner:start(test)
-      assert.spy(integration_test_runner._init).was_called(1)
-      assert.spy(integration_test_runner._init).was_called_with(match.is_ref(integration_test_runner))
+      assert.spy(integration_test_runner._initialize).was_called(1)
+      assert.spy(integration_test_runner._initialize).was_called_with(match.is_ref(integration_test_runner))
     end)
 
     it('should call _check_end', function ()
@@ -359,12 +354,12 @@ describe('integration_test_runner', function ()
         })
       end)
 
-      it('should not call _init the second time', function ()
+      it('should not call _initialize the second time', function ()
         -- in this specific case, start was called in before_each so we need to clear manually
         -- just before we call start ourselves to have the correct count
-        integration_test_runner._init:clear()
+        integration_test_runner._initialize:clear()
         integration_test_runner:start(test)
-        assert.spy(integration_test_runner._init).was_called(0)
+        assert.spy(integration_test_runner._initialize).was_called(0)
       end)
 
     end)
@@ -557,15 +552,15 @@ describe('integration_test_runner', function ()
 
   end)
 
-  describe('_init', function ()
+  describe('_initialize', function ()
 
     it('should set the input mode to simulated', function ()
-      integration_test_runner:_init()
+      integration_test_runner:_initialize()
       assert.are_equal(input_modes.simulated, input.mode)
     end)
 
     it('should set all logger categories to inactive except itest', function ()
-      integration_test_runner:_init()
+      integration_test_runner:_initialize()
       assert.are_same({
           default = false,
           flow = false,
@@ -578,7 +573,7 @@ describe('integration_test_runner', function ()
     end)
 
     it('should set initialized to true', function ()
-      integration_test_runner:_init()
+      integration_test_runner:_initialize()
       assert.is_true(integration_test_runner.initialized)
     end)
 

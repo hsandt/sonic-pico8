@@ -5,9 +5,9 @@ require("game/application/gamestates")
 local credits = {}
 
 -- game state
-credits.state = {
-  type = gamestate_types.credits
-}
+credits.state = singleton(function (self)
+  self.type = gamestate_types.credits
+end)
 
 --#if log
 function credits.state:_tostring()

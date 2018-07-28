@@ -11,7 +11,7 @@ itest.setup = function ()
 end
 
 -- player holds down, causing a just pressed input
-itest:add_action(time_trigger(0.), function ()
+itest:add_action(time_trigger(1.0), function ()
   input.simulated_buttons_down[0][button_ids.down] = true
 end)
 -- end short press. cursor should point to 'credits'
@@ -19,7 +19,7 @@ itest:add_action(time_trigger(0.5), function ()
   input.simulated_buttons_down[0][button_ids.down] = false
 end)
 -- player holds x, causing a just pressed input. this should enter the credits
-itest:add_action(time_trigger(0.), function ()
+itest:add_action(time_trigger(0.5), function ()
   input.simulated_buttons_down[0][button_ids.x] = true
 end)
 -- end short press (1 frame after press is enough to load the next game state)

@@ -45,6 +45,17 @@ function circular_buffer:__len()
     return #(self._buffer)
 end
 
+function circular_buffer:__ipairs()
+  -- return iterator function, table, and starting point
+  return self._stateless_iter, self, 0
+end
+
+function circular_buffer:_stateless_iter(i)
+  i = i + 1
+  local v = self:get(i)
+  if v then return i, v end
+end
+
 function circular_buffer._rotate_indice(i, n)
     return ((i - 1) % n) + 1
 end
@@ -55,10 +66,10 @@ function circular_buffer:get(i)
     local history_length = #(self._buffer)
     if i == 0 or math.abs(i) > history_length then
         return nil
-    elseif i >= 1 then
+    elseif i > 0 then
         local i_rotated = self._rotate_indice(self._start_index - 1 + i, history_length)
         return self._buffer[i_rotated]
-    elseif i <= -1 then
+    else  -- i < 0
         -- i is increasing in the negative sense, so it's really +i
         local i_rotated = self._rotate_indice(self._start_index + i, history_length)
         return self._buffer[i_rotated]
@@ -69,13 +80,16 @@ function circular_buffer:is_filled()
     return #self._buffer == self.max_length
 end
 
+-- push a new element to the buffer and return true iff an old element was replaced
 function circular_buffer:push(value)
     if self:is_filled() then
         local value_to_be_removed = self._buffer[self._start_index]
         self._buffer[self._start_index] = value
         self._start_index = self._start_index == self.max_length and 1 or self._start_index + 1
+        return true
     else
         self._buffer[#(self._buffer) + 1] = value
+        return false
     end
 end
 

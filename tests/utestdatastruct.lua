@@ -8,9 +8,9 @@ describe('circular_buffer', function ()
     it('should create an empty circular buffer with given max length', function ()
       local cb = circular_buffer(3)
       -- interface
+      assert.is_not_nil(cb)
       assert.are_equal(0, #cb)
       -- implementation
-      assert.is_not_nil(cb)
       assert.are_equal(3, cb.max_length)
       assert.are_same({}, cb._buffer)
       assert.are_equal(1, cb._start_index)
@@ -142,6 +142,72 @@ describe('circular_buffer', function ()
 
   end)
 
+  describe('__ipairs', function ()
+
+    it('(^): no iteration at all', function ()
+      local cb = circular_buffer(2)
+      for i, v in ipairs(cb) do
+        assert.is_true(false)
+      end
+    end)
+
+    it('(^1): 1 iteration', function ()
+      local cb = circular_buffer(2)
+      cb:push(10)
+      local count = 0
+      local result_ipairs = {}
+      for i, v in ipairs(cb) do
+        count = count + 1
+        result_ipairs[count] = {i, v}
+      end
+      assert.are_same({{1, 10}}, result_ipairs)
+    end)
+
+    it('(4, ^2, 3): iterate 3 times from 2 to 4, cycling', function ()
+      local cb = circular_buffer(3)
+      cb:push(10)
+      cb:push(20)
+      cb:push(30)
+      cb:push(40)
+      local count = 0
+      local result_ipairs = {}
+      for i, v in ipairs(cb) do
+        count = count + 1
+        result_ipairs[count] = {i, v}
+      end
+      assert.are_same({{1, 20}, {2, 30}, {3, 40}}, result_ipairs)
+    end)
+
+  end)
+
+  describe('_stateless_iter', function ()
+
+    it('(^):_stateless_iter() => nil', function ()
+      local cb = circular_buffer(2)
+      assert.is_nil(cb:_stateless_iter(0))
+    end)
+
+    it('(^1):_stateless_iter() => 1, nil', function ()
+      local cb = circular_buffer(2)
+      cb:push(1)
+      assert.are_same({1, 1}, {cb:_stateless_iter(0)})
+      assert.is_nil(cb:_stateless_iter(1))
+    end)
+
+    it('(4, ^2, 3):_stateless_iter() => 2, 3, 4, nil', function ()
+      local cb = circular_buffer(3)
+      cb:push(1)
+      cb:push(2)
+      cb:push(3)
+      cb:push(4)
+      assert.are_same({1, 2}, {cb:_stateless_iter(0)})
+      assert.are_same({2, 3}, {cb:_stateless_iter(1)})
+      assert.are_same({3, 4}, {cb:_stateless_iter(2)})
+      assert.is_nil(cb:_stateless_iter(3))
+    end)
+
+  end)
+
   describe('_rotate_indice', function ()
 
     it('_rotate_indice(-2, 3) => 1', function ()
@@ -249,6 +315,14 @@ describe('circular_buffer', function ()
       assert.is_nil(cb:get(4))
     end)
 
+    it('(^1, 2, 3):get(-4) => nil', function ()
+      local cb = circular_buffer(3)
+      cb:push(1)
+      cb:push(2)
+      cb:push(3)
+      assert.is_nil(cb:get(-4))
+    end)
+
   end)
 
   describe('is_filled', function ()
@@ -295,8 +369,9 @@ describe('circular_buffer', function ()
     describe('(when buffer is empty)', function ()
 
       it('should add a new element at index 1', function ()
-        cb:push(1)
+        local has_replaced = cb:push(1)
         -- interface
+        assert.is_false(has_replaced)
         assert.are_equal(1, #cb)
         assert.are_equal(1, cb:get(1))
         -- implementation
@@ -314,8 +389,9 @@ describe('circular_buffer', function ()
       end)
 
       it('should add a new element at the next index', function ()
-        cb:push(3)
+        local has_replaced = cb:push(3)
         -- interface
+        assert.is_false(has_replaced)
         assert.are_equal(3, #cb)
         assert.are_equal(1, cb:get(1))
         assert.are_equal(2, cb:get(2))
@@ -336,8 +412,9 @@ describe('circular_buffer', function ()
       end)
 
       it('should replace the oldest element, moving oldest to the next element ', function ()
-        cb:push(4)
+        local has_replaced = cb:push(4)
         -- interface
+        assert.is_true(has_replaced)
         assert.are_equal(3, #cb)
         assert.are_equal(2, cb:get(1))
         assert.are_equal(3, cb:get(2))
@@ -361,8 +438,9 @@ describe('circular_buffer', function ()
       end)
 
       it('should replace the 1st, oldest element again, moving oldest to the next element ', function ()
-        cb:push(7)
+        local has_replaced = cb:push(7)
         -- interface
+        assert.is_true(has_replaced)
         assert.are_equal(3, #cb)
         assert.are_equal(5, cb:get(1))
         assert.are_equal(6, cb:get(2))

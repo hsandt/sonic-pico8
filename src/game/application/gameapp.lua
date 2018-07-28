@@ -34,7 +34,7 @@ function gameapp.update()
   input:process_players_inputs()
   flow:update()
 --#if profiler
-  profiler:update_window()
+  profiler.window:update()
 --#endif
 --#if tuner
   codetuner:update_window()
@@ -45,7 +45,7 @@ function gameapp.draw()
   cls()
   flow:render()
 --#if profiler
-  profiler:render_window()
+  profiler.window:render()
 --#endif
 --#if tuner
   codetuner:render_window()

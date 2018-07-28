@@ -2,7 +2,7 @@ local gameapp = require("game/application/gameapp")
 
 --#if profiler
 local profiler = require("engine/debug/profiler")
-profiler:show()
+profiler.window:show()
 --#endif
 
 --#if tuner

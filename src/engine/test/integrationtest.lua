@@ -195,7 +195,7 @@ function integration_test_runner:stop()
 end
 
 -- time trigger struct
-time_trigger = new_class()
+time_trigger = new_struct()
 
 -- parameters
 -- frames      int   number of frames to wait before running callback after last trigger (defined from float time in s)
@@ -209,10 +209,6 @@ function time_trigger:_tostring()
 end
 --#endif
 
-function time_trigger.__eq(lhs, rhs)
-  return lhs.frames == rhs.frames
-end
-
 -- return true if the trigger condition is verified in this context
 -- else return false
 -- elapsed_frames     int   number of frames elapsed since the last trigger
@@ -221,7 +217,7 @@ function time_trigger:_check(elapsed_frames)
 end
 
 
--- scripted action struct
+-- scripted action struct (but we use class because comparing functions only work by reference)
 scripted_action = new_class()
 
 -- parameters

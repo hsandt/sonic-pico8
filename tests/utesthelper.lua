@@ -17,6 +17,76 @@ describe('is_empty', function ()
   end)
 end)
 
+describe('are_same', function ()
+
+  local single_t = {}
+
+  local comparable_mt = {
+    __eq = function (lhs, rhs)
+      return lhs.a == rhs.a and lhs.b == rhs.b
+    end
+  }
+  local comparable_struct1 = {a = 1, b = 2}
+  local comparable_struct2 = {a = 1, b = 2}
+  setmetatable(comparable_struct1, comparable_mt)
+  setmetatable(comparable_struct2, comparable_mt)  -- actually, only one is enough
+
+  it('return true both tables are empty', function ()
+    assert.is_true(are_same({}, {}))
+  end)
+  it('return true if both tables are sequences with the same elements in order', function ()
+    assert.is_true(are_same({false, "ah"}, {false, "ah"}))
+  end)
+  it('return true if both tables are sequences with the same elements by ref in order', function ()
+    assert.is_true(are_same({2, single_t}, {2, single_t}))
+  end)
+  it('return true if both tables are former sequences with a hole with the same elements in order', function ()
+    assert.is_true(are_same({2, nil, "ah"}, {2, nil, "ah"}))
+  end)
+  it('return true if both tables have the same keys and values', function ()
+    assert.is_true(are_same({a = "str", b = "at"}, {b = "at", a = "str"}))
+  end)
+  it('return true if both tables have the same keys and values by reference', function ()
+    assert.is_true(are_same({a = "str", b = single_t, c = nil}, {b = single_t, c = nil, a = "str"}))
+  end)
+  it('return true if both tables have the same keys and values', function ()
+    assert.is_true(are_same({a = false, b = "at"}, {b = "at", a = false}))
+  end)
+  it('return true if both tables have the same keys and values by custom equality', function ()
+    assert.is_true(are_same({a = "str", b = comparable_struct1}, {b = comparable_struct2, a = "str"}))
+  end)
+  it('return true if both tables have the same keys and values, even if their metatables differ', function ()
+    local t1 = {}
+    setmetatable(t1, {})
+    local t2 = {}
+    assert.is_true(are_same(t1, t2))
+  end)
+  it('return false if both tables are sequences but an element is missing on the first', function ()
+    assert.is_false(are_same({1, 2}, {1, 2, 3}))
+  end)
+  it('return false if both tables are sequences but an element is missing on the second', function ()
+    assert.is_false(are_same({1, 2, 3}, {1, 2}))
+  end)
+  it('return false if both tables are sequences but an element differs', function ()
+    assert.is_false(are_same({1, 2, 3}, {1, 2, 4}))
+  end)
+  it('return false if both tables are sequences but an element differs by reference', function ()
+    assert.is_false(are_same({1, 2, {}}, {1, 2, {}}))
+  end)
+  it('return false if first table has a key the other doesn\'t have', function ()
+    assert.is_false(are_same({a = false, b = "at"}, {a = false}))
+  end)
+  it('return false if second table has a key the other doesn\'t have', function ()
+    assert.is_false(are_same({b = "the"}, {c = 54, b = "the"}))
+  end)
+  it('return false if both tables have the same keys but a value differs', function ()
+    assert.is_false(are_same({a = false, b = "at"}, {a = false, b = "the"}))
+  end)
+  it('return false if both tables have the same keys but a value differs by reference', function ()
+    assert.is_false(are_same({a = "str", t = {}}, {a = "str", t = {}}))
+  end)
+end)
+
 describe('clear_table', function ()
   it('should clear a sequence', function ()
     local t = {1, 5, -5}

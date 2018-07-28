@@ -8,6 +8,31 @@ function is_empty(t)
   return true
 end
 
+-- return true if both tables have the same keys and values
+-- keys and values are compared by usual equality, which may be shallow or deep depending on __eq override
+-- metatables are not checked
+function are_same(t1, t2)
+  -- first iteration: check that all keys of t1 are in t2, with the same value
+  for k1, v1 in pairs(t1) do
+    local v2 = t2[k1]
+    if v2 == nil then
+      -- t2 misses key k1 that t1 has
+      return false
+    end
+    if v1 ~= v2 then
+      return false
+    end
+  end
+  -- second iteration: check that all keys of t2 are in t1. don't check values, it has already been done
+  for k2, _ in pairs(t2) do
+    if t1[k2] == nil then
+      -- t1 misses key k2 that t2 has
+      return false
+    end
+  end
+  return true
+end
+
 -- clear a table
 function clear_table(t)
  for k in pairs(t) do

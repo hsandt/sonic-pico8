@@ -29,8 +29,8 @@ end
 
 --#endif
 
--- label class: container for a text to draw at a given position
-local label = new_class()
+-- label struct: container for a text to draw at a given position
+local label = new_struct()
 
 -- text      printable  text content to draw (mainly string or number)
 -- position  vector     position to draw the label at
@@ -47,18 +47,13 @@ function label:_tostring()
 end
 --#endif
 
-function label.__eq(lhs, rhs)
-  return lhs.text == rhs.text and lhs.position == rhs.position and lhs.colour == rhs.colour
-end
-
-
 -- overlay class: allows to draw labels on top of the screen
 local overlay = new_class()
 
 -- parameters
 -- layer       int              level at which the overlay should be drawn, higher on top
 -- state vars
--- labels      {string, label}  table of labels to draw, identified by name
+-- labels      {string: label}  table of labels to draw, identified by name
 function overlay:_init(layer)
   self.layer = layer
   self.labels = {}

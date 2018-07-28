@@ -126,11 +126,125 @@ describe('new_class', function ()
 
 end)
 
+describe('new_struct', function ()
+
+  local dummy_struct = new_struct()
+
+  function dummy_struct:_init(value1, value2)
+    self.value1 = value1
+    self.value2 = value2
+  end
+
+  function dummy_struct:_tostring()
+    return "dummy: "..joinstr(", ", self.value1, self.value2)
+  end
+
+  function dummy_struct:get_sum()
+    return self.value1 + self.value2
+  end
+
+  it('should create a new struct with _init()', function ()
+    local dummy = dummy_struct(3, 7)
+    assert.are_same({3, 7}, {dummy.value1, dummy.value2})
+  end)
+
+  it('should create a new struct with access to methods via __index', function ()
+    local dummy = dummy_struct(3, 7)
+    assert.are_equal(10, dummy:get_sum())
+  end)
+
+  describe('struct equality', function ()
+
+    it('should return true for two structs equal by reference', function ()
+      local dummy1 = dummy_struct(3, 7)
+      assert.is_true(dummy1 == dummy1)
+    end)
+
+    it('should return true for two structs with same content', function ()
+      local dummy1 = dummy_struct(3, 7)
+      local dummy2 = dummy_struct(3, 7)
+      assert.is_true(dummy1 == dummy2)
+    end)
+
+    it('should return false for two structs with different contents', function ()
+      local dummy1 = dummy_struct(3, 7)
+      local dummy2 = dummy_struct(3, -10)
+      assert.is_true(dummy1 ~= dummy2)
+    end)
+
+    it('should return false for one struct and an unrelated table with same content', function ()
+      local dummy1 = dummy_struct(3, 7)
+      local not_the_same_struct = { value1 = 3, value2 = 7 }
+      assert.is_true(dummy1 ~= not_the_same_struct)
+    end)
+
+  end)
+
+  describe('dummy_derived struct', function ()
+
+    local dummy_derived_struct = derived_struct(dummy_struct)
+
+    function dummy_derived_struct:_init(value1, value2, value3)
+      -- always call ._init on base struct, never :_init which would set static members
+      dummy_struct._init(self, value1, value2)
+      self.value3 = value3
+    end
+
+    function dummy_derived_struct:_tostring()
+      return "dummy_derived: "..joinstr(", ", self.value1, self.value2, self.value3)
+    end
+
+    function dummy_derived_struct:get_sum()
+      return dummy_struct.get_sum(self) + self.value3
+    end
+
+    it('should create a new struct with _init()', function ()
+      local dummy_derived = dummy_derived_struct(3, 7, 9)
+      assert.are_same({3, 7, 9}, {dummy_derived.value1, dummy_derived.value2, dummy_derived.value3})
+    end)
+
+    it('should create a new struct with access to methods via __index (override calling base)', function ()
+      local dummy_derived = dummy_derived_struct(3, 7, 9)
+      assert.are_equal(19, dummy_derived:get_sum())
+    end)
+
+    describe('struct equality', function ()
+
+      it('should return true for two structs equal by reference', function ()
+        local dummy_derived1 = dummy_derived_struct(3, 7, 9)
+        assert.is_true(dummy_derived1 == dummy_derived1)
+      end)
+
+      it('should return true for two structs with same content', function ()
+        local dummy_derived1 = dummy_derived_struct(3, 7, 9)
+        local dummy_derived2 = dummy_derived_struct(3, 7, 9)
+        assert.is_true(dummy_derived1 == dummy_derived2)
+      end)
+
+      it('should return false for two structs with different contents (on derived members only)', function ()
+        local dummy_derived1 = dummy_derived_struct(3, 7, 9)
+        local dummy_derived2 = dummy_derived_struct(3, 7, -99)
+        assert.is_true(dummy_derived1 ~= dummy_derived2)
+      end)
+
+      it('should return false for one struct and an unrelated table with same content', function ()
+        local dummy_derived1 = dummy_derived_struct(3, 7, 9)
+        local not_the_same_struct = { value1 = 3, value2 = 7, value = 9 }
+        assert.is_true(dummy_derived1 ~= not_the_same_struct)
+      end)
+
+    end)
+
+
+  end)
+
+end)
+
 describe('singleton', function ()
 
-  local my_singleton = singleton {
-    type = "custom"
-  }
+  local my_singleton = singleton(function (self)
+    self.type = "custom"
+  end)
 
   function my_singleton:_tostring()
     return "[my_singleton "..self.type.."]"
@@ -140,12 +254,109 @@ describe('singleton', function ()
     assert.are_equal("custom", my_singleton.type)
   end)
 
+  describe('changing member', function ()
+
+    setup(function ()
+      my_singleton.type = "changed"
+    end)
+
+    teardown(function ()
+      my_singleton.type = "custom"
+    end)
+
+    it('init should reinit the state vars', function ()
+      my_singleton:init()
+      assert.are_equal("custom", my_singleton.type)
+    end)
+
+  end)
+
   it('should support custom method: _tostring', function ()
     assert.are_equal("[my_singleton custom]", my_singleton:_tostring())
   end)
 
   it('should support string concatenation with _tostring', function ()
     assert.are_equal("this is [my_singleton custom]", "this is "..my_singleton)
+  end)
+
+end)
+
+describe('derived_singleton', function ()
+
+  local my_singleton = singleton(function (self)
+    self.types = { "custom" }  -- the table allows us to check if __index in derived_singleton reaches it by ref to change it
+  end)
+
+  function my_singleton:get_first_type()
+    return self.types[1]
+  end
+
+  function my_singleton:_tostring()
+    return "[my_singleton "..self.types[1].."]"
+  end
+
+  local my_derived_singleton = derived_singleton(my_singleton, function (self)
+    self.subtype = "special"
+  end)
+
+  function my_derived_singleton:_tostring()
+    return "[my_derived_singleton "..self.types[1]..", "..self.subtype.."]"
+  end
+
+  it('should define a derived_singleton with base members', function ()
+    assert.are_equal("custom", my_derived_singleton.types[1])
+  end)
+
+  it('should define a derived_singleton with derived members', function ()
+    assert.are_equal("special", my_derived_singleton.subtype)
+  end)
+
+  describe('changing base member copy', function ()
+
+    before_each(function ()
+      my_derived_singleton.types[1] = "changed"
+    end)
+
+    after_each(function ()
+      my_derived_singleton.types[1] = "custom"
+    end)
+
+    it('should create a copy of base members on the derived singleton so they are never changed on the base singleton', function ()
+      assert.are_equal("custom", my_singleton.types[1])
+    end)
+
+    describe('changing base member copy', function ()
+
+      before_each(function ()
+        my_derived_singleton.subtype = "subchanged"
+      end)
+
+      after_each(function ()
+        my_derived_singleton.subtype = "special"
+      end)
+
+      it('init should reinit the state vars', function ()
+        assert.are_equal("changed", my_derived_singleton.types[1])
+        assert.are_equal("subchanged", my_derived_singleton.subtype)
+        my_derived_singleton:init()
+        assert.are_equal("custom", my_derived_singleton.types[1])
+        assert.are_equal("special", my_derived_singleton.subtype)
+      end)
+
+    end)
+
+  end)
+
+  it('should access base method: get_first_type', function ()
+    assert.are_equal("custom", my_derived_singleton:get_first_type())
+  end)
+
+  it('should support custom method: _tostring', function ()
+    assert.are_equal("[my_derived_singleton custom, special]", my_derived_singleton:_tostring())
+  end)
+
+  it('should support string concatenation with _tostring', function ()
+    assert.are_equal("this is [my_derived_singleton custom, special]", "this is "..my_derived_singleton)
   end)
 
 end)

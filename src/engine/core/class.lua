@@ -12,6 +12,13 @@ local function concat(lhs, rhs)
   return stringify(lhs)..stringify(rhs)
 end
 
+-- metatable and memberwise equality comparison with usual equality operator
+-- (shallow or deep depending on override)
+-- return true iff tables have the same metatable and their members are equal
+local function struct_eq(lhs, rhs)
+  return getmetatable(lhs) == getmetatable(rhs) and are_same(lhs, rhs)
+end
+
 -- create and return a new class
 -- every class should implement :_init(), :_tostring() and if relevant .__eq()
 -- note that most .__eq() definitions are only duck-typing lhs and rhs,
@@ -45,11 +52,67 @@ function derived_class(base_class)
   return derived
 end
 
--- create a new singleton from a table (at the same time class and instance)
--- must implement _tostring method
-function singleton(table)
-  setmetatable(table, {
+-- create a new struct, which is like a class with member-wise equality
+function new_struct()
+  local struct = {}
+  struct.__index = struct  -- 1st struct as instance metatable
+  struct.__concat = concat
+  struct.__eq = struct_eq
+
+  setmetatable(struct, {
+    __call = new
+  })
+
+  return struct
+end
+
+-- create and return a derived struct from a base struct, redefining metamethods for this level
+function derived_struct(base_struct)
+  local derived = {}
+  derived.__index = derived
+  derived.__concat = concat
+  derived.__eq = struct_eq
+
+  setmetatable(derived, {
+    __index = base_struct,
+    __call = new
+  })
+
+  return derived
+end
+
+-- create a new singleton from an init method, which can also be used as reset method in unit tests
+-- the singleton is at the same time a class and its own instance
+function singleton(init)
+  local s = {}
+  setmetatable(s, {
     __concat = concat
   })
-  return table
+  s.init = init
+  s:init()
+  return s
+end
+
+-- create a singleton from a base singleton and a derived_init method, so it can extend
+-- the functionality of a singleton while providing new static fields on the spot
+function derived_singleton(base_singleton, derived_init)
+  local ds = {}
+  -- do not set __index to base_singleton in metatable, so ds never touches the members
+  -- of the base singleton (if the base singleton is concrete or has other derived singletons,
+  -- this would cause them to all share and modify the same members)
+  setmetatable(ds, {
+    -- __index allows the derived_singleton to access base_singleton methods
+    -- never define an attribute on a singleton outside init (e.g. using s.attr = value)
+    -- as the "super" init in ds:init would not be able to shadow that attr with a personal attr
+    -- for the derived_singleton, which would access the base_singleton's attr via __index,
+    -- effectively sharing the attr with all the other singletons in that hierarchy!
+    __index = base_singleton,
+    __concat = concat
+  })
+  function ds:init()
+    base_singleton.init(self)
+    derived_init(self)
+  end
+  ds:init()
+  return ds
 end

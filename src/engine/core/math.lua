@@ -21,7 +21,7 @@ end
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
 -- for sprite locations and tilemap locations, use sprite_id_location and location resp.
 -- for sprite span (sprite size on the spritesheet), use tile_vector directly
-tile_vector = new_class()
+tile_vector = new_struct()
 
 -- i       int     horizontal coordinate in tile size
 -- j       int     vertical   coordinate in tile size
@@ -36,23 +36,15 @@ function tile_vector:_tostring()
 end
 --#endif
 
-function tile_vector.__eq(lhs, rhs)
-  return lhs.i == rhs.i and lhs.j == rhs.j
-end
-
 -- sprite location is a special tile_vector with the semantics of a spritesheet location
 -- and associated conversion methods
-sprite_id_location = derived_class(tile_vector)
+sprite_id_location = derived_struct(tile_vector)
 
 --#if log
 function sprite_id_location:_tostring()
   return "sprite_id_location("..self.i..", "..self.j..")"
 end
 --#endif
-
-function sprite_id_location.__eq(lhs, rhs)
-  return tile_vector.__eq(lhs, rhs)
-end
 
 -- return the sprite id  corresponding to a sprite location on a spritesheet
 function sprite_id_location:to_sprite_id()
@@ -62,17 +54,13 @@ end
 
 -- location is a special tile_vector with the semantics of a tilemap location
 -- and associated conversion methods
-location = derived_class(tile_vector)
+location = derived_struct(tile_vector)
 
 --#if log
 function location:_tostring()
   return "location("..self.i..", "..self.j..")"
 end
 --#endif
-
-function location.__eq(lhs, rhs)
-  return tile_vector.__eq(lhs, rhs)
-end
 
 -- return the topleft position corresponding to a tile location
 function location:to_topleft_position()
@@ -87,7 +75,7 @@ end
 
 -- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
-vector = new_class()
+vector = new_struct()
 
 -- x       int     horizontal coordinate in pixels
 -- y       int     vertical   coordinate in pixels
@@ -101,10 +89,6 @@ function vector:_tostring()
   return "vector("..self.x..", "..self.y..")"
 end
 --#endif
-
-function vector.__eq(lhs, rhs)
-  return lhs.x == rhs.x and lhs.y == rhs.y
-end
 
 -- almost_eq can be used as static function of method, since self would simply replace lhs
 function vector.almost_eq(lhs, rhs, eps)

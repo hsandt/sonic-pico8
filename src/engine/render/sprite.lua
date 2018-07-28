@@ -1,7 +1,7 @@
 require("engine/core/math")
 
 -- sprite class
-sprite_data = new_class()
+sprite_data = new_struct()
 
 -- id_loc   sprite_id_location                      sprite location on the spritesheet
 -- span     tile_vector         tile_vector(1, 1)   sprite span on the spritesheet
@@ -18,12 +18,6 @@ function sprite_data:_tostring()
     (self.pivot:_tostring())..")"
 end
 --#endif
-
-function sprite_data.__eq(lhs, rhs)
-  return lhs.id_loc == rhs.id_loc and
-    lhs.span == rhs.span and
-    lhs.pivot == rhs.pivot
-end
 
 -- draw this sprite at position, optionally flipped
 -- position  vector

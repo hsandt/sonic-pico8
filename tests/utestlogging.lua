@@ -4,18 +4,47 @@ local logging = require("engine/debug/logging")
 
 describe('logging', function ()
 
+  local log_message = logging.log_message
+
+  describe('log_message', function ()
+
+    describe('_init', function ()
+
+      it('should create a log_message with level, category, message content', function ()
+        local lm = log_message(logging.level.info, "character", "moving")
+        assert.is_not_nil(lm)
+        assert.are_same({logging.level.info, "character", "moving"},
+          {lm.level, lm.category, lm.text})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "log_message({self.level}, {self.category}, {self.message})"', function ()
+        local lm = log_message(logging.level.info, "character", "moving")
+        assert.are_equal('log_message(1, "character", "moving")', lm:_tostring())
+      end)
+
+    end)
+
+  end)
+
   describe('compound_message', function ()
 
     it('should return a string concatenating [category] and message for info', function ()
-      assert.are_equal("[default] hello", logging.compound_message("hello", "default", logging.level.info))
+      local lm = log_message(logging.level.info, "default", "hello")
+      assert.are_equal("[default] hello", logging.compound_message(lm))
     end)
 
     it('should return a string concatenating [category], log level and message for warning', function ()
-      assert.are_equal("[player] warning: caution", logging.compound_message("caution", "player", logging.level.warning))
+      local lm = log_message(logging.level.warning, "player", "caution")
+      assert.are_equal("[player] warning: caution", logging.compound_message(lm))
     end)
 
     it('should return a string concatenating [category], log level and message for error', function ()
-      assert.are_equal("[flow] error: danger", logging.compound_message("danger", "flow", logging.level.error))
+      local lm = log_message(logging.level.error, "flow", "danger")
+      assert.are_equal("[flow] error: danger", logging.compound_message(lm))
     end)
 
   end)
@@ -46,8 +75,8 @@ describe('logging', function ()
         local stream = {
           var = 2
         }
-        function stream:on_log(message, category)
-          spied_fun(self.var, message, category)
+        function stream:on_log(lm)
+          spied_fun(self.var, lm.level, lm.text, lm.category)
         end
 
         logger:register_stream(stream)
@@ -58,8 +87,8 @@ describe('logging', function ()
         -- interface
         log("test", "default")
         assert.spy(spied_fun).was_called(1)
-        assert.spy(spied_fun).was_called_with(2, "test", "default")
-        assert.spy(spied_fun).was_called_with(2, "test", "default")
+        assert.spy(spied_fun).was_called_with(2, logging.level.info, "test", "default")
+        assert.spy(spied_fun).was_called_with(2, logging.level.info, "test", "default")
       end)
 
       it('should assert if nil is passed', function ()
@@ -91,8 +120,8 @@ describe('logging', function ()
         self.var = value
       end
 
-      function fake_stream_class:on_log(message, category, level)
-          spied_fun(self.var, message, category, level)
+      function fake_stream_class:on_log(lm)
+          spied_fun(self.var, lm.level, lm.category, lm.text)
       end
 
       local fake_stream1 = fake_stream_class(1)
@@ -123,25 +152,25 @@ describe('logging', function ()
         for log_level = 2, 3 do
 
           it('should call on_log on all streams for category A and logging level '..tostr(log_level), function ()
-            logger:_generic_log("test", "flow", log_level)
-            -- warn("test", "flow")
+            logger:_generic_log(log_level, "flow", "text")
 
             -- implementation
+            local lm = log_message(log_level, "flow", "text")
             assert.spy(fake_stream1.on_log).was_called(1)
-            assert.spy(fake_stream1.on_log).was_called_with(match.ref(fake_stream1), "test", "flow", log_level)
+            assert.spy(fake_stream1.on_log).was_called_with(match.ref(fake_stream1), lm)
             assert.spy(fake_stream2.on_log).was_called(1)
-            assert.spy(fake_stream2.on_log).was_called_with(match.ref(fake_stream2), "test", "flow", log_level)
+            assert.spy(fake_stream2.on_log).was_called_with(match.ref(fake_stream2), lm)
 
             -- interface
             assert.spy(spied_fun).was_called(2)
-            assert.spy(spied_fun).was_called_with(1, "test", "flow", log_level)
-            assert.spy(spied_fun).was_called_with(2, "test", "flow", log_level)
+            assert.spy(spied_fun).was_called_with(1, log_level, "flow", "text")
+            assert.spy(spied_fun).was_called_with(2, log_level, "flow", "text")
           end)
 
         end
 
         it('should not call on_log for category B (even for logging level 2)', function ()
-          logger:_generic_log("test", "player", 2)
+          logger:_generic_log(2, "player", "text")
 
           -- implementation
           assert.spy(fake_stream1.on_log).was_not_called()
@@ -152,7 +181,7 @@ describe('logging', function ()
         end)
 
         it('should not call on_log for logging level 1 (even for category B)', function ()
-          logger:_generic_log("test", "flow", 1)
+          logger:_generic_log(1, "flow", "text")
 
           -- implementation
           assert.spy(fake_stream1.on_log).was_not_called()

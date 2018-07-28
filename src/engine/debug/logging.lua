@@ -12,24 +12,42 @@ local logging = {
   }
 }
 
-function logging.compound_message(message, category, level)
-  if level == logging.level.warning then
+-- log message struct
+local log_message = new_struct()
+logging.log_message = log_message
+
+-- level     logging.level  importance level of the message
+-- text      string         textual content
+-- category  string         category in which the message belongs to (see logger.active_categories)
+function log_message:_init(level, category, text)
+  self.level = level
+  self.category = category
+  self.text = text
+end
+
+--#if log
+function log_message:_tostring()
+  return "log_message("..joinstr(", ", self.level, dump(self.category), dump(self.text))..")"
+end
+--#endif
+
+function logging.compound_message(lm)
+  if lm.level == logging.level.warning then
     prefix = "warning: "
-  elseif level == logging.level.error then
+  elseif lm.level == logging.level.error then
     prefix = "error: "
   else
     prefix = ""
   end
-  return "["..category.."] "..prefix..message
+  return "["..lm.category.."] "..prefix..lm.text
 end
 
 -- logging stream interface
 -- on_log      function(self, message: string, category: string, level: logging.level)   callback on log received
 
 logging.console_logger = {
-  on_log = function (self, message, category, level)
-    print("on_log: ", message, category, level)
-    printh(logging.compound_message(message, category, level))
+  on_log = function (self, lm)
+    printh(logging.compound_message(lm))
   end
 }
 
@@ -66,30 +84,29 @@ function logger:register_stream(stream)
   add(self._streams, stream)
 end
 
-function logger:_generic_log(message, category, level)
+function logger:_generic_log(level, category, content)
   category = category or "default"
   if logger.active_categories[category] and logger.current_level <= level then
-    print("B")
-    local string_message = stringify(message)
+    local lm = log_message(level, category, stringify(content))
     for stream in all(self._streams) do
-      stream:on_log(message, category, level)
+      stream:on_log(lm)
     end
   end
 end
 
--- print an info message to the console in a category string
-function log(message, category)
-  logger:_generic_log(message, category, logging.level.info, "")
+-- print an info content to the console in a category string
+function log(content, category)
+  logger:_generic_log(logging.level.info, category, content)
 end
 
--- print a warning message to the console in a category string
-function warn(message, category)
-  logger:_generic_log(message, category, logging.level.warning, "warning: ")
+-- print a warning content to the console in a category string
+function warn(content, category)
+  logger:_generic_log(logging.level.warning, category, content)
 end
 
--- print an error message to the console in a category string
-function err(message, category)
-  logger:_generic_log(message, category, logging.level.error, "error: ")
+-- print an error content to the console in a category string
+function err(content, category)
+  logger:_generic_log(logging.level.error, category, content)
 end
 
 -- return a precise variable content, including table entries

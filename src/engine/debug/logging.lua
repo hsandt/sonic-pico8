@@ -42,10 +42,10 @@ function logging.compound_message(lm)
   return "["..lm.category.."] "..prefix..lm.text
 end
 
--- logging stream interface
--- on_log      function(self, message: string, category: string, level: logging.level)   callback on log received
+-- log stream interface
+-- on_log      function(self, lm: log_message)   callback on log message received
 
-logging.console_logger = {
+logging.console_log_stream = {
   on_log = function (self, lm)
     printh(logging.compound_message(lm))
   end

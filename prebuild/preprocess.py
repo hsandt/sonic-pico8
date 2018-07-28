@@ -14,8 +14,8 @@ from enum import Enum
 
 # Config for defined symbols
 defined_symbols_table = {
-    'debug': ['assert', 'log', 'tuner', 'profiler', 'mouse'],
-    'itest': ['assert', 'log'],
+    'debug': ['assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'itest': ['assert', 'log', 'visual_logger'],
     'log': ['log'],
     'release': []
 }

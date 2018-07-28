@@ -209,7 +209,7 @@ describe('logging', function ()
 
       before_each(function ()
         logger.active_categories.flow = true
-        logger:register_stream(logging.console_logger)
+        logger:register_stream(logging.console_log_stream)
       end)
 
       after_each(function ()

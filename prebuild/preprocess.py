@@ -30,11 +30,16 @@ stripped_functions_table = {
     'release': ['assert', 'log', 'warn', 'err']
 }
 
+# Parsing mode of each individual #if block
+class IfBlockMode(Enum):
+    ACCEPTED = 1  # the condition was true
+    REFUSED  = 2  # the condition was false
+    IGNORED  = 3  # we were inside a false condition so we don't care, we are just waiting for #endif
+
 # Parsing state machine modes
 class ParsingMode(Enum):
-    NORMAL      = 1
-    IF_ACCEPTED = 2
-    IF_IGNORED  = 3
+    ACTIVE   = 1  # we are copying each line
+    IGNORING = 2  # we are ignoring all content in the current if block
 
 # Regex patterns
 if_pattern = re.compile("--#if (\\w+)")  # ! ignore anything after 1st symbol
@@ -91,6 +96,7 @@ def preprocess_file(filepath, config):
 
     """
     with open(filepath, 'r+') as f:
+        logging.debug(f"Preprocessing file {filepath}...")
         preprocessed_lines = preprocess_lines(f, config)
         f.seek(0)
         f.truncate(0)  # after preprocessing, file tends to have fewer lines so it's important to remove previous content
@@ -107,34 +113,51 @@ def preprocess_lines(lines, config):
     defined_symbols = defined_symbols_table[config]
 
     preprocessed_lines = []
-    current_mode = ParsingMode.NORMAL
+
+    # explore the tree of #if by storing the current stack of ifs encountered from top to bottom
+    if_block_modes_stack = []  # can only be filled with [IfBlockMode.ACCEPTED*, IfBlockMode.REFUSED?, IfBlockMode.IGNORED* (only if 1 REFUSED)]
+    current_mode = ParsingMode.ACTIVE  # it is ParsingMode.ACTIVE iff if_block_modes_stack is empty or if_block_modes_stack[-1] == IfBlockMode.ACCEPTED
+
     for line in lines:
         # 3. preprocess directives
         match = if_pattern.match(line)
         if match:
-            if current_mode is not ParsingMode.NORMAL:
-                logging.warning('--#if found inside previous --#if block, ignoring directive')
-                continue
-            symbol = match.group(1)
-            if symbol in defined_symbols:
-                # symbol is defined, keep the surrounded lines
-                # still remove the preprocessor directives (don't add it to accepted lines)
-                current_mode = ParsingMode.IF_ACCEPTED
+            if current_mode is ParsingMode.ACTIVE:
+                symbol = match.group(1)
+                if symbol in defined_symbols:
+                    # symbol is defined, so remain active and add that to the stack
+                    if_block_modes_stack.append(IfBlockMode.ACCEPTED)
+                    # still strip the preprocessor directives themselves (don't add it to accepted lines)
+                else:
+                    # symbol is not defined, enter ignoring mode and add that to the stack
+                    if_block_modes_stack.append(IfBlockMode.REFUSED)
+                    current_mode = ParsingMode.IGNORING
             else:
-                current_mode = ParsingMode.IF_IGNORED
+                # we are already in an unprocessed block so we don't care whether that subblock verifies the condition or not
+                # continue ignoring lines but push to the stack so we can wait for #endif
+                if_block_modes_stack.append(IfBlockMode.IGNORED)
         elif endif_pattern.match(line):
-            if current_mode is ParsingMode.NORMAL:
-                logging.warning('--#endif found outside --#if block, ignoring directive')
-                continue
-            current_mode = ParsingMode.NORMAL
-        elif current_mode in (ParsingMode.NORMAL, ParsingMode.IF_ACCEPTED):
+            if current_mode is ParsingMode.ACTIVE:
+                # check that we had some #if in the stack
+                if if_block_modes_stack:
+                    # go one level up, remain active
+                    if_block_modes_stack.pop()
+                else:
+                    logging.warning('an --#endif was encountered outside an --#if block. Make sure the block starts with an --#if directive')
+            else:
+                last_mode = if_block_modes_stack.pop()
+                # if we left the refusing block, then the new last mode is ACCEPTED and we should be active again
+                # otherwise, we have simply left an IGNORED mode and we remain IGNORING
+                if last_mode is IfBlockMode.REFUSED:
+                    current_mode = ParsingMode.ACTIVE
+        elif current_mode is ParsingMode.ACTIVE:
             line = strip_line_content(line, config)
             # if resulting line is empty, ignore it
             if line:
                 # we stripped eol, so re-add it now
                 preprocessed_lines.append(line + '\n')
 
-    if current_mode is not ParsingMode.NORMAL:
+    if if_block_modes_stack:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
     return preprocessed_lines
 
@@ -166,5 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('path', type=str, help='path containing source files to preprocess')
     parser.add_argument('config', type=str, help="config used: 'debug' or 'release'")
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
     preprocess_dir(args.path, args.config)
     print(f"Preprocessed all files in {args.path} with config {args.config}.")

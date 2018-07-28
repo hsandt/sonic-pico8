@@ -139,22 +139,69 @@ class TestPreprocess(unittest.TestCase):
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_2nd_if_ignored(self):
+    def test_preprocess_2nd_if_refused(self):
         test_lines = [
             '--#if log\n',
-            '--#if log\n',
             'print("debug")\n',
+            '--#if never\n',
+            'print("never")\n',
             '--#endif\n',
             '\n',
             'if true:\n',
             'print("hello")  -- prints hello\n'
+            '--#endif\n',
         ]
         expected_processed_lines = [
             'print("debug")\n',
             'if true:\n',
             'print("hello")\n'
         ]
-        # this will also trigger a warning, but we don't test it
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_3rd_if_still_ignore(self):
+        test_lines = [
+            '--#if log\n',
+            'print("debug")\n',
+            '--#if never\n',
+            'print("never")\n',
+            '--#if never\n',
+            'print("never2")\n',
+            '--#endif\n',
+            'print("never3")\n',
+            '--#endif\n',
+            '\n',
+            'if true:\n',
+            'print("hello")  -- prints hello\n'
+            '--#endif\n',
+        ]
+        expected_processed_lines = [
+            'print("debug")\n',
+            'if true:\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_3rd_if_ignored_even_if_true(self):
+        test_lines = [
+            '--#if log\n',
+            'print("debug")\n',
+            '--#if never\n',
+            'print("never")\n',
+            '--#if log\n',
+            'print("debug2")\n',
+            '--#endif\n',
+            'print("never3")\n',
+            '--#endif\n',
+            '\n',
+            'if true:\n',
+            'print("hello")  -- prints hello\n'
+            '--#endif\n',
+        ]
+        expected_processed_lines = [
+            'print("debug")\n',
+            'if true:\n',
+            'print("hello")\n'
+        ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
     def test_preprocess_immediate_endif_ignored(self):

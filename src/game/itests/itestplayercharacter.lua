@@ -1,6 +1,4 @@
 require("engine/test/integrationtest")
-local logger = require("engine/debug/logger")
-local gameapp = require("game/application/gameapp")
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")
 

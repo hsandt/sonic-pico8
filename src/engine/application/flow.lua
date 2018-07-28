@@ -1,4 +1,13 @@
-local logger = require("engine/debug/logger")
+--#if log
+local logging = require("engine/debug/logger")
+--#endif
+
+-- gamestate singleton interface
+-- type        string       gamestate type name
+-- on_enter    function()   gamestate enter callback
+-- on_exit     function()   gamestate exit callback
+-- update      function()   gamestate update callback
+-- render      function()   gamestate render callback
 
 local flow = singleton(function (self)
   -- parameters

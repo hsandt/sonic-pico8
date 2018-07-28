@@ -1,7 +1,5 @@
 --#if assert
 
-local logger = require("engine/debug/logger")
-
 -- custom assertions to extend luaassert in utests and provide assertion with messages in itests
 
 function contains(t, searched_value)

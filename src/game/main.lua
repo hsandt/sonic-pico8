@@ -1,5 +1,10 @@
 local gameapp = require("game/application/gameapp")
 
+--#if log
+local logging = require("engine/debug/logger")
+logging.logger:register_stream(logging.console_logger)
+--#endif
+
 --#if profiler
 local profiler = require("engine/debug/profiler")
 profiler.window:show()

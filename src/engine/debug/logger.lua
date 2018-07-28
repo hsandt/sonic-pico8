@@ -3,57 +3,94 @@
 require("engine/core/class")
 require("engine/core/helper")
 
-local logger = {
+local logging = {
   level = {
-    info = 1,   -- show all messages
+    info = 1,     -- show all messages
     warning = 2,  -- show warnings and errors
-    error = 3, -- show errors only
-    none = 4,  -- show nothing
-  },
+    error = 3,    -- show errors only
+    none = 4,     -- show nothing
+  }
+}
 
-  active_categories = {
+function logging.compound_message(message, category, level)
+  if level == logging.level.warning then
+    prefix = "warning: "
+  elseif level == logging.level.error then
+    prefix = "error: "
+  else
+    prefix = ""
+  end
+  return "["..category.."] "..prefix..message
+end
+
+-- logging stream interface
+-- on_log      function(self, message: string, category: string, level: logging.level)   callback on log received
+
+logging.console_logger = {
+  on_log = function (self, message, category, level)
+    print("on_log: ", message, category, level)
+    printh(logging.compound_message(message, category, level))
+  end
+}
+
+local logger = singleton(function (self)
+  self.active_categories = {
     default = true,
     flow = true,
     player = true,
     ui = true,
     codetuner = true,
     itest = true
-  },
+  }
+  self.current_level = logging.level.info
+  self.dump_max_recursion_level = 2
 
-  current_level = nil
-}
+  -- streams to log to
+  self._streams = {}
+end)
 
-logger.current_level = logger.level.info
+-- export
+logging.logger = logger
 
-function logger:_tostring()
-  return "[logger]"
+-- set all categories active flag to false to mute logging
+function logger:deactivate_all_categories()
+  for category, _ in pairs(self.active_categories) do
+    self.active_categories[category] = false
+  end
+end
+
+-- register a stream toward which logging will be sent (console, file...)
+function logger:register_stream(stream)
+  assert(stream, "logger:register_stream: passed stream is nil")
+  assert(type(stream.on_log) == "function" or type(stream.on_log) == "table" and getmetatable(stream.on_log).__call, "logger:register_stream: passed stream is invalid: on_log member is nil or not a callable")
+  add(self._streams, stream)
+end
+
+function logger:_generic_log(message, category, level)
+  category = category or "default"
+  if logger.active_categories[category] and logger.current_level <= level then
+    print("B")
+    local string_message = stringify(message)
+    for stream in all(self._streams) do
+      stream:on_log(message, category, level)
+    end
+  end
 end
 
 -- print an info message to the console in a category string
 function log(message, category)
-  category = category or "default"
-  if logger.active_categories[category] and logger.current_level <= logger.level.info then
-    printh("["..category.."] "..stringify(message))
-  end
+  logger:_generic_log(message, category, logging.level.info, "")
 end
 
 -- print a warning message to the console in a category string
 function warn(message, category)
-  category = category or "default"
-  if logger.active_categories[category] and logger.current_level <= logger.level.warning then
-    printh("["..category.."] warning: "..stringify(message))
-  end
+  logger:_generic_log(message, category, logging.level.warning, "warning: ")
 end
 
 -- print an error message to the console in a category string
 function err(message, category)
-  category = category or "default"
-  if logger.active_categories[category] and logger.current_level <= logger.level.error then
-    printh("["..category.."] error: "..stringify(message))
-  end
+  logger:_generic_log(message, category, logging.level.error, "error: ")
 end
-
-logger.dump_max_recursion_level = 2
 
 -- return a precise variable content, including table entries
 -- for sequence containing nils, nil is not shown but nil's index will be skipped
@@ -106,6 +143,6 @@ function nice_dump(value)
   return dump(value, false, nil, true)
 end
 
-return logger
+return logging
 
 --#endif

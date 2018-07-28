@@ -3,15 +3,8 @@ require("pico8api")
 require("engine/test/assertions")
 
 -- mute all messages during tests
-local logger = require("engine/debug/logger")
-logger.active_categories = {
-  default = false,
-  flow = false,
-  player = false,
-  ui = false,
-  codetuner = false,
-  itest = false
-}
+local logging = require("engine/debug/logger")
+logging.logger:deactivate_all_categories()
 
 -- return the current file line in the format "{file}:{line}" to make it easy to navigate there from the printed message
 -- if you call this function from an intermediate helper function, add an extra level for each intermediate step

@@ -1,4 +1,7 @@
-local logger = require("engine/debug/logger")
+--#if log
+local logging = require("engine/debug/logger")
+--#endif
+
 local input = require("engine/input/input")
 local visual = require("game/resources/visual")
 

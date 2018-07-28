@@ -1,8 +1,11 @@
+--#if log
+local logging = require("engine/debug/logger")
+--#endif
+
 --#if tuner
 
 require("engine/core/class")
 require("engine/render/color")
-local logger = require("engine/debug/logger")
 local wtk = require("engine/wtk/pico8wtk")
 
 local codetuner = singleton(function (self)

@@ -2,7 +2,9 @@ require("engine/application/constants")
 require("engine/core/class")
 require("engine/render/color")
 require("engine/test/assertions")
-local logger = require("engine/debug/logger")
+--#if log
+local logging = require("engine/debug/logger")
+--#endif
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
@@ -134,16 +136,18 @@ function integration_test_runner:_initialize()
   -- use simulated input during itests
   input.mode = input_modes.simulated
 
+--#if log
   -- all itests should only print itest logs
-  for category in pairs(logger.active_categories) do
+  for category in pairs(logging.logger.active_categories) do
     local value
     if category == 'itest' then
       value = true
     else
       value = false
     end
-    logger.active_categories[category] = value
+    logging.logger.active_categories[category] = value
   end
+--#endif
 
   self.initialized = true
 end

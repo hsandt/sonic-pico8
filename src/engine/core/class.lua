@@ -39,6 +39,7 @@ function new_class()
 end
 
 -- create and return a derived class from a base class
+-- you must override _init and call base_class._init(self, ...) appropriately
 function derived_class(base_class)
   local derived = {}
   derived.__index = derived
@@ -95,6 +96,7 @@ end
 
 -- create a singleton from a base singleton and a derived_init method, so it can extend
 -- the functionality of a singleton while providing new static fields on the spot
+-- derived_init should *not* call base_singleton.init, as it is already done in the construct-time init
 function derived_singleton(base_singleton, derived_init)
   local ds = {}
   -- do not set __index to base_singleton in metatable, so ds never touches the members

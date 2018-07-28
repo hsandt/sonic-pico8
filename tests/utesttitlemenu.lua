@@ -112,21 +112,21 @@ describe('titlemenu', function ()
           input.players_button_states[0][button_ids.up] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_up_stub).was_called(1)
-          assert.spy(move_cursor_up_stub).was_called_with(titlemenu.state)
+          assert.spy(move_cursor_up_stub).was_called_with(match.ref(titlemenu.state))
         end)
 
         it('(when input down in down) it should be move cursor down', function ()
           input.players_button_states[0][button_ids.down] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_down_stub).was_called(1)
-          assert.spy(move_cursor_down_stub).was_called_with(titlemenu.state)
+          assert.spy(move_cursor_down_stub).was_called_with(match.ref(titlemenu.state))
         end)
 
         it('(when input x in down) it should be move cursor x', function ()
           input.players_button_states[0][button_ids.x] = button_states.just_pressed
           titlemenu.state:update()
           assert.spy(confirm_current_selection_stub).was_called(1)
-          assert.spy(confirm_current_selection_stub).was_called_with(titlemenu.state)
+          assert.spy(confirm_current_selection_stub).was_called_with(match.ref(titlemenu.state))
         end)
 
       end)

@@ -239,7 +239,7 @@ describe('flow', function ()
 
       it('should call the gamestate:on_enter', function ()
         assert.spy(titlemenu_on_enter_stub).was_called(1)
-        assert.spy(titlemenu_on_enter_stub).was_called_with(titlemenu.state)
+        assert.spy(titlemenu_on_enter_stub).was_called_with(match.ref(titlemenu.state))
       end)
 
       describe('(credits gamestate added)', function ()
@@ -282,12 +282,12 @@ describe('flow', function ()
 
           it('should call the old gamestate:on_exit', function ()
             assert.spy(titlemenu_on_exit_stub).was_called(1)
-            assert.spy(titlemenu_on_exit_stub).was_called_with(titlemenu.state)
+            assert.spy(titlemenu_on_exit_stub).was_called_with(match.ref(titlemenu.state))
           end)
 
           it('should call the new gamestate:on_enter', function ()
             assert.spy(credits_on_enter_stub).was_called(1)
-            assert.spy(credits_on_enter_stub).was_called_with(credits.state)
+            assert.spy(credits_on_enter_stub).was_called_with(match.ref(credits.state))
           end)
 
         end)
@@ -329,7 +329,7 @@ describe('flow', function ()
       it('should not delegate render to current gamestate', function ()
         flow:render()
         assert.spy(titlemenu_render_stub).was_called(1)
-        assert.spy(titlemenu_render_stub).was_called_with(titlemenu.state)
+        assert.spy(titlemenu_render_stub).was_called_with(match.ref(titlemenu.state))
       end)
 
     end)

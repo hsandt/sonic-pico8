@@ -1,7 +1,7 @@
 local gameapp = require("game/application/gameapp")
 
 --#if log
-local logging = require("engine/debug/logger")
+local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_logger)
 --#endif
 

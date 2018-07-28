@@ -2,7 +2,7 @@ require("bustedhelper")
 require("engine/test/integrationtest")
 require("engine/core/helper")
 require("engine/render/color")
-local logging = require("engine/debug/logger")
+local logging = require("engine/debug/logging")
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 

@@ -1,6 +1,6 @@
 require("bustedhelper")
 require("engine/core/math")
-local logging = require("engine/debug/logger")
+local logging = require("engine/debug/logging")
 
 describe('logging', function ()
 

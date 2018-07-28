@@ -1,5 +1,5 @@
 --#if log
-local logging = require("engine/debug/logger")
+local logging = require("engine/debug/logging")
 --#endif
 
 -- gamestate singleton interface

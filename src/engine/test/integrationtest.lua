@@ -3,7 +3,7 @@ require("engine/core/class")
 require("engine/render/color")
 require("engine/test/assertions")
 --#if log
-local logging = require("engine/debug/logger")
+local logging = require("engine/debug/logging")
 --#endif
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")

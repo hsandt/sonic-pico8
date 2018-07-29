@@ -6,6 +6,7 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build.sh $file_base_name debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
@@ -32,6 +33,7 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[

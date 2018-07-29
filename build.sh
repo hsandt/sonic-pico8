@@ -13,7 +13,13 @@ fi
 
 . helper/config_helper.sh
 
-define_build_vars $1
+# will define: MAIN_SOURCE_BASENAME, OUTPUT_BASENAME, REPLACE_ARG_SUBSTITUTES, ITEST (optional)
+define_build_vars "$1"
+
+if [[ $? -ne 0 ]]; then
+    echo "define_build_vars failed, STOP."
+    exit 1
+fi
 
 . helper/path_helper.sh
 
@@ -38,8 +44,7 @@ prebuild/copy_source_folder.sh src "intermediate/$2" &&
 python3.6 prebuild/preprocess.py "intermediate/$2" "$2" &&
 python3.6 prebuild/replace_strings.py "intermediate/$2" $REPLACE_ARG_SUBSTITUTES
 
-if [[ $? -ne 0 ]]
-then
+if [[ $? -ne 0 ]]; then
     echo "Pre-build step failed, STOP."
     exit 1
 fi
@@ -64,8 +69,7 @@ bash -c "$BUILD_COMMAND"
 # locally, prefer using pico8 export script directly
 # p8tool build --lua "intermediate/$2/game/$1.lua" --lua-path="$(pwd)/intermediate/$2/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "${OUTPUT_FILEPATH}.png" "${@:4}"
 
-if [[ $? -ne 0 ]]
-then
+if [[ $? -ne 0 ]]; then
     echo "Build step failed, STOP."
     exit 1
 fi

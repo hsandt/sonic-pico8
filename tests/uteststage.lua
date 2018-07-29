@@ -5,19 +5,13 @@ local stage = require("game/ingame/stage")
 local flow = require("engine/application/flow")
 local titlemenu = require("game/menu/titlemenu")
 local audio = require("game/resources/audio")
-require("game/application/gamestates")
+local gamestate = require("game/application/gamestate")
 
 describe('stage', function ()
 
   describe('state.type', function ()
-    it('should be gamestate_types.stage', function ()
-      assert.are_equal(gamestate_types.stage, stage.state.type)
-    end)
-  end)
-
-  describe('state._tostring', function ()
-    it('should return [stage state]', function ()
-      assert.are_equal("[stage state]", stage.state._tostring())
+    it('should be gamestate.types.stage', function ()
+      assert.are_equal(gamestate.types.stage, stage.state.type)
     end)
   end)
 
@@ -692,7 +686,7 @@ describe('stage', function ()
           for i = 1, stage.global_params.back_to_titlemenu_delay * fps + 1 do
             flow:update()
           end
-          assert.are_equal(gamestate_types.titlemenu, flow.current_gamestate.type)
+          assert.are_equal(gamestate.types.titlemenu, flow.current_gamestate.type)
         end)
 
       end)
@@ -725,7 +719,7 @@ describe('stage', function ()
         it('should change gamestate to titlemenu on next update', function ()
           stage.state:back_to_titlemenu()
           flow:update()
-          assert.are_equal(gamestate_types.titlemenu, flow.current_gamestate.type)
+          assert.are_equal(gamestate.types.titlemenu, flow.current_gamestate.type)
         end)
 
       end)

@@ -12,13 +12,14 @@ from enum import Enum
 # 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
 # 4. it will strip debug function calls like log() or assert()
 
-# Config for defined symbols
+# Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
+# Remember that busted will not preprocess at all and will therefore go through all the blocks.
 defined_symbols_table = {
-    'debug':      ['assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
-    'assert':     ['assert', 'log', 'visual_logger'],
-    'visual_log': ['log', 'visual_logger'],
-    'log':        ['log'],
-    'release':    []
+    'debug':      ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'assert':     ['pico8', 'assert', 'log', 'visual_logger'],
+    'visual_log': ['pico8', 'log', 'visual_logger'],
+    'log':        ['pico8', 'log'],
+    'release':    ['pico8']
 }
 
 # Functions to strip for each config (not all configs need to be present as keys)
@@ -44,10 +45,22 @@ class ParsingMode(Enum):
     IGNORING = 2  # we are ignoring all content in the current if block
 
 # Regex patterns
+
+# tag to enter a pico8-only block (it's a comment block so that busted never runs it but preprocess reactivates it)
+# unlike normal comment blocks, we expect to match from the line start
+pico8_start_pattern = re.compile("--\\[\\[#pico8")
+# closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
+pico8_end_pattern = re.compile("--#pico8]]")
+# capture the previous part (we recommend to start a line with --[[, but in case it is found in the middle of a line)
+block_comment_start_pattern = re.compile("(.*)--\\[\\[")
+# capture the part after (same, we recommend to end a line with --]])
+block_comment_end_pattern = re.compile("(?:.*)]](.*)")
+# Known limitation: an open/close block comment on a single line won't be detected. Use a line comment in this case!
+
 if_pattern = re.compile("--#if (\\w+)")    # ! ignore anything after 1st symbol
 ifn_pattern = re.compile("--#ifn (\\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile("--#endif")
-comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(--.*)')
+comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(?:--.*)')
 stripped_function_call_patterns_table = {}
 for config, stripped_functions in stripped_functions_table.items():
     # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
@@ -117,28 +130,27 @@ def preprocess_lines(lines, config):
 
     preprocessed_lines = []
 
+    inside_pico8_block = False
+    inside_comment_block = False
+
     # explore the tree of #if by storing the current stack of ifs encountered from top to bottom
     if_block_modes_stack = []  # can only be filled with [IfBlockMode.ACCEPTED*, IfBlockMode.REFUSED?, IfBlockMode.IGNORED* (only if 1 REFUSED)]
     current_mode = ParsingMode.ACTIVE  # it is ParsingMode.ACTIVE iff if_block_modes_stack is empty or if_block_modes_stack[-1] == IfBlockMode.ACCEPTED
 
     for line in lines:
         # 3. preprocess directives
+        opt_match = None      # if or ifn match depending on which one succeeds, None if both fail
+        negative_if = False   # True if we have #ifn, False else
 
-        opt_match = None         # if or ifn match depending on which one succeeds, None if both fail
-        negative_if = False  # True if we have #ifn, False else
-
-        if_match = if_pattern.match(line)
-        if if_match:
-            opt_match = if_match
-        else:
-            ifn_match = ifn_pattern.match(line)
-            if ifn_match:
-                opt_match = ifn_match
+        if_boundary_match = if_pattern.match(line)
+        if not if_boundary_match:
+            if_boundary_match = ifn_pattern.match(line)
+            if if_boundary_match:
                 negative_if = True
 
-        if opt_match is not None:
+        if if_boundary_match:
             if current_mode is ParsingMode.ACTIVE:
-                symbol = opt_match.group(1)
+                symbol = if_boundary_match.group(1)
                 # for #if, you need to have symbol defined, for #ifn, you need to have it undefined
                 if (symbol in defined_symbols) ^ negative_if:
                     # symbol is defined, so remain active and add that to the stack
@@ -167,11 +179,51 @@ def preprocess_lines(lines, config):
                 if last_mode is IfBlockMode.REFUSED:
                     current_mode = ParsingMode.ACTIVE
         elif current_mode is ParsingMode.ACTIVE:
-            line = strip_line_content(line, config)
-            # if resulting line is empty, ignore it
-            if line:
-                # we stripped eol, so re-add it now
-                preprocessed_lines.append(line + '\n')
+            force_append = False
+            if pico8_start_pattern.match(line):
+                if not inside_comment_block:
+                    inside_pico8_block = True
+                    # we must not append this line
+                    continue
+                else:
+                    logging.warning('a pico8 block start was encountered inside a comment block. It will be ignored')
+            elif pico8_end_pattern.match(line):
+                if inside_pico8_block:
+                    if inside_comment_block:
+                        logging.warning('a pico8 block end was encountered inside a pico8 block, but also inside a comment block. It will still end the pico8 block, but crossing blocks like this will end in weird behavior in busted')
+                    inside_pico8_block = False
+                    # we must not append this line
+                    continue
+                else:
+                    logging.warning('a pico8 block end was encountered outside a pico8 block. It will be ignored')
+            else:
+                block_comment_start_match = block_comment_start_pattern.match(line)
+                if block_comment_start_match:
+                    inside_comment_block = True
+                    # preserve part just before block start if any
+                    # you need to force append in this case because inside_comment_block is now True
+                    line = block_comment_start_match.group(1)
+                    if line:
+                        force_append = True
+                else:
+                    block_comment_end_match = block_comment_end_pattern.match(line)
+                    if block_comment_end_match:
+                        # only end block comment if inside a comment
+                        # else, this is a legit Lua case, where ]] will be interpreted as normal code
+                        # of course, --]] would still be stripped as a comment
+                        if inside_comment_block:
+                            inside_comment_block = False
+                            # technically we are now outside the block, so it's important to only retrieve the part of the line after comment closure
+                            # so we don't append the whole line containing the block end itself
+                            line = block_comment_end_match.group(1)
+
+            # inside a pico8 block, we continue appending the lines (since we are preprocessing, so we are building for pico8)
+            if not inside_comment_block or force_append:
+                line = strip_line_content(line, config)
+                # if resulting line is empty, ignore it
+                if line:
+                    # we stripped eol, so re-add it now
+                    preprocessed_lines.append(line + '\n')
 
     if if_block_modes_stack:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')

@@ -1,22 +1,16 @@
 require("bustedhelper")
-input = require("engine/input/input")
-titlemenu = require("game/menu/titlemenu")
-flow = require("engine/application/flow")
-require("game/application/gamestates")
-credits = require("game/menu/credits")
-stage = require("game/ingame/stage")
+local input = require("engine/input/input")
+local titlemenu = require("game/menu/titlemenu")
+local flow = require("engine/application/flow")
+local gamestate = require("game/application/gamestate")
+local credits = require("game/menu/credits_dummy")
+local stage = require("game/ingame/stage_dummy")
 
 describe('titlemenu', function ()
 
   describe('state.type', function ()
-    it('should be gamestate_types.titlemenu', function ()
-      assert.are_equal(gamestate_types.titlemenu, titlemenu.state.type)
-    end)
-  end)
-
-  describe('state._tostring', function ()
-    it('should return [titlemenu state]', function ()
-      assert.are_equal("[titlemenu state]", titlemenu.state._tostring())
+    it('should be gamestate.types.titlemenu', function ()
+      assert.are_equal(gamestate.types.titlemenu, titlemenu.state.type)
     end)
   end)
 
@@ -264,7 +258,7 @@ describe('titlemenu', function ()
         it('should have queried stage state', function ()
           titlemenu.state.current_cursor_index = 0
           titlemenu.state:confirm_current_selection()
-          assert.are_equal(gamestate_types.stage, flow.next_gamestate.type)
+          assert.are_equal(gamestate.types.stage, flow.next_gamestate.type)
         end)
 
       end)
@@ -274,7 +268,7 @@ describe('titlemenu', function ()
         it('should have queried credits state', function ()
           titlemenu.state.current_cursor_index = 1
           titlemenu.state:confirm_current_selection()
-          assert.are_equal(gamestate_types.credits, flow.next_gamestate.type)
+          assert.are_equal(gamestate.types.credits, flow.next_gamestate.type)
         end)
 
       end)

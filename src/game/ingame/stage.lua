@@ -2,7 +2,7 @@ require("engine/render/color")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("game/ingame/playercharacter")
-require("game/application/gamestates")
+local gamestate = require("game/application/gamestate")
 local flow = require("engine/application/flow")
 local audio = require("game/resources/audio")
 local input = require("engine/input/input")
@@ -46,7 +46,7 @@ local stage = {
 
 -- game state
 stage.state = singleton(function (self)
-  self.type = gamestate_types.stage
+  self.type = gamestate.types.stage
 
   -- state vars
 
@@ -66,12 +66,6 @@ stage.state = singleton(function (self)
   -- title overlay
   self.title_overlay = ui.overlay(0)
 end)
-
---#if log
-function stage.state:_tostring()
-  return "[stage state]"
-end
---#endif
 
 function stage.state:on_enter()
   self.current_substate = stage.substates.play
@@ -219,7 +213,7 @@ function stage.state:feedback_reached_goal()
 end
 
 function stage.state:back_to_titlemenu()
-  flow:query_gamestate_type(gamestate_types.titlemenu)
+  flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
 

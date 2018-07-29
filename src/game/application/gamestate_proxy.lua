@@ -1,0 +1,58 @@
+-- an intermediate script that breaks dependencies by providing the wanted
+-- version of each gamestate for the current build
+
+local gamestate_proxy = singleton(function (self)
+  self._gamestate_modules = {}
+  self._gamestate_modules.titlemenu = nil
+  self._gamestate_modules.credits = nil
+  self._gamestate_modules.stage = nil
+end)
+
+-- load a particular version of the gamestate: standard or dummy
+-- in pico8 builds, pass nothing, as the preprocess step will determine what is required
+-- in busted tests, pass the list of gamestates to use, by name (e.g. {"titlemenu", "credits"})
+function gamestate_proxy:require_modules(active_gamestates)
+
+--[[#pico8
+  self._gamestate_modules.titlemenu = require("game/menu/titlemenu$titlemenu_ver")
+  self._gamestate_modules.credits = require("game/menu/credits$credits_ver")
+  self._gamestate_modules.stage = require("game/ingame/stage$stage_ver")
+--#pico8]]
+
+--#ifn pico8
+  -- busted runs directly on the scripts, so there is no need to preprocess
+  -- to exclude unused gamestates and require minimal files as in the built .p8
+  -- instead, we need to require_modules with the list of active gamestates
+  -- for pico8 versions, active_gamestates can be nil, it won't be used anyway
+  local dirs = {
+    titlemenu = "menu",
+    credits = "menu",
+    stage = "ingame"
+  }
+
+  local versions = {}
+  for gamestate in all({"titlemenu", "credits", "stage"}) do
+    require("engine/test/assertions")
+    if contains(active_gamestates, gamestate) then
+      version_suffix = ""
+    else
+      version_suffix = "_dummy"
+    end
+    self._gamestate_modules[gamestate] = require("game/"..dirs[gamestate].."/"..gamestate..version_suffix)
+  end
+--#endif
+
+end
+
+-- return the gamestate with given name to use for that build
+-- normally, this is the gamestate in the module of the same name,
+-- but in minimal builds, unused gamestates are replaced
+-- with a lightweight dummy state
+function gamestate_proxy:get(module_name)
+  assert(type(module_name) == "string")
+  assert(self._gamestate_modules[module_name] ~= nil, "gamestate_proxy:get: self._gamestate_modules[module_name] is nil, make sure you have called gamestate_proxy:require_modules before")
+  assert(type(self._gamestate_modules[module_name]) == "table" and self._gamestate_modules[module_name].state, "gamestate_proxy:get: self._gamestate_modules[module_name] is not a function with a 'state' member")
+  return self._gamestate_modules[module_name].state
+end
+
+return gamestate_proxy

@@ -37,6 +37,13 @@ FUNCTION_SUBSTITUTE_TABLE = {
 # prefix of all arg identifiers
 ARG_PREFIX = '$'
 
+# default arg substitutes
+DEFAULT_ARG_SUBSTITUTES = {
+    "titlemenu_ver": "",
+    "credits_ver": "",
+    "stage_ver": "",
+}
+
 def replace_all_strings_in_dir(dirpath, arg_substitutes_table):
     """
     Replace all the glyph identifiers, functions and arg substitutes in all source files in a given directory
@@ -104,13 +111,15 @@ def replace_all_functions_in_string(text):
 
 def replace_all_args_in_string(text, arg_substitutes_table):
     """
-    Replace args with the corresponding substitutes
+    Replace args with the corresponding substitutes.
+    Use DEFAULT_ARG_SUBSTITUTES if arg_substitutes_table is not overriding a key.
 
     >>> replace_all_args_in_string("require('itest_$itest')", {"itest": "character"})
     'require("itest_character")'
 
     """
-    for arg, substitute in arg_substitutes_table.items():
+    full_arg_substitutes_table = {**DEFAULT_ARG_SUBSTITUTES, **arg_substitutes_table}
+    for arg, substitute in full_arg_substitutes_table.items():
         text = text.replace(ARG_PREFIX + arg, substitute)
     return text
 

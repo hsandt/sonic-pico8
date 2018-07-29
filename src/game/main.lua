@@ -1,4 +1,5 @@
 local gameapp = require("game/application/gameapp")
+local gamestate_proxy = require("game/application/gamestate_proxy")
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -19,6 +20,8 @@ codetuner.active = true
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
 function _init()
+  -- require all gamestate modules, according to preprocessing step
+  gamestate_proxy:require_modules()
   gameapp.init()
 end
 

@@ -1,8 +1,7 @@
-local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-local credits = require("game/menu/credits")
-local stage = require("game/ingame/stage")
-local titlemenu = require("game/menu/titlemenu")
+local input = require("engine/input/input")
+local gamestate_proxy = require("game/application/gamestate_proxy")
+local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
 --#if tuner
@@ -24,10 +23,10 @@ function gameapp.init()
   ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 --#endif
 
-  flow:add_gamestate(titlemenu.state)
-  flow:add_gamestate(credits.state)
-  flow:add_gamestate(stage.state)
-  flow:query_gamestate_type(titlemenu.state.type)
+  flow:add_gamestate(gamestate_proxy:get("titlemenu"))
+  flow:add_gamestate(gamestate_proxy:get("credits"))
+  flow:add_gamestate(gamestate_proxy:get("stage"))
+  flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
 function gameapp.update()

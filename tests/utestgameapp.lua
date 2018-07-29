@@ -3,9 +3,8 @@ local gameapp = require("game/application/gameapp")
 
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
-local titlemenu = require("game/menu/titlemenu")
-local credits = require("game/menu/credits")
-local stage = require("game/ingame/stage")
+local titlemenu = require("game/menu/titlemenu_dummy")
+local credits = require("game/menu/credits_dummy")
 
 describe('gameapp', function ()
 

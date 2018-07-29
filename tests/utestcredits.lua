@@ -1,18 +1,12 @@
 require("bustedhelper")
-require("game/application/gamestates")
-credits = require("game/menu/credits")
+local credits = require("game/menu/credits")
+local gamestate = require("game/application/gamestate")
 
 describe('credits.state', function ()
 
   describe('type', function ()
-    it('should be gamestate_types.credits', function ()
-      assert.are_equal(gamestate_types.credits, credits.state.type)
-    end)
-  end)
-
-  describe('state._tostring', function ()
-    it('should return [credits state]', function ()
-      assert.are_equal("[credits state]", credits.state._tostring())
+    it('should be gamestate.types.credits', function ()
+      assert.are_equal(gamestate.types.credits, credits.state.type)
     end)
   end)
 

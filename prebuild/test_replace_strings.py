@@ -26,10 +26,17 @@ class TestReplaceStrings(unittest.TestCase):
         test_string = 'api.print("hello")'
         self.assertEqual(replace_strings.replace_all_functions_in_string(test_string), 'print("hello")')
 
-
     def test_replace_all_args_in_string(self):
         test_string = 'require("itest_$itest")'
         self.assertEqual(replace_strings.replace_all_args_in_string(test_string, {'itest': 'character'}), 'require("itest_character")')
+
+    def test_replace_default_args_in_string(self):
+        test_string = 'require("titlemenu$titlemenu_ver")'
+        self.assertEqual(replace_strings.replace_all_args_in_string(test_string, {}), 'require("titlemenu")')
+
+    def test_replace_default_args_overridden_in_string(self):
+        test_string = 'require("titlemenu$titlemenu_ver")'
+        self.assertEqual(replace_strings.replace_all_args_in_string(test_string, {'titlemenu_ver': '_dummy'}), 'require("titlemenu_dummy")')
 
 
 class TestReplaceStringsInFile(unittest.TestCase):

@@ -1,19 +1,13 @@
 require("engine/application/flow")
 require("engine/render/color")
-require("game/application/gamestates")
+local gamestate = require("game/application/gamestate")
 
 local credits = {}
 
 -- game state
 credits.state = singleton(function (self)
-  self.type = gamestate_types.credits
+  self.type = gamestate.types.credits
 end)
-
---#if log
-function credits.state:_tostring()
-  return "[credits state]"
-end
---#endif
 
 function credits.state:on_enter()
 end

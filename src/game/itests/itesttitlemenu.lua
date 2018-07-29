@@ -1,8 +1,9 @@
+-- gamestates: titlemenu
 require("engine/test/integrationtest")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local titlemenu = require("game/menu/titlemenu")
-local credits = require("game/menu/credits")
+local gamestate = require("game/application/gamestate")
 
 local itest = integration_test('player confirms credits selection')
 
@@ -29,20 +30,7 @@ end)
 
 -- check that we entered the credits state
 itest.final_assertion = function ()
-  return flow.current_gamestate.type == credits.state.type, "current game state is not 'credits', has instead type: "..flow.current_gamestate.type
+  return flow.current_gamestate.type == gamestate.types.credits, "current game state is not '"..gamestate.types.credits.."', has instead type: "..flow.current_gamestate.type
 end
 
 itest_manager:register(itest)
-
-
-function _init()
-  integration_test_runner:init_game_and_start(itest)
-end
-
-function _update60()
-  integration_test_runner:update_game_and_test()
-end
-
-function _draw()
-  integration_test_runner:draw_game_and_test()
-end

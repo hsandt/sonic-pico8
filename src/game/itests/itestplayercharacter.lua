@@ -1,3 +1,4 @@
+-- gamestates: stage
 require("engine/test/integrationtest")
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")

@@ -2,13 +2,13 @@ require("engine/render/color")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local ui = require("engine/ui/ui")
-require("game/application/gamestates")
+local gamestate = require("game/application/gamestate")
 
 local titlemenu = {}
 
 -- game state
 local titlemenustate = singleton(function (self)
-  self.type = gamestate_types.titlemenu
+  self.type = gamestate.types.titlemenu
 
   -- parameters
 
@@ -20,12 +20,6 @@ local titlemenustate = singleton(function (self)
   -- current cursor index (0: start, 1: credits)
   self.current_cursor_index = 0
 end)
-
---#if log
-function titlemenustate:_tostring()
-  return "[titlemenu state]"
-end
---#endif
 
 function titlemenustate:on_enter()
 --#if mouse
@@ -69,9 +63,9 @@ end
 
 function titlemenustate:confirm_current_selection()
   if self.current_cursor_index == 0 then
-    flow:query_gamestate_type(gamestate_types.stage)
+    flow:query_gamestate_type(gamestate.types.stage)
   else  -- current_cursor_index == 1
-    flow:query_gamestate_type(gamestate_types.credits)
+    flow:query_gamestate_type(gamestate.types.credits)
   end
 end
 

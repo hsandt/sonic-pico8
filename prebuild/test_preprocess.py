@@ -102,7 +102,7 @@ class TestPreprocess(unittest.TestCase):
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_if_debug_in_debug(self):
+    def test_preprocess_if_log_in_debug(self):
         test_lines = [
             'print("always")\n',
             '\n',
@@ -121,7 +121,7 @@ class TestPreprocess(unittest.TestCase):
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_if_debug_in_release(self):
+    def test_preprocess_if_log_in_release(self):
         test_lines = [
             'print("always")\n',
             '\n',
@@ -203,6 +203,91 @@ class TestPreprocess(unittest.TestCase):
             'print("hello")\n'
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_ifn(self):
+        test_lines = [
+            'print("always")\n',
+            '--#ifn log\n',
+            'print("no log")\n',
+            '--#endif\n',
+            'print("hello")\n'
+        ]
+        expected_processed_lines = [
+            'print("always")\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_if_and_ifn(self):
+        test_lines = [
+            'print("always")\n',
+            '--#if log\n',
+            'print("log")\n',
+            '--#endif\n',
+            '--#ifn log\n',
+            'print("no log")\n',
+            '--#endif\n',
+            'print("hello")\n'
+        ]
+        expected_processed_lines = [
+            'print("always")\n',
+            'print("log")\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_ifn_inside_if(self):
+        test_lines = [
+            'print("always")\n',
+            '--#if log\n',
+            'print("log")\n',
+            '--#ifn log\n',
+            'print("no log")\n',
+            '--#endif\n',
+            'print("log 2")\n',
+            '--#endif\n',
+            'print("hello")\n'
+        ]
+        expected_processed_lines = [
+            'print("always")\n',
+            'print("log")\n',
+            'print("log 2")\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_if_inside_ifn(self):
+        test_lines = [
+            'print("always")\n',
+            '--#ifn log\n',
+            'print("no log")\n',
+            '--#if log\n',
+            'print("log")\n',
+            '--#endif\n',
+            'print("no log 2")\n',
+            '--#endif\n',
+            'print("hello")\n'
+        ]
+        expected_processed_lines = [
+            'print("always")\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_ifn_log_in_release(self):
+        test_lines = [
+            'print("always")\n',
+            '--#ifn log\n',
+            'print("no log")\n',
+            '--#endif\n',
+            'print("hello")\n'
+        ]
+        expected_processed_lines = [
+            'print("always")\n',
+            'print("no log")\n',
+            'print("hello")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
     def test_preprocess_immediate_endif_ignored(self):
         test_lines = [

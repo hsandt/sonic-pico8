@@ -44,7 +44,8 @@ class ParsingMode(Enum):
     IGNORING = 2  # we are ignoring all content in the current if block
 
 # Regex patterns
-if_pattern = re.compile("--#if (\\w+)")  # ! ignore anything after 1st symbol
+if_pattern = re.compile("--#if (\\w+)")    # ! ignore anything after 1st symbol
+ifn_pattern = re.compile("--#ifn (\\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile("--#endif")
 comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(--.*)')
 stripped_function_call_patterns_table = {}
@@ -122,11 +123,24 @@ def preprocess_lines(lines, config):
 
     for line in lines:
         # 3. preprocess directives
-        match = if_pattern.match(line)
-        if match:
+
+        opt_match = None         # if or ifn match depending on which one succeeds, None if both fail
+        negative_if = False  # True if we have #ifn, False else
+
+        if_match = if_pattern.match(line)
+        if if_match:
+            opt_match = if_match
+        else:
+            ifn_match = ifn_pattern.match(line)
+            if ifn_match:
+                opt_match = ifn_match
+                negative_if = True
+
+        if opt_match is not None:
             if current_mode is ParsingMode.ACTIVE:
-                symbol = match.group(1)
-                if symbol in defined_symbols:
+                symbol = opt_match.group(1)
+                # for #if, you need to have symbol defined, for #ifn, you need to have it undefined
+                if (symbol in defined_symbols) ^ negative_if:
                     # symbol is defined, so remain active and add that to the stack
                     if_block_modes_stack.append(IfBlockMode.ACCEPTED)
                     # still strip the preprocessor directives themselves (don't add it to accepted lines)

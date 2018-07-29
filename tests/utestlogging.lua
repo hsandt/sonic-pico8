@@ -237,7 +237,6 @@ describe('logging', function ()
             end)
 
             it('should print with explicit category: default', function ()
-              print("A")
               log("message1")
               assert.spy(printh_stub).was_called(1)
               assert.spy(printh_stub).was_called_with("[default] message1")

@@ -91,17 +91,8 @@ describe('integration_test_runner', function ()
   after_each(function ()
     -- full reset
     integration_test_runner:init()
-
     input.mode = input_modes.native
-
-    logger.active_categories = {
-      default = true,
-      flow = true,
-      player = true,
-      ui = true,
-      codetuner = true,
-      itest = true
-    }
+    logging.logger:init()
   end)
 
   describe('init_game_and_start', function ()
@@ -179,7 +170,7 @@ describe('integration_test_runner', function ()
 
     end)
 
-    describe('(when test ends on this update)', function ()
+    describe('(when test ends on this update with success)', function ()
 
       local log_stub
 
@@ -198,9 +189,42 @@ describe('integration_test_runner', function ()
         log_stub:clear()
       end)
 
-      it('should also log the result', function ()
+      it('should only log the result', function ()
         integration_test_runner:update_game_and_test()
         assert.spy(log_stub).was_called(1)
+        assert.spy(log_stub).was_called_with("itest 'character walks' ended with success", "itest")
+      end)
+
+    end)
+
+    describe('(when test ends on this update with failure)', function ()
+
+      local log_stub
+
+      setup(function ()
+        test:add_action(time_trigger(0.017), function () end, 'some_action')
+        test.final_assertion = function ()
+          return false, "character walks failed"
+        end
+        integration_test_runner:start(test)
+        log_stub = stub(_G, "log")
+      end)
+
+      teardown(function ()
+        clear_table(test.action_sequence)
+        test.final_assertion = nil
+        log_stub:revert()
+      end)
+
+      after_each(function ()
+        log_stub:clear()
+      end)
+
+      it('should log the result and failure message', function ()
+        integration_test_runner:update_game_and_test()
+        assert.spy(log_stub).was_called(2)
+        assert.spy(log_stub).was_called_with("itest 'character walks' ended with failure", "itest")
+        assert.spy(log_stub).was_called_with("failed: character walks failed", "itest")
       end)
 
     end)
@@ -569,7 +593,7 @@ describe('integration_test_runner', function ()
           codetuner = false,
           itest = true
         },
-        logger.active_categories)
+        logging.logger.active_categories)
     end)
 
     it('should set initialized to true', function ()

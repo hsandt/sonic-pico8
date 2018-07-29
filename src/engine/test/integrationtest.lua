@@ -58,6 +58,9 @@ function integration_test_runner:update_game_and_test()
     self:update()
     if self.current_state ~= test_states.running then
       log("itest '"..self.current_test.name.."' ended with "..self.current_state, "itest")
+      if self.current_state == test_states.failure then
+        log("failed: "..self.current_message, "itest")
+      end
     end
   end
 end

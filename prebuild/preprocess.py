@@ -14,20 +14,22 @@ from enum import Enum
 
 # Config for defined symbols
 defined_symbols_table = {
-    'debug': ['assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
-    'itest': ['assert', 'log', 'visual_logger'],
-    'log': ['log'],
-    'release': []
+    'debug':      ['assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'assert':     ['assert', 'log', 'visual_logger'],
+    'visual_log': ['log', 'visual_logger'],
+    'log':        ['log'],
+    'release':    []
 }
 
 # Functions to strip for each config (not all configs need to be present as keys)
 # Make sure you never insert gameplay code inside a log or assert (such as assert(coresume(coroutine)))
 # and always split gameplay/debug code in 2 lines
 stripped_functions_table = {
-    'debug': [],
-    'itest': [],
-    'log': ['assert'],
-    'release': ['assert', 'log', 'warn', 'err']
+    'debug':      [],
+    'assert':     [],
+    'visual_log': ['assert'],
+    'log':        ['assert'],
+    'release':    ['assert', 'log', 'warn', 'err']
 }
 
 # Parsing mode of each individual #if block

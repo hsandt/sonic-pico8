@@ -234,6 +234,10 @@
 					"name": "ui",
 					"cmd": ["./test.sh ui"],
 				},
+				{
+					"name": "headless_itests",
+					"cmd": ["./test.sh headless_itests"],
+				},
 			],
 		},
 	],

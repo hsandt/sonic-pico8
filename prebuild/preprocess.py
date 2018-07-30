@@ -14,6 +14,9 @@ from enum import Enum
 
 # Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
 # Remember that busted will not preprocess at all and will therefore go through all the blocks.
+# For non-pico8 builds, we use --#ifn pico8 to indicate we won't have preprocessing,
+# but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
+# the code is only needed for a purpose of redundancy and unit test harnessing in general.
 defined_symbols_table = {
     'debug':      ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
     'assert':     ['pico8', 'assert', 'log', 'visual_logger'],
@@ -48,19 +51,19 @@ class ParsingMode(Enum):
 
 # tag to enter a pico8-only block (it's a comment block so that busted never runs it but preprocess reactivates it)
 # unlike normal comment blocks, we expect to match from the line start
-pico8_start_pattern = re.compile("--\\[\\[#pico8")
+pico8_start_pattern = re.compile(r"--\[\[#pico8")
 # closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
-pico8_end_pattern = re.compile("--#pico8]]")
+pico8_end_pattern = re.compile(r"--#pico8]]")
 # capture the previous part (we recommend to start a line with --[[, but in case it is found in the middle of a line)
-block_comment_start_pattern = re.compile("(.*)--\\[\\[")
+block_comment_start_pattern = re.compile(r"(.*)--\[\[")
 # capture the part after (same, we recommend to end a line with --]])
-block_comment_end_pattern = re.compile("(?:.*)]](.*)")
+block_comment_end_pattern = re.compile(r"(?:.*)]](.*)")
 # Known limitation: an open/close block comment on a single line won't be detected. Use a line comment in this case!
 
-if_pattern = re.compile("--#if (\\w+)")    # ! ignore anything after 1st symbol
-ifn_pattern = re.compile("--#ifn (\\w+)")  # ! ignore anything after 1st symbol
-endif_pattern = re.compile("--#endif")
-comment_pattern = re.compile('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*")|(?:--.*)')
+if_pattern = re.compile(r"--#if (\w+)")    # ! ignore anything after 1st symbol
+ifn_pattern = re.compile(r"--#ifn (\w+)")  # ! ignore anything after 1st symbol
+endif_pattern = re.compile(r"--#endif")
+comment_pattern = re.compile(r'("[^"\\]*(?:\\.[^"\\]*)*")|(?:--.*)')
 stripped_function_call_patterns_table = {}
 for config, stripped_functions in stripped_functions_table.items():
     # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re

@@ -623,5 +623,5 @@ class TestPreprocessDir(unittest.TestCase):
             self.assertEqual(f2.read(), ''.join(expected_processed_lines2))
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)
     unittest.main()

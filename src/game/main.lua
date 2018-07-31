@@ -4,6 +4,7 @@ local gamestate_proxy = require("game/application/gamestate_proxy")
 --#if log
 local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_logger)
+logging.logger:register_stream(logging.console_log_stream)
 --#endif
 
 --#if profiler

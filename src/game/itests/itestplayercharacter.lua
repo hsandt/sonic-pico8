@@ -8,7 +8,7 @@ local itest = integration_test('character debug moves to right', {stage.state.ty
 
 itest.setup = function ()
   -- we still need on_enter to spawn character
-  flow:change_gamestate_by_type(gamestate.types.stage)
+  flow:change_gamestate_by_type(stage.state.type)
   stage.state.player_character.position = vector(0., 80.)
   stage.state.player_character.control_mode = control_modes.puppet
 end

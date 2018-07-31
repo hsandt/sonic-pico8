@@ -81,8 +81,79 @@ end
 function joinstr(separator, ...)
   return joinstr_table(separator, {...})
 end
-
 --#endif
+
+-- https://pastebin.com/NS8rxMwH
+-- converted to clean lua, adapted coding style
+-- changed behavior:
+-- - avoid adding next line if first word of line is too long
+-- - don't add trailing space at end of line
+-- - don't add eol at the end of the last line
+-- - count the extra separator before next word in the line length prediction test
+
+--word wrap (string, char width)
+function wwrap(s,w)
+  local retstr = ""
+  local lines = strspl(s, "\n")
+  local nb_lines = count(lines)
+
+  for i = 1, nb_lines do
+    local linelen = 0
+    local words = strspl(lines[i], " ")
+    local nb_words = count(words)
+
+    for k = 1, nb_words do
+      local wrd = words[k]
+      local should_wrap = false
+
+      if k > 1 then
+        -- predict length after adding 1 separator + next word
+        if linelen + 1 + #wrd > w then
+          -- wrap
+          retstr = retstr.."\n"
+          linelen = 0
+          should_wrap = true
+        else
+          -- don't wrap, so add space after previous word if not the first one
+          retstr = retstr.." "
+          linelen = linelen + 1
+        end
+      end
+
+      retstr = retstr..wrd
+      linelen = linelen + #wrd
+
+      if k < nb_words and not should_wrap then
+      end
+    end
+
+    -- wrap following \n already there
+    if i < nb_lines then
+      retstr = retstr.."\n"
+    end
+  end
+
+  return retstr
+end
+
+--string split(string, separator)
+function strspl(s,sep)
+  local ret = {}
+  local buffer = ""
+
+  for i = 1, #s do
+    if sub(s, i, i) == sep then
+      add(ret, buffer)
+      buffer = ""
+    else
+      buffer = buffer..sub(s,i,i)
+    end
+  end
+  if buffer ~= "" then
+    add(ret, buffer)
+  end
+  return ret
+end
 
 -- wait for [time]s. only works if you update your coroutines each frame.
 function yield_delay(delay)

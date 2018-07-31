@@ -127,7 +127,7 @@ describe('logging', function ()
 
     describe('register_stream', function ()
 
-      it('#solo should add a valid stream to the streams', function ()
+      it('should add a valid stream to the streams', function ()
         local spied_fun = spy.new(function () end)
 
         local fake_stream = derived_singleton(log_stream)

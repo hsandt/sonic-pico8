@@ -71,7 +71,7 @@ describe('visual_logger', function ()
 
       describe('(when queue is empty)', function ()
 
-        it('#solo should push a message to queue and vertical layout', function ()
+        it('should push a message to queue and vertical layout', function ()
           local lm = log_message(logging.level.info, "flow", "enter stage state")
           window:push_message(lm)
           assert.spy(message_queue.push).was_called(1)

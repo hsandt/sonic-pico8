@@ -19,6 +19,9 @@ visual_logger.window = derived_singleton(debug_window, function (self)
 end)
 
 -- push a log_message lm to the visual log
+-- caveat: the queue has a fixed size of messages rather than lines
+--  so when the queue is full, full multiline messages will pop out although
+--  in a normal console log, we would expect the lines to go out of view 1 by 1
 function visual_logger.window:push_message(lm)
   local has_replaced = self._message_queue:push(logging.log_message(lm.level, lm.category, lm.text))
 

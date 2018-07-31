@@ -104,9 +104,20 @@ describe('logging', function ()
       logger:init()
     end)
 
+    describe('init', function ()
+
+      it('should set all active categories flags to true', function ()
+        for category, _ in pairs(logger.active_categories) do
+          assert.is_true(logger.active_categories[category])
+        end
+      end)
+
+    end)
+
     describe('deactivate_all_categories', function ()
 
       it('should set all active categories flags to false', function ()
+        logger:deactivate_all_categories()
         for category, _ in pairs(logger.active_categories) do
           assert.is_false(logger.active_categories[category])
         end
@@ -116,26 +127,25 @@ describe('logging', function ()
 
     describe('register_stream', function ()
 
-      it('should add a valid stream to the streams', function ()
+      it('#solo should add a valid stream to the streams', function ()
         local spied_fun = spy.new(function () end)
 
-        local stream = {
-          var = 2
-        }
-        function stream:on_log(lm)
-          spied_fun(self.var, lm.level, lm.text, lm.category)
+        local fake_stream = derived_singleton(log_stream)
+
+        function fake_stream:on_log(lm)
+            spied_fun(2, lm.level, lm.category, lm.text)
         end
 
-        logger:register_stream(stream)
+        logger:register_stream(fake_stream)
 
         -- implementation
-        assert.are_same({stream}, logger._streams)
+        assert.are_same({fake_stream}, logger._streams)
 
         -- interface
-        log("test", "default")
+        log("text", "default")
         assert.spy(spied_fun).was_called(1)
-        assert.spy(spied_fun).was_called_with(2, logging.level.info, "test", "default")
-        assert.spy(spied_fun).was_called_with(2, logging.level.info, "test", "default")
+        assert.spy(spied_fun).was_called_with(2, logging.level.info, "default", "text")
+        assert.spy(spied_fun).was_called_with(2, logging.level.info, "default", "text")
       end)
 
       it('should assert if nil is passed', function ()
@@ -163,25 +173,25 @@ describe('logging', function ()
 
       fake_stream_class = new_class()
 
-      function fake_stream_class:_init(value)
-        self.var = value
+      function generate_fake_stream(value)
+        local fake_stream = derived_singleton(log_stream)
+        function fake_stream:on_log(lm)
+            spied_fun(value, lm.level, lm.category, lm.text)
+        end
+        return fake_stream
       end
 
-      function fake_stream_class:on_log(lm)
-          spied_fun(self.var, lm.level, lm.category, lm.text)
-      end
-
-      local fake_stream1 = fake_stream_class(1)
-      local fake_stream2 = fake_stream_class(2)
+      local fake_stream1 = generate_fake_stream(1)
+      local fake_stream2 = generate_fake_stream(2)
 
       setup(function ()
-        spy.on(fake_stream1, "on_log")
-        spy.on(fake_stream2, "on_log")
+        spy.on(fake_stream1, "log")
+        spy.on(fake_stream2, "log")
       end)
 
       after_each(function ()
-        fake_stream1.on_log:clear()
-        fake_stream2.on_log:clear()
+        fake_stream1.log:clear()
+        fake_stream2.log:clear()
         spied_fun:clear()
       end)
 
@@ -198,15 +208,15 @@ describe('logging', function ()
         -- generate tests for log levels equal to the threshold or higher
         for log_level = 2, 3 do
 
-          it('should call on_log on all streams for category A and logging level '..tostr(log_level), function ()
+          it('should call log on all streams for category A and logging level '..tostr(log_level), function ()
             logger:_generic_log(log_level, "flow", "text")
 
             -- implementation
             local lm = log_message(log_level, "flow", "text")
-            assert.spy(fake_stream1.on_log).was_called(1)
-            assert.spy(fake_stream1.on_log).was_called_with(match.ref(fake_stream1), lm)
-            assert.spy(fake_stream2.on_log).was_called(1)
-            assert.spy(fake_stream2.on_log).was_called_with(match.ref(fake_stream2), lm)
+            assert.spy(fake_stream1.log).was_called(1)
+            assert.spy(fake_stream1.log).was_called_with(match.ref(fake_stream1), lm)
+            assert.spy(fake_stream2.log).was_called(1)
+            assert.spy(fake_stream2.log).was_called_with(match.ref(fake_stream2), lm)
 
             -- interface
             assert.spy(spied_fun).was_called(2)
@@ -216,23 +226,23 @@ describe('logging', function ()
 
         end
 
-        it('should not call on_log for category B (even for logging level 2)', function ()
+        it('should not call log for category B (even for logging level 2)', function ()
           logger:_generic_log(2, "player", "text")
 
           -- implementation
-          assert.spy(fake_stream1.on_log).was_not_called()
-          assert.spy(fake_stream2.on_log).was_not_called()
+          assert.spy(fake_stream1.log).was_not_called()
+          assert.spy(fake_stream2.log).was_not_called()
 
           -- interface
           assert.spy(spied_fun).was_not_called()
         end)
 
-        it('should not call on_log for logging level 1 (even for category B)', function ()
+        it('should not call log for logging level 1 (even for category B)', function ()
           logger:_generic_log(1, "flow", "text")
 
           -- implementation
-          assert.spy(fake_stream1.on_log).was_not_called()
-          assert.spy(fake_stream2.on_log).was_not_called()
+          assert.spy(fake_stream1.log).was_not_called()
+          assert.spy(fake_stream2.log).was_not_called()
 
           -- interface
           assert.spy(spied_fun).was_not_called()
@@ -247,10 +257,13 @@ describe('logging', function ()
       local printh_stub
 
       setup(function ()
+        -- important since busted_helper will set it to false
+        logging.console_log_stream.active = true
         printh_stub = stub(_G, "printh")
       end)
 
       teardown(function ()
+        logging.console_log_stream.active = false
         printh_stub:revert()
       end)
 

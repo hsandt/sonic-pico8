@@ -106,7 +106,7 @@ function logger:_generic_log(level, category, content)
   if logger.active_categories[category] and logger.current_level <= level then
     local lm = log_message(level, category, stringify(content))
     for stream in all(self._streams) do
-      stream:on_log(lm)
+      stream:log(lm)
     end
   end
 end

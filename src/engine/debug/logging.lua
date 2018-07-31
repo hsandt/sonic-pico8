@@ -44,11 +44,18 @@ end
 
 -- log stream abstract singleton
 -- active      boolean                           is the stream active? is false, all output is muted
--- on_log      function(self, lm: log_message)   callback on log message received
+-- log         function(self, lm: log_message)   external callback on log message received
+-- on_log      function(self, lm: log_message)   internal callback on log message received, only called if active
 local log_stream = singleton(function (self)
   self.active = true
 end)
 logging.log_stream = log_stream
+
+function log_stream:log(lm)
+  if self.active then
+    self:on_log(lm)
+  end
+end
 
 -- abstract
 -- function log_stream:on_log()

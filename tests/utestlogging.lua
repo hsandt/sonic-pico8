@@ -5,6 +5,7 @@ local logging = require("engine/debug/logging")
 describe('logging', function ()
 
   local log_message = logging.log_message
+  local log_stream = logging.log_stream
 
   describe('log_message', function ()
 
@@ -45,6 +46,52 @@ describe('logging', function ()
     it('should return a string concatenating [category], log level and message for error', function ()
       local lm = log_message(logging.level.error, "flow", "danger")
       assert.are_equal("[flow] error: danger", logging.compound_message(lm))
+    end)
+
+  end)
+
+  describe('log_stream (testing implemented base methods)', function ()
+
+    local dummy_log_stream = derived_singleton(log_stream)
+
+    dummy_log_stream.on_log = spy.new(function () end)
+
+    after_each(function ()
+      dummy_log_stream:init()
+    end)
+
+    describe('init', function ()
+
+      it('should initialize the singleton active', function ()
+        assert.is_true(dummy_log_stream.active)
+      end)
+
+    end)
+
+    describe('log', function ()
+
+      teardown(function ()
+        dummy_log_stream.on_log:revert()
+      end)
+
+      after_each(function ()
+        dummy_log_stream.on_log:clear()
+      end)
+
+      it('should do nothing is inactive', function ()
+        dummy_log_stream.active = false
+        local lm = log_message(logging.level.warning, "player", "caution")
+        dummy_log_stream:log(lm)
+        assert.spy(dummy_log_stream.on_log).was_called(0)
+      end)
+
+      it('should call on_log callback if active', function ()
+        local lm = log_message(logging.level.warning, "player", "caution")
+        dummy_log_stream:log(lm)
+        assert.spy(dummy_log_stream.on_log).was_called(1)
+        assert.spy(dummy_log_stream.on_log).was_called_with(dummy_log_stream, match.ref(lm))
+      end)
+
     end)
 
   end)

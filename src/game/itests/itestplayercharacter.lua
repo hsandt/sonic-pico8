@@ -1,13 +1,14 @@
 -- gamestates: stage
 require("engine/test/integrationtest")
 local flow = require("engine/application/flow")
-local stage = require("game/ingame/stage")
+local stage = require("game/ingame/stage")  -- required
 
-local itest = integration_test('character debug moves to right')
+local itest = integration_test('character debug moves to right', {stage.state.type})
+
 
 itest.setup = function ()
   -- we still need on_enter to spawn character
-  flow:_change_gamestate(stage.state)
+  flow:change_gamestate_by_type(gamestate.types.stage)
   stage.state.player_character.position = vector(0., 80.)
   stage.state.player_character.control_mode = control_modes.puppet
 end

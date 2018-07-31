@@ -7,11 +7,11 @@ describe('gamestate_proxy', function ()
     gamestate_proxy:init()
   end)
 
-  describe('require_modules', function ()
+  describe('require_gamestates', function ()
 
 
     it('should require gamestates from the active_gamestates sequence', function ()
-      gamestate_proxy:require_modules({"titlemenu", "stage"})
+      gamestate_proxy:require_gamestates({"titlemenu", "stage"})
 
       -- implementation
       assert.are_same({
@@ -26,20 +26,20 @@ describe('gamestate_proxy', function ()
 
   describe('get', function ()
 
-    it('should assert if module_name is invalid or require_modules has not been called (member is nil)', function ()
+    it('should assert if module_name is invalid or require_gamestates has not been called (member is nil)', function ()
       assert.has_error(function ()
           gamestate_proxy:get("invalid")
         end,
-        "gamestate_proxy:get: self._gamestate_modules[module_name] is nil, make sure you have called gamestate_proxy:require_modules before")
+        "gamestate_proxy:get: self._gamestate_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
     end)
 
   describe('(when modules have been required)', function ()
 
     before_each(function ()
-      gamestate_proxy:require_modules({"titlemenu", "stage"})
+      gamestate_proxy:require_gamestates({"titlemenu", "stage"})
     end)
 
-      it('should return a dummy gamestate when require_modules has been called', function ()
+      it('should return a dummy gamestate when require_gamestates has been called', function ()
         -- interface
         assert.are_same({
             require("game/menu/titlemenu").state,

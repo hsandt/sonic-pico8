@@ -26,14 +26,14 @@ describe('itest_manager', function ()
     end)
 
     it('should register a new test', function ()
-      local itest = integration_test('test 1')
+      local itest = integration_test('test 1', {'titlemenu'})
       itest_manager:register(itest)
       assert.are_equal(itest, itest_manager.itests['test 1'])
     end)
 
     it('should override a registered test with the same name', function ()
-      local itest = integration_test('test 1')
-      local itest_clone = integration_test('test 1')
+      local itest = integration_test('test 1', {'titlemenu'})
+      local itest_clone = integration_test('test 1', {'titlemenu'})
       itest_manager:register(itest)
       itest_manager:register(itest_clone)
       assert.are_equal(itest_clone, itest_manager.itests['test 1'])
@@ -60,7 +60,7 @@ describe('itest_manager', function ()
     end)
 
     it('should delegate to itest runner', function ()
-      local itest = integration_test('test 1')
+      local itest = integration_test('test 1', {'titlemenu'})
       itest_manager:register(itest)
       itest_manager:init_game_and_start_by_name(itest.name)
       assert.spy(itest_runner_own_method).was_called(1)
@@ -68,7 +68,7 @@ describe('itest_manager', function ()
     end)
 
     it('should assert if no test with the given name is found', function ()
-      local itest = integration_test('test 1')
+      local itest = integration_test('test 1', {'titlemenu'})
       assert.has_error(function ()
         itest_manager:init_game_and_start_by_name(itest)
       end,
@@ -85,7 +85,7 @@ describe('integration_test_runner', function ()
   local test
 
   setup(function ()
-    test = integration_test('character walks')
+    test = integration_test('character walks', {'stage'})
   end)
 
   after_each(function ()
@@ -115,7 +115,7 @@ describe('integration_test_runner', function ()
     it('should init the gameapp and the passed test', function ()
       integration_test_runner:init_game_and_start(test)
       assert.spy(gameapp_init_stub).was_called(1)
-      assert.spy(gameapp_init_stub).was_called_with()
+      assert.spy(gameapp_init_stub).was_called_with({'stage'})
       assert.spy(itest_runner_start_stub).was_called(1)
       assert.spy(itest_runner_start_stub).was_called_with(match.ref(integration_test_runner), test)
     end)
@@ -955,12 +955,21 @@ end)
 describe('integration_test', function ()
 
   describe('_init', function ()
-    it('should create an integration test with a name', function ()
-      local test = integration_test('character follows ground')
+
+    it('should create an integration test with a name (and active gamestates for non-pico8 build)', function ()
+      local test = integration_test('character follows ground', {'stage'})
       assert.is_not_nil(test)
-      assert.are_same({'character follows ground', nil, {}, nil, 0},
-        {test.name, test.setup, test.action_sequence, test.final_assertion, test.timeout_frames})
+      assert.are_same({'character follows ground', nil, {}, nil, 0, {'stage'}},
+        {test.name, test.setup, test.action_sequence, test.final_assertion, test.timeout_frames, test.active_gamestates})
     end)
+
+    it('should assert if active gamestates is nil for non-pico8 build', function ()
+      assert.has_error(function ()
+        integration_test('missing active gamestates')
+        end,
+        "integration_test._init: non-pico8 build requires active_gamestates to define them at runtime")
+    end)
+
   end)
 
   describe('_tostring', function ()

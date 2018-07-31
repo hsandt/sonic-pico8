@@ -4,6 +4,10 @@ local gamestate_proxy = require("game/application/gamestate_proxy")
 local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
+--#if visual_logger
+local visual_logger = require("engine/debug/visual_logger")
+--#endif
+
 --#if tuner
 local codetuner = require("engine/debug/codetuner")
 --#endif
@@ -18,9 +22,19 @@ local ui = require("engine/ui/ui")
 
 local gameapp = {}
 
-function gameapp.init()
+-- in pico8 builds, pass nothing for active_gamestates
+-- in busted tests, pass active_gamestates so they can be required automatically on gameapp init
+function gameapp.init(active_gamestates)
+--#ifn pico8
+ assert(active_gamestates, "gameapp.init: non-pico8 build requires active_gamestates to define them at runtime")
+--#endif
+
 --#if mouse
   ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
+--#endif
+
+--#ifn pico8
+  gamestate_proxy:require_gamestates(active_gamestates)
 --#endif
 
   flow:add_gamestate(gamestate_proxy:get("titlemenu"))
@@ -29,12 +43,32 @@ function gameapp.init()
   flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
+--#ifn utest
+function gameapp.reinit_modules()
+--#if mouse
+  ui:set_cursor_sprite_data(nil)
+--#endif
+
+--#ifn pico8
+  gamestate_proxy:init()
+--#endif
+
+  flow:init()
+end
+--#endif
+
 function gameapp.update()
   input:process_players_inputs()
   flow:update()
+
+--#if visual_logger
+  visual_logger.window:update()
+--#endif
+
 --#if profiler
   profiler.window:update()
 --#endif
+
 --#if tuner
   codetuner:update_window()
 --#endif
@@ -43,12 +77,19 @@ end
 function gameapp.draw()
   cls()
   flow:render()
+
+--#if visual_logger
+  visual_logger.window:render()
+--#endif
+
 --#if profiler
   profiler.window:render()
 --#endif
+
 --#if tuner
   codetuner:render_window()
 --#endif
+
 --#if mouse
   ui:render_mouse()
 --#endif

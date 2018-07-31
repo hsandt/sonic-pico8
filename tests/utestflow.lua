@@ -74,11 +74,10 @@ describe('flow', function ()
       describe('(titlemenu state entered)', function ()
 
         before_each(function ()
-          flow:_change_gamestate(titlemenu.state)
+          flow.current_gamestate = titlemenu.state
         end)
 
         after_each(function ()
-          flow.current_gamestate:on_exit()  -- just cleanup in case titlemenu on_enter had some side effects, since we didn't stub it
           flow.current_gamestate = nil
         end)
 
@@ -86,7 +85,7 @@ describe('flow', function ()
           assert.has_error(function ()
               flow:query_gamestate_type(titlemenu.state.type)
             end,
-            "flow:query_gamestate_type: cannot query the current gamestate type titlemenu again")
+            "flow:query_gamestate_type: cannot query the current gamestate type 'titlemenu' itself")
         end)
 
       end)
@@ -155,58 +154,68 @@ describe('flow', function ()
 
       describe('_change_gamestate', function ()
 
-        before_each(function ()
-          flow:_change_gamestate(titlemenu.state)
+        after_each(function ()
+          if flow.current_gamestate then
+            flow.current_gamestate:on_exit()  -- just cleanup in case titlemenu on_enter had some side effects, since we didn't stub it
+            flow.current_gamestate = nil
+          end
         end)
 
-        after_each(function ()
-          flow.current_gamestate:on_exit()  -- just cleanup in case titlemenu on_enter had some side effects, since we didn't stub it
-          flow.current_gamestate = nil
+        it('should assert if a nil gamestate is passed', function ()
+          assert.has_error(function ()
+              flow:_change_gamestate(nil)
+            end,
+            "flow:_change_gamestate: cannot change to nil gamestate")
         end)
 
         it('should directly enter a gamestate', function ()
+          flow:_change_gamestate(titlemenu.state)
           assert.are_equal(flow.gamestates[titlemenu.state.type], flow.current_gamestate)
           assert.are_equal(titlemenu.state.type, flow.current_gamestate.type)
         end)
 
         it('should cleanup the now obsolete next gamestate query', function ()
+          flow:_change_gamestate(titlemenu.state)
           assert.is_nil(flow.next_gamestate)
         end)
 
       end)
 
-      describe('change_gamestate_silent', function ()
+      describe('change_gamestate_by_type (utest only)', function ()
 
-        local titlemenu_on_enter_stub
 
         setup(function ()
-          titlemenu_on_enter_stub = stub(titlemenu.state, "on_enter")
+          spy.on(flow, "_change_gamestate")
         end)
 
         teardown(function ()
-          titlemenu_on_enter_stub:revert()
-        end)
-
-        before_each(function ()
-          flow:change_gamestate_silent(titlemenu.state)
+          flow._change_gamestate:revert()
         end)
 
         after_each(function ()
-          flow.current_gamestate = nil
-          titlemenu_on_enter_stub:clear()
+          if flow.current_gamestate then
+            flow.current_gamestate:on_exit()  -- just cleanup in case titlemenu on_enter had some side effects, since we didn't stub it
+            flow.current_gamestate = nil
+          end
+          flow._change_gamestate:clear()
         end)
 
-        it('should directly enter a gamestate', function ()
+        it('should assert if an invalid gamestate type is passed', function ()
+          assert.has_error(function ()
+              flow:change_gamestate_by_type('invalid')
+            end,
+            "flow:change_gamestate_by_type: gamestate type 'invalid' has not been added to the flow gamestates")
+        end)
+
+        it('should directly enter a gamestate by type', function ()
+          flow:change_gamestate_by_type(titlemenu.state.type)
+
+          -- implementation
+          assert.spy(flow._change_gamestate).was_called(1)
+          assert.spy(flow._change_gamestate).was_called_with(match.ref(flow), match.ref(titlemenu.state))
+          -- interface
           assert.are_equal(flow.gamestates[titlemenu.state.type], flow.current_gamestate)
           assert.are_equal(titlemenu.state.type, flow.current_gamestate.type)
-        end)
-
-        it('should cleanup the now obsolete next gamestate query', function ()
-          assert.is_nil(flow.next_gamestate)
-        end)
-
-        it('should not call the entered state on_enter', function ()
-          assert.spy(titlemenu_on_enter_stub).was_not_called()
         end)
 
       end)

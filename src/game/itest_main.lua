@@ -13,8 +13,8 @@ logging.logger:register_stream(logging.console_log_stream)
 --#endif
 
 function _init()
-  -- require only gamestate modules written on first line of the required $itest
-  gamestate_proxy:require_modules()
+  -- require only gamestate modules written on first line of the required $itest (pico8-build way)
+  gamestate_proxy:require_gamestates()
 
   -- temporary way to run single itest
   -- when itest files start having multiple tests, you'll need a name-based search test running

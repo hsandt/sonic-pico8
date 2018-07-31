@@ -21,7 +21,7 @@ codetuner.active = true
 
 function _init()
   -- require all gamestate modules, according to preprocessing step
-  gamestate_proxy:require_modules()
+  gamestate_proxy:require_gamestates()
   gameapp.init()
 end
 

@@ -2,13 +2,12 @@
 require("engine/test/integrationtest")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-local titlemenu = require("game/menu/titlemenu")
 local gamestate = require("game/application/gamestate")
 
-local itest = integration_test('player confirms credits selection')
+local itest = integration_test('player confirms credits selection', {gamestate.types.titlemenu})
 
 itest.setup = function ()
-  flow:_change_gamestate(titlemenu.state)
+  flow:change_gamestate_by_type(gamestate.types.titlemenu)
 end
 
 -- player holds down, causing a just pressed input

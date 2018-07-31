@@ -47,7 +47,7 @@ end)
 
 -- helper method to use in rendered itest _init
 function integration_test_runner:init_game_and_start(test)
-  gameapp.init()
+  gameapp.init(test.active_gamestates)
   integration_test_runner:start(test)
 end
 
@@ -254,12 +254,19 @@ integration_test = new_class()
 -- action_sequence    [scripted_action]              sequence of scripted actions - run during test
 -- final_assertion    function () => (bool, string)  assertion function that returns (assertion passed, error message if failed) - called on test end
 -- timeout_frames     int                            number of frames before timeout (0 for no timeout, if you know the time triggers will do the job)
-function integration_test:_init(name)
+-- active_gamestates  [gamestate.types]              (non-pico8 only) sequence of gamestate modules to require for that itest.
+--                                                    must be the same as in itest script first line
+--                                                    and true gamestate modules should be required accordingly if directly referenced
+function integration_test:_init(name, active_gamestates)
   self.name = name
   self.setup = nil
   self.action_sequence = {}
   self.final_assertion = nil
   self.timeout_frames = 0
+--#ifn pico8
+ assert(active_gamestates, "integration_test._init: non-pico8 build requires active_gamestates to define them at runtime")
+ self.active_gamestates = active_gamestates
+--#endif
 end
 
 --#if log

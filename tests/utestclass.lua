@@ -303,12 +303,26 @@ describe('derived_singleton', function ()
     return "[my_derived_singleton "..self.types[1]..", "..self.subtype.."]"
   end
 
+  local my_derived_singleton_no_init = derived_singleton(my_derived_singleton)
+
+  function my_derived_singleton_no_init:new_method()
+    return 5
+  end
+
   it('should define a derived_singleton with base members', function ()
     assert.are_equal("custom", my_derived_singleton.types[1])
   end)
 
   it('should define a derived_singleton with derived members', function ()
     assert.are_equal("special", my_derived_singleton.subtype)
+  end)
+
+  it('should define a derived_singleton with derived members with same init if none is provided', function ()
+    assert.are_equal("special", my_derived_singleton_no_init.subtype)
+  end)
+
+  it('should define a derived_singleton with new methods', function ()
+    assert.are_equal(5, my_derived_singleton_no_init.new_method())
   end)
 
   describe('changing base member copy', function ()

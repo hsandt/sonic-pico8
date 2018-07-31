@@ -94,7 +94,7 @@ function singleton(init)
   return s
 end
 
--- create a singleton from a base singleton and a derived_init method, so it can extend
+-- create a singleton from a base singleton and an optional derived_init method, so it can extend
 -- the functionality of a singleton while providing new static fields on the spot
 -- derived_init should *not* call base_singleton.init, as it is already done in the construct-time init
 function derived_singleton(base_singleton, derived_init)
@@ -113,7 +113,9 @@ function derived_singleton(base_singleton, derived_init)
   })
   function ds:init()
     base_singleton.init(self)
-    derived_init(self)
+    if derived_init then
+      derived_init(self)
+    end
   end
   ds:init()
   return ds

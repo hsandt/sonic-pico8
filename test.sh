@@ -16,11 +16,11 @@ fi
 
 if [[ $MODULE = "all" || -z $MODULE ]] ; then
 	TEST_FILE_PATTERN="utest"  # all unit tests
-	COVERAGE_OPTIONS=""  # default is -c .luacov
+	COVERAGE_OPTIONS="-c .luacov_all"  # we cannot just use default .luacov since it would also affect specific module tests
 else
 	# prepend "utest" again in case a module name contains another one (e.g. logger c visual_logger)
 	TEST_FILE_PATTERN="utest$MODULE"
-	COVERAGE_OPTIONS="-c .luacov_current \"^$MODULE\""
+	COVERAGE_OPTIONS="-c .luacov_current \"/$MODULE\""
 fi
 
 if [[ $2 = "all" ]] ; then

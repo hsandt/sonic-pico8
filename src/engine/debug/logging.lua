@@ -42,14 +42,24 @@ function logging.compound_message(lm)
   return "["..lm.category.."] "..prefix..lm.text
 end
 
--- log stream interface
+-- log stream abstract singleton
+-- active      boolean                           is the stream active? is false, all output is muted
 -- on_log      function(self, lm: log_message)   callback on log message received
+local log_stream = singleton(function (self)
+  self.active = true
+end)
+logging.log_stream = log_stream
 
-logging.console_log_stream = {
-  on_log = function (self, lm)
-    printh(logging.compound_message(lm))
-  end
-}
+-- abstract
+-- function log_stream:on_log()
+-- end
+
+console_log_stream = derived_singleton(log_stream)
+logging.console_log_stream = console_log_stream
+
+function console_log_stream:on_log(lm)
+  printh(logging.compound_message(lm))
+end
 
 local logger = singleton(function (self)
   self.active_categories = {

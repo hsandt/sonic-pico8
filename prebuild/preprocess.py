@@ -20,6 +20,7 @@ from enum import Enum
 defined_symbols_table = {
     'debug':      ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
     'assert':     ['pico8', 'assert', 'log', 'visual_logger'],
+    'itest':      ['pico8', 'log', 'visual_logger', 'test'],
     'visual_log': ['pico8', 'log', 'visual_logger'],
     'log':        ['pico8', 'log'],
     'release':    ['pico8']

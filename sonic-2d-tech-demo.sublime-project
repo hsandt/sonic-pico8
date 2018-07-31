@@ -15,6 +15,10 @@
 					"cmd": ["./build.sh $file_base_name assert"]
 				},
 				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest"]
+				},
+				{
 					"name": "visual_log",
 					"cmd": ["./build.sh $file_base_name visual_log"]
 				},
@@ -42,6 +46,10 @@
 					"cmd": ["./build.sh $file_base_name assert && (./reload.sh || ./run.sh $file_base_name assert)"]
 				},
 				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+				},
+				{
 					"name": "visual_log",
 					"cmd": ["./build.sh $file_base_name visual_log && (./reload.sh || ./run.sh $file_base_name visual_log)"]
 				},
@@ -63,8 +71,16 @@
 			"variants":
 			[
 				{
+					"name": "assert",
+					"cmd": ["./run.sh $file_base_name assert"]
+				},
+				{
 					"name": "itest",
 					"cmd": ["./run.sh $file_base_name itest"]
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./run.sh $file_base_name visual_log"]
 				},
 				{
 					"name": "log",

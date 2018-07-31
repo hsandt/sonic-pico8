@@ -70,7 +70,7 @@ function flow:_change_gamestate(new_gamestate)
   log("changed gamestate to "..self.current_gamestate.type, "flow")
 end
 
---#if utest
+--#if test
 -- check if a new gamestate was queried, and enter it if so (convenient for itests)
 function flow:change_gamestate_by_type(gamestate_type)
   assert(self.gamestates[gamestate_type] ~= nil, "flow:change_gamestate_by_type: gamestate type '"..gamestate_type.."' has not been added to the flow gamestates")

@@ -144,6 +144,13 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Parse Lua",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["luac -p $file"],
+			"file_regex": "((?:src|tests)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)"
+		},
+		{
 			"name": "busted: test",
 			"working_dir": "${project_path}",
 			"shell": true,

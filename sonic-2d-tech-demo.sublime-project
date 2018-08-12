@@ -145,6 +145,7 @@
 		},
 		{
 			"name": "Parse Lua",
+			"selector": "source.lua,source.p8",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["luac -p $file"],

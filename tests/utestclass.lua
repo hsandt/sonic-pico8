@@ -153,7 +153,7 @@ describe('new_struct', function ()
     assert.are_equal(10, dummy:get_sum())
   end)
 
-  describe('struct equality', function ()
+  describe('struct_eq', function ()
 
     it('should return true for two structs equal by reference', function ()
       local dummy1 = dummy_struct(3, 7)
@@ -176,6 +176,39 @@ describe('new_struct', function ()
       local dummy1 = dummy_struct(3, 7)
       local not_the_same_struct = { value1 = 3, value2 = 7 }
       assert.is_true(dummy1 ~= not_the_same_struct)
+    end)
+
+  end)
+
+  describe('copy', function ()
+
+    it('+ should return a copy of the struct, with the same content but not the same reference', function ()
+      local dummy = dummy_struct(3, 7)
+      local copied_dummy = dummy:copy()
+      assert.are_same(dummy, copied_dummy)
+      assert.is_false(rawequal(dummy, copied_dummy))
+    end)
+
+    describe('with struct containing struct', function ()
+
+      local complex_struct = new_struct()
+
+      function complex_struct:_init(value1, value2)
+        self.sum = value1 + value2
+        self.sub_struct = dummy_struct(value1, value2)
+      end
+
+      function complex_struct:_tostring()
+        return "complex_struct: "..joinstr(", ", self.sum, self.sub_struct)
+      end
+
+      it('should return a copy of the struct and its struct members, with the same contents but not the same references', function ()
+        local complex = complex_struct(3, 7)
+        local copied_complex = complex:copy()
+        assert.are_same(complex, copied_complex)
+        assert.is_false(rawequal(picomplcomplexex, copied_complex))
+      end)
+
     end)
 
   end)

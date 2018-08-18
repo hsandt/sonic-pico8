@@ -19,6 +19,30 @@ local function struct_eq(lhs, rhs)
   return getmetatable(lhs) == getmetatable(rhs) and are_same(lhs, rhs)
 end
 
+-- return a copy of a struct instance
+-- this is a simplified version of deepcopy implementations and only support
+-- structs referencing primitive types or structs (at least copy-able tables)
+-- with no reference cycle
+local function copy(struct_instance)
+  -- we can't access the 'struct' variable from here so we get it back via getmetatable
+  local copied = setmetatable({}, getmetatable(struct_instance))
+
+  for key, value in pairs(struct_instance) do
+    if type(value) == 'table' then
+      assert(type(value.copy) == 'function', "value "..stringify(value)..
+        " is a table member of a struct but it doesn't have a copy method, so it's not a struct itself. "..
+        "this is not supported.")
+      -- deep copy the struct member itself. never use circular references
+      -- between structs or you'll get an infinite recursion
+      copied[key] = value:copy()
+    else
+      copied[key] = value
+    end
+  end
+
+  return copied
+end
+
 -- create and return a new class
 -- every class should implement :_init(), :_tostring() and if relevant .__eq()
 -- note that most .__eq() definitions are only duck-typing lhs and rhs,
@@ -59,6 +83,7 @@ function new_struct()
   struct.__index = struct  -- 1st struct as instance metatable
   struct.__concat = concat
   struct.__eq = struct_eq
+  struct.copy = copy
 
   setmetatable(struct, {
     __call = new

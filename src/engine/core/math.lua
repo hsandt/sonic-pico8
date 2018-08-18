@@ -116,6 +116,10 @@ function vector:sub_inplace(other)
   self.y = self.y - other.y
 end
 
+function vector.__unm(v)
+  return vector(-v.x, -v.y)
+end
+
 function vector.__mul(lhs, rhs)
   if type(lhs) == "number" then
     return vector(lhs * rhs.x, lhs * rhs.y)
@@ -186,6 +190,7 @@ function vector:normalize()
   end
 end
 
+-- return copy of vector with magnitude clamped by max_magnitude
 function vector:with_clamped_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
@@ -195,6 +200,7 @@ function vector:with_clamped_magnitude(max_magnitude)
   return self
 end
 
+-- clamp magnitude in-place
 function vector:clamp_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
@@ -204,6 +210,7 @@ function vector:clamp_magnitude(max_magnitude)
   end
 end
 
+-- return copy of vector with magnitude clamped by max_magnitude in cardinal directions
 function vector:with_clamped_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   -- if 1 arg is passed, use the same max for x and y
   max_magnitude_y = max_magnitude_y or max_magnitude_x
@@ -211,10 +218,35 @@ function vector:with_clamped_magnitude_cardinal(max_magnitude_x, max_magnitude_y
   return vector(mid(-max_magnitude_x, self.x, max_magnitude_x), mid(-max_magnitude_y, self.y, max_magnitude_y))
 end
 
+-- clamp magnitude in cardinal directions in-place
 function vector:clamp_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   -- if 1 arg is passed, use the same max for x and y
   max_magnitude_y = max_magnitude_y or max_magnitude_x
   assert(max_magnitude_x >= 0 and max_magnitude_y >= 0)
   self.x = mid(-max_magnitude_x, self.x, max_magnitude_x)
   self.y = mid(-max_magnitude_y, self.y, max_magnitude_y)
+end
+
+-- return copy of vector rotated by 90 degrees clockwise
+function vector:rotated_90_cw()
+  return vector(self.y, -self.x)
+end
+
+-- rotate vector by 90 degrees clockwise in-place
+function vector:rotate_90_cw_inplace()
+  local old_x = self.x
+  self.x = self.y
+  self.y = -old_x
+end
+
+-- return copy of vector rotated by 90 degrees counter-clockwise
+function vector:rotated_90_ccw()
+  return vector(-self.y, self.x)
+end
+
+-- rotate by 90 degrees counter-clockwise in-place
+function vector:rotate_90_ccw_inplace()
+  local old_x = self.x
+  self.x = -self.y
+  self.y = old_x
 end

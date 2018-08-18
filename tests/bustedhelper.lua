@@ -21,3 +21,11 @@ end
 function print_at_line(message)
   print(get_file_line(1)..": "..message)
 end
+
+-- utest history prefix symbol explanations
+-- in order to track the efficiency of my utests, I add symbols in the it('...') to remember what effect they had on development
+-- for every occurrence, I add an extra symbol
+-- -    the test was hard to write, but didn't help me to spot bug during implementation
+-- ?    the test passed, but later I realized it was wrong, and passed because both the code and expected were wrong but matching (no big loss of time though)
+-- +    the test helped me identify potential bugs and tricky cases during implementation
+-- *    the test revealed a regression later during development (very useful)

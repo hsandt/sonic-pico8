@@ -227,26 +227,26 @@ function vector:clamp_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   self.y = mid(-max_magnitude_y, self.y, max_magnitude_y)
 end
 
--- return copy of vector rotated by 90 degrees clockwise
+-- return copy of vector rotated by 90 degrees clockwise (for top-left origin)
 function vector:rotated_90_cw()
-  return vector(self.y, -self.x)
+  return vector(-self.y, self.x)
 end
 
 -- rotate vector by 90 degrees clockwise in-place
 function vector:rotate_90_cw_inplace()
   local old_x = self.x
-  self.x = self.y
-  self.y = -old_x
+  self.x = -self.y
+  self.y = old_x
 end
 
--- return copy of vector rotated by 90 degrees counter-clockwise
+-- return copy of vector rotated by 90 degrees counter-clockwise (for top-left origin)
 function vector:rotated_90_ccw()
-  return vector(-self.y, self.x)
+  return vector(self.y, -self.x)
 end
 
 -- rotate by 90 degrees counter-clockwise in-place
 function vector:rotate_90_ccw_inplace()
   local old_x = self.x
-  self.x = -self.y
-  self.y = old_x
+  self.x = self.y
+  self.y = -old_x
 end

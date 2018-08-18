@@ -227,6 +227,16 @@ function vector:clamp_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   self.y = mid(-max_magnitude_y, self.y, max_magnitude_y)
 end
 
+-- mirror the vector horizontally in-place
+function vector:mirror_x()
+  self.x = -self.x
+end
+
+-- mirror the vector vertically in-place
+function vector:mirror_y()
+  self.y = -self.y
+end
+
 -- return copy of vector rotated by 90 degrees clockwise (for top-left origin)
 function vector:rotated_90_cw()
   return vector(-self.y, self.x)

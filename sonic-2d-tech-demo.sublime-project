@@ -144,7 +144,7 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Parse Lua",
+			"name": "parse Lua",
 			"selector": "source.lua,source.p8",
 			"working_dir": "${project_path}",
 			"shell": true,

@@ -19,7 +19,10 @@ itest.setup = function ()
   flow:change_gamestate_by_type(gamestate.types.titlemenu)
 end
 
+local old_console_log_stream_active
+
 itest:add_action(time_trigger(0.5), function ()
+  old_console_log_stream_active = logging.console_log_stream.active
   logging.console_log_stream.active = false  -- hide those messages from the console log, we want to test the visual log
   log("info message", "itest")
 end)
@@ -43,7 +46,7 @@ itest:add_action(time_trigger(0.7), function ()
 end)
 itest:add_action(time_trigger(0.7), function ()
   log("pushing up 3", "itest")
-  logging.console_log_stream.active = true
+  logging.console_log_stream.active = old_console_log_stream_active
   visual_logger.visual_log_stream.active = false  -- hide visual log again, so we don't print the success message in the vertical layout
 end)
 

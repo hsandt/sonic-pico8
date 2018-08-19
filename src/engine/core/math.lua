@@ -33,11 +33,11 @@ function mirror_direction_y(direction)
   end
 end
 
-function mirror_rotate_90_cw(direction)
+function rotate_direction_90_cw(direction)
   return (direction + 1) % 4
 end
 
-function mirror_rotate_90_ccw(direction)
+function rotate_direction_90_ccw(direction)
   return (direction - 1) % 4
 end
 

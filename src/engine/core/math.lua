@@ -273,10 +273,10 @@ directions = {
 }
 
 direction_vectors = {
-  [directions.left] = vector(-1., 0.),
-  [directions.up] = vector(0., -1.),
-  [directions.right] = vector(1., 0.),
-  [directions.down] = vector(0., 1.)
+  [0] = vector(-1., 0.),
+  vector(0., -1.),
+  vector(1., 0.),
+  vector(0., 1.)
 }
 
 function oppose_direction(direction)

@@ -96,10 +96,10 @@ function aabb:collides(other, prioritized_escape_direction)
 
   -- table of lowest signed distances between edge of box 1 and edge of box 2, indexed by potential escape direction (if that distance is negative)
   local min_signed_edge_to_edge_distances = {
-    [directions.left] = other_left - self_right,
-    [directions.up] = other_top - self_bottom,
-    [directions.right] = self_left - other_right,
-    [directions.down] = self_top - other_bottom
+    [0] = other_left - self_right,  -- 0: left
+    other_top - self_bottom,        -- 1: up
+    self_left - other_right,        -- 2: right
+    self_top - other_bottom         -- 3: down
   }
 
   -- find max of the signed distances, while defining the associated escape vector

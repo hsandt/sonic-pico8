@@ -1,5 +1,46 @@
 require("engine/core/class")
 
+-- geometry helpers
+
+directions = {
+  left = 0,
+  up = 1,
+  right = 2,
+  down = 3
+}
+
+function oppose_direction(direction)
+  return (direction + 2) % 4
+end
+
+function mirror_direction_x(direction)
+  if direction == directions.left then
+    return directions.right
+  elseif direction == directions.right then
+    return directions.left
+  else
+    return direction
+  end
+end
+
+function mirror_direction_y(direction)
+  if direction == directions.up then
+    return directions.down
+  elseif direction == directions.down then
+    return directions.up
+  else
+    return direction
+  end
+end
+
+function mirror_rotate_90_cw(direction)
+  return (direction + 1) % 4
+end
+
+function mirror_rotate_90_ccw(direction)
+  return (direction - 1) % 4
+end
+
 -- numeric helpers
 
 --#if assert
@@ -17,7 +58,9 @@ function almost_eq(lhs, rhs, eps)
 end
 --#endif
 
--- tile_vector class: a pair of integer coords (i, j) that represents a position
+-- geometry/data grid structs
+
+-- tile_vector struct: a pair of integer coords (i, j) that represents a position
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
 -- for sprite locations and tilemap locations, use sprite_id_location and location resp.
 -- for sprite span (sprite size on the spritesheet), use tile_vector directly
@@ -73,7 +116,7 @@ function location:to_center_position()
 end
 
 
--- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
+-- vector struct: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
 vector = new_struct()
 

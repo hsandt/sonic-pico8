@@ -337,6 +337,7 @@ end
 
 abs=math.abs
 
+-- pico8 min only supports 2 arguments. use math.min if you want the min of 3+ arguments in busted tests
 function min(a, b)
   if a==nil or b==nil then
     return 0
@@ -345,6 +346,7 @@ function min(a, b)
   return b
 end
 
+-- pico8 max only supports 2 arguments. use math.max if you want the max of 3+ arguments in busted tests
 function max(a, b)
   if a==nil or b==nil then
     return 0

@@ -25,7 +25,9 @@ end
 -- utest history prefix symbol explanations
 -- in order to track the efficiency of my utests, I add symbols in the it('...') to remember what effect they had on development
 -- for every occurrence, I add an extra symbol
+-- from worst to best case:
 -- -    the test was hard to write, but didn't help me to spot bug during implementation
 -- ?    the test passed, but later I realized it was wrong, and passed because both the code and expected were wrong but matching (no big loss of time though)
+-- .    the test failed because the test itself was wrong, so I fixed it
 -- +    the test helped me identify potential bugs and tricky cases during implementation
 -- *    the test revealed a regression later during development (very useful)

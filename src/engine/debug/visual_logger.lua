@@ -16,7 +16,7 @@ visual_logger.window = derived_singleton(debug_window, function (self)
   self._message_queue = circular_buffer(visual_logger.buffer_size)
   -- vertical layout of log messages
   self.v_layout = wtk.vertical_layout.new(10, colors.dark_blue)
-  self.gui:add_child(self.v_layout, 0, 50)
+  self.gui:add_child(self.v_layout, 0, 98)
 end)
 
 -- push a log_message lm to the visual log
@@ -34,7 +34,8 @@ end
 
 -- add a new label to the vertical layout
 function visual_logger.window:_on_message_pushed(lm)
-  local log_label = wtk.label.new("["..lm.category.."] "..lm.text, colors.white)
+  local wrapped_text = wwrap(lm.text, 32)
+  local log_label = wtk.label.new(wrapped_text, colors.white)
   self.v_layout:add_child(log_label)
 end
 

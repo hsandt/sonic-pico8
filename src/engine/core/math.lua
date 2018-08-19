@@ -1,46 +1,5 @@
 require("engine/core/class")
 
--- geometry helpers
-
-directions = {
-  left = 0,
-  up = 1,
-  right = 2,
-  down = 3
-}
-
-function oppose_direction(direction)
-  return (direction + 2) % 4
-end
-
-function mirror_direction_x(direction)
-  if direction == directions.left then
-    return directions.right
-  elseif direction == directions.right then
-    return directions.left
-  else
-    return direction
-  end
-end
-
-function mirror_direction_y(direction)
-  if direction == directions.up then
-    return directions.down
-  elseif direction == directions.down then
-    return directions.up
-  else
-    return direction
-  end
-end
-
-function rotate_direction_90_cw(direction)
-  return (direction + 1) % 4
-end
-
-function rotate_direction_90_ccw(direction)
-  return (direction - 1) % 4
-end
-
 -- numeric helpers
 
 --#if assert
@@ -58,7 +17,7 @@ function almost_eq(lhs, rhs, eps)
 end
 --#endif
 
--- geometry/data grid structs
+-- geometry/data grid helpers
 
 -- tile_vector struct: a pair of integer coords (i, j) that represents a position
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
@@ -302,4 +261,52 @@ function vector:rotate_90_ccw_inplace()
   local old_x = self.x
   self.x = self.y
   self.y = -old_x
+end
+
+-- enums data
+
+directions = {
+  left = 0,
+  up = 1,
+  right = 2,
+  down = 3
+}
+
+direction_vectors = {
+  [directions.left] = vector(-1., 0.),
+  [directions.up] = vector(0., -1.),
+  [directions.right] = vector(1., 0.),
+  [directions.down] = vector(0., 1.)
+}
+
+function oppose_direction(direction)
+  return (direction + 2) % 4
+end
+
+function mirror_direction_x(direction)
+  if direction == directions.left then
+    return directions.right
+  elseif direction == directions.right then
+    return directions.left
+  else
+    return direction
+  end
+end
+
+function mirror_direction_y(direction)
+  if direction == directions.up then
+    return directions.down
+  elseif direction == directions.down then
+    return directions.up
+  else
+    return direction
+  end
+end
+
+function rotate_direction_90_cw(direction)
+  return (direction + 1) % 4
+end
+
+function rotate_direction_90_ccw(direction)
+  return (direction - 1) % 4
 end

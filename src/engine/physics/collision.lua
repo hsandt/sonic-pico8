@@ -1,3 +1,5 @@
+require("engine/core/math")
+
 -- physics notes: collisions use fixed-point floating coordinates
 --  to support fractional coordinates like classic sonic uses for motion.
 -- therefore, we don't use pixel perfect collisions,
@@ -83,34 +85,36 @@ function aabb:collides(other, prioritized_escape_direction)
   local other_top = other.center.y - other.extents.y
   local other_bottom = other.center.y + other.extents.y
 
-  -- check the signed distance of each edge against the other box' vertices
-  -- in polygon theory we are supposed to check all the other vertices and get the minimum signed distance, but for aabb
-  -- it's much simpler since we know that self_left - other_right <= self_left - other_left, so we directly compute the lowest value
-  local min_signed_distance_x1 = self_left - other_right
-  local min_signed_distance_x2 = other_left - self_right
-  local min_signed_distance_y1 = self_top - other_bottom
-  local min_signed_distance_y2 = other_top - self_bottom
+  -- in convex polygon theory, we estimate the distance between polygons with a "phi-function" which is evaluated as:
+  -- (maximum when swapping polygons A and B of
+  --  (maximum when iterating over A's edges of
+  --    (minimum when iterating over B's vertices of
+  --      signed distance of B's vertex from A's edge where A's edge positive side is oriented toward the outside of A)))
+  -- for aabb, it's much simpler since all sides are aligned and we know what edge coordinate differences are lower than others (e.g. other_left - self_right < other_left - self_left)
+  -- besides, we don't have to swap the box' roles since the distances edge-vertex are really just edge-edge distances, which are symmetrical
+  -- so we use a much simplified operation. however, unlike phi-function we only compute the escape vector while iterating
 
-  -- retrieve the max of all these signed distances and the corresponding escape vector
-  -- in polygon theory we are supposed to redo the same ops by swapping the box' roles (edge of box1, vertex of box2 then reversely)
-  -- but for aabb, it's simpler because everything is aligned so the distances edge-vertex are really just edge-edge distances
-  local escape_vector
+  -- table of lowest signed distances between edge of box 1 and edge of box 2, indexed by potential escape direction (if that distance is negative)
+  local min_signed_edge_to_edge_distances = {
+    [directions.left] = other_left - self_right,
+    [directions.up] = other_top - self_bottom,
+    [directions.right] = self_left - other_right,
+    [directions.down] = self_top - other_bottom
+  }
+
+  -- find max of the signed distances, while defining the associated escape vector
   local max_signed_distance = - math.huge
-  if min_signed_distance_x1 > max_signed_distance then
-    max_signed_distance = min_signed_distance_x1
-    escape_vector = vector(- max_signed_distance, 0)
-  end
-  if min_signed_distance_x2 > max_signed_distance or min_signed_distance_x2 == max_signed_distance and prioritized_escape_direction == directions.left then
-    max_signed_distance = min_signed_distance_x2
-    escape_vector = vector(max_signed_distance, 0)
-  end
-  if min_signed_distance_y1 > max_signed_distance or min_signed_distance_y1 == max_signed_distance and prioritized_escape_direction == directions.down then
-    max_signed_distance = min_signed_distance_y1
-    escape_vector = vector(0, - max_signed_distance)
-  end
-  if min_signed_distance_y2 > max_signed_distance or min_signed_distance_y2 == max_signed_distance and prioritized_escape_direction == directions.up then
-    max_signed_distance = min_signed_distance_y2
-    escape_vector = vector(0, max_signed_distance)
+  local escape_vector = nil
+  for escape_direction, signed_distance in pairs(min_signed_edge_to_edge_distances) do
+    if signed_distance > max_signed_distance or signed_distance == max_signed_distance and prioritized_escape_direction == escape_direction then
+      max_signed_distance = signed_distance
+      -- only set escape_vector if the boxes projected on this axis are intersecting (they still may not intersect if they are separate in the other axis)
+      -- note that if we replace abs(signed_distance) with - signed_distance, we get a generic formula for a motion vector
+      -- that will ensure both boxes are just touching (escape when signed_distance < 0, come to contact if signed_distance > 0)
+      if signed_distance <= 0 then
+        escape_vector = abs(signed_distance) * direction_vectors[escape_direction]
+      end
+    end
   end
 
   if max_signed_distance >= 0 then

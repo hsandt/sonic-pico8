@@ -27,6 +27,7 @@ end
 -- for every occurrence, I add an extra symbol
 -- from worst to best case:
 -- -    the test was hard to write, but didn't help me to spot bug during implementation
+-- ~    the test didn't take long to write but it adds a lot of time to the test run and didn't help find bugs
 -- ?    the test passed, but later I realized it was wrong, and passed because both the code and expected were wrong but matching (no big loss of time though)
 -- .    the test failed because the test itself was wrong, so I fixed it
 -- +    the test helped me identify potential bugs and tricky cases during implementation

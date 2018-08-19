@@ -1,3 +1,4 @@
+require("engine/core/class")
 local wtk = require("engine/wtk/pico8wtk")
 
 -- base class for debug windows

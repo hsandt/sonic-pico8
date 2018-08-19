@@ -1,3 +1,4 @@
+require("engine/core/class")
 --#if log
 local logging = require("engine/debug/logging")
 --#endif

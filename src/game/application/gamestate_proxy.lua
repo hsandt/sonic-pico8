@@ -1,6 +1,7 @@
--- an intermediate script that breaks dependencies by providing the wanted
--- version of each gamestate for the current build
+require("engine/core/class")
 
+-- an intermediate module that breaks dependencies by providing the wanted
+-- version of each gamestate for the current build
 local gamestate_proxy = singleton(function (self)
   self._gamestate_modules = {}
   self._gamestate_modules.titlemenu = nil

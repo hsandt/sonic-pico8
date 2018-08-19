@@ -1,9 +1,8 @@
+--#if tuner
+
 --#if log
 local logging = require("engine/debug/logging")
 --#endif
-
---#if tuner
-
 require("engine/core/class")
 require("engine/render/color")
 local wtk = require("engine/wtk/pico8wtk")

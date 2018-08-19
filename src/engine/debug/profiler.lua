@@ -1,5 +1,6 @@
 --#if profiler
 
+require("engine/core/class")
 require("engine/render/color")
 local debug_window = require("engine/debug/debug_window")
 

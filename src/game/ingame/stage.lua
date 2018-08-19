@@ -1,6 +1,7 @@
-require("engine/render/color")
+require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
+require("engine/render/color")
 require("game/ingame/playercharacter")
 local gamestate = require("game/application/gamestate")
 local flow = require("engine/application/flow")

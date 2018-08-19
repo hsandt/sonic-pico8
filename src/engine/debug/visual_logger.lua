@@ -1,7 +1,8 @@
 --#if visual_logger
 
-require("engine/render/color")
+require("engine/core/class")
 require("engine/core/datastruct")
+require("engine/render/color")
 local debug_window = require("engine/debug/debug_window")
 local logging = require("engine/debug/logging")
 local wtk = require("engine/wtk/pico8wtk")

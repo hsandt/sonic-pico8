@@ -5,9 +5,14 @@ require("engine/core/math")
 require("engine/render/sprite")
 
 control_modes = {
-  human = 0,      -- player controls character
-  ai = 1,         -- ai controls character
-  puppet = 2      -- itest script controls character
+  human = 1,      -- player controls character
+  ai = 2,         -- ai controls character
+  puppet = 3      -- itest script controls character
+}
+
+motion_modes = {
+  platformer = 1,
+  debug = 2
 }
 
 player_character = new_class()
@@ -33,8 +38,9 @@ local character_sprite_pivot = vector(4, 12)           -- center of bottom part 
 -- debug_move_max_speed number        move max speed in debug mode
 -- debug_move_accel     number        move acceleration in debug mode
 -- debug_move_decel     number        move deceleration in debug mode
--- control_mode         control_modes control mode: human (default) or ai
 -- state vars
+-- control_mode         control_modes control mode: human (default) or ai
+-- motion_mode          motion_modes  motion mode: platformer (under gravity) or debug (fly around)
 -- position             vector        current position
 -- velocity             vector        current velocity
 -- move_intention       vector        current move intention (normalized)
@@ -43,7 +49,9 @@ function player_character:_init(position)
  self.debug_move_max_speed = debug_move_max_speed
  self.debug_move_accel = debug_move_accel
  self.debug_move_decel = debug_move_decel
+
  self.control_mode = control_modes.human
+ self.motion_mode = motion_modes.platformer
 
  self.position = position
  self.velocity = vector.zero()
@@ -58,17 +66,33 @@ end
 
 -- update player position
 function player_character:update()
-  -- update velocity from input (in debug mode, cardinal speeds are independent and max speed applies to each)
-  self:update_velocity_component("x")
-  self:update_velocity_component("y")
-
-  -- move
+  self:_update_velocity()
   self:move(self.velocity * delta_time)
 end
 
--- update the velocity component for coordinate "x" or "y"
+-- update the velocity of the character based on its motion mode and current move intention
+function player_character:_update_velocity()
+  if self.motion_mode == motion_modes.platformer then
+    self:_update_velocity_platformer()
+  else  -- self.motion_mode == motion_modes.debug
+    self:_update_velocity_debug()
+  end
+end
+
+function player_character:_update_velocity_platformer()
+  -- do something
+end
+
+function player_character:_update_velocity_debug()
+  -- update velocity from input
+  -- in debug mode, cardinal speeds are independent and max speed applies to each
+  self:_update_velocity_component_debug("x")
+  self:_update_velocity_component_debug("y")
+end
+
+-- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"
-function player_character:update_velocity_component(coord)
+function player_character:_update_velocity_component_debug(coord)
   if self.move_intention[coord] ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
     local clamped_move_intention_comp = mid(-1, self.move_intention[coord], 1)

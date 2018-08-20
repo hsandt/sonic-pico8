@@ -65,17 +65,11 @@ function aabb:rotate_90_ccw_inplace()
   self.extents = rotated_aabb.extents
 end
 
--- return escape_vector if aabb and other's interiors are intersecting
---  where escape_vector is the minimal motion in magnitude that this aabb can do
---  to escape collision (leaving it in a touching state with other).
---  if multiple escape vectors with the same magnitude exist, an arbitrary one is chosen
--- else return nil
--- if optional prioritized_escape_direction is set, in case of draw between the smallest escape vectors, the prioritized_escape_direction is chosen
--- note that classic sonic uses an ultimate direction where sonic would be pushed in the opposite direction of his last motion
---  to escape a collider, even if it meant moving of a much longer distance that in other directions (this is a known exploit for speedruns)
---  but we prefer picking the smallest escape vector whatever
--- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-collision
-function aabb:collides(other, prioritized_escape_direction)
+-- helper function for collides, touches and intersects, that return a couple (signed_distance, escape_vector)
+-- where signed_distance is the signed distance between this aabb and another one (negative when boxes are intersecting),
+-- for a given prioritized escape direction, the escape direction won't be used by calling methods if signed_distance > 0,
+-- but it would still have the meaning of the direction in which bb1 should go to go even further away from bb2
+function aabb:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
   local self_left = self.center.x - self.extents.x
   local self_right = self.center.x + self.extents.x
   local self_top = self.center.y - self.extents.y
@@ -104,7 +98,7 @@ function aabb:collides(other, prioritized_escape_direction)
 
   -- find max of the signed distances, while defining the associated escape vector
   local max_signed_distance = - math.huge
-  local escape_vector = nil
+  local best_escape_direction = nil
   for escape_direction, signed_distance in pairs(min_signed_edge_to_edge_distances) do
     if signed_distance > max_signed_distance or signed_distance == max_signed_distance and prioritized_escape_direction == escape_direction then
       max_signed_distance = signed_distance
@@ -112,51 +106,50 @@ function aabb:collides(other, prioritized_escape_direction)
       -- note that if we replace abs(signed_distance) with - signed_distance, we get a generic formula for a motion vector
       -- that will ensure both boxes are just touching (escape when signed_distance < 0, come to contact if signed_distance > 0)
       if signed_distance <= 0 then
-        escape_vector = abs(signed_distance) * direction_vectors[escape_direction]
+        best_escape_direction = escape_direction
       end
     end
   end
 
-  if max_signed_distance >= 0 then
-    return nil
-  end
+  return max_signed_distance, best_escape_direction
+end
 
-  return escape_vector
+-- return escape_vector if aabb and other's interiors are intersecting
+--  where escape_vector is the minimal motion in magnitude that this aabb can do
+--  to escape collision (leaving it in a touching state with other).
+--  if multiple escape vectors with the same magnitude exist, an arbitrary one is chosen
+-- else return nil
+-- if optional prioritized_escape_direction is set, in case of draw between the smallest escape vectors, the prioritized_escape_direction is chosen
+-- note that classic sonic uses an ultimate direction where sonic would be pushed in the opposite direction of his last motion
+--  to escape a collider, even if it meant moving of a much longer distance that in other directions (this is a known exploit for speedruns)
+--  but we prefer picking the smallest escape vector whatever
+-- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-collision
+function aabb:collides(other, prioritized_escape_direction)
+  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
+  if signed_distance >= 0 then
+    return nil
+  else
+    return abs(signed_distance) * direction_vectors[escape_direction]
+  end
 end
 
 -- return true iff aabb and other's boundaries are intersection but their interiors are not
 -- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-touch
 function aabb:touches(other)
-  local self_left = self.center.x - self.extents.x
-  local self_right = self.center.x + self.extents.x
-  local self_top = self.center.y - self.extents.y
-  local self_bottom = self.center.y + self.extents.y
-  local other_left = other.center.x - other.extents.x
-  local other_right = other.center.x + other.extents.x
-  local other_top = other.center.y - other.extents.y
-  local other_bottom = other.center.y + other.extents.y
-
-  local min_signed_distance_x1 = self_left - other_right
-  local min_signed_distance_x2 = other_left - self_right
-  local min_signed_distance_y1 = self_top - other_bottom
-  local min_signed_distance_y2 = other_top - self_bottom
-
-  if math.max(min_signed_distance_x1, min_signed_distance_x2, min_signed_distance_y1, min_signed_distance_y2) == 0 then
-    return true
-  end
-
-  return false
+  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
+  return signed_distance == 0
 end
 
 -- return escape_vector if aabb and other's boundaries or interiors are intersecting, prioritizing optional escape direction
 -- else return nil
 -- if only the boundaries are touching, escape_vector is zero. otherwise it's the same as returned by the 'collides' method
 function aabb:intersects(other, prioritized_escape_direction)
-  if self:touches(other) then
-    return vector:zero()
+  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
+  if signed_distance > 0 then
+    return nil
+  else
+    return abs(signed_distance) * direction_vectors[escape_direction]
   end
-
-  return self:collides(other, prioritized_escape_direction)
 end
 
 return collision

@@ -104,6 +104,9 @@ local function describe_all_test_variants(original_bb1, original_bb2,
           local test_description = transformation_description..' (collides, touches, intersects) should return ('..joinstr(', ', collides_result, original_touches_result,
               intersects_result)..')'
 
+          -- we test all the public methods that than private helper _compute_signed_distance_and_escape_direction
+          -- but we could also test _compute_signed_distance_and_escape_direction, then the public methods
+          -- with simple unit test that doesn't recheck the whole thing (e.g. with api call checks or by mocking the helper result)
           it(test_description, function ()
             assert.are_same({collides_result, original_touches_result, intersects_result},
               {bb1:collides(bb2, prioritized_escape_direction), bb1:touches(bb2), bb1:intersects(bb2, prioritized_escape_direction)})

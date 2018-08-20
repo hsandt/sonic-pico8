@@ -7,7 +7,7 @@ local aabb = collision.aabb
 -- an expected result for collides, touches and intersects, with prioritized escape direction
 -- by applying various transformations, and register them all
 local function describe_all_test_variants(original_bb1, original_bb2,
-  original_collides_result, original_touches_result, original_intersects_result, original_prioritized_escape_direction)
+  original_escape_vector, original_touches_result, intersects_result, original_prioritized_escape_direction)
 
   -- generate 32 variants of this configuration by:
   -- - swapping boxes
@@ -22,8 +22,7 @@ local function describe_all_test_variants(original_bb1, original_bb2,
           local bb2 = original_bb2:copy()
 
           -- copy results if not nil
-          local collides_result = original_collides_result and original_collides_result:copy()
-          local intersects_result = original_intersects_result and original_intersects_result:copy()
+          local escape_vector = original_escape_vector and original_escape_vector:copy()
           local prioritized_escape_direction = original_prioritized_escape_direction
 
           -- if boxes are swapped, collision works the same but escape vector is opposite
@@ -32,11 +31,8 @@ local function describe_all_test_variants(original_bb1, original_bb2,
             bb1 = bb2
             bb2 = temp
 
-            if collides_result then
-              collides_result:mul_inplace(-1)
-            end
-            if intersects_result then
-              intersects_result:mul_inplace(-1)
+            if escape_vector then
+              escape_vector:mul_inplace(-1)
             end
             if prioritized_escape_direction then
               prioritized_escape_direction = oppose_direction(prioritized_escape_direction)
@@ -49,11 +45,8 @@ local function describe_all_test_variants(original_bb1, original_bb2,
             bb1:mirror_x()
             bb2:mirror_x()
 
-            if collides_result then
-              collides_result:mirror_x()
-            end
-            if intersects_result then
-              intersects_result:mirror_x()
+            if escape_vector then
+              escape_vector:mirror_x()
             end
             if prioritized_escape_direction then
               prioritized_escape_direction = mirror_direction_x(prioritized_escape_direction)
@@ -64,11 +57,8 @@ local function describe_all_test_variants(original_bb1, original_bb2,
             bb1:mirror_y()
             bb2:mirror_y()
 
-            if collides_result then
-              collides_result:mirror_y()
-            end
-            if intersects_result then
-              intersects_result:mirror_y()
+            if escape_vector then
+              escape_vector:mirror_y()
             end
             if prioritized_escape_direction then
               prioritized_escape_direction = mirror_direction_y(prioritized_escape_direction)
@@ -80,11 +70,8 @@ local function describe_all_test_variants(original_bb1, original_bb2,
             bb1:rotate_90_cw_inplace()
             bb2:rotate_90_cw_inplace()
 
-            if collides_result then
-              collides_result:rotate_90_cw_inplace()
-            end
-            if intersects_result then
-              intersects_result:rotate_90_cw_inplace()
+            if escape_vector then
+              escape_vector:rotate_90_cw_inplace()
             end
             if prioritized_escape_direction then
               prioritized_escape_direction = rotate_direction_90_cw(prioritized_escape_direction)
@@ -101,15 +88,15 @@ local function describe_all_test_variants(original_bb1, original_bb2,
             transformation_description = '#mute '..transformation_description
           end
 
-          local test_description = transformation_description..' (collides, touches, intersects) should return ('..joinstr(', ', collides_result, original_touches_result,
+          local test_description = transformation_description..' (compute_escape_vector, collides, touches, . intersects) should return ('..joinstr(', ', escape_vector, original_touches_result,
               intersects_result)..')'
 
           -- we test all the public methods that than private helper _compute_signed_distance_and_escape_direction
           -- but we could also test _compute_signed_distance_and_escape_direction, then the public methods
           -- with simple unit test that doesn't recheck the whole thing (e.g. with api call checks or by mocking the helper result)
           it(test_description, function ()
-            assert.are_same({collides_result, original_touches_result, intersects_result},
-              {bb1:collides(bb2, prioritized_escape_direction), bb1:touches(bb2), bb1:intersects(bb2, prioritized_escape_direction)})
+            assert.are_same({escape_vector, escape_vector ~= nil, original_touches_result, intersects_result},
+              {bb1:compute_escape_vector(bb2, prioritized_escape_direction), bb1:collides(bb2), bb1:touches(bb2), bb1:intersects(bb2)})
           end)
 
         end
@@ -194,7 +181,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -205,7 +192,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -216,7 +203,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -227,7 +214,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -238,7 +225,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -249,7 +236,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -260,7 +247,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -271,7 +258,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -282,7 +269,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -293,7 +280,7 @@ describe('collision', function ()
           aabb(vector(1., 0.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -304,7 +291,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.),
+          true,
           directions.left
         )
       end)
@@ -316,7 +303,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -1.),
           false,
-          vector(0., -1.),
+          true,
           directions.up
         )
       end)
@@ -328,7 +315,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 2.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.)
+          true
         )
       end)
 
@@ -339,7 +326,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.)
+          true
         )
       end)
 
@@ -350,7 +337,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.)
+          true
         )
       end)
 
@@ -361,7 +348,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 1.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.)
+          true
         )
       end)
 
@@ -371,7 +358,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-2., 0.),
           false,
-          vector(-2., 0.),
+          true,
           directions.left
         )
       end)
@@ -382,7 +369,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -2.),
           false,
-          vector(0., -2.),
+          true,
           directions.up
         )
       end)
@@ -393,7 +380,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -2.),
           false,
-          vector(0., -2.),
+          true,
           directions.up
         )
       end)
@@ -404,7 +391,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., 2.),
           false,
-          vector(0., 2.),
+          true,
           directions.down
         )
       end)
@@ -416,7 +403,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -2.),
           false,
-          vector(0., -2.),
+          true,
           directions.up
         )
       end)
@@ -428,7 +415,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., 2.),
           false,
-          vector(0., 2.),
+          true,
           directions.down
         )
       end)
@@ -440,7 +427,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -2.),
           false,
-          vector(0., -2.)
+          true
         )
       end)
 
@@ -451,7 +438,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.),
+          true,
           directions.left
         )
       end)
@@ -463,7 +450,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(3., 0.),
           false,
-          vector(3., 0.),
+          true,
           directions.right
         )
       end)
@@ -475,7 +462,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., -3.),
           false,
-          vector(0., -3.),
+          true,
           directions.up
         )
       end)
@@ -487,7 +474,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(0., 3.),
           false,
-          vector(0., 3.),
+          true,
           directions.down
         )
       end)
@@ -499,7 +486,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 2.)),
           vector(-2., 0.),
           false,
-          vector(-2., 0.)
+          true
         )
       end)
 
@@ -510,7 +497,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 2.)),
           vector(-2., 0.),
           false,
-          vector(-2., 0.)
+          true
         )
       end)
 
@@ -521,7 +508,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 2.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.)
+          true
         )
       end)
 
@@ -532,7 +519,7 @@ describe('collision', function ()
           aabb(vector(1., 2.), vector(1., 2.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.)
+          true
         )
       end)
 
@@ -543,7 +530,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.)
+          true
         )
       end)
 
@@ -554,7 +541,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(1., 1.)),
           vector(0., -1.),
           false,
-          vector(0., -1.)
+          true
         )
       end)
 
@@ -565,7 +552,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(1., 4.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.)
+          true
         )
       end)
 
@@ -576,7 +563,7 @@ describe('collision', function ()
           aabb(vector(0., 1.), vector(1., 2.)),
             vector(0., -1.5),
             false,
-            vector(0., -1.5)
+          true
         )
       end)
 
@@ -587,7 +574,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(1., 4.)),
           vector(-3., 0.),
           false,
-          vector(-3., 0.)
+          true
         )
       end)
 
@@ -598,7 +585,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(1., 4.)),
           vector(-2., 0.),
           false,
-          vector(-2., 0.)
+          true
         )
       end)
 
@@ -609,7 +596,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(2., 1.)),
           vector(0., -2.),
           false,
-          vector(0., -2.),
+          true,
           directions.up
         )
       end)
@@ -621,7 +608,7 @@ describe('collision', function ()
           aabb(vector(0., 0.), vector(2., 1.)),
           vector(0., 2.),
           false,
-          vector(0., 2.),
+          true,
           directions.down
         )
       end)
@@ -633,7 +620,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           false,
-          nil
+          false
         )
       end)
 
@@ -644,7 +631,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -655,7 +642,7 @@ describe('collision', function ()
           aabb(vector(1., 1.), vector(1., 1.)),
           nil,
           true,
-          vector:zero()
+          true
         )
       end)
 
@@ -666,7 +653,7 @@ describe('collision', function ()
           aabb(vector(2., 2.), vector(2., 2.)),
           vector(-1., 0.),
           false,
-          vector(-1., 0.)
+          true
         )
       end)
 

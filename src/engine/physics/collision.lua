@@ -100,14 +100,13 @@ function aabb:_compute_signed_distance_and_escape_direction(other, prioritized_e
   local max_signed_distance = - math.huge
   local best_escape_direction = nil
   for escape_direction, signed_distance in pairs(min_signed_edge_to_edge_distances) do
+    -- check prioritized_escape_direction in case of equality (in which case only the 2nd assignment in the block is useful)
     if signed_distance > max_signed_distance or signed_distance == max_signed_distance and prioritized_escape_direction == escape_direction then
       max_signed_distance = signed_distance
       -- only set escape_vector if the boxes projected on this axis are intersecting (they still may not intersect if they are separate in the other axis)
       -- note that if we replace abs(signed_distance) with - signed_distance, we get a generic formula for a motion vector
       -- that will ensure both boxes are just touching (escape when signed_distance < 0, come to contact if signed_distance > 0)
-      if signed_distance <= 0 then
-        best_escape_direction = escape_direction
-      end
+      best_escape_direction = escape_direction
     end
   end
 
@@ -124,32 +123,31 @@ end
 --  to escape a collider, even if it meant moving of a much longer distance that in other directions (this is a known exploit for speedruns)
 --  but we prefer picking the smallest escape vector whatever
 -- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-collision
-function aabb:collides(other, prioritized_escape_direction)
+function aabb:compute_escape_vector(other, prioritized_escape_direction)
   signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
-  if signed_distance >= 0 then
-    return nil
-  else
+  if signed_distance < 0 then
     return abs(signed_distance) * direction_vectors[escape_direction]
+  else
+    return nil
   end
+end
+
+function aabb:collides(other)
+  signed_distance, _ = self:_compute_signed_distance_and_escape_direction(other, nil)
+  return signed_distance < 0
 end
 
 -- return true iff aabb and other's boundaries are intersection but their interiors are not
 -- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-touch
 function aabb:touches(other)
-  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
+  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, nil)
   return signed_distance == 0
 end
 
--- return escape_vector if aabb and other's boundaries or interiors are intersecting, prioritizing optional escape direction
--- else return nil
--- if only the boundaries are touching, escape_vector is zero. otherwise it's the same as returned by the 'collides' method
-function aabb:intersects(other, prioritized_escape_direction)
-  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
-  if signed_distance > 0 then
-    return nil
-  else
-    return abs(signed_distance) * direction_vectors[escape_direction]
-  end
+-- return true iff aabb and other's boundaries or interiors are intersecting
+function aabb:intersects(other)
+  signed_distance, _ = self:_compute_signed_distance_and_escape_direction(other, nil)
+  return signed_distance <= 0
 end
 
 return collision

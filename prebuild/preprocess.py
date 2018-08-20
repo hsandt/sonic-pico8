@@ -29,9 +29,12 @@ defined_symbols_table = {
 # Functions to strip for each config (not all configs need to be present as keys)
 # Make sure you never insert gameplay code inside a log or assert (such as assert(coresume(coroutine)))
 # and always split gameplay/debug code in 2 lines
+# Also make sure all your sripped function calls are on 1 line (multi-line regex catch is currently not supported)
+# or that you surround them with the corresponding #if (e.g. #if assert for a multi-line assert)
 stripped_functions_table = {
     'debug':      [],
     'assert':     [],
+    'itest':      ['assert'],
     'visual_log': ['assert'],
     'log':        ['assert'],
     'release':    ['assert', 'log', 'warn', 'err']

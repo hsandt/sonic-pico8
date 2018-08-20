@@ -29,9 +29,11 @@ local function copy(struct_instance)
 
   for key, value in pairs(struct_instance) do
     if type(value) == 'table' then
+--#if assert
       assert(type(value.copy) == 'function', "value "..stringify(value)..
         " is a table member of a struct but it doesn't have a copy method, so it's not a struct itself. "..
         "this is not supported.")
+--#endif
       -- deep copy the struct member itself. never use circular references
       -- between structs or you'll get an infinite recursion
       copied[key] = value:copy()

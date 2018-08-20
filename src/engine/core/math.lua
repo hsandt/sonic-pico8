@@ -128,8 +128,10 @@ function vector.__mul(lhs, rhs)
   elseif type(rhs) == "number" then
     return vector(rhs * lhs.x, rhs * lhs.y)
   else
+--#if assert
     assert(false, "vector multiplication is only supported with a scalar, "..
       "tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
+--#endif
   end
 end
 
@@ -145,8 +147,10 @@ function vector.__div(lhs, rhs)
     assert(rhs ~= 0, "cannot divide vector "..lhs:_tostring().." by zero")
     return vector(lhs.x / rhs, lhs.y / rhs)
   else
+--#if assert
     assert(false, "vector division is only supported with a scalar as rhs, "..
       "tried to multiply "..stringify(lhs).." and "..rhs)
+--#endif
   end
 end
 

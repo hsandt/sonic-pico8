@@ -148,8 +148,10 @@ function input:_process_player_inputs(player_id)
     if self.mode == input_modes.native then
       -- note that btnp should always return true when just pressed, but the reverse is not true because pico8
       -- has a repeat input feature, that we are not reproducing
+--#if assert
       assert(player_button_states[button_id] ~= button_states.released and player_button_states[button_id] ~= button_states.just_released or
         not btn(button_id, player_id) or btnp(button_id, player_id), "input:_update_button_state: button "..button_id.." was released and is now pressed, but btnp("..button_id..") returns false")
+--#endif
     end
     player_button_states[button_id] = self:_compute_next_button_state(player_button_states[button_id], self:_btn_proxy(button_id, player_id))
   end

@@ -1,3 +1,4 @@
+require("engine/application/constants")
 require("engine/core/math")
 
 -- physics notes: collisions use fixed-point floating coordinates
@@ -148,6 +149,51 @@ end
 function aabb:intersects(other)
   signed_distance, _ = self:_compute_signed_distance_and_escape_direction(other, nil)
   return signed_distance <= 0
+end
+
+local height_array = new_struct()
+collision.height_array = height_array
+
+-- _array       [int]   array of heights of a tile collision mask column per index,
+--                       counting index from the left, height from the bottom
+--                      it is filled based on tile_mask_sprite_id_location
+-- _slope_angle float   slope angle in turn ratio (0.0 to 1.0)
+function height_array:_init(tile_mask_sprite_id_location, slope_angle)
+  self._array = {}
+  self._fill_array(self._array, tile_mask_sprite_id_location)
+  self._slope_angle = slope_angle
+end
+
+--#if log
+function height_array:_tostring()
+  return "height_array("..joinstr(", ", "{"..joinstr_table(", ", self._array).."}", self._slope_angle)..")"
+end
+--#endif
+
+-- fill the passed array with height data based on the sprite mask
+--  located at tile_mask_sprite_id_location: sprite_id_location
+-- pass an empty array so it is only filled with the computed values
+-- the tile mask must represent the collision mask of a tile, with columns
+--  of non-transparent (black) pixels filled from the bottom,
+--  or at least the upper edge of said mask (we don't check what is below
+--  the edge once we found the first non-transparent pixel from top to bottom)
+function height_array._fill_array(array, tile_mask_sprite_id_location)
+  local tile_mask_topleft_position = tile_mask_sprite_id_location:to_topleft_position()
+  -- iterate over columns from left to right, searching for the highest filled pixel
+  for dx = 0, tile_size - 1 do
+    -- iterate from the top of the column and stop at the first filled pixel (we assume
+    -- lower pixels are also filled for readability of the tile mask, but not enforced)
+    local mask_height = 0
+    for dy = 0, tile_size - 1 do
+      local tile_mask_color = sget(tile_mask_topleft_position.x + dx, tile_mask_topleft_position.y + dy)
+      -- we use black (0) as transparent mask color
+      if tile_mask_color ~= 0 then
+        mask_height = tile_size - dy
+        break
+      end
+    end
+    add(array, mask_height)
+  end
 end
 
 return collision

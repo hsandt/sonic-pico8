@@ -1,6 +1,7 @@
 require("engine/application/constants")
 
--- return true if the table is empty
+-- return true if the table is empty (contrary to #t == 0,
+--  it also supports non-sequence tables)
 function is_empty(t)
   for k, v in pairs(t) do
     return false

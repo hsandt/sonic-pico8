@@ -38,6 +38,11 @@ function tile_vector:_tostring()
 end
 --#endif
 
+-- return the topleft position corresponding to a tile location
+function tile_vector:to_topleft_position()
+  return vector(8 * self.i, 8 * self.j)
+end
+
 -- sprite location is a special tile_vector with the semantics of a spritesheet location
 -- and associated conversion methods
 sprite_id_location = derived_struct(tile_vector)
@@ -63,11 +68,6 @@ function location:_tostring()
   return "location("..self.i..", "..self.j..")"
 end
 --#endif
-
--- return the topleft position corresponding to a tile location
-function location:to_topleft_position()
-  return vector(8 * self.i, 8 * self.j)
-end
 
 -- return the center position corresponding to a tile location
 function location:to_center_position()

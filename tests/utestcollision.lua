@@ -1,7 +1,15 @@
 require("bustedhelper")
+require("engine/application/constants")
 require("engine/core/math")
 local collision = require("engine/physics/collision")
 local aabb = collision.aabb
+local height_array = collision.height_array
+
+-- retrieve the filter arguments so we can optimize by only generating tests we will need
+local cli = require('busted.modules.cli')()
+local cli_args, cli_err = cli:parse(arg)
+-- we are testing "all" in module iff we are using empty filters
+local is_testing_all = #cli_args["filter"] == 0 and #cli_args["filter-out"] == 0
 
 -- create variants of an original test with 2 aabb and
 -- an expected result for collides, touches and intersects, with prioritized escape direction
@@ -18,86 +26,94 @@ local function describe_all_test_variants(original_bb1, original_bb2,
     for symmetry_x in all({false, true}) do
       for symmetry_y in all({false, true}) do
         for quadrant = 0, 3 do
-          local bb1 = original_bb1:copy()
-          local bb2 = original_bb2:copy()
 
-          -- copy results if not nil
-          local escape_vector = original_escape_vector and original_escape_vector:copy()
-          local prioritized_escape_direction = original_prioritized_escape_direction
+          local should_describe_test = true
 
-          -- if boxes are swapped, collision works the same but escape vector is opposite
-          if role_swap then
-            local temp = bb1
-            bb1 = bb2
-            bb2 = temp
-
-            if escape_vector then
-              escape_vector:mul_inplace(-1)
-            end
-            if prioritized_escape_direction then
-              prioritized_escape_direction = oppose_direction(prioritized_escape_direction)
-            end
+          -- except when testing all in module (typically in ci), ignore extra test variants for faster local unit tests
+          local is_extra_test = role_swap or symmetry_y or quadrant > 1
+          if is_extra_test and not is_testing_all then
+            should_describe_test = false
           end
 
-          -- if boxes are mirrored, collision works the same but escape vector is mirrored
+          if should_describe_test then
 
-          if symmetry_x then
-            bb1:mirror_x()
-            bb2:mirror_x()
+            local bb1 = original_bb1:copy()
+            local bb2 = original_bb2:copy()
 
-            if escape_vector then
-              escape_vector:mirror_x()
+            -- copy results if not nil
+            local escape_vector = original_escape_vector and original_escape_vector:copy()
+            local prioritized_escape_direction = original_prioritized_escape_direction
+
+            -- if boxes are swapped, collision works the same but escape vector is opposite
+            if role_swap then
+              local temp = bb1
+              bb1 = bb2
+              bb2 = temp
+
+              if escape_vector then
+                escape_vector:mul_inplace(-1)
+              end
+              if prioritized_escape_direction then
+                prioritized_escape_direction = oppose_direction(prioritized_escape_direction)
+              end
             end
-            if prioritized_escape_direction then
-              prioritized_escape_direction = mirror_direction_x(prioritized_escape_direction)
+
+            -- if boxes are mirrored, collision works the same but escape vector is mirrored
+
+            if symmetry_x then
+              bb1:mirror_x()
+              bb2:mirror_x()
+
+              if escape_vector then
+                escape_vector:mirror_x()
+              end
+              if prioritized_escape_direction then
+                prioritized_escape_direction = mirror_direction_x(prioritized_escape_direction)
+              end
             end
+
+            if symmetry_y then
+              bb1:mirror_y()
+              bb2:mirror_y()
+
+              if escape_vector then
+                escape_vector:mirror_y()
+              end
+              if prioritized_escape_direction then
+                prioritized_escape_direction = mirror_direction_y(prioritized_escape_direction)
+              end
+            end
+
+            -- if boxes are rotates, collision works the same but escape vector is rotated
+            for i = 1, quadrant do
+              bb1:rotate_90_cw_inplace()
+              bb2:rotate_90_cw_inplace()
+
+              if escape_vector then
+                escape_vector:rotate_90_cw_inplace()
+              end
+              if prioritized_escape_direction then
+                prioritized_escape_direction = rotate_direction_90_cw(prioritized_escape_direction)
+              end
+            end
+
+            local transformation_description = '(~ role_swap: '..tostr(role_swap)..', '..
+              '+ symmetry_x: '..tostr(symmetry_x)..', '..
+              '+ symmetry_y: '..tostr(symmetry_y)..', '..
+              '+~~ rotation: '..tostr(90 * quadrant)..')'
+
+            local test_description = transformation_description..' (compute_escape_vector, collides, touches, . intersects) should return ('..joinstr(', ', escape_vector, original_touches_result,
+                intersects_result)..')'
+
+            -- we test all the public methods that than private helper _compute_signed_distance_and_escape_direction
+            -- but we could also test _compute_signed_distance_and_escape_direction, then the public methods
+            -- with simple unit test that doesn't recheck the whole thing (e.g. with api call checks or by mocking the helper result)
+            it(test_description, function ()
+              assert.are_same({escape_vector, escape_vector ~= nil, original_touches_result, intersects_result},
+                {bb1:compute_escape_vector(bb2, prioritized_escape_direction), bb1:collides(bb2), bb1:touches(bb2), bb1:intersects(bb2)})
+            end)
+
           end
-
-          if symmetry_y then
-            bb1:mirror_y()
-            bb2:mirror_y()
-
-            if escape_vector then
-              escape_vector:mirror_y()
-            end
-            if prioritized_escape_direction then
-              prioritized_escape_direction = mirror_direction_y(prioritized_escape_direction)
-            end
-          end
-
-          -- if boxes are rotates, collision works the same but escape vector is rotated
-          for i = 1, quadrant do
-            bb1:rotate_90_cw_inplace()
-            bb2:rotate_90_cw_inplace()
-
-            if escape_vector then
-              escape_vector:rotate_90_cw_inplace()
-            end
-            if prioritized_escape_direction then
-              prioritized_escape_direction = rotate_direction_90_cw(prioritized_escape_direction)
-            end
-          end
-
-          local transformation_description = '(~ role_swap: '..tostr(role_swap)..', '..
-            '+ symmetry_x: '..tostr(symmetry_x)..', '..
-            '+ symmetry_y: '..tostr(symmetry_y)..', '..
-            '+~~ rotation: '..tostr(90 * quadrant)..')'
-
-          -- mute heavy tests, we will only test them on all (e.g. during ci)
-          if role_swap or quadrant > 1 then
-            transformation_description = '#mute '..transformation_description
-          end
-
-          local test_description = transformation_description..' (compute_escape_vector, collides, touches, . intersects) should return ('..joinstr(', ', escape_vector, original_touches_result,
-              intersects_result)..')'
-
-          -- we test all the public methods that than private helper _compute_signed_distance_and_escape_direction
-          -- but we could also test _compute_signed_distance_and_escape_direction, then the public methods
-          -- with simple unit test that doesn't recheck the whole thing (e.g. with api call checks or by mocking the helper result)
-          it(test_description, function ()
-            assert.are_same({escape_vector, escape_vector ~= nil, original_touches_result, intersects_result},
-              {bb1:compute_escape_vector(bb2, prioritized_escape_direction), bb1:collides(bb2), bb1:touches(bb2), bb1:intersects(bb2)})
-          end)
 
         end
       end
@@ -655,6 +671,89 @@ describe('collision', function ()
           false,
           true
         )
+      end)
+
+    end)
+
+  end)
+
+  describe('#solo height_array', function ()
+
+    describe("mocking _fill_array", function ()
+
+      local fill_array_mock
+
+      setup(function ()
+        fill_array_mock = stub(height_array, "_fill_array", function (array, tile_mask_sprite_id_location)
+          for i = 1, tile_size do
+            array[i] = 10 * tile_mask_sprite_id_location.i + tile_mask_sprite_id_location.j
+          end
+        end)
+      end)
+
+      teardown(function ()
+        fill_array_mock:revert()
+      end)
+
+      after_each(function ()
+        fill_array_mock:clear()
+      end)
+
+      describe('_init', function ()
+
+        it('should create a height array using fill_array and setting the slope angle', function ()
+          local h_array = height_array(sprite_id_location(1, 2), 0.125)
+          assert.are_same({{12, 12, 12, 12, 12, 12, 12, 12}, 0.125}, {h_array._array, h_array._slope_angle})
+        end)
+
+      end)
+
+      describe('_tostring', function ()
+
+        it('should return "height_array({12, 12, 12, 12, 12, 12, 12, 12}, 0.125)"', function ()
+          local h_array = height_array(sprite_id_location(1, 2), 0.125)
+          assert.are_equal("height_array({12, 12, 12, 12, 12, 12, 12, 12}, 0.125)", h_array:_tostring())
+        end)
+
+      end)
+
+    end)
+
+    describe('_fill_array', function ()
+
+      local sget_mock
+
+      setup(function ()
+        -- simulate an sget that would return the pixel of a tile mask
+        --  if coordinates fall in the sprite at location (1, 2), i.e. [8-15] x [16-23],
+        --  where mock_height_array contains the respective height of the mask columns
+        --  for each column from left to right
+        local mock_height_array = {2, 3, 5, 6, 0, 1, 4, 2}
+        sget_mock = stub(_G, "sget", function (x, y)
+          if x >= 8 and x <= 15 and y >= 16 and y <= 23 then
+            -- return filled pixel color iff below mask height on this column
+            local height = mock_height_array[x - 7]
+            if y - 16 >= tile_size - height then
+              return 1
+            else
+              return 0
+            end
+          end
+        end)
+      end)
+
+      teardown(function ()
+        sget_mock:revert()
+      end)
+
+      after_each(function ()
+        sget_mock:clear()
+      end)
+
+      it('should fill the array with ', function ()
+        local array = {}
+        height_array._fill_array(array, sprite_id_location(1, 2))
+        assert.are_same({2, 3, 5, 6, 0, 1, 4, 2}, array)
       end)
 
     end)

@@ -11,6 +11,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
   stage.state.player_character.position = vector(0., 80.)
   stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.debug
 end
 
 -- player char starts moving to the right

@@ -32,15 +32,19 @@ describe('headless itest', function ()
   -- define a headless unit test for each registered itest so far
   for name, itest in pairs(itest_manager.itests) do
 
-    describe(name, function ()
+    it(name..' should succeed', function ()
 
-      it('should succeed', function ()
-        itest_manager:init_game_and_start_by_name(name)
-        while integration_test_runner.current_state == test_states.running do
-          integration_test_runner:update_game_and_test()
-        end
-        assert.are_equal(test_states.success, integration_test_runner.current_state, integration_test_runner.current_message)
-      end)
+      itest_manager:init_game_and_start_by_name(name)
+      while integration_test_runner.current_state == test_states.running do
+        integration_test_runner:update_game_and_test()
+      end
+
+      local itest_fail_message = nil
+      if integration_test_runner.current_message then
+        itest_fail_message = "itest '"..itest.name.."' ended with "..integration_test_runner.current_state.." due to:\n"..integration_test_runner.current_message
+      end
+
+      assert.are_equal(test_states.success, integration_test_runner.current_state, itest_fail_message)
 
     end)
 

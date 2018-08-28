@@ -54,6 +54,10 @@
 					"cmd": ["./build.sh $file_base_name visual_log && (./reload.sh || ./run.sh $file_base_name visual_log)"]
 				},
 				{
+					"name": "pico8_utest (headless)",
+					"cmd": ["./build.sh $file_base_name pico8_utest && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
+				},
+				{
 					"name": "log",
 					"cmd": ["./build.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
 				},
@@ -100,8 +104,16 @@
 			"variants":
 			[
 				{
+					"name": "assert",
+					"cmd": ["./install.sh sonic-pico8_assert.p8.png"],
+				},
+				{
 					"name": "itest",
 					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./install.sh sonic-pico8_visual_log.p8.png"],
 				},
 				{
 					"name": "log",

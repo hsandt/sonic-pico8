@@ -60,14 +60,14 @@ cp data/metadata.p8 "${OUTPUT_FILEPATH}"
 # cp data/metadata.p8.png "${OUTPUT_FILEPATH}.png"
 
 echo "Build..."
-# ${@:4} will pass remaining args after the first 3
-BUILD_COMMAND="p8tool build --lua \"$INTERMEDIATE_MAIN_SOURCE_FILEPATH\" --lua-path=\"$(pwd)/intermediate/$2/?.lua\" --gfx data/data.p8 --gff data/data.p8 --map data/data.p8 --sfx data/data.p8 --music data/data.p8 \"$OUTPUT_FILEPATH\" ${@:4}"
+# ${@:3} will pass remaining args after the first 2
+BUILD_COMMAND="p8tool build --lua \"$INTERMEDIATE_MAIN_SOURCE_FILEPATH\" --lua-path=\"$(pwd)/intermediate/$2/?.lua\" --gfx data/data.p8 --gff data/data.p8 --map data/data.p8 --sfx data/data.p8 --music data/data.p8 \"$OUTPUT_FILEPATH\" ${@:3}"
 # uncomment this when p8tool png build is fixed (https://github.com/dansanderson/picotool/issues/45)
 echo "> $BUILD_COMMAND"
 bash -c "$BUILD_COMMAND"
 
 # locally, prefer using pico8 export script directly
-# p8tool build --lua "intermediate/$2/game/$1.lua" --lua-path="$(pwd)/intermediate/$2/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "${OUTPUT_FILEPATH}.png" "${@:4}"
+# p8tool build --lua "intermediate/$2/game/$1.lua" --lua-path="$(pwd)/intermediate/$2/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "${OUTPUT_FILEPATH}.png" "${@:3}"
 
 if [[ $? -ne 0 ]]; then
     echo "Build step failed, STOP."

@@ -18,12 +18,13 @@ from enum import Enum
 # but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
 # the code is only needed for a purpose of redundancy and unit test harnessing in general.
 defined_symbols_table = {
-    'debug':      ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
-    'assert':     ['pico8', 'assert', 'log', 'visual_logger'],
-    'itest':      ['pico8', 'log', 'visual_logger', 'test'],
-    'visual_log': ['pico8', 'log', 'visual_logger'],
-    'log':        ['pico8', 'log'],
-    'release':    ['pico8']
+    'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
+    'itest':       ['pico8', 'log', 'visual_logger', 'test'],
+    'visual_log':  ['pico8', 'log', 'visual_logger'],
+    'pico8_utest': ['pico8', 'assert', 'log'],
+    'log':         ['pico8', 'log'],
+    'release':     ['pico8']
 }
 
 # Functions to strip for each config (not all configs need to be present as keys)
@@ -32,12 +33,13 @@ defined_symbols_table = {
 # Also make sure all your sripped function calls are on 1 line (multi-line regex catch is currently not supported)
 # or that you surround them with the corresponding #if (e.g. #if assert for a multi-line assert)
 stripped_functions_table = {
-    'debug':      [],
-    'assert':     [],
-    'itest':      ['assert'],
-    'visual_log': ['assert'],
-    'log':        ['assert'],
-    'release':    ['assert', 'log', 'warn', 'err']
+    'debug':       [],
+    'assert':      [],
+    'itest':       ['assert'],
+    'visual_log':  ['assert'],
+    'pico8_utest': [],
+    'log':         ['assert'],
+    'release':     ['assert', 'log', 'warn', 'err']
 }
 
 # Parsing mode of each individual #if block

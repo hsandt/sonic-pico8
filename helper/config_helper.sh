@@ -5,7 +5,8 @@
 # MAIN_SOURCE_BASENAME: basename of main source file to build from
 # OUTPUT_BASENAME: basename of build output file
 # REPLACE_ARG_SUBSTITUTES: arg substitutes option string for replace_strings.py
-# ITEST (optional): pure name of the itest, if building an integrated test
+# ITEST (optional): pure name of the itest, if building an integrated test for pico8
+# UTEST (optional): pure name of the utest, if building a unit test for pico8
 # "itest[name]" => build from itest_main.lua into itest[name]_[config].p8
 # "sandbox" => build from sandbox.lua into sandbox_[config].p8
 # else => build from main.lua into sonic-pico8_[config].p8
@@ -30,7 +31,13 @@ function define_build_vars {
 
         REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES $DUMMY_GAMESTATES_ARG_SUBSTITUTES"
         echo "${REPLACE_ARG_SUBSTITUTES}"
-    elif [[ $1 = "sandbox" ]]; then
+    elif [[ ${1::5} = "utest" ]] ; then
+        UTEST=${1:5}  # extract itest name
+        MAIN_SOURCE_BASENAME="utest_main"
+        REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES utest=$UTEST"
+        # only use dummy gamestates for now (most pico8 utests are date tests and don't need gamestates)
+        REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES titlemenu_ver=_dummy credits_ver=_dummy stage_ver=_dummy"
+elif [[ $1 = "sandbox" ]]; then
         MAIN_SOURCE_BASENAME="sandbox"
         # only use dummy gamestates
         REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES titlemenu_ver=_dummy credits_ver=_dummy stage_ver=_dummy"
@@ -49,6 +56,8 @@ function define_build_vars {
 # OUTPUT_BASENAME is isolated because run.sh only needs this one
 function define_output_basename {
     if [[ ${1::5} = "itest" ]] ; then
+        OUTPUT_BASENAME="$1"
+    elif [[ ${1::5} = "utest" ]] ; then
         OUTPUT_BASENAME="$1"
     elif [[ $1 = "sandbox" ]]; then
         OUTPUT_BASENAME="sandbox"

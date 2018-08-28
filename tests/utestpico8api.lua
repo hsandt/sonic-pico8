@@ -277,7 +277,7 @@ describe('pico8api', function ()
     end)
 
     after_each(function ()
-      pico8.map[14][27] = nil
+      pico8.map[14][27] = 0
     end)
 
     it('should return the sprite id at a map coordinate', function ()
@@ -292,15 +292,11 @@ describe('pico8api', function ()
 
   describe('mset', function ()
 
-    before_each(function ()
-      pico8.map[14] = { [27] = 5 }
-    end)
-
     after_each(function ()
-      pico8.map[14] = nil
+      pico8.map[14] = 0
     end)
 
-    it('should return the sprite id at a map coordinate', function ()
+    it('should set the sprite id at a map coordinate', function ()
       mset(27, 14, 9)
       assert.are_equal(9, mget(27, 14))
     end)
@@ -314,11 +310,15 @@ describe('pico8api', function ()
     end)
 
     after_each(function ()
-      pico8.spriteflags[3] = nil
+      pico8.spriteflags[3] = 0
     end)
 
     it('should return the sprite flags for the passed sprite id', function ()
       assert.are_equal(0xa2, fget(3))
+    end)
+
+    it('should return 0 for a sprite id outside [0-255]', function ()
+      assert.are_same({0x0, 0x0}, {fget(-1), fget(256)})
     end)
 
     it('should return if a specific sprite flag is set on a passed sprite id', function ()
@@ -329,27 +329,34 @@ describe('pico8api', function ()
       assert.are_same({false, false, false, false}, {fget(1, 1), fget(2, 5), fget(4, 7), fget(5, 6)})
     end)
 
+    it('should return false for unset sprite flag (just to simplify simulation without setup)', function ()
+      assert.are_same({false, false, false, false}, {fget(1, 1), fget(2, 5), fget(4, 7), fget(5, 6)})
+    end)
+
+    it('should return false for any flag for a sprite id outside [0-255]', function ()
+      assert.are_same({false, false}, {fget(-1, 1), fget(256, 10)})
+    end)
+
   end)
 
   describe('fset', function ()
 
-    before_each(function ()
-      pico8.spriteflags[3] = 0xa2
-    end)
-
     after_each(function ()
-      pico8.spriteflags[3] = nil
+      pico8.spriteflags[3] = 0
     end)
 
     it('should set the sprite flags for the passed sprite id', function ()
-      fset(0xa2, true)
+      fset(3, 0xa2)
       assert.are_equal(0xa2, fget(3))
     end)
 
     it('should set a specific sprite flag on a passed sprite id', function ()
-      fset(3, 3, true)
       fset(3, 1, false)
-      assert.are_same({false, true, true, false, true}, {fget(3, 1), fget(3, 3), fget(3, 5), fget(3, 6), fget(3, 7)})
+      fset(3, 3, true)
+      fset(3, 5, true)
+      fset(3, 7, true)
+      fset(3, 7, false)
+      assert.are_same({false, true, true, false, false}, {fget(3, 1), fget(3, 3), fget(3, 5), fget(3, 6), fget(3, 7)})
     end)
 
   end)

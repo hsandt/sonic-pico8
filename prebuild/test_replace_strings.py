@@ -50,12 +50,13 @@ class TestReplaceStringsInFile(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_replace_strings(self):
+        """Test replacing strings in a whole file, with substitutes being shorter or longer than original symbol to test if file is truncated"""
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
-            f.write('require("itest_$itest")\n##d or ##u\nand ##x\napi.print("press ##x")')
-        replace_strings.replace_all_strings_in_file(test_filepath, {'itest': 'character'})
+            f.write('require("itest_$itest")\nrequire("$symbol_is_much_longer")\n##d or ##u\nand ##x\napi.print("press ##x")')
+        replace_strings.replace_all_strings_in_file(test_filepath, {'itest': 'character', 'symbol_is_much_longer': 'short'})
         with open(test_filepath, 'r') as f:
-            self.assertEqual(f.read(), 'require("itest_character")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
+            self.assertEqual(f.read(), 'require("itest_character")\nrequire("short")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
 
 class TestReplaceStringsInDir(unittest.TestCase):
 

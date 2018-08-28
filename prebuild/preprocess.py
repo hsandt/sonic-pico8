@@ -121,8 +121,9 @@ def preprocess_file(filepath, config):
     with open(filepath, 'r+') as f:
         logging.debug(f"Preprocessing file {filepath}...")
         preprocessed_lines = preprocess_lines(f, config)
+        # replace file content (truncate as the new content may be shorter)
         f.seek(0)
-        f.truncate(0)  # after preprocessing, file tends to have fewer lines so it's important to remove previous content
+        f.truncate()
         f.writelines(preprocessed_lines)
 
 def preprocess_lines(lines, config):

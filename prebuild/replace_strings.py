@@ -79,9 +79,9 @@ def replace_all_strings_in_file(filepath, arg_substitutes_table):
         data = replace_all_glyphs_in_string(data)
         data = replace_all_functions_in_string(data)
         data = replace_all_args_in_string(data, arg_substitutes_table)
-        # replace file content (this works because our string replacements
-        # don't change the number of lines, so we don't need to truncate)
+        # replace file content (truncate as the new content may be shorter)
         f.seek(0)
+        f.truncate()
         f.write(data)
 
 def replace_all_glyphs_in_string(text):

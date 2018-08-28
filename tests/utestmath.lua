@@ -458,6 +458,13 @@ describe('vector', function ()
     end)
   end)
 
+  describe('to_location', function ()
+    it('(12, -5) => (1, -1)', function ()
+      local v = vector(12, -5)
+      assert.are_equal(location(1, -1), v:to_location())
+    end)
+  end)
+
 end)
 
 describe('oppose_direction', function ()

@@ -267,6 +267,11 @@ function vector:rotate_90_ccw_inplace()
   self.y = -old_x
 end
 
+-- return the tile location containing this vector position (non-injective)
+function vector:to_location()
+  return location(flr(self.x / tile_size), flr(self.y / tile_size))
+end
+
 -- enums data
 
 directions = {

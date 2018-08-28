@@ -686,7 +686,7 @@ describe('collision', function ()
       setup(function ()
         fill_array_mock = stub(height_array, "_fill_array", function (array, tile_mask_sprite_id_location)
           for i = 1, tile_size do
-            array[i] = 10 * tile_mask_sprite_id_location.i + tile_mask_sprite_id_location.j
+            array[i] = tile_mask_sprite_id_location.i + tile_mask_sprite_id_location.j + i
           end
         end)
       end)
@@ -703,16 +703,25 @@ describe('collision', function ()
 
         it('should create a height array using fill_array and setting the slope angle', function ()
           local h_array = height_array(sprite_id_location(1, 2), 0.125)
-          assert.are_same({{12, 12, 12, 12, 12, 12, 12, 12}, 0.125}, {h_array._array, h_array._slope_angle})
+          assert.are_same({{4, 5, 6, 7, 8, 9, 10, 11}, 0.125}, {h_array._array, h_array._slope_angle})
         end)
 
       end)
 
       describe('_tostring', function ()
 
-        it('should return "height_array({12, 12, 12, 12, 12, 12, 12, 12}, 0.125)"', function ()
+        it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
           local h_array = height_array(sprite_id_location(1, 2), 0.125)
-          assert.are_equal("height_array({12, 12, 12, 12, 12, 12, 12, 12}, 0.125)", h_array:_tostring())
+          assert.are_equal("height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)", h_array:_tostring())
+        end)
+
+      end)
+
+      describe('get_height', function ()
+
+        it('should return the height at the given column index', function ()
+          local h_array = height_array(sprite_id_location(1, 2), 0.125)
+          assert.are_equal(6, h_array:get_height(3))
         end)
 
       end)
@@ -744,10 +753,6 @@ describe('collision', function ()
 
       teardown(function ()
         sget_mock:revert()
-      end)
-
-      after_each(function ()
-        sget_mock:clear()
       end)
 
       it('should fill the array with ', function ()

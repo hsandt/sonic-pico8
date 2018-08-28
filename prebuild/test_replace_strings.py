@@ -50,7 +50,7 @@ class TestReplaceStringsInFile(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_replace_strings(self):
-        """Test replacing strings in a whole file, with substitutes being shorter or longer than original symbol to test if file is truncated"""
+        """^ Test replacing strings in a whole file, with substitutes being shorter or longer than original symbol to test if file is truncated"""
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
             f.write('require("itest_$itest")\nrequire("$symbol_is_much_longer")\n##d or ##u\nand ##x\napi.print("press ##x")')

@@ -8,6 +8,8 @@ local logging = require("engine/debug/logging")
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
+local integrationtest = {}
+
 test_states = {
   none = 'none',          -- no test started
   running = 'running',    -- the test is still running
@@ -17,9 +19,11 @@ test_states = {
 }
 
 -- integration test manager: registers all itests
+-- itests   {string: itest}   registered itests, indexed by name
 itest_manager = singleton(function (self)
   self.itests = {}
 end)
+integrationtest.itest_manager = itest_manager
 
 function itest_manager:register(itest)
   -- caution: unnamed itests will override each other as table keys!
@@ -203,7 +207,8 @@ function integration_test_runner:stop()
 end
 
 -- time trigger struct
-time_trigger = new_struct()
+local time_trigger = new_struct()
+integrationtest.time_trigger = time_trigger
 
 -- parameters
 -- frames      int   number of frames to wait before running callback after last trigger (defined from float time in s)
@@ -246,7 +251,8 @@ end
 
 
 -- integration test class
-integration_test = new_class()
+local integration_test = new_class()
+integrationtest.integration_test = integration_test
 
 -- parameters
 -- name               string                         test name
@@ -299,3 +305,5 @@ function integration_test:_check_final_assertion()
    return true
   end
 end
+
+return integrationtest

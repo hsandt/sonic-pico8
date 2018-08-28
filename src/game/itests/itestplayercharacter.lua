@@ -1,5 +1,6 @@
 -- gamestates: stage
-require("engine/test/integrationtest")
+local integrationtest = require("engine/test/integrationtest")
+local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
 

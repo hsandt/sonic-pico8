@@ -6,6 +6,11 @@ local credits = require("game/menu/credits")
 
 describe('flow', function ()
 
+  describe('init', function ()
+    assert.are_same({{}, nil, nil},
+      {flow.gamestates, flow.current_gamestate, flow.next_gamestate})
+  end)
+
   describe('_tostring', function ()
     assert.are_equal("[flow]", flow:_tostring())
   end)

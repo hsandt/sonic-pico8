@@ -171,9 +171,9 @@ function height_array:_tostring()
 end
 --#endif
 
--- return the height for a column index starting at 1, from left to right
-function height_array:get_height(column_index)
-  return self._array[column_index]
+-- return the height for a column index starting at 0, from left to right
+function height_array:get_height(column_index0)
+  return self._array[column_index0 + 1]  -- adapt 0-index to 1-index
 end
 
 

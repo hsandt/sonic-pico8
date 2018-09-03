@@ -3,6 +3,9 @@ require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
 require("engine/render/sprite")
+local collision = require("engine/physics/collision")
+local collision_data = require("game/data/collision_data")
+local playercharacter_data = require("game/data/playercharacter_data")
 
 control_modes = {
   human = 1,      -- player controls character
@@ -17,21 +20,6 @@ motion_modes = {
 
 player_character = new_class()
 
--- character data
-
--- motion speed in debug mode, in px/s
-local debug_move_max_speed = 60.
-
--- acceleration speed in debug mode, in px/s^2 (480. to reach max speed of 60. in 0.5s)
-local debug_move_accel = 480.
-
--- deceleration speed in debug mode, in px/s^2 (480. to stop from a speed of 60. in 0.5s)
-local debug_move_decel = 480.
-
--- sprite data
-local character_sprite_loc = sprite_id_location(0, 2)
-local character_sprite_span = tile_vector(1, 2)        -- vertical sprite
-local character_sprite_pivot = vector(4, 12)           -- center of bottom part of the sprite
 
 -- parameters
 -- spr_data             sprite_data   sprite data
@@ -41,14 +29,14 @@ local character_sprite_pivot = vector(4, 12)           -- center of bottom part 
 -- state vars
 -- control_mode         control_modes control mode: human (default) or ai
 -- motion_mode          motion_modes  motion mode: platformer (under gravity) or debug (fly around)
--- position             vector        current position
+-- position             vector        current position (character center "between" pixels)
 -- velocity             vector        current velocity
 -- move_intention       vector        current move intention (normalized)
 function player_character:_init(position)
- self.spr_data = sprite_data(character_sprite_loc, character_sprite_span, character_sprite_pivot)
- self.debug_move_max_speed = debug_move_max_speed
- self.debug_move_accel = debug_move_accel
- self.debug_move_decel = debug_move_decel
+ self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
+ self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
+ self.debug_move_accel = playercharacter_data.debug_move_accel
+ self.debug_move_decel = playercharacter_data.debug_move_decel
 
  self.control_mode = control_modes.human
  self.motion_mode = motion_modes.platformer
@@ -83,6 +71,59 @@ function player_character:_update_velocity_platformer()
   -- do something
 end
 
+-- return true iff there is ground immediately below character's feet
+--  (including if the feet are inside the ground)
+function player_character:_sense_ground()
+  -- check both ground sensors for ground. if any finds ground, return true
+  for i in all({horizontal_directions.left, horizontal_directions.right}) do
+
+    -- find the tile where this ground sensor is located
+    local current_ground_sensor_position = self:_get_ground_sensor_position(i)
+    local sensor_location = current_ground_sensor_position:to_location()
+    local sensed_tile_id = mget(sensor_location.i, sensor_location.j)
+
+    -- check if that tile uses collision
+    local current_tile_collision_flag = fget(sensed_tile_id, sprite_flags.collision)
+
+    if current_tile_collision_flag then
+
+      -- get the tile collision mask
+      local collision_mask_id_location = collision_data.sprite_id_to_collision_mask_id_locations[sensed_tile_id]
+      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..tostr(sensed_tile_id)..", yet it has the collision flag set")
+
+      if collision_mask_id_location then
+        -- possible optimize: cache collision height array on game start
+        local h_array = collision.height_array(collision_mask_id_location, 0)
+        local current_ground_sensor_height = sensor_location:to_topleft_position().y + 8 - current_ground_sensor_position.y
+
+        -- get column on the collision mask that the ground sensor should check (ground sensor extent x
+        --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
+        local column_index0 = flr(current_ground_sensor_position.x - sensor_location:to_topleft_position().x)
+        local current_ground_array_height = h_array:get_height(column_index0)
+
+        if current_ground_sensor_height <= current_ground_array_height then
+          return true
+        end
+
+      end
+
+    end
+
+  end
+
+  return false
+  
+end
+
+function player_character:_get_ground_sensor_position(horizontal_dir)
+
+  if horizontal_dir == horizontal_directions.left then
+    return self.position + vector(- playercharacter_data.ground_sensor_extent_x, playercharacter_data.center_height_standing)
+  else
+    return self.position + vector(playercharacter_data.ground_sensor_extent_x, playercharacter_data.center_height_standing)
+  end
+end
+
 function player_character:_update_velocity_debug()
   -- update velocity from input
   -- in debug mode, cardinal speeds are independent and max speed applies to each
@@ -106,7 +147,12 @@ function player_character:_update_velocity_component_debug(coord)
   end
 end
 
--- move the player from delta_vector in px
+-- move the player character so that the bottom center is at the given position
+function player_character:set_bottom_center(bottom_center_position)
+  self.position = bottom_center_position - vector(0, playercharacter_data.center_height_standing)
+end
+
+-- move the player character from delta_vector in px
 function player_character:move(delta_vector)
   self.position = self.position + delta_vector
 end

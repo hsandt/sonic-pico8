@@ -288,6 +288,11 @@ direction_vectors = {
   vector(0., 1.)
 }
 
+horizontal_directions = {
+  left = 1,
+  right = 2
+}
+
 function oppose_direction(direction)
   return (direction + 2) % 4
 end

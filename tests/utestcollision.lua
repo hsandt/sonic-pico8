@@ -721,7 +721,7 @@ describe('collision', function ()
 
         it('should return the height at the given column index', function ()
           local h_array = height_array(sprite_id_location(1, 2), 0.125)
-          assert.are_equal(6, h_array:get_height(3))
+          assert.are_equal(6, h_array:get_height(2))
         end)
 
       end)

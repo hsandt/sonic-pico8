@@ -31,7 +31,8 @@ end
 -- ~    the test didn't take long to write but it adds a lot of time to the test run and didn't help find bugs
 -- ?    the test passed, but later I realized it was wrong, and passed because both the code and expected were wrong but matching (no big loss of time though)
 -- .    the test failed because the test itself was wrong, so I fixed it
+-- R    the test revealed the same bug/regression as another test, being redundant while not helping to discover another bug
 -- ^    the test was incomplete, so when I stumbled on a special case bug, I improved the test to make sure I fixed it and avoid regression later
 -- =    the test was missing at first so when I stumbled on a new bug, I wrote that test to make sure I fixed it and avoid regression later
 -- +    the test helped me identify potential bugs and tricky cases during implementation
--- *    the test revealed a regression later during development (very useful)
+-- *    the test revealed a regression/feature change later during development (very useful)

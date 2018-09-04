@@ -2,12 +2,13 @@ require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("engine/render/color")
-require("game/ingame/playercharacter")
+local player_character = require("game/ingame/playercharacter")
 local gamestate = require("game/application/gamestate")
 local flow = require("engine/application/flow")
 local audio = require("game/resources/audio")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
+local stage_data = require("game/data/stage_data")
 
 local stage = {
 
@@ -15,31 +16,6 @@ local stage = {
   substates = {
     play = "play",     -- playing and moving around
     result = "result"  -- result screen
-  },
-
-  -- stage global data
-  global_params = {
-    -- delay between stage enter and showing stage title (s)
-    show_stage_title_delay = 4.0,
-    -- delay between reaching goal and going back to title menu (s)
-    back_to_titlemenu_delay = 1.0,
-    -- duration of bgm fade out after reaching goal (s)
-    bgm_fade_out_duration = 1.0
-  },
-
-  -- stage data
-  data = {
-    -- stage title
-    title = "proto zone",
-
-    -- where the player character spawns on stage start
-    spawn_location = location(0, 10),
-
-    -- the x to reach to finish the stage
-    goal_x = 16 * 8,
-
-    -- bgm id
-    bgm_id = audio.music_pattern_ids.green_hill
   },
 
   state = nil
@@ -53,6 +29,12 @@ stage.state = singleton(function (self)
 
   -- current coroutines
   self.coroutine_curries = {}
+
+  -- stage id
+  self.current_stage_id = 1
+
+  -- reference to current stage data (derived from current_stage_id)
+  self.current_stage_data = stage_data.for_stage[self.current_stage_id]
 
   -- substate
   self.current_substate = stage.substates.play
@@ -162,7 +144,7 @@ end
 
 -- spawn the player character at the stage spawn location
 function stage.state:spawn_player_character()
-  local spawn_position = stage.data.spawn_location:to_center_position()
+  local spawn_position = self.current_stage_data.spawn_location:to_center_position()
   self.player_character = player_character(spawn_position)
 end
 
@@ -195,7 +177,7 @@ end
 
 function stage.state:check_reached_goal()
   if not self.has_reached_goal and
-      self.player_character.position.x >= stage.data.goal_x then
+      self.player_character.position.x >= self.current_stage_data.goal_x then
     self.has_reached_goal = true
     self:start_coroutine_method(self.on_reached_goal_async)
   end
@@ -204,8 +186,8 @@ end
 function stage.state:on_reached_goal_async()
   self:feedback_reached_goal()
   self.current_substate = stage.substates.result
-  self:stop_bgm(stage.global_params.bgm_fade_out_duration)
-  yield_delay(stage.global_params.back_to_titlemenu_delay)
+  self:stop_bgm(stage_data.bgm_fade_out_duration)
+  yield_delay(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
 
@@ -238,8 +220,8 @@ end
 -- ui
 
 function stage.state:show_stage_title_async()
-  self.title_overlay:add_label("title", stage.data.title, vector(50, 30), colors.white)
-  yield_delay(stage.global_params.show_stage_title_delay)
+  self.title_overlay:add_label("title", self.current_stage_data.title, vector(50, 30), colors.white)
+  yield_delay(stage_data.show_stage_title_delay)
   self.title_overlay:remove_label("title")
 end
 
@@ -262,7 +244,7 @@ function stage.state:render_environment()
   -- (and either keep camera offset or offset manually and subtract from camera offset)
   map(0, 0, 0, 0, 16, 14)
   -- goal as vertical line
-  rectfill(stage.data.goal_x, 0, stage.data.goal_x + 5, 15*8, colors.yellow)
+  rectfill(self.current_stage_data.goal_x, 0, self.current_stage_data.goal_x + 5, 15*8, colors.yellow)
 end
 
 -- render the player character at its current position
@@ -280,7 +262,7 @@ end
 -- audio
 
 function stage.state:play_bgm()
-  music(stage.data.bgm_id, 0)
+  music(self.current_stage_data.bgm_id, 0)
 end
 
 function stage.state:stop_bgm(fade_duration)

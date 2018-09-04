@@ -1,8 +1,9 @@
 require("bustedhelper")
-require("game/ingame/playercharacter")
 require("engine/core/math")
+local player_character = require("game/ingame/playercharacter")
 local collision = require("engine/physics/collision")
 local collision_data = require("game/data/collision_data")
+local playercharacter_data = require("game/data/playercharacter_data")
 
 describe('player_character', function ()
 
@@ -17,15 +18,15 @@ describe('player_character', function ()
     it('should create a player character with 0 velocity and move_intention', function ()
       local player_character = player_character(vector(4, -4))
       assert.is_not_nil(player_character)
-      assert.are_same({vector.zero(), vector.zero()},
-        {player_character.velocity, player_character.move_intention})
+      assert.are_same({vector.zero(), 0, vector.zero()},
+        {player_character.debug_velocity, player_character.speed_y_per_frame, player_character.move_intention})
     end)
 
-    it('should create a player character with control mode: human and motion mode: platformer', function ()
+    it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
       local player_character = player_character(vector(4, -4))
       assert.is_not_nil(player_character)
-      assert.are_same({control_modes.human, motion_modes.platformer},
-        {player_character.control_mode, player_character.motion_mode})
+      assert.are_same({control_modes.human, motion_modes.platformer, motion_states.grounded},
+        {player_character.control_mode, player_character.motion_mode, player_character.motion_state})
     end)
 
   end)
@@ -33,19 +34,12 @@ describe('player_character', function ()
   describe('(with player character at (4, -4), speed 60, debug accel 480)', function ()
     local player_char
 
-    setup(function ()
+    before_each(function ()
+      -- recreate player character for each test (setup spies will need to refer to player_character, not the instance)
       player_char = player_character(vector(4, -4))
       player_char.debug_move_max_speed = 60.
       player_char.debug_move_accel = 480.
       player_char.debug_move_decel = 480.
-    end)
-
-    after_each(function ()
-      player_char.control_mode = control_modes.human
-      player_char.motion_mode = motion_modes.platformer
-      player_char.position = vector(4, -4)
-      player_char.velocity = vector(0, 0)
-      player_char.move_intention = vector(0, 0)
     end)
 
     describe('_tostring', function ()
@@ -64,68 +58,86 @@ describe('player_character', function ()
     describe('+ set_bottom_center', function ()
       it('set_bottom_center (10 6) => at (10 3)', function ()
         player_char:set_bottom_center(vector(10, 6))
-        assert.are_equal(vector(10, 3), player_char.position)
+        assert.are_equal(vector(10, 0), player_char.position)
       end)
     end)
 
-    describe('_update', function ()
+    describe('update', function ()
+
+      local update_platformer_stub
+      local update_debug_stub
 
       setup(function ()
-        update_velocity_mock = stub(player_char, "_update_velocity", function (self)
-          self.velocity = 11
+        update_platformer_stub = stub(player_character, "_update_platformer")
+        update_debug_stub = stub(player_character, "_update_debug")
+      end)
+
+      teardown(function ()
+        update_platformer_stub:revert()
+        update_debug_stub:revert()
+      end)
+
+      after_each(function ()
+        update_platformer_stub:clear()
+        update_debug_stub:clear()
+      end)
+
+      describe('(when motion mode is platformer)', function ()
+
+        it('should call _update_platformer', function ()
+          player_char:update()
+          assert.spy(update_platformer_stub).was_called()
+          assert.spy(update_platformer_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_debug_stub).was_not_called()
         end)
-        move_stub = stub(player_char, "move")
+
       end)
 
-      teardown(function ()
-        update_velocity_mock:revert()
-        move_stub:revert()
-      end)
+      describe('(when motion mode is debug)', function ()
 
-      it('should call _update_velocity, then move using the new velocity', function ()
-        player_char:update()
-        assert.spy(update_velocity_mock).was_called()
-        assert.spy(update_velocity_mock).was_called_with(match.ref(player_char))
-        assert.spy(move_stub).was_called()
-        assert.spy(move_stub).was_called_with(match.ref(player_char), 11 * delta_time)
+        before_each(function ()
+          player_char.motion_mode = motion_modes.debug
+        end)
+
+        it('. should call _update_debug', function ()
+          player_char:update()
+          assert.spy(update_debug_stub).was_called()
+          assert.spy(update_debug_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_stub).was_not_called()
+        end)
+
       end)
 
     end)
 
-    describe('_update_velocity', function ()
+    describe('_update_platformer', function ()
 
-      local update_velocity_platformer_stub
-      local update_velocity_debug_stub
+      local sense_ground_mock
+      local update_platformer_motion_state_stub
+      local update_platformer_motion_stub
 
       setup(function ()
-        update_velocity_platformer_stub = stub(player_char, "_update_velocity_platformer")  -- native print
-        update_velocity_debug_stub = stub(player_char, "_update_velocity_debug")  -- native print
+        sense_ground_mock = stub(player_character, "_sense_ground", function ()
+          return true
+        end)
+        update_platformer_motion_state_stub = stub(player_character, "_update_platformer_motion_state")
+        update_platformer_motion_stub = stub(player_character, "_update_platformer_motion")
       end)
 
       teardown(function ()
-        update_velocity_platformer_stub:revert()
-        update_velocity_debug_stub:revert()
+        sense_ground_mock:revert()
+        update_platformer_motion_state_stub:revert()
+        update_platformer_motion_stub:revert()
       end)
 
-      it('should call _update_velocity_platformer', function ()
-        player_char:_update_velocity()
-        assert.spy(update_velocity_platformer_stub).was_called()
-        assert.spy(update_velocity_platformer_stub).was_called_with(match.ref(player_char))
-      end)
-
-      it('should call _update_velocity_debug', function ()
-        player_char.motion_mode = motion_modes.debug
-        player_char:_update_velocity()
-        assert.spy(update_velocity_debug_stub).was_called()
-        assert.spy(update_velocity_debug_stub).was_called_with(match.ref(player_char))
-      end)
-
-    end)
-
-    describe('_update_velocity_platformer', function ()
-
-      pending('should ...', function ()
-        player_char:_update_velocity_platformer()
+      it('should call _sense_ground, passing the result to _update_platformer_motion_state, then call _update_platformer_motion', function ()
+        player_char:_update_platformer()
+        assert.spy(sense_ground_mock).was_called()
+        assert.spy(sense_ground_mock).was_called_with(match.ref(player_char))
+        assert.spy(update_platformer_motion_state_stub).was_called()
+        assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), true)
+        assert.spy(update_platformer_motion_stub).was_called()
+        assert.spy(update_platformer_motion_stub).was_called_with(match.ref(player_char))
       end)
 
     end)
@@ -798,22 +810,154 @@ describe('player_character', function ()
       end)
 
       it('* should return the position down-left of the character center when horizontal dir is left', function ()
-        assert.are_equal(vector(7.5, 13), player_char:_get_ground_sensor_position(horizontal_directions.left))
+        assert.are_equal(vector(7.5, 16), player_char:_get_ground_sensor_position(horizontal_directions.left))
       end)
 
       it('* should return the position down-left of the character center when horizontal dir is right', function ()
-        assert.are_equal(vector(12.5, 13), player_char:_get_ground_sensor_position(horizontal_directions.right))
+        assert.are_equal(vector(12.5, 16), player_char:_get_ground_sensor_position(horizontal_directions.right))
       end)
 
     end)
 
+    describe('_update_platformer_motion_state', function ()
+
+      describe('(when character is grounded)', function ()
+
+        it('should enter airborne state if no ground is sensed', function ()
+          player_char:_update_platformer_motion_state(false)
+          assert.are_equal(motion_states.airborne, player_char.motion_state)
+        end)
+
+        it('should preserve grounded state if some ground is sensed', function ()
+          player_char:_update_platformer_motion_state(true)
+          assert.are_equal(motion_states.grounded, player_char.motion_state)
+        end)
+
+      end)
+
+      describe('(when character is airborne)', function ()
+
+        before_each(function ()
+          player_char.motion_state = motion_states.airborne
+        end)
+
+        it('should preserve airborne state if no ground is sensed', function ()
+          player_char:_update_platformer_motion_state(false)
+          assert.are_equal(motion_states.airborne, player_char.motion_state)
+        end)
+
+        it('. should enter grounded state and reset speed y if some ground is sensed', function ()
+          player_char:_update_platformer_motion_state(true)
+          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.speed_y_per_frame})
+        end)
+
+      end)
+
+    end)
+
+    describe('_update_platformer_motion', function ()
+
+      local update_platformer_motion_grounded_stub
+      local update_platformer_motion_airborne_stub
+
+      setup(function ()
+        update_platformer_motion_grounded_stub = stub(player_character, "_update_platformer_motion_grounded")
+        update_platformer_motion_airborne_stub = stub(player_character, "_update_platformer_motion_airborne")
+      end)
+
+      teardown(function ()
+        update_platformer_motion_grounded_stub:revert()
+        update_platformer_motion_airborne_stub:revert()
+      end)
+
+      after_each(function ()
+        update_platformer_motion_grounded_stub:clear()
+        update_platformer_motion_airborne_stub:clear()
+      end)
+
+      describe('(when character is grounded)', function ()
+
+        it('^ should call _update_platformer_motion_grounded', function ()
+          player_char:_update_platformer_motion()
+          assert.spy(update_platformer_motion_grounded_stub).was_called()
+          assert.spy(update_platformer_motion_grounded_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_motion_airborne_stub).was_not_called()
+        end)
+
+      end)
+
+      describe('(when character is airborne)', function ()
+
+        before_each(function ()
+          player_char.motion_state = motion_states.airborne
+        end)
+
+        it('^ should call _update_platformer_motion_airborne', function ()
+          player_char:_update_platformer_motion()
+          assert.spy(update_platformer_motion_airborne_stub).was_called()
+          assert.spy(update_platformer_motion_airborne_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_motion_grounded_stub).was_not_called()
+        end)
+
+      end)
+
+    end)
+
+    describe('_update_platformer_motion_grounded', function ()
+
+      pending('should ...', function ()
+        player_char:_update_platformer_motion_grounded()
+      end)
+
+    end)
+
+    describe('_update_platformer_motion_airborne', function ()
+
+      it('. should apply gravity to speed y', function ()
+        assert.are_equal(0, player_char.speed_y_per_frame)
+        player_char:_update_platformer_motion_airborne()
+        assert.are_equal(playercharacter_data.gravity_per_frame2, player_char.speed_y_per_frame)
+      end)
+
+      it('. should update position with new speed y', function ()
+        player_char:_update_platformer_motion_airborne()
+        assert.are_equal(vector(4, -4 + playercharacter_data.gravity_per_frame2), player_char.position)
+      end)
+
+    end)
+
+    describe('_update_debug', function ()
+
+      local update_velocity_debug_stub
+
+      setup(function ()
+        update_velocity_debug_mock = stub(player_character, "_update_velocity_debug", function (self)
+          self.debug_velocity = 11
+        end)
+        move_stub = stub(player_character, "move")
+      end)
+
+      teardown(function ()
+        update_velocity_debug_mock:revert()
+        move_stub:revert()
+      end)
+
+      it('should call _update_velocity_debug, then move using the new velocity', function ()
+        player_char:_update_debug()
+        assert.spy(update_velocity_debug_mock).was_called()
+        assert.spy(update_velocity_debug_mock).was_called_with(match.ref(player_char))
+        assert.spy(move_stub).was_called()
+        assert.spy(move_stub).was_called_with(match.ref(player_char), 11 * delta_time)
+      end)
+
+    end)
 
     describe('_update_velocity_debug', function ()
 
       local update_velocity_component_debug_stub
 
       setup(function ()
-        update_velocity_component_debug_stub = stub(player_char, "_update_velocity_component_debug")  -- native print
+        update_velocity_component_debug_stub = stub(player_character, "_update_velocity_component_debug")
       end)
 
       teardown(function ()
@@ -836,11 +980,11 @@ describe('player_character', function ()
         player_char:_update_velocity_component_debug("x")
         assert.is_true(almost_eq_with_message(
           vector(- player_char.debug_move_accel * delta_time, 0),
-          player_char.velocity))
+          player_char.debug_velocity))
         player_char:_update_velocity_component_debug("y")
         assert.is_true(almost_eq_with_message(
           vector(- player_char.debug_move_accel * delta_time, player_char.debug_move_accel * delta_time),
-          player_char.velocity))
+          player_char.debug_velocity))
       end)
 
     end)
@@ -855,7 +999,7 @@ describe('player_character', function ()
       it('when move intention is (-1, 1), update 1 frame => at (3.867 -3.867)', function ()
         player_char.move_intention = vector(-1, 1)
         player_char:_update_velocity_debug()
-        player_char:move(player_char.velocity * delta_time)
+        player_char:move(player_char.debug_velocity * delta_time)
         assert.is_true(almost_eq_with_message(vector(3.8667, -3.8667), player_char.position))
       end)
 
@@ -863,38 +1007,38 @@ describe('player_character', function ()
         player_char.move_intention = vector(-1, 1)
         for i=1,10 do
           player_char:_update_velocity_debug()
-          player_char:move(player_char.velocity * delta_time)
+          player_char:move(player_char.debug_velocity * delta_time)
         end
         assert.is_true(almost_eq_with_message(vector(-2.73, 2.73), player_char.position))
-        assert.is_true(almost_eq_with_message(vector(-60, 60), player_char.velocity))  -- at max speed
+        assert.is_true(almost_eq_with_message(vector(-60, 60), player_char.debug_velocity))  -- at max speed
       end)
 
       it('when move intention is (0, 0) after 11 frames, update 16 frames more => character should have decelerated', function ()
         player_char.move_intention = vector(-1, 1)
         for i=1,10 do
           player_char:_update_velocity_debug()
-          player_char:move(player_char.velocity * delta_time)
+          player_char:move(player_char.debug_velocity * delta_time)
         end
         player_char.move_intention = vector.zero()
         for i=1,5 do
           player_char:_update_velocity_debug()
-          player_char:move(player_char.velocity * delta_time)
+          player_char:move(player_char.debug_velocity * delta_time)
         end
-        assert.is_true(almost_eq_with_message(vector(-20, 20), player_char.velocity, 0.01))
+        assert.is_true(almost_eq_with_message(vector(-20, 20), player_char.debug_velocity, 0.01))
       end)
 
       it('when move intention is (0, 0) after 11 frames, update 19 frames more => character should have stopped', function ()
         player_char.move_intention = vector(-1, 1)
         for i=1,10 do
           player_char:_update_velocity_debug()
-          player_char:move(player_char.velocity * delta_time)
+          player_char:move(player_char.debug_velocity * delta_time)
         end
         player_char.move_intention = vector.zero()
         for i=1,8 do
           player_char:_update_velocity_debug()
-          player_char:move(player_char.velocity * delta_time)
+          player_char:move(player_char.debug_velocity * delta_time)
         end
-        assert.is_true(almost_eq_with_message(vector.zero(), player_char.velocity))
+        assert.is_true(almost_eq_with_message(vector.zero(), player_char.debug_velocity))
       end)
 
     end)

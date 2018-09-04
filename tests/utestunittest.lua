@@ -64,7 +64,7 @@ describe('check', function ()
   local register_stub
 
   setup(function ()
-    register_stub = stub(utest_manager, "register")  -- native print
+    register_stub = stub(utest_manager, "register")
   end)
 
   teardown(function ()

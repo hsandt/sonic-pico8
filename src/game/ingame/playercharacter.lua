@@ -7,43 +7,56 @@ local collision = require("engine/physics/collision")
 local collision_data = require("game/data/collision_data")
 local playercharacter_data = require("game/data/playercharacter_data")
 
+-- enum for character control
 control_modes = {
   human = 1,      -- player controls character
   ai = 2,         -- ai controls character
   puppet = 3      -- itest script controls character
 }
 
+-- enum for character motion mode
 motion_modes = {
-  platformer = 1,
-  debug = 2
+  platformer = 1, -- normal in-game
+  debug = 2       -- debug "fly" mode
 }
 
-player_character = new_class()
+-- enum for character motion state in platformer mode
+motion_states = {
+  grounded = 1,       -- character is on the ground
+  airborne = 2        -- character is in the air
+}
+
+local player_character = new_class()
 
 
 -- parameters
 -- spr_data             sprite_data   sprite data
--- debug_move_max_speed number        move max speed in debug mode
--- debug_move_accel     number        move acceleration in debug mode
--- debug_move_decel     number        move deceleration in debug mode
+-- debug_move_max_speed float         move max speed in debug mode
+-- debug_move_accel     float         move acceleration in debug mode
+-- debug_move_decel     float         move deceleration in debug mode
 -- state vars
 -- control_mode         control_modes control mode: human (default) or ai
 -- motion_mode          motion_modes  motion mode: platformer (under gravity) or debug (fly around)
+-- motion_state         motion_states motion state (platformer mode only)
 -- position             vector        current position (character center "between" pixels)
--- velocity             vector        current velocity
+-- debug_velocity       vector        current velocity in debug mode
+-- speed_y_per_frame    float         current speed along y axis (px/frame)
 -- move_intention       vector        current move intention (normalized)
 function player_character:_init(position)
- self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
- self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
- self.debug_move_accel = playercharacter_data.debug_move_accel
- self.debug_move_decel = playercharacter_data.debug_move_decel
+  self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
+  self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
+  self.debug_move_accel = playercharacter_data.debug_move_accel
+  self.debug_move_decel = playercharacter_data.debug_move_decel
 
- self.control_mode = control_modes.human
- self.motion_mode = motion_modes.platformer
+  self.control_mode = control_modes.human
+  self.motion_mode = motion_modes.platformer
+  self.motion_state = motion_states.grounded
 
- self.position = position
- self.velocity = vector.zero()
- self.move_intention = vector.zero()
+  self.position = position
+  self.debug_velocity = vector.zero()
+  self.speed_y_per_frame = 0.
+
+  self.move_intention = vector.zero()
 end
 
 --#if log
@@ -54,26 +67,28 @@ end
 
 -- update player position
 function player_character:update()
-  self:_update_velocity()
-  self:move(self.velocity * delta_time)
-end
-
--- update the velocity of the character based on its motion mode and current move intention
-function player_character:_update_velocity()
   if self.motion_mode == motion_modes.platformer then
-    self:_update_velocity_platformer()
+    self:_update_platformer()
   else  -- self.motion_mode == motion_modes.debug
-    self:_update_velocity_debug()
+    self:_update_debug()
   end
 end
 
-function player_character:_update_velocity_platformer()
-  -- do something
+-- update the velocity and position of the character following platformer motion rules
+function player_character:_update_platformer()
+  -- check if there is some ground under the character
+  local is_ground_sensed = self:_sense_ground()
+  self:_update_platformer_motion_state(is_ground_sensed)
+  self:_update_platformer_motion()
+  log("self.motion_state: "..self.motion_state)
+  log("self.position: "..self.position)
+  log("self.speed_y_per_frame: "..self.speed_y_per_frame)
 end
 
 -- return true iff there is ground immediately below character's feet
 --  (including if the feet are inside the ground)
 function player_character:_sense_ground()
+
   -- check both ground sensors for ground. if any finds ground, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
 
@@ -112,7 +127,7 @@ function player_character:_sense_ground()
   end
 
   return false
-  
+
 end
 
 function player_character:_get_ground_sensor_position(horizontal_dir)
@@ -122,6 +137,51 @@ function player_character:_get_ground_sensor_position(horizontal_dir)
   else
     return self.position + vector(playercharacter_data.ground_sensor_extent_x, playercharacter_data.center_height_standing)
   end
+end
+
+-- update motion state based on whether ground was sensed this frame
+function player_character:_update_platformer_motion_state(is_ground_sensed)
+  if self.motion_state == motion_states.grounded then
+    if not is_ground_sensed then
+      self.motion_state = motion_states.airborne
+    end
+  end
+
+  if self.motion_state == motion_states.airborne then
+    if is_ground_sensed then
+      self.motion_state = motion_states.grounded
+      self.speed_y_per_frame = 0
+    end
+  end
+end
+
+-- update velocity and position based on current motion state
+function player_character:_update_platformer_motion()
+  if self.motion_state == motion_states.grounded then
+    self:_update_platformer_motion_grounded()
+  end
+
+  if self.motion_state == motion_states.airborne then
+    self:_update_platformer_motion_airborne()
+  end
+end
+
+-- update motion following platformer grounded motion rules
+function player_character:_update_platformer_motion_grounded()
+end
+
+-- update motion following platformer airborne motion rules
+function player_character:_update_platformer_motion_airborne()
+  -- apply gravity to current speed y
+  self.speed_y_per_frame = self.speed_y_per_frame + playercharacter_data.gravity_per_frame2
+  -- apply air motion
+  self.position = self.position + vector(0, self.speed_y_per_frame)
+end
+
+-- update the velocity and position of the character following debug motion rules
+function player_character:_update_debug()
+  self:_update_velocity_debug()
+  self:move(self.debug_velocity * delta_time)
 end
 
 function player_character:_update_velocity_debug()
@@ -137,12 +197,12 @@ function player_character:_update_velocity_component_debug(coord)
   if self.move_intention[coord] ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
     local clamped_move_intention_comp = mid(-1, self.move_intention[coord], 1)
-    self.velocity[coord] = self.velocity[coord] + self.debug_move_accel * delta_time * clamped_move_intention_comp
-    self.velocity[coord] = mid(-self.debug_move_max_speed, self.velocity[coord], self.debug_move_max_speed)
+    self.debug_velocity[coord] = self.debug_velocity[coord] + self.debug_move_accel * delta_time * clamped_move_intention_comp
+    self.debug_velocity[coord] = mid(-self.debug_move_max_speed, self.debug_velocity[coord], self.debug_move_max_speed)
   else
     -- no input => decelerate
-    if self.velocity[coord] ~= 0 then
-      self.velocity[coord] = sgn(self.velocity[coord]) * max(abs(self.velocity[coord]) - self.debug_move_decel * delta_time, 0)
+    if self.debug_velocity[coord] ~= 0 then
+      self.debug_velocity[coord] = sgn(self.debug_velocity[coord]) * max(abs(self.debug_velocity[coord]) - self.debug_move_decel * delta_time, 0)
     end
   end
 end
@@ -161,3 +221,5 @@ end
 function player_character:render()
  self.spr_data:render(self.position)
 end
+
+return player_character

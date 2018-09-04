@@ -96,7 +96,7 @@ describe('wtk', function ()
       local widget_remove_child_stub
 
       setup(function ()
-        widget_remove_child_stub = stub(wtk.widget, "remove_child")  -- native print
+        widget_remove_child_stub = stub(wtk.widget, "remove_child")
       end)
 
       teardown(function ()

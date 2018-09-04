@@ -19,6 +19,10 @@
 					"cmd": ["./build.sh $file_base_name itest"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./build.sh $file_base_name profiler"]
+				},
+				{
 					"name": "visual_log",
 					"cmd": ["./build.sh $file_base_name visual_log"]
 				},
@@ -48,6 +52,10 @@
 				{
 					"name": "itest",
 					"cmd": ["./build.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build.sh $file_base_name profiler && (./reload.sh || ./run.sh $file_base_name profiler)"]
 				},
 				{
 					"name": "visual_log",
@@ -83,6 +91,10 @@
 					"cmd": ["./run.sh $file_base_name itest"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./run.sh $file_base_name profiler"]
+				},
+				{
 					"name": "visual_log",
 					"cmd": ["./run.sh $file_base_name visual_log"]
 				},
@@ -110,6 +122,10 @@
 				{
 					"name": "itest",
 					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./install.sh sonic-pico8_profiler.p8.png"],
 				},
 				{
 					"name": "visual_log",

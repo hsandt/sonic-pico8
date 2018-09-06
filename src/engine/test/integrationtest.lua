@@ -89,7 +89,7 @@ function integration_test_runner:start(test)
   self.current_state = test_states.running
 
   if test.setup then
-    test:setup()
+    test.setup()
   end
 
   -- edge case: 0 actions in the action sequence. check end
@@ -193,6 +193,9 @@ function integration_test_runner:_end_with_final_assertion()
     self.current_state = test_states.failure
     self.current_message = message
   end
+  if self.current_test.teardown then
+    self.current_test.teardown()
+  end
 end
 
 -- stop the current test and reset all values
@@ -256,7 +259,8 @@ integrationtest.integration_test = integration_test
 
 -- parameters
 -- name               string                         test name
--- setup              function                       setup callback - called on test start
+-- setup              function                       setup callback - called on test start (pure function)
+-- teardown           function                       teardown callback - called on test finish (pure function)
 -- action_sequence    [scripted_action]              sequence of scripted actions - run during test
 -- final_assertion    function () => (bool, string)  assertion function that returns (assertion passed, error message if failed) - called on test end
 -- timeout_frames     int                            number of frames before timeout (0 for no timeout, if you know the time triggers will do the job)
@@ -266,6 +270,7 @@ integrationtest.integration_test = integration_test
 function integration_test:_init(name, active_gamestates)
   self.name = name
   self.setup = nil
+  self.teardown = nil
   self.action_sequence = {}
   self.final_assertion = nil
   self.timeout_frames = 0

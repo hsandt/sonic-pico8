@@ -299,7 +299,7 @@ describe('integration_test_runner', function ()
     it('should call the test setup callback', function ()
       integration_test_runner:start(test)
       assert.spy(test.setup).was_called(1)
-      assert.spy(test.setup).was_called_with(match.ref(test))
+      assert.spy(test.setup).was_called_with()
     end)
 
     it('should call _initialize the first time', function ()
@@ -790,7 +790,12 @@ describe('integration_test_runner', function ()
   describe('_end_with_final_assertion', function ()
 
     before_each(function ()
-      integration_test_runner:start(test)
+      -- inline some parts of integration_test_runner:start(test)
+      --  to get a boilerplate to test on
+      -- avoid calling start() directly as it would call _check_end, messing the teardown spy count
+      integration_test_runner:_initialize()
+      integration_test_runner.current_test = test
+      integration_test_runner.current_state = test_states.running
     end)
 
     describe('(when no final assertion)', function ()
@@ -815,7 +820,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with success', function ()
-        integration_test_runner:_check_end(test)
+        integration_test_runner:_end_with_final_assertion(test)
         assert.are_equal(test_states.success, integration_test_runner.current_state)
       end)
 
@@ -834,25 +839,27 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with failure', function ()
-        integration_test_runner:_check_end(test)
+        integration_test_runner:_end_with_final_assertion(test)
         assert.are_same({test_states.failure, "error message"},
           {integration_test_runner.current_state, integration_test_runner.current_message})
       end)
 
     end)
 
-    describe('(when some actions left)', function ()
+    describe('(when teardown is set)', function ()
 
       setup(function ()
-        test:add_action(time_trigger(1.0), function () end, 'check_end_test_action')
+        test.teardown = spy.new(function () end)
       end)
 
       teardown(function ()
-        clear_table(test.action_sequence)
+        test.teardown = nil
       end)
 
-      it('should do nothing', function ()
-        assert.has_no_errors(function() integration_test_runner:_check_end(test) end)
+      it('should call teardown', function ()
+        integration_test_runner:_end_with_final_assertion(test)
+        assert.spy(test.teardown).was_called(1)
+        assert.spy(test.teardown).was_called_with()
       end)
 
     end)

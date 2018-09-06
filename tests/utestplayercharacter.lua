@@ -1115,6 +1115,44 @@ describe('player_character', function ()
 
       end)  -- _check_escape_from_ground
 
+      describe('_update_platformer_motion_grounded', function ()
+
+        pending('should ...', function ()
+          player_char:_update_platformer_motion_grounded()
+        end)
+
+      end)
+
+      describe('_update_platformer_motion_airborne', function ()
+
+        before_each(function ()
+          -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
+          mset(1, 1, 66)
+        end)
+
+        it('. should apply gravity to speed y', function ()
+          player_char:_update_platformer_motion_airborne()
+          assert.are_equal(playercharacter_data.gravity_per_frame2, player_char.speed_y_per_frame)
+        end)
+
+        it('. should update position with new speed y', function ()
+          player_char:_update_platformer_motion_airborne()
+          assert.are_equal(vector(4, -4 + playercharacter_data.gravity_per_frame2), player_char.position)
+        end)
+
+        it('should escape from ground after motion if the character entered ground on fall', function ()
+          -- move character just above ground to test collision on fall (offset must be < playercharacter_data.gravity_per_frame2)
+          player_char:set_bottom_center(vector(13, 10 - 0.1))  -- left ground sensor @ (10.5, 10 - 0.0625)
+          player_char:_update_platformer_motion_airborne()
+
+          -- interface
+          assert.are_equal(vector(13, 10), player_char:get_bottom_center())
+
+          -- implementation
+        end)
+
+      end)
+
     end)  -- (with mock tiles data setup)
 
     describe('_get_ground_sensor_position', function ()
@@ -1213,29 +1251,6 @@ describe('player_character', function ()
           assert.spy(update_platformer_motion_grounded_stub).was_not_called()
         end)
 
-      end)
-
-    end)
-
-    describe('_update_platformer_motion_grounded', function ()
-
-      pending('should ...', function ()
-        player_char:_update_platformer_motion_grounded()
-      end)
-
-    end)
-
-    describe('_update_platformer_motion_airborne', function ()
-
-      it('. should apply gravity to speed y', function ()
-        assert.are_equal(0, player_char.speed_y_per_frame)
-        player_char:_update_platformer_motion_airborne()
-        assert.are_equal(playercharacter_data.gravity_per_frame2, player_char.speed_y_per_frame)
-      end)
-
-      it('. should update position with new speed y', function ()
-        player_char:_update_platformer_motion_airborne()
-        assert.are_equal(vector(4, -4 + playercharacter_data.gravity_per_frame2), player_char.position)
       end)
 
     end)

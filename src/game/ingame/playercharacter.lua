@@ -191,6 +191,7 @@ function player_character:_compute_column_height_at(tile_location, column_index0
 
       if collision_mask_id_location then
         -- possible optimize: cache collision height array on game start
+        -- todo: get slope angle from data and pass it as 2nd argument
         local h_array = collision.height_array(collision_mask_id_location, 0)
         return h_array:get_height(column_index0)
       end
@@ -264,6 +265,8 @@ function player_character:_update_platformer_motion_airborne()
   self.speed_y_per_frame = self.speed_y_per_frame + playercharacter_data.gravity_per_frame2
   -- apply air motion
   self.position = self.position + vector(0, self.speed_y_per_frame)
+
+  self:_check_escape_from_ground()
 end
 
 -- update the velocity and position of the character following debug motion rules

@@ -19,6 +19,10 @@
 					"cmd": ["./build.sh $file_base_name itest"]
 				},
 				{
+					"name": "itest_light",
+					"cmd": ["./build.sh $file_base_name itest_light"]
+				},
+				{
 					"name": "profiler",
 					"cmd": ["./build.sh $file_base_name profiler"]
 				},
@@ -52,6 +56,10 @@
 				{
 					"name": "itest",
 					"cmd": ["./build.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./build.sh $file_base_name itest_light && (./reload.sh || ./run.sh $file_base_name itest_light)"]
 				},
 				{
 					"name": "profiler",
@@ -91,6 +99,10 @@
 					"cmd": ["./run.sh $file_base_name itest"]
 				},
 				{
+					"name": "itest_light",
+					"cmd": ["./run.sh $file_base_name itest_light"]
+				},
+				{
 					"name": "profiler",
 					"cmd": ["./run.sh $file_base_name profiler"]
 				},
@@ -122,6 +134,10 @@
 				{
 					"name": "itest",
 					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./install.sh sonic-pico8_itest_light.p8.png"],
 				},
 				{
 					"name": "profiler",

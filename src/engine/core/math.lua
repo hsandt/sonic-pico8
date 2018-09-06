@@ -2,7 +2,6 @@ require("engine/core/class")
 
 -- numeric helpers
 
---#if assert
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
   assert(lhs)
@@ -15,7 +14,6 @@ function almost_eq(lhs, rhs, eps)
     assert(false, "almost_eq cannot compare "..lhs.." and "..rhs)
   end
 end
---#endif
 
 -- geometry/data grid helpers
 

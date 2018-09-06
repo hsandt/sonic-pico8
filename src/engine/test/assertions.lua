@@ -1,6 +1,6 @@
---#if assert
+--#if log
 
--- custom assertions to extend luaassert in utests and provide assertion with messages in itests
+require("engine/core/math")
 
 function contains(t, searched_value)
   for key, value in pairs(t) do
@@ -10,6 +10,8 @@ function contains(t, searched_value)
   end
   return false
 end
+
+-- custom assertions to extend luaassert in utests and provide assertion with messages in itests
 
 function contains_with_message(sequence, passed)
   local result = contains(sequence, passed)

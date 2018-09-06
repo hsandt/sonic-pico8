@@ -10,7 +10,8 @@ from enum import Enum
 # 1. it will strip leading and trailing whitespace, ignoring empty lines completely
 # 2. it will remove all line comments (doesn't support block comments)
 # 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
-# 4. it will strip debug function calls like log() or assert()
+# 4. it will enable all code between --[[#pico8 and --#pico8]]
+# 5. it will strip debug function calls like log() or assert()
 
 # Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
 # Remember that busted will not preprocess at all and will therefore go through all the blocks.
@@ -21,6 +22,7 @@ defined_symbols_table = {
     'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
     'itest':       ['pico8', 'log', 'visual_logger', 'test'],
+    'itest_light': ['pico8', 'log', 'test'],
     'profiler':    ['pico8', 'log', 'visual_logger', 'profiler'],
     'visual_log':  ['pico8', 'log', 'visual_logger'],
     'pico8_utest': ['pico8', 'assert', 'log'],
@@ -37,6 +39,7 @@ stripped_functions_table = {
     'debug':       [],
     'assert':      [],
     'itest':       ['assert'],
+    'itest_light': ['assert'],
     'profiler':    ['assert'],
     'visual_log':  ['assert'],
     'pico8_utest': [],

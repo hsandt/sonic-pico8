@@ -30,11 +30,13 @@ describe('headless itest', function ()
   end)
 
   -- define a headless unit test for each registered itest so far
-  for name, itest in pairs(itest_manager.itests) do
+  for i = 1, #itest_manager.itests do
 
-    it(name..' should succeed', function ()
+    local itest = itest_manager.itests[i]
 
-      itest_manager:init_game_and_start_by_name(name)
+    it(itest.name..' should succeed', function ()
+
+      itest_manager:init_game_and_start_by_index(i)
       while integration_test_runner.current_state == test_states.running do
         integration_test_runner:update_game_and_test()
       end

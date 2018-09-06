@@ -6,28 +6,51 @@
 require("engine/test/integrationtest")
 require("game/itests/itest$itest")
 local gamestate_proxy = require("game/application/gamestate_proxy")
+local input = require("engine/input/input")
 
 --#if log
 local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
 --#endif
 
+local current_itest_index = 0
+
 function _init()
   -- require only gamestate modules written on first line of the required $itest (pico8-build way)
   gamestate_proxy:require_gamestates()
 
-  -- temporary way to run single itest
-  -- when itest files start having multiple tests, you'll need a name-based search test running
-  for itest_name, itest in pairs(itest_manager.itests) do
-    itest_manager:init_game_and_start_by_name(itest_name)
-    break
-  end
+  -- start first itest
+  init_game_and_start_next_itest()
 end
 
 function _update60()
+  handle_input()
   integration_test_runner:update_game_and_test()
 end
 
 function _draw()
   integration_test_runner:draw_game_and_test()
+end
+
+function init_game_and_start_next_itest()
+  log("itests: "..tostr(#itest_manager.itests), "itest")
+  log("current_itest_index: "..tostr(current_itest_index), "itest")
+  if #itest_manager.itests > current_itest_index then
+    current_itest_index += 1
+    log("new current_itest_index: "..tostr(current_itest_index), "itest")
+    itest_manager:init_game_and_start_by_index(current_itest_index)
+  end
+end
+
+function handle_input()
+  if integration_test_runner.current_state == test_states.success or
+    integration_test_runner.current_state == test_states.failure or
+    integration_test_runner.current_state == test_states.timeout then
+    -- previous itest has finished, wait for x press to continue
+    --  to next itest
+    -- since input.mode is simulated during itests, use pico8 api directly
+    if btnp(button_ids.x) then
+      init_game_and_start_next_itest()
+    end
+  end
 end

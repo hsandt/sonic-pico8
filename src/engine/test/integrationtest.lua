@@ -26,15 +26,13 @@ end)
 integrationtest.itest_manager = itest_manager
 
 function itest_manager:register(itest)
-  -- caution: unnamed itests will override each other as table keys!
-  -- so we recommend to name all tests except for quick testing
-  self.itests[itest.name] = itest
+  add(self.itests, itest)
 end
 
 -- proxy method for itest runner helper method
-function itest_manager:init_game_and_start_by_name(test_name)
-  local itest = self.itests[test_name]
-  assert(itest, "itest_manager:init_game_and_start: itest named '"..test_name.."' could not be found")
+function itest_manager:init_game_and_start_by_index(index)
+  local itest = self.itests[index]
+  assert(itest, "itest_manager:init_game_and_start_by_index: index is "..tostr(index).." but only "..tostr(#self.itests).." were registered.")
   integration_test_runner:init_game_and_start(itest)
 end
 
@@ -51,6 +49,13 @@ end)
 
 -- helper method to use in rendered itest _init
 function integration_test_runner:init_game_and_start(test)
+  -- if there was a previous test, gameapp was already initialized,
+  --  so reset it now (we could also just keep it and change the gamestate
+  --  to void, if we are sure that all the itests have the same required modules)
+  if self.current_test then
+      gameapp.reinit_modules()
+  end
+
   gameapp.init(test.active_gamestates)
   integration_test_runner:start(test)
 end

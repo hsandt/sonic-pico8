@@ -77,7 +77,7 @@ end
 -- update the velocity and position of the character following platformer motion rules
 function player_character:_update_platformer()
   -- check if there is some ground under the character
-  local is_ground_sensed = self:_sense_ground()
+  local is_ground_sensed = self:_intersects_with_ground()
   self:_update_platformer_motion_state(is_ground_sensed)
   self:_update_platformer_motion()
   log("self.motion_state: "..self.motion_state)
@@ -85,57 +85,145 @@ function player_character:_update_platformer()
   log("self.speed_y_per_frame: "..self.speed_y_per_frame)
 end
 
--- return true iff there is ground immediately below character's feet
---  (including if the feet are inside the ground)
-function player_character:_sense_ground()
+-- return penetration height (>= 0) of character inside ground, or -1 if not intersecting ground
+--  if both sensors have different penetration heights, the biggest is returned for full escape
+function player_character:_compute_ground_penetration_height()
+
+  -- initialize with negative value to return if the character is not intersecting ground
+  local max_penetration_height = -1
 
   -- check both ground sensors for ground. if any finds ground, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
 
     -- find the tile where this ground sensor is located
-    local current_ground_sensor_position = self:_get_ground_sensor_position(i)
-    local sensor_location = current_ground_sensor_position:to_location()
-    local sensed_tile_id = mget(sensor_location.i, sensor_location.j)
+    local sensor_position = self:_get_ground_sensor_position(i)
+    local sensor_location = sensor_position:to_location()
 
-    -- check if that tile uses collision
-    local current_tile_collision_flag = fget(sensed_tile_id, sprite_flags.collision)
+    -- get column on the collision mask that the ground sensor should check (ground sensor extent x
+    --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
+    -- note that this is slightly suboptimal as we won't use column_index0 at all if _compute_column_height_at returns early
 
-    if current_tile_collision_flag then
+    local sensor_location_topleft = sensor_location:to_topleft_position()
+    local sensor_relative_x = sensor_position.x - sensor_location_topleft.x
+    local column_index0 = flr(sensor_relative_x)  -- from 0 to tile_size - 1
+    local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
 
-      -- get the tile collision mask
-      local collision_mask_id_location = collision_data.sprite_id_to_collision_mask_id_locations[sensed_tile_id]
-      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..tostr(sensed_tile_id)..", yet it has the collision flag set")
+    if ground_column_height > 0 then
 
-      if collision_mask_id_location then
-        -- possible optimize: cache collision height array on game start
-        local h_array = collision.height_array(collision_mask_id_location, 0)
-        local current_ground_sensor_height = sensor_location:to_topleft_position().y + 8 - current_ground_sensor_position.y
+      -- compute relative height of sensor from tile bottom (y axis is downward)
+      local sensor_location_bottom = sensor_location_topleft.y + tile_size
+      local sensor_height = sensor_location_bottom - sensor_position.y
+      assert(sensor_height > 0, "sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
 
-        -- get column on the collision mask that the ground sensor should check (ground sensor extent x
-        --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
-        local column_index0 = flr(current_ground_sensor_position.x - sensor_location:to_topleft_position().x)
-        local current_ground_array_height = h_array:get_height(column_index0)
+      -- check that ground sensor #i is on top of or below the mask column
+      local penetration_height = ground_column_height - sensor_height
 
-        if current_ground_sensor_height <= current_ground_array_height then
-          return true
+      if penetration_height >= 0 then
+        -- if the column is full (reaches the top of the tile), we must check if there are any tiles
+        --  stacked on top of this one, in which case the penetration height will be incremented by everything above
+        if ground_column_height == tile_size then
+          penetration_height = penetration_height + self:_compute_stacked_column_height_above(sensor_location, column_index0)
         end
 
+        -- store the biggest penetration height among sensors
+        if penetration_height > max_penetration_height then
+          max_penetration_height = penetration_height
+        end
       end
 
     end
 
   end
 
-  return false
+  return max_penetration_height
 
+end
+
+-- return the sum of column heights of colliding tiles starting from the tile
+--  just above the passed bottom_tile_location, all along the passed column_index0, up to the first tile
+--  that is either outside the map or has not a full column (column height < tile size).
+-- this method is important to compute the penetration height/escape distance to escape from multiple stacked tiles at once
+function player_character:_compute_stacked_column_height_above(bottom_tile_location, column_index0)
+
+  local stacked_column_height = 0
+  local current_tile_location = bottom_tile_location:copy()
+
+  while true do
+
+    -- move 1 tile up from the start
+    current_tile_location.j = current_tile_location.j - 1
+
+    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+
+    -- stop if no colliding tile or height is 0 just on the column
+    if ground_array_height == 0 then
+      break
+    end
+
+    stacked_column_height = stacked_column_height + ground_array_height
+
+    -- stop if this tile has not a full column
+    if ground_array_height < tile_size then
+      break
+    end
+
+  end
+
+  return stacked_column_height
+
+end
+
+-- return the column height at tile_location on column_index0
+function player_character:_compute_column_height_at(tile_location, column_index0)
+
+  -- only consider valid tiles; consider there are no colliding tiles outside the map area
+  if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 64 then
+
+    -- check if that tile at tile_location has a collider (mget will return 0 if there is no tile,
+    --  so we must make the "empty" sprite 0 has no flags set)
+    local current_tile_id = mget(tile_location.i, tile_location.j)
+    local current_tile_collision_flag = fget(current_tile_id, sprite_flags.collision)
+    if current_tile_collision_flag then
+
+      -- get the tile collision mask
+      local collision_mask_id_location = collision_data.sprite_id_to_collision_mask_id_locations[current_tile_id]
+      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..tostr(current_tile_id)..", yet it has the collision flag set")
+
+      if collision_mask_id_location then
+        -- possible optimize: cache collision height array on game start
+        local h_array = collision.height_array(collision_mask_id_location, 0)
+        return h_array:get_height(column_index0)
+      end
+
+    end
+
+  end
+
+  return 0
+
+end
+
+-- return true iff there is ground immediately below character's feet
+--  (including if the feet are inside the ground)
+function player_character:_intersects_with_ground()
+  return self:_compute_ground_penetration_height() >= 0
+end
+
+-- verifies if character is inside ground, and push him outside if inside but not too deep inside
+-- currently, it only pushes the character upward
+function player_character:_check_escape_from_ground()
+  local penetration_height = self:_compute_ground_penetration_height()
+  if penetration_height >= 0 and penetration_height <= playercharacter_data.max_ground_escape_height then
+    self:move(vector(0, -penetration_height))
+  end
 end
 
 function player_character:_get_ground_sensor_position(horizontal_dir)
 
   if horizontal_dir == horizontal_directions.left then
-    return self.position + vector(- playercharacter_data.ground_sensor_extent_x, playercharacter_data.center_height_standing)
+    return self:get_bottom_center() - vector(playercharacter_data.ground_sensor_extent_x, 0)
   else
-    return self.position + vector(playercharacter_data.ground_sensor_extent_x, playercharacter_data.center_height_standing)
+    return self:get_bottom_center() + vector(playercharacter_data.ground_sensor_extent_x, 0)
   end
 end
 
@@ -205,6 +293,11 @@ function player_character:_update_velocity_component_debug(coord)
       self.debug_velocity[coord] = sgn(self.debug_velocity[coord]) * max(abs(self.debug_velocity[coord]) - self.debug_move_decel * delta_time, 0)
     end
   end
+end
+
+-- move the player character so that the bottom center is at the given position
+function player_character:get_bottom_center()
+  return self.position + vector(0, playercharacter_data.center_height_standing)
 end
 
 -- move the player character so that the bottom center is at the given position

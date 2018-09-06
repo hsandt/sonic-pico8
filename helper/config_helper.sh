@@ -31,8 +31,9 @@ function define_build_vars {
 
         REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES $DUMMY_GAMESTATES_ARG_SUBSTITUTES"
         echo "${REPLACE_ARG_SUBSTITUTES}"
-    elif [[ ${1::5} = "utest" ]] ; then
-        UTEST=${1:5}  # extract itest name
+    # only data is tested directly inside PICO-8, so only check this pattern for pico-8 utests
+    elif [[ ${1::9} = "utestdata" ]] ; then
+        UTEST=${1:5}  # extract utest name
         MAIN_SOURCE_BASENAME="utest_main"
         REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES utest=$UTEST"
         # only use dummy gamestates for now (most pico8 utests are date tests and don't need gamestates)
@@ -47,10 +48,11 @@ elif [[ $1 = "sandbox" ]]; then
         REPLACE_ARG_SUBSTITUTES="$REPLACE_ARG_SUBSTITUTES"
     fi
 
-    # echo "MAIN_SOURCE_BASENAME: '$MAIN_SOURCE_BASENAME'"
-    # echo "OUTPUT_BASENAME: '$OUTPUT_BASENAME'"
-    # echo "REPLACE_ARG_SUBSTITUTES: '$REPLACE_ARG_SUBSTITUTES'"
-    # echo "ITEST: '$ITEST'"
+    echo "MAIN_SOURCE_BASENAME: '$MAIN_SOURCE_BASENAME'"
+    echo "OUTPUT_BASENAME: '$OUTPUT_BASENAME'"
+    echo "REPLACE_ARG_SUBSTITUTES: '$REPLACE_ARG_SUBSTITUTES'"
+    echo "UTEST: '$UTEST'"
+    echo "ITEST: '$ITEST'"
 }
 
 # OUTPUT_BASENAME is isolated because run.sh only needs this one

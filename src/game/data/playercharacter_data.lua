@@ -21,6 +21,9 @@ return {
   -- height between the character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
   center_height_standing = 6,
 
+  -- max vertical distance allowed to escape from inside ground
+  max_ground_escape_height = 4,
+
   -- sprite data
   character_sprite_loc = sprite_id_location(0, 2),
   character_sprite_span = tile_vector(1, 2),       -- vertical sprite

@@ -141,7 +141,7 @@ end
 -- return true iff aabb and other's boundaries are intersection but their interiors are not
 -- if some aabb extents has a 0 component, it is treated with a very thin or small box, not a no-touch
 function aabb:touches(other)
-  signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, nil)
+  signed_distance, _ = self:_compute_signed_distance_and_escape_direction(other, nil)
   return signed_distance == 0
 end
 

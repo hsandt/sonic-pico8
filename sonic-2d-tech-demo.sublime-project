@@ -306,6 +306,10 @@
 					"name": "headless_itests",
 					"cmd": ["./test.sh headless_itests"],
 				},
+				{
+					"name": "headless_itests (solo)",
+					"cmd": ["./test.sh headless_itests solo"],
+				},
 			],
 		},
 	],

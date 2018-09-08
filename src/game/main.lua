@@ -1,40 +1,41 @@
-local flow = require("engine/application/flow")
-local codetuner = require("engine/debug/codetuner")
-local debug = require("engine/debug/debug")
-local profiler = require("engine/debug/profiler")
-local input = require("engine/input/input")
-local ui = require("engine/ui/ui")
-local credits = require("game/menu/credits")
-local stage = require("game/ingame/stage")
-local titlemenu = require("game/menu/titlemenu")
-local visual = require("game/resources/visual")
+local gameapp = require("game/application/gameapp")
+local gamestate_proxy = require("game/application/gamestate_proxy")
 
--- config
-profiler:show()
+--#if log
+local logging = require("engine/debug/logging")
+logging.logger:register_stream(logging.console_log_stream)
+
+--#if visual_logger
+local visual_logger = require("engine/debug/visual_logger")
+logging.logger:register_stream(visual_logger.visual_log_stream)
+visual_logger.window:show()
+--#endif
+
+--#endif
+
+--#if profiler
+local profiler = require("engine/debug/profiler")
+profiler.window:show()
+--#endif
+
+--#if tuner
+local codetuner = require("engine/debug/codetuner")
 codetuner:show()
 codetuner.active = true
+--#endif
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
 function _init()
-  ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
-
-  flow:add_gamestate(titlemenu.state)
-  flow:add_gamestate(credits.state)
-  flow:add_gamestate(stage.state)
-  flow:query_gamestate_type(titlemenu.state.type)
+  -- require all gamestate modules, according to preprocessing step
+  gamestate_proxy:require_gamestates()
+  gameapp.init()
 end
 
 function _update60()
-  flow:update()
-  profiler:update_window()
-  codetuner:update_window()
+  gameapp.update()
 end
 
 function _draw()
-  cls()
-  flow.current_gamestate:render()
-  profiler:render_window()
-  codetuner:render_window()
-  ui:render_mouse()
+  gameapp.draw()
 end

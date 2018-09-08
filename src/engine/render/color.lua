@@ -37,6 +37,8 @@ color_strings = {
   [colors.peach] = "peach"
 }
 
+--#if log
 function color_tostring(colour)
   return color_strings[colour] or "unknown color"
 end
+--#endif

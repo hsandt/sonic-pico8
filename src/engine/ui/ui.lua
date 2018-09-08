@@ -1,4 +1,7 @@
-local debug = require("engine/debug/debug")
+--#if log
+local logging = require("engine/debug/logging")
+--#endif
+
 local input = require("engine/input/input")
 local visual = require("game/resources/visual")
 
@@ -7,6 +10,8 @@ local ui = {
 }
 
 -- setup
+
+--#if mouse
 
 -- injection function: call it from game to set the sprite data
 -- for the mouse cursor. this avoids accessing game data
@@ -25,8 +30,10 @@ function ui:render_mouse()
   end
 end
 
--- label class: container for a text to draw at a given position
-local label = new_class()
+--#endif
+
+-- label struct: container for a text to draw at a given position
+local label = new_struct()
 
 -- text      printable  text content to draw (mainly string or number)
 -- position  vector     position to draw the label at
@@ -37,14 +44,11 @@ function label:_init(text, position, colour)
   self.colour = colour
 end
 
+--#if log
 function label:_tostring()
   return "label('"..self.text.."' @ "..self.position.." in "..color_tostring(self.colour)..")"
 end
-
-function label.__eq(lhs, rhs)
-  return lhs.text == rhs.text and lhs.position == rhs.position and lhs.colour == rhs.colour
-end
-
+--#endif
 
 -- overlay class: allows to draw labels on top of the screen
 local overlay = new_class()
@@ -52,15 +56,17 @@ local overlay = new_class()
 -- parameters
 -- layer       int              level at which the overlay should be drawn, higher on top
 -- state vars
--- labels      {string, label}  table of labels to draw, identified by name
+-- labels      {string: label}  table of labels to draw, identified by name
 function overlay:_init(layer)
   self.layer = layer
   self.labels = {}
 end
 
+--#if log
 function overlay:_tostring()
   return "overlay(layer: "..self.layer..")"
 end
+--#endif
 
 -- add a label identified by a name, containing a text string,
 -- at a position vector, with a given color

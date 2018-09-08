@@ -1,74 +1,54 @@
-require("engine/render/color")
+require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
-require("game/ingame/playercharacter")
-require("game/application/gamestates")
+require("engine/render/color")
+local player_character = require("game/ingame/playercharacter")
+local gamestate = require("game/application/gamestate")
 local flow = require("engine/application/flow")
 local audio = require("game/resources/audio")
 local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
+local stage_data = require("game/data/stage_data")
 
-local stage = singleton {
+local stage = {
+
   -- enums
   substates = {
     play = "play",     -- playing and moving around
     result = "result"  -- result screen
   },
 
-  -- stage global data
-  global_params = {
-    -- delay between stage enter and showing stage title (s)
-    show_stage_title_delay = 4.0,
-    -- delay between reaching goal and going back to title menu (s)
-    back_to_titlemenu_delay = 1.0,
-    -- duration of bgm fade out after reaching goal (s)
-    bgm_fade_out_duration = 1.0
-  },
-
-  -- stage data
-  data = {
-    -- stage title
-    title = "proto zone",
-
-    -- where the player character spawns on stage start
-    spawn_location = location(0, 10),
-
-    -- the x to reach to finish the stage
-    goal_x = 16 * 8,
-
-    -- bgm id
-    bgm_id = audio.music_pattern_ids.green_hill
-  },
-
   state = nil
 }
 
 -- game state
-stage.state = {
-  type = gamestate_types.stage,
+stage.state = singleton(function (self)
+  self.type = gamestate.types.stage
 
   -- state vars
 
   -- current coroutines
-  coroutine_curries = {},
+  self.coroutine_curries = {}
+
+  -- stage id
+  self.current_stage_id = 1
+
+  -- reference to current stage data (derived from current_stage_id)
+  self.current_stage_data = stage_data.for_stage[self.current_stage_id]
 
   -- substate
-  current_substate = stage.substates.play,
+  self.current_substate = stage.substates.play
 
   -- player character
-  player_character = nil,
+  self.player_character = nil
   -- has the player character already reached the goal once?
-  has_reached_goal = false,
+  self.has_reached_goal = false
   -- position of the main camera, at the center of the view
-  camera_position = vector.zero(),
+  self.camera_position = vector.zero()
 
   -- title overlay
-  title_overlay = ui.overlay(0)
-}
-
-function stage.state:_tostring()
-  return "[stage state]"
-end
+  self.title_overlay = ui.overlay(0)
+end)
 
 function stage.state:on_enter()
   self.current_substate = stage.substates.play
@@ -110,8 +90,9 @@ end
 
 function stage.state:render()
   camera()
+
   -- background
-  rectfill(0, 0, 127, 127, colors.dark_purple)
+  rectfill(0, 0, 127, 127, colors.blue)
 
   -- update camera offset
   self:render_stage_elements()
@@ -142,7 +123,8 @@ function stage.state:update_coroutines()
       -- (assertions don't work from inside coroutines, but will return false)
       -- pass the curry arguments now (most of the time they are only useful
       -- on the 1st coresume call, since other times they are just yield() return values)
-      assert(coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args)), "Assertion failed in coroutine update for: "..coroutine_curry)
+      local result = coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args))
+      assert(result, "Assertion failed in coroutine update for: "..coroutine_curry)
     elseif status == "dead" then
       -- register the coroutine for removal from the sequence (don't delete it now since we are iterating over it)
       -- note that this block is only entered on the frame after the last coresume
@@ -162,8 +144,9 @@ end
 
 -- spawn the player character at the stage spawn location
 function stage.state:spawn_player_character()
-  local spawn_position = stage.data.spawn_location:to_center_position()
-  self.player_character = player_character(spawn_position)
+  local spawn_position = self.current_stage_data.spawn_location:to_center_position()
+  self.player_character = player_character()
+  self.player_character:spawn_at(spawn_position)
 end
 
 
@@ -171,21 +154,23 @@ end
 
 -- handle player input
 function stage.state:handle_input()
-  local player_move_intention = vector.zero()
+  if self.player_character.control_mode == control_modes.human then
+    local player_move_intention = vector.zero()
 
-  if btn(input.button_ids.left) then
-    player_move_intention:add_inplace(vector(-1, 0))
-  elseif btn(input.button_ids.right) then
-    player_move_intention:add_inplace(vector(1, 0))
+    if input:is_down(button_ids.left) then
+      player_move_intention:add_inplace(vector(-1, 0))
+    elseif input:is_down(button_ids.right) then
+      player_move_intention:add_inplace(vector(1, 0))
+    end
+
+    if input:is_down(button_ids.up) then
+      player_move_intention:add_inplace(vector(0, -1))
+    elseif input:is_down(button_ids.down) then
+      player_move_intention:add_inplace(vector(0, 1))
+    end
+
+    self.player_character.move_intention = player_move_intention
   end
-
-  if btn(input.button_ids.up) then
-    player_move_intention:add_inplace(vector(0, -1))
-  elseif btn(input.button_ids.down) then
-    player_move_intention:add_inplace(vector(0, 1))
-  end
-
-  self.player_character.move_intention = player_move_intention
 end
 
 
@@ -193,7 +178,7 @@ end
 
 function stage.state:check_reached_goal()
   if not self.has_reached_goal and
-      self.player_character.position.x >= stage.data.goal_x then
+      self.player_character.position.x >= self.current_stage_data.goal_x then
     self.has_reached_goal = true
     self:start_coroutine_method(self.on_reached_goal_async)
   end
@@ -202,8 +187,8 @@ end
 function stage.state:on_reached_goal_async()
   self:feedback_reached_goal()
   self.current_substate = stage.substates.result
-  self:stop_bgm(stage.global_params.bgm_fade_out_duration)
-  yield_delay(stage.global_params.back_to_titlemenu_delay)
+  self:stop_bgm(stage_data.bgm_fade_out_duration)
+  yield_delay(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
 
@@ -212,7 +197,7 @@ function stage.state:feedback_reached_goal()
 end
 
 function stage.state:back_to_titlemenu()
-  flow:query_gamestate_type(gamestate_types.titlemenu)
+  flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
 
@@ -236,8 +221,8 @@ end
 -- ui
 
 function stage.state:show_stage_title_async()
-  self.title_overlay:add_label("title", stage.data.title, vector(50, 30), colors.white)
-  yield_delay(stage.global_params.show_stage_title_delay)
+  self.title_overlay:add_label("title", self.current_stage_data.title, vector(50, 30), colors.white)
+  yield_delay(stage_data.show_stage_title_delay)
   self.title_overlay:remove_label("title")
 end
 
@@ -260,7 +245,7 @@ function stage.state:render_environment()
   -- (and either keep camera offset or offset manually and subtract from camera offset)
   map(0, 0, 0, 0, 16, 14)
   -- goal as vertical line
-  rectfill(stage.data.goal_x, 0, stage.data.goal_x + 5, 15*8, colors.yellow)
+  rectfill(self.current_stage_data.goal_x, 0, self.current_stage_data.goal_x + 5, 15*8, colors.yellow)
 end
 
 -- render the player character at its current position
@@ -278,7 +263,7 @@ end
 -- audio
 
 function stage.state:play_bgm()
-  music(stage.data.bgm_id, 0)
+  music(self.current_stage_data.bgm_id, 0)
 end
 
 function stage.state:stop_bgm(fade_duration)

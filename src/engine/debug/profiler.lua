@@ -1,5 +1,10 @@
+--#if profiler
+
+require("engine/core/class")
 require("engine/render/color")
-local wtk = require("engine/wtk/pico8wtk")
+local debug_window = require("engine/debug/debug_window")
+
+local profiler = {}
 
 local stats_info = {
   {"memory",     0},
@@ -19,14 +24,6 @@ for stat_info in all(stats_info) do
 end
 local stat_value_char_offset = max_stat_name_length + 1
 
-local profiler = {
-  -- has the profiler been lazy initialized?
-  initialized = false,
-
-  -- gui root
-  gui = wtk.gui_root.new()
-}
-
 -- return a callback function to use for stat labels
 -- exposed via profiler for testing only
 function profiler.get_stat_function(stat_index)
@@ -44,35 +41,18 @@ function profiler.get_stat_function(stat_index)
   end
 end
 
-function profiler:show()
-  if not self.initialized then
-    self:init_window()
-  end
-
-  self.gui.visible = true
+profiler.stat_functions = {}
+for i = 1, #stats_info do
+  profiler.stat_functions[i] = profiler.get_stat_function(i)
 end
 
-function profiler:hide()
-  self.gui.visible = false
-end
-
-function profiler:init_window()
+profiler.window = derived_singleton(debug_window, function (self)
   -- add stat labels to draw with their text callbacks
   for i = 1, #stats_info do
-    local stat_label = wtk.label.new(profiler.get_stat_function(i), colors.light_gray)
-    self.gui:add_child(stat_label, 1, 1 + 6*(i-1))  -- aligned vertically
+    self:add_label(profiler.stat_functions[i], colors.light_gray, 1, 1 + 6*(i-1))  -- aligned vertically
   end
-
-  self.initialized = true
-end
-
-function profiler:update_window()
-  self.gui:update()
-end
-
-function profiler:render_window()
-  camera()
-  self.gui:draw()
-end
+end)
 
 return profiler
+
+--#endif

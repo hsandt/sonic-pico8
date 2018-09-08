@@ -2,67 +2,198 @@
 	"build_systems":
 	[
 		{
-			"name": "p8tool: build game",
+			"name": "p8tool: build current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./build.sh $file_base_name debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
 			[
-				"./build.sh main game"
+				{
+					"name": "assert",
+					"cmd": ["./build.sh $file_base_name assert"]
+				},
+				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest"]
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./build.sh $file_base_name itest_light"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build.sh $file_base_name profiler"]
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./build.sh $file_base_name visual_log"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./build.sh $file_base_name log"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build.sh $file_base_name release"]
+				},
 			]
 		},
 		{
-			"name": "p8tool: build and run or reload game",
+			"name": "p8tool: build and run or reload current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
 			[
-				"./build.sh main game && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\")"
+				{
+					"name": "assert",
+					"cmd": ["./build.sh $file_base_name assert && (./reload.sh || ./run.sh $file_base_name assert)"]
+				},
+				{
+					"name": "itest",
+					"cmd": ["./build.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./build.sh $file_base_name itest_light && (./reload.sh || ./run.sh $file_base_name itest_light)"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build.sh $file_base_name profiler && (./reload.sh || ./run.sh $file_base_name profiler)"]
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./build.sh $file_base_name visual_log && (./reload.sh || ./run.sh $file_base_name visual_log)"]
+				},
+				{
+					"name": "pico8_utest (headless)",
+					"cmd": ["./build.sh $file_base_name pico8_utest && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./build.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build.sh $file_base_name release && (./reload.sh || ./run.sh $file_base_name release)"]
+				},
 			]
 		},
 		{
-			"name": "p8tool: run game",
+			"name": "p8tool: run current",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./run.sh $file_base_name debug"],
+			"variants":
 			[
-				"gnome-terminal -x bash -x -c \"pico8 -run build/game.p8\""
+				{
+					"name": "assert",
+					"cmd": ["./run.sh $file_base_name assert"]
+				},
+				{
+					"name": "itest",
+					"cmd": ["./run.sh $file_base_name itest"]
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./run.sh $file_base_name itest_light"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./run.sh $file_base_name profiler"]
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./run.sh $file_base_name visual_log"]
+				},
+				{
+					"name": "log",
+					"cmd": ["./run.sh $file_base_name log"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./run.sh $file_base_name release"]
+				},
 			]
 		},
 		{
-			"name": "p8tool: build and run or reload sandbox",
+			"name": "p8tool: install game cartridge",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd":
+			"cmd": ["./install.sh sonic-pico8_debug.p8.png"],
+			"variants":
 			[
-				"./build.sh sandbox sandbox && (./reload.sh || gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\")"
+				{
+					"name": "assert",
+					"cmd": ["./install.sh sonic-pico8_assert.p8.png"],
+				},
+				{
+					"name": "itest",
+					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+				},
+				{
+					"name": "itest_light",
+					"cmd": ["./install.sh sonic-pico8_itest_light.p8.png"],
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./install.sh sonic-pico8_profiler.p8.png"],
+				},
+				{
+					"name": "visual_log",
+					"cmd": ["./install.sh sonic-pico8_visual_log.p8.png"],
+				},
+				{
+					"name": "log",
+					"cmd": ["./install.sh sonic-pico8_log.p8.png"],
+				},
+				{
+					"name": "release",
+					"cmd": ["./install.sh sonic-pico8_release.p8.png"],
+				},
 			]
 		},
 		{
-			"name": "p8tool: run sandbox",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd":
-			[
-				"gnome-terminal -x bash -x -c \"pico8 -run build/sandbox.p8\""
-			]
-		},
-		{
-			"cmd":
-			[
-				"pico8 -run data/data.p8"
-			],
 			"name": "p8tool: edit data",
 			"shell": true,
+			"cmd": ["pico8 -run data/data.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
-			"cmd":
-			[
-				"python3 -m postbuild.test_replace_strings"
-			],
-			"name": "python: test replace_strings",
+			"name": "python: test preprocess",
+			"working_dir": "${project_path}",
 			"shell": true,
-			"working_dir": "${project_path}"
+			"cmd": ["python3 -m prebuild.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "python: test replace_strings",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m prebuild.test_replace_strings"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "python: test add_metadata",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m postbuild.test_add_metadata"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "lua: parse",
+			"selector": "source.lua,source.p8",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["luac -p $file"],
+			"file_regex": "((?:src|tests)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)"
 		},
 		{
 			"name": "busted: test",
@@ -76,7 +207,7 @@
 			"env": {
 				"SUBLIME_TEXT": "YES"
 			},
-			"syntax": "Packages/Rust Enhanced/RustEnhanced.sublime-syntax",
+			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
@@ -98,6 +229,10 @@
 				{
 					"name": "all (all)",
 					"cmd": ["./test.sh all all"],
+				},
+				{
+					"name": "assertions",
+					"cmd": ["./test.sh assertions"],
 				},
 				{
 					"name": "class",
@@ -136,6 +271,10 @@
 					"cmd": ["./test.sh input"],
 				},
 				{
+					"name": "integrationtest",
+					"cmd": ["./test.sh integrationtest"],
+				},
+				{
 					"name": "math",
 					"cmd": ["./test.sh math"],
 				},
@@ -163,6 +302,10 @@
 					"name": "ui",
 					"cmd": ["./test.sh ui"],
 				},
+				{
+					"name": "headless_itests",
+					"cmd": ["./test.sh headless_itests"],
+				},
 			],
 		},
 	],
@@ -171,15 +314,17 @@
 		{
 			"folder_exclude_patterns":
 			[
-				"backup"
+				"backup",
+				"carts"
 			],
-			"path": "/home/wing/.lexaloffle/pico-8"
+			"path": "~/.lexaloffle/pico-8"
 		},
 		{
 			"folder_exclude_patterns":
 			[
 				".git",
 				"build",
+				"intermediate",
 				"__pycache__"
 			],
 			"path": "."

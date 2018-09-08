@@ -1,23 +1,27 @@
+--#if tuner
+
+--#if log
+local logging = require("engine/debug/logging")
+--#endif
 require("engine/core/class")
 require("engine/render/color")
-local debug = require("engine/debug/debug")
 local wtk = require("engine/wtk/pico8wtk")
 
-local codetuner = singleton {
-  -- parameters
+local codetuner = singleton(function (self)
+    -- parameters
 
-  -- if true, tuned values are used, else default values are used
-  active = false,
+    -- if true, tuned values are used, else default values are used
+    self.active = false
 
-  -- state vars
+    -- state vars
 
-  -- table of tuned variables, identified by their names
-  tuned_vars = {},
+    -- table of tuned variables, identified by their names
+    self.tuned_vars = {}
 
-  -- gui
-  gui = nil,
-  main_panel = nil
-}
+    -- gui
+    self.gui = nil
+    self.main_panel = nil
+end)
 
 function codetuner:_tostring()
  return "[codetuner]"
@@ -118,6 +122,7 @@ end
 
 function codetuner:init_window()
   self.gui = wtk.gui_root.new()
+  self.gui.visible = false
   self.main_panel = wtk.panel.new(1, 1, colors.dark_gray, true)
   self.gui:add_child(self.main_panel)
 end
@@ -135,3 +140,5 @@ end
 codetuner:init_window()
 
 return codetuner
+
+--#endif

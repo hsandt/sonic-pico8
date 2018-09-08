@@ -1,8 +1,11 @@
 require("engine/core/class")
 
 -- numeric helpers
+
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
+  assert(lhs)
+  assert(rhs)
   if type(lhs) == "number" and type(rhs) == "number" then
     return abs(lhs - rhs) <= eps
   elseif lhs.almost_eq then
@@ -12,13 +15,13 @@ function almost_eq(lhs, rhs, eps)
   end
 end
 
+-- geometry/data grid helpers
 
-
--- tile_vector class: a pair of integer coords (i, j) that represents a position
+-- tile_vector struct: a pair of integer coords (i, j) that represents a position
 -- on either a spritesheet or a tilemap of 8x8 squares (8 is the "tile size")
 -- for sprite locations and tilemap locations, use sprite_id_location and location resp.
 -- for sprite span (sprite size on the spritesheet), use tile_vector directly
-tile_vector = new_class()
+tile_vector = new_struct()
 
 -- i       int     horizontal coordinate in tile size
 -- j       int     vertical   coordinate in tile size
@@ -27,26 +30,26 @@ function tile_vector:_init(i, j)
   self.j = j
 end
 
+--#if log
 function tile_vector:_tostring()
   return "tile_vector("..self.i..", "..self.j..")"
 end
+--#endif
 
-function tile_vector.__eq(lhs, rhs)
-  return lhs.i == rhs.i and lhs.j == rhs.j
+-- return the topleft position corresponding to a tile location
+function tile_vector:to_topleft_position()
+  return vector(8 * self.i, 8 * self.j)
 end
-
 
 -- sprite location is a special tile_vector with the semantics of a spritesheet location
 -- and associated conversion methods
-sprite_id_location = derived_class(tile_vector)
+sprite_id_location = derived_struct(tile_vector)
 
+--#if log
 function sprite_id_location:_tostring()
   return "sprite_id_location("..self.i..", "..self.j..")"
 end
-
-function sprite_id_location.__eq(lhs, rhs)
-  return tile_vector.__eq(lhs, rhs)
-end
+--#endif
 
 -- return the sprite id  corresponding to a sprite location on a spritesheet
 function sprite_id_location:to_sprite_id()
@@ -56,20 +59,13 @@ end
 
 -- location is a special tile_vector with the semantics of a tilemap location
 -- and associated conversion methods
-location = derived_class(tile_vector)
+location = derived_struct(tile_vector)
 
+--#if log
 function location:_tostring()
   return "location("..self.i..", "..self.j..")"
 end
-
-function location.__eq(lhs, rhs)
-  return tile_vector.__eq(lhs, rhs)
-end
-
--- return the topleft position corresponding to a tile location
-function location:to_topleft_position()
-  return vector(8 * self.i, 8 * self.j)
-end
+--#endif
 
 -- return the center position corresponding to a tile location
 function location:to_center_position()
@@ -77,9 +73,9 @@ function location:to_center_position()
 end
 
 
--- vector class: a pair of pixel coordinates (x, y) that represents a 2d vector
+-- vector struct: a pair of pixel coordinates (x, y) that represents a 2d vector
 -- in the space (position, displacement, speed, acceleration...)
-vector = new_class()
+vector = new_struct()
 
 -- x       int     horizontal coordinate in pixels
 -- y       int     vertical   coordinate in pixels
@@ -88,13 +84,11 @@ function vector:_init(x, y)
   self.y = y
 end
 
+--#if log
 function vector:_tostring()
   return "vector("..self.x..", "..self.y..")"
 end
-
-function vector.__eq(lhs, rhs)
-  return lhs.x == rhs.x and lhs.y == rhs.y
-end
+--#endif
 
 -- almost_eq can be used as static function of method, since self would simply replace lhs
 function vector.almost_eq(lhs, rhs, eps)
@@ -122,14 +116,20 @@ function vector:sub_inplace(other)
   self.y = self.y - other.y
 end
 
+function vector.__unm(v)
+  return vector(-v.x, -v.y)
+end
+
 function vector.__mul(lhs, rhs)
   if type(lhs) == "number" then
     return vector(lhs * rhs.x, lhs * rhs.y)
   elseif type(rhs) == "number" then
     return vector(rhs * lhs.x, rhs * lhs.y)
   else
+--#if assert
     assert(false, "vector multiplication is only supported with a scalar, "..
       "tried to multiply "..lhs:_tostring().." and "..rhs:_tostring())
+--#endif
   end
 end
 
@@ -145,8 +145,10 @@ function vector.__div(lhs, rhs)
     assert(rhs ~= 0, "cannot divide vector "..lhs:_tostring().." by zero")
     return vector(lhs.x / rhs, lhs.y / rhs)
   else
+--#if assert
     assert(false, "vector division is only supported with a scalar as rhs, "..
       "tried to multiply "..stringify(lhs).." and "..rhs)
+--#endif
   end
 end
 
@@ -192,6 +194,7 @@ function vector:normalize()
   end
 end
 
+-- return copy of vector with magnitude clamped by max_magnitude
 function vector:with_clamped_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
@@ -201,6 +204,7 @@ function vector:with_clamped_magnitude(max_magnitude)
   return self
 end
 
+-- clamp magnitude in-place
 function vector:clamp_magnitude(max_magnitude)
   assert(max_magnitude >= 0)
   local magnitude = self:magnitude()
@@ -210,6 +214,7 @@ function vector:clamp_magnitude(max_magnitude)
   end
 end
 
+-- return copy of vector with magnitude clamped by max_magnitude in cardinal directions
 function vector:with_clamped_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   -- if 1 arg is passed, use the same max for x and y
   max_magnitude_y = max_magnitude_y or max_magnitude_x
@@ -217,10 +222,103 @@ function vector:with_clamped_magnitude_cardinal(max_magnitude_x, max_magnitude_y
   return vector(mid(-max_magnitude_x, self.x, max_magnitude_x), mid(-max_magnitude_y, self.y, max_magnitude_y))
 end
 
+-- clamp magnitude in cardinal directions in-place
 function vector:clamp_magnitude_cardinal(max_magnitude_x, max_magnitude_y)
   -- if 1 arg is passed, use the same max for x and y
   max_magnitude_y = max_magnitude_y or max_magnitude_x
   assert(max_magnitude_x >= 0 and max_magnitude_y >= 0)
   self.x = mid(-max_magnitude_x, self.x, max_magnitude_x)
   self.y = mid(-max_magnitude_y, self.y, max_magnitude_y)
+end
+
+-- mirror the vector horizontally in-place
+function vector:mirror_x()
+  self.x = -self.x
+end
+
+-- mirror the vector vertically in-place
+function vector:mirror_y()
+  self.y = -self.y
+end
+
+-- return copy of vector rotated by 90 degrees clockwise (for top-left origin)
+function vector:rotated_90_cw()
+  return vector(-self.y, self.x)
+end
+
+-- rotate vector by 90 degrees clockwise in-place
+function vector:rotate_90_cw_inplace()
+  local old_x = self.x
+  self.x = -self.y
+  self.y = old_x
+end
+
+-- return copy of vector rotated by 90 degrees counter-clockwise (for top-left origin)
+function vector:rotated_90_ccw()
+  return vector(self.y, -self.x)
+end
+
+-- rotate by 90 degrees counter-clockwise in-place
+function vector:rotate_90_ccw_inplace()
+  local old_x = self.x
+  self.x = self.y
+  self.y = -old_x
+end
+
+-- return the tile location containing this vector position (non-injective)
+function vector:to_location()
+  return location(flr(self.x / tile_size), flr(self.y / tile_size))
+end
+
+-- enums data
+
+directions = {
+  left = 0,
+  up = 1,
+  right = 2,
+  down = 3
+}
+
+direction_vectors = {
+  [0] = vector(-1., 0.),
+  vector(0., -1.),
+  vector(1., 0.),
+  vector(0., 1.)
+}
+
+horizontal_directions = {
+  left = 1,
+  right = 2
+}
+
+function oppose_direction(direction)
+  return (direction + 2) % 4
+end
+
+function mirror_direction_x(direction)
+  if direction == directions.left then
+    return directions.right
+  elseif direction == directions.right then
+    return directions.left
+  else
+    return direction
+  end
+end
+
+function mirror_direction_y(direction)
+  if direction == directions.up then
+    return directions.down
+  elseif direction == directions.down then
+    return directions.up
+  else
+    return direction
+  end
+end
+
+function rotate_direction_90_cw(direction)
+  return (direction + 1) % 4
+end
+
+function rotate_direction_90_ccw(direction)
+  return (direction - 1) % 4
 end

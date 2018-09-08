@@ -4,6 +4,7 @@ return {
 	},
 
 	exclude = {
+		"/usr/local/share/lua"
 	}
 
 }

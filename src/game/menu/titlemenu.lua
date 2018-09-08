@@ -1,45 +1,46 @@
+require("engine/core/class")
 require("engine/render/color")
-local flow = require("engine/application/flow")
 local input = require("engine/input/input")
+local flow = require("engine/application/flow")
 local ui = require("engine/ui/ui")
-require("game/application/gamestates")
+local gamestate = require("game/application/gamestate")
 
 local titlemenu = {}
 
 -- game state
-local titlemenustate = singleton {
-  type = gamestate_types.titlemenu,
+local titlemenustate = singleton(function (self)
+  self.type = gamestate.types.titlemenu
 
   -- parameters
 
   -- number of items in the menu
-  items_count = 2,
+  self.items_count = 2
 
   -- state vars
 
   -- current cursor index (0: start, 1: credits)
-  current_cursor_index = 0,
-}
-
-function titlemenustate:_tostring()
-  return "[titlemenu state]"
-end
+  self.current_cursor_index = 0
+end)
 
 function titlemenustate:on_enter()
+--#if mouse
   input:toggle_mouse(true)
+--#endif
   self.current_cursor_index = 0
 end
 
 function titlemenustate:on_exit()
+--#if mouse
   input:toggle_mouse(false)
+--#endif
 end
 
 function titlemenustate:update()
-  if btnp(input.button_ids.up) then
+  if input:is_just_pressed(button_ids.up) then
     self:move_cursor_up()
-  elseif btnp(input.button_ids.down) then
+  elseif input:is_just_pressed(button_ids.down) then
     self:move_cursor_down()
-  elseif btnp(input.button_ids.x) then
+  elseif input:is_just_pressed(button_ids.x) then
     self:confirm_current_selection()
   end
 end
@@ -63,9 +64,9 @@ end
 
 function titlemenustate:confirm_current_selection()
   if self.current_cursor_index == 0 then
-    flow:query_gamestate_type(gamestate_types.stage)
+    flow:query_gamestate_type(gamestate.types.stage)
   else  -- current_cursor_index == 1
-    flow:query_gamestate_type(gamestate_types.credits)
+    flow:query_gamestate_type(gamestate.types.credits)
   end
 end
 

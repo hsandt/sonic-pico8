@@ -44,6 +44,18 @@ pico8={
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
+-- 0 init
+for n = 0, 255 do
+  pico8.spriteflags[n] = 0
+end
+
+for y = 0, 63 do
+  pico8.map[y] = {}
+  for x = 0, 127 do
+    pico8.map[y][x] = 0
+  end
+end
+
 function camera(x, y)
   pico8.camera_x=flr(x)
   pico8.camera_y=flr(y)
@@ -337,6 +349,7 @@ end
 
 abs=math.abs
 
+-- pico8 min only supports 2 arguments. use math.min if you want the min of 3+ arguments in busted tests
 function min(a, b)
   if a==nil or b==nil then
     return 0
@@ -345,6 +358,7 @@ function min(a, b)
   return b
 end
 
+-- pico8 max only supports 2 arguments. use math.max if you want the max of 3+ arguments in busted tests
 function max(a, b)
   if a==nil or b==nil then
     return 0

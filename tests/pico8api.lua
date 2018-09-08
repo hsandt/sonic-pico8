@@ -40,7 +40,7 @@ pico8={
   camera_x=0,
   camera_y=0,
   pal_transparent={},
-  map={},  -- should be initialized with 0 or game data, but ok for tests
+  map={},
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 

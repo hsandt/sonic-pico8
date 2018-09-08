@@ -31,17 +31,18 @@ local player_character = new_class()
 
 -- parameters
 -- spr_data             sprite_data   sprite data
--- debug_move_max_speed float         move max speed in debug mode
--- debug_move_accel     float         move acceleration in debug mode
--- debug_move_decel     float         move deceleration in debug mode
+-- debug_move_max_speed   float         move max speed in debug mode
+-- debug_move_accel       float         move acceleration in debug mode
+-- debug_move_decel       float         move deceleration in debug mode
 -- state vars
--- control_mode         control_modes control mode: human (default) or ai
--- motion_mode          motion_modes  motion mode: platformer (under gravity) or debug (fly around)
--- motion_state         motion_states motion state (platformer mode only)
--- position             vector        current position (character center "between" pixels)
--- debug_velocity       vector        current velocity in debug mode
--- speed_y_per_frame    float         current speed along y axis (px/frame)
--- move_intention       vector        current move intention (normalized)
+-- control_mode           control_modes control mode: human (default) or ai
+-- motion_mode            motion_modes  motion mode: platformer (under gravity) or debug (fly around)
+-- motion_state           motion_states motion state (platformer mode only)
+-- position               vector        current position (character center "between" pixels)
+-- ground_speed_frame     float         current speed along the ground (~px/frame)
+-- velocity_frame         vector        current velocity in platformer mode (px/frame)
+-- debug_velocity         vector        current velocity in debug mode (m/s)
+-- move_intention         vector        current move intention (normalized)
 function player_character:_init()
   self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
   self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
@@ -53,8 +54,9 @@ function player_character:_init()
   self.motion_state = motion_states.grounded
 
   self.position = vector.zero()
+  self.ground_speed_frame = 0.
+  self.velocity_frame = vector.zero()
   self.debug_velocity = vector.zero()
-  self.speed_y_per_frame = 0.
 
   self.move_intention = vector.zero()
 end
@@ -182,7 +184,7 @@ function player_character:_compute_column_height_at(tile_location, column_index0
 
       -- get the tile collision mask
       local collision_mask_id_location = collision_data.sprite_id_to_collision_mask_id_locations[current_tile_id]
-      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..tostr(current_tile_id)..", yet it has the collision flag set")
+      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
 
       if collision_mask_id_location then
         -- possible optimize: cache collision height array on game start
@@ -237,7 +239,7 @@ function player_character:_update_platformer_motion_state(is_ground_sensed)
       -- we have just reached the ground (and possibly escaped),
       --  so set state to grounded and stop vertical motion
       self.motion_state = motion_states.grounded
-      self.speed_y_per_frame = 0
+      self.velocity_frame.y = 0
     end
   end
 end
@@ -255,14 +257,61 @@ end
 
 -- update motion following platformer grounded motion rules
 function player_character:_update_platformer_motion_grounded()
+  self:_update_ground_speed()
+  self:_update_velocity_grounded()
+  self:_update_ground_position()
+end
+
+-- update ground speed based on current move intention
+function player_character:_update_ground_speed()
+  if self.move_intention.x ~= 0 then
+    if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
+      -- accelerate
+      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_accel_frame2
+    else
+      -- decelerate
+      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_decel_frame2
+      -- if speed must switch sign this frame, clamp it by ground accel in absolute value to prevent exploit of
+      --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
+      local has_changed_sign = self.ground_speed_frame ~= 0 and sgn(self.ground_speed_frame) == sgn(self.move_intention.x)
+      if has_changed_sign and abs(self.ground_speed_frame) > playercharacter_data.ground_accel_frame2 then
+        self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.ground_accel_frame2
+      end
+    end
+  elseif self.ground_speed_frame ~= 0 then
+    -- friction
+    self.ground_speed_frame = sgn(self.ground_speed_frame) * max(0, abs(self.ground_speed_frame) - playercharacter_data.ground_friction_frame2)
+  end
+end
+
+-- update velocity based on ground speed
+function player_character:_update_velocity_grounded()
+  -- only support flat ground for now
+  self.velocity_frame = vector(self.ground_speed_frame, 0)
+end
+
+-- update position following current ground curve, by applying velocity,
+--  then snapping him to the matching y on the ground curve
+-- note than on convex slope masks, this will move the character a bit faster,
+--  and on concave slope masks, a bit slower than we would expect with a pixel-based
+--  curviline estimation (because the velocity is based on an average slope)
+function player_character:_update_ground_position()
+  self:move(self.velocity_frame)
+  self:_snap_to_ground()
+end
+
+-- set the player position y so that one ground sensor is just on top of the current tile,
+--  or the one above if the character is inside ground with one sensor at a full mask column,
+--  or the one below if the character is above ground with both sensors at empty mask colums
+function player_character:_snap_to_ground()
 end
 
 -- update motion following platformer airborne motion rules
 function player_character:_update_platformer_motion_airborne()
   -- apply gravity to current speed y
-  self.speed_y_per_frame = self.speed_y_per_frame + playercharacter_data.gravity_per_frame2
+  self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
   -- apply air motion
-  self.position = self.position + vector(0, self.speed_y_per_frame)
+  self.position = self.position + self.velocity_frame
 
   -- try to escape from ground
   self:_check_escape_from_ground_and_update_motion_state()

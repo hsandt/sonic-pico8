@@ -63,6 +63,11 @@ end
 -- helper method to use in rendered itest _update60
 function integration_test_runner:update_game_and_test()
   if self.current_state == test_states.running then
+    -- update gameapp, then test runner
+    -- updating test runner 2nd allows us to check the actual game state at final frame f,
+    --  after everything has been computed
+    -- time_trigger(0.)  initial actions will still be applied before first frame
+    --  thanks to the initial _check_next_action on start, but setup is still recommended
     gameapp.update()
     self:update()
     if self.current_state ~= test_states.running then
@@ -218,10 +223,17 @@ end
 local time_trigger = new_struct()
 integrationtest.time_trigger = time_trigger
 
--- parameters
--- frames      int   number of frames to wait before running callback after last trigger (defined from float time in s)
-function time_trigger:_init(time)
-  self.frames = flr(time * fps)
+-- non-member parameters
+-- time            float time to wait before running callback after last trigger (in seconds by default, in frames if use_frame_unit is true)
+-- use_frame_unit  bool  if true, count the time in frames instead of seconds
+-- members
+-- frames          int   number of frames to wait before running callback after last trigger (defined from float time in s)
+function time_trigger:_init(time, use_frame_unit)
+  if use_frame_unit then
+    self.frames = time
+  else
+    self.frames = flr(time * fps)
+  end
 end
 
 --#if log

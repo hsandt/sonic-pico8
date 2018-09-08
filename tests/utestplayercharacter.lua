@@ -992,34 +992,34 @@ describe('player_character', function ()
 
           it('should do nothing when character is not touching ground at all', function ()
             player_char:set_bottom_center(vector(12, 6))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_equal(vector(12, 6), player_char:get_bottom_center())
+            assert.are_same({vector(12, 6), false}, {player_char:get_bottom_center(), result})
           end)
 
           it('should do nothing when character is just on top of the ground', function ()
             player_char:set_bottom_center(vector(12, 8))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_equal(vector(12, 8), player_char:get_bottom_center())
+            assert.are_same({vector(12, 8), true}, {player_char:get_bottom_center(), result})
           end)
 
           it('should move the character upward just enough to escape ground if character is inside ground', function ()
             player_char:set_bottom_center(vector(12, 9))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_equal(vector(12, 8), player_char:get_bottom_center())
+            assert.are_same({vector(12, 8), true}, {player_char:get_bottom_center(), result})
           end)
 
           it('should do nothing when character is too deep inside the ground', function ()
             player_char:set_bottom_center(vector(12, 13))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_equal(vector(12, 13), player_char:get_bottom_center())
+            assert.are_same({vector(12, 13), true}, {player_char:get_bottom_center(), result})
           end)
 
         end)
@@ -1101,14 +1101,23 @@ describe('player_character', function ()
         end)
 
         it('should escape from ground after motion if the character entered ground on fall', function ()
+          -- interface setup (we rely on _check_escape_from_ground)
           -- move character just above ground to test collision on fall (offset must be < playercharacter_data.gravity_per_frame2)
           player_char:set_bottom_center(vector(13, 10 - 0.1))  -- left ground sensor @ (10.5, 10 - 0.0625)
           player_char:_update_platformer_motion_airborne()
 
           -- interface
           assert.are_equal(vector(13, 10), player_char:get_bottom_center())
+        end)
 
-          -- implementation
+        it('should set motion state to grounded and reset vertical speed if the character touched/entered ground on fall', function ()
+          -- interface setup (we rely on _check_escape_from_ground)
+          -- move character just above ground to test touch/collision on fall (offset must be <= playercharacter_data.gravity_per_frame2)
+          player_char:set_bottom_center(vector(13, 10 - 0.1))  -- left ground sensor @ (10.5, 10 - 0.0625)
+          player_char:_update_platformer_motion_airborne()
+
+          -- interface
+          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.speed_y_per_frame})
         end)
 
       end)

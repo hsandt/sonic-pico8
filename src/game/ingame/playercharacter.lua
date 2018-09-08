@@ -207,13 +207,14 @@ function player_character:_intersects_with_ground()
   return self:_compute_ground_penetration_height() >= 0
 end
 
--- verifies if character is inside ground, and push him outside if inside but not too deep inside
--- currently, it only pushes the character upward
+-- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
+-- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
   local penetration_height = self:_compute_ground_penetration_height()
-  if penetration_height >= 0 and penetration_height <= playercharacter_data.max_ground_escape_height then
-    self:move(vector(0, -penetration_height))
+  if penetration_height > 0 and penetration_height <= playercharacter_data.max_ground_escape_height then
+    self:move(vector(0, - penetration_height))
   end
+  return penetration_height >= 0
 end
 
 function player_character:_get_ground_sensor_position(horizontal_dir)
@@ -263,7 +264,15 @@ function player_character:_update_platformer_motion_airborne()
   -- apply air motion
   self.position = self.position + vector(0, self.speed_y_per_frame)
 
-  self:_check_escape_from_ground()
+  -- try to escape from ground
+  local is_ground_sensed = self:_check_escape_from_ground()
+
+  if is_ground_sensed then
+    -- we have just reached the ground (and possibly escaped),
+    --  so set state to grounded and stop vertical motion
+    self.motion_state = motion_states.grounded
+    self.speed_y_per_frame = 0
+  end
 end
 
 -- update the velocity and position of the character following debug motion rules

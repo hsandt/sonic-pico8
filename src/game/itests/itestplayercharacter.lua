@@ -3,9 +3,9 @@ local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
-local collision = require("engine/physics/collision")
-local collision_data = require("game/data/collision_data")
-
+--#ifn pico8
+local tile_test_data = require("game/test_data/tile_test_data")
+--#endif
 
 local itest = integration_test('character debug moves to right', {stage.state.type})
 itest_manager:register(itest)
@@ -39,24 +39,8 @@ itest_manager:register(itest)
 
 itest.setup = function ()
 --#ifn pico8
-  -- busted/luassert functions are not directly accessible in scriptes required from main
-  --  script called with busted
-  local stub = require 'luassert.stub'
-
-  -- setup part of the tilemap of PICO-8 we just need for the test in busted
-
-  -- mock sprite flags
-  fset(64, sprite_flags.collision, true)  -- full tile
-
-  -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
-  height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_mask_id_location, slope_angle)
-    if tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[64] then
-      self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile
-    end
-    self._slope_angle = slope_angle
-  end)
-
-  -- where the character will land
+  -- add tile where the character will land
+  tile_test_data.setup()
   mset(0, 10, 64)
 --#endif
 
@@ -69,8 +53,7 @@ end
 
 --#ifn pico8
 itest.teardown = function ()
-  fset(64, sprite_flags.collision, false)
-  height_array_init_mock:revert()
+  tile_test_data.teardown()
   mset(0, 10, 0)
 end
 --#endif
@@ -82,3 +65,24 @@ itest:add_action(time_trigger(1.), function () end)
 itest.final_assertion = function ()
   return almost_eq_with_message(vector(4., 80.), stage.state.player_character:get_bottom_center(), 1/256)
 end
+
+
+--[[#pico8
+-- human test for pico8 only to check rendering
+-- bugfix history: fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
+--  and not actual sprite topleft in the spritesheet
+local itest = integration_test('= character is correctly rendered idle', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  flow:change_gamestate_by_type(stage.state.type)
+  stage.state.player_character:set_bottom_center(vector(4., 80.))
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.debug
+end
+
+-- wait just 0.1 second so the character can be rendered at least 1 frame because the test pauses
+itest:add_action(time_trigger(1.), function () end)
+
+-- no final assertion, let the user check if result is correct or not (note it will display success whatever)
+-- #pico8]]

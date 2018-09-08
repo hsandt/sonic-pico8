@@ -26,7 +26,7 @@ return {
 
   -- sprite data
   character_sprite_loc = sprite_id_location(0, 2),
-  character_sprite_span = tile_vector(1, 2),       -- vertical sprite
-  character_sprite_pivot = vector(4, 6)            -- sprite center (when standing)
+  character_sprite_span = tile_vector(1, 2),        -- vertical sprite
+  character_sprite_pivot = vector(4, 10)            -- sprite center (when standing)
 
 }

@@ -33,11 +33,8 @@ function _draw()
 end
 
 function init_game_and_start_next_itest()
-  log("itests: "..tostr(#itest_manager.itests), "itest")
-  log("current_itest_index: "..tostr(current_itest_index), "itest")
   if #itest_manager.itests > current_itest_index then
     current_itest_index += 1
-    log("new current_itest_index: "..tostr(current_itest_index), "itest")
     itest_manager:init_game_and_start_by_index(current_itest_index)
   end
 end

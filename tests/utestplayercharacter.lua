@@ -8,24 +8,18 @@ describe('player_character', function ()
 
   describe('_init', function ()
 
-    it('should create a player character at the given position', function ()
-      local player_character = player_character(vector(4, -4))
-      assert.is_not_nil(player_character)
-      assert.are_equal(vector(4, -4), player_character.position)
-    end)
-
-    it('should create a player character with 0 velocity and move_intention', function ()
-      local player_character = player_character(vector(4, -4))
-      assert.is_not_nil(player_character)
-      assert.are_same({vector.zero(), 0, vector.zero()},
-        {player_character.debug_velocity, player_character.speed_y_per_frame, player_character.move_intention})
+    it('should create a player character at the origin with zero velocity and move_intention', function ()
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
+      assert.are_same({vector.zero(), vector.zero(), 0, vector.zero()},
+        {player_char.position, player_char.debug_velocity, player_char.speed_y_per_frame, player_char.move_intention})
     end)
 
     it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
-      local player_character = player_character(vector(4, -4))
-      assert.is_not_nil(player_character)
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
       assert.are_same({control_modes.human, motion_modes.platformer, motion_states.grounded},
-        {player_character.control_mode, player_character.motion_mode, player_character.motion_state})
+        {player_char.control_mode, player_char.motion_mode, player_char.motion_state})
     end)
 
   end)
@@ -34,21 +28,56 @@ describe('player_character', function ()
     local player_char
 
     before_each(function ()
-      -- recreate player character for each test (setup spies will need to refer to player_character, not the instance)
-      player_char = player_character(vector(4, -4))
+      -- recreate player character for each test (setup spies will need to refer to player_char, not the instance)
+      player_char = player_character()
       player_char.debug_move_max_speed = 60.
       player_char.debug_move_accel = 480.
       player_char.debug_move_decel = 480.
     end)
 
     describe('_tostring', function ()
-      it('should return "[player_character at vector(4, -4)]"', function ()
+      it('should return "[player_character at {self.position}]"', function ()
+        player_char.position = vector(4, -4)
         assert.are_equal("[player_character at vector(4, -4)]", player_char:_tostring())
       end)
     end)
 
+    describe('spawn_at', function ()
+
+
+      local _check_escape_from_ground_and_update_motion_state_stub
+
+      setup(function ()
+        _check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
+      end)
+
+      teardown(function ()
+        _check_escape_from_ground_and_update_motion_state_stub:revert()
+      end)
+
+      after_each(function ()
+        _check_escape_from_ground_and_update_motion_state_stub:clear()
+      end)
+
+      it('should set the character\'s position', function ()
+        player_char:spawn_at(vector(56, 12))
+        assert.are_equal(vector(56, 12), player_char.position)
+      end)
+
+      it('should call _check_escape_from_ground_and_update_motion_state', function ()
+        player_char:spawn_at(vector(56, 12))
+
+        -- implementation
+        assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called(1)
+        assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
+
+      end)
+
+    end)
+
     describe('move', function ()
       it('at (4 -4) move (-5 4) => at (-1 0)', function ()
+        player_char.position = vector(4, -4)
         player_char:move(vector(-5, 4))
         assert.are_equal(vector(-1, 0), player_char.position)
       end)
@@ -70,30 +99,30 @@ describe('player_character', function ()
 
     describe('update', function ()
 
-      local update_platformer_stub
+      local update_platformer_motion_stub
       local update_debug_stub
 
       setup(function ()
-        update_platformer_stub = stub(player_character, "_update_platformer")
+        update_platformer_motion_stub = stub(player_character, "_update_platformer_motion")
         update_debug_stub = stub(player_character, "_update_debug")
       end)
 
       teardown(function ()
-        update_platformer_stub:revert()
+        update_platformer_motion_stub:revert()
         update_debug_stub:revert()
       end)
 
       after_each(function ()
-        update_platformer_stub:clear()
+        update_platformer_motion_stub:clear()
         update_debug_stub:clear()
       end)
 
       describe('(when motion mode is platformer)', function ()
 
-        it('should call _update_platformer', function ()
+        it('should call _update_platformer_motion', function ()
           player_char:update()
-          assert.spy(update_platformer_stub).was_called()
-          assert.spy(update_platformer_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_motion_stub).was_called(1)
+          assert.spy(update_platformer_motion_stub).was_called_with(match.ref(player_char))
           assert.spy(update_debug_stub).was_not_called()
         end)
 
@@ -107,43 +136,11 @@ describe('player_character', function ()
 
         it('. should call _update_debug', function ()
           player_char:update()
-          assert.spy(update_debug_stub).was_called()
+          assert.spy(update_platformer_motion_stub).was_not_called()
+          assert.spy(update_debug_stub).was_called(1)
           assert.spy(update_debug_stub).was_called_with(match.ref(player_char))
-          assert.spy(update_platformer_stub).was_not_called()
         end)
 
-      end)
-
-    end)
-
-    describe('_update_platformer', function ()
-
-      local sense_ground_mock
-      local update_platformer_motion_state_stub
-      local update_platformer_motion_stub
-
-      setup(function ()
-        sense_ground_mock = stub(player_character, "_intersects_with_ground", function ()
-          return true
-        end)
-        update_platformer_motion_state_stub = stub(player_character, "_update_platformer_motion_state")
-        update_platformer_motion_stub = stub(player_character, "_update_platformer_motion")
-      end)
-
-      teardown(function ()
-        sense_ground_mock:revert()
-        update_platformer_motion_state_stub:revert()
-        update_platformer_motion_stub:revert()
-      end)
-
-      it('should call _intersects_with_ground, passing the result to _update_platformer_motion_state, then call _update_platformer_motion', function ()
-        player_char:_update_platformer()
-        assert.spy(sense_ground_mock).was_called()
-        assert.spy(sense_ground_mock).was_called_with(match.ref(player_char))
-        assert.spy(update_platformer_motion_state_stub).was_called()
-        assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), true)
-        assert.spy(update_platformer_motion_stub).was_called()
-        assert.spy(update_platformer_motion_stub).was_called_with(match.ref(player_char))
       end)
 
     end)
@@ -957,26 +954,31 @@ describe('player_character', function ()
 
       end)
 
-      describe('_intersects_with_ground', function ()
+      describe('_check_escape_from_ground_and_update_motion_state', function ()
 
-        local compute_ground_penetration_mock
+        local check_escape_from_ground_mock
+        local update_platformer_motion_state_stub
 
-        after_each(function ()
-          compute_ground_penetration_mock:revert()
+        setup(function ()
+          check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
+            return true
+          end)
+          update_platformer_motion_state_stub = stub(player_character, "_update_platformer_motion_state")
         end)
 
-        it('should return true when _compute_ground_penetration_height returns a number >= 0', function ()
-          compute_ground_penetration_mock = stub(player_char, "_compute_ground_penetration_height", function (self)
-            return 5
-          end)
-          assert.is_true(player_char:_intersects_with_ground())
+        teardown(function ()
+          check_escape_from_ground_mock:revert()
+          update_platformer_motion_state_stub:revert()
         end)
 
-        it('should return false when _compute_ground_penetration_height returns a number < 0', function ()
-          compute_ground_penetration_mock = stub(player_char, "_compute_ground_penetration_height", function (self)
-            return -2
-          end)
-          assert.is_false(player_char:_intersects_with_ground())
+        it('should call _check_escape_from_ground and call _update_platformer_motion_state with the result', function ()
+          player_char:_update_platformer_motion_airborne()
+
+          -- implementation
+          assert.spy(check_escape_from_ground_mock).was_called(1)
+          assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_motion_state_stub).was_called(1)
+          assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), true)
         end)
 
       end)
@@ -1085,9 +1087,18 @@ describe('player_character', function ()
 
       describe('_update_platformer_motion_airborne', function ()
 
-        before_each(function ()
-          -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
-          mset(1, 1, 66)
+        local _check_escape_from_ground_and_update_motion_state_stub
+
+        setup(function ()
+          _check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
+        end)
+
+        teardown(function ()
+          _check_escape_from_ground_and_update_motion_state_stub:revert()
+        end)
+
+        after_each(function ()
+          _check_escape_from_ground_and_update_motion_state_stub:clear()
         end)
 
         it('. should apply gravity to speed y', function ()
@@ -1096,31 +1107,20 @@ describe('player_character', function ()
         end)
 
         it('. should update position with new speed y', function ()
+          player_char.position = vector(4, -4)
           player_char:_update_platformer_motion_airborne()
           assert.are_equal(vector(4, -4 + playercharacter_data.gravity_per_frame2), player_char.position)
         end)
 
-        it('should escape from ground after motion if the character entered ground on fall', function ()
-          -- interface setup (we rely on _check_escape_from_ground)
-          -- move character just above ground to test collision on fall (offset must be < playercharacter_data.gravity_per_frame2)
-          player_char:set_bottom_center(vector(13, 10 - 0.1))  -- left ground sensor @ (10.5, 10 - 0.0625)
+        it('should call _check_escape_from_ground_and_update_motion_state', function ()
           player_char:_update_platformer_motion_airborne()
 
-          -- interface
-          assert.are_equal(vector(13, 10), player_char:get_bottom_center())
+          -- implementation
+          assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called(1)
+          assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
         end)
 
-        it('should set motion state to grounded and reset vertical speed if the character touched/entered ground on fall', function ()
-          -- interface setup (we rely on _check_escape_from_ground)
-          -- move character just above ground to test touch/collision on fall (offset must be <= playercharacter_data.gravity_per_frame2)
-          player_char:set_bottom_center(vector(13, 10 - 0.1))  -- left ground sensor @ (10.5, 10 - 0.0625)
-          player_char:_update_platformer_motion_airborne()
-
-          -- interface
-          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.speed_y_per_frame})
-        end)
-
-      end)
+      end)  -- _update_platformer_motion_airborne
 
     end)  -- (with mock tiles data setup)
 
@@ -1200,7 +1200,7 @@ describe('player_character', function ()
 
         it('^ should call _update_platformer_motion_grounded', function ()
           player_char:_update_platformer_motion()
-          assert.spy(update_platformer_motion_grounded_stub).was_called()
+          assert.spy(update_platformer_motion_grounded_stub).was_called(1)
           assert.spy(update_platformer_motion_grounded_stub).was_called_with(match.ref(player_char))
           assert.spy(update_platformer_motion_airborne_stub).was_not_called()
         end)
@@ -1215,7 +1215,7 @@ describe('player_character', function ()
 
         it('^ should call _update_platformer_motion_airborne', function ()
           player_char:_update_platformer_motion()
-          assert.spy(update_platformer_motion_airborne_stub).was_called()
+          assert.spy(update_platformer_motion_airborne_stub).was_called(1)
           assert.spy(update_platformer_motion_airborne_stub).was_called_with(match.ref(player_char))
           assert.spy(update_platformer_motion_grounded_stub).was_not_called()
         end)
@@ -1242,9 +1242,9 @@ describe('player_character', function ()
 
       it('should call _update_velocity_debug, then move using the new velocity', function ()
         player_char:_update_debug()
-        assert.spy(update_velocity_debug_mock).was_called()
+        assert.spy(update_velocity_debug_mock).was_called(1)
         assert.spy(update_velocity_debug_mock).was_called_with(match.ref(player_char))
-        assert.spy(move_stub).was_called()
+        assert.spy(move_stub).was_called(1)
         assert.spy(move_stub).was_called_with(match.ref(player_char), 11 * delta_time)
       end)
 
@@ -1289,6 +1289,10 @@ describe('player_character', function ()
 
     -- integration test as utest kept here for the moment, but prefer itests for this
     describe('_update_velocity_debug and move', function ()
+
+      before_each(function ()
+        player_char.position = vector(4, -4)
+      end)
 
       after_each(function ()
         player_char.move_intention = vector(-1, 1)

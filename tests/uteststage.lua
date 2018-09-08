@@ -454,10 +454,28 @@ describe('stage', function ()
 
     describe('spawn_player_character', function ()
 
+      setup(function ()
+        spy.on(player_character, "spawn_at")
+      end)
+
+      teardown(function ()
+        player_character.spawn_at:revert()
+      end)
+
       it('should spawn the player character at the stage spawn location', function ()
         stage.state:spawn_player_character()
-        assert.is_not_nil(stage.state.player_character)
-        assert.are_equal(stage.state.current_stage_data.spawn_location:to_center_position(), stage.state.player_character.position)
+        local player_char = stage.state.player_character
+        assert.is_not_nil(player_char)
+        local spawn_position = stage.state.current_stage_data.spawn_location:to_center_position()
+
+        -- interface
+        assert.are_equal(spawn_position, player_char.position)
+        -- we haven't initialized any map in busted, so the character is in the air and spawn_at detected this
+        assert.are_equal(motion_states.airborne, player_char.motion_state)
+
+        -- implementation
+        assert.spy(player_char.spawn_at).was_called(1)
+        assert.spy(player_char.spawn_at).was_called_with(match.ref(stage.state.player_character), spawn_position)
       end)
 
     end)

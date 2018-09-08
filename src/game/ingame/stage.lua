@@ -145,7 +145,8 @@ end
 -- spawn the player character at the stage spawn location
 function stage.state:spawn_player_character()
   local spawn_position = self.current_stage_data.spawn_location:to_center_position()
-  self.player_character = player_character(spawn_position)
+  self.player_character = player_character()
+  self.player_character:spawn_at(spawn_position)
 end
 
 

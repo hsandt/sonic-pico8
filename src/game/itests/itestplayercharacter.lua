@@ -4,6 +4,7 @@ local itest_manager, integration_test, time_trigger = integrationtest.itest_mana
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
 local collision = require("engine/physics/collision")
+local collision_data = require("game/data/collision_data")
 
 
 local itest = integration_test('character debug moves to right', {stage.state.type})
@@ -32,7 +33,8 @@ itest.final_assertion = function ()
 end
 
 
-local itest = integration_test('character platformer lands vertically', {stage.state.type})
+-- bugfix history: test failed because initial character position was wrong in the test
+local itest = integration_test('. character platformer lands vertically', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
@@ -60,7 +62,7 @@ itest.setup = function ()
 
   -- we still need on_enter to spawn character
   flow:change_gamestate_by_type(stage.state.type)
-  stage.state.player_character.position = vector(16., 48.)
+  stage.state.player_character.position = vector(4., 48.)
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 end
@@ -78,5 +80,5 @@ itest:add_action(time_trigger(1.), function () end)
 
 -- check that player char has landed and snapped to the ground
 itest.final_assertion = function ()
-  return almost_eq_with_message(vector(16., 80.), stage.state.player_character.position, 1/65536)
+  return almost_eq_with_message(vector(4., 80.), stage.state.player_character:get_bottom_center(), 1/256)
 end

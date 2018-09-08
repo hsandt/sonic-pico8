@@ -80,9 +80,6 @@ function player_character:_update_platformer()
   local is_ground_sensed = self:_intersects_with_ground()
   self:_update_platformer_motion_state(is_ground_sensed)
   self:_update_platformer_motion()
-  log("self.motion_state: "..self.motion_state)
-  log("self.position: "..self.position)
-  log("self.speed_y_per_frame: "..self.speed_y_per_frame)
 end
 
 -- return penetration height (>= 0) of character inside ground, or -1 if not intersecting ground

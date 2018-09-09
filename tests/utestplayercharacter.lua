@@ -11,8 +11,21 @@ describe('player_character', function ()
     it('should create a player character at the origin with zero velocity and move_intention', function ()
       local player_char = player_character()
       assert.is_not_nil(player_char)
-      assert.are_same({vector.zero(), vector.zero(), 0, vector.zero()},
-        {player_char.position, player_char.debug_velocity, player_char.speed_y_per_frame, player_char.move_intention})
+      assert.are_same(
+        {
+          vector.zero(),
+          0,
+          vector.zero(),
+          vector.zero(),
+          vector.zero()
+        },
+        {
+          player_char.position,
+          player_char.ground_speed_frame,
+          player_char.velocity_frame,
+          player_char.debug_velocity,
+          player_char.move_intention
+        })
     end)
 
     it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
@@ -24,7 +37,7 @@ describe('player_character', function ()
 
   end)
 
-  describe('(with player character at (4, -4), speed 60, debug accel 480)', function ()
+  describe('(with player character, speed 60, debug accel 480)', function ()
     local player_char
 
     before_each(function ()
@@ -149,13 +162,6 @@ describe('player_character', function ()
 
       setup(function ()
         tile_test_data.setup()
-
-        -- initialize with clear map around locations of interest
-        for i = 0, 3 do
-          for j = 0, 3 do
-            mset(i, j, 0)
-          end
-        end
       end)
 
       teardown(function ()
@@ -1067,14 +1073,6 @@ describe('player_character', function ()
 
         end)
 
-        -- TODO: low slope to check both feet inside ground
-        -- but not too deep either
-
-        -- TODO: (also for compute penetration_height function)
-        -- if character is inside 2 tiles with a total height < 5, he must escape
-        -- by raising through both tiles (imagine 1 bottom tile of height 2)
-        -- (and below the character is inside of 2)
-
       end)  -- _check_escape_from_ground
 
       describe('_update_platformer_motion_grounded', function ()
@@ -1083,6 +1081,164 @@ describe('player_character', function ()
           player_char:_update_platformer_motion_grounded()
         end)
 
+      end)
+
+      describe('_update_ground_speed', function ()
+
+        it('should accelerate when character has ground speed 0 and move intention x is not 0', function ()
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.are_equal(playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate when character has ground speed > 0 and move intention x > 0', function ()
+          player_char.ground_speed_frame = 1.5
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.are_equal(1.5 + playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate when character has ground speed < 0 and move intention x < 0', function ()
+          player_char.ground_speed_frame = -1.5
+          player_char.move_intention.x = -1
+          player_char:_update_ground_speed()
+          assert.are_equal(-1.5 - playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
+        end)
+
+        it('should decelerate keeping same sign when character has high ground speed > 0 and move intention x < 0', function ()
+          player_char.ground_speed_frame = 1.5
+          player_char.move_intention.x = -1
+          player_char:_update_ground_speed()
+          -- ground_decel_frame2 = 0.25, subtract it from ground_speed_frame
+          assert.are_equal(1.25, player_char.ground_speed_frame)
+        end)
+
+        -- bugfix history: missing tests that check the change of sign of ground speed
+        it('_ should decelerate and change sign when character has low ground speed > 0 and move intention x < 0 '..
+          'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
+          -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
+          player_char.ground_speed_frame = 0.24
+          player_char.move_intention.x = -1
+          player_char:_update_ground_speed()
+          assert.is_true(almost_eq_with_message(-0.01, player_char.ground_speed_frame, 1e-16))
+        end)
+
+        it('should decelerate and clamp to the max ground speed in the opposite sign '..
+          'when character has low ground speed > 0 and move intention x < 0', function ()
+          -- start with speed < -ground_accel_frame2 + ground_decel_frame2
+          player_char.ground_speed_frame = 0.12
+          player_char.move_intention.x = -1
+          player_char:_update_ground_speed()
+          assert.are_equal(-playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
+        end)
+
+        it('should decelerate keeping same sign when character has high ground speed < 0 and move intention x > 0', function ()
+          player_char.ground_speed_frame = -1.5
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.are_equal(-1.25, player_char.ground_speed_frame)
+        end)
+
+        -- bugfix history: missing tests that check the change of sign of ground speed
+        it('_ should decelerate and change sign when character has low ground speed < 0 and move intention x > 0 '..
+          'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
+          -- start with speed <= ground_accel_frame2 - ground_decel_frame2
+          player_char.ground_speed_frame = -0.24
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.is_true(almost_eq_with_message(0.01, player_char.ground_speed_frame, 1e-16))
+        end)
+
+        it('should decelerate and clamp to the max ground speed in the opposite sign '..
+          'when character has low ground speed < 0 and move intention x > 0', function ()
+          -- start with speed > ground_accel_frame2 - ground_decel_frame2
+          player_char.ground_speed_frame = -0.12
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.are_equal(playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
+        end)
+
+        it('should apply friction when character has ground speed > 0 and move intention x is 0', function ()
+          player_char.ground_speed_frame = 1.5
+          player_char:_update_ground_speed()
+          assert.are_equal(1.5 - playercharacter_data.ground_friction_frame2, player_char.ground_speed_frame)
+        end)
+
+        -- bugfix history: missing tests that check the change of sign of ground speed
+        it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
+          -- must be < friction
+          player_char.ground_speed_frame = 0.01
+          player_char:_update_ground_speed()
+          assert.are_equal(0, player_char.ground_speed_frame)
+        end)
+
+        it('should apply friction when character has ground speed < 0 and move intention x is 0', function ()
+          player_char.ground_speed_frame = -1.5
+          player_char:_update_ground_speed()
+          assert.are_equal(-1.5 + playercharacter_data.ground_friction_frame2, player_char.ground_speed_frame)
+        end)
+
+        -- bugfix history: missing tests that check the change of sign of ground speed
+        it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed < 0 and move intention x is 0', function ()
+          -- must be < friction in abs
+          player_char.ground_speed_frame = -0.01
+          player_char:_update_ground_speed()
+          assert.are_equal(0, player_char.ground_speed_frame)
+        end)
+
+        it('should not change ground speed when ground speed is 0 and move intention x is 0', function ()
+          player_char:_update_ground_speed()
+          assert.are_equal(0, player_char.ground_speed_frame)
+        end)
+
+      end)
+
+      describe('_update_velocity_grounded', function ()
+
+        it('should set the current velocity to a horizontal vector with x: signed ground speed', function ()
+          player_char.ground_speed_frame = -3
+          player_char:_update_velocity_grounded()
+          assert.are_equal(vector(-3, 0), player_char.velocity_frame)
+        end)
+      end)
+
+      describe('_update_ground_position', function ()
+
+        setup(function ()
+          mset(0, 1, 68)  -- wavy horizontal almost full tile
+        end)
+
+        teardown(function ()
+          mset(0, 1, 0)
+        end)
+
+        pending('should move the character based on its current velocity and snap y to the new ground column height if not empty nor full', function ()
+          player_char:set_bottom_center(vector(3, 8))
+          player_char.velocity_frame = vector(2, 0)
+          player_char:_update_ground_position()
+
+          -- interface
+          assert.are_equal(vector(5, 7), player_char:get_bottom_center())
+        end)
+      end)
+
+      describe('_snap_to_ground', function ()
+
+        setup(function ()
+          mset(0, 1, 68)  -- wavy horizontal almost full tile
+        end)
+
+        teardown(function ()
+          mset(0, 1, 0)
+        end)
+
+        pending('should snap y to the current ground column height if not empty nor full', function ()
+          player_char:set_bottom_center(vector(5, 8))
+          player_char:_snap_to_ground()
+
+          -- interface
+          assert.are_equal(vector(5, 7), player_char:get_bottom_center())
+        end)
       end)
 
       describe('_update_platformer_motion_airborne', function ()
@@ -1103,13 +1259,13 @@ describe('player_character', function ()
 
         it('. should apply gravity to speed y', function ()
           player_char:_update_platformer_motion_airborne()
-          assert.are_equal(playercharacter_data.gravity_per_frame2, player_char.speed_y_per_frame)
+          assert.are_equal(playercharacter_data.gravity_frame2, player_char.velocity_frame.y)
         end)
 
         it('. should update position with new speed y', function ()
           player_char.position = vector(4, -4)
           player_char:_update_platformer_motion_airborne()
-          assert.are_equal(vector(4, -4 + playercharacter_data.gravity_per_frame2), player_char.position)
+          assert.are_equal(vector(4, -4 + playercharacter_data.gravity_frame2), player_char.position)
         end)
 
         it('should call _check_escape_from_ground_and_update_motion_state', function ()
@@ -1169,7 +1325,7 @@ describe('player_character', function ()
 
         it('. should enter grounded state and reset speed y if some ground is sensed', function ()
           player_char:_update_platformer_motion_state(true)
-          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.speed_y_per_frame})
+          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.velocity_frame.y})
         end)
 
       end)

@@ -13,6 +13,7 @@ function tile_test_data.setup()
   fset(65, sprite_flags.collision, true)  -- ascending slope 45
   fset(66, sprite_flags.collision, true)  -- descending slope 45
   fset(67, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2
+  fset(68, sprite_flags.collision, true)  -- wavy horizontal almost full tile
   fset(70, sprite_flags.collision, true)  -- half-tile (bottom half)
   fset(71, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
   fset(72, sprite_flags.collision, true)  -- low-tile (bottom quarter)
@@ -27,6 +28,8 @@ function tile_test_data.setup()
       self._array = {8, 7, 6, 5, 4, 3, 2, 1}  -- descending slope 45
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[67] then
       self._array = {2, 2, 3, 3, 4, 4, 5, 5}  -- ascending slope 22.5
+    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[68] then
+      self._array = {8, 8, 7, 6, 6, 7, 6, 7}  -- wavy horizontal almost full tile
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[70] then
       self._array = {4, 4, 4, 4, 4, 4, 4, 4}  -- half-tile (bottom half)
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[71] then
@@ -45,6 +48,7 @@ function tile_test_data.teardown()
   fset(65, sprite_flags.collision, false)
   fset(66, sprite_flags.collision, false)
   fset(67, sprite_flags.collision, false)
+  fset(68, sprite_flags.collision, false)
   fset(70, sprite_flags.collision, false)
   fset(71, sprite_flags.collision, false)
   fset(72, sprite_flags.collision, false)

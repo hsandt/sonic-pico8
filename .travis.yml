@@ -60,7 +60,7 @@ script:
 deploy:
   provider: releases
   api_key: $DEPLOY_API_KEY
-  file: "build/sonic-pico8.p8"
+  file: "build/sonic-pico8_release.p8"
   skip_cleanup: true
   on:
     branch: master

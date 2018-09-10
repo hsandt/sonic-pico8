@@ -2,6 +2,9 @@ require("bustedhelper")
 require("engine/core/math")
 local logging = require("engine/debug/logging")
 
+-- bustedhelper require affects logging, so reset the state
+logging.logger:init()
+
 describe('logging', function ()
 
   local log_message = logging.log_message
@@ -108,7 +111,7 @@ describe('logging', function ()
 
       it('should set all active categories flags to true', function ()
         for category, _ in pairs(logger.active_categories) do
-          assert.is_true(logger.active_categories[category])
+          assert.is_true(logger.active_categories[category], "category '"..category.."' is not active")
         end
       end)
 

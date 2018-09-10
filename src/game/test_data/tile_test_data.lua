@@ -1,3 +1,6 @@
+--#ifn pico8
+
+require("pico8api")
 local collision = require("engine/physics/collision")
 local collision_data = require("game/data/collision_data")
 local stub = require("luassert.stub")
@@ -43,17 +46,11 @@ function tile_test_data.setup()
 end
 
 function tile_test_data.teardown()
-  fset(1, sprite_flags.collision, false)
-  fset(64, sprite_flags.collision, false)
-  fset(65, sprite_flags.collision, false)
-  fset(66, sprite_flags.collision, false)
-  fset(67, sprite_flags.collision, false)
-  fset(68, sprite_flags.collision, false)
-  fset(70, sprite_flags.collision, false)
-  fset(71, sprite_flags.collision, false)
-  fset(72, sprite_flags.collision, false)
+  pico8:clear_spriteflags()
 
   height_array_init_mock:revert()
 end
 
 return tile_test_data
+
+--#endif

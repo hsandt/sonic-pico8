@@ -8,14 +8,40 @@ local tile_test_data = require("game/test_data/tile_test_data")
 --#endif
 
 
+-- for itests that need map setup, we exceptionally not teardown
+--  the map since we would need to store a backup of the original map
+--  and we don't care, since each itest will build its own mock map
+local function setup_map_data()
+--#ifn pico8
+  tile_test_data.setup()
+  pico8:clear_map()
+--#endif
+
+--[[#pico8
+  -- clear map data
+  memset(0x2000, 0, 0x1000)
+-- #pico8]]
+end
+
+local function teardown_map_data()
+--#ifn pico8
+  tile_test_data.teardown()
+--#endif
+end
+
+
 local itest
 
 
-itest = integration_test('character debug moves to right', {stage.state.type})
+itest = integration_test('debug move right', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
-  -- we still need on_enter to spawn character
+  setup_map_data()
+
+  -- just add a tile in the way to make sure debug motion ignores collisions
+  mset(1, 10, 64)
+
   flow:change_gamestate_by_type(stage.state.type)
   stage.state.player_character.position = vector(0., 80.)
   stage.state.player_character.control_mode = control_modes.puppet
@@ -23,6 +49,10 @@ itest.setup = function ()
 
   -- player char starts moving to the right
   stage.state.player_character.move_intention = vector(1., 0.)
+end
+
+itest.teardown = function ()
+  teardown_map_data()
 end
 
 -- stop after 1 second
@@ -36,16 +66,15 @@ itest.final_assertion = function ()
 end
 
 
--- bugfix history: test failed because initial character position was wrong in the test
-itest = integration_test('. character platformer lands vertically', {stage.state.type})
+-- bugfix history: . test failed because initial character position was wrong in the test
+itest = integration_test('platformer land vertical', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
---#ifn pico8
+  setup_map_data()
+
   -- add tile where the character will land
-  tile_test_data.setup()
   mset(0, 10, 64)
---#endif
 
   flow:change_gamestate_by_type(stage.state.type)
 
@@ -55,12 +84,9 @@ itest.setup = function ()
   stage.state.player_character.motion_mode = motion_modes.platformer
 end
 
---#ifn pico8
 itest.teardown = function ()
-  tile_test_data.teardown()
-  mset(0, 10, 0)
+  teardown_map_data()
 end
---#endif
 
 -- wait 1 second and stop
 itest:add_action(time_trigger(1.), function () end)
@@ -71,17 +97,16 @@ itest.final_assertion = function ()
 end
 
 
--- bugfix history: test was wrong, initialize in setup, not at time trigger 0
-itest = integration_test('. character platformer accelerates to right on flat ground', {stage.state.type})
+-- bugfix history: . test was wrong, initialize in setup, not at time trigger 0
+itest = integration_test('platformer accel right flat', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
---#ifn pico8
-  -- add tiles where the character will move
-  tile_test_data.setup()
+  setup_map_data()
+
   mset(0, 10, 64)
   mset(1, 10, 64)
---#endif
+  mset(2, 10, 64)
 
   flow:change_gamestate_by_type(stage.state.type)
 
@@ -94,13 +119,9 @@ itest.setup = function ()
   stage.state.player_character.move_intention = vector(1, 0)
 end
 
---#ifn pico8
 itest.teardown = function ()
-  tile_test_data.teardown()
-  mset(0, 10, 0)
-  mset(1, 10, 0)
+  teardown_map_data()
 end
---#endif
 
 -- wait 30 frames and stop
 itest:add_action(time_trigger(0.5), function () end)
@@ -137,16 +158,16 @@ itest.final_assertion = function ()
 end
 
 
-itest = integration_test('character platformer accelerates then decelerates on flat ground', {stage.state.type})
+itest = integration_test('platformer decel right flat', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
---#ifn pico8
+  setup_map_data()
+
   -- add tiles where the character will move
-  tile_test_data.setup()
   mset(0, 10, 64)
   mset(1, 10, 64)
---#endif
+  mset(2, 10, 64)
 
   flow:change_gamestate_by_type(stage.state.type)
 
@@ -159,13 +180,9 @@ itest.setup = function ()
   stage.state.player_character.move_intention = vector(1, 0)
 end
 
---#ifn pico8
 itest.teardown = function ()
-  tile_test_data.teardown()
-  mset(0, 10, 0)
-  mset(1, 10, 0)
+  teardown_map_data()
 end
---#endif
 
 -- at frame 30, decelerate (brake)
 itest:add_action(time_trigger(0.5), function ()
@@ -207,16 +224,17 @@ itest.final_assertion = function ()
 end
 
 
-itest = integration_test('character platformer accelerates then uses friction to stop on flat ground', {stage.state.type})
+itest = integration_test('platformer friction right flat', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
---#ifn pico8
+  setup_map_data()
+
   -- add tiles where the character will move
-  tile_test_data.setup()
   mset(0, 10, 64)
   mset(1, 10, 64)
---#endif
+  mset(2, 10, 64)
+  mset(3, 10, 64)
 
   flow:change_gamestate_by_type(stage.state.type)
 
@@ -229,13 +247,9 @@ itest.setup = function ()
   stage.state.player_character.move_intention = vector(1, 0)
 end
 
---#ifn pico8
 itest.teardown = function ()
-  tile_test_data.teardown()
-  mset(0, 10, 0)
-  mset(1, 10, 0)
+  teardown_map_data()
 end
---#endif
 
 -- at frame 30, slow down with friction
 itest:add_action(time_trigger(0.5), function ()
@@ -254,6 +268,75 @@ itest.final_assertion = function ()
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+-- bugfix history: ! identified bug in _update_platformer_motion where absence of elseif
+--  allowed to enter both grounded and airborne update, causing 2x update when leaving the cliff
+itest = integration_test('platformer fall cliff', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+  mset(1, 10, 64)
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start moving to the right from frame 0 by setting intention in setup
+  stage.state.player_character.move_intention = vector(1, 0)
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+
+  mset(0, 10, 0)
+  mset(1, 10, 0)
+end
+
+-- at frame 34: pos (17.9453125, 74), velocity (0.796875, 0), grounded
+-- at frame 35: pos (18.765625, 74), velocity (0.8203125, 0), airborne -> stop accel
+itest:add_action(time_trigger(35, true), function ()
+  stage.state.player_character.move_intention = vector.zero()
+end)
+
+-- wait 25 frames and stop
+-- at frame 60: pos (39.2734375, 74 + 35.546875), velocity (0.8203125, 2.734375), airborne
+itest:add_action(time_trigger(25, true), function () end)
+
+-- check that player char has moved to the right and fell
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
+  local is_position_expected, position_message = almost_eq_with_message(vector(39.2734375, 80. + 35.546875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.8203125, 2.734375), stage.state.player_character.velocity_frame, 1/256)
 
   local final_message = ""
 

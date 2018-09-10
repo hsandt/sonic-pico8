@@ -230,7 +230,10 @@ end
 function player_character:_update_platformer_motion_state(is_ground_sensed)
   if self.motion_state == motion_states.grounded then
     if not is_ground_sensed then
+      -- we have just left the ground, enter airborne state
+      --  and since ground speed is now unused, reset it for clarity
       self.motion_state = motion_states.airborne
+      self.ground_speed_frame = 0
     end
   end
 
@@ -248,9 +251,7 @@ end
 function player_character:_update_platformer_motion()
   if self.motion_state == motion_states.grounded then
     self:_update_platformer_motion_grounded()
-  end
-
-  if self.motion_state == motion_states.airborne then
+  elseif self.motion_state == motion_states.airborne then
     self:_update_platformer_motion_airborne()
   end
 end
@@ -298,6 +299,9 @@ end
 function player_character:_update_ground_position()
   self:move(self.velocity_frame)
   self:_snap_to_ground()
+  -- check escape is not needed since snap already does the job,
+  -- so when snap is implemented, put computations in common to reduce cpu
+  self:_check_escape_from_ground_and_update_motion_state()
 end
 
 -- set the player position y so that one ground sensor is just on top of the current tile,
@@ -310,6 +314,7 @@ end
 function player_character:_update_platformer_motion_airborne()
   -- apply gravity to current speed y
   self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
+
   -- apply air motion
   self.position = self.position + self.velocity_frame
 

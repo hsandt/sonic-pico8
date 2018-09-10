@@ -37,6 +37,9 @@ function itest_manager:init_game_and_start_by_index(index)
 end
 
 -- integration test runner singleton
+-- test lifetime:
+-- none -> running -> success/failure/timeout (still alive, but not updated)
+--  -> stopped when a another test starts running
 integration_test_runner = singleton(function (self)
   self.initialized = false
   self.current_test = nil
@@ -68,6 +71,7 @@ function integration_test_runner:update_game_and_test()
     --  after everything has been computed
     -- time_trigger(0.)  initial actions will still be applied before first frame
     --  thanks to the initial _check_next_action on start, but setup is still recommended
+    log("frame #"..self.current_frame + 1, "trace")
     gameapp.update()
     self:update()
     if self.current_state ~= test_states.running then
@@ -154,16 +158,14 @@ function integration_test_runner:_initialize()
   input.mode = input_modes.simulated
 
 --#if log
-  -- all itests should only print itest logs
-  for category in pairs(logging.logger.active_categories) do
-    local value
-    if category == 'itest' then
-      value = true
-    else
-      value = false
-    end
-    logging.logger.active_categories[category] = value
-  end
+  -- all itests should only print itest logs, and maybe trace if you want
+  logging.logger:deactivate_all_categories()
+
+--[[#pico8
+  logging.logger.active_categories["itest"] = true
+--#pico8]]
+
+  logging.logger.active_categories["trace"] = false
 --#endif
 
   self.initialized = true
@@ -203,15 +205,16 @@ function integration_test_runner:_end_with_final_assertion()
     self.current_state = test_states.failure
     self.current_message = message
   end
+end
+
+-- stop the current test, tear it down and reset all values
+-- this is only called when starting a new test, not when it finished,
+--  so we can still access info on the current test while the user examines its result
+function integration_test_runner:stop()
   if self.current_test.teardown then
     self.current_test.teardown()
   end
-end
 
--- stop the current test and reset all values
--- this is different from ending the test properly via update
--- in particular, you won't be able to retrieve the test result
-function integration_test_runner:stop()
   self.current_test = nil
   self.current_frame = 0
   self._last_trigger_frame = 0

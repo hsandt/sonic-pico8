@@ -44,17 +44,26 @@ pico8={
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
--- 0 init
-for n = 0, 255 do
-  pico8.spriteflags[n] = 0
-end
-
-for y = 0, 63 do
-  pico8.map[y] = {}
-  for x = 0, 127 do
-    pico8.map[y][x] = 0
+-- busted-only helper to clear the map, as memset(0x2000, 0, 0x1000) wouldn't work
+function pico8:clear_map()
+  for y = 0, 63 do
+    pico8.map[y] = {}
+    for x = 0, 127 do
+      pico8.map[y][x] = 0
+    end
   end
 end
+
+-- busted-only helper to clear the spriteflags, as memset(0x3000, 0, 0x100) wouldn't work
+--  and we don't really do that in pico8 anyway
+function pico8:clear_spriteflags()
+  for n = 0, 255 do
+    pico8.spriteflags[n] = 0
+  end
+end
+
+pico8:clear_spriteflags()
+pico8:clear_map()
 
 function camera(x, y)
   pico8.camera_x=flr(x)

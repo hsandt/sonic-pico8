@@ -75,7 +75,9 @@ local logger = singleton(function (self)
     player = true,
     ui = true,
     codetuner = true,
-    itest = true
+    itest = true,
+    -- trace is considered a category, not a level, so we can toggle it independently from the rest
+    trace = true
   }
   self.current_level = logging.level.info
   self.dump_max_recursion_level = 2

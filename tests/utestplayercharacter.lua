@@ -57,7 +57,6 @@ describe('player_character', function ()
 
     describe('spawn_at', function ()
 
-
       local _check_escape_from_ground_and_update_motion_state_stub
 
       setup(function ()
@@ -1077,8 +1076,43 @@ describe('player_character', function ()
 
       describe('_update_platformer_motion_grounded', function ()
 
-        pending('should ...', function ()
+        local update_ground_speed_stub
+        local update_velocity_grounded_stub
+        local update_ground_position_stub
+
+        setup(function ()
+          mset(0, 1, 68)  -- wavy horizontal almost full tile
+
+          update_ground_speed_stub = stub(player_character, "_update_ground_speed")
+          update_velocity_grounded_stub = stub(player_character, "_update_velocity_grounded")
+          update_ground_position_stub = stub(player_character, "_update_ground_position")
+        end)
+
+        teardown(function ()
+          mset(0, 1, 0)
+
+          update_ground_speed_stub:revert()
+          update_velocity_grounded_stub:revert()
+          update_ground_position_stub:revert()
+        end)
+
+        after_each(function ()
+          update_ground_speed_stub:clear()
+          update_velocity_grounded_stub:clear()
+          update_ground_position_stub:clear()
+        end)
+
+
+        it('should call _update_ground_speed, _update_velocity_grounded, _update_ground_position', function ()
           player_char:_update_platformer_motion_grounded()
+
+          -- implementation
+          assert.spy(update_ground_speed_stub).was_called(1)
+          assert.spy(update_ground_speed_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_velocity_grounded_stub).was_called(1)
+          assert.spy(update_velocity_grounded_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_ground_position_stub).was_called(1)
+          assert.spy(update_ground_position_stub).was_called_with(match.ref(player_char))
         end)
 
       end)
@@ -1204,12 +1238,30 @@ describe('player_character', function ()
 
       describe('_update_ground_position', function ()
 
+        local move_stub
+        local snap_to_ground_stub
+        local check_escape_from_ground_and_update_motion_state_stub
+
         setup(function ()
           mset(0, 1, 68)  -- wavy horizontal almost full tile
+
+          move_stub = stub(player_character, "move")
+          snap_to_ground_stub = stub(player_character, "_snap_to_ground")
+          check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
         end)
 
         teardown(function ()
           mset(0, 1, 0)
+
+          move_stub:revert()
+          snap_to_ground_stub:revert()
+          check_escape_from_ground_and_update_motion_state_stub:revert()
+        end)
+
+        after_each(function ()
+          move_stub:clear()
+          snap_to_ground_stub:clear()
+          check_escape_from_ground_and_update_motion_state_stub:clear()
         end)
 
         pending('should move the character based on its current velocity and snap y to the new ground column height if not empty nor full', function ()
@@ -1219,6 +1271,19 @@ describe('player_character', function ()
 
           -- interface
           assert.are_equal(vector(5, 7), player_char:get_bottom_center())
+        end)
+
+        it('should call move with current velocity_frame, call _snap_to_ground and _check_escape_from_ground_and_update_motion_state', function ()
+          player_char.velocity_frame = vector(2, 0)
+          player_char:_update_ground_position()
+
+          -- implementation
+          assert.spy(move_stub).was_called(1)
+          assert.spy(move_stub).was_called_with(match.ref(player_char), vector(2, 0))
+          assert.spy(snap_to_ground_stub).was_called(1)
+          assert.spy(snap_to_ground_stub).was_called_with(match.ref(player_char))
+          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called(1)
+          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
         end)
       end)
 
@@ -1332,23 +1397,27 @@ describe('player_character', function ()
 
     end)
 
-    describe('_update_platformer_motion', function ()
+    describe('_update_platformer_motion (_update_platformer_motion_grounded sets motion state to airborne)', function ()
 
-      local update_platformer_motion_grounded_stub
+      local update_platformer_motion_grounded_mock
       local update_platformer_motion_airborne_stub
 
       setup(function ()
-        update_platformer_motion_grounded_stub = stub(player_character, "_update_platformer_motion_grounded")
+        -- mock the worst case possible for _update_platformer_motion_grounded,
+        --  changing the state to airborne to make sure the airborne branch is not entered afterward
+        update_platformer_motion_grounded_mock = stub(player_character, "_update_platformer_motion_grounded", function ()
+          player_char.motion_state = motion_states.airborne
+        end)
         update_platformer_motion_airborne_stub = stub(player_character, "_update_platformer_motion_airborne")
       end)
 
       teardown(function ()
-        update_platformer_motion_grounded_stub:revert()
+        update_platformer_motion_grounded_mock:revert()
         update_platformer_motion_airborne_stub:revert()
       end)
 
       after_each(function ()
-        update_platformer_motion_grounded_stub:clear()
+        update_platformer_motion_grounded_mock:clear()
         update_platformer_motion_airborne_stub:clear()
       end)
 
@@ -1356,8 +1425,8 @@ describe('player_character', function ()
 
         it('^ should call _update_platformer_motion_grounded', function ()
           player_char:_update_platformer_motion()
-          assert.spy(update_platformer_motion_grounded_stub).was_called(1)
-          assert.spy(update_platformer_motion_grounded_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_platformer_motion_grounded_mock).was_called(1)
+          assert.spy(update_platformer_motion_grounded_mock).was_called_with(match.ref(player_char))
           assert.spy(update_platformer_motion_airborne_stub).was_not_called()
         end)
 
@@ -1373,7 +1442,7 @@ describe('player_character', function ()
           player_char:_update_platformer_motion()
           assert.spy(update_platformer_motion_airborne_stub).was_called(1)
           assert.spy(update_platformer_motion_airborne_stub).was_called_with(match.ref(player_char))
-          assert.spy(update_platformer_motion_grounded_stub).was_not_called()
+          assert.spy(update_platformer_motion_grounded_mock).was_not_called()
         end)
 
       end)

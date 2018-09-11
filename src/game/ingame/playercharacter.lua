@@ -82,12 +82,14 @@ function player_character:update()
   end
 end
 
--- return penetration height (>= 0) of character inside ground, or -1 if not intersecting ground
---  if both sensors have different penetration heights, the biggest is returned for full escape
-function player_character:_compute_ground_penetration_height()
+-- return signed distance to closest ground, either negative when (in abs, penetration height)
+--  or positive (actual distance to ground), always clamped to tile_size+1
+-- if both sensors have different signed distances,
+--  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
+function player_character:_compute_signed_distance_to_closest_ground()
 
   -- initialize with negative value to return if the character is not intersecting ground
-  local max_penetration_height = -1
+  local min_signed_distance = 32768
 
   -- check both ground sensors for ground. if any finds ground, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
@@ -105,42 +107,44 @@ function player_character:_compute_ground_penetration_height()
     local column_index0 = flr(sensor_relative_x)  -- from 0 to tile_size - 1
     local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
 
-    if ground_column_height > 0 then
+    -- compute relative height of sensor from tile bottom (y axis is downward)
+    local sensor_location_bottom = sensor_location_topleft.y + tile_size
+    local sensor_height = sensor_location_bottom - sensor_position.y
+    assert(sensor_height > 0, "player_character:_compute_signed_distance_to_closest_ground: sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
 
-      -- compute relative height of sensor from tile bottom (y axis is downward)
-      local sensor_location_bottom = sensor_location_topleft.y + tile_size
-      local sensor_height = sensor_location_bottom - sensor_position.y
-      assert(sensor_height > 0, "sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
+    -- check that ground sensor #i is on top of or below the mask column
+    local signed_distance = sensor_height - ground_column_height
 
-      -- check that ground sensor #i is on top of or below the mask column
-      local penetration_height = ground_column_height - sensor_height
+    if ground_column_height == tile_size then
+      -- column is full (reaches the top of the tile), we must check if there are any tiles
+      --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
+      --  the added value by tile_size minus what we've already got)
+      assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
+      signed_distance = signed_distance - self:_compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+    elseif ground_column_height == 0 then
+      -- column is empty, check for more space below, up to a tile size
+      assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
+      signed_distance = signed_distance + self:_compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+    end
 
-      if penetration_height >= 0 then
-        -- if the column is full (reaches the top of the tile), we must check if there are any tiles
-        --  stacked on top of this one, in which case the penetration height will be incremented by everything above
-        if ground_column_height == tile_size then
-          penetration_height = penetration_height + self:_compute_stacked_column_height_above(sensor_location, column_index0)
-        end
-
-        -- store the biggest penetration height among sensors
-        if penetration_height > max_penetration_height then
-          max_penetration_height = penetration_height
-        end
-      end
-
+    -- store the biggest penetration height among sensors
+    if signed_distance < min_signed_distance then
+      min_signed_distance = signed_distance
     end
 
   end
 
-  return max_penetration_height
+  return min_signed_distance
 
 end
 
 -- return the sum of column heights of colliding tiles starting from the tile
 --  just above the passed bottom_tile_location, all along the passed column_index0, up to the first tile
 --  that is either outside the map or has not a full column (column height < tile size).
+-- if the upper_limit is overrun during the loop before a non-full column is found, however,
+--  return the upper_limit + 1
 -- this method is important to compute the penetration height/escape distance to escape from multiple stacked tiles at once
-function player_character:_compute_stacked_column_height_above(bottom_tile_location, column_index0)
+function player_character:_compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
 
   local stacked_column_height = 0
   local current_tile_location = bottom_tile_location:copy()
@@ -152,12 +156,12 @@ function player_character:_compute_stacked_column_height_above(bottom_tile_locat
 
     local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
 
-    -- stop if no colliding tile or height is 0 just on the column
-    if ground_array_height == 0 then
-      break
-    end
-
+    -- add column height to total (may be 0, in which case we'll break below)
     stacked_column_height = stacked_column_height + ground_array_height
+
+    if stacked_column_height > upper_limit then
+      return upper_limit + 1
+    end
 
     -- stop if this tile has not a full column
     if ground_array_height < tile_size then
@@ -167,6 +171,41 @@ function player_character:_compute_stacked_column_height_above(bottom_tile_locat
   end
 
   return stacked_column_height
+
+end
+
+-- return the sum of complementary column heights (height measured from top on negative tile collision mask)
+--  of colliding tiles starting from the tile just below the passed top_tile_location,
+--  all along the passed column_index0, down to the first solid tile having a non-empty column there
+-- if the upper_limit is overrun during the loop before a non-empty column is found, however,
+--  return the upper_limit + 1. this also will in particular prevent infinite loops
+function player_character:_compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
+
+  local stacked_empty_column_height = 0
+  local current_tile_location = top_tile_location:copy()
+
+  while true do
+
+    -- move 1 tile up from the start
+    current_tile_location.j = current_tile_location.j + 1
+
+    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+
+    -- add complementary height (empty space above column, may be 0, in which case we'll break below)
+    stacked_empty_column_height = stacked_empty_column_height + (tile_size - ground_array_height)
+
+    if stacked_empty_column_height > upper_limit then
+      return upper_limit + 1
+    end
+
+    -- stop if this tile has not a full column
+    if ground_array_height > 0 then
+      break
+    end
+
+  end
+
+  return stacked_empty_column_height
 
 end
 
@@ -210,7 +249,7 @@ end
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
-  local penetration_height = self:_compute_ground_penetration_height()
+  local penetration_height = - self:_compute_signed_distance_to_closest_ground()
   if penetration_height > 0 and penetration_height <= playercharacter_data.max_ground_escape_height then
     self:move(vector(0, - penetration_height))
   end
@@ -308,6 +347,7 @@ end
 --  or the one above if the character is inside ground with one sensor at a full mask column,
 --  or the one below if the character is above ground with both sensors at empty mask colums
 function player_character:_snap_to_ground()
+
 end
 
 -- update motion following platformer airborne motion rules

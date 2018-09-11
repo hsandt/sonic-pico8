@@ -20,6 +20,7 @@ function tile_test_data.setup()
   fset(70, sprite_flags.collision, true)  -- half-tile (bottom half)
   fset(71, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
   fset(72, sprite_flags.collision, true)  -- low-tile (bottom quarter)
+  fset(73, sprite_flags.collision, true)  -- high-tile (3/4 filled)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
   height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_mask_id_location, slope_angle)
@@ -36,9 +37,11 @@ function tile_test_data.setup()
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[70] then
       self._array = {4, 4, 4, 4, 4, 4, 4, 4}  -- half-tile (bottom half)
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[71] then
-      self._array = {0, 0, 0, 0, 4, 4, 4, 4}  -- quarter-tile (bottom half)
+      self._array = {0, 0, 0, 0, 4, 4, 4, 4}  -- quarter-tile (bottom-right quarter)
     elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[72] then
       self._array = {2, 2, 2, 2, 2, 2, 2, 2}  -- low-tile (bottom quarter)
+    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[73] then
+      self._array = {6, 6, 6, 6, 6, 6, 6, 6}  -- high-tile (3/4 filled)
     end
     self._slope_angle = slope_angle
   end)

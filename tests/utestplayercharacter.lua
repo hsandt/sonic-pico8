@@ -168,15 +168,10 @@ describe('player_character', function ()
       end)
 
       after_each(function ()
-        -- clear map
-        for i = 0, 3 do
-          for j = 0, 3 do
-            mset(i, j, 0)
-          end
-        end
+        pico8:clear_map()
       end)
 
-      describe('_compute_ground_penetration_height', function ()
+      describe('_compute_signed_distance_to_closest_ground', function ()
 
         describe('with full flat tile', function ()
 
@@ -187,232 +182,237 @@ describe('player_character', function ()
 
           -- just above
 
-          it('should return -1 if both sensors are just a little above the tile', function ()
+          it('should return tile_size+1 if both sensors are above the tile by 10>tile_size (clamped to tile_size)', function ()
+            player_char:set_bottom_center(vector(12, 8 - 10))
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
+          end)
+
+          it('should return 0.0625 if both sensors are just a above the tile by 0.0625', function ()
             player_char:set_bottom_center(vector(12, 8 - 0.0625))
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- on top
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just at the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(4, 8))  -- right ground sensor @ (6.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('+ should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
+          it('+ should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(5, 8))  -- right ground sensor @ (7.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('+ should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just at the ground\'s height', function ()
+          it('+ should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 8))  -- right ground sensor @ (8 - 0.0625, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('+ should return 0 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just at the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just at the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 8))  -- right ground sensor @ (8, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is in the air on the left of the tile and right sensor is at the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it in x', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 8))  -- left ground sensor @ (8 - 0.0625, 8), right ground sensor @ (13 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile, with left sensor just at the top of the topleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 8))  -- left ground sensor @ (8, 8), right ground sensor @ (13, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 8))  -- left ground sensor @ (9.5, 8), right ground sensor @ (14.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile and right sensor just at the top of the right-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 8))  -- left ground sensor @ (11 - 0.0625, 8), right ground sensor @ (16 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is at the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 8))  -- left ground sensor @ (11, 8), right ground sensor @ (16, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is just at the top of the right-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 8))  -- left ground sensor @ (15.5, 8), right ground sensor @ (20.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is just at the top of the right-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 8))  -- left ground sensor @ (16 - 0.0625, 8), right ground sensor @ (21 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('+ should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just at the ground\'s height (rounding to upper integer at .5)', function ()
+          it('+ should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just at the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 8))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just at the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(19, 8))  -- left ground sensor @ (16.5, 8), right ground sensor @ (21.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just at the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(20, 8))  -- left ground sensor @ (17.5, 8), right ground sensor @ (22.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just inside the top
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just below the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(4, 8 + 0.0625))  -- right ground sensor @ (6.5, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just below the ground\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(5, 8 + 0.0625))  -- right ground sensor @ (7.5, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just below the ground\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 8 + 0.0625))  -- right ground sensor @ (8 - 0.0625, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return 0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just below the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just below the ground\'s height (rounding to upper integer at .5)', function ()
+          it('R should return -0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just below the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just below the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 8 + 0.0625))  -- right ground sensor @ (8, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
+          it('should return -0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 8 + 0.0625))  -- left ground sensor @ (8 - 0.0625, 8 + 0.0625), right ground sensor @ (13 - 0.0625, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile, with left sensor just inside the top of the topleft-most pixel', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile, with left sensor just inside the top of the topleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 8 + 0.0625))  -- left ground sensor @ (8, 8 + 0.0625), right ground sensor @ (13, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile, in the middle', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 8 + 0.0625))  -- left ground sensor @ (9.5, 8 + 0.0625), right ground sensor @ (14.5, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile and right sensor just inside the top of the topright-most pixel', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile and right sensor just inside the top of the topright-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 8 + 0.0625))  -- left ground sensor @ (11 - 0.0625, 8 + 0.0625), right ground sensor @ (16 - 0.0625, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
+          it('should return -0.0625 if left sensor is just inside the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 8 + 0.0625))  -- left ground sensor @ (11, 8 + 0.0625), right ground sensor @ (16, 8)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
+          it('should return -0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 8 + 0.0625))  -- left ground sensor @ (15.5, 8 + 0.0625), right ground sensor @ (20.5, 8)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
+          it('should return -0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 8 + 0.0625))  -- left ground sensor @ (16 - 0.0625, 8 + 0.0625), right ground sensor @ (21 - 0.0625, 8 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just below the ground\'s height (rounding to upper integer at .5)', function ()
+          it('R should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just below the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 8 + 0.0625))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just below the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(19, 8 + 0.0625))  -- left ground sensor @ (16.5, 8 + 0.0625), right ground sensor @ (21.5, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just below the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(20, 8 + 0.0625))  -- left ground sensor @ (17.5, 8 + 0.0625), right ground sensor @ (22.5, 8 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just inside the bottom
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(4, 16 - 0.0625))  -- right ground sensor @ (6.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just above the bottom\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(5, 16 - 0.0625))  -- right ground sensor @ (7.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just above the bottom\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 16 - 0.0625))  -- right ground sensor @ (8 - 0.0625, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return 8 - 0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just above the bottom of the bottomleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just above the bottom\'s height (rounding to upper integer at .5)', function ()
+          it('R should return -(8 - 0.0625) if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just above the bottom of the bottomleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just above the bottom\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 16 - 0.0625))  -- right ground sensor @ (8, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the bottom of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
+          it('should return -(8 - 0.0625) if left sensor is in the air on the left of the tile and right sensor is just inside the bottom of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (8 - 0.0625, 16 - 0.0625), right ground sensor @ (13 - 0.0625, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if both sensors are just inside the bottom of tile, with left sensor just inside the bottom of the bottomleft-most pixel', function ()
+          it('should return -(8 - 0.0625) if both sensors are just inside the bottom of tile, with left sensor just inside the bottom of the bottomleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 16 - 0.0625))  -- left ground sensor @ (8, 16 - 0.0625), right ground sensor @ (13, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if both sensors are just inside the bottom of tile, in the middle', function ()
+          it('should return -(8 - 0.0625) if both sensors are just inside the bottom of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 16 - 0.0625))  -- left ground sensor @ (9.5, 16 - 0.0625), right ground sensor @ (14.5, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if both sensors are just inside the bottom of tile and right sensor just inside the bottom of the bottomright-most pixel', function ()
+          it('should return -(8 - 0.0625) if both sensors are just inside the bottom of tile and right sensor just inside the bottom of the bottomright-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (11 - 0.0625, 16 - 0.0625), right ground sensor @ (16 - 0.0625, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if left sensor is just inside the bottom of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
+          it('should return -(8 - 0.0625) if left sensor is just inside the bottom of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 16 - 0.0625))  -- left ground sensor @ (11, 16 - 0.0625), right ground sensor @ (16, 8)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
+          it('should return -(8 - 0.0625) if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 16 - 0.0625))  -- left ground sensor @ (15.5, 16 - 0.0625), right ground sensor @ (20.5, 8)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 8 - 0.0625 if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
+          it('should return -(8 - 0.0625) if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (16 - 0.0625, 16 - 0.0625), right ground sensor @ (21 - 0.0625, 16 - 0.0625)
-            assert.are_equal(8 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(8 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just above the bottom\'s height (rounding to upper integer at .5)', function ()
+          it('R should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just above the bottom\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 16 - 0.0625))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(19, 16 - 0.0625))  -- left ground sensor @ (16.5, 16 - 0.0625), right ground sensor @ (21.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(20, 16 - 0.0625))  -- left ground sensor @ (17.5, 16 - 0.0625), right ground sensor @ (22.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just at the bottom, so character is inside tile but sensors above air
 
-          it('should return -1 if both sensors are just at the bottom of the tile, above air', function ()
+          it('should return tile_size+1 if both sensors are just at the bottom of the tile, above air', function ()
             player_char:set_bottom_center(vector(12, 16))
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -426,232 +426,232 @@ describe('player_character', function ()
 
           -- just above
 
-          it('should return -1 if both sensors are just a little above the tile', function ()
+          it('should return 0.0625 if both sensors are just a little above the tile', function ()
             player_char:set_bottom_center(vector(12, 12 - 0.0625))
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- on top
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just at the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(4, 12))  -- right ground sensor @ (6.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(5, 12))  -- right ground sensor @ (7.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just at the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 12))  -- right ground sensor @ (8 - 0.0625, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return true if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just at the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just at the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 12))  -- right ground sensor @ (8, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is in the air on the left of the tile and right sensor is at the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 12))  -- left ground sensor @ (8 - 0.0625, 8), right ground sensor @ (13 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile, with left sensor just at the top of the topleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 12))  -- left ground sensor @ (8, 8), right ground sensor @ (13, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 12))  -- left ground sensor @ (9.5, 8), right ground sensor @ (14.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if both sensors are just at the top of tile and right sensor just at the top of the right-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 12))  -- left ground sensor @ (11 - 0.0625, 8), right ground sensor @ (16 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is at the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 12))  -- left ground sensor @ (11, 8), right ground sensor @ (16, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is just at the top of the right-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 12))  -- left ground sensor @ (15.5, 8), right ground sensor @ (20.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is just at the top of the right-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 12))  -- left ground sensor @ (16 - 0.0625, 8), right ground sensor @ (21 - 0.0625, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just at the ground\'s height (rounding to upper integer at .5)', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just at the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 12))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just at the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(19, 12))  -- left ground sensor @ (16.5, 8), right ground sensor @ (21.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just at the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(20, 12))  -- left ground sensor @ (17.5, 8), right ground sensor @ (22.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just inside the top
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just below the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(4, 12 + 0.0625))  -- right ground sensor @ (6.5, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just below the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(5, 12 + 0.0625))  -- right ground sensor @ (7.5, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just below the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 12 + 0.0625))  -- right ground sensor @ (8 - 0.0625, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just below the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just below the ground\'s height (rounding to upper integer at .5)', function ()
+          it('should return -0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just below the top of the topleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just below the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 12 + 0.0625))  -- right ground sensor @ (8, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
+          it('should return -0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the top of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 12 + 0.0625))  -- left ground sensor @ (8 - 0.0625, 12 + 0.0625), right ground sensor @ (13 - 0.0625, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile, with left sensor just inside the top of the topleft-most pixel', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile, with left sensor just inside the top of the topleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 12 + 0.0625))  -- left ground sensor @ (8, 12 + 0.0625), right ground sensor @ (13, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile, in the middle', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 12 + 0.0625))  -- left ground sensor @ (9.5, 12 + 0.0625), right ground sensor @ (14.5, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if both sensors are just inside the top of tile and right sensor just inside the top of the topright-most pixel', function ()
+          it('should return -0.0625 if both sensors are just inside the top of tile and right sensor just inside the top of the topright-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 12 + 0.0625))  -- left ground sensor @ (11 - 0.0625, 12 + 0.0625), right ground sensor @ (16 - 0.0625, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
+          it('should return -0.0625 if left sensor is just inside the top of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 12 + 0.0625))  -- left ground sensor @ (11, 12 + 0.0625), right ground sensor @ (16, 8)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
+          it('should return -0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 12 + 0.0625))  -- left ground sensor @ (15.5, 12 + 0.0625), right ground sensor @ (20.5, 8)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
+          it('should return -0.0625 if left sensor is just inside the top of the topright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 12 + 0.0625))  -- left ground sensor @ (16 - 0.0625, 12 + 0.0625), right ground sensor @ (21 - 0.0625, 12 + 0.0625)
-            assert.are_equal(0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just below the ground\'s height (rounding to upper integer at .5)', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just below the ground\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 12 + 0.0625))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just below the ground\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(19, 12 + 0.0625))  -- left ground sensor @ (16.5, 12 + 0.0625), right ground sensor @ (21.5, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just below the ground\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just below the ground\'s height', function ()
             player_char:set_bottom_center(vector(20, 12 + 0.0625))  -- left ground sensor @ (17.5, 12 + 0.0625), right ground sensor @ (22.5, 12 + 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just inside the bottom
 
-          it('should return -1 if both sensors are completely in the air on the left of the tile, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the left of the tile, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(4, 16 - 0.0625))  -- right ground sensor @ (6.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just above the bottom\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(5, 16 - 0.0625))  -- right ground sensor @ (7.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just above the bottom\'s height', function ()
+          it('R should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.0625px away from it, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(5.5 - 0.0625, 16 - 0.0625))  -- right ground sensor @ (8 - 0.0625, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return 4 - 0.0625 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just above the bottom of the bottomleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just above the bottom\'s height (rounding to upper integer at .5)', function ()
+          it('R should return -(4 - 0.0625) if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just above the bottom of the bottomleft-most pixel of the tile, with right ground sensor exactly on the left of the tile, just above the bottom\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(5.5, 16 - 0.0625))  -- right ground sensor @ (8, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if left sensor is in the air on the left of the tile and right sensor is just inside the bottom of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
+          it('should return -(4 - 0.0625) if left sensor is in the air on the left of the tile and right sensor is just inside the bottom of tile, with left sensor touching the left of the tile, with left ground sensor 0.0625px away from it', function ()
             player_char:set_bottom_center(vector(10.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (8 - 0.0625, 16 - 0.0625), right ground sensor @ (13 - 0.0625, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if both sensors are just inside the bottom of tile, with left sensor just inside the bottom of the bottomleft-most pixel', function ()
+          it('should return -(4 - 0.0625) if both sensors are just inside the bottom of tile, with left sensor just inside the bottom of the bottomleft-most pixel', function ()
             player_char:set_bottom_center(vector(10.5, 16 - 0.0625))  -- left ground sensor @ (8, 16 - 0.0625), right ground sensor @ (13, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if both sensors are just inside the bottom of tile, in the middle', function ()
+          it('should return -(4 - 0.0625) if both sensors are just inside the bottom of tile, in the middle', function ()
             player_char:set_bottom_center(vector(12, 16 - 0.0625))  -- left ground sensor @ (9.5, 16 - 0.0625), right ground sensor @ (14.5, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if both sensors are just inside the bottom of tile and right sensor just inside the bottom of the bottomright-most pixel', function ()
+          it('should return -(4 - 0.0625) if both sensors are just inside the bottom of tile and right sensor just inside the bottom of the bottomright-most pixel', function ()
             player_char:set_bottom_center(vector(13.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (11 - 0.0625, 16 - 0.0625), right ground sensor @ (16 - 0.0625, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if left sensor is just inside the bottom of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
+          it('should return -(4 - 0.0625) if left sensor is just inside the bottom of tile and right sensor is just touching the right of the tile, with right ground sensor exactly on the right of the tile (rounding to upper integer at .5, but doesn\'t affect final result)', function ()
             player_char:set_bottom_center(vector(13.5, 16 - 0.0625))  -- left ground sensor @ (11, 16 - 0.0625), right ground sensor @ (16, 8)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
+          it('should return -(4 - 0.0625) if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.5px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18, 16 - 0.0625))  -- left ground sensor @ (15.5, 16 - 0.0625), right ground sensor @ (20.5, 8)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 - 0.0625 if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
+          it('should return -(4 - 0.0625) if left sensor is just inside the bottom of the bottomright-most pixel, with left ground sensor 0.0625px away from the border, and right sensor is in the air', function ()
             player_char:set_bottom_center(vector(18.5 - 0.0625, 16 - 0.0625))  -- left ground sensor @ (16 - 0.0625, 16 - 0.0625), right ground sensor @ (21 - 0.0625, 16 - 0.0625)
-            assert.are_equal(4 - 0.0625, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-(4 - 0.0625), player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('R should return -1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just above the bottom\'s height (rounding to upper integer at .5)', function ()
+          it('R should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor exactly on it, and right sensor is in the air, just above the bottom\'s height (rounding to upper integer at .5)', function ()
             player_char:set_bottom_center(vector(18.5, 16 - 0.0625))  -- left ground sensor @ (16, 8), right ground sensor @ (21, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if left sensor is just touching the right of the tile, with left ground sensor 0.5px away from it, and right sensor is in the air, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(19, 16 - 0.0625))  -- left ground sensor @ (16.5, 16 - 0.0625), right ground sensor @ (21.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return -1 if both sensors are completely in the air on the right of the tile, just above the bottom\'s height', function ()
+          it('should return tile_size+1 if both sensors are completely in the air on the right of the tile, just above the bottom\'s height', function ()
             player_char:set_bottom_center(vector(20, 16 - 0.0625))  -- left ground sensor @ (17.5, 16 - 0.0625), right ground sensor @ (22.5, 16 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- just at the bottom, so character is inside tile but sensors above air
 
-          it('should return -1 if both sensors are just at the bottom of the tile, above air', function ()
+          it('should return tile_size+1 if both sensors are just at the bottom of the tile, above air', function ()
             player_char:set_bottom_center(vector(12, 16))
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -665,60 +665,60 @@ describe('player_character', function ()
 
           -- right sensor at column 0, left sensor in the air
 
-          it('should return -1 if right sensor is just above slope column 0', function ()
+          it('should return 0.0625 if right sensor is just above slope column 0', function ()
             player_char:set_bottom_center(vector(6, 15 - 0.0625))  -- right ground sensor @ (8.5, 15 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if right sensor is at the top of column 0', function ()
             player_char:set_bottom_center(vector(6, 15))  -- right ground sensor @ (8.5, 15)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- right sensor at column 4, left sensor in the air
 
-          it('. should return -1 if right sensor is just above slope column 4', function ()
+          it('. should return 0.0625 if right sensor is just above slope column 4', function ()
             player_char:set_bottom_center(vector(10, 11 - 0.0625))  -- right ground sensor @ (12.5, 11 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('. should return 0 if right sensor is at the top of column 4', function ()
             player_char:set_bottom_center(vector(10, 11))  -- right ground sensor @ (12.5, 11)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 2 if right sensor is below column 4 by 2px', function ()
+          it('should return -2 if right sensor is below column 4 by 2px', function ()
             player_char:set_bottom_center(vector(10, 13))  -- right ground sensor @ (12.5, 13)
-            assert.are_equal(2, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-2, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- right sensor at column 7, left sensor at column 5
 
-          it('should return -1 if right sensor is just above slope column 0', function ()
+          it('should return 0.0625 if right sensor is just above slope column 0', function ()
             player_char:set_bottom_center(vector(18, 8 - 0.0625))  -- right ground sensor @ (15.5, 8 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if right sensor is at the top of column 0', function ()
             player_char:set_bottom_center(vector(18, 8))  -- right ground sensor @ (15.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 3 if right sensor is below column 0 by 3px', function ()
+          it('should return -3 if right sensor is below column 0 by 3px', function ()
             player_char:set_bottom_center(vector(18, 11))  -- right ground sensor @ (15.5, 11)
-            assert.are_equal(3, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-3, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- left sensor at column 3, right sensor in the air (just behind column 7)
 
-          it('. should return -1 if left sensor is just above slope column 3 (this is a known bug mentioned in Sonic Physics Guide: when Sonic reaches the top of a slope/hill, he goes down again due to the lack of mid-leg sensor)', function ()
+          it('. should return 0.0625 if left sensor is just above slope column 3 (this is a known bug mentioned in Sonic Physics Guide: when Sonic reaches the top of a slope/hill, he goes down again due to the lack of mid-leg sensor)', function ()
             player_char:set_bottom_center(vector(14, 12 - 0.0625))  -- left ground sensor @ (11.5, 12 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('. should return 0 if left sensor is at the top of column 3', function ()
             player_char:set_bottom_center(vector(14, 12))  -- left ground sensor @ (11.5, 12)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -732,82 +732,82 @@ describe('player_character', function ()
 
           -- right sensor at column 0
 
-          it('. should return -1 if right sensors are just a little above column 0', function ()
+          it('. should return 0.0625 if right sensors are just a little above column 0', function ()
             player_char:set_bottom_center(vector(6, 8 - 0.0625))  -- right ground sensor @ (8.5, 8 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if right sensors is at the top of column 0', function ()
             player_char:set_bottom_center(vector(6, 8))  -- right ground sensor @ (8.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 1 if right sensors is below column 0 by 1px', function ()
+          it('should return -1 if right sensors is below column 0 by 1px', function ()
             player_char:set_bottom_center(vector(6, 9))  -- right ground sensor @ (8.5, 9)
-            assert.are_equal(1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- right sensor at column 1, bottom segment over column 0
 
-          it('should return -1 if right sensor is 1px above slope column 1 (this is a known bug mentioned in Sonic Physics Guide: when Sonic reaches the top of a slope/hill, he goes down again due to the lack of mid-leg sensor)', function ()
+          it('should return 1 if right sensor is 1px above slope column 1 (this is a known bug mentioned in Sonic Physics Guide: when Sonic reaches the top of a slope/hill, he goes down again due to the lack of mid-leg sensor)', function ()
             player_char:set_bottom_center(vector(7, 8))  -- right ground sensor @ (9.5, 8)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if right sensor is at the top of column 1', function ()
             player_char:set_bottom_center(vector(7, 9))  -- right ground sensor @ (9.5, 9)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 2 if right sensor is below column 1 by 2px', function ()
+          it('should return -2 if right sensor is below column 1 by 2px', function ()
             player_char:set_bottom_center(vector(7, 11))  -- right ground sensor @ (9.5, 11)
-            assert.are_equal(2, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-2, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- left sensor at column 0, right sensor at column 5
 
-          it('should return -1 if left sensor is just above slope column 0', function ()
+          it('should return 0.0625 if left sensor is just above slope column 0', function ()
             player_char:set_bottom_center(vector(11, 8 - 0.0625))  -- left ground sensor @ (8.5, 8 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is at the top of column 0', function ()
             player_char:set_bottom_center(vector(11, 8))  -- left ground sensor @ (8.5, 8)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 3 if left sensor is below column 0 by 3px', function ()
+          it('should return -3 if left sensor is below column 0 by 3px', function ()
             player_char:set_bottom_center(vector(11, 11))  -- left ground sensor @ (8.5, 11)
-            assert.are_equal(3, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-3, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- left sensor at column 3, right sensor in the air
 
-          it('. should return -1 if left sensor is just above slope column 3', function ()
+          it('. should return 0.0625 if left sensor is just above slope column 3', function ()
             player_char:set_bottom_center(vector(14, 11 - 0.0625))  -- left ground sensor @ (11.5, 5 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('. should return 0 if left sensor is at the top of column 3', function ()
             player_char:set_bottom_center(vector(14, 11))  -- left ground sensor @ (11.5, 11)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 4 if left sensor is below column 3 by 4px', function ()
+          it('should return -4 if left sensor is below column 3 by 4px', function ()
             player_char:set_bottom_center(vector(14, 15))  -- left ground sensor @ (11.5, 15)
-            assert.are_equal(4, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-4, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           -- left sensor at column 7, right sensor in the air
 
-          it('should return -1 if left sensor is just above slope column 7', function ()
+          it('should return 0.0625 if left sensor is just above slope column 7', function ()
             player_char:set_bottom_center(vector(18, 15 - 0.0625))  -- left ground sensor @ (15.5, 15 - 0.0625)
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0.0625, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
           it('should return 0 if left sensor is at the top of column 7', function ()
             player_char:set_bottom_center(vector(18, 15))  -- left ground sensor @ (15.5, 15)
-            assert.are_equal(0, player_char:_compute_ground_penetration_height())
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -819,9 +819,9 @@ describe('player_character', function ()
             mset(1, 1, 67)
           end)
 
-          it('should return 4 if left sensor is below column 1 by 1px and right sensor is below column 7 by 4px)', function ()
+          it('should return -4 if left sensor is below column 1 by 1px and right sensor is below column 7 by 4px)', function ()
             player_char:set_bottom_center(vector(12, 15))  -- left ground sensor @ (8 + 1.5, 16 - 1), right ground sensor @ (8 + 6.5, 16 - 1)
-            assert.are_equal(4, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-4, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -833,15 +833,15 @@ describe('player_character', function ()
             mset(1, 1, 71)
           end)
 
-          it('should return -1 if right sensor is just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
+          it('should return tile_size+1 if right sensor is just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
             player_char:set_bottom_center(vector(9, 16))  -- right ground sensor @ (11.5, 16)
             -- note that it works not because we check for a column mask height of 0 manually, but because if the sensor reaches the bottom of the tile it automatically checks for the tile below
-            assert.are_equal(-1, player_char:_compute_ground_penetration_height())
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
-          it('should return 2 if right sensor is below tile by 2px, left sensor in the air (still in the whole tile, but above column height 0)', function ()
+          it('should return -2 if right sensor is below tile by 2px, left sensor in the air (still in the whole tile, but above column height 0)', function ()
             player_char:set_bottom_center(vector(12, 14))  -- right ground sensor @ (14.5, 14)
-            assert.are_equal(2, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-2, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -872,11 +872,11 @@ describe('player_character', function ()
             mset(1, 2, 64)
           end)
 
-          it('should return 4 if left and right sensors are below top by 4px, with character crossing 2 tiles', function ()
+          it('should return -4 if left and right sensors are below top by 4px, with character crossing 2 tiles', function ()
             player_char:set_bottom_center(vector(12, 18))
 
             -- interface
-            assert.are_equal(4, player_char:_compute_ground_penetration_height())
+            assert.are_equal(-4, player_char:_compute_signed_distance_to_closest_ground())
           end)
 
         end)
@@ -893,7 +893,11 @@ describe('player_character', function ()
           end)
 
           it('should return 16 above tile (0, 2) for any column index', function ()
-            assert.are_equal(16, player_char:_compute_stacked_column_height_above(location(0, 2), 4))
+            assert.are_equal(16, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 20))
+          end)
+
+          it('should return upper_limit+1 above tile (0, 2) for any column index if upper_limit<16', function ()
+            assert.are_equal(9, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 8))
           end)
 
         end)
@@ -901,16 +905,64 @@ describe('player_character', function ()
         describe('with full flat tile + quarter-tile', function ()
 
           before_each(function ()
-            mset(0, 0, 71)  -- bottom-left quarter-tile
+            mset(0, 0, 71)  -- bottom-right quarter-tile
             mset(0, 1, 64)  -- full tile
           end)
 
           it('should return 8 above tile (0, 2) for column index 0, 1, 2, 3', function ()
-            assert.are_equal(8, player_char:_compute_stacked_column_height_above(location(0, 2), 3))
+            assert.are_equal(8, player_char:_compute_stacked_column_height_above(location(0, 2), 3, 20))
           end)
 
           it('should return 12 above tile (0, 2) for column index 4, 5, 6, 7', function ()
-            assert.are_equal(12, player_char:_compute_stacked_column_height_above(location(0, 2), 4))
+            assert.are_equal(12, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 20))
+          end)
+
+          it('should return upper_limit+1 above tile (0, 2) for column index 4, 5, 6, 7 if upper_limit<12', function ()
+            assert.are_equal(5, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 4))
+          end)
+
+        end)
+
+      end)
+
+      describe('_compute_stacked_empty_column_height_below', function ()
+
+        it('should return upper_limit+1 when there is no tile below at all', function ()
+          assert.are_equal(21, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
+        end)
+
+        describe('with full flat tile', function ()
+
+          before_each(function ()
+            mset(0, 3, 64)  -- full tile
+          end)
+
+          it('should return 8 below tile (0, 1) for any column index', function ()
+            assert.are_equal(8, player_char:_compute_stacked_empty_column_height_below(location(0, 1), 4, 20))
+          end)
+
+          it('should return 16 below tile (0, 0) for any column index', function ()
+            assert.are_equal(16, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
+          end)
+
+        end)
+
+        describe('with quarter-tile', function ()
+
+          before_each(function ()
+            mset(0, 3, 71)  -- bottom-right quarter-tile
+          end)
+
+          it('should return upper_limit+1 below tile (0, 2) for column index 0, 1, 2, 3', function ()
+            assert.are_equal(21, player_char:_compute_stacked_empty_column_height_below(location(0, 2), 3, 20))
+          end)
+
+          it('should return 4 below tile (0, 2) for column index 4, 5, 6, 7', function ()
+            assert.are_equal(4, player_char:_compute_stacked_empty_column_height_below(location(0, 2), 4, 20))
+          end)
+
+          it('should return 4 below tile (0, 0) for column index 4, 5, 6, 7', function ()
+            assert.are_equal(20, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
           end)
 
         end)
@@ -1081,19 +1133,19 @@ describe('player_character', function ()
         local update_ground_position_stub
 
         setup(function ()
-          mset(0, 1, 68)  -- wavy horizontal almost full tile
-
           update_ground_speed_stub = stub(player_character, "_update_ground_speed")
           update_velocity_grounded_stub = stub(player_character, "_update_velocity_grounded")
           update_ground_position_stub = stub(player_character, "_update_ground_position")
         end)
 
         teardown(function ()
-          mset(0, 1, 0)
-
           update_ground_speed_stub:revert()
           update_velocity_grounded_stub:revert()
           update_ground_position_stub:revert()
+        end)
+
+        before_each(function ()
+          mset(0, 1, 68)  -- wavy horizontal almost full tile
         end)
 
         after_each(function ()
@@ -1238,33 +1290,7 @@ describe('player_character', function ()
 
       describe('_update_ground_position', function ()
 
-        local move_stub
-        local snap_to_ground_stub
-        local check_escape_from_ground_and_update_motion_state_stub
-
-        setup(function ()
-          mset(0, 1, 68)  -- wavy horizontal almost full tile
-
-          move_stub = stub(player_character, "move")
-          snap_to_ground_stub = stub(player_character, "_snap_to_ground")
-          check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
-        end)
-
-        teardown(function ()
-          mset(0, 1, 0)
-
-          move_stub:revert()
-          snap_to_ground_stub:revert()
-          check_escape_from_ground_and_update_motion_state_stub:revert()
-        end)
-
-        after_each(function ()
-          move_stub:clear()
-          snap_to_ground_stub:clear()
-          check_escape_from_ground_and_update_motion_state_stub:clear()
-        end)
-
-        pending('should move the character based on its current velocity and snap y to the new ground column height if not empty nor full', function ()
+        it('should move the character based on its current velocity and snap y to the new ground column height if not empty nor full', function ()
           player_char:set_bottom_center(vector(3, 8))
           player_char.velocity_frame = vector(2, 0)
           player_char:_update_ground_position()
@@ -1273,37 +1299,174 @@ describe('player_character', function ()
           assert.are_equal(vector(5, 7), player_char:get_bottom_center())
         end)
 
-        it('should call move with current velocity_frame, call _snap_to_ground and _check_escape_from_ground_and_update_motion_state', function ()
-          player_char.velocity_frame = vector(2, 0)
-          player_char:_update_ground_position()
+        describe('(stubbing all methods called)', function ()
+          local move_stub
+          local snap_to_ground_stub
+          local check_escape_from_ground_and_update_motion_state_stub
 
-          -- implementation
-          assert.spy(move_stub).was_called(1)
-          assert.spy(move_stub).was_called_with(match.ref(player_char), vector(2, 0))
-          assert.spy(snap_to_ground_stub).was_called(1)
-          assert.spy(snap_to_ground_stub).was_called_with(match.ref(player_char))
-          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called(1)
-          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
+          setup(function ()
+            move_stub = stub(player_character, "move")
+            snap_to_ground_stub = stub(player_character, "_snap_to_ground")
+            check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
+          end)
+
+          teardown(function ()
+            move_stub:revert()
+            snap_to_ground_stub:revert()
+            check_escape_from_ground_and_update_motion_state_stub:revert()
+          end)
+
+          before_each(function ()
+            mset(0, 1, 68)  -- wavy horizontal almost full tile
+          end)
+
+          after_each(function ()
+            move_stub:clear()
+            snap_to_ground_stub:clear()
+            check_escape_from_ground_and_update_motion_state_stub:clear()
+          end)
+
+          it('should call move with current velocity_frame, call _snap_to_ground and _check_escape_from_ground_and_update_motion_state', function ()
+            player_char.velocity_frame = vector(2, 0)
+            player_char:_update_ground_position()
+
+            -- implementation
+            assert.spy(move_stub).was_called(1)
+            assert.spy(move_stub).was_called_with(match.ref(player_char), vector(2, 0))
+            assert.spy(snap_to_ground_stub).was_called(1)
+            assert.spy(snap_to_ground_stub).was_called_with(match.ref(player_char))
+            assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called(1)
+            assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
+          end)
+
         end)
+
       end)
 
       describe('_snap_to_ground', function ()
 
-        setup(function ()
-          mset(0, 1, 68)  -- wavy horizontal almost full tile
+        describe('(1 wavy tile on top of full tile)', function ()
+
+          before_each(function ()
+            mset(0, 1, 71)  -- quarter-tile (bottom-right quarter)
+            mset(0, 2, 64)  -- full tile
+          end)
+
+          pending('should snap y up to quarter-tile on tile above (distance <= max_ground_escape_height)', function ()
+            player_char:set_bottom_center(vector(4, 8))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(4, 12), player_char:get_bottom_center())
+          end)
+
+          pending('should not snap y up to quarter-tile on tile above (distance > max_ground_escape_height)', function ()
+            player_char:set_bottom_center(vector(4, 9))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(4, 9), player_char:get_bottom_center())
+          end)
+
         end)
 
-        teardown(function ()
-          mset(0, 1, 0)
+        describe('(2x wavy tile)', function ()
+
+          before_each(function ()
+            mset(0, 1, 68)  -- wavy horizontal almost full tile
+            mset(1, 1, 68)  -- wavy horizontal almost full tile
+          end)
+
+          pending('should not snap y up to surface column 4 height 6 (distance > max_ground_escape_height)', function ()
+            player_char:set_bottom_center(vector(1, 15))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(1, 15), player_char:get_bottom_center())
+          end)
+
+          pending('should snap y up to surface column 4 height 6 (distance <= max_ground_escape_height, only left sensor on ground)', function ()
+            player_char:set_bottom_center(vector(1, 12))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(1, 16 - 6), player_char:get_bottom_center())
+          end)
+
+          pending('should snap y up to surface full column 2 with nothing above (right tile) at height 8 (distance <= max_ground_escape_height) ground right sensor on ground, left above ground)', function ()
+            player_char:set_bottom_center(vector(7, 12))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(7, 16 - 8), player_char:get_bottom_center())
+          end)
+
+          pending('should snap y to non-empty/full column 4 height 6 (only left sensor on ground)', function ()
+            player_char:set_bottom_center(vector(1, 8))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(1, 16 - 6), player_char:get_bottom_center())
+          end)
+
+          pending('should snap y to non-empty/full column 6 (left tile) and column 3 (right tile) at same height 7 (both sensors on ground)', function ()
+            player_char:set_bottom_center(vector(8, 8))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(8, 16 - 7), player_char:get_bottom_center())
+          end)
+
+          pending('should snap y to full column 2 with nothing above (right tile) at height 8 (right sensor on ground, left above ground)', function ()
+            player_char:set_bottom_center(vector(7, 8))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(7, 16 - 8), player_char:get_bottom_center())
+          end)
+
         end)
 
-        pending('should snap y to the current ground column height if not empty nor full', function ()
-          player_char:set_bottom_center(vector(5, 8))
-          player_char:_snap_to_ground()
+        describe('(high-tile below)', function ()
 
-          -- interface
-          assert.are_equal(vector(5, 7), player_char:get_bottom_center())
+          before_each(function ()
+            mset(0, 1, 73)  -- high-tile (3/4 filled)
+          end)
+
+          pending('should snap y to columns 2 and 7 at height 6 on the tile below the current one (distance <= 4px)', function ()
+            player_char:set_bottom_center(vector(3, 6))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(8, 16 - 6), player_char:get_bottom_center())
+          end)
+
+          pending('should not snap y to tile too far below (distance > 4px)', function ()
+            player_char:set_bottom_center(vector(3, 5))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(3, 8), player_char:get_bottom_center())
+          end)
+
         end)
+
+        describe('(half-tile)', function ()
+
+          before_each(function ()
+            mset(0, 1, 70)  -- half-tile (bottom half)
+          end)
+
+          pending('should not snap to tile in same location at all (distance > 4px)', function ()
+            player_char:set_bottom_center(vector(4, 5))
+            player_char:_snap_to_ground()
+
+            -- interface
+            assert.are_equal(vector(4, 5), player_char:get_bottom_center())
+          end)
+
+        end)
+
       end)
 
       describe('_update_platformer_motion_airborne', function ()

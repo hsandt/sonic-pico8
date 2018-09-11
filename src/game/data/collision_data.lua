@@ -18,6 +18,8 @@ return {
     [70] = sprite_id_location(6, 5),  -- 70 @ (6, 4)
     [71] = sprite_id_location(7, 5),  -- 71 @ (7, 4)
     [72] = sprite_id_location(8, 5),  -- 72 @ (8, 4)
+    [73] = sprite_id_location(9, 5),  -- 73 @ (9, 4)
+    [74] = sprite_id_location(10, 5), -- 74 @ (10, 4)
   }
 
 }

@@ -89,7 +89,7 @@ end
 function player_character:_compute_signed_distance_to_closest_ground()
 
   -- initialize with negative value to return if the character is not intersecting ground
-  local min_signed_distance = 32768
+  local min_signed_distance = 1 / 0  -- max (32768, but never enter it manually as it would be negative)
 
   -- check both ground sensors for ground. if any finds ground, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
@@ -249,11 +249,11 @@ end
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
-  local penetration_height = - self:_compute_signed_distance_to_closest_ground()
-  if penetration_height > 0 and penetration_height <= playercharacter_data.max_ground_escape_height then
-    self:move(vector(0, - penetration_height))
+  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground()
+  if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
+    self:move(vector(0, signed_distance_to_closest_ground))
   end
-  return penetration_height >= 0
+  return signed_distance_to_closest_ground <= 0
 end
 
 function player_character:_get_ground_sensor_position(horizontal_dir)
@@ -337,17 +337,36 @@ end
 --  curviline estimation (because the velocity is based on an average slope)
 function player_character:_update_ground_position()
   self:move(self.velocity_frame)
-  self:_snap_to_ground()
+  local expected_motion_state = self:_snap_to_ground()
   -- check escape is not needed since snap already does the job,
   -- so when snap is implemented, put computations in common to reduce cpu
-  self:_check_escape_from_ground_and_update_motion_state()
+  if expected_motion_state == motion_states.airborne then
+    self:_update_platformer_motion_state(false)
+  end
 end
 
 -- set the player position y so that one ground sensor is just on top of the current tile,
 --  or the one above if the character is inside ground with one sensor at a full mask column,
 --  or the one below if the character is above ground with both sensors at empty mask colums
+-- return the expected new motion state of the character
+-- note that this method does *not* set the motion state to grounded, because it is expected
+--  to be called in the grounded state (when running), however it returns an indication to do so
 function player_character:_snap_to_ground()
-
+  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground()
+  if signed_distance_to_closest_ground < 0 then
+    local penetration_height = - signed_distance_to_closest_ground
+    if penetration_height <= playercharacter_data.max_ground_escape_height then
+      self:move(vector(0, signed_distance_to_closest_ground))  -- move up
+    end
+  elseif signed_distance_to_closest_ground > 0 then
+    if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
+      self:move(vector(0, signed_distance_to_closest_ground))  -- move up
+    else
+      -- character was in the air and couldn't snap back to ground (cliff, etc.)
+      return motion_states.airborne
+    end
+  end
+  return motion_states.grounded
 end
 
 -- update motion following platformer airborne motion rules
@@ -358,7 +377,7 @@ function player_character:_update_platformer_motion_airborne()
   -- apply air motion
   self.position = self.position + self.velocity_frame
 
-  -- try to escape from ground
+  -- detect ground and snap up for landing
   self:_check_escape_from_ground_and_update_motion_state()
 end
 

@@ -66,7 +66,10 @@ itest.final_assertion = function ()
 end
 
 
--- bugfix history: . test failed because initial character position was wrong in the test
+-- bugfix history:
+-- . test failed because initial character position was wrong in the test
+-- * test failed in pico8 only because in _compute_signed_distance_to_closest_ground,
+--  I was setting min_signed_distance = 32768 = -32767
 itest = integration_test('platformer land vertical', {stage.state.type})
 itest_manager:register(itest)
 

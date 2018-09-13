@@ -511,6 +511,11 @@ describe('stage', function ()
               input.players_button_states[0][button_ids.right] = button_states.released
               input.players_button_states[0][button_ids.up] = button_states.released
               input.players_button_states[0][button_ids.down] = button_states.released
+              input.players_button_states[0][button_ids.o] = button_states.released
+
+              stage.state.player_character.move_intention = vector.zero()
+              stage.state.player_character.jump_intention = false
+              stage.state.player_character.hold_jump_intention = false
             end)
 
             describe('(when player character control mode is not human)', function ()
@@ -529,6 +534,8 @@ describe('stage', function ()
               end)
 
             end)
+
+            -- control mode is human by default
 
             it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
               input.players_button_states[0][button_ids.left] = button_states.pressed
@@ -594,6 +601,23 @@ describe('stage', function ()
               input.players_button_states[0][button_ids.down] = button_states.just_pressed
               stage.state:handle_input()
               assert.are_equal(vector(1, 1), stage.state.player_character.move_intention)
+            end)
+
+            it('(when input o is released) it should update the player character\'s jump intention to false, hold jump intention to false', function ()
+              stage.state:handle_input()
+              assert.are_same({false, false}, {stage.state.player_character.jump_intention, stage.state.player_character.hold_jump_intention})
+            end)
+
+            it('(when input o is just pressed) it should update the player character\'s jump intention to true, hold jump intention to true', function ()
+              input.players_button_states[0][button_ids.o] = button_states.just_pressed
+              stage.state:handle_input()
+              assert.are_same({true, true}, {stage.state.player_character.jump_intention, stage.state.player_character.hold_jump_intention})
+            end)
+
+            it('(when input o is pressed) it should update the player character\'s jump intention to false, hold jump intention to true', function ()
+              input.players_button_states[0][button_ids.o] = button_states.pressed
+              stage.state:handle_input()
+              assert.are_same({false, true}, {stage.state.player_character.jump_intention, stage.state.player_character.hold_jump_intention})
             end)
 
           end)

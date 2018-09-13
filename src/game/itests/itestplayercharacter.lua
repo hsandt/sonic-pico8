@@ -319,9 +319,6 @@ end
 
 itest.teardown = function ()
   teardown_map_data()
-
-  mset(0, 10, 0)
-  mset(1, 10, 0)
 end
 
 -- at frame 34: pos (17.9453125, 74), velocity (0.796875, 0), grounded
@@ -336,10 +333,215 @@ itest:add_action(time_trigger(25, true), function () end)
 
 -- check that player char has moved to the right and fell
 itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
+  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(39.2734375, 80. + 35.546875), stage.state.player_character:get_bottom_center(), 1/256)
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.8203125, 2.734375), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+
+itest = integration_test('platformer hop flat', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start jump
+  stage.state.player_character.jump_intention = true  -- will be consumed
+  -- don't set hold_jump_intention at all to get a hop
+  -- (you can also set it on setup and reset it at end of frame 1)
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- wait for apogee (frame 39) and stop
+-- at frame 1:  bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2:  bpos (4, 80 - 2), velocity (0, -2), airborne (hop confirmed)
+-- at frame 3:  bpos (4, 80 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
+-- at frame 19: pos (4, 80 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 20: pos (4, 80 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 21: pos (4, 80 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 38: pos (4, 80 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 39: pos (4, 80), velocity (0, 0), grounded -> has landed
+itest:add_action(time_trigger(39, true), function ()
+end)
+
+-- check that player char has moved to the right and fell
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
+  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80. - 19.296875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+
+itest = integration_test('platformer jump f2 interrupt flat', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start jump
+  stage.state.player_character.jump_intention = true  -- will be consumed
+  stage.state.player_character.hold_jump_intention = true
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- interrupt variable jump at the end of frame 2
+-- at frame 1: bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: bpos (4, 80 - 3.25), velocity (0, -3.25), airborne (jump confirmed)
+itest:add_action(time_trigger(2, true), function ()
+  stage.state.player_character.hold_jump_intention = false
+end)
+
+-- wait for the apogee (frame 21) and stop
+-- at frame 3:  bpos (4, 80 - 5.25), velocity (0, -2), airborne -> jump interrupted (gravity was applied at beginning of frame, but speed still above 2)
+-- at frame 4:  bpos (4, 80 - 7.140625), velocity (0, -1.890625), airborne -> jump interrupted
+-- at frame 20: bpos (4, 80 - 22.515625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 21: bpos (4, 80 - 22.546875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 22: bpos (4, 80 - 22.46875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 41: bpos (4, 80 - 0.203125), velocity (0, 2.15625), airborne -> about to land
+-- at frame 42: bpos (4, 80), velocity (0, 0), grounded -> has landed
+itest:add_action(time_trigger(19, true), function () end)
+
+-- check that player char has reached the apogee of the jump
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
+  local is_position_expected, position_message = almost_eq_with_message(vector(0, 80. - 22.546875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+
+itest = integration_test('platformer full jump flat', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start jump
+  stage.state.player_character.jump_intention = true  -- will be consumed
+  stage.state.player_character.hold_jump_intention = true
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- wait for the apogee (frame 31) and stop
+-- at frame 1: pos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: pos (4, 80 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump since we were grounded)
+-- at frame 30: pos (4, 80 - 49.84375), velocity (0, -0.1875), airborne -> before apogee
+-- at frame 31: pos (4, 80 - 49.921875), velocity (0, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+-- at frame 32: pos (4, 80 - 49.890625), velocity (0, 0.03125), airborne -> starts going down
+-- at frame 61: pos (4, 80 - 1.40625), velocity (0, 3.203125), airborne -> about to land
+-- at frame 62: pos (4, 80), velocity (0, 0), grounded -> has landed
+itest:add_action(time_trigger(31, true), function () end)
+
+-- check that player char has moved to the right and fell
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
+  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80 - 49.921875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.078125), stage.state.player_character.velocity_frame, 1/256)
 
   local final_message = ""
 

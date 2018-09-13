@@ -43,6 +43,9 @@ local player_character = new_class()
 -- velocity_frame         vector        current velocity in platformer mode (px/frame)
 -- debug_velocity         vector        current velocity in debug mode (m/s)
 -- move_intention         vector        current move intention (normalized)
+-- jump_intention         bool          current intention to start jump (consumed on jump)
+-- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
+-- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 function player_character:_init()
   self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
   self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
@@ -59,6 +62,9 @@ function player_character:_init()
   self.debug_velocity = vector.zero()
 
   self.move_intention = vector.zero()
+  self.jump_intention = false
+  self.hold_jump_intention = false
+  self.should_jump = false
 end
 
 --#if log
@@ -297,9 +303,33 @@ end
 
 -- update motion following platformer grounded motion rules
 function player_character:_update_platformer_motion_grounded()
+  -- ground speed
   self:_update_ground_speed()
   self:_update_velocity_grounded()
-  self:_update_ground_position()
+
+  -- jump speed
+  -- unlike classic Sonic, we apply jump after motion so we can increase position and velocity
+  --  for an optimal jump (SPG: Jumping mentions that jump check is done early and returns)
+  local is_jumping = self:_check_jump()
+
+  -- move
+  self:move(self.velocity_frame)
+
+  if not is_jumping then
+    -- character is not leaving the ground, so update position following current ground curve
+    --  by always snapping to the ground vertically
+    -- note than on convex slope masks, this will move the character a bit faster,
+    --  and on concave slope masks, a bit slower than we would expect with a pixel-based
+    --  curviline estimation (because the velocity is based on an average slope)
+    self:_snap_to_ground()
+
+    if self.motion_state == motion_states.grounded then
+      -- character is still on ground, prepare for any jump next frame
+      -- note that we are not forbidding jump when character is too deep inside the ground
+      --  if it allows the character to jump out of this abnormal case, that's fine
+      self:_check_jump_intention()
+    end
+  end
 end
 
 -- update ground speed based on current move intention
@@ -330,27 +360,34 @@ function player_character:_update_velocity_grounded()
   self.velocity_frame = vector(self.ground_speed_frame, 0)
 end
 
--- update position following current ground curve, by applying velocity,
---  then snapping him to the matching y on the ground curve
--- note than on convex slope masks, this will move the character a bit faster,
---  and on concave slope masks, a bit slower than we would expect with a pixel-based
---  curviline estimation (because the velocity is based on an average slope)
-function player_character:_update_ground_position()
-  self:move(self.velocity_frame)
-  local expected_motion_state = self:_snap_to_ground()
-  -- check escape is not needed since snap already does the job,
-  -- so when snap is implemented, put computations in common to reduce cpu
-  if expected_motion_state == motion_states.airborne then
-    self:_update_platformer_motion_state(false)
+-- if character intends to jump, prepare jump for next frame
+-- this extra frame allows us to detect if the player wants a variable jump or a hop
+--  depending whether input is hold or not
+function player_character:_check_jump_intention()
+  if self.jump_intention then
+    self.jump_intention = false
+    self.should_jump = true
   end
+end
+
+-- if character intends to jump, apply jump velocity from current ground
+--  and enter the airborne state
+-- return true iff jump was applied
+function player_character:_check_jump()
+  if self.should_jump then
+    self.should_jump = false
+    -- only support flat ground for now
+    self.velocity_frame.y = self.velocity_frame.y - playercharacter_data.initial_jump_speed_frame
+    self:_update_platformer_motion_state(false)
+    return true
+  end
+  return false
 end
 
 -- set the player position y so that one ground sensor is just on top of the current tile,
 --  or the one above if the character is inside ground with one sensor at a full mask column,
 --  or the one below if the character is above ground with both sensors at empty mask colums
--- return the expected new motion state of the character
--- note that this method does *not* set the motion state to grounded, because it is expected
---  to be called in the grounded state (when running), however it returns an indication to do so
+-- if character is in the air and couldn't snap, enter airborne state
 function player_character:_snap_to_ground()
   local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground()
   if signed_distance_to_closest_ground < 0 then
@@ -362,11 +399,11 @@ function player_character:_snap_to_ground()
     if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
       self:move(vector(0, signed_distance_to_closest_ground))  -- move up
     else
-      -- character was in the air and couldn't snap back to ground (cliff, etc.)
-      return motion_states.airborne
+      -- character was in the air and couldn't snap back to ground (cliff, etc.),
+      --  so enter airborne state now
+      self:_update_platformer_motion_state(false)
     end
   end
-  return motion_states.grounded
 end
 
 -- update motion following platformer airborne motion rules

@@ -155,6 +155,7 @@ end
 -- handle player input
 function stage.state:handle_input()
   if self.player_character.control_mode == control_modes.human then
+    -- move
     local player_move_intention = vector.zero()
 
     if input:is_down(button_ids.left) then
@@ -170,6 +171,13 @@ function stage.state:handle_input()
     end
 
     self.player_character.move_intention = player_move_intention
+
+    -- jump
+    local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
+    self.player_character.hold_jump_intention = is_jump_input_down  -- set each frame
+    if is_jump_input_down and input:is_just_pressed(button_ids.o) then
+      self.player_character.jump_intention = true  -- will be consumed
+    end
   end
 end
 

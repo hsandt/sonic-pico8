@@ -1126,45 +1126,148 @@ describe('player_character', function ()
 
       end)  -- _check_escape_from_ground
 
-      describe('_update_platformer_motion_grounded', function ()
+      describe('_update_platformer_motion_grounded (when _update_velocity_grounded sets velocity to (2, 0))', function ()
 
         local update_ground_speed_stub
-        local update_velocity_grounded_stub
-        local update_ground_position_stub
+        local update_velocity_grounded_mock
+        local check_jump_intention_stub
 
         setup(function ()
           update_ground_speed_stub = stub(player_character, "_update_ground_speed")
-          update_velocity_grounded_stub = stub(player_character, "_update_velocity_grounded")
-          update_ground_position_stub = stub(player_character, "_update_ground_position")
+          update_velocity_grounded_mock = stub(player_character, "_update_velocity_grounded", function (self)
+            self.velocity_frame = vector(2, 0)
+          end)
+          check_jump_intention_stub = stub(player_character, "_check_jump_intention")
         end)
 
         teardown(function ()
           update_ground_speed_stub:revert()
-          update_velocity_grounded_stub:revert()
-          update_ground_position_stub:revert()
-        end)
-
-        before_each(function ()
-          mset(0, 1, 68)  -- wavy horizontal almost full tile
+          update_velocity_grounded_mock:revert()
+          check_jump_intention_stub:revert()
         end)
 
         after_each(function ()
           update_ground_speed_stub:clear()
-          update_velocity_grounded_stub:clear()
-          update_ground_position_stub:clear()
+          update_velocity_grounded_mock:clear()
+          check_jump_intention_stub:clear()
         end)
 
 
-        it('should call _update_ground_speed, _update_velocity_grounded, _update_ground_position', function ()
+        it('should call _update_ground_speed, _update_velocity_grounded', function ()
           player_char:_update_platformer_motion_grounded()
 
           -- implementation
           assert.spy(update_ground_speed_stub).was_called(1)
           assert.spy(update_ground_speed_stub).was_called_with(match.ref(player_char))
-          assert.spy(update_velocity_grounded_stub).was_called(1)
-          assert.spy(update_velocity_grounded_stub).was_called_with(match.ref(player_char))
-          assert.spy(update_ground_position_stub).was_called(1)
-          assert.spy(update_ground_position_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_velocity_grounded_mock).was_called(1)
+          assert.spy(update_velocity_grounded_mock).was_called_with(match.ref(player_char))
+        end)
+
+        describe('(when _check_jump doesn\'t change velocity and returns false)', function ()
+
+          setup(function ()
+            check_jump_mock = stub(player_character, "_check_jump", function (self)
+              return false
+            end)
+            spy.on(player_character, "_snap_to_ground")
+          end)
+
+          teardown(function ()
+            check_jump_mock:revert()
+            player_character._snap_to_ground:revert()
+          end)
+
+          after_each(function ()
+            check_jump_mock:clear()
+            player_character._snap_to_ground:clear()
+          end)
+
+          it('should move the character based on its velocity after update (no jump), and try to snap', function ()
+            player_char:set_bottom_center(vector(3, 8))
+            player_char:_update_platformer_motion_grounded()
+
+            -- no interface test on position, we are not sure if it actually snapped or not
+
+            -- implementation
+            assert.spy(check_jump_mock).was_called(1)
+            assert.spy(check_jump_mock).was_called_with(match.ref(player_char))
+            assert.spy(player_character._snap_to_ground).was_called(1)
+            assert.spy(player_character._snap_to_ground).was_called_with(match.ref(player_char))
+          end)
+
+          describe('(when character is grounded after trying to snap)', function ()
+
+            before_each(function ()
+              mset(0, 1, 68)  -- wavy horizontal almost full tile (to test snapping interface)
+            end)
+
+            it('should succeed snapping after move, and call _check_jump_intention', function ()
+              player_char:set_bottom_center(vector(3, 8))
+              player_char:_update_platformer_motion_grounded()
+
+              -- interface
+              assert.are_same({motion_states.grounded, vector(5, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+              -- implementation
+              assert.spy(check_jump_intention_stub).was_called(1)
+              assert.spy(check_jump_intention_stub).was_called_with(match.ref(player_char))
+            end)
+
+          end)
+
+          describe('(when character is airborne even after trying to snap)', function ()
+
+            -- no tile at all!
+
+            it('should fail snapping after move, and not call _check_jump_intention', function ()
+              player_char:set_bottom_center(vector(3, 8))
+              player_char:_update_platformer_motion_grounded()
+
+              -- interface
+              assert.are_same({motion_states.airborne, vector(5, 8)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+              -- implementation
+              assert.spy(check_jump_intention_stub).was_not_called()
+            end)
+
+          end)
+
+        end)
+
+        describe('(when _check_jump changes velocity and returns true)', function ()
+
+          setup(function ()
+            check_jump_mock = stub(player_character, "_check_jump", function (self)
+              self.velocity_frame.y = 3
+              return true
+            end)
+            spy.on(player_character, "_snap_to_ground")
+          end)
+
+          teardown(function ()
+            check_jump_mock:revert()
+            player_character._snap_to_ground:revert()
+          end)
+
+          after_each(function ()
+            check_jump_mock:clear()
+            player_character._snap_to_ground:clear()
+          end)
+
+          it('should move the character based on its velocity after update/jump, without snapping, and not call _check_jump_intention', function ()
+            player_char:set_bottom_center(vector(3, 8))
+            player_char:_update_platformer_motion_grounded()
+
+            -- interface
+            assert.are_same({motion_states.grounded, vector(5, 11)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(check_jump_mock).was_called(1)
+            assert.spy(check_jump_mock).was_called_with(match.ref(player_char))
+            assert.spy(player_character._snap_to_ground).was_not_called()
+            assert.spy(check_jump_intention_stub).was_not_called()
+          end)
+
         end)
 
       end)
@@ -1288,113 +1391,55 @@ describe('player_character', function ()
         end)
       end)
 
-      describe('_update_ground_position', function ()
+      describe('_check_jump_intention', function ()
 
-        before_each(function ()
-          mset(0, 1, 68)  -- wavy horizontal almost full tile
+        it('should do nothing when jump_intention is false', function ()
+          player_char:_check_jump_intention()
+          assert.are_same({false, false}, {player_char.jump_intention, player_char.should_jump})
         end)
 
-        it('should move the character based on its current velocity and snap y to the new ground column height if not empty nor full', function ()
-          player_char:set_bottom_center(vector(3, 8))
-          player_char.velocity_frame = vector(2, 0)
-          player_char:_update_ground_position()
+        it('should consume jump_intention and set should_jump to true if jump_intention is true', function ()
+          player_char.jump_intention = true
+          player_char:_check_jump_intention()
+          assert.are_same({false, true}, {player_char.jump_intention, player_char.should_jump})
+        end)
+
+      end)
+
+      describe('_check_jump', function ()
+
+        it('should return false when should_jump is false', function ()
+          player_char.velocity_frame = vector(4, -1)
+          local result = player_char:_check_jump()
 
           -- interface
-          assert.are_same({motion_states.grounded, vector(5, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
+          assert.are_same({false, vector(4, -1), motion_states.grounded}, {result, player_char.velocity_frame, player_char.motion_state})
         end)
 
-        it('should move the character based on its current velocity and not snap, remaining if the air if nothing below', function ()
-          player_char:set_bottom_center(vector(7, 7))
-          player_char.velocity_frame = vector(4, 0)
-          player_char:_update_ground_position()
+        it('should consume should_jump, add jump velocity, update motion state and return false when should_jump is true', function ()
+          player_char.velocity_frame = vector(4, -1)
+          player_char.should_jump = true
+          local result = player_char:_check_jump()
 
           -- interface
-          assert.are_same({motion_states.airborne, vector(11, 7)}, {player_char.motion_state, player_char:get_bottom_center()})
-        end)
-
-        describe('(stubbing all methods called)', function ()
-          local move_stub
-          local check_escape_from_ground_and_update_motion_state_stub
-
-          setup(function ()
-            move_stub = stub(player_character, "move")
-            update_platformer_motion_state_stub = stub(player_character, "_update_platformer_motion_state")
-          end)
-
-          teardown(function ()
-            move_stub:revert()
-            update_platformer_motion_state_stub:revert()
-          end)
-
-          after_each(function ()
-            move_stub:clear()
-            update_platformer_motion_state_stub:clear()
-          end)
-
-          it('should call move with current velocity_frame', function ()
-            player_char.velocity_frame = vector(2, 0)
-            player_char:_update_ground_position()
-
-            -- implementation
-            assert.spy(move_stub).was_called()  -- at least once, it may also be called inside _snap_to_ground
-            assert.spy(move_stub).was_called_with(match.ref(player_char), vector(2, 0))
-          end)
-
-          describe('(_snap_to_ground returns motion_states.grounded)', function ()
-            local snap_to_ground_mock
-
-            setup(function ()
-              snap_to_ground_mock = stub(player_character, "_snap_to_ground", function ()
-                return motion_states.grounded
-              end)
-            end)
-
-            teardown(function ()
-              snap_to_ground_mock:revert()
-            end)
-
-            it('should call _snap_to_ground only', function ()
-              player_char:_update_ground_position()
-
-              -- implementation
-              assert.spy(snap_to_ground_mock).was_called(1)
-              assert.spy(snap_to_ground_mock).was_called_with(match.ref(player_char))
-              assert.spy(update_platformer_motion_state_stub).was_not_called()
-            end)
-
-          end)
-
-          describe('(_snap_to_ground returns motion_states.airborne)', function ()
-
-            local snap_to_ground_mock
-
-            setup(function ()
-              snap_to_ground_mock = stub(player_character, "_snap_to_ground", function ()
-                return motion_states.airborne
-              end)
-            end)
-
-            teardown(function ()
-              snap_to_ground_mock:revert()
-            end)
-
-            it('should call _snap_to_ground and _check_escape_from_ground_and_update_motion_state(false)', function ()
-              player_char:_update_ground_position()
-
-              -- implementation
-              assert.spy(snap_to_ground_mock).was_called(1)
-              assert.spy(snap_to_ground_mock).was_called_with(match.ref(player_char))
-              assert.spy(update_platformer_motion_state_stub).was_called(1)
-              assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), false)
-            end)
-
-          end)
-
+          assert.are_same({true, vector(4, -4.25), motion_states.airborne}, {result, player_char.velocity_frame, player_char.motion_state})
         end)
 
       end)
 
       describe('_snap_to_ground', function ()
+
+        setup(function ()
+          spy.on(player_character, "_update_platformer_motion_state")
+        end)
+
+        teardown(function ()
+          player_character._update_platformer_motion_state:revert()
+        end)
+
+        after_each(function ()
+          player_character._update_platformer_motion_state:clear()
+        end)
 
         describe('(1 quarter-tile tile on top of full tile)', function ()
 
@@ -1405,18 +1450,23 @@ describe('player_character', function ()
 
           it('should snap y up to quarter-tile on tile above (distance <= max_ground_escape_height)', function ()
             player_char:set_bottom_center(vector(4, 16))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(4, 12)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(4, 12)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
           it('should NOT snap y up to quarter-tile on tile above (distance > max_ground_escape_height)', function ()
             player_char:set_bottom_center(vector(4, 17))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(4, 17)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(4, 17)}, {player_char.motion_state, player_char:get_bottom_center()})
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
         end)
@@ -1430,66 +1480,92 @@ describe('player_character', function ()
 
           it('should NOT snap y down to surface column 4 height 6 (distance > max_ground_snap_height)', function ()
             player_char:set_bottom_center(vector(1, 5))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.airborne, vector(1, 5)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.airborne, vector(1, 5)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_called(1)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
           end)
 
           it('should snap y down to non-empty/full column 4 height 6 (distance <= max_ground_escape_height, only left sensor on ground)', function ()
             player_char:set_bottom_center(vector(1, 8))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(1, 10)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
           it('should NOT snap when character is already just on the ground', function ()
             player_char:set_bottom_center(vector(1, 10))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(1, 10)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+
           end)
 
           it('should snap y up to surface column 4 height 6 (distance <= max_ground_escape_height, only left sensor on ground)', function ()
             player_char:set_bottom_center(vector(1, 12))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(1, 10)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
           it('should NOT snap y down to surface column 4 height 6 (distance > max_ground_escape_height)', function ()
             player_char:set_bottom_center(vector(1, 15))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(1, 15)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(1, 15)}, {player_char.motion_state, player_char:get_bottom_center()})
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+
           end)
 
           it('should snap y down to full column 2 with nothing above (right tile) at height 8 (distance <= max_ground_escape_height, right sensor on ground, left above ground)', function ()
             player_char:set_bottom_center(vector(7, 4))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(7, 8)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(7, 8)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
           it('should snap y up to surface full column 2 with nothing above (right tile) at height 8 (distance <= max_ground_escape_height) ground right sensor on ground, left above ground)', function ()
             player_char:set_bottom_center(vector(7, 12))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(7, 8)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(7, 8)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
           it('should snap y down to non-empty/full column 6 (left tile) and column 3 (right tile) at same height 7 (both sensors on ground)', function ()
             player_char:set_bottom_center(vector(8, 8))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(8, 9)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(8, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+
           end)
 
         end)
@@ -1502,18 +1578,26 @@ describe('player_character', function ()
 
           it('should snap down y to columns 2 and 7 at height 6 on the tile below the current one (distance <= max_ground_snap_height)', function ()
             player_char:set_bottom_center(vector(4, 6))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(4, 10)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(4, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+
           end)
 
           it('should NOT snap y to tile too far below (distance > max_ground_snap_height)', function ()
             player_char:set_bottom_center(vector(4, 5))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.airborne, vector(4, 5)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.airborne, vector(4, 5)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_called(1)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
           end)
 
         end)
@@ -1526,18 +1610,25 @@ describe('player_character', function ()
 
           it('should NOT snap to tile in same location but too low (distance > max_ground_snap_height)', function ()
             player_char:set_bottom_center(vector(4, 9))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.airborne, vector(4, 9)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.airborne, vector(4, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_called(1)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
           end)
 
           it('should snap down to tile in same location (distance <= max_ground_snap_height)', function ()
             player_char:set_bottom_center(vector(4, 10))
-            local result = player_char:_snap_to_ground()
+            player_char:_snap_to_ground()
 
             -- interface
-            assert.are_same({motion_states.grounded, vector(4, 14)}, {result, player_char:get_bottom_center()})
+            assert.are_same({motion_states.grounded, vector(4, 14)}, {player_char.motion_state, player_char:get_bottom_center()})
+
+            -- implementation
+            assert.spy(player_character._update_platformer_motion_state).was_not_called()
           end)
 
         end)
@@ -1643,8 +1734,8 @@ describe('player_character', function ()
       setup(function ()
         -- mock the worst case possible for _update_platformer_motion_grounded,
         --  changing the state to airborne to make sure the airborne branch is not entered afterward
-        update_platformer_motion_grounded_mock = stub(player_character, "_update_platformer_motion_grounded", function ()
-          player_char.motion_state = motion_states.airborne
+        update_platformer_motion_grounded_mock = stub(player_character, "_update_platformer_motion_grounded", function (self)
+          self.motion_state = motion_states.airborne
         end)
         update_platformer_motion_airborne_stub = stub(player_character, "_update_platformer_motion_airborne")
       end)

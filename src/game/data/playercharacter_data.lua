@@ -17,11 +17,10 @@ return {
   -- ground acceleration (px/frame)
   max_ground_speed_frame = 3,
 
-  -- initial jump speed (Sonic) (px/frame)
-  initial_jump_speed_frame = 3.25,
+  -- initial variable jump speed (Sonic) (px/frame)
+  initial_var_jump_speed_frame = 3.25,
 
-  -- speed to set the vertical speed to when interrupts jump
-  --  (player releases jump button before vertical speed is below that value) (px/frame)
+  -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
   jump_interrupt_speed_frame = 2,
 
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis (1 for the pixel just touching the axis)

@@ -387,7 +387,7 @@ itest.teardown = function ()
   teardown_map_data()
 end
 
--- wait for apogee (frame 39) and stop
+-- wait for apogee (frame 20) and stop
 -- at frame 1:  bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
 -- at frame 2:  bpos (4, 80 - 2), velocity (0, -2), airborne (hop confirmed)
 -- at frame 3:  bpos (4, 80 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
@@ -396,7 +396,7 @@ end
 -- at frame 21: pos (4, 80 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
 -- at frame 38: pos (4, 80 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
 -- at frame 39: pos (4, 80), velocity (0, 0), grounded -> has landed
-itest:add_action(time_trigger(39, true), function ()
+itest:add_action(time_trigger(20, true), function ()
 end)
 
 -- check that player char has moved to the right and fell
@@ -474,7 +474,7 @@ itest:add_action(time_trigger(19, true), function () end)
 -- check that player char has reached the apogee of the jump
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(0, 80. - 22.546875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80. - 22.546875), stage.state.player_character:get_bottom_center(), 1/256)
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_character.velocity_frame, 1/256)
 

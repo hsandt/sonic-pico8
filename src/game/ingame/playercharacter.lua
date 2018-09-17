@@ -46,6 +46,7 @@ local player_character = new_class()
 -- jump_intention         bool          current intention to start jump (consumed on jump)
 -- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
 -- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
+-- has_interrupted_jump   bool          has the character already interrupted his jump once?
 function player_character:_init()
   self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
   self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
@@ -65,6 +66,7 @@ function player_character:_init()
   self.jump_intention = false
   self.hold_jump_intention = false
   self.should_jump = false
+  self.has_interrupted_jump = false
 end
 
 --#if log
@@ -285,9 +287,10 @@ function player_character:_update_platformer_motion_state(is_ground_sensed)
   if self.motion_state == motion_states.airborne then
     if is_ground_sensed then
       -- we have just reached the ground (and possibly escaped),
-      --  so set state to grounded and stop vertical motion
+      --  reset values airborne vars
       self.motion_state = motion_states.grounded
-      self.velocity_frame.y = 0
+      self.velocity_frame.y = 0  -- no velocity retain yet on y
+      self.has_interrupted_jump = false
     end
   end
 end
@@ -312,7 +315,7 @@ function player_character:_update_platformer_motion_grounded()
   --  for an optimal jump (SPG: Jumping mentions that jump check is done early and returns)
   local is_jumping = self:_check_jump()
 
-  -- move
+  -- move (this may include a jump)
   self:move(self.velocity_frame)
 
   if not is_jumping then
@@ -376,8 +379,19 @@ end
 function player_character:_check_jump()
   if self.should_jump then
     self.should_jump = false
+
+    -- compute initial jump speed based on whether player is still holding jump button
+    local initial_jump_speed
+    if self.hold_jump_intention then
+      -- variable jump
+      initial_jump_speed = playercharacter_data.initial_var_jump_speed_frame
+    else
+      -- hop
+      initial_jump_speed = playercharacter_data.jump_interrupt_speed_frame
+    end
+
     -- only support flat ground for now
-    self.velocity_frame.y = self.velocity_frame.y - playercharacter_data.initial_jump_speed_frame
+    self.velocity_frame.y = self.velocity_frame.y - initial_jump_speed
     self:_update_platformer_motion_state(false)
     return true
   end
@@ -411,11 +425,32 @@ function player_character:_update_platformer_motion_airborne()
   -- apply gravity to current speed y
   self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
 
+  -- check if player is continuing or interrupting jump after applying gravity
+  --  so that the velocity for this frame will be exactly jump_interrupt_speed_frame
+  --  (this is not precised by SPG, but our own decision and may match Classic Sonic or not)
+  self:_check_hold_jump()
+
   -- apply air motion
-  self.position = self.position + self.velocity_frame
+  self:move(self.velocity_frame)
 
   -- detect ground and snap up for landing
   self:_check_escape_from_ground_and_update_motion_state()
+end
+
+-- check if character wants to interrupt jump by not holding anymore,
+--  and set vertical speed to interrupt speed if so
+function player_character:_check_hold_jump()
+  if not self.has_interrupted_jump and not self.hold_jump_intention then
+    -- character has not interrupted jump yet and wants to
+    -- flag jump as interrupted even if it's too late, so we don't enter this block anymore
+    self.has_interrupted_jump = true
+
+    -- character tries to interrupt jump, check if's not too late
+    local signed_jump_interrupt_speed_frame = -playercharacter_data.jump_interrupt_speed_frame
+    if self.velocity_frame.y < signed_jump_interrupt_speed_frame then
+      self.velocity_frame.y = signed_jump_interrupt_speed_frame
+    end
+  end
 end
 
 -- update the velocity and position of the character following debug motion rules

@@ -17,14 +17,22 @@ describe('player_character', function ()
           0,
           vector.zero(),
           vector.zero(),
-          vector.zero()
+          vector.zero(),
+          false,
+          false,
+          false,
+          false
         },
         {
           player_char.position,
           player_char.ground_speed_frame,
           player_char.velocity_frame,
           player_char.debug_velocity,
-          player_char.move_intention
+          player_char.move_intention,
+          player_char.jump_intention,
+          player_char.hold_jump_intention,
+          player_char.should_jump,
+          player_char.has_interrupted_jump
         })
     end)
 
@@ -1416,9 +1424,19 @@ describe('player_character', function ()
           assert.are_same({false, vector(4, -1), motion_states.grounded}, {result, player_char.velocity_frame, player_char.motion_state})
         end)
 
-        it('should consume should_jump, add jump velocity, update motion state and return false when should_jump is true', function ()
+        it('should consume should_jump, add initial hop velocity, update motion state and return false when should_jump is true and hold_jump_intention is false', function ()
           player_char.velocity_frame = vector(4, -1)
           player_char.should_jump = true
+          local result = player_char:_check_jump()
+
+          -- interface
+          assert.are_same({true, vector(4, -3), motion_states.airborne}, {result, player_char.velocity_frame, player_char.motion_state})
+        end)
+
+        it('should consume should_jump, add initial var jump velocity, update motion state and return false when should_jump is true and hold_jump_intention is true', function ()
+          player_char.velocity_frame = vector(4, -1)
+          player_char.should_jump = true
+          player_char.hold_jump_intention = true
           local result = player_char:_check_jump()
 
           -- interface
@@ -1637,18 +1655,22 @@ describe('player_character', function ()
 
       describe('_update_platformer_motion_airborne', function ()
 
-        local _check_escape_from_ground_and_update_motion_state_stub
+        local check_hold_jump_stub
+        local check_escape_from_ground_and_update_motion_state_stub
 
         setup(function ()
-          _check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
+          check_hold_jump_stub = stub(player_character, "_check_hold_jump")
+          check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
         end)
 
         teardown(function ()
-          _check_escape_from_ground_and_update_motion_state_stub:revert()
+          check_hold_jump_stub:revert()
+          check_escape_from_ground_and_update_motion_state_stub:revert()
         end)
 
         after_each(function ()
-          _check_escape_from_ground_and_update_motion_state_stub:clear()
+          check_hold_jump_stub:clear()
+          check_escape_from_ground_and_update_motion_state_stub:clear()
         end)
 
         it('. should apply gravity to speed y', function ()
@@ -1662,17 +1684,62 @@ describe('player_character', function ()
           assert.are_equal(vector(4, -4 + playercharacter_data.gravity_frame2), player_char.position)
         end)
 
-        it('should call _check_escape_from_ground_and_update_motion_state', function ()
+        it('should call _check_hold_jump and _check_escape_from_ground_and_update_motion_state', function ()
           player_char:_update_platformer_motion_airborne()
 
           -- implementation
-          assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called(1)
-          assert.spy(_check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
+          assert.spy(check_hold_jump_stub).was_called(1)
+          assert.spy(check_hold_jump_stub).was_called_with(match.ref(player_char))
+          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called(1)
+          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
         end)
 
       end)  -- _update_platformer_motion_airborne
 
     end)  -- (with mock tiles data setup)
+
+    describe('_check_hold_jump', function ()
+
+      before_each(function ()
+        -- optional, just to enter airborne state and be in a meaningful state
+        player_char:_update_platformer_motion_state(false)
+      end)
+
+      it('should interrupt the jump when still possible and hold_jump_intention is false', function ()
+        player_char.velocity_frame.y = -3
+
+        player_char:_check_hold_jump()
+
+        assert.are_same({true, -playercharacter_data.jump_interrupt_speed_frame}, {player_char.has_interrupted_jump, player_char.velocity_frame.y})
+      end)
+
+      it('should not change velocity but still set the interrupt flat when it\'s too late to interrupt jump and hold_jump_intention is false', function ()
+        player_char.velocity_frame.y = -1
+
+        player_char:_check_hold_jump()
+
+        assert.are_same({true, -1}, {player_char.has_interrupted_jump, player_char.velocity_frame.y})
+      end)
+
+      it('should not try to interrupt jump if already done', function ()
+        player_char.velocity_frame.y = -3
+        player_char.has_interrupted_jump = true
+
+        player_char:_check_hold_jump()
+
+        assert.are_same({true, -3}, {player_char.has_interrupted_jump, player_char.velocity_frame.y})
+      end)
+
+      it('should not try to interrupt jump if still holding jump input', function ()
+        player_char.velocity_frame.y = -3
+        player_char.hold_jump_intention = true
+
+        player_char:_check_hold_jump()
+
+        assert.are_same({false, -3}, {player_char.has_interrupted_jump, player_char.velocity_frame.y})
+      end)
+
+    end)
 
     describe('_get_ground_sensor_position', function ()
 
@@ -1717,9 +1784,9 @@ describe('player_character', function ()
           assert.are_equal(motion_states.airborne, player_char.motion_state)
         end)
 
-        it('. should enter grounded state and reset speed y if some ground is sensed', function ()
+        it('. should enter grounded state and reset speed y and has_interrupted_jump if some ground is sensed', function ()
           player_char:_update_platformer_motion_state(true)
-          assert.are_same({motion_states.grounded, 0}, {player_char.motion_state, player_char.velocity_frame.y})
+          assert.are_same({motion_states.grounded, 0, false}, {player_char.motion_state, player_char.velocity_frame.y, player_char.has_interrupted_jump})
         end)
 
       end)

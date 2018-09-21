@@ -461,20 +461,19 @@ itest:add_action(time_trigger(2, true), function ()
   stage.state.player_character.hold_jump_intention = false
 end)
 
--- wait for the apogee (frame 21) and stop
--- at frame 3:  bpos (4, 80 - 5.25), velocity (0, -2), airborne -> jump interrupted (gravity was applied at beginning of frame, but speed still above 2)
--- at frame 4:  bpos (4, 80 - 7.140625), velocity (0, -1.890625), airborne -> jump interrupted
--- at frame 20: bpos (4, 80 - 22.515625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 21: bpos (4, 80 - 22.546875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 22: bpos (4, 80 - 22.46875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 41: bpos (4, 80 - 0.203125), velocity (0, 2.15625), airborne -> about to land
--- at frame 42: bpos (4, 80), velocity (0, 0), grounded -> has landed
-itest:add_action(time_trigger(19, true), function () end)
+-- wait for the apogee (frame 20) and stop
+-- at frame 3:  bpos (4, 80 - 5.140625), velocity (0, -1.890625), airborne -> jump interrupted (gravity is applied *after* setting speed y to -2)
+-- at frame 19: bpos (4, 80 - 20.515625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 20: bpos (4, 80 - 20.546875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 21: bpos (4, 80 - 20.46875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 39: bpos (4, 80 - 0.3594), velocity (0, 2.15625), airborne -> about to land
+-- at frame 40: bpos (4, 80), velocity (0, 0), grounded -> has landed
+itest:add_action(time_trigger(18, true), function () end)
 
 -- check that player char has reached the apogee of the jump
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80. - 22.546875), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80 - 20.546875), stage.state.player_character:get_bottom_center(), 1/256)
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_character.velocity_frame, 1/256)
 

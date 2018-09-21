@@ -21,6 +21,8 @@ return {
   initial_var_jump_speed_frame = 3.25,
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
+  --  note that when jump is interrupted mid-air, gravity should still be applied just after that
+  --  which will give a value of 1.890625. for a hop, the initial speed will remain 2.
   jump_interrupt_speed_frame = 2,
 
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis (1 for the pixel just touching the axis)

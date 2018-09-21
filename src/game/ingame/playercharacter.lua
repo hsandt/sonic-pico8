@@ -422,13 +422,12 @@ end
 
 -- update motion following platformer airborne motion rules
 function player_character:_update_platformer_motion_airborne()
+  -- check if player is continuing or interrupting jump *before* applying gravity
+  --  since our playercharacter_data.jump_interrupt_speed_frame is defined to be applied before gravity
+  self:_check_hold_jump()
+
   -- apply gravity to current speed y
   self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
-
-  -- check if player is continuing or interrupting jump after applying gravity
-  --  so that the velocity for this frame will be exactly jump_interrupt_speed_frame
-  --  (this is not precised by SPG, but our own decision and may match Classic Sonic or not)
-  self:_check_hold_jump()
 
   -- apply air motion
   self:move(self.velocity_frame)

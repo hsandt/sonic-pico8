@@ -705,33 +705,33 @@ describe('stage', function ()
 
         describe('render', function ()
 
-          local rectfill_stub
+          local render_background_stub
           local render_stage_elements_stub
           local render_title_overlay_stub
 
           setup(function ()
-            rectfill_stub = stub(_G, "rectfill")
+            render_background_stub = stub(stage.state, "render_background")
             render_stage_elements_stub = stub(stage.state, "render_stage_elements")
             render_title_overlay_stub = stub(stage.state, "render_title_overlay")
           end)
 
           teardown(function ()
-            rectfill_stub:revert()
+            render_background_stub:revert()
             render_stage_elements_stub:revert()
             render_title_overlay_stub:revert()
           end)
 
           after_each(function ()
-            rectfill_stub:clear()
+            render_background_stub:clear()
             render_stage_elements_stub:clear()
             render_title_overlay_stub:clear()
           end)
 
-          it('should reset camera, call rectfill, render_stage_elements, render_title_overlay', function ()
+          it('should reset camera, call render_background, render_stage_elements, render_title_overlay', function ()
             stage.state:render()
             assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
-            assert.spy(rectfill_stub).was_called(1)
-            assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.blue)
+            assert.spy(render_background_stub).was_called(1)
+            assert.spy(render_background_stub).was_called_with(match.ref(stage.state))
             assert.spy(render_stage_elements_stub).was_called(1)
             assert.spy(render_stage_elements_stub).was_called_with(match.ref(stage.state))
             assert.spy(render_title_overlay_stub).was_called(1)
@@ -893,12 +893,14 @@ describe('stage', function ()
           local player_character_render_stub
 
           before_each(function ()
+            rectfill_stub = stub(_G, "rectfill")
             map_stub = stub(_G, "map")
             player_character_render_stub = stub(stage.state.player_character, "render")
             title_overlay_draw_labels_stub = stub(stage.state.title_overlay, "draw_labels")
           end)
 
           after_each(function ()
+            rectfill_stub:revert()
             map_stub:revert()
             player_character_render_stub:revert()
             title_overlay_draw_labels_stub:revert()
@@ -909,14 +911,24 @@ describe('stage', function ()
           end)
 
           after_each(function ()
+            rectfill_stub:clear()
             map_stub:clear()
             player_character_render_stub:clear()
+            title_overlay_draw_labels_stub:clear()
           end)
 
           it('set_camera_offset_stage should set the pico8 camera so that it is centered on the camera position', function ()
             stage.state.camera_position = vector(24, 13)
             stage.state:set_camera_offset_stage()
             assert.are_equal(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
+          end)
+
+          it('render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
+            stage.state.camera_position = vector(24, 13)
+            stage.state:render_background()
+            assert.are_equal(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
+            assert.spy(rectfill_stub).was_called(1)
+            assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, stage.state.current_stage_data.background_color)
           end)
 
           it('render_stage_elements should set camera position, call map for environment and player_character:render', function ()

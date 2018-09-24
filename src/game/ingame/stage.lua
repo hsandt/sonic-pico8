@@ -91,10 +91,7 @@ end
 function stage.state:render()
   camera()
 
-  -- background
-  rectfill(0, 0, 127, 127, colors.blue)
-
-  -- update camera offset
+  self:render_background()
   self:render_stage_elements()
   self:render_title_overlay()
 end
@@ -236,6 +233,12 @@ end
 
 
 -- render
+
+-- render the stage background
+function stage.state:render_background()
+  camera()
+  rectfill(0, 0, 127, 127, self.current_stage_data.background_color)
+end
 
 -- render the stage elements with the main camera:
 -- - environment

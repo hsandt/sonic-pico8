@@ -9,7 +9,15 @@ end
 
 -- generic concat metamethod (requires _tostring method on tables)
 local function concat(lhs, rhs)
+--[[#pico8
+--#ifn log
+  -- caution: concat cannot be used as log symbol is not defined for this config
+  return tostr(lhs)..tostr(rhs)
+--#endif
+--#pico8]]
+--#if log
   return stringify(lhs)..stringify(rhs)
+--#endif
 end
 
 -- metatable and memberwise equality comparison with usual equality operator

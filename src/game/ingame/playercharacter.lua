@@ -123,6 +123,12 @@ function player_character:_compute_signed_distance_to_closest_ground()
     -- check that ground sensor #i is on top of or below the mask column
     local signed_distance = sensor_height - ground_column_height
 
+    -- note: if character is inside a tile but his feet are just at the bottom of this tile
+    --  and the signed distance will be computed by checking any tile below (if no tile, will be tile_size+1)
+    -- so always add a solid ground below a step up or a slope to avoid the character falling there
+    -- if you want to check that case as well, check if sensor_height == tile_size, and in this case
+    --  check the tiles above first, e.g. using _compute_stacked_column_height_above
+
     if ground_column_height == tile_size then
       -- column is full (reaches the top of the tile), we must check if there are any tiles
       --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp

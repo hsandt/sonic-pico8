@@ -1678,6 +1678,15 @@ describe('player_character', function ()
           assert.are_equal(playercharacter_data.gravity_frame2, player_char.velocity_frame.y)
         end)
 
+        it('should apply accel x', function ()
+          player_char.velocity_frame.x = 4
+          player_char.move_intention.x = -1
+
+          player_char:_update_platformer_motion_airborne()
+
+          assert.are_equal(4 - playercharacter_data.air_accel_x_frame2, player_char.velocity_frame.x)
+        end)
+
         it('. should update position with new speed y', function ()
           player_char.position = vector(4, -4)
           player_char:_update_platformer_motion_airborne()

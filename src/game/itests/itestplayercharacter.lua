@@ -295,6 +295,7 @@ itest.final_assertion = function ()
 end
 
 
+-- bugfix history: . forgot to add a solid ground below the slope to confirm ground
 itest = integration_test('platformer ascending slope right', {stage.state.type})
 itest_manager:register(itest)
 
@@ -302,8 +303,9 @@ itest.setup = function ()
   setup_map_data()
 
   -- add tiles where the character will move
-  mset(0, 10, 64)
-  mset(1, 10, 65)  -- ascending slope 45
+  mset(0, 10, 64)  -- flat ground
+  mset(1, 10, 64)  -- solid ground to support slope, as with current motion rules, character needs it
+  mset(1, 9, 65)   -- ascending slope 45, one level up
 
   flow:change_gamestate_by_type(stage.state.type)
 
@@ -337,7 +339,7 @@ itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
   -- to compute position, use the fact that friction == accel, so our speed describes a pyramid over time with a non-mirrored, unique max at 0.703125,
   --  so we can 2x the accumulated distance computed in the first test (only accel over 30 frames), then subtract the non-doubled max value, and add the initial position x
-  local is_position_expected, position_message = almost_eq_with_message(vector(5.546875, 73), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_position_expected, position_message = almost_eq_with_message(vector(5.546875, 79), stage.state.player_character:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.2578125, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.2578125, 0), stage.state.player_character.velocity_frame, 1/256)

@@ -33,7 +33,8 @@ describe('player_character', function ()
           player_char.hold_jump_intention,
           player_char.should_jump,
           player_char.has_interrupted_jump
-        })
+        }
+      )
     end)
 
     it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
@@ -43,6 +44,24 @@ describe('player_character', function ()
         {player_char.control_mode, player_char.motion_mode, player_char.motion_state})
     end)
 
+    it('#solo should create a player character storing values from playercharacter_data', function ()
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
+      assert.are_same(
+        {
+          playercharacter_data.character_sprite_data,
+          playercharacter_data.debug_move_max_speed,
+          playercharacter_data.debug_move_accel,
+          playercharacter_data.debug_move_decel
+        },
+        {
+          player_char.spr_data,
+          player_char.debug_move_max_speed,
+          player_char.debug_move_accel,
+          player_char.debug_move_decel
+        }
+      )
+    end)
   end)
 
   describe('(with player character, speed 60, debug accel 480)', function ()
@@ -106,13 +125,13 @@ describe('player_character', function ()
     describe('get_bottom_center', function ()
       it('(10 0 3) => at (10 6)', function ()
         player_char.position = vector(10, 0)
-        assert.are_equal(vector(10, 6), player_char:get_bottom_center())
+        assert.are_equal(vector(10, 0 + playercharacter_data.center_height_standing), player_char:get_bottom_center())
       end)
     end)
 
     describe('+ set_bottom_center', function ()
       it('set_bottom_center (10 6) => at (10 0)', function ()
-        player_char:set_bottom_center(vector(10, 6))
+        player_char:set_bottom_center(vector(10, 0 + playercharacter_data.center_height_standing))
         assert.are_equal(vector(10, 0), player_char.position)
       end)
     end)
@@ -179,7 +198,7 @@ describe('player_character', function ()
         pico8:clear_map()
       end)
 
-      describe('#solo _compute_signed_distance_to_closest_ground', function ()
+      describe('_compute_signed_distance_to_closest_ground', function ()
 
         describe('with full flat tile', function ()
 
@@ -1757,11 +1776,11 @@ describe('player_character', function ()
       end)
 
       it('* should return the position down-left of the character center when horizontal dir is left', function ()
-        assert.are_equal(vector(7.5, 16), player_char:_get_ground_sensor_position(horizontal_directions.left))
+        assert.are_equal(vector(7.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position(horizontal_directions.left))
       end)
 
       it('* should return the position down-left of the character center when horizontal dir is right', function ()
-        assert.are_equal(vector(12.5, 16), player_char:_get_ground_sensor_position(horizontal_directions.right))
+        assert.are_equal(vector(12.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position(horizontal_directions.right))
       end)
 
     end)

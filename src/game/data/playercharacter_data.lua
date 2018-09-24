@@ -33,7 +33,7 @@ return {
   ground_sensor_extent_x = 2.5,
 
   -- height between the character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
-  center_height_standing = 6,
+  center_height_standing = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)
@@ -56,8 +56,7 @@ return {
 
   -- sprite
 
-  character_sprite_loc = sprite_id_location(0, 2),
-  character_sprite_span = tile_vector(1, 2),        -- vertical sprite
-  character_sprite_pivot = vector(4, 10)            -- sprite center (when standing)
+  -- stand right
+  character_sprite_data = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8))
 
 }

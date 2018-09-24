@@ -48,7 +48,7 @@ local player_character = new_class()
 -- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_interrupted_jump   bool          has the character already interrupted his jump once?
 function player_character:_init()
-  self.spr_data = sprite_data(playercharacter_data.character_sprite_loc, playercharacter_data.character_sprite_span, playercharacter_data.character_sprite_pivot)
+  self.spr_data = playercharacter_data.character_sprite_data
   self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
   self.debug_move_accel = playercharacter_data.debug_move_accel
   self.debug_move_decel = playercharacter_data.debug_move_decel

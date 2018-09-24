@@ -429,6 +429,9 @@ function player_character:_update_platformer_motion_airborne()
   -- apply gravity to current speed y
   self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
 
+  -- apply x acceleration via intention (if not 0)
+  self.velocity_frame.x = self.velocity_frame.x + self.move_intention.x * playercharacter_data.air_accel_x_frame2
+
   -- apply air motion
   self:move(self.velocity_frame)
 

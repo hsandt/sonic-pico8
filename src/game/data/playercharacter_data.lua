@@ -15,7 +15,7 @@ return {
   gravity_frame2 = 0.109375,
 
   -- air acceleration on x axis (px/frames^2)
-  air_accel_x = 0.046875,
+  air_accel_x_frame2 = 0.046875,
 
   -- ground acceleration (px/frame)
   max_ground_speed_frame = 3,

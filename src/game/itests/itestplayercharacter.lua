@@ -607,7 +607,7 @@ end)
 -- at frame 32: pos (4 + 21.796875, 80 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
 -- at frame 61: pos (4 + 82.96875, 80 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
 -- at frame 62: pos (4 + 85.78125, 80), velocity (2.8125, 0), grounded -> has landed, preserve x speed
-itest:add_action(time_trigger(31, true), function () end)
+itest:add_action(time_trigger(29, true), function () end)
 
 -- check that player char has moved to the right and fell
 itest.final_assertion = function ()

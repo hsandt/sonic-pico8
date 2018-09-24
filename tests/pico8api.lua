@@ -44,6 +44,11 @@ pico8={
   poked_addresses={}  -- not a complete simulation of memory, just of poked addresses set to value
 }
 
+for i=0, 15 do
+  -- set all but black to opaque, black to transparent (similar to palt() implementation)
+  pico8.pal_transparent[i] = i == 0 and true or false
+end
+
 -- busted-only helper to clear the map, as memset(0x2000, 0, 0x1000) wouldn't work
 function pico8:clear_map()
   for y = 0, 63 do

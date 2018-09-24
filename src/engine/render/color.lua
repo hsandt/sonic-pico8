@@ -42,3 +42,13 @@ function color_tostring(colour)
   return color_strings[colour] or "unknown color"
 end
 --#endif
+
+-- set colour as the only transparent color
+function set_unique_transparency(colour)
+  -- reset any previous transparency change
+  palt()
+  -- default color (black) is not transparent anymore
+  palt(0, false)
+  -- new transparency
+  palt(colour, true)
+end

@@ -294,6 +294,77 @@ itest.final_assertion = function ()
   return success, final_message
 end
 
+
+itest = integration_test('platformer ascending slope right', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+  mset(1, 10, 65)  -- ascending slope 45
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start moving to the right from frame 0 by setting intention in setup
+  stage.state.player_character.move_intention = vector(1, 0)
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- wait 30 frames and stop
+-- ground_accel_frame2 = 0.0234375
+-- at frame 1: pos (4 + ground_accel_frame2, 74), velocity (ground_accel_frame2, 0)
+-- at frame n before slope: pos (4 + n(n+1)/2*ground_accel_frame2, 74), velocity (n*ground_accel_frame2, 0)
+-- character makes first step on slope when right sensor reaches position x = 8 (column 0 height of tile 65 is 1)
+--  i.e. center reaches 8 - ground_sensor_extent_x = 5.5
+-- at frame 10: pos (5.2890625, 74), velocity (0.234375, 0)
+-- at frame 11: pos (5.546875, 73), velocity (0.2578125, 0), first step on slope tile
+-- note that speed decrease on slope is not implemented yet (via cosine but also gravity), so this test will have to change when it is
+--  however, the result should stay true for a very low slope (a wave where registered slope is 0)
+itest:add_action(time_trigger(11, true), function () end)
+
+-- check that player char has moved to the right and is still on the ground
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
+  -- to compute position, use the fact that friction == accel, so our speed describes a pyramid over time with a non-mirrored, unique max at 0.703125,
+  --  so we can 2x the accumulated distance computed in the first test (only accel over 30 frames), then subtract the non-doubled max value, and add the initial position x
+  local is_position_expected, position_message = almost_eq_with_message(vector(5.546875, 73), stage.state.player_character:get_bottom_center(), 1/256)
+  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.2578125, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.2578125, 0), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+
 -- bugfix history: ! identified bug in _update_platformer_motion where absence of elseif
 --  allowed to enter both grounded and airborne update, causing 2x update when leaving the cliff
 itest = integration_test('platformer fall cliff', {stage.state.type})

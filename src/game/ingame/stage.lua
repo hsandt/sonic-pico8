@@ -255,7 +255,7 @@ function stage.state:render_environment()
   -- instead just draw the portion of the level of interest
   -- (and either keep camera offset or offset manually and subtract from camera offset)
   set_unique_transparency(colors.pink)
-  map(0, 0, 0, 0, 16, 14)
+  map(0, 0, 0, 0, self.current_stage_data.width, self.current_stage_data.height)
 
   -- goal as vertical line
   rectfill(self.current_stage_data.goal_x, 0, self.current_stage_data.goal_x + 5, 15*8, colors.yellow)

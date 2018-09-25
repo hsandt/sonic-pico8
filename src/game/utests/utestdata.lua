@@ -19,3 +19,10 @@ check('. height_array._fill_array on sprite_id_location(0, 5) should fill the ar
   height_array._fill_array(array, sprite_id_location(0, 5))
   assert(are_same_with_message({8, 8, 8, 8, 8, 8, 8, 8}, array))
 end)
+
+-- bugfix history: after switching to pink transparency, all my tiles became square blocks
+check('= height_array._fill_array on sprite_id_location(0, 5) the array with tile mask data: descending slope 45', function ()
+  local array = {}
+  height_array._fill_array(array, sprite_id_location(1, 5))
+  assert(are_same_with_message({8, 7, 6, 5, 4, 3, 2, 1}, array))
+end)

@@ -998,7 +998,6 @@ describe('player_character', function ()
 
       describe('_compute_column_height_at', function ()
 
-
         it('should return 0 if tile location is outside map area', function ()
           assert.are_equal(0, player_char:_compute_column_height_at(location(-1, 2), 0))
         end)

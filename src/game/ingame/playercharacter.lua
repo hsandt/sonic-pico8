@@ -90,11 +90,74 @@ function player_character:update()
   end
 end
 
--- return signed distance to closest ground, either negative when (in abs, penetration height)
+-- -- return signed distance to closest ground, either negative when (in abs, penetration height)
+-- --  or positive (actual distance to ground), always clamped to tile_size+1
+-- -- if both sensors have different signed distances,
+-- --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
+-- function player_character:_compute_signed_distance_to_closest_ground()
+
+--   -- initialize with negative value to return if the character is not intersecting ground
+--   local min_signed_distance = 1 / 0  -- max (32768, but never enter it manually as it would be negative)
+
+--   -- check both ground sensors for ground. if any finds ground, return true
+--   for i in all({horizontal_directions.left, horizontal_directions.right}) do
+
+--     -- find the tile where this ground sensor is located
+--     local sensor_position = self:_get_ground_sensor_position(i)
+--     local sensor_location = sensor_position:to_location()
+
+--     -- get column on the collision mask that the ground sensor should check (ground sensor extent x
+--     --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
+--     -- note that this is slightly suboptimal as we won't use column_index0 at all if _compute_column_height_at returns early
+
+--     local sensor_location_topleft = sensor_location:to_topleft_position()
+--     local sensor_relative_x = sensor_position.x - sensor_location_topleft.x
+--     local column_index0 = flr(sensor_relative_x)  -- from 0 to tile_size - 1
+--     local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
+
+--     -- compute relative height of sensor from tile bottom (y axis is downward)
+--     local sensor_location_bottom = sensor_location_topleft.y + tile_size
+--     local sensor_height = sensor_location_bottom - sensor_position.y
+--     assert(sensor_height > 0, "player_character:_compute_signed_distance_to_closest_ground: sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
+
+--     -- check that ground sensor #i is on top of or below the mask column
+--     local signed_distance = sensor_height - ground_column_height
+
+--     -- note: if character is inside a tile but his feet are just at the bottom of this tile
+--     --  and the signed distance will be computed by checking any tile below (if no tile, will be tile_size+1)
+--     -- so always add a solid ground below a step up or a slope to avoid the character falling there
+--     -- if you want to check that case as well, check if sensor_height == tile_size, and in this case
+--     --  check the tiles above first, e.g. using _compute_stacked_column_height_above
+
+--     if ground_column_height == tile_size then
+--       -- column is full (reaches the top of the tile), we must check if there are any tiles
+--       --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
+--       --  the added value by tile_size minus what we've already got)
+--       assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
+--       signed_distance = signed_distance - self:_compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+--     elseif ground_column_height == 0 then
+--       -- column is empty, check for more space below, up to a tile size
+--       assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
+--       signed_distance = signed_distance + self:_compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+--     end
+
+--     -- store the biggest penetration height among sensors
+--     if signed_distance < min_signed_distance then
+--       min_signed_distance = signed_distance
+--     end
+
+--   end
+
+--   return min_signed_distance
+
+-- end
+
+-- return signed distance to closest ground when character center is at center_position,
+--  either negative when (in abs, penetration height)
 --  or positive (actual distance to ground), always clamped to tile_size+1
 -- if both sensors have different signed distances,
 --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
-function player_character:_compute_signed_distance_to_closest_ground()
+function player_character:_compute_signed_distance_to_closest_ground(center_position)
 
   -- initialize with negative value to return if the character is not intersecting ground
   local min_signed_distance = 1 / 0  -- max (32768, but never enter it manually as it would be negative)
@@ -103,7 +166,7 @@ function player_character:_compute_signed_distance_to_closest_ground()
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
 
     -- find the tile where this ground sensor is located
-    local sensor_position = self:_get_ground_sensor_position(i)
+    local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
     local sensor_location = sensor_position:to_location()
 
     -- get column on the collision mask that the ground sensor should check (ground sensor extent x
@@ -263,16 +326,33 @@ end
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
-  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground()
+  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(self.position)
   if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
     self:move(vector(0, signed_distance_to_closest_ground))
   end
   return signed_distance_to_closest_ground <= 0
 end
 
-function player_character:_get_ground_sensor_position(horizontal_dir)
+-- function player_character:_get_ground_sensor_position(horizontal_dir)
+--   -- ignore subpixels on x for ground detection
+--   local bottom_center = self:get_bottom_center()
+--   local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
+--   local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
+
+--   if horizontal_dir == horizontal_directions.left then
+--     return pixel_perfect_bottom_center - right_offset
+--   else
+--     return pixel_perfect_bottom_center + right_offset
+--   end
+-- end
+
+-- return the position of the ground sensor in horizontal_dir when the character center is at center_position
+function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
+  local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
+  -- REFACTOR: we may also floor the coord x at the beginning of _compute_next_position_from_ground
+  -- once and for all
+
   -- ignore subpixels on x for ground detection
-  local bottom_center = self:get_bottom_center()
   local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
   local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
 
@@ -318,15 +398,29 @@ end
 function player_character:_update_platformer_motion_grounded()
   -- ground speed
   self:_update_ground_speed()
-  self:_update_velocity_grounded()
+  -- self:_update_velocity_grounded()
+
+  -- optimize: if ground_speed == 0, we can skip the whole motion
+  local horizontal_dir = self.ground_speed_frame < 0 and horizontal_directions.left or horizontal_directions.right
+  local next_position, next_velocity, next_motion_state = self:_compute_next_position_from_ground(horizontal_dir, self.ground_speed_frame)
 
   -- jump speed
   -- unlike classic Sonic, we apply jump after motion so we can increase position and velocity
   --  for an optimal jump (SPG: Jumping mentions that jump check is done early and returns)
+  -- note that we are not checking if the ground will be left with the ground motion this frame,
+  --  effectively allowing the player to confirm jump the frame the character leaves the ground (late jump)
   local is_jumping = self:_check_jump()
+  if is_jumping then
+    -- don't care about future obstacles, just set the nominative velocity
+    self:_update_velocity_grounded()
+    -- move (including jump speed y)
+    self:move(self.velocity_frame)
+  else
+    self.position = next_position
+    self.velocity_frame = next_velocity
+    self:_update_platformer_motion_state(next_motion_state)
+  end
 
-  -- move (this may include a jump)
-  self:move(self.velocity_frame)
 
   if not is_jumping then
     -- character is not leaving the ground, so update position following current ground curve
@@ -334,7 +428,9 @@ function player_character:_update_platformer_motion_grounded()
     -- note than on convex slope masks, this will move the character a bit faster,
     --  and on concave slope masks, a bit slower than we would expect with a pixel-based
     --  curviline estimation (because the velocity is based on an average slope)
-    self:_snap_to_ground()
+
+    -- not needed if motion is pixel perfect already
+    -- self:_snap_to_ground()
 
     if self.motion_state == motion_states.grounded then
       -- character is still on ground, prepare for any jump next frame
@@ -371,6 +467,121 @@ end
 function player_character:_update_velocity_grounded()
   -- only support flat ground for now
   self.velocity_frame = vector(self.ground_speed_frame, 0)
+end
+
+-- return (next_position, next_motion_state) where
+--  next_position is the next position if the character is moving on quadrant 0
+--  along horizontal_dir, at ground_speed, from the current position;
+--  next_motion_state is 'airborne' if the character will leave ground, else 'grounded'
+-- the computation takes the slope of the ground into account to reduce
+--  ground_speed by a factor if applicable
+-- it also distinguishes step-ups from walls (that are step-ups "too high")
+-- the next position is said "ground position" because motion follows ground,
+--  but may be in the air
+-- we assume the character is already on ground. if he's not, the method will still work,
+--  the character will simply try to move to the next columns in this tile from his current
+--  position, and if the columns are empty, he will look for the tile below (and fall
+--  of the step down is too high, which is very likely)
+function player_character:_compute_next_position_from_ground(horizontal_dir, ground_speed)
+  -- identify the current ground tile
+  -- get column height array and slope
+  -- compute the distance to run over x based on ground speed and slope
+  -- iterate over the columns over that distance, checking for step-up/wall each step
+  -- if you leave the current tile by moving on x, just move to the next tile and repeat as long
+  --  as there is some distance left to travel
+  -- if a column is full or empty, check the tile above or below, then continue iterating
+  --  from that new height
+
+  -- return self.position, motion_states.grounded
+  -- maybe update in-place
+
+  -- count on flooring inside _compute_signed_distance_to_closest_ground...
+  local last_position_candidate = self.position
+  local next_position_candidate
+  local horizontal_dir_v = horizontal_direction_vectors[horizontal_dir]
+  printh(stringify(horizontal_dir_v))
+
+  local is_blocked = false
+  local is_airborne = false
+
+  -- todo: fill this with tile data
+  local slope_cos = 1
+  local slope_sin = 0
+  local distance = 0
+  local max_distance = abs(ground_speed) * slope_cos
+  while distance < max_distance do
+    -- todo:
+    next_position_candidate = last_position_candidate + horizontal_dir_v
+    printh("next_position_candidate: "..stringify(next_position_candidate))
+    distance = distance + 1 * slope_cos
+    -- or recompute distance from the start position to avoid accumulation errors
+    local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(next_position_candidate)
+
+    if signed_distance_to_closest_ground < 0 then
+      local penetration_height = - signed_distance_to_closest_ground
+      if penetration_height <= playercharacter_data.max_ground_escape_height then
+        -- move up the future position prediction point
+        last_position_candidate = next_position_candidate - vector(0, penetration_height)
+        -- if we left the ground "in the middle of the frame", snap back to ground
+        is_airborne = false
+      else
+        -- todo: actually, wall sensor are 1px farther than ground sensor,
+        --  so we'd need _compute_signed_distance_to_closest_ground to check both
+        --  distances... to detect wall like here, the farther sensor, and to detect fall like above
+        --  and slo for snapping up/down, the ground sensor...
+        -- for now, we use the same for both
+        -- we've met a step up too high, i.e. a wall, stop
+        is_blocked = true
+        -- optionally clamp the position to the wall (classic Sonic doesn't)
+        last_position_candidate = vector(flr(last_position_candidate.x), last_position_candidate.y)
+        break
+      end
+    elseif signed_distance_to_closest_ground > 0 then
+      if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
+        -- move down the future position prediction point
+        last_position_candidate = next_position_candidate + vector(0, signed_distance_to_closest_ground)
+        -- if we left the ground "in the middle of the frame", snap back to ground
+        -- and do as nothing happened
+        is_airborne = false
+      else
+        -- character was in the air and couldn't snap back to ground (cliff, etc.),
+        is_airborne = true
+        -- this doesn't mean that the motion is over yet... it's rare,
+        -- but the character could snap back on ground. in most cases he'll just
+        -- run a little farther in the air
+        -- since we have no reference, we just continue running along the same direction (slope)
+        -- every step
+        -- beware sinus orientation convention
+        last_position_candidate = next_position_candidate + vector(0, ground_speed * slope_sin)
+      end
+    else
+      last_position_candidate = next_position_candidate
+    end
+    printh("last_position_candidate: "..stringify(last_position_candidate))
+  end
+
+  printh("b: "..stringify(is_blocked))
+  printh("a: "..stringify(is_airborne))
+
+  local next_velocity
+  if is_blocked then
+    -- self.velocity = vector.zero()
+    next_velocity = vector.zero()
+  else
+    next_velocity = vector(ground_speed * slope_cos, ground_speed * slope_sin)
+  end
+  printh("next_velocity: "..stringify(next_velocity))
+  printh("last_position_candidate: "..stringify(last_position_candidate))
+
+  local next_motion_state
+  if is_airborne then
+    -- self:_update_platformer_motion_state(false)
+    next_motion_state = motion_states.airborne
+  else
+    next_motion_state = motion_states.grounded
+  end
+
+  return last_position_candidate, next_velocity, next_motion_state
 end
 
 -- if character intends to jump, prepare jump for next frame
@@ -413,7 +624,7 @@ end
 --  or the one below if the character is above ground with both sensors at empty mask colums
 -- if character is in the air and couldn't snap, enter airborne state
 function player_character:_snap_to_ground()
-  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground()
+  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(self.position)
   if signed_distance_to_closest_ground < 0 then
     local penetration_height = - signed_distance_to_closest_ground
     if penetration_height <= playercharacter_data.max_ground_escape_height then
@@ -421,7 +632,7 @@ function player_character:_snap_to_ground()
     end
   elseif signed_distance_to_closest_ground > 0 then
     if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
-      self:move(vector(0, signed_distance_to_closest_ground))  -- move up
+      self:move(vector(0, signed_distance_to_closest_ground))  -- move down
     else
       -- character was in the air and couldn't snap back to ground (cliff, etc.),
       --  so enter airborne state now

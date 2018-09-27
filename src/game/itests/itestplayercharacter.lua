@@ -33,7 +33,7 @@ end
 
 local itest
 
-
+--[[
 itest = integration_test('debug move right', {stage.state.type})
 itest_manager:register(itest)
 
@@ -711,6 +711,8 @@ itest.final_assertion = function ()
 
   return success, final_message
 end
+--]]
+
 itest = integration_test('platformer ground wall block right', {stage.state.type})
 itest_manager:register(itest)
 
@@ -719,6 +721,7 @@ itest.setup = function ()
 
   mset(0, 10, 64)  -- to walk on
   mset(1, 10, 64)  -- to walk on
+  mset(2, 10, 64)  -- for now, we need supporting block
   mset(2,  9, 64)  -- blocking wall
 
   flow:change_gamestate_by_type(stage.state.type)
@@ -787,6 +790,7 @@ itest.setup = function ()
   mset(0, 10, 64)  -- to walk on
   mset(1, 10, 64)  -- support ground for slope
   mset(1,  9, 65)  -- slope to walk on
+  mset(2,  9, 64)  -- for now, we need supporting block
   mset(2,  8, 64)  -- blocking wall at the top of the slope
 
   flow:change_gamestate_by_type(stage.state.type)
@@ -820,6 +824,7 @@ itest:add_action(time_trigger(29, true), function () end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
   -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
+  -- actually 13 if we use more narrow ground sensor
   local is_position_expected, position_message = almost_eq_with_message(vector(14, 80 - 8), stage.state.player_character:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
@@ -856,6 +861,10 @@ itest = integration_test('= character is correctly rendered idle', {stage.state.
 itest_manager:register(itest)
 
 itest.setup = function ()
+  setup_map_data()
+
+  mset(0, 10, 64)  -- to stand on
+
   flow:change_gamestate_by_type(stage.state.type)
   stage.state.player_character:set_bottom_center(vector(4., 80.))
   stage.state.player_character.control_mode = control_modes.puppet

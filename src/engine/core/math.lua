@@ -97,6 +97,7 @@ function vector.almost_eq(lhs, rhs, eps)
 end
 
 function vector.__add(lhs, rhs)
+  assert(getmetatable(lhs) == vector and getmetatable(rhs) == vector, "vector.__add: lhs and rhs are not both vectors (lhs: "..dump(lhs)..", rhs: "..dump(rhs)..")")
   return vector(lhs.x + rhs.x, lhs.y + rhs.y)
 end
 
@@ -107,6 +108,7 @@ function vector:add_inplace(other)
 end
 
 function vector.__sub(lhs, rhs)
+  assert(getmetatable(lhs) == vector and getmetatable(rhs) == vector, "vector.__sub: lhs and rhs are not both vectors (lhs: "..dump(lhs)..", rhs: "..dump(rhs)..")")
   return vector(lhs.x - rhs.x, lhs.y - rhs.y)
 end
 
@@ -289,6 +291,11 @@ direction_vectors = {
 horizontal_directions = {
   left = 1,
   right = 2
+}
+
+horizontal_direction_vectors = {
+  vector(-1., 0.),
+  vector(1., 0.)
 }
 
 function oppose_direction(direction)

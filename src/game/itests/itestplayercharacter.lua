@@ -3,6 +3,7 @@ local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
+local playercharacter_data = require("game/data/playercharacter_data")
 --#ifn pico8
 local tile_test_data = require("game/test_data/tile_test_data")
 --#endif
@@ -114,7 +115,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -132,7 +133,7 @@ itest:add_action(time_trigger(0.5), function () end)
 -- check that player char has moved to the right and is still on the ground
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
-  -- to compute position x from x0 after n frames at accel a from speed s: x = x0 + n*s + n(n+1)/2*a
+  -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
   local is_position_expected, position_message = almost_eq_with_message(vector(14.8984375, 80.), stage.state.player_character:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.703125, stage.state.player_character.ground_speed_frame, 1/256)
@@ -175,7 +176,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -242,7 +243,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -310,7 +311,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -382,7 +383,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -446,7 +447,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -514,7 +515,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -585,7 +586,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -650,7 +651,7 @@ itest.setup = function ()
   flow:change_gamestate_by_type(stage.state.type)
 
   -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_character:spawn_at(vector(4., 80. - 6))  -- set bottom y at 80
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
   stage.state.player_character.control_mode = control_modes.puppet
   stage.state.player_character.motion_mode = motion_modes.platformer
 
@@ -688,6 +689,71 @@ itest.final_assertion = function ()
   local is_position_expected, position_message = almost_eq_with_message(vector(4 + 20.390625, 80 - 49.921875), stage.state.player_character:get_bottom_center(), 1/256)
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(1.359375, -0.078125), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+-- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
+-- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
+-- character will be blocked when right wall sensor is at x = 16, so when center is at x = 12
+-- at frame 1: pos (4 + 0.0234375, 80), velocity (0.0234375, 0), grounded
+-- at frame 29: pos (13.515625, 80), velocity (0.6796875, 0), about to meet wall
+-- at frame 30: pos (14, 80), velocity (0, 0), stopped at wall, position clamped and speed reset to 0
+itest = integration_test('#solo platformer ground wall block right', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  mset(0, 10, 64)  -- to walk on
+  mset(1, 10, 64)  -- to walk on
+  mset(2,  9, 64)  -- blocking wall
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
+  stage.state.player_character.control_mode = control_modes.puppet
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start moving to the right from frame 0 by setting intention in setup
+  stage.state.player_character.move_intention = vector(1, 0)
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- wait 30 frames and stop
+
+itest:add_action(time_trigger(29, true), function () end)
+
+-- check that player char has moved to the right and is still on the ground
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
+  -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
+  local is_position_expected, position_message = almost_eq_with_message(vector(14., 80.), stage.state.player_character:get_bottom_center(), 1/256)
+  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_character.velocity_frame, 1/256)
 
   local final_message = ""
 

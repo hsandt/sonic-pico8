@@ -271,11 +271,15 @@ function player_character:_check_escape_from_ground()
 end
 
 function player_character:_get_ground_sensor_position(horizontal_dir)
+  -- ignore subpixels on x for ground detection
+  local bottom_center = self:get_bottom_center()
+  local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
+  local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
 
   if horizontal_dir == horizontal_directions.left then
-    return self:get_bottom_center() - vector(playercharacter_data.ground_sensor_extent_x, 0)
+    return pixel_perfect_bottom_center - right_offset
   else
-    return self:get_bottom_center() + vector(playercharacter_data.ground_sensor_extent_x, 0)
+    return pixel_perfect_bottom_center + right_offset
   end
 end
 

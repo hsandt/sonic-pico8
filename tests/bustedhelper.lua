@@ -5,7 +5,7 @@ require("engine/test/assertions")
 -- mute all messages during tests, unless told otherwise during the tests
 local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
-logging.logger:deactivate_all_categories()  -- headless itests will restore "itest" and "trace"
+logging.logger:deactivate_all_categories()  -- headless itests will restore "itest" and sometimes "trace"
 
 -- return the current file line in the format "{file}:{line}" to make it easy to navigate there from the printed message
 -- if you call this function from an intermediate helper function, add an extra level for each intermediate step

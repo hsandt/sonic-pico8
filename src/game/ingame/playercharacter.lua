@@ -524,7 +524,7 @@ end
 --  the character will simply try to move to the next columns in this tile from his current
 --  position, and if the columns are empty, he will look for the tile below (and fall
 --  of the step down is too high, which is very likely)
-function player_character:_compute_next_position_from_ground(horizontal_dir, ground_speed)
+function player_character:_compute_next_position_from_ground(horizontal_dir, ground_speed_frame)
   -- identify the current ground tile
   -- get column height array and slope
   -- compute the distance to run over x based on ground speed and slope
@@ -550,7 +550,7 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
   local slope_cos = 1
   local slope_sin = 0
   local distance = 0
-  local max_distance = abs(ground_speed) * slope_cos
+  local max_distance = abs(ground_speed_frame) * slope_cos
   while distance < max_distance do
     -- todo:
     next_position_candidate = last_position_candidate + horizontal_dir_v
@@ -593,7 +593,7 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
         -- just pop the character out when needed
         -- this way, cannot walk on will always be equivalent to "this is a wall"
         -- and the step up check will always be between neighboring columns heights, never in advance of 2px
-        last_position_candidate = vector(flr(last_position_candidate.x) - wall_sensor_extent_x + ground_sensor_extent_x, last_position_candidate.y)
+        last_position_candidate = vector(flr(last_position_candidate.x) - playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x, last_position_candidate.y)
         break
       end
     elseif signed_distance_to_closest_ground > 0 then
@@ -612,7 +612,7 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
         -- since we have no reference, we just continue running along the same direction (slope)
         -- every step
         -- beware sinus orientation convention
-        last_position_candidate = next_position_candidate + vector(0, ground_speed * slope_sin)
+        last_position_candidate = next_position_candidate + vector(0, ground_speed_frame * slope_sin)
       end
     else
       last_position_candidate = next_position_candidate
@@ -628,7 +628,8 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
     -- self.velocity = vector.zero()
     next_velocity = vector.zero()
   else
-    next_velocity = vector(ground_speed * slope_cos, ground_speed * slope_sin)
+    local velocity = horizontal_dir_v * ground_speed_frame
+    next_velocity = vector(velocity.x * slope_cos, velocity.y * slope_sin)
   end
   -- printh("next_velocity: "..stringify(next_velocity))
   -- printh("last_position_candidate: "..stringify(last_position_candidate))

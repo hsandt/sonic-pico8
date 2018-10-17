@@ -442,6 +442,8 @@ function player_character:_update_platformer_motion_grounded()
   local horizontal_dir = self.ground_speed_frame < 0 and horizontal_directions.left or horizontal_directions.right
   local next_position, next_velocity, next_motion_state = self:_compute_next_position_from_ground(horizontal_dir, self.ground_speed_frame)
 
+  self.velocity_frame = next_velocity
+
   -- jump speed
   -- unlike classic Sonic, we apply jump after motion so we can increase position and velocity
   --  for an optimal jump (SPG: Jumping mentions that jump check is done early and returns)
@@ -450,12 +452,11 @@ function player_character:_update_platformer_motion_grounded()
   local is_jumping = self:_check_jump()
   if is_jumping then
     -- don't care about future obstacles, just set the nominative velocity
-    self:_update_velocity_grounded()
+    -- self:_update_velocity_grounded()
     -- move (including jump speed y)
     self:move(self.velocity_frame)
   else
     self.position = next_position
-    self.velocity_frame = next_velocity
     self:_update_platformer_motion_state(next_motion_state)
   end
 

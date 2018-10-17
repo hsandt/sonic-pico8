@@ -1921,13 +1921,20 @@ describe('player_character', function ()
 
       describe('(when character is grounded)', function ()
 
-        it('should enter airborne state if no ground is sensed', function ()
-          player_char:_update_platformer_motion_state(false)
-          assert.are_equal(motion_states.airborne, player_char.motion_state)
+        it('when next state is airborne, should enter airborne state and reset ground speed', function ()
+          player_char:_update_platformer_motion_state(motion_states.airborne)
+          assert.are_same({
+              motion_states.airborne,
+              0
+            },
+            {
+              player_char.motion_state,
+              player_char.ground_speed_frame
+            })
         end)
 
-        it('should preserve grounded state if some ground is sensed', function ()
-          player_char:_update_platformer_motion_state(true)
+        it('when next state is grounded, should preserve grounded state', function ()
+          player_char:_update_platformer_motion_state(motion_states.grounded)
           assert.are_equal(motion_states.grounded, player_char.motion_state)
         end)
 
@@ -1939,14 +1946,23 @@ describe('player_character', function ()
           player_char.motion_state = motion_states.airborne
         end)
 
-        it('should preserve airborne state if no ground is sensed', function ()
-          player_char:_update_platformer_motion_state(false)
+        it('when next state is airborne, should preserve airborne state', function ()
+          player_char:_update_platformer_motion_state(motion_states.airborne)
           assert.are_equal(motion_states.airborne, player_char.motion_state)
         end)
 
-        it('. should enter grounded state and reset speed y and has_interrupted_jump if some ground is sensed', function ()
-          player_char:_update_platformer_motion_state(true)
-          assert.are_same({motion_states.grounded, 0, false}, {player_char.motion_state, player_char.velocity_frame.y, player_char.has_interrupted_jump})
+        it('. when next state is grounded, should enter grounded state and reset speed y and has_interrupted_jump', function ()
+          player_char:_update_platformer_motion_state(motion_states.grounded)
+          assert.are_same({
+              motion_states.grounded,
+              0,
+              false
+            },
+            {
+              player_char.motion_state,
+              player_char.velocity_frame.y,
+              player_char.has_interrupted_jump
+            })
         end)
 
       end)

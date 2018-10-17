@@ -338,7 +338,8 @@ end
 -- escape from ground if needed, and update motion state if needed based on ground sensed or not
 function player_character:_check_escape_from_ground_and_update_motion_state()
   local is_ground_sensed = self:_check_escape_from_ground()
-  self:_update_platformer_motion_state(is_ground_sensed)
+  local next_motion_state = is_ground_sensed and motion_states.grounded or motion_states.airborne
+  self:_update_platformer_motion_state(next_motion_state)
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
@@ -406,21 +407,16 @@ function player_character:_get_wall_sensor_position_from(center_position, horizo
 end
 
 -- update motion state based on whether ground was sensed this frame
-function player_character:_update_platformer_motion_state(is_ground_sensed)
-  if self.motion_state == motion_states.grounded then
-    if not is_ground_sensed then
+function player_character:_update_platformer_motion_state(next_motion_state)
+  if next_motion_state ~= self.motion_state then
+    self.motion_state = next_motion_state
+    if next_motion_state == motion_states.airborne then
       -- we have just left the ground, enter airborne state
       --  and since ground speed is now unused, reset it for clarity
-      self.motion_state = motion_states.airborne
       self.ground_speed_frame = 0
-    end
-  end
-
-  if self.motion_state == motion_states.airborne then
-    if is_ground_sensed then
+    elseif next_motion_state == motion_states.grounded then
       -- we have just reached the ground (and possibly escaped),
       --  reset values airborne vars
-      self.motion_state = motion_states.grounded
       self.velocity_frame.y = 0  -- no velocity retain yet on y
       self.has_interrupted_jump = false
     end
@@ -674,7 +670,7 @@ function player_character:_check_jump()
 
     -- only support flat ground for now
     self.velocity_frame.y = self.velocity_frame.y - initial_jump_speed
-    self:_update_platformer_motion_state(false)
+    self:_update_platformer_motion_state(motion_states.airborne)
     return true
   end
   return false
@@ -697,7 +693,7 @@ function player_character:_snap_to_ground()
     else
       -- character was in the air and couldn't snap back to ground (cliff, etc.),
       --  so enter airborne state now
-      self:_update_platformer_motion_state(false)
+      self:_update_platformer_motion_state(motion_states.airborne)
     end
   end
 end

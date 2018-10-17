@@ -1689,7 +1689,7 @@ describe('player_character', function ()
 
             -- implementation
             assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
           it('should snap y down to non-empty/full column 4 height 6 (distance <= max_ground_escape_height, only left sensor on ground)', function ()
@@ -1799,7 +1799,7 @@ describe('player_character', function ()
 
             -- implementation
             assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
         end)
@@ -1819,7 +1819,7 @@ describe('player_character', function ()
 
             -- implementation
             assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), false)
+            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
           it('should snap down to tile in same location (distance <= max_ground_snap_height)', function ()

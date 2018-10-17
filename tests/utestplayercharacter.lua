@@ -1169,7 +1169,7 @@ describe('player_character', function ()
 
           it('should do nothing when character is not touching ground at all, and return false', function ()
             player_char:set_bottom_center(vector(15, 10))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
             assert.are_same({vector(15, 10), false}, {player_char:get_bottom_center(), result})
@@ -1177,7 +1177,7 @@ describe('player_character', function ()
 
           it('should do nothing when character is just on top of the ground, and return true', function ()
             player_char:set_bottom_center(vector(15, 12))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
             assert.are_same({vector(15, 12), true}, {player_char:get_bottom_center(), result})
@@ -1185,7 +1185,7 @@ describe('player_character', function ()
 
           it('should move the character upward just enough to escape ground if character is inside ground, and return true', function ()
             player_char:set_bottom_center(vector(15, 13))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
             assert.are_same({vector(15, 12), true}, {player_char:get_bottom_center(), result})
@@ -1193,7 +1193,7 @@ describe('player_character', function ()
 
           it('should do nothing when character is too deep inside the ground, and return true', function ()
             player_char:set_bottom_center(vector(11, 13))
-            player_char:_check_escape_from_ground()
+            local result = player_char:_check_escape_from_ground()
 
             -- interface
             assert.are_same({vector(11, 13), true}, {player_char:get_bottom_center(), result})

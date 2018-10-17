@@ -344,7 +344,7 @@ end
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
-  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(self.position)
+  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(self.position)
   if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
     self:move(vector(0, signed_distance_to_closest_ground))
   end
@@ -685,7 +685,7 @@ end
 --  or the one below if the character is above ground with both sensors at empty mask colums
 -- if character is in the air and couldn't snap, enter airborne state
 function player_character:_snap_to_ground()
-  local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(self.position)
+  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(self.position)
   if signed_distance_to_closest_ground < 0 then
     local penetration_height = - signed_distance_to_closest_ground
     if penetration_height <= playercharacter_data.max_ground_escape_height then

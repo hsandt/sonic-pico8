@@ -1094,25 +1094,62 @@ describe('player_character', function ()
         local update_platformer_motion_state_stub
 
         setup(function ()
-          check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
-            return true
-          end)
           update_platformer_motion_state_stub = stub(player_character, "_update_platformer_motion_state")
         end)
 
         teardown(function ()
-          check_escape_from_ground_mock:revert()
           update_platformer_motion_state_stub:revert()
         end)
 
-        it('should call _check_escape_from_ground and call _update_platformer_motion_state with the result', function ()
-          player_char:_update_platformer_motion_airborne()
+        after_each(function ()
+          update_platformer_motion_state_stub:clear()
+        end)
 
-          -- implementation
-          assert.spy(check_escape_from_ground_mock).was_called(1)
-          assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(player_char))
-          assert.spy(update_platformer_motion_state_stub).was_called(1)
-          assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), true)
+        describe('(when _check_escape_from_ground returns true)', function ()
+
+          setup(function ()
+            check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
+              return true
+            end)
+          end)
+
+          teardown(function ()
+            check_escape_from_ground_mock:revert()
+          end)
+
+          it('should call _check_escape_from_ground and call _update_platformer_motion_state with the result', function ()
+            player_char:_update_platformer_motion_airborne()
+
+            -- implementation
+            assert.spy(check_escape_from_ground_mock).was_called(1)
+            assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(player_char))
+            assert.spy(update_platformer_motion_state_stub).was_called(1)
+            assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), motion_states.grounded)
+          end)
+
+        end)
+
+        describe('(when _check_escape_from_ground returns false)', function ()
+          setup(function ()
+            check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
+              return false
+            end)
+          end)
+
+          teardown(function ()
+            check_escape_from_ground_mock:revert()
+          end)
+
+          it('should call _check_escape_from_ground and call _update_platformer_motion_state with the result', function ()
+            player_char:_update_platformer_motion_airborne()
+
+            -- implementation
+            assert.spy(check_escape_from_ground_mock).was_called(1)
+            assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(player_char))
+            assert.spy(update_platformer_motion_state_stub).was_called(1)
+            assert.spy(update_platformer_motion_state_stub).was_called_with(match.ref(player_char), motion_states.airborne)
+          end)
+
         end)
 
       end)

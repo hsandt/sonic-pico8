@@ -1954,6 +1954,26 @@ describe('player_character', function ()
 
     end)
 
+    describe('_get_wall_sensor_position_from', function ()
+
+      it('* should return the position down-left of the character center when horizontal dir is left', function ()
+        assert.are_equal(vector(6.5, 10 + playercharacter_data.center_height_standing), player_char:_get_wall_sensor_position_from(vector(10, 10), horizontal_directions.left))
+      end)
+
+      it('should return the position down-left of the x-floored character center when horizontal dir is left', function ()
+        assert.are_equal(vector(6.5, 10 + playercharacter_data.center_height_standing), player_char:_get_wall_sensor_position_from(vector(10.9, 10), horizontal_directions.left))
+      end)
+
+      it('* should return the position down-left of the character center when horizontal dir is right', function ()
+        assert.are_equal(vector(13.5, 10 + playercharacter_data.center_height_standing), player_char:_get_wall_sensor_position_from(vector(10, 10), horizontal_directions.right))
+      end)
+
+      it('should return the position down-left of the x-floored character center when horizontal dir is right', function ()
+        assert.are_equal(vector(13.5, 10 + playercharacter_data.center_height_standing), player_char:_get_wall_sensor_position_from(vector(10.9, 10), horizontal_directions.right))
+      end)
+
+    end)
+
     describe('_update_platformer_motion_state', function ()
 
       describe('(when character is grounded)', function ()

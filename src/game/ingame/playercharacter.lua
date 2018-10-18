@@ -552,11 +552,11 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
     -- todo:
     next_position_candidate = last_position_candidate + horizontal_dir_v
     -- printh("next_position_candidate: "..stringify(next_position_candidate))
-    distance = distance + 1 * slope_cos
+    distance = distance + 1 * slope_cos  -- should always be integers anyway since we check pixels
 
     -- first check if there is a wall where we're going
-    local wall_sensor_forward = self:_get_wall_sensor_position_from(next_position_candidate)
-    local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(wall_sensor_forward)
+    -- local wall_sensor_forward = self:_get_wall_sensor_position_from(next_position_candidate)
+    -- local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(wall_sensor_forward)
 
     -- if signed_distance_to_closest_ground > playercharacter_data.max_ground_escape_height then
     --   -- we've met a step up too high, i.e. a wall, stop
@@ -590,7 +590,10 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
         -- just pop the character out when needed
         -- this way, cannot walk on will always be equivalent to "this is a wall"
         -- and the step up check will always be between neighboring columns heights, never in advance of 2px
-        last_position_candidate = vector(flr(last_position_candidate.x) - playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x, last_position_candidate.y)
+        -- snap final position to block by flooring
+        -- the character may be pushed back when moving to the right due to flooring that clears subpixels (classic Sonic just doesn't mind and keeps them)
+        local oriented_offset = horizontal_dir_v * (- playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x)
+        last_position_candidate = vector(flr(last_position_candidate.x) + oriented_offset.x, last_position_candidate.y)
         break
       end
     elseif signed_distance_to_closest_ground > 0 then
@@ -617,6 +620,32 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
     -- printh("last_position_candidate: "..stringify(last_position_candidate))
   end
 
+  if not is_blocked then
+    -- don't snap to an integer motion delta in the end, snap back to max distance
+    -- do it relatively so when slopes are added, it's still easy to get back to the right position on the slope
+
+    -- still check if ground sensor find wall more ahead
+    local wall_sensor_forward = self:_get_wall_sensor_position_from(last_position_candidate, horizontal_dir)
+    local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(wall_sensor_forward)
+
+    local penetration_height = - signed_distance_to_closest_ground
+    if penetration_height > playercharacter_data.max_ground_escape_height then
+      -- we've met a step up too high, i.e. a wall, stop
+      is_blocked = true
+      -- move back just to touch wall
+      -- reset the 0.5px toward the wall to avoid character from moving back when it detects the whole in the middle of a px
+      -- if a wall is detected, then the character position fraction is >= 0.5 so flooring and adding 0.5 will always increase it
+      -- (relatively to direction)
+      -- the character may be pushed back when moving to the right due to flooring that clears subpixels (classic Sonic just doesn't mind and keeps them)
+      local oriented_offset = horizontal_dir_v * (- playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x)
+      last_position_candidate = vector(flr(last_position_candidate.x) + oriented_offset.x, last_position_candidate.y)
+    else
+      -- no wall, so use the full max distance to recover fractional ground speed
+      local overshoot = distance - max_distance
+      last_position_candidate = last_position_candidate - overshoot * horizontal_dir_v
+    end
+  end
+
   -- printh("b: "..stringify(is_blocked))
   -- printh("a: "..stringify(is_airborne))
 
@@ -638,6 +667,7 @@ function player_character:_compute_next_position_from_ground(horizontal_dir, gro
   else
     next_motion_state = motion_states.grounded
   end
+
 
   return last_position_candidate, next_velocity, next_motion_state
 end

@@ -745,15 +745,18 @@ end
 -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
 -- character will be blocked when right wall sensor is at x = 16, so when center is at x = 12
 -- at frame 1: pos (4 + 0.0234375, 80), velocity (0.0234375, 0), grounded
--- at frame 29: pos (13.515625, 80), velocity (0.6796875, 0), about to meet wall
--- at frame 30: pos (14, 80), velocity (0, 0), stopped at wall, position clamped and speed reset to 0
-itest:add_action(time_trigger(29, true), function () end)
+-- at frame 24: pos (11.59375, 80 - 8), velocity (0.5625, 0), about to meet wall
+-- at frame 25: pos (2, 80 - 8), velocity (0, 0), about to meet wall
+-- at frame 26: pos (12.8359375, 80 - 8), velocity (0, 0), about to meet wall
+-- strange! I get vector(12.2265625, 73.0) there
+-- itest:add_action(time_trigger(26, true), function () end)  -- to test
+itest:add_action(time_trigger(27, true), function () end)
 
 -- check that player char has moved to the right and is still on the ground
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
   -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
-  local is_position_expected, position_message = almost_eq_with_message(vector(14., 80.), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_position_expected, position_message = almost_eq_with_message(vector(12., 80.), stage.state.player_character:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_character.velocity_frame, 1/256)
@@ -781,7 +784,7 @@ itest.final_assertion = function ()
 end
 
 
-itest = integration_test('platformer slope wall block right', {stage.state.type})
+itest = integration_test('#solo platformer slope wall block right', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
@@ -813,19 +816,25 @@ end
 -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
 -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
 -- character will be blocked when right wall sensor is at x = 16, so when center is at x = 12
+-- remember character must reach x=13 (not visible, inside frame calculation) to detect the wall, then snap to 12!
 -- at frame 1: pos (4 + 0.0234375, 80), velocity (0.0234375, 0), grounded
--- at frame 29: pos (13.515625, 80 - 8), velocity (0.6796875, 0), about to meet wall
--- at frame 30: pos (14, 80 - 8), velocity (0, 0), stopped at wall, position clamped and speed reset to 0
+-- at frame 24: pos (11.59375, 80 - 8), velocity (0.5625, 0), about to meet wall
+-- at frame 25: pos (2, 80 - 8), velocity (0, 0), about to meet wall
+-- at frame 26: pos (12.8359375, 80 - 8), velocity (0, 0), about to meet wall
+-- strange! I get vector(12.2265625, 73.0) there
+-- please check the accel/decel itests again as subpixel precision seem to have changed
+-- at frame 27: pos (12, 80 - 8), velocity (0, 0), stopped at wall (snapped from 13.4921875), position clamped and speed reset to 0
 -- note that speed decrease on slope is not implemented yet (via cosine but also gravity), so this test will have to change when it is
 --  when it is, prefer passing a very low slope or apply slope factor to adapt the position/velocity calculation
-itest:add_action(time_trigger(29, true), function () end)
+-- itest:add_action(time_trigger(26, true), function () end)  -- to test exact position before meeting wall
+itest:add_action(time_trigger(27, true), function () end)
 
 -- check that player char has moved to the right and is still on the ground
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'grounded', got "..stage.state.player_character.motion_state
   -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
   -- actually 13 if we use more narrow ground sensor
-  local is_position_expected, position_message = almost_eq_with_message(vector(14, 80 - 8), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_position_expected, position_message = almost_eq_with_message(vector(12, 80 - 8), stage.state.player_character:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_character.velocity_frame, 1/256)

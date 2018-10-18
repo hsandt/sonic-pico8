@@ -677,7 +677,7 @@ describe('collision', function ()
 
   end)
 
-  describe('#solo height_array', function ()
+  describe('height_array', function ()
 
     describe("mocking _fill_array", function ()
 

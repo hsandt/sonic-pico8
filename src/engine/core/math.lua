@@ -298,6 +298,12 @@ horizontal_direction_vectors = {
   vector(1., 0.)
 }
 
+-- return left if signed speed is negative, right if positive. ub unless signed speed is not 0
+function signed_speed_to_direction(signed_speed)
+  assert(signed_speed ~= 0)
+  return signed_speed < 0 and horizontal_directions.left or horizontal_directions.right
+end
+
 function oppose_direction(direction)
   return (direction + 2) % 4
 end

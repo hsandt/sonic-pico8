@@ -28,13 +28,15 @@ motion_states = {
 
 local player_character = new_class()
 
-
 -- parameters
--- spr_data             sprite_data   sprite data
+
+-- spr_data               sprite_data   sprite data
 -- debug_move_max_speed   float         move max speed in debug mode
 -- debug_move_accel       float         move acceleration in debug mode
 -- debug_move_decel       float         move deceleration in debug mode
+
 -- state vars
+
 -- control_mode           control_modes control mode: human (default) or ai
 -- motion_mode            motion_modes  motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states motion state (platformer mode only)
@@ -68,12 +70,6 @@ function player_character:_init()
   self.should_jump = false
   self.has_interrupted_jump = false
 end
-
---#if log
-function player_character:_tostring()
- return "[player_character at "..self.position.."]"
-end
---#endif
 
 -- spawn character at given position, and escape from ground / enter airborne state if needed
 function player_character:spawn_at(position)
@@ -339,7 +335,7 @@ end
 function player_character:_check_escape_from_ground_and_update_motion_state()
   local is_ground_sensed = self:_check_escape_from_ground()
   local next_motion_state = is_ground_sensed and motion_states.grounded or motion_states.airborne
-  self:_update_platformer_motion_state(next_motion_state)
+  self:_enter_motion_state(next_motion_state)
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
@@ -368,7 +364,7 @@ end
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
 function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
   local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
-  -- REFACTOR: we may also floor the coord x at the beginning of _compute_next_position_from_ground
+  -- REFACTOR: we may also floor the coord x at the beginning of _compute_ground_motion_result
   -- once and for all
 
   -- ignore subpixels on x for ground detection
@@ -392,7 +388,7 @@ end
 -- return the position of the wall sensor in horizontal_dir when the character center is at center_position
 function player_character:_get_wall_sensor_position_from(center_position, horizontal_dir)
   local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
-  -- REFACTOR: we may also floor the coord x at the beginning of _compute_next_position_from_ground
+  -- REFACTOR: we may also floor the coord x at the beginning of _compute_ground_motion_result
   -- once and for all
 
   -- ignore subpixels on x for ground detection
@@ -406,77 +402,57 @@ function player_character:_get_wall_sensor_position_from(center_position, horizo
   end
 end
 
--- update motion state based on whether ground was sensed this frame
-function player_character:_update_platformer_motion_state(next_motion_state)
-  if next_motion_state ~= self.motion_state then
-    self.motion_state = next_motion_state
-    if next_motion_state == motion_states.airborne then
-      -- we have just left the ground, enter airborne state
-      --  and since ground speed is now unused, reset it for clarity
-      self.ground_speed_frame = 0
-    elseif next_motion_state == motion_states.grounded then
-      -- we have just reached the ground (and possibly escaped),
-      --  reset values airborne vars
-      self.velocity_frame.y = 0  -- no velocity retain yet on y
-      self.has_interrupted_jump = false
-    end
+-- enter motion state, reset state vars appropriately
+function player_character:_enter_motion_state(next_motion_state)
+  self.motion_state = next_motion_state
+  if next_motion_state == motion_states.airborne then
+    -- we have just left the ground, enter airborne state
+    --  and since ground speed is now unused, reset it for clarity
+    self.ground_speed_frame = 0
+    self.should_jump = false
+  elseif next_motion_state == motion_states.grounded then
+    -- we have just reached the ground (and possibly escaped),
+    --  reset values airborne vars
+    self.velocity_frame.y = 0  -- no velocity retain yet on y
+    self.has_interrupted_jump = false
   end
 end
 
--- update velocity and position based on current motion state
+-- update velocity, position and state based on current motion state
 function player_character:_update_platformer_motion()
+  -- check for jump before apply motion, so character can jump at the beginning of the motion
+  --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
+  --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
+  if self.motion_state == motion_states.grounded then
+    self:_check_jump()  -- this may change the motion state to airborne
+  end
+
   if self.motion_state == motion_states.grounded then
     self:_update_platformer_motion_grounded()
-  elseif self.motion_state == motion_states.airborne then
+  else  -- self.motion_state == motion_states.airborne
     self:_update_platformer_motion_airborne()
   end
 end
 
 -- update motion following platformer grounded motion rules
 function player_character:_update_platformer_motion_grounded()
-  -- ground speed
   self:_update_ground_speed()
-  -- self:_update_velocity_grounded()
 
-  -- optimize: if ground_speed == 0, we can skip the whole motion
-  local horizontal_dir = self.ground_speed_frame < 0 and horizontal_directions.left or horizontal_directions.right
-  local next_position, next_velocity, next_motion_state = self:_compute_next_position_from_ground(horizontal_dir, self.ground_speed_frame)
+  local ground_motion_result = self:_compute_ground_motion_result()
 
   self.velocity_frame = next_velocity
+  self.position = ground_motion_result.position
 
-  -- jump speed
-  -- unlike classic Sonic, we apply jump after motion so we can increase position and velocity
-  --  for an optimal jump (SPG: Jumping mentions that jump check is done early and returns)
-  -- note that we are not checking if the ground will be left with the ground motion this frame,
-  --  effectively allowing the player to confirm jump the frame the character leaves the ground (late jump)
-  local is_jumping = self:_check_jump()
-  if is_jumping then
-    -- don't care about future obstacles, just set the nominative velocity
-    -- self:_update_velocity_grounded()
-    -- move (including jump speed y)
-    self:move(self.velocity_frame)
+  if ground_motion_result.is_blocked then
+    self.velocity_frame = vector.zero()
   else
-    self.position = next_position
-    self:_update_platformer_motion_state(next_motion_state)
+    self.velocity_frame = vector(self.ground_speed_frame, 0)
   end
 
-
-  if not is_jumping then
-    -- character is not leaving the ground, so update position following current ground curve
-    --  by always snapping to the ground vertically
-    -- note than on convex slope masks, this will move the character a bit faster,
-    --  and on concave slope masks, a bit slower than we would expect with a pixel-based
-    --  curviline estimation (because the velocity is based on an average slope)
-
-    -- not needed if motion is pixel perfect already
-    -- self:_snap_to_ground()
-
-    if self.motion_state == motion_states.grounded then
-      -- character is still on ground, prepare for any jump next frame
-      -- note that we are not forbidding jump when character is too deep inside the ground
-      --  if it allows the character to jump out of this abnormal case, that's fine
-      self:_check_jump_intention()
-    end
+  if ground_motion_result.is_falling then
+    self:_enter_motion_state(motion_states.airborne)
+  else
+    self:_check_jump_intention()
   end
 end
 
@@ -502,174 +478,100 @@ function player_character:_update_ground_speed()
   end
 end
 
--- update velocity based on ground speed
-function player_character:_update_velocity_grounded()
-  -- only support flat ground for now
-  self.velocity_frame = vector(self.ground_speed_frame, 0)
+-- return {next_position: vector, is_blocked: bool, is_falling: bool} where
+--  - next_position is the position of the character next frame considering his current ground speed
+--  - is_blocked is true iff the character encounters a wall during this motion
+--  - is_falling is true iff the character leaves the ground just by running during this motion
+function player_character:_compute_ground_motion_result()
+  -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
+  if self.ground_speed_frame == 0 then
+    return self.position, false, false
+  end
+
+  local horizontal_dir = signed_speed_to_direction(self.ground_speed_frame)
+
+  -- initialise result
+  local ground_motion_result = {
+    position = vector(flr(self.position.x), self.position.y),
+    is_blocked = false,
+    is_falling = false
+  }
+
+  -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
+  --  so first estimate how many full pixel columns the character may actually explore this frame
+  local max_column_distance = self._compute_max_column_distance(self.position.x, self.ground_speed_frame)
+
+  -- iterate pixel by pixel on the x direction until max possible distance is reached
+  --  only stopping if the character is blocked by a wall (not if falling, since we want
+  --  him to continue moving in the air as far as possible; in edge cases, he may even
+  --  touch the ground again some pixels farther)
+  local column_distance = 1
+  while column_distance <= max_column_distance and not ground_motion_result.is_blocked do
+    self:_next_ground_step(horizontal_dir, ground_motion_result)
+    column_distance = column_distance + 1
+  end
+
+  -- if character can move to full extent permitted by ground speed this frame
+  --  without being blocked, use the non-floored final position to preserve subpixels
+  if current_column_distance == max_column_distance then
+    ground_motion_result.position.x = self.position.x + self.ground_speed_frame
+  end
+
+  return ground_motion_result
 end
 
--- return (next_position, next_motion_state) where
---  next_position is the next position if the character is moving on quadrant 0
---  along horizontal_dir, at ground_speed, from the current position;
---  next_motion_state is 'airborne' if the character will leave ground, else 'grounded'
--- the computation takes the slope of the ground into account to reduce
---  ground_speed by a factor if applicable
--- it also distinguishes step-ups from walls (that are step-ups "too high")
--- the next position is said "ground position" because motion follows ground,
---  but may be in the air
--- we assume the character is already on ground. if he's not, the method will still work,
---  the character will simply try to move to the next columns in this tile from his current
---  position, and if the columns are empty, he will look for the tile below (and fall
---  of the step down is too high, which is very likely)
-function player_character:_compute_next_position_from_ground(horizontal_dir, ground_speed_frame)
-  -- identify the current ground tile
-  -- get column height array and slope
-  -- compute the distance to run over x based on ground speed and slope
-  -- iterate over the columns over that distance, checking for step-up/wall each step
-  -- if you leave the current tile by moving on x, just move to the next tile and repeat as long
-  --  as there is some distance left to travel
-  -- if a column is full or empty, check the tile above or below, then continue iterating
-  --  from that new height
+-- return the number of new pixel columns explored when moving from initial_position_x
+--  over ground_speed_frame * 1 frame. this is either flr(ground_speed_frame)
+--  or flr(ground_speed_frame) + 1 depending on how subpixels sum up
+function player_character._compute_max_column_distance(initial_position_x, ground_speed_frame)
+  return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
+end
 
-  -- return self.position, motion_states.grounded
-  -- maybe update in-place
+-- update ground_motion_result with 1 pixel step in horizontal_dir
+--  ground_motion_result.position.x should be floored for these steps
+function player_character:_next_ground_step(horizontal_dir, ground_motion_result)
+  -- compute candidate position on next step. only flat slopes supported
+  local step_vec = horizontal_direction_vectors[horizontal_dir]
+  local next_position_candidate = ground_motion_result.position + step_vec
 
-  -- count on flooring inside _compute_signed_distance_to_closest_ground...
-  local last_position_candidate = self.position
-  local next_position_candidate
-  local horizontal_dir_v = horizontal_direction_vectors[horizontal_dir]
-  -- printh(stringify(horizontal_dir_v))
-
-  local is_blocked = false
-  local is_airborne = false
-
-  -- todo: fill this with tile data
-  local slope_cos = 1
-  local slope_sin = 0
-  local distance = 0
-  local max_distance = abs(ground_speed_frame) * slope_cos
-  while distance < max_distance do
-    -- todo:
-    next_position_candidate = last_position_candidate + horizontal_dir_v
-    -- printh("next_position_candidate: "..stringify(next_position_candidate))
-    distance = distance + 1 * slope_cos  -- should always be integers anyway since we check pixels
-
-    -- first check if there is a wall where we're going
-    -- local wall_sensor_forward = self:_get_wall_sensor_position_from(next_position_candidate)
-    -- local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(wall_sensor_forward)
-
-    -- if signed_distance_to_closest_ground > playercharacter_data.max_ground_escape_height then
-    --   -- we've met a step up too high, i.e. a wall, stop
-    --   is_blocked = true
-    --   -- optionally clamp the position to the wall (classic Sonic doesn't)
-    --   last_position_candidate = vector(flr(last_position_candidate.x), last_position_candidate.y)
-    --   break
-    -- end
-
-    -- or recompute distance from the start position to avoid accumulation errors
-    local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(next_position_candidate)
-
-    if signed_distance_to_closest_ground < 0 then
-      local penetration_height = - signed_distance_to_closest_ground
-      if penetration_height <= playercharacter_data.max_ground_escape_height then
-        -- move up the future position prediction point
-        last_position_candidate = next_position_candidate - vector(0, penetration_height)
-        -- if we left the ground "in the middle of the frame", snap back to ground
-        is_airborne = false
-      else
-        -- todo: actually, wall sensor are 1px farther than ground sensor,
-        --  so we'd need _compute_signed_distance_to_closest_ground to check both
-        --  distances... to detect wall like here, the farther sensor, and to detect fall like above
-        --  and slo for snapping up/down, the ground sensor...
-        -- for now, we use the same for both
-        -- we've met a step up too high, i.e. a wall, stop
-        is_blocked = true
-        -- optionally clamp the position to the wall (classic Sonic doesn't)
-        -- last_position_candidate = vector(flr(last_position_candidate.x), last_position_candidate.y)
-
-        -- just pop the character out when needed
-        -- this way, cannot walk on will always be equivalent to "this is a wall"
-        -- and the step up check will always be between neighboring columns heights, never in advance of 2px
-        -- snap final position to block by flooring
-        -- the character may be pushed back when moving to the right due to flooring that clears subpixels (classic Sonic just doesn't mind and keeps them)
-        local oriented_offset = horizontal_dir_v * (- playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x)
-        last_position_candidate = vector(flr(last_position_candidate.x) + oriented_offset.x, last_position_candidate.y)
-        break
-      end
-    elseif signed_distance_to_closest_ground > 0 then
-      if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
-        -- move down the future position prediction point
-        last_position_candidate = next_position_candidate + vector(0, signed_distance_to_closest_ground)
-        -- if we left the ground "in the middle of the frame", snap back to ground
-        -- and do as nothing happened
-        is_airborne = false
-      else
-        -- character was in the air and couldn't snap back to ground (cliff, etc.),
-        is_airborne = true
-        -- this doesn't mean that the motion is over yet... it's rare,
-        -- but the character could snap back on ground. in most cases he'll just
-        -- run a little farther in the air
-        -- since we have no reference, we just continue running along the same direction (slope)
-        -- every step
-        -- beware sinus orientation convention
-        last_position_candidate = next_position_candidate + vector(0, ground_speed_frame * slope_sin)
-      end
-    else
-      last_position_candidate = next_position_candidate
-    end
-    -- printh("last_position_candidate: "..stringify(last_position_candidate))
-  end
-
-  if not is_blocked then
-    -- don't snap to an integer motion delta in the end, snap back to max distance
-    -- do it relatively so when slopes are added, it's still easy to get back to the right position on the slope
-
-    -- still check if ground sensor find wall more ahead
-    local wall_sensor_forward = self:_get_wall_sensor_position_from(last_position_candidate, horizontal_dir)
-    local signed_distance_to_closest_ground = self:_compute_signed_distance_to_closest_ground(wall_sensor_forward)
-
+  -- check if next position is inside/above ground
+  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(next_position_candidate)
+  if signed_distance_to_closest_ground < 0 then
+    -- position is inside ground, check if we can step up during this step
     local penetration_height = - signed_distance_to_closest_ground
-    if penetration_height > playercharacter_data.max_ground_escape_height then
-      -- we've met a step up too high, i.e. a wall, stop
-      is_blocked = true
-      -- move back just to touch wall
-      -- reset the 0.5px toward the wall to avoid character from moving back when it detects the whole in the middle of a px
-      -- if a wall is detected, then the character position fraction is >= 0.5 so flooring and adding 0.5 will always increase it
-      -- (relatively to direction)
-      -- the character may be pushed back when moving to the right due to flooring that clears subpixels (classic Sonic just doesn't mind and keeps them)
-      local oriented_offset = horizontal_dir_v * (- playercharacter_data.wall_sensor_extent_x + playercharacter_data.ground_sensor_extent_x)
-      last_position_candidate = vector(flr(last_position_candidate.x) + oriented_offset.x, last_position_candidate.y)
+    if penetration_height <= playercharacter_data.max_ground_escape_height then
+      -- step up
+      next_position_candidate.y = next_position_candidate.y - penetration_height
+      -- if we left the ground during a previous step, cancel that
+      ground_motion_result.is_falling = false
     else
-      -- no wall, so use the full max distance to recover fractional ground speed
-      local overshoot = distance - max_distance
-      last_position_candidate = last_position_candidate - overshoot * horizontal_dir_v
+      -- step up is too high, character is blocked
+      -- if character left the ground during a previous step, let it this way;
+      --  character will simply hit the wall, then fall
+      ground_motion_result.is_blocked = true
     end
-  end
-
-  -- printh("b: "..stringify(is_blocked))
-  -- printh("a: "..stringify(is_airborne))
-
-  local next_velocity
-  if is_blocked then
-    -- self.velocity = vector.zero()
-    next_velocity = vector.zero()
+  elseif signed_distance_to_closest_ground > 0 then
+    -- position is above ground, check if we can step down during this step
+    if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
+      -- step down
+      next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+      -- if character left the ground during a previous step, cancel that
+      ground_motion_result.is_falling = false
+    else
+      -- step down is too low, character will fall
+      -- in some rare instances, character may find ground again farther, so don't stop
+      ground_motion_result.is_falling = true
+    end
   else
-    local velocity = horizontal_dir_v * ground_speed_frame
-    next_velocity = vector(velocity.x * slope_cos, velocity.y * slope_sin)
-  end
-  -- printh("next_velocity: "..stringify(next_velocity))
-  -- printh("last_position_candidate: "..stringify(last_position_candidate))
-
-  local next_motion_state
-  if is_airborne then
-    -- self:_update_platformer_motion_state(false)
-    next_motion_state = motion_states.airborne
-  else
-    next_motion_state = motion_states.grounded
+    -- if character left the ground during a previous step, cancel that
+    ground_motion_result.is_falling = false
   end
 
-
-  return last_position_candidate, next_velocity, next_motion_state
+  -- only advance if character is not blocked (else, preserve previous position,
+  --  which should be floored)
+  if not ground_motion_result.is_blocked then
+    ground_motion_result.position = next_position_candidate
+  end
 end
 
 -- if character intends to jump, prepare jump for next frame
@@ -697,11 +599,14 @@ function player_character:_check_jump()
     else
       -- hop
       initial_jump_speed = playercharacter_data.jump_interrupt_speed_frame
+      -- mark jump as interrupted so we don't check it again
+      --  (optional, since we will never be able to interrupt such a small jump anyway)
+      self.has_interrupted_jump = true
     end
 
     -- only support flat ground for now
     self.velocity_frame.y = self.velocity_frame.y - initial_jump_speed
-    self:_update_platformer_motion_state(motion_states.airborne)
+    self:_enter_motion_state(motion_states.airborne)
     return true
   end
   return false
@@ -724,7 +629,7 @@ function player_character:_snap_to_ground()
     else
       -- character was in the air and couldn't snap back to ground (cliff, etc.),
       --  so enter airborne state now
-      self:_update_platformer_motion_state(motion_states.airborne)
+      self:_enter_motion_state(motion_states.airborne)
     end
   end
 end

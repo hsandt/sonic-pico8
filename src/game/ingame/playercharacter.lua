@@ -74,7 +74,27 @@ end
 -- spawn character at given position, and escape from ground / enter airborne state if needed
 function player_character:spawn_at(position)
   self.position = position
-  self:_check_escape_from_ground_and_update_motion_state()
+
+  -- character is initialized grounded, but let him fall if he is spawned in the air
+  local is_grounded = self:_check_escape_from_ground()
+  if not is_grounded then
+    self:_enter_motion_state(motion_states.airborne)
+  end
+end
+
+-- move the player character so that the bottom center is at the given position
+function player_character:get_bottom_center()
+  return self.position + vector(0, playercharacter_data.center_height_standing)
+end
+
+-- move the player character so that the bottom center is at the given position
+function player_character:set_bottom_center(bottom_center_position)
+  self.position = bottom_center_position - vector(0, playercharacter_data.center_height_standing)
+end
+
+-- move the player character from delta_vector in px
+function player_character:move_by(delta_vector)
+  self.position = self.position + delta_vector
 end
 
 -- update player position
@@ -85,68 +105,6 @@ function player_character:update()
     self:_update_debug()
   end
 end
-
--- -- return signed distance to closest ground, either negative when (in abs, penetration height)
--- --  or positive (actual distance to ground), always clamped to tile_size+1
--- -- if both sensors have different signed distances,
--- --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
--- function player_character:_compute_signed_distance_to_closest_ground()
-
---   -- initialize with negative value to return if the character is not intersecting ground
---   local min_signed_distance = 1 / 0  -- max (32768, but never enter it manually as it would be negative)
-
---   -- check both ground sensors for ground. if any finds ground, return true
---   for i in all({horizontal_directions.left, horizontal_directions.right}) do
-
---     -- find the tile where this ground sensor is located
---     local sensor_position = self:_get_ground_sensor_position(i)
---     local sensor_location = sensor_position:to_location()
-
---     -- get column on the collision mask that the ground sensor should check (ground sensor extent x
---     --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
---     -- note that this is slightly suboptimal as we won't use column_index0 at all if _compute_column_height_at returns early
-
---     local sensor_location_topleft = sensor_location:to_topleft_position()
---     local sensor_relative_x = sensor_position.x - sensor_location_topleft.x
---     local column_index0 = flr(sensor_relative_x)  -- from 0 to tile_size - 1
---     local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
-
---     -- compute relative height of sensor from tile bottom (y axis is downward)
---     local sensor_location_bottom = sensor_location_topleft.y + tile_size
---     local sensor_height = sensor_location_bottom - sensor_position.y
---     assert(sensor_height > 0, "player_character:_compute_signed_distance_to_closest_ground: sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
-
---     -- check that ground sensor #i is on top of or below the mask column
---     local signed_distance = sensor_height - ground_column_height
-
---     -- note: if character is inside a tile but his feet are just at the bottom of this tile
---     --  and the signed distance will be computed by checking any tile below (if no tile, will be tile_size+1)
---     -- so always add a solid ground below a step up or a slope to avoid the character falling there
---     -- if you want to check that case as well, check if sensor_height == tile_size, and in this case
---     --  check the tiles above first, e.g. using _compute_stacked_column_height_above
-
---     if ground_column_height == tile_size then
---       -- column is full (reaches the top of the tile), we must check if there are any tiles
---       --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
---       --  the added value by tile_size minus what we've already got)
---       assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
---       signed_distance = signed_distance - self:_compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
---     elseif ground_column_height == 0 then
---       -- column is empty, check for more space below, up to a tile size
---       assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
---       signed_distance = signed_distance + self:_compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
---     end
-
---     -- store the biggest penetration height among sensors
---     if signed_distance < min_signed_distance then
---       min_signed_distance = signed_distance
---     end
-
---   end
-
---   return min_signed_distance
-
--- end
 
 -- return signed distance to closest ground when character center is at center_position,
 --  either negative when (in abs, penetration height)
@@ -163,9 +121,7 @@ function player_character:_compute_ground_sensors_signed_distance(center_positio
 
     -- check that ground sensor #i is on top of or below the mask column
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
-    -- print("sensor_position: "..sensor_position)
     local signed_distance = self:_compute_signed_distance_to_closest_ground(sensor_position)
-    -- print("signed_distance: "..signed_distance)
 
     -- store the biggest penetration height among sensors
     if signed_distance < min_signed_distance then
@@ -176,6 +132,19 @@ function player_character:_compute_ground_sensors_signed_distance(center_positio
 
   return min_signed_distance
 
+end
+
+-- return the position of the ground sensor in horizontal_dir when the character center is at center_position
+-- this preserves subpixels, although column calculations will floor them in the end
+function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
+  local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
+  local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
+
+  if horizontal_dir == horizontal_directions.left then
+    return bottom_center - right_offset
+  else
+    return bottom_center + right_offset
+  end
 end
 
 -- return signed distance to closest ground from sensor_position,
@@ -202,8 +171,6 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
 
   -- check that ground sensor #i is on top of or below the mask column
   local signed_distance = sensor_height - ground_column_height
-  -- print("ground_column_height: "..ground_column_height)
-  -- print("signed_distance 2: "..signed_distance)
 
   -- note: if character is inside a tile but his feet are just at the bottom of this tile
   --  and the signed distance will be computed by checking any tile below (if no tile, will be tile_size+1)
@@ -211,18 +178,22 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
   -- if you want to check that case as well, check if sensor_height == tile_size, and in this case
   --  check the tiles above first, e.g. using _compute_stacked_column_height_above
 
+  -- however, the best is to solve the more general problem of detecting tiles at the upper level
+  --  of the character. for instance, he may walk from a bottom half-tile toward a full tile one tile higher
+  --  in which case checking sensor_height == tile_size won't help, yet the character's head would bump into the
+  --  ceiling and the character should stop. so we'll need to check all extra column heights above step-up level
+  --  that may overlap the character's new position (using his colliding height)
+
   if ground_column_height == tile_size then
     -- column is full (reaches the top of the tile), we must check if there are any tiles
     --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
     --  the added value by tile_size minus what we've already got)
     assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
     signed_distance = signed_distance - self:_compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
-    -- print("signed_distance 3: "..signed_distance)
   elseif ground_column_height == 0 then
     -- column is empty, check for more space below, up to a tile size
     assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
     signed_distance = signed_distance + self:_compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
-    -- print("signed_distance 4: "..signed_distance)
   end
 
   return signed_distance
@@ -331,75 +302,14 @@ function player_character:_compute_column_height_at(tile_location, column_index0
 
 end
 
--- escape from ground if needed, and update motion state if needed based on ground sensed or not
-function player_character:_check_escape_from_ground_and_update_motion_state()
-  local is_ground_sensed = self:_check_escape_from_ground()
-  local next_motion_state = is_ground_sensed and motion_states.grounded or motion_states.airborne
-  self:_enter_motion_state(next_motion_state)
-end
-
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
   local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(self.position)
   if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
-    self:move(vector(0, signed_distance_to_closest_ground))
+    self.position.y = self.position.y + signed_distance_to_closest_ground
   end
   return signed_distance_to_closest_ground <= 0
-end
-
--- function player_character:_get_ground_sensor_position(horizontal_dir)
---   -- ignore subpixels on x for ground detection
---   local bottom_center = self:get_bottom_center()
---   local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
---   local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
-
---   if horizontal_dir == horizontal_directions.left then
---     return pixel_perfect_bottom_center - right_offset
---   else
---     return pixel_perfect_bottom_center + right_offset
---   end
--- end
-
--- return the position of the ground sensor in horizontal_dir when the character center is at center_position
-function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
-  local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
-  -- REFACTOR: we may also floor the coord x at the beginning of _compute_ground_motion_result
-  -- once and for all
-
-  -- ignore subpixels on x for ground detection
-  local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
-  local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
-  -- print("bottom_center: "..bottom_center)
-  -- print("pixel_perfect_bottom_center: "..pixel_perfect_bottom_center)
-  -- print("right_offset: "..right_offset)
-
-  if horizontal_dir == horizontal_directions.left then
-    -- print("left")
-    -- print("pixel_perfect_bottom_center - right_offset: "..pixel_perfect_bottom_center - right_offset)
-    return pixel_perfect_bottom_center - right_offset
-  else
-    -- print("right")
-    -- print("pixel_perfect_bottom_center + right_offset: "..pixel_perfect_bottom_center + right_offset)
-    return pixel_perfect_bottom_center + right_offset
-  end
-end
-
--- return the position of the wall sensor in horizontal_dir when the character center is at center_position
-function player_character:_get_wall_sensor_position_from(center_position, horizontal_dir)
-  local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
-  -- REFACTOR: we may also floor the coord x at the beginning of _compute_ground_motion_result
-  -- once and for all
-
-  -- ignore subpixels on x for ground detection
-  local pixel_perfect_bottom_center = vector(flr(bottom_center.x), bottom_center.y)
-  local right_offset = vector(playercharacter_data.wall_sensor_extent_x, 0)
-
-  if horizontal_dir == horizontal_directions.left then
-    return pixel_perfect_bottom_center - right_offset
-  else
-    return pixel_perfect_bottom_center + right_offset
-  end
 end
 
 -- enter motion state, reset state vars appropriately
@@ -437,10 +347,7 @@ end
 -- update motion following platformer grounded motion rules
 function player_character:_update_platformer_motion_grounded()
   self:_update_ground_speed()
-
   local ground_motion_result = self:_compute_ground_motion_result()
-
-  self.velocity_frame = next_velocity
   self.position = ground_motion_result.position
 
   if ground_motion_result.is_blocked then
@@ -485,7 +392,11 @@ end
 function player_character:_compute_ground_motion_result()
   -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
   if self.ground_speed_frame == 0 then
-    return self.position, false, false
+    return {
+      position = self.position,
+      is_blocked = false,
+      is_falling = false
+    }
   end
 
   local horizontal_dir = signed_speed_to_direction(self.ground_speed_frame)
@@ -513,7 +424,7 @@ function player_character:_compute_ground_motion_result()
 
   -- if character can move to full extent permitted by ground speed this frame
   --  without being blocked, use the non-floored final position to preserve subpixels
-  if current_column_distance == max_column_distance then
+  if not ground_motion_result.is_blocked then
     ground_motion_result.position.x = self.position.x + self.ground_speed_frame
   end
 
@@ -621,11 +532,11 @@ function player_character:_snap_to_ground()
   if signed_distance_to_closest_ground < 0 then
     local penetration_height = - signed_distance_to_closest_ground
     if penetration_height <= playercharacter_data.max_ground_escape_height then
-      self:move(vector(0, signed_distance_to_closest_ground))  -- move up
+      self.position.y = self.position.y + signed_distance_to_closest_ground  -- move up
     end
   elseif signed_distance_to_closest_ground > 0 then
     if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
-      self:move(vector(0, signed_distance_to_closest_ground))  -- move down
+      self.position.y = self.position.y + signed_distance_to_closest_ground  -- move down
     else
       -- character was in the air and couldn't snap back to ground (cliff, etc.),
       --  so enter airborne state now
@@ -647,10 +558,13 @@ function player_character:_update_platformer_motion_airborne()
   self.velocity_frame.x = self.velocity_frame.x + self.move_intention.x * playercharacter_data.air_accel_x_frame2
 
   -- apply air motion
-  self:move(self.velocity_frame)
+  self:move_by(self.velocity_frame)
 
   -- detect ground and snap up for landing
-  self:_check_escape_from_ground_and_update_motion_state()
+  local has_landed = self:_check_escape_from_ground()
+  if has_landed then
+    self:_enter_motion_state(motion_states.grounded)
+  end
 end
 
 -- check if character wants to interrupt jump by not holding anymore,
@@ -672,7 +586,7 @@ end
 -- update the velocity and position of the character following debug motion rules
 function player_character:_update_debug()
   self:_update_velocity_debug()
-  self:move(self.debug_velocity * delta_time)
+  self:move_by(self.debug_velocity * delta_time)
 end
 
 function player_character:_update_velocity_debug()
@@ -696,21 +610,6 @@ function player_character:_update_velocity_component_debug(coord)
       self.debug_velocity[coord] = sgn(self.debug_velocity[coord]) * max(abs(self.debug_velocity[coord]) - self.debug_move_decel * delta_time, 0)
     end
   end
-end
-
--- move the player character so that the bottom center is at the given position
-function player_character:get_bottom_center()
-  return self.position + vector(0, playercharacter_data.center_height_standing)
-end
-
--- move the player character so that the bottom center is at the given position
-function player_character:set_bottom_center(bottom_center_position)
-  self.position = bottom_center_position - vector(0, playercharacter_data.center_height_standing)
-end
-
--- move the player character from delta_vector in px
-function player_character:move(delta_vector)
-  self.position = self.position + delta_vector
 end
 
 -- render the player character sprite at its current position

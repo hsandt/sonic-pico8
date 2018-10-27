@@ -10,6 +10,16 @@ develop
 
 A partial clone of classic Sonic the Hedgehog games made with PICO-8
 
+## Progress
+
+Version: 2.1
+
+Features:
+
+* Character runs on flat ground and slopes
+* Character is blocked by walls when running
+* Characters jumps with variable height (no head collision, buggy wall collision)
+
 ## Build dependency
 
 ### picotool

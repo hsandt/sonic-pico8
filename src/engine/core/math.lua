@@ -294,8 +294,13 @@ horizontal_directions = {
 }
 
 horizontal_direction_vectors = {
-  vector(-1., 0.),
-  vector(1., 0.)
+  vector(-1., 0.),  -- to left
+  vector(1., 0.)    -- to right
+}
+
+horizontal_direction_signs = {
+  -1,               -- left sign
+  1                 -- right sign
 }
 
 -- return left if signed speed is negative, right if positive. ub unless signed speed is not 0

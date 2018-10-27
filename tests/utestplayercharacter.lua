@@ -6,6 +6,31 @@ local tile_test_data = require("game/test_data/tile_test_data")
 
 describe('player_character', function ()
 
+  -- static method
+  describe('_compute_max_column_distance', function ()
+
+    it('(2, 0) => 0', function ()
+      assert.are_equal(0, player_character._compute_max_column_distance(2, 0))
+    end)
+
+    it('(2, 1.5) => 1', function ()
+      assert.are_equal(1, player_character._compute_max_column_distance(2, 1.5))
+    end)
+
+    it('(2, 3) => 3', function ()
+      assert.are_equal(3, player_character._compute_max_column_distance(2, 3))
+    end)
+
+    it('(2.2, 1.7) => 1', function ()
+      assert.are_equal(1, player_character._compute_max_column_distance(2.2, 1.7))
+    end)
+
+    it('(2.2, 1.8) => 2', function ()
+      assert.are_equal(2, player_character._compute_max_column_distance(2.2, 1.8))
+    end)
+
+  end)
+
   describe('_init', function ()
 
     it('should create a player character at the origin with zero velocity and move_intention', function ()
@@ -312,7 +337,7 @@ describe('player_character', function ()
             assert.are_equal(tile_size+1, player_char:_compute_ground_sensors_signed_distance(vector(5, 8 - playercharacter_data.center_height_standing)))
           end)
 
-          it('(with x flooring) should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
+          it('#solo (with x flooring) should return tile_size+1 if left sensor is in the air on the left of the tile and pixel-perfect right sensor is just touching the left of the tile, with right ground sensor 0.5px away from it, just at the ground\'s height', function ()
             player_char:set_bottom_center(vector(5.9, 8))  -- right ground sensor @ (7.5, 8)
             assert.are_equal(tile_size+1, player_char:_compute_ground_sensors_signed_distance(vector(5.9, 8 - playercharacter_data.center_height_standing)))
           end)
@@ -712,19 +737,19 @@ describe('player_character', function ()
       describe('_get_ground_sensor_position_from', function ()
 
         it('* should return the position down-left of the character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10, 10), horizontal_directions.left))
+          assert.are_equal(vector(7, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10, 10), horizontal_directions.left))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_directions.left))
+          assert.are_equal(vector(7, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_directions.left))
         end)
 
         it('* should return the position down-left of the character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10, 10), horizontal_directions.right))
+          assert.are_equal(vector(12, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10, 10), horizontal_directions.right))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12.5, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_directions.right))
+          assert.are_equal(vector(12, 10 + playercharacter_data.center_height_standing), player_char:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_directions.right))
         end)
 
       end)
@@ -751,15 +776,11 @@ describe('player_character', function ()
           -- on top
 
           it('+ should return tile_size+1 if just at ground height but slightly on the left', function ()
-            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground(vector(7.5, 8)))
-          end)
-
-          it('(with x flooring) should return tile_size+1 if just at ground height but slightly on the left', function ()
-            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground(vector(7.9, 8)))
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground(vector(7, 8)))
           end)
 
           it('should return 0 if just at the top of the topleft-most pixel of the tile', function ()
-            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground(vector(8.5, 8)))
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return 0 if just at the top of tile, in the middle', function ()
@@ -767,11 +788,7 @@ describe('player_character', function ()
           end)
 
           it('should return 0 if just at the top of the right-most pixel', function ()
-            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground(vector(15.5, 8)))
-          end)
-
-          it('(with flooring) if just at the top of the right-most pixel', function ()
-            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground(vector(15.9, 8)))
+            assert.are_equal(0, player_char:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
           it('should return tile_size+1 if just at ground height but slightly on the right', function ()
@@ -799,7 +816,7 @@ describe('player_character', function ()
           -- just inside the bottom
 
           it('should return tile_size+1 if just on the left of the bottom-left pixel, y at 0.0625 above the bottom', function ()
-            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground(vector(7.5, 16 - 0.0625)))
+            assert.are_equal(tile_size+1, player_char:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625)))
           end)
 
           it('should return -(8 - 0.0625) if 0.0625 inside the bottom-left pixel', function ()
@@ -1705,7 +1722,7 @@ describe('player_character', function ()
 
       end)
 
-      describe('#solo _compute_ground_motion_result', function ()
+      describe('_compute_ground_motion_result', function ()
 
         describe('(when ground_speed_frame is 0)', function ()
 
@@ -1723,185 +1740,516 @@ describe('player_character', function ()
           end)
         end)
 
-        describe('(when ground_speed_frame is -2.5)', function ()
 
-          before_each(function ()
-            player_char.position = vector(3, 4)
-            player_char.ground_speed_frame = -2.5
+        describe('(when _next_ground_step moves ground_motion_result.position.x by 1px in the horizontal_dir without blocking nor falling)', function ()
+
+          local next_ground_step_mock
+
+          setup(function ()
+            next_ground_step_mock = stub(player_character, "_next_ground_step", function (self, horizontal_dir, ground_motion_result)
+              local step_vec = horizontal_direction_vectors[horizontal_dir]
+              ground_motion_result.position = ground_motion_result.position + step_vec
+            end)
           end)
 
-          -- we assume _compute_max_column_distance is correct, so it should return 2
+          teardown(function ()
+            next_ground_step_mock:revert()
+          end)
 
-          -- todo next
-
-          it('should return the current position, is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3, 4)
+            player_char.ground_speed_frame = 0.5
+            -- we assume _compute_max_column_distance is correct, so it should return 0
+            -- but as there is no blocking, the remaining subpixels will still be added
 
             assert.are_same({
-                position = vector(3, 4),
+                position = vector(3.5, 4),
                 is_blocked = false,
                 is_falling = false
               },
               player_char:_compute_ground_motion_result()
             )
           end)
+
+          it('(vector(3.5, 4) at speed 0.5) should return vector(0.5, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3.5, 4)
+            player_char.ground_speed_frame = 0.5
+            -- we assume _compute_max_column_distance is correct, so it should return 1
+
+            assert.are_same({
+                position = vector(4, 4),
+                is_blocked = false,
+                is_falling = false
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(3, 4) at speed -2.5) should return vector(0.5, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3, 4)
+            player_char.ground_speed_frame = -2.5
+
+            assert.are_same({
+                position = vector(0.5, 4),
+                is_blocked = false,
+                is_falling = false
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+        end)
+
+        describe('(when _next_ground_step moves ground_motion_result.position.x by 1px in the horizontal_dir, but blocks when ground_motion_result.position.x >= 5)', function ()
+
+          local next_ground_step_mock
+
+          setup(function ()
+            next_ground_step_mock = stub(player_character, "_next_ground_step", function (self, horizontal_dir, ground_motion_result)
+              local step_vec = horizontal_direction_vectors[horizontal_dir]
+              if ground_motion_result.position.x < 5 then
+                ground_motion_result.position = ground_motion_result.position + step_vec
+              else
+                ground_motion_result.is_blocked = true
+              end
+            end)
+          end)
+
+          teardown(function ()
+            next_ground_step_mock:revert()
+          end)
+
+          -- it will fail until we check an extra column for a wall when max column distance is 0
+          it('(vector(5, 4) at speed 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(5, 4)
+            player_char.ground_speed_frame = 0.5
+            -- we assume _compute_max_column_distance is correct, so it should return 0
+            -- however, we should exceptionally check an extra column for a wall
+            --  when the max column distance is 0, so the we will still be blocked at x=5
+
+            assert.are_same({
+                position = vector(5, 4),
+                is_blocked = true,
+                is_falling = false
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+            -- this is possible e.g. if character walked along 1.5 from x=4
+            -- to reduce computation we didn't check an extra column for a wall
+            --  at that time, but starting next frame we will, effectively clamping
+            --  the character to x=5
+            player_char.position = vector(5.5, 4)
+            player_char.ground_speed_frame = 0.5
+            -- we assume _compute_max_column_distance is correct, so it should return 1
+            -- but we will be blocked by the wall anyway
+
+            assert.are_same({
+                position = vector(5, 4),
+                is_blocked = true,
+                is_falling = false
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(3, 4) at speed 3) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3, 4)
+            player_char.ground_speed_frame = 3.5
+            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- but because of the blocking, we stop at x=5 instead of 6.5
+
+            assert.are_same({
+                position = vector(5, 4),
+                is_blocked = true,
+                is_falling = false
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+        end)
+
+        describe('(when _next_ground_step moves ground_motion_result.position.x by 1px in the horizontal_dir on x < 7, falls on 5 <= x < 7 and blocks on x >= 7)', function ()
+
+          local next_ground_step_mock
+
+          setup(function ()
+            next_ground_step_mock = stub(player_character, "_next_ground_step", function (self, horizontal_dir, ground_motion_result)
+              local step_vec = horizontal_direction_vectors[horizontal_dir]
+              if ground_motion_result.position.x < 7 then
+                ground_motion_result.position = ground_motion_result.position + step_vec
+              end
+              if ground_motion_result.position.x >= 5 then
+                if ground_motion_result.position.x < 7 then
+                  ground_motion_result.is_falling = true
+                else
+                  ground_motion_result.is_blocked = true
+                end
+              end
+            end)
+          end)
+
+          teardown(function ()
+            next_ground_step_mock:revert()
+          end)
+
+          it('(vector(3, 4) at speed 3) should return vector(6, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3, 4)
+            player_char.ground_speed_frame = 3
+            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- we are falling but not blocked, so we continue running in the air until x=6
+
+            assert.are_same({
+                position = vector(6, 4),
+                is_blocked = false,
+                is_falling = true
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(3, 4) at speed 3) should return vector(7, 4), is_blocked: false, is_falling: false', function ()
+            player_char.position = vector(3, 4)
+            player_char.ground_speed_frame = 5
+            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- we are falling then blocked on 7
+
+            assert.are_same({
+                position = vector(7, 4),
+                is_blocked = true,
+                is_falling = true
+              },
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
         end)
 
       end)
 
-      describe('_compute_next_position_from_ground', function ()
+      describe('_next_ground_step', function ()
+
+        local ground_motion_result
+
+        before_each(function ()
+          ground_motion_result = {
+            position = vector(),
+            is_blocked = false,
+            is_falling = false
+          }
+        end)
+
+        -- for these utests, we assume that _compute_ground_sensors_signed_distance is correct
+        --  rather than mocking it, so we setup simple tiles to walk on
 
         describe('(with flat ground)', function ()
 
           before_each(function ()
-            mset(0, 10, 64)  -- full tile
-            mset(1, 10, 64)  -- full tile
+            mset(0, 1, 64)  -- full tile
           end)
 
-          it('when moving right, return a position grounded at the same height', function ()
-            player_char:set_bottom_center(vector(4.1, 80))
+          it('when stepping left with the right sensor still on the ground, decrement x', function ()
+            ground_motion_result = {
+              position = vector(-1, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step flat
+            player_char:_next_ground_step(horizontal_directions.left, ground_motion_result)
+
             assert.are_same({
-                vector(12.1, 80 - playercharacter_data.center_height_standing),
-                vector(8, 0),
-                motion_states.grounded
+                position = vector(-2, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = false
               },
-              {player_char:_compute_next_position_from_ground(horizontal_directions.right, 8)})
+              ground_motion_result
+            )
           end)
 
-          it('when moving right with a fractional speed, return a position grounded at the same height with fractional pos', function ()
-            player_char:set_bottom_center(vector(4.1, 80))
+          it('when stepping right with the left sensor still on the ground, increment x', function ()
+            ground_motion_result = {
+              position = vector(9, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step flat
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
             assert.are_same({
-                vector(4.35, 80 - playercharacter_data.center_height_standing),
-                vector(0.25, 0),
-                motion_states.grounded
+                position = vector(10, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = false
               },
-              {player_char:_compute_next_position_from_ground(horizontal_directions.right, 0.25)})
+              ground_motion_result
+            )
           end)
 
-          it('return a position airborne at the same height when moving right beyond the ground tiles', function ()
-            player_char:set_bottom_center(vector(4, 80))
+          it('when stepping left leaving the ground, decrement x and fall', function ()
+            ground_motion_result = {
+              position = vector(-2, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step fall
+            player_char:_next_ground_step(horizontal_directions.left, ground_motion_result)
+
             assert.are_same({
-                vector(19, 80 - playercharacter_data.center_height_standing),
-                vector(15, 0),
-                motion_states.airborne
+                position = vector(-3, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = true
               },
-              {player_char:_compute_next_position_from_ground(horizontal_directions.right, 15)})
+              ground_motion_result
+            )
+          end)
+
+          it('when stepping right leaving the ground, increment x and fall', function ()
+            ground_motion_result = {
+              position = vector(10, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step fall
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(11, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = true
+              },
+              ground_motion_result
+            )
+          end)
+
+          it('when stepping right back on the ground, increment x and cancel fall', function ()
+            ground_motion_result = {
+              position = vector(-3, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = true
+            }
+
+            -- step land (very rare)
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(-2, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
         end)
 
-        describe('(with descending slope on the left)', function ()
+        describe('(with walls)', function ()
 
           before_each(function ()
-            mset(0, 10, 66)  -- descending slope
-            mset(0, 11, 64)  -- full tile
-            mset(1, 11, 64)  -- full tile
-            -- mset(2, 9, 72)   -- low tile
-            -- mset(3, 9, 72)   -- low tile
-            -- mset(3, 8, 71)  -- quarter-tile (bottom-right quarter)
+            -- X X
+            -- XXX
+            mset(0, 0, 64)  -- full tile (left wall)
+            mset(0, 1, 64)  -- full tile
+            mset(1, 1, 64)  -- full tile
+            mset(2, 0, 64)  -- full tile
+            mset(2, 1, 64)  -- full tile (right wall)
           end)
 
-          it('when moving left, return a position on the slope (left ground sensor in contact), velocity, grounded', function ()
-            player_char:set_bottom_center(vector(12.1, 88))
-            -- 12.1 - 7.2 = 4.9
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.left, 7.2)
-            assert.is_true(almost_eq_with_message(vector(4.9, 81 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector(-7.2, 0), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+          it('when stepping left and hitting the wall, preserve x and block', function ()
+            ground_motion_result = {
+              position = vector(3, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step block
+            player_char:_next_ground_step(horizontal_directions.left, ground_motion_result)
+
+            assert.are_same({
+                position = vector(3, 8 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
+          end)
+
+          it('when stepping right and hitting the wall, preserve x and block', function ()
+            ground_motion_result = {
+              position = vector(5, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step block
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(5, 8 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
         end)
 
-        describe('(with blocking wall on the right)', function ()
+        describe('(with wall without ground below)', function ()
 
           before_each(function ()
-            mset(0, 10, 64)  -- full tile
-            mset(1, 10, 64)  -- full tile
-            mset(1, 9, 64)  -- full tile
+            --  X
+            -- X
+            mset(0, 1, 64)  -- full tile (ground)
+            mset(1, 0, 64)  -- full tile (wall without ground below)
           end)
 
-          it('when moving right before touching the wall, return a position snapped to the wall, velocity preserved, grounded', function ()
-            player_char:set_bottom_center(vector(3.5, 80))
-            -- 3.5 + 0.6 = 4.1 still before 5, so character hasn't detected wall yet although the pixel-aligned sprite already matches the contact position
-            -- subpixel is preserved
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.right, 0.6)
-            print("next_position: "..next_position)
-            assert.is_true(almost_eq_with_message(vector(4.1, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector(0.6, 0), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
-          end)
+          -- it will fail until _compute_signed_distance_to_closest_ground
+          --  detects upper-level tiles as suggested in the note
+          it('when stepping right on the ground and hitting the head wall, preserve x and block', function ()
+            ground_motion_result = {
+              position = vector(5, 8 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
 
-          it('when moving right to touch the wall + some fraction, return a position snapped to the wall, velocity 0, grounded', function ()
-            player_char:set_bottom_center(vector(3.5, 80))
-            -- 3.5 + 1.5 = 5.0 snapped to 4.0
-            -- subpixels are cleared, so character is moving a bit backward (when moving to the right) to push, but that is not visible on the sprite
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.right, 1.5)
-            print("next_position: "..next_position)
-            assert.is_true(almost_eq_with_message(vector(8 - playercharacter_data.wall_sensor_extent_x - 0.5, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector.zero(), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
-          end)
+            -- step block
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
 
-          it('when moving right with at least 1px of overshoot beyond the wall, return a position snapped to the wall, velocity 0, grounded', function ()
-            player_char:set_bottom_center(vector(3.5, 80))
-            -- 3.5 + 3.5 = 7 snapped to 4.0
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.right, 3.5)
-            assert.is_true(almost_eq_with_message(vector(8 - playercharacter_data.wall_sensor_extent_x - 0.5, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector.zero(), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+            assert.are_same({
+                position = vector(5, 8 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
         end)
 
-        describe('(with blocking wall on the left)', function ()
-
-          -- note that because of subpixels ignored for collision but cleared on contact, tests are asymmetrical
+        describe('(with head wall)', function ()
 
           before_each(function ()
-            mset(0, 9, 64)  -- full tile
-            mset(0, 10, 64)  -- full tile
-            mset(1, 10, 64)  -- full tile
+            --  X
+            -- =
+            mset(0, 1, 70)  -- bottom half-tile
+            mset(1, 0, 64)  -- full tile (head wall)
           end)
 
-          it('when moving left before touching the wall, return a position snapped to the wall, velocity 0, grounded', function ()
-            player_char:set_bottom_center(vector(13.5, 80))
-            -- 13.5 - 0.6 = 12.9 still after 12, so character hasn't detected wall yet although the pixel-aligned sprite already matches the contact position
-            -- subpixel is preserved
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.left, 0.6)
-            print("next_position: "..next_position)
-            assert.is_true(almost_eq_with_message(vector(12.9, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector(-0.6, 0), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+          -- it will fail until _compute_signed_distance_to_closest_ground
+          --  detects upper-level tiles as suggested in the note
+          it('when stepping right on the half-tile and hitting the head wall, preserve x and block', function ()
+            ground_motion_result = {
+              position = vector(5, 12 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step block
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(5, 12 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
-          it('when moving left just to touch the wall, return a position snapped to the wall, velocity preserved, grounded', function ()
-            player_char:set_bottom_center(vector(13.5, 80))
-            -- 13.5 - 1.5 = 12.0 preserved
-            -- subpixels are cleared, so character is moving a bit backward (when moving to the left) to push, but that is not visible on the sprite
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.left, 1.5)
-            print("next_position: "..next_position)
-            assert.is_true(almost_eq_with_message(vector(8 + playercharacter_data.wall_sensor_extent_x + 0.5, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector(-1.5, 0), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+        end)
+
+        describe('(with ascending slope and wall)', function ()
+
+          before_each(function ()
+            -- X X
+            -- X/X
+            mset(0, 0, 64)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
+            mset(0, 1, 64)  -- full tile (wall)
+            mset(1, 1, 65)  -- ascending slope
+            mset(2, 0, 64)  -- full tile (wall)
+            mset(2, 1, 64)  -- full tile (supporting ground, optional if the 2 non-supported wall tests above pass)
           end)
 
-          it('when moving left just to touch the wall (+ some fraction), return a position snapped to the wall, velocity 0, grounded', function ()
-            player_char:set_bottom_center(vector(13.5, 80))
-            -- 13.5 - 1.6 = 11.9 snapped to 12.0
-            -- subpixels are cleared, so character is moving a bit backward (when moving to the left) to push, but that is not visible on the sprite
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.left, 1.6)
-            print("next_position: "..next_position)
-            assert.is_true(almost_eq_with_message(vector(8 + playercharacter_data.wall_sensor_extent_x + 0.5, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector.zero(), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+          it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
+            ground_motion_result = {
+              position = vector(12, 9 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step down
+            player_char:_next_ground_step(horizontal_directions.left, ground_motion_result)
+
+            assert.are_same({
+                position = vector(11, 10 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
-          it('when moving left with at least 1px of overshoot beyond the wall, return a position snapped to the wall, velocity 0, grounded', function ()
-            player_char:set_bottom_center(vector(13.5, 80))
-            -- 13.5 - 3.5 = 10 snapped to 12.0
-            local next_position, next_velocity, next_motion_state = player_char:_compute_next_position_from_ground(horizontal_directions.left, 3.5)
-            assert.is_true(almost_eq_with_message(vector(8 + playercharacter_data.wall_sensor_extent_x + 0.5, 80 - playercharacter_data.center_height_standing), next_position, 1/256))
-            assert.is_true(almost_eq_with_message(vector.zero(), next_velocity, 1/256))
-            assert.are_equal(motion_states.grounded, next_motion_state)
+          it('when stepping right on the ascending slope without leaving the ground, decrement x and adjust y', function ()
+            ground_motion_result = {
+              position = vector(12, 9 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step up
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(13, 8 - playercharacter_data.center_height_standing),
+                is_blocked = false,
+                is_falling = false
+              },
+              ground_motion_result
+            )
+          end)
+
+          it('when stepping right on the ascending slope and hitting the right wall, preserve x and y and block', function ()
+            ground_motion_result = {
+              position = vector(13, 10 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step up blocked
+            player_char:_next_ground_step(horizontal_directions.right, ground_motion_result)
+
+            assert.are_same({
+                position = vector(13, 10 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
+          end)
+
+          it('when stepping left on the ascending slope and hitting the left wall, preserve x and y and block', function ()
+            ground_motion_result = {
+              position = vector(11, 10 - playercharacter_data.center_height_standing),
+              is_blocked = false,
+              is_falling = false
+            }
+
+            -- step down blocked
+            player_char:_next_ground_step(horizontal_directions.left, ground_motion_result)
+
+            assert.are_same({
+                position = vector(11, 10 - playercharacter_data.center_height_standing),
+                is_blocked = true,
+                is_falling = false
+              },
+              ground_motion_result
+            )
           end)
 
         end)
@@ -1957,15 +2305,15 @@ describe('player_character', function ()
       describe('_snap_to_ground', function ()
 
         setup(function ()
-          spy.on(player_character, "_update_platformer_motion_state")
+          spy.on(player_character, "_enter_motion_state")
         end)
 
         teardown(function ()
-          player_character._update_platformer_motion_state:revert()
+          player_character._enter_motion_state:revert()
         end)
 
         after_each(function ()
-          player_character._update_platformer_motion_state:clear()
+          player_character._enter_motion_state:clear()
         end)
 
         describe('(1 quarter-tile tile on top of full tile)', function ()
@@ -1983,7 +2331,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(4, 12)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
           it('should NOT snap y up to quarter-tile on tile above (distance > max_ground_escape_height)', function ()
@@ -1993,7 +2341,7 @@ describe('player_character', function ()
             -- interface
             assert.are_same({motion_states.grounded, vector(4, 17)}, {player_char.motion_state, player_char:get_bottom_center()})
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
         end)
@@ -2013,8 +2361,8 @@ describe('player_character', function ()
             assert.are_same({motion_states.airborne, vector(1, 5)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
+            assert.spy(player_character._enter_motion_state).was_called(1)
+            assert.spy(player_character._enter_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
           it('should snap y down to non-empty/full column 4 height 6 (distance <= max_ground_escape_height, only left sensor on ground)', function ()
@@ -2025,7 +2373,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
           it('should NOT snap when character is already just on the ground', function ()
@@ -2035,7 +2383,7 @@ describe('player_character', function ()
             -- interface
             assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
 
           end)
 
@@ -2047,7 +2395,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(1, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
           it('should NOT snap y down to surface column 4 height 6 (distance > max_ground_escape_height)', function ()
@@ -2057,7 +2405,7 @@ describe('player_character', function ()
             -- interface
             assert.are_same({motion_states.grounded, vector(1, 15)}, {player_char.motion_state, player_char:get_bottom_center()})
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
 
           end)
 
@@ -2069,7 +2417,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(7, 8)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
           it('should snap y up to surface full column 2 with nothing above (right tile) at height 8 (distance <= max_ground_escape_height) ground right sensor on ground, left above ground)', function ()
@@ -2080,7 +2428,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(7, 8)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
           it('should snap y down to non-empty/full column 6 (left tile) and column 3 (right tile) at same height 7 (both sensors on ground)', function ()
@@ -2091,7 +2439,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(8, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
 
           end)
 
@@ -2111,7 +2459,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(4, 10)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
 
           end)
 
@@ -2123,8 +2471,8 @@ describe('player_character', function ()
             assert.are_same({motion_states.airborne, vector(4, 5)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
+            assert.spy(player_character._enter_motion_state).was_called(1)
+            assert.spy(player_character._enter_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
         end)
@@ -2143,8 +2491,8 @@ describe('player_character', function ()
             assert.are_same({motion_states.airborne, vector(4, 9)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_called(1)
-            assert.spy(player_character._update_platformer_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
+            assert.spy(player_character._enter_motion_state).was_called(1)
+            assert.spy(player_character._enter_motion_state).was_called_with(match.ref(player_char), motion_states.airborne)
           end)
 
           it('should snap down to tile in same location (distance <= max_ground_snap_height)', function ()
@@ -2155,7 +2503,7 @@ describe('player_character', function ()
             assert.are_same({motion_states.grounded, vector(4, 14)}, {player_char.motion_state, player_char:get_bottom_center()})
 
             -- implementation
-            assert.spy(player_character._update_platformer_motion_state).was_not_called()
+            assert.spy(player_character._enter_motion_state).was_not_called()
           end)
 
         end)
@@ -2165,21 +2513,17 @@ describe('player_character', function ()
       describe('_update_platformer_motion_airborne', function ()
 
         local check_hold_jump_stub
-        local check_escape_from_ground_and_update_motion_state_stub
 
         setup(function ()
           check_hold_jump_stub = stub(player_character, "_check_hold_jump")
-          check_escape_from_ground_and_update_motion_state_stub = stub(player_character, "_check_escape_from_ground_and_update_motion_state")
         end)
 
         teardown(function ()
           check_hold_jump_stub:revert()
-          check_escape_from_ground_and_update_motion_state_stub:revert()
         end)
 
         after_each(function ()
           check_hold_jump_stub:clear()
-          check_escape_from_ground_and_update_motion_state_stub:clear()
         end)
 
         it('. should apply gravity to speed y', function ()
@@ -2208,8 +2552,6 @@ describe('player_character', function ()
           -- implementation
           assert.spy(check_hold_jump_stub).was_called(1)
           assert.spy(check_hold_jump_stub).was_called_with(match.ref(player_char))
-          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called(1)
-          assert.spy(check_escape_from_ground_and_update_motion_state_stub).was_called_with(match.ref(player_char))
         end)
 
       end)  -- _update_platformer_motion_airborne
@@ -2220,7 +2562,7 @@ describe('player_character', function ()
 
       before_each(function ()
         -- optional, just to enter airborne state and be in a meaningful state
-        player_char:_update_platformer_motion_state(false)
+        player_char:_enter_motion_state(motion_states.airborne)
       end)
 
       it('should interrupt the jump when still possible and hold_jump_intention is false', function ()

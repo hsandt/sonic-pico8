@@ -31,15 +31,9 @@ return {
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis
   -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)
   --  so we can get the right pixel when offsetting to the left and flooring
+  -- note that we don't define wall_sensor_extent_x, which is assumed to be ground_sensor_extent_x + 1
+  -- see comment in player_character:_next_ground_step on last block
   ground_sensor_extent_x = 2.5,
-
-  -- half-width of wall sensors, i.e. x distance of a wall sensor from the character's center vertical axis
-  -- should be greater than (or equal to) ground_sensor_extent_x to match Classic Sonic behavior
-  -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)
-  --  so we can get the right pixel when offsetting to the left and flooring
-  -- note that the sensor detects walls at future positions where the character should *not* be,
-  --  so detecting a wall means the character should snap to the position just in front of it
-  wall_sensor_extent_x = 3.5,
 
   -- height between the character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
   center_height_standing = 8,

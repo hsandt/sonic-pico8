@@ -135,22 +135,24 @@ function player_character:_compute_ground_sensors_signed_distance(center_positio
 end
 
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
--- this preserves subpixels, although column calculations will floor them in the end
+-- subpixels are ignored
 function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
-  local bottom_center = center_position + vector(0, playercharacter_data.center_height_standing)
-  local right_offset = vector(playercharacter_data.ground_sensor_extent_x, 0)
+  -- ignore subpixels from center position in x
+  local x_floored_center_position = vector(flr(center_position.x), center_position.y)
+  local x_floored_bottom_center = x_floored_center_position + vector(0, playercharacter_data.center_height_standing)
 
-  if horizontal_dir == horizontal_directions.left then
-    return bottom_center - right_offset
-  else
-    return bottom_center + right_offset
-  end
+  -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
+  local offset_x = flr(horizontal_direction_signs[horizontal_dir] * playercharacter_data.ground_sensor_extent_x)
+
+  return x_floored_bottom_center + vector(offset_x, 0)
 end
 
--- return signed distance to closest ground from sensor_position,
+-- return signed distance to closest ground from floored sensor_position,
 --  either negative when (in abs, penetration height)
 --  or positive (actual distance to ground), always abs clamped to tile_size+1
 function player_character:_compute_signed_distance_to_closest_ground(sensor_position)
+
+  assert(flr(sensor_position.x) == sensor_position.x, "player_character:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
 
   -- find the tile where this sensor is located
   local sensor_location = sensor_position:to_location()
@@ -160,8 +162,7 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
   -- note that this is slightly suboptimal as we won't use column_index0 at all if _compute_column_height_at returns early
 
   local sensor_location_topleft = sensor_location:to_topleft_position()
-  local sensor_relative_x = sensor_position.x - sensor_location_topleft.x
-  local column_index0 = flr(sensor_relative_x)  -- from 0 to tile_size - 1
+  local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
   local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
 
   -- compute relative height of sensor from tile bottom (y axis is downward)
@@ -183,6 +184,9 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
   --  in which case checking sensor_height == tile_size won't help, yet the character's head would bump into the
   --  ceiling and the character should stop. so we'll need to check all extra column heights above step-up level
   --  that may overlap the character's new position (using his colliding height)
+
+  -- note that even classic Sonic only checks ceiling when moving up, but being blocked
+  --  by all kinds of high step ups when moving horizontally is still important and classic Sonic does it
 
   if ground_column_height == tile_size then
     -- column is full (reaches the top of the tile), we must check if there are any tiles
@@ -433,7 +437,7 @@ end
 
 -- return the number of new pixel columns explored when moving from initial_position_x
 --  over ground_speed_frame * 1 frame. this is either flr(ground_speed_frame)
---  or flr(ground_speed_frame) + 1 depending on how subpixels sum up
+--  or flr(ground_speed_frame) + 1 (if subpixels from initial position x and speed sum up to 1.0 or more)
 function player_character._compute_max_column_distance(initial_position_x, ground_speed_frame)
   return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
 end
@@ -453,10 +457,10 @@ function player_character:_next_ground_step(horizontal_dir, ground_motion_result
     if penetration_height <= playercharacter_data.max_ground_escape_height then
       -- step up
       next_position_candidate.y = next_position_candidate.y - penetration_height
-      -- if we left the ground during a previous step, cancel that
+      -- if we left the ground during a previous step, cancel that (step up land, very rare)
       ground_motion_result.is_falling = false
     else
-      -- step up is too high, character is blocked
+      -- step blocked: step up is too high, character is blocked
       -- if character left the ground during a previous step, let it this way;
       --  character will simply hit the wall, then fall
       ground_motion_result.is_blocked = true
@@ -466,20 +470,25 @@ function player_character:_next_ground_step(horizontal_dir, ground_motion_result
     if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
-      -- if character left the ground during a previous step, cancel that
+      -- if character left the ground during a previous step, cancel that (step down land, very rare)
       ground_motion_result.is_falling = false
     else
-      -- step down is too low, character will fall
-      -- in some rare instances, character may find ground again farther, so don't stop
+      -- step fall: step down is too low, character will fall
+      -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
       ground_motion_result.is_falling = true
     end
   else
-    -- if character left the ground during a previous step, cancel that
+    -- step flat
+    -- if character left the ground during a previous step, cancel that (very rare)
     ground_motion_result.is_falling = false
   end
 
   -- only advance if character is not blocked (else, preserve previous position,
   --  which should be floored)
+  -- this only works because the wall sensors are 1px farther from the character
+  --  center than the ground sensors; if there were even farther, we'd even need to
+  --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
+  --  when ground_motion_result.is_blocked
   if not ground_motion_result.is_blocked then
     ground_motion_result.position = next_position_candidate
   end

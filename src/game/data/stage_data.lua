@@ -26,7 +26,7 @@ return {
       spawn_location = location(2, 6),
 
       -- the x to reach to finish the stage
-      goal_x = 24 * 8,
+      goal_x = 50 * 8,
 
       -- background color
       background_color = colors.dark_blue,

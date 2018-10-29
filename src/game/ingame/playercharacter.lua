@@ -55,6 +55,10 @@ function player_character:_init()
   self.debug_move_accel = playercharacter_data.debug_move_accel
   self.debug_move_decel = playercharacter_data.debug_move_decel
 
+  self:_setup()
+end
+
+function player_character:_setup()
   self.control_mode = control_modes.human
   self.motion_mode = motion_modes.platformer
   self.motion_state = motion_states.grounded
@@ -73,6 +77,8 @@ end
 
 -- spawn character at given position, and escape from ground / enter airborne state if needed
 function player_character:spawn_at(position)
+  self:_setup()
+  
   self.position = position
 
   -- character is initialized grounded, but let him fall if he is spawned in the air

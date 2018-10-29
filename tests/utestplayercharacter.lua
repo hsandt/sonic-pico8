@@ -34,7 +34,57 @@ describe('player_character', function ()
 
   describe('_init', function ()
 
-    it('should create a player character at the origin with zero velocity and move_intention', function ()
+    setup(function ()
+      spy.on(player_character, "_setup")
+    end)
+
+    teardown(function ()
+      player_character._setup:revert()
+    end)
+
+    after_each(function ()
+      player_character._setup:clear()
+    end)
+
+    it('should create a player character and setup all the state vars', function ()
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
+
+      -- implementation
+      assert.spy(player_character._setup).was_called(1)
+      assert.spy(player_character._setup).was_called_with(match.ref(player_char))
+    end)
+
+    it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
+      assert.are_same({control_modes.human, motion_modes.platformer, motion_states.grounded},
+        {player_char.control_mode, player_char.motion_mode, player_char.motion_state})
+    end)
+
+    it('should create a player character storing values from playercharacter_data', function ()
+      local player_char = player_character()
+      assert.is_not_nil(player_char)
+      assert.are_same(
+        {
+          playercharacter_data.character_sprite_data,
+          playercharacter_data.debug_move_max_speed,
+          playercharacter_data.debug_move_accel,
+          playercharacter_data.debug_move_decel
+        },
+        {
+          player_char.spr_data,
+          player_char.debug_move_max_speed,
+          player_char.debug_move_accel,
+          player_char.debug_move_decel
+        }
+      )
+    end)
+  end)
+
+  describe('_setup', function ()
+
+    it('should reset the character state vars', function ()
       local player_char = player_character()
       assert.is_not_nil(player_char)
       assert.are_same(
@@ -63,31 +113,6 @@ describe('player_character', function ()
       )
     end)
 
-    it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
-      local player_char = player_character()
-      assert.is_not_nil(player_char)
-      assert.are_same({control_modes.human, motion_modes.platformer, motion_states.grounded},
-        {player_char.control_mode, player_char.motion_mode, player_char.motion_state})
-    end)
-
-    it('should create a player character storing values from playercharacter_data', function ()
-      local player_char = player_character()
-      assert.is_not_nil(player_char)
-      assert.are_same(
-        {
-          playercharacter_data.character_sprite_data,
-          playercharacter_data.debug_move_max_speed,
-          playercharacter_data.debug_move_accel,
-          playercharacter_data.debug_move_decel
-        },
-        {
-          player_char.spr_data,
-          player_char.debug_move_max_speed,
-          player_char.debug_move_accel,
-          player_char.debug_move_decel
-        }
-      )
-    end)
   end)
 
   describe('(with player character, speed 60, debug accel 480)', function ()

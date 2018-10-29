@@ -416,6 +416,24 @@ function player_character:_compute_ground_motion_result()
   --  so first estimate how many full pixel columns the character may actually explore this frame
   local max_column_distance = self._compute_max_column_distance(self.position.x, self.ground_speed_frame)
 
+  -- if character is moving by a few subpixels but not enough to reach the next full pixel,
+  -- the
+
+  if max_column_distance == 0 then
+    self:_next_ground_step(horizontal_dir, ground_motion_result)
+  else
+
+    -- iterate pixel by pixel on the x direction until max possible distance is reached
+    --  only stopping if the character is blocked by a wall (not if falling, since we want
+    --  him to continue moving in the air as far as possible; in edge cases, he may even
+    --  touch the ground again some pixels farther)
+    local column_distance = 1
+    while column_distance <= max_column_distance and not ground_motion_result.is_blocked do
+      self:_next_ground_step(horizontal_dir, ground_motion_result)
+      column_distance = column_distance + 1
+    end
+
+  end
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
   --  him to continue moving in the air as far as possible; in edge cases, he may even

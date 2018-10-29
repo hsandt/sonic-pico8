@@ -151,6 +151,27 @@ function aabb:intersects(other)
   return signed_distance <= 0
 end
 
+-- struct representing the expected result of a character move over a frame,
+--  computed step by step
+local ground_motion_result = new_struct()
+collision.ground_motion_result = ground_motion_result
+
+-- position     vector   position at the end of motion
+-- is_blocked   bool     was the character blocked during motion?
+-- is_falling   bool     should the character fall after this motion?
+function ground_motion_result:_init(position, is_blocked, is_falling)
+  self.position = position
+  self.is_blocked = is_blocked
+  self.is_falling = is_falling
+end
+
+--#if log
+function ground_motion_result:_tostring()
+  return "ground_motion_result("..joinstr(", ", self.position, self.is_blocked, self.is_falling)..")"
+end
+--#endif
+
+
 local height_array = new_struct()
 collision.height_array = height_array
 

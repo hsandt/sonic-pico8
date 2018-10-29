@@ -396,61 +396,59 @@ end
 function player_character:_compute_ground_motion_result()
   -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
   if self.ground_speed_frame == 0 then
-    return {
-      position = self.position,
-      is_blocked = false,
-      is_falling = false
-    }
+    return collision.ground_motion_result(
+      self.position,
+      false,
+      false
+    )
   end
 
   local horizontal_dir = signed_speed_to_direction(self.ground_speed_frame)
 
   -- initialise result
-  local ground_motion_result = {
-    position = vector(flr(self.position.x), self.position.y),
-    is_blocked = false,
-    is_falling = false
-  }
+  local motion_result = collision.ground_motion_result(
+    vector(flr(self.position.x), self.position.y),
+    false,
+    false
+  )
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
   local max_column_distance = self._compute_max_column_distance(self.position.x, self.ground_speed_frame)
 
-  -- if character is moving by a few subpixels but not enough to reach the next full pixel,
-  -- the
-
-  if max_column_distance == 0 then
-    self:_next_ground_step(horizontal_dir, ground_motion_result)
-  else
-
-    -- iterate pixel by pixel on the x direction until max possible distance is reached
-    --  only stopping if the character is blocked by a wall (not if falling, since we want
-    --  him to continue moving in the air as far as possible; in edge cases, he may even
-    --  touch the ground again some pixels farther)
-    local column_distance = 1
-    while column_distance <= max_column_distance and not ground_motion_result.is_blocked do
-      self:_next_ground_step(horizontal_dir, ground_motion_result)
-      column_distance = column_distance + 1
-    end
-
-  end
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
   --  him to continue moving in the air as far as possible; in edge cases, he may even
   --  touch the ground again some pixels farther)
   local column_distance = 1
-  while column_distance <= max_column_distance and not ground_motion_result.is_blocked do
-    self:_next_ground_step(horizontal_dir, ground_motion_result)
+  while column_distance <= max_column_distance and not motion_result.is_blocked do
+    self:_next_ground_step(horizontal_dir, motion_result)
     column_distance = column_distance + 1
   end
 
-  -- if character can move to full extent permitted by ground speed this frame
-  --  without being blocked, use the non-floored final position to preserve subpixels
-  if not ground_motion_result.is_blocked then
-    ground_motion_result.position.x = self.position.x + self.ground_speed_frame
+  -- check if we need to add or cut subpixels
+  if not motion_result.is_blocked then
+    local are_subpixels_left = self.position.x + self.ground_speed_frame > motion_result.position.x
+    if are_subpixels_left then
+      -- character has not been blocked and has some subpixels left to go
+      -- check if character has touched a wall (we need an extra step to "ceil" the subpixels)
+      local extra_step_motion_result = motion_result:copy()
+      self:_next_ground_step(horizontal_dir, extra_step_motion_result)
+      if extra_step_motion_result.is_blocked then
+        -- character has just reached a wall, plus a few subpixels
+        -- unlike Classic Sonic, we decide to cut the subpixels and block the character
+        --  on the spot (we just reuse the result of the extra step, since is_falling doesn't change if is_blocked is true)
+        motion_result = extra_step_motion_result
+      else
+        -- character has not touched a wall at all, so add the remaining subpixels
+        --  (it's simpler to just recompute the full motion in x; don't touch y tough,
+        --  as it depends on the shape of the ground)
+        motion_result.position.x = self.position.x + self.ground_speed_frame
+      end
+    end
   end
 
-  return ground_motion_result
+  return motion_result
 end
 
 -- return the number of new pixel columns explored when moving from initial_position_x
@@ -460,12 +458,12 @@ function player_character._compute_max_column_distance(initial_position_x, groun
   return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
 end
 
--- update ground_motion_result with 1 pixel step in horizontal_dir
+-- update motion_result: collision.ground_motion_result with 1 pixel step in horizontal_dir
 --  ground_motion_result.position.x should be floored for these steps
-function player_character:_next_ground_step(horizontal_dir, ground_motion_result)
+function player_character:_next_ground_step(horizontal_dir, motion_result)
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = horizontal_direction_vectors[horizontal_dir]
-  local next_position_candidate = ground_motion_result.position + step_vec
+  local next_position_candidate = motion_result.position + step_vec
 
   -- check if next position is inside/above ground
   local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(next_position_candidate)
@@ -476,12 +474,12 @@ function player_character:_next_ground_step(horizontal_dir, ground_motion_result
       -- step up
       next_position_candidate.y = next_position_candidate.y - penetration_height
       -- if we left the ground during a previous step, cancel that (step up land, very rare)
-      ground_motion_result.is_falling = false
+      motion_result.is_falling = false
     else
       -- step blocked: step up is too high, character is blocked
       -- if character left the ground during a previous step, let it this way;
       --  character will simply hit the wall, then fall
-      ground_motion_result.is_blocked = true
+      motion_result.is_blocked = true
     end
   elseif signed_distance_to_closest_ground > 0 then
     -- position is above ground, check if we can step down during this step
@@ -489,16 +487,16 @@ function player_character:_next_ground_step(horizontal_dir, ground_motion_result
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
       -- if character left the ground during a previous step, cancel that (step down land, very rare)
-      ground_motion_result.is_falling = false
+      motion_result.is_falling = false
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
-      ground_motion_result.is_falling = true
+      motion_result.is_falling = true
     end
   else
     -- step flat
     -- if character left the ground during a previous step, cancel that (very rare)
-    ground_motion_result.is_falling = false
+    motion_result.is_falling = false
   end
 
   -- only advance if character is not blocked (else, preserve previous position,
@@ -506,9 +504,9 @@ function player_character:_next_ground_step(horizontal_dir, ground_motion_result
   -- this only works because the wall sensors are 1px farther from the character
   --  center than the ground sensors; if there were even farther, we'd even need to
   --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
-  --  when ground_motion_result.is_blocked
-  if not ground_motion_result.is_blocked then
-    ground_motion_result.position = next_position_candidate
+  --  when motion_result.is_blocked
+  if not motion_result.is_blocked then
+    motion_result.position = next_position_candidate
   end
 end
 

@@ -64,7 +64,12 @@ function define_output_basename {
     elif [[ $1 = "sandbox" ]]; then
         OUTPUT_BASENAME="sandbox"
     else
-        OUTPUT_BASENAME="sonic-pico8"
+        if [[ -z $BUILD_VERSION ]]; then
+            VERSION_SUFFIX=""
+        else
+            VERSION_SUFFIX="_v$BUILD_VERSION"
+        fi
+        OUTPUT_BASENAME="sonic-pico8$VERSION_SUFFIX"
     fi
 }
 

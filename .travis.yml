@@ -12,6 +12,7 @@ os:
 
 env:
   - LUA="lua 5.3"
+  - BUILD_VERSION="2.2"
 
 cache:
   apt: true  # private repositories only
@@ -60,7 +61,7 @@ script:
 deploy:
   provider: releases
   api_key: $DEPLOY_API_KEY
-  file: "build/sonic-pico8_release.p8"
+  file: "build/sonic-pico8_release_v$BUILD_VERSION.p8"
   skip_cleanup: true
   on:
     branch: master

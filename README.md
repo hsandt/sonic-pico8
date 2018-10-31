@@ -10,15 +10,20 @@ develop
 
 A partial clone of classic Sonic the Hedgehog games made with PICO-8
 
-## Progress
+## Features
 
-Version: 2.1
+Version: 2.2
 
-Features:
+### Physics
 
 * Character runs on flat ground and slopes
 * Character is blocked by walls when running
-* Characters jumps with variable height (no head collision, buggy wall collision)
+* Character jumps with variable height
+
+### Rendering
+
+* Character rendered with Idle and Spin sprite
+* Environment rendered with tilemap
 
 ## Build dependency
 
@@ -30,7 +35,7 @@ The build script (`build.sh`) only works on Unix platforms.
 
 ### Sublime Text
 
-Sublime Text 3 is not required but it can be convenient to run the build commands described in .sublime-project.
+Sublime Text 3 is not required but it makes it easy to run the build commands described in the Sublime Project file. If you use a different code editor, have a look at `sonic-2d-tech-demo.sublime-project` and copy the commands to your build file of choice.
 
 ## Test dependency
 
@@ -52,16 +57,18 @@ The .sublime-project file contains the most used commands for building the game.
 
 The most straightforward way to build and run the game on Unix platforms is:
 
-* cd path/to/sonic-pico8-repo
-* ./build.sh main game
-* pico8 -run build/game.p8
+* `cd path/to/sonic-pico8-repo`
+* `./build.sh main game`
+* `pico8 -run build/game.p8`
 
 ### Build and test
 
 To test the modules:
 
-* cd path/to/sonic-pico8-repo
-* ./test.sh all
+* `cd path/to/sonic-pico8-repo`
+* `./test.sh all` or `./test.sh all all` if you want to include `#mute` tests (longer)
+
+I try to aim for 100% test coverage before pushing but you can always verify the Travis and CodeCov badges at the top of this README.
 
 ### New project
 

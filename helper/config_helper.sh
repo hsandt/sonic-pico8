@@ -67,9 +67,9 @@ function define_output_basename {
         if [[ -z $BUILD_VERSION ]]; then
             VERSION_SUFFIX=""
         else
-            VERSION_SUFFIX="_v$BUILD_VERSION"
+            VERSION_SUFFIX="_v${BUILD_VERSION}"
         fi
-        OUTPUT_BASENAME="sonic-pico8$VERSION_SUFFIX"
+        OUTPUT_BASENAME="sonic-pico8${VERSION_SUFFIX}"
     fi
 }
 

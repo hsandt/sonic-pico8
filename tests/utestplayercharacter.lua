@@ -1335,12 +1335,14 @@ describe('player_character', function ()
           assert.are_same({
               motion_states.airborne,
               0,
-              false
+              false,
+              "spin"
             },
             {
               player_char.motion_state,
               player_char.ground_speed_frame,
-              player_char.should_jump
+              player_char.should_jump,
+              player_char.current_sprite
             })
         end)
 
@@ -1351,12 +1353,14 @@ describe('player_character', function ()
           assert.are_same({
               motion_states.grounded,
               0,
-              false
+              false,
+              "idle"
             },
             {
               player_char.motion_state,
               player_char.velocity_frame.y,
-              player_char.has_interrupted_jump
+              player_char.has_interrupted_jump,
+              player_char.current_sprite
             })
         end)
 

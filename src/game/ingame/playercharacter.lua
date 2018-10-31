@@ -334,11 +334,13 @@ function player_character:_enter_motion_state(next_motion_state)
     --  and since ground speed is now unused, reset it for clarity
     self.ground_speed_frame = 0
     self.should_jump = false
+    self.current_sprite = "spin"
   elseif next_motion_state == motion_states.grounded then
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
     self.velocity_frame.y = 0  -- no velocity retain yet on y
     self.has_interrupted_jump = false
+    self.current_sprite = "idle"
   end
 end
 

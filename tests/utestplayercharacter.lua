@@ -2692,17 +2692,21 @@ describe('player_character', function ()
       describe('_update_platformer_motion_airborne', function ()
 
         local check_hold_jump_stub
+        local enter_motion_state_stub
 
         setup(function ()
           check_hold_jump_stub = stub(player_character, "_check_hold_jump")
+          enter_motion_state_stub = stub(player_character, "_enter_motion_state")
         end)
 
         teardown(function ()
           check_hold_jump_stub:revert()
+          enter_motion_state_stub:revert()
         end)
 
         after_each(function ()
           check_hold_jump_stub:clear()
+          enter_motion_state_stub:clear()
         end)
 
         it('. should apply gravity to speed y', function ()
@@ -2725,12 +2729,59 @@ describe('player_character', function ()
           assert.are_equal(vector(4, -4 + playercharacter_data.gravity_frame2), player_char.position)
         end)
 
-        it('should call _check_hold_jump and _check_escape_from_ground_and_update_motion_state', function ()
+        it('should call _check_hold_jump', function ()
           player_char:_update_platformer_motion_airborne()
 
           -- implementation
           assert.spy(check_hold_jump_stub).was_called(1)
           assert.spy(check_hold_jump_stub).was_called_with(match.ref(player_char))
+        end)
+
+        describe('(_check_escape_from_ground returns false, so has not landed)', function ()
+
+          local check_escape_from_ground_mock
+
+          setup(function ()
+            check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
+              return false
+            end)
+          end)
+
+          teardown(function ()
+            check_escape_from_ground_mock:revert()
+          end)
+
+          it('should not enter grounded state', function ()
+            player_char:_update_platformer_motion_airborne()
+
+            -- implementation
+            assert.spy(enter_motion_state_stub).was_not_called()
+          end)
+
+        end)
+
+        describe('(_check_escape_from_ground returns true, so has landed)', function ()
+
+          local check_escape_from_ground_mock
+
+          setup(function ()
+            check_escape_from_ground_mock = stub(player_character, "_check_escape_from_ground", function ()
+              return true
+            end)
+          end)
+
+          teardown(function ()
+            check_escape_from_ground_mock:revert()
+          end)
+
+          it('should enter grounded state', function ()
+            player_char:_update_platformer_motion_airborne()
+
+            -- implementation
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(player_char), motion_states.grounded)
+          end)
+
         end)
 
       end)  -- _update_platformer_motion_airborne

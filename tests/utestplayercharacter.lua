@@ -1122,11 +1122,11 @@ describe('player_character', function ()
           end)
 
           it('should return 16 above tile (0, 2) for any column index', function ()
-            assert.are_equal(16, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 20))
+            assert.are_equal(16, player_char._compute_stacked_column_height_above(location(0, 2), 4, 20))
           end)
 
           it('should return upper_limit+1 above tile (0, 2) for any column index if upper_limit<16', function ()
-            assert.are_equal(9, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 8))
+            assert.are_equal(9, player_char._compute_stacked_column_height_above(location(0, 2), 4, 8))
           end)
 
         end)
@@ -1139,15 +1139,15 @@ describe('player_character', function ()
           end)
 
           it('should return 8 above tile (0, 2) for column index 0, 1, 2, 3', function ()
-            assert.are_equal(8, player_char:_compute_stacked_column_height_above(location(0, 2), 3, 20))
+            assert.are_equal(8, player_char._compute_stacked_column_height_above(location(0, 2), 3, 20))
           end)
 
           it('should return 12 above tile (0, 2) for column index 4, 5, 6, 7', function ()
-            assert.are_equal(12, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 20))
+            assert.are_equal(12, player_char._compute_stacked_column_height_above(location(0, 2), 4, 20))
           end)
 
           it('should return upper_limit+1 above tile (0, 2) for column index 4, 5, 6, 7 if upper_limit<12', function ()
-            assert.are_equal(5, player_char:_compute_stacked_column_height_above(location(0, 2), 4, 4))
+            assert.are_equal(5, player_char._compute_stacked_column_height_above(location(0, 2), 4, 4))
           end)
 
         end)
@@ -1157,7 +1157,7 @@ describe('player_character', function ()
       describe('_compute_stacked_empty_column_height_below', function ()
 
         it('should return upper_limit+1 when there is no tile below at all', function ()
-          assert.are_equal(21, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
+          assert.are_equal(21, player_char._compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
         end)
 
         describe('with full flat tile', function ()
@@ -1167,11 +1167,11 @@ describe('player_character', function ()
           end)
 
           it('should return 8 below tile (0, 1) for any column index', function ()
-            assert.are_equal(8, player_char:_compute_stacked_empty_column_height_below(location(0, 1), 4, 20))
+            assert.are_equal(8, player_char._compute_stacked_empty_column_height_below(location(0, 1), 4, 20))
           end)
 
           it('should return 16 below tile (0, 0) for any column index', function ()
-            assert.are_equal(16, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
+            assert.are_equal(16, player_char._compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
           end)
 
         end)
@@ -1183,15 +1183,15 @@ describe('player_character', function ()
           end)
 
           it('should return upper_limit+1 below tile (0, 2) for column index 0, 1, 2, 3', function ()
-            assert.are_equal(21, player_char:_compute_stacked_empty_column_height_below(location(0, 2), 3, 20))
+            assert.are_equal(21, player_char._compute_stacked_empty_column_height_below(location(0, 2), 3, 20))
           end)
 
           it('should return 4 below tile (0, 2) for column index 4, 5, 6, 7', function ()
-            assert.are_equal(4, player_char:_compute_stacked_empty_column_height_below(location(0, 2), 4, 20))
+            assert.are_equal(4, player_char._compute_stacked_empty_column_height_below(location(0, 2), 4, 20))
           end)
 
           it('should return 4 below tile (0, 0) for column index 4, 5, 6, 7', function ()
-            assert.are_equal(20, player_char:_compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
+            assert.are_equal(20, player_char._compute_stacked_empty_column_height_below(location(0, 0), 4, 20))
           end)
 
         end)
@@ -1201,11 +1201,11 @@ describe('player_character', function ()
       describe('_compute_column_height_at', function ()
 
         it('should return 0 if tile location is outside map area', function ()
-          assert.are_equal(0, player_char:_compute_column_height_at(location(-1, 2), 0))
+          assert.are_equal(0, player_char._compute_column_height_at(location(-1, 2), 0))
         end)
 
         it('should return 0 if tile has collision flag unset', function ()
-          assert.are_equal(0, player_char:_compute_column_height_at(location(1, 1), 0))
+          assert.are_equal(0, player_char._compute_column_height_at(location(1, 1), 0))
         end)
 
         describe('with invalid tile', function ()
@@ -1217,7 +1217,7 @@ describe('player_character', function ()
 
           it('should assert if tile has collision flag set but no collision mask id associated', function ()
             assert.has_error(function ()
-              player_char:_compute_column_height_at(location(1, 1), 0)
+              player_char._compute_column_height_at(location(1, 1), 0)
             end,
             "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: 1, yet it has the collision flag set")
           end)
@@ -1232,7 +1232,7 @@ describe('player_character', function ()
           end)
 
           it('should return 3 on column 3', function ()
-            assert.are_equal(3, player_char:_compute_column_height_at(location(1, 1), 3))
+            assert.are_equal(3, player_char._compute_column_height_at(location(1, 1), 3))
           end)
 
         end)
@@ -2348,7 +2348,7 @@ describe('player_character', function ()
             return i == horizontal_directions.left and vector(-1, center_position.y) or vector(1, center_position.y)
           end)
 
-          is_column_blocked_by_ceiling_at_mock = stub(player_character, "_is_column_blocked_by_ceiling_at", function (self, sensor_position)
+          is_column_blocked_by_ceiling_at_mock = stub(player_character, "_is_column_blocked_by_ceiling_at", function (sensor_position)
             -- simulate ceiling detection by encoding information in x and y
             if sensor_position.y == 1 then
               return sensor_position.x < 0 and false or false
@@ -2390,7 +2390,7 @@ describe('player_character', function ()
         describe('(no tiles)', function ()
 
           it('should return false anywhere', function ()
-            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(4, 5)))
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(4, 5)))
           end)
 
         end)
@@ -2404,31 +2404,31 @@ describe('player_character', function ()
 
           it('should return false for sensor position just above the bottom of the tile', function ()
             -- here, the current tile is the full tile, and we only check tiles above, so we detect nothing
-            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(8, 7.9)))
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(8, 7.9)))
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
-            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(7, 8)))
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(7, 8)))
           end)
 
           it('should return true for sensor position at the bottom-left of the tile', function ()
-            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(8, 8)))
+            assert.is_true(player_char._is_column_blocked_by_ceiling_at(vector(8, 8)))
           end)
 
           it('should return true for sensor position on the bottom-right of the tile', function ()
-            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(15, 8)))
+            assert.is_true(player_char._is_column_blocked_by_ceiling_at(vector(15, 8)))
           end)
 
           it('should return false for sensor position on the right of the tile', function ()
-            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(16, 8)))
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(16, 8)))
           end)
 
           it('should return true for sensor position below the tile, at character height - 1px', function ()
-            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing - 1)))
+            assert.is_true(player_char._is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing - 1)))
           end)
 
           it('should return false for sensor position below the tile, at character height', function ()
-            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing)))
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing)))
           end)
 
         end)

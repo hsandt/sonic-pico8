@@ -170,7 +170,7 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
 
   local sensor_location_topleft = sensor_location:to_topleft_position()
   local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
-  local ground_column_height = self:_compute_column_height_at(sensor_location, column_index0)
+  local ground_column_height = player_character._compute_column_height_at(sensor_location, column_index0)
 
   -- compute relative height of sensor from tile bottom (y axis is downward)
   local sensor_location_bottom = sensor_location_topleft.y + tile_size
@@ -200,11 +200,11 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
     --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
     --  the added value by tile_size minus what we've already got)
     assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
-    signed_distance = signed_distance - self:_compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+    signed_distance = signed_distance - player_character._compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
   elseif ground_column_height == 0 then
     -- column is empty, check for more space below, up to a tile size
     assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
-    signed_distance = signed_distance + self:_compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+    signed_distance = signed_distance + player_character._compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
   end
 
   return signed_distance
@@ -217,7 +217,7 @@ end
 -- if the upper_limit is overrun during the loop before a non-full column is found, however,
 --  return the upper_limit + 1
 -- this method is important to compute the penetration height/escape distance to escape from multiple stacked tiles at once
-function player_character:_compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
+function player_character._compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
 
   local stacked_column_height = 0
   local current_tile_location = bottom_tile_location:copy()
@@ -227,7 +227,7 @@ function player_character:_compute_stacked_column_height_above(bottom_tile_locat
     -- move 1 tile up from the start
     current_tile_location.j = current_tile_location.j - 1
 
-    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
 
     -- add column height to total (may be 0, in which case we'll break below)
     stacked_column_height = stacked_column_height + ground_array_height
@@ -252,7 +252,7 @@ end
 --  all along the passed column_index0, down to the first solid tile having a non-empty column there
 -- if the upper_limit is overrun during the loop before a non-empty column is found, however,
 --  return the upper_limit + 1. this also will in particular prevent infinite loops
-function player_character:_compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
+function player_character._compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
 
   local stacked_empty_column_height = 0
   local current_tile_location = top_tile_location:copy()
@@ -262,7 +262,7 @@ function player_character:_compute_stacked_empty_column_height_below(top_tile_lo
     -- move 1 tile up from the start
     current_tile_location.j = current_tile_location.j + 1
 
-    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
 
     -- add complementary height (empty space above column, may be 0, in which case we'll break below)
     stacked_empty_column_height = stacked_empty_column_height + (tile_size - ground_array_height)
@@ -283,7 +283,7 @@ function player_character:_compute_stacked_empty_column_height_below(top_tile_lo
 end
 
 -- return the column height at tile_location on column_index0
-function player_character:_compute_column_height_at(tile_location, column_index0)
+function player_character._compute_column_height_at(tile_location, column_index0)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
   if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 64 then
@@ -421,7 +421,7 @@ function player_character:_compute_ground_motion_result()
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local max_column_distance = self._compute_max_column_distance(self.position.x, self.ground_speed_frame)
+  local max_column_distance = player_character._compute_max_column_distance(self.position.x, self.ground_speed_frame)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -538,7 +538,7 @@ function player_character:_is_blocked_by_ceiling_at(center_position)
 
     -- check if ground sensor #i has ceiling closer than a character's height
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
-    if self:_is_column_blocked_by_ceiling_at(sensor_position) then
+    if player_character._is_column_blocked_by_ceiling_at(sensor_position) then
       return true
     end
 
@@ -549,7 +549,7 @@ end
 
 -- return true iff there is a ceiling above in the column of sensor_position, in a tile above
 --  sensor_position's tile, within a height lower than a character's height
-function player_character:_is_column_blocked_by_ceiling_at(sensor_position)
+function player_character._is_column_blocked_by_ceiling_at(sensor_position)
 
   assert(flr(sensor_position.x) == sensor_position.x, "player_character:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
 
@@ -572,7 +572,7 @@ function player_character:_is_column_blocked_by_ceiling_at(sensor_position)
     current_tile_location.j = current_tile_location.j - 1
     local current_tile_top = current_tile_location:to_topleft_position().y
 
-    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
     if ground_array_height > 0 then
       -- with non-rotated tiles, we are sure to hit the ceiling at this point
       --  because ceiling is always at a tile bottom, and we return false

@@ -64,5 +64,7 @@ return {
 
   -- stand right
   character_sprite_data = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8))
+  sprite_data
+  character_sprite_data = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8))
 
 }

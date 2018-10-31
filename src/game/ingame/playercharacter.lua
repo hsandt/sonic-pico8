@@ -30,10 +30,10 @@ local player_character = new_class()
 
 -- parameters
 
--- spr_data               sprite_data   sprite data
--- debug_move_max_speed   float         move max speed in debug mode
--- debug_move_accel       float         move acceleration in debug mode
--- debug_move_decel       float         move deceleration in debug mode
+-- spr_data               {string: sprite_data}   sprite data for this character
+-- debug_move_max_speed   float                   move max speed in debug mode
+-- debug_move_accel       float                   move acceleration in debug mode
+-- debug_move_decel       float                   move deceleration in debug mode
 
 -- state vars
 
@@ -49,8 +49,9 @@ local player_character = new_class()
 -- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
 -- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_interrupted_jump   bool          has the character already interrupted his jump once?
+-- current_sprite         string        current sprite key in the spr_data
 function player_character:_init()
-  self.spr_data = playercharacter_data.character_sprite_data
+  self.spr_data = playercharacter_data.sonic_sprite_data
   self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
   self.debug_move_accel = playercharacter_data.debug_move_accel
   self.debug_move_decel = playercharacter_data.debug_move_decel
@@ -73,6 +74,8 @@ function player_character:_setup()
   self.hold_jump_intention = false
   self.should_jump = false
   self.has_interrupted_jump = false
+
+  self.current_sprite = "idle"
 end
 
 -- spawn character at given position, and escape from ground / enter airborne state if needed
@@ -723,7 +726,7 @@ end
 
 -- render the player character sprite at its current position
 function player_character:render()
- self.spr_data:render(self.position)
+ self.spr_data[self.current_sprite]:render(self.position)
 end
 
 return player_character

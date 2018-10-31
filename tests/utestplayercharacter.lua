@@ -67,7 +67,7 @@ describe('player_character', function ()
       assert.is_not_nil(player_char)
       assert.are_same(
         {
-          playercharacter_data.character_sprite_data,
+          playercharacter_data.sonic_sprite_data,
           playercharacter_data.debug_move_max_speed,
           playercharacter_data.debug_move_accel,
           playercharacter_data.debug_move_decel
@@ -97,7 +97,8 @@ describe('player_character', function ()
           false,
           false,
           false,
-          false
+          false,
+          "idle"
         },
         {
           player_char.position,
@@ -108,7 +109,8 @@ describe('player_character', function ()
           player_char.jump_intention,
           player_char.hold_jump_intention,
           player_char.should_jump,
-          player_char.has_interrupted_jump
+          player_char.has_interrupted_jump,
+          player_char.current_sprite
         }
       )
     end)
@@ -2957,10 +2959,10 @@ describe('player_character', function ()
       local spr_data_render_stub
 
       before_each(function ()
-        spr_data_render_stub = stub(player_char.spr_data, "render")
+        spr_data_render_stub = stub(playercharacter_data.sonic_sprite_data["idle"], "render")
       end)
 
-      after_each(function ()
+      teardown(function ()
         spr_data_render_stub:revert()
       end)
 
@@ -2968,10 +2970,10 @@ describe('player_character', function ()
         spr_data_render_stub:clear()
       end)
 
-      it('should call spr_data:render with the character\'s position', function ()
+      it('should call render on sonic sprite data: idle with the character\'s position', function ()
         player_char:render()
         assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(player_char.spr_data), player_char.position)
+        assert.spy(spr_data_render_stub).was_called_with(match.ref(playercharacter_data.sonic_sprite_data["idle"]), player_char.position)
       end)
     end)
 

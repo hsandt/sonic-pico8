@@ -63,8 +63,9 @@ return {
   -- sprite
 
   -- stand right
-  character_sprite_data = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8))
-  sprite_data
-  character_sprite_data = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8))
+  sonic_sprite_data = {
+    idle = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8)),
+    spin = sprite_data(sprite_id_location(1, 2), tile_vector(2, 2), vector(6, 6)),
+  }
 
 }

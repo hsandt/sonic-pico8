@@ -78,7 +78,7 @@ end
 -- spawn character at given position, and escape from ground / enter airborne state if needed
 function player_character:spawn_at(position)
   self:_setup()
-  
+
   self.position = position
 
   -- character is initialized grounded, but let him fall if he is spawned in the air
@@ -165,7 +165,8 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
 
   -- get column on the collision mask that the ground sensor should check (ground sensor extent x
   --  should be in 0.5 and the 0.5->1 rounding should apply automatically due to flooring)
-  -- note that this is slightly suboptimal as we won't use column_index0 at all if _compute_column_height_at returns early
+  -- note that we won't use column_index0 in _compute_column_height_at if there is no collision tile around,
+  --  but its computation is cheap
 
   local sensor_location_topleft = sensor_location:to_topleft_position()
   local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
@@ -464,8 +465,12 @@ function player_character._compute_max_column_distance(initial_position_x, groun
   return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
 end
 
--- update motion_result: collision.ground_motion_result with 1 pixel step in horizontal_dir
---  ground_motion_result.position.x should be floored for these steps
+-- update motion_result: collision.ground_motion_result for a character trying to move
+--  by 1 pixel step in horizontal_dir, taking obstacles into account
+-- if character is blocked, it doesn't update the position and flag is_blocked
+-- if character is fallling, it updates the position and flag is_falling
+-- ground_motion_result.position.x should be floored for these steps
+--  although _compute_ground_sensors_signed_distance will floor in x anyway
 function player_character:_next_ground_step(horizontal_dir, motion_result)
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = horizontal_direction_vectors[horizontal_dir]
@@ -505,15 +510,89 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
     motion_result.is_falling = false
   end
 
-  -- only advance if character is not blocked (else, preserve previous position,
-  --  which should be floored)
-  -- this only works because the wall sensors are 1px farther from the character
-  --  center than the ground sensors; if there were even farther, we'd even need to
-  --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
-  --  when motion_result.is_blocked
+  -- character is not blocked by a steep step up/wall, but we need to check if it is
+  --  blocked by a ceiling too low; in the extreme case, a diagonal tile pattern
+  --  ->X
+  --   X
   if not motion_result.is_blocked then
-    motion_result.position = next_position_candidate
+    motion_result.is_blocked = self:_is_blocked_by_ceiling_at(next_position_candidate)
+
+    -- only advance if character is still not blocked (else, preserve previous position,
+    --  which should be floored)
+    -- this only works because the wall sensors are 1px farther from the character
+    --  center than the ground sensors; if there were even farther, we'd even need to
+    --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
+    --  when motion_result.is_blocked (and adapt y)
+    if not motion_result.is_blocked then
+      motion_result.position = next_position_candidate
+    end
   end
+end
+
+-- return true iff the character cannot stand in his full height (based on ground_sensor_extent_x)
+--  at position because of the ceiling (or a full tile if standing at the top of a tile)
+function player_character:_is_blocked_by_ceiling_at(center_position)
+
+  -- check ceiling from both ground sensors. if any finds one, return true
+  for i in all({horizontal_directions.left, horizontal_directions.right}) do
+
+    -- check if ground sensor #i has ceiling closer than a character's height
+    local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
+    if self:_is_column_blocked_by_ceiling_at(sensor_position) then
+      return true
+    end
+
+  end
+
+  return false
+end
+
+-- return true iff there is a ceiling above in the column of sensor_position, in a tile above
+--  sensor_position's tile, within a height lower than a character's height
+function player_character:_is_column_blocked_by_ceiling_at(sensor_position)
+
+  assert(flr(sensor_position.x) == sensor_position.x, "player_character:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
+
+  -- find the tile where this sensor is located
+  local current_tile_location = sensor_position:to_location()
+  local sensor_location_topleft = current_tile_location:to_topleft_position()
+  local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
+
+  while true do
+
+    -- move 1 tile up from the start, as we can only hit ceiling from a tile above with non-rotated tiles
+    -- note: when we add rotated tiles, we will need to handle ceiling tiles (tiles rotated by 180)
+    --  starting from the current tile, because unlike ground tiles, they may actually block
+    --  the character's head despite being in his current tile location
+    -- so we'll need to move the decrement statement to the end of the loop and add a tile rotation check
+    --  in addition we'll need to _compute_column_bottom_height_at() to handle variable ceiling height along a tile
+    --  rather than just checking if _compute_column_height_at() > 0
+    -- to avoid tile rotation check, we can also check if _compute_column_bottom_height_at() is lower than the feet (so we can ignore it)
+    -- (90 and 270-rotated tiles will be ignored as they are not supposed to block the character's head)
+    current_tile_location.j = current_tile_location.j - 1
+    local current_tile_top = current_tile_location:to_topleft_position().y
+
+    local ground_array_height = self:_compute_column_height_at(current_tile_location, column_index0)
+    if ground_array_height > 0 then
+      -- with non-rotated tiles, we are sure to hit the ceiling at this point
+      --  because ceiling is always at a tile bottom, and we return false
+      --  as soon as we go up farther than a character's height
+      return true
+      -- with ceiling tiles, we will need to check if the ceiling column height
+      --  hits the head or not. if it doesn't stop here, return false,
+      --  the head is below the ceiling:
+      -- local current_tile_bottom = current_tile_top + tile_size
+      -- local height_distance = sensor_position.y - current_tile_bottom
+      -- return height_distance < playercharacter_data.full_height_standing
+    end
+
+    local height_distance = sensor_position.y - current_tile_top
+    if height_distance >= playercharacter_data.full_height_standing then
+      return false
+    end
+
+  end
+
 end
 
 -- if character intends to jump, prepare jump for next frame

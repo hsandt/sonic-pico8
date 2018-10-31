@@ -2023,8 +2023,9 @@ describe('player_character', function ()
 
       describe('_next_ground_step', function ()
 
-        -- for these utests, we assume that _compute_ground_sensors_signed_distance is correct
-        --  rather than mocking it, so we setup simple tiles to walk on
+        -- for these utests, we assume that _compute_ground_sensors_signed_distance and
+        --  _is_blocked_by_ceiling are correct,
+        --  so rather than mocking them, so we setup simple tiles to walk on
 
         describe('(with flat ground)', function ()
 
@@ -2331,6 +2332,103 @@ describe('player_character', function ()
               ),
               motion_result
             )
+          end)
+
+        end)
+
+      end)
+
+      describe('_is_blocked_by_ceiling_at', function ()
+
+        local get_ground_sensor_position_from_mock
+        local is_column_blocked_by_ceiling_at_mock
+
+        setup(function ()
+          get_ground_sensor_position_from_mock = stub(player_character, "_get_ground_sensor_position_from", function (self, center_position, i)
+            return i == horizontal_directions.left and vector(-1, center_position.y) or vector(1, center_position.y)
+          end)
+
+          is_column_blocked_by_ceiling_at_mock = stub(player_character, "_is_column_blocked_by_ceiling_at", function (self, sensor_position)
+            -- simulate ceiling detection by encoding information in x and y
+            if sensor_position.y == 1 then
+              return sensor_position.x < 0 and false or false
+            elseif sensor_position.y == 2 then
+              return sensor_position.x < 0 and true or false  -- left sensor detects ceiling
+            elseif sensor_position.y == 3 then
+              return sensor_position.x < 0 and false or true  -- right sensor detects ceiling
+            else
+              return sensor_position.x < 0 and true or true  -- both sensors detect ceiling
+            end
+          end)
+        end)
+
+        teardown(function ()
+          get_ground_sensor_position_from_mock:revert()
+          is_column_blocked_by_ceiling_at_mock:revert()
+        end)
+
+        it('should return false when both sensors detect no near ceiling', function ()
+          assert.is_false(player_char:_is_blocked_by_ceiling_at(vector(0, 1)))
+        end)
+
+        it('should return true when left sensor detects near ceiling', function ()
+          assert.is_true(player_char:_is_blocked_by_ceiling_at(vector(0, 2)))
+        end)
+
+        it('should return true when right sensor detects no near ceiling', function ()
+          assert.is_true(player_char:_is_blocked_by_ceiling_at(vector(0, 3)))
+        end)
+
+        it('should return true when both sensors detect near ceiling', function ()
+          assert.is_true(player_char:_is_blocked_by_ceiling_at(vector(0, 4)))
+        end)
+
+      end)
+
+      describe('_is_column_blocked_by_ceiling_at', function ()
+
+        describe('(no tiles)', function ()
+
+          it('should return false anywhere', function ()
+            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(4, 5)))
+          end)
+
+        end)
+
+        describe('(1 full tile)', function ()
+
+          before_each(function ()
+            -- X
+            mset(1, 0, 64)  -- full tile (act like a full ceiling if position is at bottom)
+          end)
+
+          it('should return false for sensor position just above the bottom of the tile', function ()
+            -- here, the current tile is the full tile, and we only check tiles above, so we detect nothing
+            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(8, 7.9)))
+          end)
+
+          it('should return false for sensor position on the left of the tile', function ()
+            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(7, 8)))
+          end)
+
+          it('should return true for sensor position at the bottom-left of the tile', function ()
+            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(8, 8)))
+          end)
+
+          it('should return true for sensor position on the bottom-right of the tile', function ()
+            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(15, 8)))
+          end)
+
+          it('should return false for sensor position on the right of the tile', function ()
+            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(16, 8)))
+          end)
+
+          it('should return true for sensor position below the tile, at character height - 1px', function ()
+            assert.is_true(player_char:_is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing - 1)))
+          end)
+
+          it('should return false for sensor position below the tile, at character height', function ()
+            assert.is_false(player_char:_is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing)))
           end)
 
         end)

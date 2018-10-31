@@ -38,6 +38,9 @@ return {
   -- height between the character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
   center_height_standing = 8,
 
+  -- height between the ground sensors and the top of the character's collider (used to detect ceiling)
+  full_height_standing = 16,
+
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)
   max_ground_escape_height = 4,

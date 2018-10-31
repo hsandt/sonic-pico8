@@ -1576,10 +1576,10 @@ describe('player_character', function ()
             assert.are_equal(vector(3, 4), player_char.position)
           end)
 
-          it('should set velocity frame according to ground speed and slope (not blocked)', function ()
+          it('should keep updated ground speed and set velocity frame according to ground speed and slope (not blocked)', function ()
             player_char:_update_platformer_motion_grounded()
             -- only horizontal slope for now
-            assert.are_equal(vector(-2.5, 0), player_char.velocity_frame)
+            assert.are_same({-2.5, vector(-2.5, 0)}, {player_char.ground_speed_frame, player_char.velocity_frame})
           end)
 
           it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
@@ -1620,9 +1620,9 @@ describe('player_character', function ()
             assert.are_equal(vector(3, 4), player_char.position)
           end)
 
-          it('should reset velocity frame to zero (blocked)', function ()
+          it('should reset ground speed and velocity frame to zero (blocked)', function ()
             player_char:_update_platformer_motion_grounded()
-            assert.are_equal(vector.zero(), player_char.velocity_frame)
+            assert.are_same({0, vector.zero()}, {player_char.ground_speed_frame, player_char.velocity_frame})
           end)
 
           it('should call _enter_motion_state with airborne state, not call _check_jump_intention (falling)', function ()

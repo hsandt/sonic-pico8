@@ -362,10 +362,9 @@ function player_character:_update_platformer_motion_grounded()
   self.position = ground_motion_result.position
 
   if ground_motion_result.is_blocked then
-    self.velocity_frame = vector.zero()
-  else
-    self.velocity_frame = vector(self.ground_speed_frame, 0)
+    self.ground_speed_frame = 0
   end
+  self.velocity_frame = vector(self.ground_speed_frame, 0)
 
   if ground_motion_result.is_falling then
     self:_enter_motion_state(motion_states.airborne)

@@ -715,7 +715,7 @@ end
 
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
-itest = integration_test('#solo platformer ground wall block right', {stage.state.type})
+itest = integration_test('platformer ground wall block right', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
@@ -785,7 +785,7 @@ itest.final_assertion = function ()
 end
 
 
-itest = integration_test('#solo platformer slope wall block right', {stage.state.type})
+itest = integration_test('platformer slope wall block right', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()

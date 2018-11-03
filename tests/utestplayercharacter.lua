@@ -2448,10 +2448,10 @@ describe('player_character', function ()
           assert.are_same({false, false}, {player_char.jump_intention, player_char.should_jump})
         end)
 
-        it('should consume jump_intention and set should_jump to true if jump_intention is true', function ()
+        it('should *not* consume jump_intention and set should_jump to true if jump_intention is true', function ()
           player_char.jump_intention = true
           player_char:_check_jump_intention()
-          assert.are_same({false, true}, {player_char.jump_intention, player_char.should_jump})
+          assert.are_same({true, true}, {player_char.jump_intention, player_char.should_jump})
         end)
 
       end)

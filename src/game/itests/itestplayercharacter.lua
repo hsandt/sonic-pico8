@@ -1,6 +1,7 @@
 -- gamestates: stage
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
+local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
 local playercharacter_data = require("game/data/playercharacter_data")
@@ -637,8 +638,106 @@ itest.final_assertion = function ()
 
   return success, final_message
 end
+--]]
 
 
+-- if the player presses the jump button in mid-air, the character should not
+--  jump again when he lands on the ground (later, it will trigger a special action)
+itest = integration_test('#solo platformer no predictive jump in air', {stage.state.type})
+itest_manager:register(itest)
+
+itest.setup = function ()
+  setup_map_data()
+
+  -- add tiles where the character will move
+  mset(0, 10, 64)
+
+  flow:change_gamestate_by_type(stage.state.type)
+
+  -- respawn character on the ground (important to always start with grounded state)
+  stage.state.player_character:spawn_at(vector(4., 80. - playercharacter_data.center_height_standing))  -- set bottom y at 80
+  -- this is an end-to-end test because we don't want bother with how mid-air predicitve jump order is ignored
+  --  indeed, if it is ignored by ignoring the input itself, then hijacking the jump_intention
+  --  in puppet mode will prove nothing
+  -- if it is ignored by resetting the jump intention on land, the puppet test would be useful
+  --  to show that the intention itself is reset, but here we only want to ensure the end-to-end behavior is correct
+  --  so we us a human control mode and hijack the input directly
+  stage.state.player_character.control_mode = control_modes.human
+  stage.state.player_character.motion_mode = motion_modes.platformer
+
+  -- start hop
+  input.simulated_buttons_down[0][button_ids.o] = true
+end
+
+itest.teardown = function ()
+  teardown_map_data()
+end
+
+-- wait for apogee (frame 20) and stop
+-- at frame 1:  bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2:  bpos (4, 80 - 2), velocity (0, -2), airborne (hop confirmed)
+-- at frame 3:  bpos (4, 80 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
+-- at frame 19: pos (4, 80 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 20: pos (4, 80 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 21: pos (4, 80 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 38: pos (4, 80 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 39: pos (4, 80), velocity (0, 0), grounded -> has landed
+
+-- end of frame 2: end short press for a hop
+itest:add_action(time_trigger(1, true), function ()
+  input.simulated_buttons_down[0][button_ids.o] = false
+end)
+
+-- frame bug: it seems that 1+19!=20, time_trigger(1) is just ignored and it will give frame 19
+-- end of frame 20: at the jump apogee, try another jump press
+itest:add_action(time_trigger(19, true), function ()
+  input.simulated_buttons_down[0][button_ids.o] = true
+end)
+
+-- end of frame 21: end short press
+itest:add_action(time_trigger(1, true), function ()
+  input.simulated_buttons_down[0][button_ids.o] = false
+end)
+
+-- frame bug: it seems that character will be on ground during frames +16 and +17
+--  not sure why since he only needs 1 frame to confirm a hop
+-- wait for character to land (frame 39) and see if he hops again
+-- for now, to be safe we +19 -> frame 40, but actually supposedly frame 39 also works due to frame bug mentioned above
+-- frame 40: character should still be on ground, not re-jump
+itest:add_action(time_trigger(19, true), function ()
+end)
+
+-- check that player char has moved to the right and fell
+itest.final_assertion = function ()
+  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_character.motion_state, "Expected motion state 'airborne', got "..stage.state.player_character.motion_state
+  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80.), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_character.ground_speed_frame, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_character.velocity_frame, 1/256)
+
+  local final_message = ""
+
+  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  if not success then
+    if not is_motion_state_expected then
+      final_message = final_message..motion_state_message.."\n"
+    end
+    if not is_position_expected then
+      final_message = final_message..position_message.."\n"
+    end
+    if not is_ground_speed_expected then
+      final_message = final_message..ground_speed_message.."\n"
+    end
+    if not is_velocity_expected then
+      final_message = final_message..velocity_message.."\n"
+    end
+
+  end
+
+  return success, final_message
+end
+
+
+--[[
 itest = integration_test('platformer jump air accel', {stage.state.type})
 itest_manager:register(itest)
 

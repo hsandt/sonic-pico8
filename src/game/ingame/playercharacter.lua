@@ -604,7 +604,7 @@ end
 --  depending whether input is hold or not
 function player_character:_check_jump_intention()
   if self.jump_intention then
-    self.jump_intention = false
+    -- jump_intention is set each frame, no need to consume it here
     self.should_jump = true
   end
 end

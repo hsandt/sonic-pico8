@@ -171,10 +171,10 @@ function stage.state:handle_input()
 
     -- jump
     local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
+    -- set jump intention each frame, don't set it to true for later consumption to avoid sticky input
+    --  without needing a reset later during update
+    self.player_character.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
     self.player_character.hold_jump_intention = is_jump_input_down  -- set each frame
-    if is_jump_input_down and input:is_just_pressed(button_ids.o) then
-      self.player_character.jump_intention = true  -- will be consumed
-    end
   end
 end
 

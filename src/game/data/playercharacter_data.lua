@@ -14,6 +14,9 @@ return {
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,
 
+  -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
+  slope_accel_factor_frame2 = 0.0625,
+
   -- air acceleration on x axis (px/frames^2)
   air_accel_x_frame2 = 0.046875,
 

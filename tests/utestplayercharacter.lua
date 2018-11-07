@@ -1221,7 +1221,7 @@ describe('player_character', function ()
             assert.has_error(function ()
               player_char._compute_column_height_at(location(1, 1), 0)
             end,
-            "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: 1, yet it has the collision flag set")
+            "collision_data.tiles_data does not contain entry for sprite id: 1, yet it has the collision flag set")
           end)
 
         end)

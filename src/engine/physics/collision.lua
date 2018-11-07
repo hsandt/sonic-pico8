@@ -172,18 +172,36 @@ end
 --#endif
 
 
+local tile_data = new_struct()
+collision.tile_data = tile_data
+
+-- id_loc         sprite_id_location    sprite location on the spritesheet
+-- slope_angle    float                 slope angle in turn ratio (0.0 to 1.0, positive clockwise)
+function tile_data:_init(id_loc, slope_angle)
+  self.id_loc = id_loc
+  self.slope_angle = slope_angle
+end
+
+--#if log
+function tile_data:_tostring()
+  return "tile_data("..joinstr(", ", self.id_loc:_tostring(), self.slope_angle)..")"
+end
+--#endif
+
+
 local height_array = new_struct()
 collision.height_array = height_array
 
--- _array       [int]      sequence of heights of a tile collision mask column per index,
---                          counting index from the left, height from the bottom
---                         it is filled based on tile_mask_id_location
--- tile_mask_id_location   sprite_id_location     sprite id location of the tile mask
--- _slope_angle float      slope angle in turn ratio (0.0 to 1.0)
-function height_array:_init(tile_mask_id_location, slope_angle)
+-- tile_data_value    tile_data              tile data to generate the height array from
+-- _array             [int]                  sequence of heights of a tile collision mask column per index,
+--                                            counting index from the left, height from the bottom
+--                                            it is filled based on tile_mask_id_location
+-- tile_data_value    sprite_id_location     sprite id location of the tile mask
+-- _slope_angle       float                  slope angle in turn ratio (0.0 to 1.0)
+function height_array:_init(tile_data_value)
   self._array = {}
-  self._fill_array(self._array, tile_mask_id_location)
-  self._slope_angle = slope_angle
+  self._fill_array(self._array, tile_data_value.id_loc)
+  self._slope_angle = tile_data_value.slope_angle
 end
 
 --#if log

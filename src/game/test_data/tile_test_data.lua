@@ -24,25 +24,27 @@ function tile_test_data.setup()
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
   height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_mask_id_location, slope_angle)
-    if tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[64] then
+    if tile_mask_id_location == collision_data.tiles_data[64].id_loc then
       self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[65] then
+    elseif tile_mask_id_location == collision_data.tiles_data[65].id_loc then
       self._array = {1, 2, 3, 4, 5, 6, 7, 8}  -- ascending slope 45
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[66] then
+    elseif tile_mask_id_location == collision_data.tiles_data[66].id_loc then
       self._array = {8, 7, 6, 5, 4, 3, 2, 1}  -- descending slope 45
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[67] then
+    elseif tile_mask_id_location == collision_data.tiles_data[67].id_loc then
       self._array = {2, 2, 3, 3, 4, 4, 5, 5}  -- ascending slope 22.5
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[68] then
+    elseif tile_mask_id_location == collision_data.tiles_data[68].id_loc then
       self._array = {8, 8, 7, 6, 6, 7, 6, 7}  -- wavy horizontal almost full tile
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[70] then
+    elseif tile_mask_id_location == collision_data.tiles_data[70].id_loc then
       self._array = {4, 4, 4, 4, 4, 4, 4, 4}  -- half-tile (bottom half)
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[71] then
+    elseif tile_mask_id_location == collision_data.tiles_data[71].id_loc then
       self._array = {0, 0, 0, 0, 4, 4, 4, 4}  -- quarter-tile (bottom-right quarter)
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[72] then
+    elseif tile_mask_id_location == collision_data.tiles_data[72].id_loc then
       self._array = {2, 2, 2, 2, 2, 2, 2, 2}  -- low-tile (bottom quarter)
-    elseif tile_mask_id_location == collision_data.sprite_id_to_collision_mask_id_locations[73] then
+    elseif tile_mask_id_location == collision_data.tiles_data[73].id_loc then
       self._array = {6, 6, 6, 6, 6, 6, 6, 6}  -- high-tile (3/4 filled)
     end
+    -- we trust the collision_data value to match our mockups
+    -- if they don't, we need to override that value in the cases above
     self._slope_angle = slope_angle
   end)
 

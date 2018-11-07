@@ -298,13 +298,13 @@ function player_character._compute_column_height_at(tile_location, column_index0
     if current_tile_collision_flag then
 
       -- get the tile collision mask
-      local collision_mask_id_location = collision_data.sprite_id_to_collision_mask_id_locations[current_tile_id]
-      assert(collision_mask_id_location, "sprite_id_to_collision_mask_id_locations does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
+      local tile_data_value = collision_data.tiles_data[current_tile_id]
+      assert(tile_data_value, "collision_data.tiles_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
 
-      if collision_mask_id_location then
-        -- possible optimize: cache collision height array on game start
-        -- todo: get slope angle from data and pass it as 2nd argument
-        local h_array = collision.height_array(collision_mask_id_location, 0)
+      if tile_data_value then
+        -- optimize: cache collision height array on game start (otherwise, we get all the data every time,
+        --  including the unused slope angle)
+        local h_array = collision.height_array(tile_data_value.id_loc, tile_data_value.slope_angle)
         return h_array:get_height(column_index0)
       end
 

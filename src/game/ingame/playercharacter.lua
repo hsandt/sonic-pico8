@@ -44,6 +44,7 @@ local player_character = new_class()
 -- ground_speed_frame     float         current speed along the ground (~px/frame)
 -- velocity_frame         vector        current velocity in platformer mode (px/frame)
 -- debug_velocity         vector        current velocity in debug mode (m/s)
+-- slope_angle            float         slope angle of the current ground (clockwise turn ratio)
 -- move_intention         vector        current move intention (normalized)
 -- jump_intention         bool          current intention to start jump (consumed on jump)
 -- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
@@ -68,6 +69,7 @@ function player_character:_setup()
   self.ground_speed_frame = 0.
   self.velocity_frame = vector.zero()
   self.debug_velocity = vector.zero()
+  self.slope_angle = 0
 
   self.move_intention = vector.zero()
   self.jump_intention = false

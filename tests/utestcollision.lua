@@ -749,7 +749,7 @@ describe('collision', function ()
 
         it('should create a height array using fill_array and setting the slope angle', function ()
           local h_array = height_array(tile_data(sprite_id_location(1, 2), 0.125))
-          assert.are_same({{4, 5, 6, 7, 8, 9, 10, 11}, 0.125}, {h_array._array, h_array._slope_angle})
+          assert.are_same({{4, 5, 6, 7, 8, 9, 10, 11}, 0.125}, {h_array._array, h_array.slope_angle})
         end)
 
       end)

@@ -23,7 +23,8 @@ function tile_test_data.setup()
   fset(73, sprite_flags.collision, true)  -- high-tile (3/4 filled)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
-  height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_mask_id_location, slope_angle)
+  height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_data)
+    local tile_mask_id_location = tile_data.id_loc
     if tile_mask_id_location == collision_data.tiles_data[64].id_loc then
       self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile
     elseif tile_mask_id_location == collision_data.tiles_data[65].id_loc then
@@ -42,10 +43,12 @@ function tile_test_data.setup()
       self._array = {2, 2, 2, 2, 2, 2, 2, 2}  -- low-tile (bottom quarter)
     elseif tile_mask_id_location == collision_data.tiles_data[73].id_loc then
       self._array = {6, 6, 6, 6, 6, 6, 6, 6}  -- high-tile (3/4 filled)
+    else
+      self._array = "invalid"
     end
     -- we trust the collision_data value to match our mockups
     -- if they don't, we need to override that value in the cases above
-    self._slope_angle = slope_angle
+    self.slope_angle = tile_data.slope_angle
   end)
 
 end

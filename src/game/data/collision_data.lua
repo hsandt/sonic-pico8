@@ -18,9 +18,9 @@ return {
   --  for headless tests
   tiles_data = {
     [64] = tile_data(sprite_id_location(0, 5), 0),       -- 64 @ (0, 4)
-    [65] = tile_data(sprite_id_location(1, 5), 0.125),   -- 65 @ (1, 4)
-    [66] = tile_data(sprite_id_location(2, 5), -0.125),  -- 66 @ (2, 4)
-    [67] = tile_data(sprite_id_location(3, 5), 0.0625),  -- 67 @ (3, 4)
+    [65] = tile_data(sprite_id_location(1, 5), -0.125),   -- 65 @ (1, 4)
+    [66] = tile_data(sprite_id_location(2, 5), 0.125),  -- 66 @ (2, 4)
+    [67] = tile_data(sprite_id_location(3, 5), -0.0625),  -- 67 @ (3, 4)
     [68] = tile_data(sprite_id_location(4, 5), 0),       -- 68 @ (4, 4)
     [69] = tile_data(sprite_id_location(5, 5), 0),       -- 69 @ (5, 4)
     [70] = tile_data(sprite_id_location(6, 5), 0),       -- 70 @ (6, 4)

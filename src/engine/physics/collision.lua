@@ -196,17 +196,16 @@ collision.height_array = height_array
 -- _array             [int]                  sequence of heights of a tile collision mask column per index,
 --                                            counting index from the left, height from the bottom
 --                                            it is filled based on tile_mask_id_location
--- tile_data_value    sprite_id_location     sprite id location of the tile mask
--- _slope_angle       float                  slope angle in turn ratio (0.0 to 1.0)
+-- slope_angle        float                  slope angle in turn ratio (0.0 to 1.0)
 function height_array:_init(tile_data_value)
   self._array = {}
   self._fill_array(self._array, tile_data_value.id_loc)
-  self._slope_angle = tile_data_value.slope_angle
+  self.slope_angle = tile_data_value.slope_angle
 end
 
 --#if log
 function height_array:_tostring()
-  return "height_array("..joinstr(", ", "{"..joinstr_table(", ", self._array).."}", self._slope_angle)..")"
+  return "height_array("..joinstr(", ", "{"..joinstr_table(", ", self._array).."}", self.slope_angle)..")"
 end
 --#endif
 

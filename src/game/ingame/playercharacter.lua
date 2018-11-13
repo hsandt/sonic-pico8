@@ -117,32 +117,58 @@ function player_character:update()
   end
 end
 
--- return signed distance to closest ground when character center is at center_position,
---  either negative when (in abs, penetration height)
---  or positive (actual distance to ground), always abs clamped to tile_size+1
+-- return (signed_distance, slope_angle) where:
+--  - signed_distance is the signed distance to the highest ground when character center is at center_position,
+--   either negative when (in abs, penetration height)
+--   or positive (actual distance to ground), always abs clamped to tile_size+1
+--  - slope_angle is the slope angle of the highest ground. in case of tie,
+--   the character's velocity x sign, then his horizontal direction determines which ground is chosen
 -- if both sensors have different signed distances,
 --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
 function player_character:_compute_ground_sensors_signed_distance(center_position)
 
   -- initialize with negative value to return if the character is not intersecting ground
   local min_signed_distance = 1 / 0  -- max (32768, but never enter it manually as it would be negative)
+  local highest_ground_slope_angle = nil
 
   -- check both ground sensors for ground. if any finds ground, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
 
     -- check that ground sensor #i is on top of or below the mask column
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
-    local signed_distance = self:_compute_signed_distance_to_closest_ground(sensor_position)
+    local signed_distance, slope_angle = self:_compute_signed_distance_to_closest_ground(sensor_position)
+
+    -- apply ground priority rule: highest ground, then velocity x sign breaks tie, then horizontal direction breaks tie
 
     -- store the biggest penetration height among sensors
     if signed_distance < min_signed_distance then
+      -- this ground is higher than the previous one, store new height and slope angle
       min_signed_distance = signed_distance
+      highest_ground_slope_angle = slope_angle
+    elseif signed_distance == min_signed_distance and self:_get_prioritized_dir() == i then
+      -- this ground has the same height as the previous one, but character orientation
+      --  makes him stand on that one rather than the previous one, so we use its slope
+      highest_ground_slope_angle = slope_angle
     end
 
   end
 
-  return min_signed_distance
+  -- todo: prefer struct ground_query_info
+  return min_signed_distance, highest_ground_slope_angle
 
+end
+
+function player_character:_get_prioritized_dir()
+  if self.motion_state == motion_states.grounded then
+    if self.ground_speed_frame ~= 0 then
+      return signed_speed_to_direction(self.ground_speed_frame)
+    end
+  else
+    if self.velocity_frame.x ~= 0 then
+      return signed_speed_to_direction(self.velocity_frame.x)
+    end
+  end
+  return self.horizontal_dir
 end
 
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
@@ -158,9 +184,11 @@ function player_character:_get_ground_sensor_position_from(center_position, hori
   return x_floored_bottom_center + vector(offset_x, 0)
 end
 
--- return signed distance to closest ground from floored sensor_position,
---  either negative when (in abs, penetration height)
---  or positive (actual distance to ground), always abs clamped to tile_size+1
+-- return (signed_distance, slope_angle) where:
+--  - signed distance to closest ground from floored sensor_position,
+--   either negative when (in abs, penetration height)
+--   or positive (actual distance to ground), always abs clamped to tile_size+1
+--  - slope_angle is the slope angle of the detected ground (whether character is touching it, above or below)
 function player_character:_compute_signed_distance_to_closest_ground(sensor_position)
 
   assert(flr(sensor_position.x) == sensor_position.x, "player_character:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
@@ -175,7 +203,8 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
 
   local sensor_location_topleft = sensor_location:to_topleft_position()
   local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
-  local ground_column_height = player_character._compute_column_height_at(sensor_location, column_index0)
+  -- todo: prefer some struct like ground_query_info
+  local ground_column_height, slope_angle = player_character._compute_column_height_at(sensor_location, column_index0)
 
   -- compute relative height of sensor from tile bottom (y axis is downward)
   local sensor_location_bottom = sensor_location_topleft.y + tile_size
@@ -205,20 +234,33 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
     --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
     --  the added value by tile_size minus what we've already got)
     assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
-    signed_distance = signed_distance - player_character._compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+    local next_column_height, next_slope_angle = player_character._compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+    signed_distance = signed_distance - next_column_height
+    -- if we found a tile above, use its slope instead of the slope of the tile at the current location
+    if next_slope_angle then
+      slope_angle = next_slope_angle
+    end
   elseif ground_column_height == 0 then
     -- column is empty, check for more space below, up to a tile size
     assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
-    signed_distance = signed_distance + player_character._compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+    local next_column_height, next_slope_angle = player_character._compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+    signed_distance = signed_distance + next_column_height
+    -- if we found a tile below, use its slope instead of the slope of the tile at the current location
+    if next_slope_angle then
+      slope_angle = next_slope_angle
+    end
   end
 
-  return signed_distance
+  -- return signed distance and slope angle (the latter may be nil)
+  return signed_distance, slope_angle
 
 end
 
--- return the sum of column heights of colliding tiles starting from the tile
---  just above the passed bottom_tile_location, all along the passed column_index0, up to the first tile
---  that is either outside the map or has not a full column (column height < tile size).
+-- return (height_above, detected_slope) where:
+--  - height_above is the sum of column heights of colliding tiles starting from the tile
+--   just above the passed bottom_tile_location, all along the passed column_index0, up to the first tile
+--   that is either outside the map or has not a full column (column height < tile size).
+--  - detected_slope is slope angle of the last tile found above, or nil if no tile was found or the column continues too high
 -- if the upper_limit is overrun during the loop before a non-full column is found, however,
 --  return the upper_limit + 1
 -- this method is important to compute the penetration height/escape distance to escape from multiple stacked tiles at once
@@ -226,19 +268,25 @@ function player_character._compute_stacked_column_height_above(bottom_tile_locat
 
   local stacked_column_height = 0
   local current_tile_location = bottom_tile_location:copy()
+  local detected_slope = nil
 
   while true do
 
     -- move 1 tile up from the start
     current_tile_location.j = current_tile_location.j - 1
 
-    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height, slope_angle = player_character._compute_column_height_at(current_tile_location, column_index0)
 
     -- add column height to total (may be 0, in which case we'll break below)
     stacked_column_height = stacked_column_height + ground_array_height
 
     if stacked_column_height > upper_limit then
-      return upper_limit + 1
+      return upper_limit + 1, nil
+    end
+
+    -- register slope for last tile found, if any
+    if slope_angle then
+      detected_slope = slope_angle
     end
 
     -- stop if this tile has not a full column
@@ -248,7 +296,7 @@ function player_character._compute_stacked_column_height_above(bottom_tile_locat
 
   end
 
-  return stacked_column_height
+  return stacked_column_height, detected_slope
 
 end
 
@@ -261,19 +309,25 @@ function player_character._compute_stacked_empty_column_height_below(top_tile_lo
 
   local stacked_empty_column_height = 0
   local current_tile_location = top_tile_location:copy()
+  local detected_slope = nil
 
   while true do
 
     -- move 1 tile up from the start
     current_tile_location.j = current_tile_location.j + 1
 
-    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height, slope_angle = player_character._compute_column_height_at(current_tile_location, column_index0)
 
     -- add complementary height (empty space above column, may be 0, in which case we'll break below)
     stacked_empty_column_height = stacked_empty_column_height + (tile_size - ground_array_height)
 
     if stacked_empty_column_height > upper_limit then
       return upper_limit + 1
+    end
+
+    -- register slope for last tile found, if any
+    if slope_angle then
+      detected_slope = slope_angle
     end
 
     -- stop if this tile has not a full column
@@ -283,11 +337,13 @@ function player_character._compute_stacked_empty_column_height_below(top_tile_lo
 
   end
 
-  return stacked_empty_column_height
+  return stacked_empty_column_height, detected_slope
 
 end
 
--- return the column height at tile_location on column_index0
+-- return (column_height, slope_angle) where:
+--  - column_height is the column height at tile_location on column_index0, or 0 if there is no colliding tile
+--  - slope_angle is the slope angle of the corresponding tile, or nil if there is no colliding tile
 function player_character._compute_column_height_at(tile_location, column_index0)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
@@ -306,22 +362,24 @@ function player_character._compute_column_height_at(tile_location, column_index0
       if tile_data_value then
         -- optimize: cache collision height array on game start (otherwise, we get all the data every time,
         --  including the unused slope angle)
-        local h_array = collision.height_array(tile_data_value.id_loc, tile_data_value.slope_angle)
-        return h_array:get_height(column_index0)
+        local h_array = collision.height_array(tile_data_value)
+        return h_array:get_height(column_index0), h_array.slope_angle
       end
 
     end
 
   end
 
-  return 0
+  -- returning nil is optional in Lua but it makes it clearer than we expect 2 values
+  return 0, nil
 
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
-  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(self.position)
+  -- todo: set current slope to slope from returned ground_query_info if we are touching or inside ground
+  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(self.position)
   if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
     self.position.y = self.position.y + signed_distance_to_closest_ground
   end
@@ -483,7 +541,8 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
   local next_position_candidate = motion_result.position + step_vec
 
   -- check if next position is inside/above ground
-  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(next_position_candidate)
+  -- todo: update current slope with slope from returned ground_query_info (if actually moved)
+  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   if signed_distance_to_closest_ground < 0 then
     -- position is inside ground, check if we can step up during this step
     local penetration_height = - signed_distance_to_closest_ground
@@ -578,8 +637,8 @@ function player_character._is_column_blocked_by_ceiling_at(sensor_position)
     current_tile_location.j = current_tile_location.j - 1
     local current_tile_top = current_tile_location:to_topleft_position().y
 
-    local ground_array_height = player_character._compute_column_height_at(current_tile_location, column_index0)
-    if ground_array_height > 0 then
+    local ground_array_height, _ = player_character._compute_column_height_at(current_tile_location, column_index0)
+    if ground_array_height ~= nil and ground_array_height > 0 then
       -- with non-rotated tiles, we are sure to hit the ceiling at this point
       --  because ceiling is always at a tile bottom, and we return false
       --  as soon as we go up farther than a character's height
@@ -644,7 +703,9 @@ end
 --  or the one below if the character is above ground with both sensors at empty mask colums
 -- if character is in the air and couldn't snap, enter airborne state
 function player_character:_snap_to_ground()
-  local signed_distance_to_closest_ground = self:_compute_ground_sensors_signed_distance(self.position)
+  -- todo: update slope... but this method is currently unused as superseded by _next_ground_step,
+  --  so just remove it altogether
+  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(self.position)
   if signed_distance_to_closest_ground < 0 then
     local penetration_height = - signed_distance_to_closest_ground
     if penetration_height <= playercharacter_data.max_ground_escape_height then

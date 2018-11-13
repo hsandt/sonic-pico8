@@ -2964,7 +2964,7 @@ describe('player_character', function ()
 
       local spr_data_render_stub
 
-      before_each(function ()
+      setup(function ()
         spr_data_render_stub = stub(playercharacter_data.sonic_sprite_data["idle"], "render")
       end)
 

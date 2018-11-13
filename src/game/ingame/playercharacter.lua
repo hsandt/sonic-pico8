@@ -698,30 +698,6 @@ function player_character:_check_jump()
   return false
 end
 
--- set the player position y so that one ground sensor is just on top of the current tile,
---  or the one above if the character is inside ground with one sensor at a full mask column,
---  or the one below if the character is above ground with both sensors at empty mask colums
--- if character is in the air and couldn't snap, enter airborne state
-function player_character:_snap_to_ground()
-  -- todo: update slope... but this method is currently unused as superseded by _next_ground_step,
-  --  so just remove it altogether
-  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(self.position)
-  if signed_distance_to_closest_ground < 0 then
-    local penetration_height = - signed_distance_to_closest_ground
-    if penetration_height <= playercharacter_data.max_ground_escape_height then
-      self.position.y = self.position.y + signed_distance_to_closest_ground  -- move up
-    end
-  elseif signed_distance_to_closest_ground > 0 then
-    if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
-      self.position.y = self.position.y + signed_distance_to_closest_ground  -- move down
-    else
-      -- character was in the air and couldn't snap back to ground (cliff, etc.),
-      --  so enter airborne state now
-      self:_enter_motion_state(motion_states.airborne)
-    end
-  end
-end
-
 -- update motion following platformer airborne motion rules
 function player_character:_update_platformer_motion_airborne()
   -- check if player is continuing or interrupting jump *before* applying gravity

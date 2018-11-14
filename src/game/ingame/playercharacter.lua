@@ -376,12 +376,21 @@ function player_character._compute_column_height_at(tile_location, column_index0
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
+-- if ground is detected and the character can escape, update the slope angle with the angle of the new ground
+-- if the character cannot escape, we don't need to reset the slope angle to arbitrary 0, as this method is only called
+--  when spawning or from an airborne motion, where slope angle is already 0
 -- return true iff the character was either touching the ground or inside it (even too deep)
 function player_character:_check_escape_from_ground()
   -- todo: set current slope to slope from returned ground_query_info if we are touching or inside ground
-  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(self.position)
-  if signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height then
+  local signed_distance_to_closest_ground, next_slope_angle = self:_compute_ground_sensors_signed_distance(self.position)
+  local should_escape = signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height
+  if should_escape then
     self.position.y = self.position.y + signed_distance_to_closest_ground
+  end
+  if signed_distance_to_closest_ground == 0 or should_escape then
+    -- character was either touching ground, or inside it and escaped
+    --  so update his slope angle
+    self.slope_angle = next_slope_angle
   end
   return signed_distance_to_closest_ground <= 0
 end
@@ -425,6 +434,7 @@ function player_character:_update_platformer_motion_grounded()
   self:_update_ground_speed()
   local ground_motion_result = self:_compute_ground_motion_result()
   self.position = ground_motion_result.position
+  self.slope_angle = ground_motion_result.slope_angle
 
   if ground_motion_result.is_blocked then
     self.ground_speed_frame = 0
@@ -469,6 +479,7 @@ function player_character:_compute_ground_motion_result()
   if self.ground_speed_frame == 0 then
     return collision.ground_motion_result(
       self.position,
+      self.slope_angle,
       false,
       false
     )
@@ -479,6 +490,7 @@ function player_character:_compute_ground_motion_result()
   -- initialise result
   local motion_result = collision.ground_motion_result(
     vector(flr(self.position.x), self.position.y),
+    self.slope_angle,
     false,
     false
   )
@@ -514,7 +526,9 @@ function player_character:_compute_ground_motion_result()
         -- character has not touched a wall at all, so add the remaining subpixels
         --  (it's simpler to just recompute the full motion in x; don't touch y tough,
         --  as it depends on the shape of the ground)
+        -- also set the slope since we may have moved to another tile
         motion_result.position.x = self.position.x + self.ground_speed_frame
+        motion_result.slope_angle = extra_step_motion_result.slope_angle
       end
     end
   end
@@ -542,7 +556,7 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
 
   -- check if next position is inside/above ground
   -- todo: update current slope with slope from returned ground_query_info (if actually moved)
-  local signed_distance_to_closest_ground, slope_to_use = self:_compute_ground_sensors_signed_distance(next_position_candidate)
+  local signed_distance_to_closest_ground, next_slope_angle = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   if signed_distance_to_closest_ground < 0 then
     -- position is inside ground, check if we can step up during this step
     local penetration_height = - signed_distance_to_closest_ground
@@ -590,6 +604,11 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
     --  when motion_result.is_blocked (and adapt y)
     if not motion_result.is_blocked then
       motion_result.position = next_position_candidate
+      if motion_result.is_falling then
+        motion_result.slope_angle = nil
+      else
+        motion_result.slope_angle = next_slope_angle
+      end
     end
   end
 end

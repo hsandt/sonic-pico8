@@ -916,31 +916,31 @@ describe('player_character', function ()
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 6), false}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(12, 6), 0, false}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
-          it('should do nothing when character is just on top of the ground, and return true', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 0 and return true', function ()
             player_char:set_bottom_center(vector(12, 8))
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(12, 8), 0, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, and return true', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and return true', function ()
             player_char:set_bottom_center(vector(12, 9))
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(12, 8), 0, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
-          it('should do nothing when character is too deep inside the ground, and return true', function ()
+          it('should do nothing when character is too deep inside the ground and return true', function ()
             player_char:set_bottom_center(vector(12, 13))
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 13), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(12, 13), 0, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
         end)
@@ -957,23 +957,23 @@ describe('player_character', function ()
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 10), false}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(15, 10), 0, false}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
-          it('should do nothing when character is just on top of the ground, and return true', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 45/360 and return true', function ()
             player_char:set_bottom_center(vector(15, 12))
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(15, 12), 45/360, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, and return true', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 45/360 and return true', function ()
             player_char:set_bottom_center(vector(15, 13))
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(15, 12), 45/360, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
           it('should do nothing when character is too deep inside the ground, and return true', function ()
@@ -981,7 +981,7 @@ describe('player_character', function ()
             local result = player_char:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(11, 13), true}, {player_char:get_bottom_center(), result})
+            assert.are_same({vector(11, 13), 0, true}, {player_char:get_bottom_center(), player_char.slope_angle, result})
           end)
 
         end)
@@ -1268,6 +1268,7 @@ describe('player_character', function ()
             compute_ground_motion_result_mock = stub(player_character, "_compute_ground_motion_result", function (self)
               return collision.ground_motion_result(
                 vector(3, 4),
+                -0.25,
                 true,
                 true
               )
@@ -1285,6 +1286,11 @@ describe('player_character', function ()
           it('should set the position to vector(3, 4)', function ()
             player_char:_update_platformer_motion_grounded()
             assert.are_equal(vector(3, 4), player_char.position)
+          end)
+
+          it('should set the slope angle to -0.25', function ()
+            player_char:_update_platformer_motion_grounded()
+            assert.are_equal(-0.25, player_char.slope_angle)
           end)
 
           it('should reset ground speed and velocity frame to zero (blocked)', function ()
@@ -1420,11 +1426,13 @@ describe('player_character', function ()
         describe('(when ground_speed_frame is 0)', function ()
 
           -- bugfix history: method was returning a tuple instead of a table
-          it('+ should return the current position, is_blocked: false, is_falling: false', function ()
+          it('+ should return the current position and slope, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
+            player_char.slope_angle = 0.25
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3, 4),
+                0.25,
                 false,
                 false
               ),
@@ -1434,9 +1442,11 @@ describe('player_character', function ()
 
           it('should preserve position subpixels if any', function ()
             player_char.position = vector(3.5, 4)
+            player_char.slope_angle = 0.25
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3.5, 4),
+                0.25,
                 false,
                 false
               ),
@@ -1453,6 +1463,7 @@ describe('player_character', function ()
             next_ground_step_mock = stub(player_character, "_next_ground_step", function (self, horizontal_dir, motion_result)
               local step_vec = horizontal_direction_vectors[horizontal_dir]
               motion_result.position = motion_result.position + step_vec
+              motion_result.slope_angle = -0.25
             end)
           end)
 
@@ -1460,7 +1471,8 @@ describe('player_character', function ()
             next_ground_step_mock:revert()
           end)
 
-          it('(vector(3, 4) at speed 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
+        -- bugfix history: failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
+          it('+ (vector(3, 4) at speed 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 0.5
             -- we assume _compute_max_column_distance is correct, so it should return 0
@@ -1468,6 +1480,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3.5, 4),
+                -0.25,
                 false,
                 false
               ),
@@ -1482,6 +1495,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(4, 4),
+                -0.25,
                 false,
                 false
               ),
@@ -1495,6 +1509,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(0.5, 4),
+                -0.25,
                 false,
                 false
               ),
@@ -1513,6 +1528,7 @@ describe('player_character', function ()
               local step_vec = horizontal_direction_vectors[horizontal_dir]
               if motion_result.position.x < 5 then
                 motion_result.position = motion_result.position + step_vec
+                motion_result.slope_angle = 0.25
               else
                 motion_result.is_blocked = true
               end
@@ -1525,13 +1541,14 @@ describe('player_character', function ()
 
           -- bugfix history: the test revealed that is_blocked should be false when just touching a wall on arrival
           --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
-          it('+ (vector(3.5, 4) at speed 1.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('+ (vector(3.5, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3.5, 4)
             player_char.ground_speed_frame = 1.5
             -- we assume _compute_max_column_distance is correct, so it should return 2
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.25,
                 false,
                 false
               ),
@@ -1541,13 +1558,14 @@ describe('player_character', function ()
 
           -- bugfix history: the test revealed that is_blocked should be false when just touching a wall on arrival
           --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
-          it('+ (vector(4.5, 4) at speed 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('+ (vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(4.5, 4)
             player_char.ground_speed_frame = 0.5
             -- we assume _compute_max_column_distance is correct, so it should return 2
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.25,
                 false,
                 false
               ),
@@ -1557,7 +1575,7 @@ describe('player_character', function ()
 
           -- bugfix history: the test revealed that is_blocked should be false when just touching a wall on arrival
           --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
-          it('+ (vector(4, 4) at speed 1.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('+ (vector(4, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(4, 4)
             player_char.ground_speed_frame = 1.5
             -- we assume _compute_max_column_distance is correct, so it should return 1
@@ -1567,6 +1585,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.25,
                 true,
                 false
               ),
@@ -1576,7 +1595,7 @@ describe('player_character', function ()
 
           -- bugfix history: it failed until I added the subpixels check at the end of the method
           --  (also fixed in v1: subpixel cut when max_column_distance is 0 and blocked on next column)
-          it('+ (vector(5, 4) at speed 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('+ (vector(5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(5, 4)
             player_char.ground_speed_frame = 0.5
             -- we assume _compute_max_column_distance is correct, so it should return 0
@@ -1585,6 +1604,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0,  -- character couldn't move at all, so we preserved the initial slope angle
                 true,
                 false
               ),
@@ -1592,7 +1612,7 @@ describe('player_character', function ()
             )
           end)
 
-          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: false, is_falling: false', function ()
             -- this is possible e.g. if character walked along 1.5 from x=4
             -- to reduce computation we didn't check an extra column for a wall
             --  at that time, but starting next frame we will, effectively clamping
@@ -1604,6 +1624,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0,  -- character couldn't move at all, so we preserved the initial slope angle
                 true,
                 false
               ),
@@ -1611,7 +1632,7 @@ describe('player_character', function ()
             )
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 3) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 3.5
             -- we assume _compute_max_column_distance is correct, so it should return 3
@@ -1619,6 +1640,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.25,
                 true,
                 false
               ),
@@ -1639,10 +1661,12 @@ describe('player_character', function ()
               local original_position = motion_result.position
               if original_position.x < 7 then
                 motion_result.position = original_position + step_vec
+                motion_result.slope_angle = 0.25
               end
               if original_position.x >= 5 then
                 if original_position.x < 7 then
                   motion_result.is_falling = true
+                  motion_result.slope_angle = nil  -- mimic actual implementation
                 else
                   motion_result.is_blocked = true
                 end
@@ -1654,7 +1678,7 @@ describe('player_character', function ()
             next_ground_step_mock:revert()
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(6, 4), is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 3) should return vector(6, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 3
             -- we assume _compute_max_column_distance is correct, so it should return 3
@@ -1662,6 +1686,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(6, 4),
+                nil,
                 false,
                 true
               ),
@@ -1669,7 +1694,7 @@ describe('player_character', function ()
             )
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(7, 4), is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 3) should return vector(7, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 5
             -- we assume _compute_max_column_distance is correct, so it should return 3
@@ -1677,6 +1702,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(7, 4),
+                nil,
                 true,
                 true
               ),
@@ -1703,6 +1729,7 @@ describe('player_character', function ()
           it('when stepping left with the right sensor still on the ground, decrement x', function ()
             local motion_result = collision.ground_motion_result(
               vector(-1, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1712,6 +1739,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(-2, 8 - playercharacter_data.center_height_standing),
+                0,
                 false,
                 false
               ),
@@ -1722,6 +1750,7 @@ describe('player_character', function ()
           it('when stepping right with the left sensor still on the ground, increment x', function ()
             local motion_result = collision.ground_motion_result(
               vector(9, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1731,6 +1760,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(10, 8 - playercharacter_data.center_height_standing),
+                0,
                 false,
                 false
               ),
@@ -1741,6 +1771,7 @@ describe('player_character', function ()
           it('when stepping left leaving the ground, decrement x and fall', function ()
             local motion_result = collision.ground_motion_result(
               vector(-2, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1750,6 +1781,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(-3, 8 - playercharacter_data.center_height_standing),
+                nil,
                 false,
                 true
               ),
@@ -1760,6 +1792,7 @@ describe('player_character', function ()
           it('when stepping right leaving the ground, increment x and fall', function ()
             local motion_result = collision.ground_motion_result(
               vector(10, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1769,6 +1802,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(11, 8 - playercharacter_data.center_height_standing),
+                nil,
                 false,
                 true
               ),
@@ -1779,6 +1813,7 @@ describe('player_character', function ()
           it('when stepping right back on the ground, increment x and cancel fall', function ()
             local motion_result = collision.ground_motion_result(
               vector(-3, 8 - playercharacter_data.center_height_standing),
+              nil,
               false,
               true
             )
@@ -1788,6 +1823,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(-2, 8 - playercharacter_data.center_height_standing),
+                0,
                 false,
                 false
               ),
@@ -1812,6 +1848,7 @@ describe('player_character', function ()
           it('when stepping left and hitting the wall, preserve x and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(3, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1821,6 +1858,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3, 8 - playercharacter_data.center_height_standing),
+                0,
                 true,
                 false
               ),
@@ -1831,6 +1869,7 @@ describe('player_character', function ()
           it('when stepping right and hitting the wall, preserve x and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(5, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1840,6 +1879,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 8 - playercharacter_data.center_height_standing),
+                0,
                 true,
                 false
               ),
@@ -1863,6 +1903,7 @@ describe('player_character', function ()
           it('when stepping right on the ground and hitting the non-supported wall, preserve x and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(5, 8 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1872,6 +1913,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 8 - playercharacter_data.center_height_standing),
+                0,
                 true,
                 false
               ),
@@ -1895,6 +1937,7 @@ describe('player_character', function ()
           it('when stepping right on the half-tile and hitting the head wall, preserve x and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(5, 12 - playercharacter_data.center_height_standing),
+              0,
               false,
               false
             )
@@ -1904,6 +1947,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 12 - playercharacter_data.center_height_standing),
+                0,
                 true,
                 false
               ),
@@ -1920,7 +1964,7 @@ describe('player_character', function ()
             -- X/X
             mset(0, 0, 64)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
             mset(0, 1, 64)  -- full tile (wall)
-            mset(1, 1, 65)  -- ascending slope
+            mset(1, 1, 65)  -- ascending slope 45
             mset(2, 0, 64)  -- full tile (wall)
             mset(2, 1, 64)  -- full tile (supporting ground, optional if the 2 non-supported wall tests above pass)
           end)
@@ -1928,6 +1972,7 @@ describe('player_character', function ()
           it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
             local motion_result = collision.ground_motion_result(
               vector(12, 9 - playercharacter_data.center_height_standing),
+              -45/360,
               false,
               false
             )
@@ -1937,6 +1982,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(11, 10 - playercharacter_data.center_height_standing),
+                -45/360,
                 false,
                 false
               ),
@@ -1947,6 +1993,7 @@ describe('player_character', function ()
           it('when stepping right on the ascending slope without leaving the ground, decrement x and adjust y', function ()
             local motion_result = collision.ground_motion_result(
               vector(12, 9 - playercharacter_data.center_height_standing),
+              -45/360,
               false,
               false
             )
@@ -1956,6 +2003,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(13, 8 - playercharacter_data.center_height_standing),
+                -45/360,
                 false,
                 false
               ),
@@ -1966,6 +2014,7 @@ describe('player_character', function ()
           it('when stepping right on the ascending slope and hitting the right wall, preserve x and y and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(13, 10 - playercharacter_data.center_height_standing),
+              -45/360,
               false,
               false
             )
@@ -1975,6 +2024,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(13, 10 - playercharacter_data.center_height_standing),
+                -45/360,
                 true,
                 false
               ),
@@ -1985,6 +2035,7 @@ describe('player_character', function ()
           it('when stepping left on the ascending slope and hitting the left wall, preserve x and y and block', function ()
             local motion_result = collision.ground_motion_result(
               vector(11, 10 - playercharacter_data.center_height_standing),
+              -45/360,
               false,
               false
             )
@@ -1994,6 +2045,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(11, 10 - playercharacter_data.center_height_standing),
+                -45/360,
                 true,
                 false
               ),

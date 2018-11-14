@@ -684,8 +684,8 @@ describe('collision', function ()
     describe('_init', function ()
 
       it('should create a ground_motion_result with position, is_blocked, is_falling', function ()
-        local gmr = ground_motion_result(vector(2, 3), false, true)
-        assert.are_same({vector(2, 3), false, true}, {gmr.position, gmr.is_blocked, gmr.is_falling})
+        local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
+        assert.are_same({vector(2, 3), 0.25, false, true}, {gmr.position, gmr.slope_angle, gmr.is_blocked, gmr.is_falling})
       end)
 
     end)
@@ -693,8 +693,8 @@ describe('collision', function ()
     describe('_tostring', function ()
 
       it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
-        local gmr = ground_motion_result(vector(2, 3), false, true)
-        assert.are_equal("ground_motion_result(vector(2, 3), false, true)", gmr:_tostring())
+        local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
+        assert.are_equal("ground_motion_result(vector(2, 3), 0.25, false, true)", gmr:_tostring())
       end)
 
     end)

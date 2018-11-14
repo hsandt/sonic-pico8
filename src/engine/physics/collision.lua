@@ -157,17 +157,19 @@ local ground_motion_result = new_struct()
 collision.ground_motion_result = ground_motion_result
 
 -- position     vector   position at the end of motion
+-- slope_angle  float    slope angle of the final position
 -- is_blocked   bool     was the character blocked during motion?
 -- is_falling   bool     should the character fall after this motion?
-function ground_motion_result:_init(position, is_blocked, is_falling)
+function ground_motion_result:_init(position, slope_angle, is_blocked, is_falling)
   self.position = position
+  self.slope_angle = slope_angle
   self.is_blocked = is_blocked
   self.is_falling = is_falling
 end
 
 --#if log
 function ground_motion_result:_tostring()
-  return "ground_motion_result("..joinstr(", ", self.position, self.is_blocked, self.is_falling)..")"
+  return "ground_motion_result("..joinstr(", ", self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
 end
 --#endif
 

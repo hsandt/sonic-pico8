@@ -332,13 +332,13 @@ end
 --  i.e. center reaches 8 - ground_sensor_extent_x = 5.5
 -- at frame 10: bpos (5.2890625, 80), velocity (0.234375, 0), ground_speed(0.234375)
 -- at frame 11: bpos (5.546875, 80), velocity (0.2578125, 0), ground_speed(0.2578125)
--- at frame 12: bpos (5.828125, 80), velocity (0.2578125, 0), ground_speed(0.28125)
+-- at frame 12: bpos (5.828125, 80), velocity (0.28125, 0), ground_speed(0.28125)
 -- at frame 13: bpos (6.1328125, 79), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
 -- at frame 14: bpos (6.333572387695, 79), velocity (0.2007598876953125, 0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
 -- at frame 15: bpos (6.519668501758, 79), velocity (0.1860961140625, 0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
 -- note that speed decrease on slope is not implemented yet (via cosine but also gravity), so this test will have to change when it is
 --  however, the result should stay true for a very low slope (a wave where registered slope is 0)
-itest:add_action(time_trigger(11, true), function () end)
+itest:add_action(time_trigger(15, true), function () end)
 
 -- check that player char has moved to the right and is still on the ground
 itest.final_assertion = function ()
@@ -346,6 +346,7 @@ itest.final_assertion = function ()
   -- to compute position, use the fact that friction == accel, so our speed describes a pyramid over time with a non-mirrored, unique max at 0.703125,
   --  so we can 2x the accumulated distance computed in the first test (only accel over 30 frames), then subtract the non-doubled max value, and add the initial position x
   local is_position_expected, position_message = almost_eq_with_message(vector(6.519668501758, 79), stage.state.player_character:get_bottom_center(), 1/256)
+  local is_slope_expected, slope_message = almost_eq_with_message(-45/360, stage.state.player_character.slope_angle, 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
   local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.26318359375, stage.state.player_character.ground_speed_frame, 1/256)
   local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.1860961140625, 0.1860961140625), stage.state.player_character.velocity_frame, 1/256)
@@ -359,6 +360,9 @@ itest.final_assertion = function ()
     end
     if not is_position_expected then
       final_message = final_message..position_message.."\n"
+    end
+    if not is_slope_expected then
+      final_message = final_message..slope_message.."\n"
     end
     if not is_ground_speed_expected then
       final_message = final_message..ground_speed_message.."\n"

@@ -98,6 +98,12 @@ pico8api.lua contains vanilla lua equivalents or placeholders for PICO-8 functio
 
 Low-level functions have the same behavior as in PICO-8 (add, del, etc.), whereas rendering functions only simulate the behavior by changing the `pico8` table's state (camera, clip, etc.). Pixels rendered on screen are not simulated though, so the actual effect of rendering cannot be tested.
 
+## References
+
+* Classic Sonic games (Sonic the Hedgehog, Sonic the Hedgehog 2, Sonic the Hedgehog 3 & Knuckles)
+* [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide)
+* [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
+
 ## License
 
 ### Code

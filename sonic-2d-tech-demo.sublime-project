@@ -94,6 +94,9 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./run.sh $file_base_name debug"],
+			"env": {
+				"BUILD_VERSION": "2.2"
+			},
 			"variants":
 			[
 				{

@@ -432,6 +432,7 @@ end
 -- update motion following platformer grounded motion rules
 function player_character:_update_platformer_motion_grounded()
   self:_update_ground_speed()
+
   local ground_motion_result = self:_compute_ground_motion_result()
   self.position = ground_motion_result.position
   self.slope_angle = ground_motion_result.slope_angle
@@ -448,8 +449,19 @@ function player_character:_update_platformer_motion_grounded()
   end
 end
 
--- update ground speed based on current move intention
+-- update ground speed
 function player_character:_update_ground_speed()
+  self:_update_ground_speed_by_slope()
+  self:_update_ground_speed_by_intention()
+end
+
+-- update ground speed based on current slope
+function player_character:_update_ground_speed_by_slope()
+  self.ground_speed_frame = self.ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+end
+
+-- update ground speed based on current move intention
+function player_character:_update_ground_speed_by_intention()
   if self.move_intention.x ~= 0 then
     if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
       -- accelerate
@@ -494,6 +506,8 @@ function player_character:_compute_ground_motion_result()
     false,
     false
   )
+
+  -- fixme: consider slope angle cos to reduce motion along x
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame

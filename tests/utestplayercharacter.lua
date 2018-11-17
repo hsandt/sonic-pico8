@@ -1313,30 +1313,73 @@ describe('player_character', function ()
 
       describe('_update_ground_speed', function ()
 
+        local update_ground_speed_by_slope_stub
+        local update_ground_speed_by_intention_stub
+
+        setup(function ()
+          update_ground_speed_by_slope_stub = stub(player_character, "_update_ground_speed_by_slope")
+          update_ground_speed_by_intention_stub = stub(player_character, "_update_ground_speed_by_intention")
+        end)
+
+        teardown(function ()
+          update_ground_speed_by_slope_stub:revert()
+          update_ground_speed_by_intention_stub:revert()
+        end)
+
+        it('should update ground speed based on slope, then intention', function ()
+          player_char:_update_ground_speed()
+
+          -- implementation
+          assert.spy(update_ground_speed_by_slope_stub).was_called(1)
+          assert.spy(update_ground_speed_by_slope_stub).was_called_with(match.ref(player_char))
+          assert.spy(update_ground_speed_by_intention_stub).was_called(1)
+          assert.spy(update_ground_speed_by_intention_stub).was_called_with(match.ref(player_char))
+        end)
+      end)
+
+      describe('_update_ground_speed_by_slope', function ()
+
+        it('should accelerate toward left on an ascending slope', function ()
+          player_char.ground_speed_frame = 2
+          player_char.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          player_char:_update_ground_speed_by_slope()
+          assert.are_equal(2 - playercharacter_data.slope_accel_factor_frame2 * sqrt(2)/2, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate toward right on an descending slope', function ()
+          player_char.ground_speed_frame = 2
+          player_char.slope_angle = 0.125  -- sin(0.125) = sqrt(2)/2
+          player_char:_update_ground_speed_by_slope()
+          assert.are_equal(2 + playercharacter_data.slope_accel_factor_frame2 * sqrt(2)/2, player_char.ground_speed_frame)
+        end)
+      end)
+
+      describe('_update_ground_speed_by_intention', function ()
+
         it('should accelerate when character has ground speed 0 and move intention x is not 0', function ()
           player_char.move_intention.x = 1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
         it('should accelerate when character has ground speed > 0 and move intention x > 0', function ()
           player_char.ground_speed_frame = 1.5
           player_char.move_intention.x = 1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(1.5 + playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
         it('should accelerate when character has ground speed < 0 and move intention x < 0', function ()
           player_char.ground_speed_frame = -1.5
           player_char.move_intention.x = -1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(-1.5 - playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
         it('should decelerate keeping same sign when character has high ground speed > 0 and move intention x < 0', function ()
           player_char.ground_speed_frame = 1.5
           player_char.move_intention.x = -1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           -- ground_decel_frame2 = 0.25, subtract it from ground_speed_frame
           assert.are_equal(1.25, player_char.ground_speed_frame)
         end)
@@ -1347,7 +1390,7 @@ describe('player_character', function ()
           -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
           player_char.ground_speed_frame = 0.24
           player_char.move_intention.x = -1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.is_true(almost_eq_with_message(-0.01, player_char.ground_speed_frame, 1e-16))
         end)
 
@@ -1356,14 +1399,14 @@ describe('player_character', function ()
           -- start with speed < -ground_accel_frame2 + ground_decel_frame2
           player_char.ground_speed_frame = 0.12
           player_char.move_intention.x = -1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(-playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
         it('should decelerate keeping same sign when character has high ground speed < 0 and move intention x > 0', function ()
           player_char.ground_speed_frame = -1.5
           player_char.move_intention.x = 1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(-1.25, player_char.ground_speed_frame)
         end)
 
@@ -1373,7 +1416,7 @@ describe('player_character', function ()
           -- start with speed <= ground_accel_frame2 - ground_decel_frame2
           player_char.ground_speed_frame = -0.24
           player_char.move_intention.x = 1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.is_true(almost_eq_with_message(0.01, player_char.ground_speed_frame, 1e-16))
         end)
 
@@ -1382,13 +1425,13 @@ describe('player_character', function ()
           -- start with speed > ground_accel_frame2 - ground_decel_frame2
           player_char.ground_speed_frame = -0.12
           player_char.move_intention.x = 1
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
         it('should apply friction when character has ground speed > 0 and move intention x is 0', function ()
           player_char.ground_speed_frame = 1.5
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(1.5 - playercharacter_data.ground_friction_frame2, player_char.ground_speed_frame)
         end)
 
@@ -1396,13 +1439,13 @@ describe('player_character', function ()
         it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
           -- must be < friction
           player_char.ground_speed_frame = 0.01
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(0, player_char.ground_speed_frame)
         end)
 
         it('should apply friction when character has ground speed < 0 and move intention x is 0', function ()
           player_char.ground_speed_frame = -1.5
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(-1.5 + playercharacter_data.ground_friction_frame2, player_char.ground_speed_frame)
         end)
 
@@ -1410,12 +1453,12 @@ describe('player_character', function ()
         it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed < 0 and move intention x is 0', function ()
           -- must be < friction in abs
           player_char.ground_speed_frame = -0.01
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(0, player_char.ground_speed_frame)
         end)
 
         it('should not change ground speed when ground speed is 0 and move intention x is 0', function ()
-          player_char:_update_ground_speed()
+          player_char:_update_ground_speed_by_intention()
           assert.are_equal(0, player_char.ground_speed_frame)
         end)
 

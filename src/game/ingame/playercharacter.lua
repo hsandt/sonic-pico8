@@ -466,6 +466,10 @@ function player_character:_update_ground_speed_by_intention()
     if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_accel_frame2
+      -- clamp to max ground speed
+      if abs(self.ground_speed_frame) > playercharacter_data.max_ground_speed_frame then
+        self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.max_ground_speed_frame
+      end
     else
       -- decelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_decel_frame2

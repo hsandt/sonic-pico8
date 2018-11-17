@@ -1376,6 +1376,20 @@ describe('player_character', function ()
           assert.are_equal(-1.5 - playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
         end)
 
+        it('should accelerate to the max speed left when character has ground speed < 0 near to -max and move intention x < 0', function ()
+          player_char.ground_speed_frame = -2.98  -- must be less than -max_ground_speed_frame + ground_accel_frame2
+          player_char.move_intention.x = -1
+          player_char:_update_ground_speed_by_intention()
+          assert.are_equal(-playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate to the max speed right when character has ground speed > 0 near to +max and move intention x > 0', function ()
+          player_char.ground_speed_frame = 2.98  -- must be less than -max_ground_speed_frame + ground_accel_frame2
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed_by_intention()
+          assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
+        end)
+
         it('should decelerate keeping same sign when character has high ground speed > 0 and move intention x < 0', function ()
           player_char.ground_speed_frame = 1.5
           player_char.move_intention.x = -1

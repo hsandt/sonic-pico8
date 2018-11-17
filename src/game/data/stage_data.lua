@@ -19,14 +19,14 @@ return {
       -- stage title
       title = "proto zone",
 
-      width = 36,
-      height = 14,
+      width = 100,
+      height = 40,
 
       -- where the player character spawns on stage start
-      spawn_location = location(2, 6),
+      spawn_location = location(2, 10),
 
       -- the x to reach to finish the stage
-      goal_x = 50 * 8,
+      goal_x = 100 * 8,
 
       -- background color
       background_color = colors.dark_blue,

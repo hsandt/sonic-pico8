@@ -434,17 +434,25 @@ function player_character:_update_platformer_motion_grounded()
   self:_update_ground_speed()
 
   local ground_motion_result = self:_compute_ground_motion_result()
-  self.position = ground_motion_result.position
-  self.slope_angle = ground_motion_result.slope_angle
 
+  -- reset ground speed if blocked
   if ground_motion_result.is_blocked then
     self.ground_speed_frame = 0
   end
-  self.velocity_frame = vector(self.ground_speed_frame, 0)
+
+  -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
+  -- we must use the old slope because if character is leaving ground (falling)
+  --  this frame, new slope angle will be nil
+  self.velocity_frame = self.ground_speed_frame * vector(cos(self.slope_angle), -sin(self.slope_angle))
+
+  -- we can now update position and slope
+  self.position = ground_motion_result.position
+  self.slope_angle = ground_motion_result.slope_angle
 
   if ground_motion_result.is_falling then
     self:_enter_motion_state(motion_states.airborne)
   else
+    -- only allow jump preparation for next frame if not already falling
     self:_check_jump_intention()
   end
 end
@@ -522,7 +530,8 @@ function player_character:_compute_ground_motion_result()
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local max_column_distance = player_character._compute_max_column_distance(self.position.x, self.ground_speed_frame)
+  local distance_x = self.ground_speed_frame * cos(self.slope_angle)
+  local max_column_distance = player_character._compute_max_column_distance(self.position.x, distance_x)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -552,7 +561,7 @@ function player_character:_compute_ground_motion_result()
         --  (it's simpler to just recompute the full motion in x; don't touch y tough,
         --  as it depends on the shape of the ground)
         -- also set the slope since we may have moved to another tile
-        motion_result.position.x = self.position.x + self.ground_speed_frame
+        motion_result.position.x = self.position.x + distance_x
         motion_result.slope_angle = extra_step_motion_result.slope_angle
       end
     end

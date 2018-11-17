@@ -21,4 +21,4 @@ OUTPUT_FILEPATH="build/${OUTPUT_BASENAME}_$2.p8"
 echo "Running ${OUTPUT_FILEPATH} with ${@:3}..."
 # ${@:4} will pass remaining args after the first 2, such as "-x; exec bash
 # as a trick to run headless and keep terminal open"
-gnome-terminal -- bash -x -c "pico8 -run ${OUTPUT_FILEPATH} ${@:3}"
+gnome-terminal -- bash -x -c "pico8 -run ${OUTPUT_FILEPATH} -gif_scale 4 ${@:3}"

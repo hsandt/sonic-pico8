@@ -1339,6 +1339,13 @@ describe('player_character', function ()
 
       describe('_update_ground_speed_by_slope', function ()
 
+        it('should preserve ground speed on flat ground', function ()
+          player_char.ground_speed_frame = 2
+          player_char.slope_angle = 0
+          player_char:_update_ground_speed_by_slope()
+          assert.are_equal(2, player_char.ground_speed_frame)
+        end)
+
         it('should accelerate toward left on an ascending slope', function ()
           player_char.ground_speed_frame = 2
           player_char.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
@@ -1351,6 +1358,20 @@ describe('player_character', function ()
           player_char.slope_angle = 0.125  -- sin(0.125) = sqrt(2)/2
           player_char:_update_ground_speed_by_slope()
           assert.are_equal(2 + playercharacter_data.slope_accel_factor_frame2 * sqrt(2)/2, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate toward left, clamped to max, on an ascending slope', function ()
+          player_char.ground_speed_frame = -playercharacter_data.max_ground_speed_frame + playercharacter_data.slope_accel_factor_frame2 * 0.5
+          player_char.slope_angle = -0.125  -- sin(0.125) ~= 0.7
+          player_char:_update_ground_speed_by_slope()
+          assert.are_equal(-playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
+        end)
+
+        it('should accelerate toward right, clamped to max, on an descending slope', function ()
+          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * 0.5
+          player_char.slope_angle = 0.125  -- sin(0.125) ~= 0.7
+          player_char:_update_ground_speed_by_slope()
+          assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
         end)
       end)
 
@@ -1377,14 +1398,14 @@ describe('player_character', function ()
         end)
 
         it('should accelerate to the max speed left when character has ground speed < 0 near to -max and move intention x < 0', function ()
-          player_char.ground_speed_frame = -2.98  -- must be less than -max_ground_speed_frame + ground_accel_frame2
+          player_char.ground_speed_frame = -playercharacter_data.max_ground_speed_frame + playercharacter_data.ground_accel_frame2 / 2
           player_char.move_intention.x = -1
           player_char:_update_ground_speed_by_intention()
           assert.are_equal(-playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
         end)
 
         it('should accelerate to the max speed right when character has ground speed > 0 near to +max and move intention x > 0', function ()
-          player_char.ground_speed_frame = 2.98  -- must be less than -max_ground_speed_frame + ground_accel_frame2
+          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame - playercharacter_data.ground_accel_frame2 / 2
           player_char.move_intention.x = 1
           player_char:_update_ground_speed_by_intention()
           assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
@@ -1474,6 +1495,22 @@ describe('player_character', function ()
         it('should not change ground speed when ground speed is 0 and move intention x is 0', function ()
           player_char:_update_ground_speed_by_intention()
           assert.are_equal(0, player_char.ground_speed_frame)
+        end)
+
+      end)
+
+      describe('_clamp_ground_speed', function ()
+
+        it('should preserve ground speed when it is not over max speed in absolute value', function ()
+          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame / 2
+          player_char:_clamp_ground_speed()
+          assert.are_equal(playercharacter_data.max_ground_speed_frame / 2, player_char.ground_speed_frame)
+        end)
+
+        it('should clamp ground speed to signed max speed if over max speed in absolute value', function ()
+          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame + 1
+          player_char:_clamp_ground_speed()
+          assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
         end)
 
       end)

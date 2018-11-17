@@ -457,7 +457,10 @@ end
 
 -- update ground speed based on current slope
 function player_character:_update_ground_speed_by_slope()
-  self.ground_speed_frame = self.ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+  if self.slope_angle ~= 0 then
+    self.ground_speed_frame = self.ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+    self:_clamp_ground_speed()
+  end
 end
 
 -- update ground speed based on current move intention
@@ -466,10 +469,7 @@ function player_character:_update_ground_speed_by_intention()
     if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_accel_frame2
-      -- clamp to max ground speed
-      if abs(self.ground_speed_frame) > playercharacter_data.max_ground_speed_frame then
-        self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.max_ground_speed_frame
-      end
+      self:_clamp_ground_speed()
     else
       -- decelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_decel_frame2
@@ -483,6 +483,13 @@ function player_character:_update_ground_speed_by_intention()
   elseif self.ground_speed_frame ~= 0 then
     -- friction
     self.ground_speed_frame = sgn(self.ground_speed_frame) * max(0, abs(self.ground_speed_frame) - playercharacter_data.ground_friction_frame2)
+  end
+end
+
+-- clamp ground speed to max
+function player_character:_clamp_ground_speed()
+  if abs(self.ground_speed_frame) > playercharacter_data.max_ground_speed_frame then
+    self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.max_ground_speed_frame
   end
 end
 

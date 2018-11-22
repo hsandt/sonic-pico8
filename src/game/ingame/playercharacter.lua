@@ -459,15 +459,19 @@ end
 
 -- update ground speed
 function player_character:_update_ground_speed()
-  self:_update_ground_speed_by_slope()
+  -- we need to update ground speed by intention first so accel/decel is handled correctly
+  --  otherwise, when starting at speed 0 on an ascending slope, gravity changes speed to < 0
+  --  and a right move intention would be handled as a decel, which is fast enough to climb up
+  --  even the highest slopes
   self:_update_ground_speed_by_intention()
+  self:_update_ground_speed_by_slope()
+  self:_clamp_ground_speed()
 end
 
 -- update ground speed based on current slope
 function player_character:_update_ground_speed_by_slope()
   if self.slope_angle ~= 0 then
     self.ground_speed_frame = self.ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * sin(self.slope_angle)
-    self:_clamp_ground_speed()
   end
 end
 
@@ -477,7 +481,6 @@ function player_character:_update_ground_speed_by_intention()
     if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_accel_frame2
-      self:_clamp_ground_speed()
     else
       -- decelerate
       self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_decel_frame2

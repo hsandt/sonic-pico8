@@ -1319,27 +1319,45 @@ describe('player_character', function ()
 
       describe('_update_ground_speed', function ()
 
-        local update_ground_speed_by_slope_stub
-        local update_ground_speed_by_intention_stub
-
         setup(function ()
-          update_ground_speed_by_slope_stub = stub(player_character, "_update_ground_speed_by_slope")
-          update_ground_speed_by_intention_stub = stub(player_character, "_update_ground_speed_by_intention")
+          spy.on(player_character, "_update_ground_speed_by_slope")
+          spy.on(player_character, "_update_ground_speed_by_intention")
+          spy.on(player_character, "_clamp_ground_speed")
         end)
 
         teardown(function ()
-          update_ground_speed_by_slope_stub:revert()
-          update_ground_speed_by_intention_stub:revert()
+          player_character._update_ground_speed_by_slope:revert()
+          player_character._update_ground_speed_by_intention:revert()
+          player_character._clamp_ground_speed:revert()
+        end)
+
+        after_each(function ()
+          player_character._update_ground_speed_by_slope:clear()
+          player_character._update_ground_speed_by_intention:clear()
+          player_character._clamp_ground_speed:clear()
+        end)
+
+        it('should counter the ground speed in the opposite direction of motion when moving upward a 45-degree slope', function ()
+          player_char:_update_ground_speed()
+
+          -- interface
+          player_char.ground_speed_frame = 0
+          player_char.slope_angle = -1/8  -- 45 deg ascending
+          player_char.move_intention.x = 1
+          player_char:_update_ground_speed()
+          assert.are_equal(playercharacter_data.ground_accel_frame2 - playercharacter_data.slope_accel_factor_frame2 * sin(-1/8), player_char.ground_speed_frame)
         end)
 
         it('should update ground speed based on slope, then intention', function ()
           player_char:_update_ground_speed()
 
           -- implementation
-          assert.spy(update_ground_speed_by_slope_stub).was_called(1)
-          assert.spy(update_ground_speed_by_slope_stub).was_called_with(match.ref(player_char))
-          assert.spy(update_ground_speed_by_intention_stub).was_called(1)
-          assert.spy(update_ground_speed_by_intention_stub).was_called_with(match.ref(player_char))
+          assert.spy(player_character._update_ground_speed_by_slope).was_called(1)
+          assert.spy(player_character._update_ground_speed_by_slope).was_called_with(match.ref(player_char))
+          assert.spy(player_character._update_ground_speed_by_intention).was_called(1)
+          assert.spy(player_character._update_ground_speed_by_intention).was_called_with(match.ref(player_char))
+          assert.spy(player_character._clamp_ground_speed).was_called(1)
+          assert.spy(player_character._clamp_ground_speed).was_called_with(match.ref(player_char))
         end)
       end)
 
@@ -1366,19 +1384,6 @@ describe('player_character', function ()
           assert.are_equal(2 + playercharacter_data.slope_accel_factor_frame2 * sqrt(2)/2, player_char.ground_speed_frame)
         end)
 
-        it('should accelerate toward left, clamped to max, on an ascending slope', function ()
-          player_char.ground_speed_frame = -playercharacter_data.max_ground_speed_frame + playercharacter_data.slope_accel_factor_frame2 * 0.5
-          player_char.slope_angle = -0.125  -- sin(0.125) ~= 0.7
-          player_char:_update_ground_speed_by_slope()
-          assert.are_equal(-playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
-        end)
-
-        it('should accelerate toward right, clamped to max, on an descending slope', function ()
-          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * 0.5
-          player_char.slope_angle = 0.125  -- sin(0.125) ~= 0.7
-          player_char:_update_ground_speed_by_slope()
-          assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
-        end)
       end)
 
       describe('_update_ground_speed_by_intention', function ()
@@ -1401,20 +1406,6 @@ describe('player_character', function ()
           player_char.move_intention.x = -1
           player_char:_update_ground_speed_by_intention()
           assert.are_equal(-1.5 - playercharacter_data.ground_accel_frame2, player_char.ground_speed_frame)
-        end)
-
-        it('should accelerate to the max speed left when character has ground speed < 0 near to -max and move intention x < 0', function ()
-          player_char.ground_speed_frame = -playercharacter_data.max_ground_speed_frame + playercharacter_data.ground_accel_frame2 / 2
-          player_char.move_intention.x = -1
-          player_char:_update_ground_speed_by_intention()
-          assert.are_equal(-playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
-        end)
-
-        it('should accelerate to the max speed right when character has ground speed > 0 near to +max and move intention x > 0', function ()
-          player_char.ground_speed_frame = playercharacter_data.max_ground_speed_frame - playercharacter_data.ground_accel_frame2 / 2
-          player_char.move_intention.x = 1
-          player_char:_update_ground_speed_by_intention()
-          assert.are_equal(playercharacter_data.max_ground_speed_frame, player_char.ground_speed_frame)
         end)
 
         it('should decelerate keeping same sign when character has high ground speed > 0 and move intention x < 0', function ()

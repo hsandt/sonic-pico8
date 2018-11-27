@@ -1562,7 +1562,7 @@ describe('player_character', function ()
             next_ground_step_mock:revert()
           end)
 
-        -- bugfix history: failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
+          -- bugfix history: failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
           it('+ (vector(3, 4) at speed 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 0.5
@@ -1660,9 +1660,9 @@ describe('player_character', function ()
             )
           end)
 
-          -- bugfix history: the test revealed that is_blocked should be false when just touching a wall on arrival
+          -- bugfix history: + the test revealed that is_blocked should be false when just touching a wall on arrival
           --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
-          it('+ (vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+          it('(vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(4.5, 4)
             player_char.ground_speed_frame = 0.5
             -- we assume _compute_max_column_distance is correct, so it should return 2
@@ -1670,6 +1670,24 @@ describe('player_character', function ()
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
                 0.125,
+                false,
+                false
+              ),
+              player_char:_compute_ground_motion_result()
+            )
+          end)
+
+          -- bugfix history: < replaced self.ground_speed_frame with distance_x in are_subpixels_left evaluation
+          it('(vector(4.5, 4) at speed 1 on slope cos 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
+            -- this is the same as the test above (we just reach the wall edge without being blocked),
+            -- but we make sure that are_subpixels_left check takes the slope factor into account
+            player_char.position = vector(4.5, 4)
+            player_char.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            player_char.ground_speed_frame = 1
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(5, 4),
+                0.125,  -- new slope angle, no relation with initial one
                 false,
                 false
               ),

@@ -548,7 +548,7 @@ function player_character:_compute_ground_motion_result()
 
   -- check if we need to add or cut subpixels
   if not motion_result.is_blocked then
-    local are_subpixels_left = self.position.x + self.ground_speed_frame > motion_result.position.x
+    local are_subpixels_left = self.position.x + distance_x > motion_result.position.x
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
       -- check if character has touched a wall (we need an extra step to "ceil" the subpixels)

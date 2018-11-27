@@ -2115,6 +2115,41 @@ describe('player_character', function ()
 
         end)
 
+        -- bugfix history:
+        -- = itest of player running on flat ground when ascending a slope showed that when removing supporting ground,
+        --   character would be blocked at the bottom of the slope, so I isolated just that part into a utest
+        describe('#solo (with non-supported ascending slope)', function ()
+
+          before_each(function ()
+            --  /
+            -- X
+            mset(0, 1, 64)  -- full tile (ground)
+            mset(1, 0, 65)  -- ascending slope 45
+          end)
+
+          it('when stepping right from the bottom of the ascending slope, increment x and adjust y', function ()
+            local motion_result = collision.ground_motion_result(
+              vector(5, 8 - playercharacter_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            -- step down
+            player_char:_next_ground_step(horizontal_directions.right, motion_result)
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(6, 7 - playercharacter_data.center_height_standing),
+                -45/360,
+                false,
+                false
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
         describe('(with ascending slope and wall)', function ()
 
           before_each(function ()
@@ -2124,7 +2159,6 @@ describe('player_character', function ()
             mset(0, 1, 64)  -- full tile (wall)
             mset(1, 1, 65)  -- ascending slope 45
             mset(2, 0, 64)  -- full tile (wall)
-            mset(2, 1, 64)  -- full tile (supporting ground, optional if the 2 non-supported wall tests above pass)
           end)
 
           it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()

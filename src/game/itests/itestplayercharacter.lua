@@ -310,7 +310,7 @@ itest.setup = function ()
 
   -- add tiles where the character will move
   mset(0, 10, 64)  -- flat ground
-  mset(1, 10, 64)  -- solid ground to support slope, as with current motion rules, character needs it
+  mset(1, 10, 64)  -- solid ground to support slope (not needed but until utest (with non-supported ascending slope) is fixed, character would be blocked)
   mset(1, 9, 65)   -- ascending slope 45, one level up
 
   flow:change_gamestate_by_type(stage.state.type)

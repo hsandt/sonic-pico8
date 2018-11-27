@@ -1562,8 +1562,10 @@ describe('player_character', function ()
             next_ground_step_mock:revert()
           end)
 
-          -- bugfix history: failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
-          it('+ (vector(3, 4) at speed 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
+          -- bugfix history:
+          -- +  failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
+          -- ?? failed I tried to fix it (see above), but actually subpixels should not be taken into account for ground slope detection
+          it('(vector(3, 4) at speed 0.5) should return vector(3.5, 4), slope: 0, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.ground_speed_frame = 0.5
             -- we assume _compute_max_column_distance is correct, so it should return 0
@@ -1571,7 +1573,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3.5, 4),
-                -0.125,
+                0,                  -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),
@@ -1579,6 +1581,8 @@ describe('player_character', function ()
             )
           end)
 
+          -- bugfix history:
+          -- ?? same reason as test above
           it('(vector(3, 4) at speed 1 on slope cos 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
             player_char.position = vector(3, 4)
             player_char.slope_angle = -1/6  -- cos(-pi/3) = 1/2
@@ -1586,7 +1590,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(3.5, 4),
-                -0.125,
+                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),
@@ -1713,6 +1717,8 @@ describe('player_character', function ()
             )
           end)
 
+          -- bugfix history:
+          -- ?? same reason as test far above where "character has not moved by a full pixel" so slope should not change
           it('(vector(4, 4) at speed 1.5 on slope cos 0.5) should return vector(4.75, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             player_char.position = vector(4, 4)
             player_char.slope_angle = -1/6  -- cos(-pi/3) = 1/2
@@ -1721,7 +1727,7 @@ describe('player_character', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(4.75, 4),
-                0.125,
+                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),

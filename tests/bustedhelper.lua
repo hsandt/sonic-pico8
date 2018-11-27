@@ -31,6 +31,7 @@ end
 -- -    the test was hard to write, but didn't help me to spot bug during implementation
 -- ~    the test didn't take long to write but it adds a lot of time to the test run and didn't help find bugs
 -- ?    the test passed, but later I realized it was wrong, and passed because both the code and expected were wrong but matching (no big loss of time though)
+-- ??   same, but big loss of time, as the bug later appeared in a failed itest with unexpected behavior
 -- .    the test failed because the test itself was wrong, so I fixed it
 -- R    the test revealed the same bug/regression as another test, being redundant while not helping to discover another bug
 -- <    the test was incomplete, but by examining the code I spotted suspicious cases that I could verify by improving the test, then fix the cases

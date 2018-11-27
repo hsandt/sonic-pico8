@@ -565,7 +565,6 @@ function player_character:_compute_ground_motion_result()
         --  as it depends on the shape of the ground)
         -- also set the slope since we may have moved to another tile
         motion_result.position.x = self.position.x + distance_x
-        motion_result.slope_angle = extra_step_motion_result.slope_angle
       end
     end
   end

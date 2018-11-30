@@ -5,6 +5,7 @@ local collision = require("engine/physics/collision")
 local aabb = collision.aabb
 local tile_data = collision.tile_data
 local height_array = collision.height_array
+local ground_query_info = collision.ground_query_info
 local ground_motion_result = collision.ground_motion_result
 
 -- retrieve the filter arguments so we can optimize by only generating tests we will need
@@ -679,11 +680,33 @@ describe('collision', function ()
 
   end)
 
+  describe('ground_query_info', function ()
+
+    describe('_init', function ()
+
+      it('should create a ground_query_info with signed_distance, slope_angle', function ()
+        local info = ground_query_info(-2.0, 0.25)
+        assert.are_same({-2.0, 0.25}, {info.signed_distance, info.slope_angle})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "ground_query_info({self.signed_distance}, 0.125)"', function ()
+        local info = ground_query_info(-2.0, 0.25)
+        assert.are_equal("ground_query_info(-2.0, 0.25)", info:_tostring())
+      end)
+
+    end)
+
+  end)
+
   describe('ground_motion_result', function ()
 
     describe('_init', function ()
 
-      it('should create a ground_motion_result with position, is_blocked, is_falling', function ()
+      it('should create a ground_motion_result with position, slope_angle, is_blocked, is_falling', function ()
         local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
         assert.are_same({vector(2, 3), 0.25, false, true}, {gmr.position, gmr.slope_angle, gmr.is_blocked, gmr.is_falling})
       end)

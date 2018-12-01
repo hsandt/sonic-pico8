@@ -861,47 +861,6 @@ describe('player_character', function ()
 
       end)
 
-      describe('_compute_column_height_at', function ()
-
-        it('should return (0, nil) if tile location is outside map area', function ()
-          assert.are_same({0, nil}, {player_char._compute_column_height_at(location(-1, 2), 0)})
-        end)
-
-        it('should return (0, nil) if tile has collision flag unset', function ()
-          assert.are_same({0, nil}, {player_char._compute_column_height_at(location(1, 1), 0)})
-        end)
-
-        describe('with invalid tile', function ()
-
-          before_each(function ()
-            -- create an invalid tile with a collision flag but no collision mask associated
-            mset(1, 1, 1)
-          end)
-
-          it('should assert if tile has collision flag set but no collision mask id associated', function ()
-            assert.has_error(function ()
-              player_char._compute_column_height_at(location(1, 1), 0)
-            end,
-            "collision_data.tiles_data does not contain entry for sprite id: 1, yet it has the collision flag set")
-          end)
-
-        end)
-
-        describe('with ascending slope 22.5 offset by 2', function ()
-
-          before_each(function ()
-            -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-            mset(1, 1, 67)
-          end)
-
-          it('should return 3 on column 3', function ()
-            assert.are_same({3, -22.5 / 360}, {player_char._compute_column_height_at(location(1, 1), 3)})
-          end)
-
-        end)
-
-      end)
-
       describe('_check_escape_from_ground', function ()
 
         describe('with full flat tile', function ()

@@ -52,11 +52,15 @@ function world.get_pixel_collision_info(x, y)
   -- environment
   local column_index0 = x - left  -- from 0 to tile_size - 1
   local ground_array_height, slope_angle = world._compute_column_height_at(location, column_index0)
-  local column_top = bottom - ground_array_height
 
-  -- there is a collision pixel at (x, y) if the column at x rises at least until y
-  if y >= column_top then
-    return true, slope_angle
+  -- if column is empty, there cannot be any pixel collision
+  if ground_array_height > 0 then
+    local column_top = bottom - ground_array_height
+
+    -- there is a collision pixel at (x, y) if the column at x rises at least until y
+    if y >= column_top then
+      return true, slope_angle
+    end
   end
 
   return false, nil

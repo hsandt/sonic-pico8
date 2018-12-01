@@ -2,6 +2,7 @@ require("bustedhelper")
 require("engine/core/math")
 local player_character = require("game/ingame/playercharacter")
 local collision = require("engine/physics/collision")
+local ground_query_info = collision.ground_query_info
 local playercharacter_data = require("game/data/playercharacter_data")
 local tile_test_data = require("game/test_data/tile_test_data")
 
@@ -307,17 +308,17 @@ describe('player_character', function ()
 
             compute_signed_distance_to_closest_ground_mock = stub(player_character, "_compute_signed_distance_to_closest_ground", function (self, sensor_position)
               if sensor_position == vector(-1, 0) then
-                return -4, 0.25
+                return collision.ground_query_info(-4, 0.25)
               elseif sensor_position == vector(1, 0) then
-                return 5, -0.125
+                return collision.ground_query_info(5, -0.125)
               elseif sensor_position == vector(-1, 1) then
-                return 7, -0.25
+                return collision.ground_query_info(7, -0.25)
               elseif sensor_position == vector(1, 1) then
-                return 6, 0.25
+                return collision.ground_query_info(6, 0.25)
               elseif sensor_position == vector(-1, 2) then
-                return 3, 0
+                return collision.ground_query_info(3, 0)
               else  -- sensor_position == vector(1, 2)
-                return 3, 0.125
+                return collision.ground_query_info(3, 0.125)
               end
             end)
           end)
@@ -334,12 +335,12 @@ describe('player_character', function ()
 
           it('should return the signed distance to closest ground from left sensor if the lowest', function ()
             -- -4 vs 5 => -4
-            assert.are_same({-4, 0.25}, {player_char:_compute_ground_sensors_signed_distance(vector(0, 0))})
+            assert.are_same(collision.ground_query_info(-4, 0.25), player_char:_compute_ground_sensors_signed_distance(vector(0, 0)))
           end)
 
           it('should return the signed distance to closest ground from right sensor if the lowest', function ()
             -- 7 vs 6 => 6
-            assert.are_same({6, 0.25}, {player_char:_compute_ground_sensors_signed_distance(vector(0, 1))})
+            assert.are_same(collision.ground_query_info(6, 0.25), player_char:_compute_ground_sensors_signed_distance(vector(0, 1)))
           end)
 
           describe('(prioritized direction is left)', function ()
@@ -356,7 +357,7 @@ describe('player_character', function ()
 
             it('should return the signed distance to left ground if both sensors are at the same level, but left is prioritized', function ()
               -- 3 vs 3 => 3 left
-              assert.are_same({3, 0}, {player_char:_compute_ground_sensors_signed_distance(vector(0, 2))})
+              assert.are_same(collision.ground_query_info(3, 0), player_char:_compute_ground_sensors_signed_distance(vector(0, 2)))
             end)
 
           end)
@@ -375,9 +376,9 @@ describe('player_character', function ()
               get_prioritized_dir_mock:revert()
             end)
 
-            it('should return the signed distance to right ground if both sensors are at the same level, but left is prioritized', function ()
+            it('#solo should return the signed distance to right ground if both sensors are at the same level, but left is prioritized', function ()
               -- 3 vs 3 => 3 right
-              assert.are_same({3, 0.125}, {player_char:_compute_ground_sensors_signed_distance(vector(0, 2))})
+              assert.are_same(collision.ground_query_info(3, 0.125), player_char:_compute_ground_sensors_signed_distance(vector(0, 2)))
             end)
 
           end)
@@ -451,72 +452,82 @@ describe('player_character', function ()
             mset(1, 1, 64)
           end)
 
-          -- just above
+          -- on the sides
 
-          it('should return tile_size+1, nil if above the tile by 10>tile_size (clamped to tile_size)', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 - 10))})
+          it('+ should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the left', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height+1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(7, 8)))
           end)
 
-          it('should return 0.0625, 0 if just a above the tile by 0.0625', function ()
-            assert.are_same({0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 - 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the right', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height+1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(16, 8)))
+          end)
+
+          -- above
+
+          it('should return ground_query_info(max_ground_snap_height+1, nil) if above the tile by 8 max_ground_snap_height+2)', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height+1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 - (playercharacter_data.max_ground_snap_height + 2))))
+          end)
+
+          it('should return ground_query_info(max_ground_snap_height, 0) if above the tile by max_ground_snap_height', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 - playercharacter_data.max_ground_snap_height)))
+          end)
+
+          it('should return ground_query_info(0.0625, 0) if just a above the tile by 0.0625 (<= max_ground_snap_height)', function ()
+            assert.are_equal(ground_query_info(0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 - 0.0625)))
           end)
 
           -- on top
 
-          it('+ should return tile_size+1, nil if just at ground height but slightly on the left', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 8))})
+          it('should return ground_query_info(0, 0) if just at the top of the topleft-most pixel of the tile', function ()
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
-          it('should return 0, 0 if just at the top of the topleft-most pixel of the tile', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8))})
+          it('should return ground_query_info(0, 0) if just at the top of tile, in the middle', function ()
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 8)))
           end)
 
-          it('should return 0, 0 if just at the top of tile, in the middle', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 8))})
+          it('should return ground_query_info(0, 0) if just at the top of the right-most pixel', function ()
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
-          it('should return 0, 0 if just at the top of the right-most pixel', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 8))})
+          -- just below the top
+
+          it('should return ground_query_info(-0.0625, 0) if 0.0625 inside the top-left pixel', function ()
+            assert.are_equal(ground_query_info(-0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 + 0.0625)))
           end)
 
-          it('should return tile_size+1, nil if just at ground height but slightly on the right', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 8))})
+          it('should return ground_query_info(-0.0625, 0) if 0.0625 inside the top-right pixel', function ()
+            assert.are_equal(ground_query_info(-0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 + 0.0625)))
           end)
 
-          -- just inside the top
+          -- going deeper
 
-          it('should return tile_size+1, nil if just on the left of the top-left pixel, y at 0.0625 below the top', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 8 + 0.0625))})
+          it('should return ground_query_info(-1.5, 0) if 1.5 (<= max_ground_escape_height) inside vertically', function ()
+            assert.are_equal(ground_query_info(-1.5, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 8 + 1.5)))
           end)
 
-          it('should return -0.0625, 0 if 0.0625 inside the top-left pixel', function ()
-            assert.are_same({-0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 + 0.0625))})
+          it('should return ground_query_info(-max_ground_escape_height, 0) if max_ground_escape_height inside', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 + playercharacter_data.max_ground_escape_height)))
           end)
 
-          it('should return -0.0625, 0 if 0.0625 inside the top-right pixel', function ()
-            assert.are_same({-0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 + 0.0625))})
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 2 inside', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 + playercharacter_data.max_ground_escape_height + 2)))
           end)
 
-          it('should return tile_size+1. nil if just on the right of the top-right pixel, y at 0.0625 below the top', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 8 + 0.0625))})
+          -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height - 1)))
           end)
 
-          -- just inside the bottom
-
-          it('should return tile_size+1, nil if just on the left of the bottom-left pixel, y at 0.0625 above the bottom', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625))})
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height)))
           end)
 
-          it('should return -(8 - 0.0625), 0 if 0.0625 inside the bottom-left pixel', function ()
-            assert.are_same({-(8 - 0.0625), 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 16 - 0.0625))})
-          end)
+          -- step up distance reached, character considered in the air
 
-          it('should return -(8 - 0.0625), 0 if 0.0625 inside the bottom-right pixel', function ()
-            assert.are_same({-(8 - 0.0625), 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 - 0.0625))})
-          end)
-
-          it('should return tile_size+1, nil if on the right of the bottom-right pixel, y at 0.0625 above the bottom', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 16 - 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -531,66 +542,82 @@ describe('player_character', function ()
           -- just above
 
           it('should return 0.0625, 0 if just a little above the tile', function ()
-            assert.are_same({0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 12 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 12 - 0.0625)))
           end)
 
           -- on top
 
-          it('+ should return tile_size+1, nil if just touching the left of the tile at the ground\'s height', function ()
+          it('+ should return ground_query_info(max_ground_snap_height + 1, nil) if just touching the left of the tile at the ground\'s height', function ()
             -- right ground sensor @ (7.5, 12)
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 12))})
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(7, 12)))
           end)
 
           it('should return 0, 0 if just at the top of the topleft-most pixel of the tile', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 12))})
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(8, 12)))
           end)
 
           it('should return 0, 0 if just at the top of tile, in the middle', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 12))})
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 12)))
           end)
 
           it('should return 0, 0 if just at the top of the right-most pixel', function ()
-            assert.are_same({0, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 12))})
+            assert.are_equal(ground_query_info(0, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 12)))
           end)
 
-          it('should return tile_size+1, nil if in the air on the right of the tile', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 12))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if in the air on the right of the tile', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(16, 12)))
           end)
 
           -- just inside the top
 
-          it('should return tile_size+1, nil if just on the left of the topleft pixel, y at 0.0625 below the top', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 12 + 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the left of the topleft pixel, y at 0.0625 below the top', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(7, 12 + 0.0625)))
           end)
 
           it('should return -0.0625, 0 if 0.0625 inside the topleft pixel', function ()
-            assert.are_same({-0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 12 + 0.0625))})
+            assert.are_equal(ground_query_info(-0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(8, 12 + 0.0625)))
           end)
 
           it('should return -0.0625, 0 if 0.0625 inside the topright pixel', function ()
-            assert.are_same({-0.0625, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 12 + 0.0625))})
+            assert.are_equal(ground_query_info(-0.0625, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 12 + 0.0625)))
           end)
 
-          it('should return tile_size+1, nil if just on the right of the topright pixel, y at 0.0625 below the top', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 12 + 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the right of the topright pixel, y at 0.0625 below the top', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(16, 12 + 0.0625)))
           end)
 
           -- just inside the bottom
 
-          it('should return tile_size+1, nil if just on the left of the topleft pixel, y at 0.0625 above the bottom', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the left of the topleft pixel, y at 0.0625 above the bottom', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625)))
           end)
 
           it('should return -(4 - 0.0625), 0 if 0.0625 inside the topleft pixel', function ()
-            assert.are_same({-(4 - 0.0625), 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 16 - 0.0625))})
+            assert.are_equal(ground_query_info(-(4 - 0.0625), 0), player_char:_compute_signed_distance_to_closest_ground(vector(8, 16 - 0.0625)))
           end)
 
           it('should return -(4 - 0.0625), 0 if 0.0625 inside the topright pixel', function ()
-            assert.are_same({-(4 - 0.0625), 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 - 0.0625))})
+            assert.are_equal(ground_query_info(-(4 - 0.0625), 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 - 0.0625)))
           end)
 
-          it('should return tile_size+1, nil if just on the right of the topright pixel, y at 0.0625 above the bottom', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(16, 16 - 0.0625))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the right of the topright pixel, y at 0.0625 above the bottom', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(16, 16 - 0.0625)))
+          end)
+
+          -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height - 1)))
+          end)
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, 0), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height)))
+          end)
+
+          -- step up distance reached, character considered in the air
+
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -603,43 +630,63 @@ describe('player_character', function ()
           end)
 
           it('should return 0.0625, -45/360 if just above slope column 0', function ()
-            assert.are_same({0.0625, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625)))
           end)
 
           it('should return 0, -45/360 if at the top of column 0', function ()
-            assert.are_same({0, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 15))})
+            assert.are_equal(ground_query_info(0, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 15)))
           end)
 
           it('. should return 0.0625, -45/360 if just above slope column 4', function ()
-            assert.are_same({0.0625, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625)))
           end)
 
           it('. should return 0, -45/360 if at the top of column 4', function ()
-            assert.are_same({0, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 11))})
+            assert.are_equal(ground_query_info(0, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(12, 11)))
           end)
 
           it('should return -2, -45/360 if 2px below column 4', function ()
-            assert.are_same({-2, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 13))})
+            assert.are_equal(ground_query_info(-2, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(12, 13)))
           end)
 
           it('should return 0.0625, -45/360 if right sensor is just above slope column 0', function ()
-            assert.are_same({0.0625, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625)))
           end)
 
           it('should return 0, -45/360 if right sensor is at the top of column 0', function ()
-            assert.are_same({0, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 8))})
+            assert.are_equal(ground_query_info(0, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
           it('should return -3, -45/360 if 3px below column 0', function ()
-            assert.are_same({-3, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 11))})
+            assert.are_equal(ground_query_info(-3, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 11)))
           end)
 
           it('. should return 0.0625, -45/360 if just above slope column 3', function ()
-            assert.are_same({0.0625, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625)))
           end)
 
           it('. should return 0, -45/360 if at the top of column 3', function ()
-            assert.are_same({0, -45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 12))})
+            assert.are_equal(ground_query_info(0, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(11, 12)))
+          end)
+
+          -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
+
+          it('should return ground_query_info(-4, -45/360) if 4 (<= max_ground_escape_height) below the 2nd column top', function ()
+            assert.are_equal(ground_query_info(-4, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
+          end)
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, -45/360) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height - 1)))
+          end)
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, -45/360) if max_ground_escape_height below the bottom', function ()
+            assert.are_equal(ground_query_info(-playercharacter_data.max_ground_escape_height - 1, -45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height)))
+          end)
+
+          -- step up distance reached, character considered in the air
+
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(15, 16 + playercharacter_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -652,59 +699,59 @@ describe('player_character', function ()
           end)
 
           it('. should return 0.0625, 45/360 if right sensors are just a little above column 0', function ()
-            assert.are_same({0.0625, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
           it('should return 0, 45/360 if right sensors is at the top of column 0', function ()
-            assert.are_same({0, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8))})
+            assert.are_equal(ground_query_info(0, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return -1, 45/360 if right sensors is below column 0 by 1px', function ()
-            assert.are_same({-1, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 9))})
+            assert.are_equal(ground_query_info(-1, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 9)))
           end)
 
           it('should return 1, 45/360 if 1px above slope column 1', function ()
-            assert.are_same({1, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(9, 8))})
+            assert.are_equal(ground_query_info(1, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(9, 8)))
           end)
 
           it('should return 0, 45/360 if at the top of column 1', function ()
-            assert.are_same({0, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(9, 9))})
+            assert.are_equal(ground_query_info(0, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(9, 9)))
           end)
 
           it('should return -2, 45/360 if 2px below column 1', function ()
-            assert.are_same({-2, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(9, 11))})
+            assert.are_equal(ground_query_info(-2, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(9, 11)))
           end)
 
           it('should return 0.0625, 45/360 if just above slope column 0', function ()
-            assert.are_same({0.0625, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
           it('should return 0, 45/360 if at the top of column 0', function ()
-            assert.are_same({0, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 8))})
+            assert.are_equal(ground_query_info(0, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return -3, 45/360 if 3px below column 0', function ()
-            assert.are_same({-3, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(8, 11))})
+            assert.are_equal(ground_query_info(-3, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(8, 11)))
           end)
 
           it('. should return 0.0625, 45/360 if just above slope column 3', function ()
-            assert.are_same({0.0625, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625)))
           end)
 
           it('. should return 0, 45/360 if at the top of column 3', function ()
-            assert.are_same({0, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 11))})
+            assert.are_equal(ground_query_info(0, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(11, 11)))
           end)
 
           it('should return -4, 45/360 if 4px below column 3', function ()
-            assert.are_same({-4, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 15))})
+            assert.are_equal(ground_query_info(-4, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(11, 15)))
           end)
 
           it('should return 0.0625, 45/360 if just above slope column 7', function ()
-            assert.are_same({0.0625, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625))})
+            assert.are_equal(ground_query_info(0.0625, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625)))
           end)
 
           it('should return 0 if, 45/360 at the top of column 7', function ()
-            assert.are_same({0, 45/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(15, 15))})
+            assert.are_equal(ground_query_info(0, 45/360), player_char:_compute_signed_distance_to_closest_ground(vector(15, 15)))
           end)
 
         end)
@@ -717,7 +764,7 @@ describe('player_character', function ()
           end)
 
           it('should return -4, -22.5/360 if below column 7 by 4px)', function ()
-            assert.are_same({-4, -22.5/360}, {player_char:_compute_signed_distance_to_closest_ground(vector(14, 15))})
+            assert.are_equal(ground_query_info(-4, -22.5/360), player_char:_compute_signed_distance_to_closest_ground(vector(14, 15)))
           end)
 
         end)
@@ -730,12 +777,12 @@ describe('player_character', function ()
             mset(1, 1, 71)
           end)
 
-          it('should return tile_size+1, nil if just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
-            assert.are_same({tile_size+1, nil}, {player_char:_compute_signed_distance_to_closest_ground(vector(11, 16))})
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
+            assert.are_equal(ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil), player_char:_compute_signed_distance_to_closest_ground(vector(11, 16)))
           end)
 
           it('should return -2, 0 if below tile by 2px', function ()
-            assert.are_same({-2, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(14, 14))})
+            assert.are_equal(ground_query_info(-2, 0), player_char:_compute_signed_distance_to_closest_ground(vector(14, 14)))
           end)
 
         end)
@@ -768,7 +815,7 @@ describe('player_character', function ()
 
           it('should return -4, 0 if below top by 4px, with character crossing 2 tiles', function ()
             -- interface
-            assert.are_same({-4, 0}, {player_char:_compute_signed_distance_to_closest_ground(vector(12, 18))})
+            assert.are_equal(ground_query_info(-4, 0), player_char:_compute_signed_distance_to_closest_ground(vector(12, 18)))
           end)
 
         end)
@@ -2077,7 +2124,7 @@ describe('player_character', function ()
         -- bugfix history:
         -- = itest of player running on flat ground when ascending a slope showed that when removing supporting ground,
         --   character would be blocked at the bottom of the slope, so I isolated just that part into a utest
-        describe('#solo (with non-supported ascending slope)', function ()
+        describe('(with non-supported ascending slope)', function ()
 
           before_each(function ()
             --  /
@@ -2299,6 +2346,28 @@ describe('player_character', function ()
 
           it('should return false for sensor position below the tile, at character height', function ()
             assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(12, 8 + playercharacter_data.full_height_standing)))
+          end)
+
+        end)
+
+        describe('(1 ascending slope 45)', function ()
+
+          before_each(function ()
+            -- /
+            mset(0, 0, 65)
+          end)
+
+          it('should return false for sensor position on the left of the tile', function ()
+            -- normally the character should step up and pass this position during the next-step pass
+            --  and this returns false so the character won't be blocked
+            assert.is_false(player_char._is_column_blocked_by_ceiling_at(vector(0, 7)))
+          end)
+
+          it('should return true for sensor position at the bottom-left of the tile', function ()
+            -- technically this is still a step up, but we consider it is the next-step method's fault
+            --  if it didn't step up correctly so we afford to return true and block the character,
+            --  as it makes more simple code
+            assert.is_true(player_char._is_column_blocked_by_ceiling_at(vector(0, 8)))
           end)
 
         end)

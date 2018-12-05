@@ -5,7 +5,7 @@ local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
 --#if visual_logger
-local visual_logger = require("engine/debug/visual_logger")
+local vlogger = require("engine/debug/visual_logger")
 --#endif
 
 --#if tuner
@@ -62,7 +62,7 @@ function gameapp.update()
   flow:update()
 
 --#if visual_logger
-  visual_logger.window:update()
+  vlogger.window:update()
 --#endif
 
 --#if profiler
@@ -79,7 +79,7 @@ function gameapp.draw()
   flow:render()
 
 --#if visual_logger
-  visual_logger.window:render()
+  vlogger.window:render()
 --#endif
 
 --#if profiler

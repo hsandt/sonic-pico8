@@ -6,9 +6,9 @@ local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
 
 --#if visual_logger
-local visual_logger = require("engine/debug/visual_logger")
-logging.logger:register_stream(visual_logger.visual_log_stream)
-visual_logger.window:show()
+local vlogger = require("engine/debug/visual_logger")
+logging.logger:register_stream(vlogger.visual_log_stream)
+vlogger.window:show()
 --#endif
 
 --#endif

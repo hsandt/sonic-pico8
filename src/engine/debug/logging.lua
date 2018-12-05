@@ -13,21 +13,21 @@ local logging = {
 }
 
 -- log message struct
-local log_message = new_struct()
-logging.log_message = log_message
+local log_msg = new_struct()
+logging.log_msg = log_msg
 
 -- level     logging.level  importance level of the message
 -- text      string         textual content
 -- category  string         category in which the message belongs to (see logger.active_categories)
-function log_message:_init(level, category, text)
+function log_msg:_init(level, category, text)
   self.level = level
   self.category = category
   self.text = text
 end
 
 --#if log
-function log_message:_tostring()
-  return "log_message("..joinstr(", ", self.level, dump(self.category), dump(self.text))..")"
+function log_msg:_tostring()
+  return "log_msg("..joinstr(", ", self.level, dump(self.category), dump(self.text))..")"
 end
 --#endif
 
@@ -44,8 +44,8 @@ end
 
 -- log stream abstract singleton
 -- active      boolean                           is the stream active? is false, all output is muted
--- log         function(self, lm: log_message)   external callback on log message received
--- on_log      function(self, lm: log_message)   internal callback on log message received, only called if active
+-- log         function(self, lm: log_msg)   external callback on log message received
+-- on_log      function(self, lm: log_msg)   internal callback on log message received, only called if active
 local log_stream = singleton(function (self)
   self.active = true
 end)
@@ -106,7 +106,7 @@ end
 function logger:_generic_log(level, category, content)
   category = category or "default"
   if logger.active_categories[category] and logger.current_level <= level then
-    local lm = log_message(level, category, stringify(content))
+    local lm = log_msg(level, category, stringify(content))
     for stream in all(self._streams) do
       stream:log(lm)
     end

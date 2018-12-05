@@ -19,7 +19,7 @@ describe('gamestate_proxy', function ()
           credits = require("game/menu/credits_dummy"),
           stage = require("game/ingame/stage")
         },
-        gamestate_proxy._gamestate_modules)
+        gamestate_proxy._state_modules)
     end)
 
   end)
@@ -30,7 +30,7 @@ describe('gamestate_proxy', function ()
       assert.has_error(function ()
           gamestate_proxy:get("invalid")
         end,
-        "gamestate_proxy:get: self._gamestate_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
+        "gamestate_proxy:get: self._state_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
     end)
 
   describe('(when modules have been required)', function ()

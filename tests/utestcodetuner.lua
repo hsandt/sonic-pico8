@@ -70,10 +70,6 @@ describe('codetuner', function ()
 
   end)
 
-  describe('_tostring', function ()
-    assert.are_equal("[codetuner]", codetuner:_tostring())
-  end)
-
   describe('(codetuner active)', function ()
     local warn_stub
 

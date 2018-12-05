@@ -137,8 +137,8 @@ itest.final_assertion = function ()
   -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
   local is_position_expected, position_message = almost_eq_with_message(vector(14.8984375, 80.), stage.state.player_char:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.703125, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.703125, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.703125, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.703125, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -203,8 +203,8 @@ itest.final_assertion = function ()
   -- to compute position, apply deceleration to the current speed and sum to the last position at frame 30. don't forget to clamp speed to - max speed when changing sign over max speed,
   --  before continuing to increase speed with - max accel each step after that
   local is_position_expected, position_message = almost_eq_with_message(vector(14.7109375, 80.), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(-0.1875, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(-0.1875, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(-0.1875, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(-0.1875, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -271,8 +271,8 @@ itest.final_assertion = function ()
   --  so we can 2x the accumulated distance computed in the first test (only accel over 30 frames), then subtract the non-doubled max value, and add the initial position x
   local is_position_expected, position_message = almost_eq_with_message(vector(4 + 2 * 10.8984375 - 0.703125, 80.), stage.state.player_char:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -353,8 +353,8 @@ itest.final_assertion = function ()
   local is_position_expected, position_message = almost_eq_with_message(vector(6.519668501758, 79), stage.state.player_char:get_bottom_center(), 1/256)
   local is_slope_expected, slope_message = almost_eq_with_message(-45/360, stage.state.player_char.slope_angle, 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.26318359375, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.1860961140625, -0.1860961140625), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.26318359375, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.1860961140625, -0.1860961140625), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -423,8 +423,8 @@ itest:add_action(time_trigger(25, true), function () end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(39.2734375, 80. + 35.546875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.8203125, 2.734375), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.8203125, 2.734375), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -491,8 +491,8 @@ end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(4, 80. - 19.296875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -562,8 +562,8 @@ itest:add_action(time_trigger(18, true), function () end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(4, 80 - 20.546875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -627,8 +627,8 @@ itest:add_action(time_trigger(31, true), function () end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(4, 80 - 49.921875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.078125), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.078125), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -726,8 +726,8 @@ end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(4, 80.), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -799,8 +799,8 @@ itest:add_action(time_trigger(29, true), function () end)
 itest.final_assertion = function ()
   local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
   local is_position_expected, position_message = almost_eq_with_message(vector(4 + 20.390625, 80 - 49.921875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(1.359375, -0.078125), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(1.359375, -0.078125), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -872,8 +872,8 @@ itest.final_assertion = function ()
   -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
   local is_position_expected, position_message = almost_eq_with_message(vector(13., 80.), stage.state.player_char:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 
@@ -920,7 +920,7 @@ itest.setup = function ()
   -- start moving to the right from frame 0 by setting intention in setup
   stage.state.player_char.move_intention = vector(1, 0)
   -- cheat for fast startup (velocity will be updated on first frame)
-  stage.state.player_char.ground_speed_frame = 40
+  stage.state.player_char.ground_speed = 40
 end
 
 itest.teardown = function ()
@@ -964,8 +964,8 @@ itest.final_assertion = function ()
   -- actually 13 if we use more narrow ground sensor
   local is_position_expected, position_message = almost_eq_with_message(vector(13, 80 - 8), stage.state.player_char:get_bottom_center(), 1/256)
   -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed_frame, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity_frame, 1/256)
+  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
+  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
 
   local final_message = ""
 

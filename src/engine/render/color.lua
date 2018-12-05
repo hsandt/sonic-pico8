@@ -1,4 +1,6 @@
 -- default pico-8 colors
+
+--#ifn pico8
 colors = {
   black = 0,
   dark_blue = 1,
@@ -17,7 +19,9 @@ colors = {
   pink = 14,
   peach = 15
 }
+--#endif
 
+--#if log
 color_strings = {
   [colors.black] = "black",
   [colors.dark_blue] = "dark_blue",
@@ -37,7 +41,6 @@ color_strings = {
   [colors.peach] = "peach"
 }
 
---#if log
 function color_tostring(colour)
   return color_strings[colour] or "unknown color"
 end

@@ -274,31 +274,35 @@ end
 
 -- enums data
 
+--#ifn pico8
 directions = {
   left = 0,
   up = 1,
   right = 2,
   down = 3
 }
+--#endif
 
-direction_vectors = {
+dir_vectors = {
   [0] = vector(-1., 0.),
   vector(0., -1.),
   vector(1., 0.),
   vector(0., 1.)
 }
 
-horizontal_directions = {
+--#ifn pico8
+horizontal_dirs = {
   left = 1,
   right = 2
 }
+--#endif
 
-horizontal_direction_vectors = {
+horizontal_dir_vectors = {
   vector(-1., 0.),  -- to left
   vector(1., 0.)    -- to right
 }
 
-horizontal_direction_signs = {
+horizontal_dir_signs = {
   -1,               -- left sign
   1                 -- right sign
 }
@@ -306,7 +310,7 @@ horizontal_direction_signs = {
 -- return left if signed speed is negative, right if positive. ub unless signed speed is not 0
 function signed_speed_to_direction(signed_speed)
   assert(signed_speed ~= 0)
-  return signed_speed < 0 and horizontal_directions.left or horizontal_directions.right
+  return signed_speed < 0 and horizontal_dirs.left or horizontal_dirs.right
 end
 
 function oppose_direction(direction)

@@ -41,8 +41,8 @@ local player_char = new_class()
 -- motion_mode            motion_modes  motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states motion state (platformer mode only)
 -- position               vector        current position (character center "between" pixels)
--- ground_speed_frame     float         current speed along the ground (~px/frame)
--- velocity_frame         vector        current velocity in platformer mode (px/frame)
+-- ground_speed           float         current speed along the ground (~px/frame)
+-- velocity         vector        current velocity in platformer mode (px/frame)
 -- debug_velocity         vector        current velocity in debug mode (m/s)
 -- slope_angle            float         slope angle of the current ground (clockwise turn ratio)
 -- move_intention         vector        current move intention (normalized)
@@ -66,8 +66,8 @@ function player_char:_setup()
   self.motion_state = motion_states.grounded
 
   self.position = vector.zero()
-  self.ground_speed_frame = 0.
-  self.velocity_frame = vector.zero()
+  self.ground_speed = 0.
+  self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
   self.slope_angle = 0
 
@@ -132,7 +132,7 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
   local highest_ground_slope_angle = nil
 
   -- check both ground sensors for ground. if any finds ground, return true
-  for i in all({horizontal_directions.left, horizontal_directions.right}) do
+  for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
     -- check that ground sensor #i is on top of or below the mask column
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
@@ -160,12 +160,12 @@ end
 
 function player_char:_get_prioritized_dir()
   if self.motion_state == motion_states.grounded then
-    if self.ground_speed_frame ~= 0 then
-      return signed_speed_to_direction(self.ground_speed_frame)
+    if self.ground_speed ~= 0 then
+      return signed_speed_to_direction(self.ground_speed)
     end
   else
-    if self.velocity_frame.x ~= 0 then
-      return signed_speed_to_direction(self.velocity_frame.x)
+    if self.velocity.x ~= 0 then
+      return signed_speed_to_direction(self.velocity.x)
     end
   end
   return self.horizontal_dir
@@ -179,7 +179,7 @@ function player_char:_get_ground_sensor_position_from(center_position, horizonta
   local x_floored_bottom_center = x_floored_center_position + vector(0, pc_data.center_height_standing)
 
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
-  local offset_x = flr(horizontal_direction_signs[horizontal_dir] * pc_data.ground_sensor_extent_x)
+  local offset_x = flr(horizontal_dir_signs[horizontal_dir] * pc_data.ground_sensor_extent_x)
 
   return x_floored_bottom_center + vector(offset_x, 0)
 end
@@ -392,13 +392,13 @@ function player_char:_enter_motion_state(next_motion_state)
   if next_motion_state == motion_states.airborne then
     -- we have just left the ground, enter airborne state
     --  and since ground speed is now unused, reset it for clarity
-    self.ground_speed_frame = 0
+    self.ground_speed = 0
     self.should_jump = false
     self.current_sprite = "spin"
   elseif next_motion_state == motion_states.grounded then
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
-    self.velocity_frame.y = 0  -- no velocity retain yet on y
+    self.velocity.y = 0  -- no velocity retain yet on y
     self.has_interrupted_jump = false
     self.current_sprite = "idle"
   end
@@ -429,13 +429,13 @@ function player_char:_update_platformer_motion_grounded()
 
   -- reset ground speed if blocked
   if ground_motion_result.is_blocked then
-    self.ground_speed_frame = 0
+    self.ground_speed = 0
   end
 
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
-  self.velocity_frame = self.ground_speed_frame * vector(cos(self.slope_angle), -sin(self.slope_angle))
+  self.velocity = self.ground_speed * vector(cos(self.slope_angle), -sin(self.slope_angle))
 
   -- we can now update position and slope
   self.position = ground_motion_result.position
@@ -449,8 +449,8 @@ function player_char:_update_platformer_motion_grounded()
   end
 
   log("self.position: "..self.position, "trace")
-  log("self.velocity_frame: "..self.velocity_frame, "trace")
-  log("self.ground_speed_frame: "..self.ground_speed_frame, "trace")
+  log("self.velocity: "..self.velocity, "trace")
+  log("self.ground_speed: "..self.ground_speed, "trace")
 end
 
 -- update ground speed
@@ -471,36 +471,36 @@ end
 -- update ground speed based on current slope
 function player_char:_update_ground_speed_by_slope()
   if self.slope_angle ~= 0 then
-    self.ground_speed_frame = self.ground_speed_frame - pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+    self.ground_speed = self.ground_speed - pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
   end
 end
 
 -- update ground speed based on current move intention
 function player_char:_update_ground_speed_by_intention()
   if self.move_intention.x ~= 0 then
-    if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
+    if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
-      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * pc_data.ground_accel_frame2
+      self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
     else
       -- decelerate
-      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * pc_data.ground_decel_frame2
+      self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_decel_frame2
       -- if speed must switch sign this frame, clamp it by ground accel in absolute value to prevent exploit of
       --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
-      local has_changed_sign = self.ground_speed_frame ~= 0 and sgn(self.ground_speed_frame) == sgn(self.move_intention.x)
-      if has_changed_sign and abs(self.ground_speed_frame) > pc_data.ground_accel_frame2 then
-        self.ground_speed_frame = sgn(self.ground_speed_frame) * pc_data.ground_accel_frame2
+      local has_changed_sign = self.ground_speed ~= 0 and sgn(self.ground_speed) == sgn(self.move_intention.x)
+      if has_changed_sign and abs(self.ground_speed) > pc_data.ground_accel_frame2 then
+        self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
       end
     end
-  elseif self.ground_speed_frame ~= 0 then
+  elseif self.ground_speed ~= 0 then
     -- friction
-    self.ground_speed_frame = sgn(self.ground_speed_frame) * max(0, abs(self.ground_speed_frame) - pc_data.ground_friction_frame2)
+    self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
   end
 end
 
 -- clamp ground speed to max
 function player_char:_clamp_ground_speed()
-  if abs(self.ground_speed_frame) > pc_data.max_ground_speed_frame then
-    self.ground_speed_frame = sgn(self.ground_speed_frame) * pc_data.max_ground_speed_frame
+  if abs(self.ground_speed) > pc_data.max_ground_speed then
+    self.ground_speed = sgn(self.ground_speed) * pc_data.max_ground_speed
   end
 end
 
@@ -510,7 +510,7 @@ end
 --  - is_falling is true iff the character leaves the ground just by running during this motion
 function player_char:_compute_ground_motion_result()
   -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
-  if self.ground_speed_frame == 0 then
+  if self.ground_speed == 0 then
     return collision.ground_motion_result(
       self.position,
       self.slope_angle,
@@ -519,7 +519,7 @@ function player_char:_compute_ground_motion_result()
     )
   end
 
-  local horizontal_dir = signed_speed_to_direction(self.ground_speed_frame)
+  local horizontal_dir = signed_speed_to_direction(self.ground_speed)
 
   -- initialise result
   local motion_result = collision.ground_motion_result(
@@ -533,7 +533,7 @@ function player_char:_compute_ground_motion_result()
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local distance_x = self.ground_speed_frame * cos(self.slope_angle)
+  local distance_x = self.ground_speed * cos(self.slope_angle)
   local max_column_distance = player_char._compute_max_column_distance(self.position.x, distance_x)
     log("max_column_distance: "..max_column_distance, "trace")
 
@@ -575,10 +575,10 @@ function player_char:_compute_ground_motion_result()
 end
 
 -- return the number of new pixel columns explored when moving from initial_position_x
---  over ground_speed_frame * 1 frame. this is either flr(ground_speed_frame)
---  or flr(ground_speed_frame) + 1 (if subpixels from initial position x and speed sum up to 1.0 or more)
-function player_char._compute_max_column_distance(initial_position_x, ground_speed_frame)
-  return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
+--  over ground_speed * 1 frame. this is either flr(ground_speed)
+--  or flr(ground_speed) + 1 (if subpixels from initial position x and speed sum up to 1.0 or more)
+function player_char._compute_max_column_distance(initial_position_x, ground_speed)
+  return abs(flr(initial_position_x + ground_speed) - flr(initial_position_x))
 end
 
 -- update motion_result: collision.ground_motion_result for a character trying to move
@@ -589,7 +589,7 @@ end
 --  although _compute_ground_sensors_signed_distance will floor in x anyway
 function player_char:_next_ground_step(horizontal_dir, motion_result)
   -- compute candidate position on next step. only flat slopes supported
-  local step_vec = horizontal_direction_vectors[horizontal_dir]
+  local step_vec = horizontal_dir_vectors[horizontal_dir]
   local next_position_candidate = motion_result.position + step_vec
 
   -- check if next position is inside/above ground
@@ -656,7 +656,7 @@ end
 function player_char:_is_blocked_by_ceiling_at(center_position)
 
   -- check ceiling from both ground sensors. if any finds one, return true
-  for i in all({horizontal_directions.left, horizontal_directions.right}) do
+  for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
     -- check if ground sensor #i has ceiling closer than a character's height
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
@@ -752,7 +752,7 @@ function player_char:_check_jump()
     end
 
     -- only support flat ground for now
-    self.velocity_frame.y = self.velocity_frame.y - initial_jump_speed
+    self.velocity.y = self.velocity.y - initial_jump_speed
     self:_enter_motion_state(motion_states.airborne)
     return true
   end
@@ -766,13 +766,13 @@ function player_char:_update_platformer_motion_airborne()
   self:_check_hold_jump()
 
   -- apply gravity to current speed y
-  self.velocity_frame.y = self.velocity_frame.y + pc_data.gravity_frame2
+  self.velocity.y = self.velocity.y + pc_data.gravity_frame2
 
   -- apply x acceleration via intention (if not 0)
-  self.velocity_frame.x = self.velocity_frame.x + self.move_intention.x * pc_data.air_accel_x_frame2
+  self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
 
   -- apply air motion
-  self:move_by(self.velocity_frame)
+  self:move_by(self.velocity)
 
   -- detect ground and snap up for landing
   local has_landed = self:_check_escape_from_ground()
@@ -791,8 +791,8 @@ function player_char:_check_hold_jump()
 
     -- character tries to interrupt jump, check if's not too late
     local signed_jump_interrupt_speed_frame = -pc_data.jump_interrupt_speed_frame
-    if self.velocity_frame.y < signed_jump_interrupt_speed_frame then
-      self.velocity_frame.y = signed_jump_interrupt_speed_frame
+    if self.velocity.y < signed_jump_interrupt_speed_frame then
+      self.velocity.y = signed_jump_interrupt_speed_frame
     end
   end
 end

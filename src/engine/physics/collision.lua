@@ -127,7 +127,7 @@ end
 function aabb:compute_escape_vector(other, prioritized_escape_direction)
   signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
   if signed_distance < 0 then
-    return abs(signed_distance) * direction_vectors[escape_direction]
+    return abs(signed_distance) * dir_vectors[escape_direction]
   else
     return nil
   end

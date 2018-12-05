@@ -22,9 +22,9 @@ class TestReplaceStrings(unittest.TestCase):
         test_string = '##d and ##x ##d'
         self.assertEqual(replace_strings.replace_all_glyphs_in_string(test_string), '⬇️ and ❎ ⬇️')
 
-    def test_replace_all_functions_in_string(self):
+    def test_replace_all_symbols_in_string(self):
         test_string = 'api.print("hello")'
-        self.assertEqual(replace_strings.replace_all_functions_in_string(test_string), 'print("hello")')
+        self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'print("hello")')
 
     def test_replace_all_args_in_string(self):
         test_string = 'require("itest_$itest")'

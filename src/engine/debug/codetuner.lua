@@ -23,10 +23,6 @@ local codetuner = singleton(function (self)
     self.main_panel = nil
 end)
 
-function codetuner:_tostring()
- return "[codetuner]"
-end
-
 -- utilities from widget toolkit demo
 
 -- return a new position on the right of a widget w at position (x, y), of width w, plus a margin dist

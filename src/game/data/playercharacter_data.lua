@@ -21,7 +21,7 @@ return {
   air_accel_x_frame2 = 0.046875,
 
   -- ground acceleration (px/frame)
-  max_ground_speed_frame = 3,
+  max_ground_speed = 3,
 
   -- initial variable jump speed (Sonic) (px/frame)
   initial_var_jump_speed_frame = 3.25,

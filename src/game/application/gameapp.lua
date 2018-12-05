@@ -37,9 +37,9 @@ function gameapp.init(active_gamestates)
   gamestate_proxy:require_gamestates(active_gamestates)
 --#endif
 
-  flow:add_gamestate(gamestate_proxy:get("titlemenu"))
-  flow:add_gamestate(gamestate_proxy:get("credits"))
-  flow:add_gamestate(gamestate_proxy:get("stage"))
+  for state in all({"titlemenu", "credits", "stage"}) do
+    flow:add_gamestate(gamestate_proxy:get(state))
+  end
   flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 

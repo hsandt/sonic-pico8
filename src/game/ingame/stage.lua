@@ -2,7 +2,7 @@ require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("engine/render/color")
-local player_character = require("game/ingame/playercharacter")
+local player_char = require("game/ingame/playercharacter")
 local gamestate = require("game/application/gamestate")
 local flow = require("engine/application/flow")
 local audio = require("game/resources/audio")
@@ -40,7 +40,7 @@ stage.state = singleton(function (self)
   self.current_substate = stage.substates.play
 
   -- player character
-  self.player_character = nil
+  self.player_char = nil
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
   -- position of the main camera, at the center of the view
@@ -52,7 +52,7 @@ end)
 
 function stage.state:on_enter()
   self.current_substate = stage.substates.play
-  self:spawn_player_character()
+  self:spawn_player_char()
   self.has_reached_goal = false
   self.camera_position = vector.zero()
 
@@ -65,7 +65,7 @@ function stage.state:on_exit()
   clear_table(self.coroutine_curries)
 
   -- clear object state vars
-  self.player_character = nil
+  self.player_char = nil
   self.title_overlay:clear_labels()
 
   -- reinit camera offset for other states
@@ -80,7 +80,7 @@ function stage.state:update()
 
   if self.current_substate == stage.substates.play then
     self:handle_input()
-    self.player_character:update()
+    self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
   else
@@ -140,10 +140,10 @@ end
 -- setup
 
 -- spawn the player character at the stage spawn location
-function stage.state:spawn_player_character()
+function stage.state:spawn_player_char()
   local spawn_position = self.current_stage_data.spawn_location:to_center_position()
-  self.player_character = player_character()
-  self.player_character:spawn_at(spawn_position)
+  self.player_char = player_char()
+  self.player_char:spawn_at(spawn_position)
 end
 
 
@@ -151,7 +151,7 @@ end
 
 -- handle player input
 function stage.state:handle_input()
-  if self.player_character.control_mode == control_modes.human then
+  if self.player_char.control_mode == control_modes.human then
     -- move
     local player_move_intention = vector.zero()
 
@@ -167,14 +167,14 @@ function stage.state:handle_input()
       player_move_intention:add_inplace(vector(0, 1))
     end
 
-    self.player_character.move_intention = player_move_intention
+    self.player_char.move_intention = player_move_intention
 
     -- jump
     local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
     -- set jump intention each frame, don't set it to true for later consumption to avoid sticky input
     --  without needing a reset later during update
-    self.player_character.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
-    self.player_character.hold_jump_intention = is_jump_input_down  -- set each frame
+    self.player_char.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
+    self.player_char.hold_jump_intention = is_jump_input_down  -- set each frame
   end
 end
 
@@ -183,7 +183,7 @@ end
 
 function stage.state:check_reached_goal()
   if not self.has_reached_goal and
-      self.player_character.position.x >= self.current_stage_data.goal_x then
+      self.player_char.position.x >= self.current_stage_data.goal_x then
     self.has_reached_goal = true
     self:start_coroutine_method(self.on_reached_goal_async)
   end
@@ -211,8 +211,8 @@ end
 -- update camera position based on player character position
 function stage.state:update_camera()
   -- stiff motion
-  self.camera_position.x = self.player_character.position.x
-  self.camera_position.y = self.player_character.position.y
+  self.camera_position.x = self.player_char.position.x
+  self.camera_position.y = self.player_char.position.y
 end
 
 -- set the camera offset for stage elements
@@ -246,7 +246,7 @@ end
 function stage.state:render_stage_elements()
   self:set_camera_offset_stage()
   self:render_environment()
-  self:render_player_character()
+  self:render_player_char()
 end
 
 -- render the stage environment (tiles)
@@ -262,8 +262,8 @@ function stage.state:render_environment()
 end
 
 -- render the player character at its current position
-function stage.state:render_player_character()
-  self.player_character:render()
+function stage.state:render_player_char()
+  self.player_char:render()
 end
 
 -- render the title overlay with a fixed ui camera

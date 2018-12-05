@@ -5,7 +5,7 @@ require("engine/core/math")
 require("engine/render/sprite")
 local collision = require("engine/physics/collision")
 local world = require("engine/physics/world")
-local playercharacter_data = require("game/data/playercharacter_data")
+local pc_data = require("game/data/playercharacter_data")
 
 -- enum for character control
 control_modes = {
@@ -26,7 +26,7 @@ motion_states = {
   airborne = 2        -- character is in the air
 }
 
-local player_character = new_class()
+local player_char = new_class()
 
 -- parameters
 
@@ -51,16 +51,16 @@ local player_character = new_class()
 -- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_interrupted_jump   bool          has the character already interrupted his jump once?
 -- current_sprite         string        current sprite key in the spr_data
-function player_character:_init()
-  self.spr_data = playercharacter_data.sonic_sprite_data
-  self.debug_move_max_speed = playercharacter_data.debug_move_max_speed
-  self.debug_move_accel = playercharacter_data.debug_move_accel
-  self.debug_move_decel = playercharacter_data.debug_move_decel
+function player_char:_init()
+  self.spr_data = pc_data.sonic_sprite_data
+  self.debug_move_max_speed = pc_data.debug_move_max_speed
+  self.debug_move_accel = pc_data.debug_move_accel
+  self.debug_move_decel = pc_data.debug_move_decel
 
   self:_setup()
 end
 
-function player_character:_setup()
+function player_char:_setup()
   self.control_mode = control_modes.human
   self.motion_mode = motion_modes.platformer
   self.motion_state = motion_states.grounded
@@ -81,7 +81,7 @@ function player_character:_setup()
 end
 
 -- spawn character at given position, and escape from ground / enter airborne state if needed
-function player_character:spawn_at(position)
+function player_char:spawn_at(position)
   self:_setup()
 
   self.position = position
@@ -94,22 +94,22 @@ function player_character:spawn_at(position)
 end
 
 -- move the player character so that the bottom center is at the given position
-function player_character:get_bottom_center()
-  return self.position + vector(0, playercharacter_data.center_height_standing)
+function player_char:get_bottom_center()
+  return self.position + vector(0, pc_data.center_height_standing)
 end
 
 -- move the player character so that the bottom center is at the given position
-function player_character:set_bottom_center(bottom_center_position)
-  self.position = bottom_center_position - vector(0, playercharacter_data.center_height_standing)
+function player_char:set_bottom_center(bottom_center_position)
+  self.position = bottom_center_position - vector(0, pc_data.center_height_standing)
 end
 
 -- move the player character from delta_vector in px
-function player_character:move_by(delta_vector)
+function player_char:move_by(delta_vector)
   self.position = self.position + delta_vector
 end
 
 -- update player position
-function player_character:update()
+function player_char:update()
   if self.motion_mode == motion_modes.platformer then
     self:_update_platformer_motion()
   else  -- self.motion_mode == motion_modes.debug
@@ -125,7 +125,7 @@ end
 --   the character's velocity x sign, then his horizontal direction determines which ground is chosen
 -- if both sensors have different signed distances,
 --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
-function player_character:_compute_ground_sensors_signed_distance(center_position)
+function player_char:_compute_ground_sensors_signed_distance(center_position)
 
   -- initialize with negative value to return if the character is not intersecting ground
   local min_signed_distance = 1 / 0  -- max (32768 in pico-8, but never enter it manually as it would be negative)
@@ -158,7 +158,7 @@ function player_character:_compute_ground_sensors_signed_distance(center_positio
 
 end
 
-function player_character:_get_prioritized_dir()
+function player_char:_get_prioritized_dir()
   if self.motion_state == motion_states.grounded then
     if self.ground_speed_frame ~= 0 then
       return signed_speed_to_direction(self.ground_speed_frame)
@@ -173,13 +173,13 @@ end
 
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
 -- subpixels are ignored
-function player_character:_get_ground_sensor_position_from(center_position, horizontal_dir)
+function player_char:_get_ground_sensor_position_from(center_position, horizontal_dir)
   -- ignore subpixels from center position in x
   local x_floored_center_position = vector(flr(center_position.x), center_position.y)
-  local x_floored_bottom_center = x_floored_center_position + vector(0, playercharacter_data.center_height_standing)
+  local x_floored_bottom_center = x_floored_center_position + vector(0, pc_data.center_height_standing)
 
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
-  local offset_x = flr(horizontal_direction_signs[horizontal_dir] * playercharacter_data.ground_sensor_extent_x)
+  local offset_x = flr(horizontal_direction_signs[horizontal_dir] * pc_data.ground_sensor_extent_x)
 
   return x_floored_bottom_center + vector(offset_x, 0)
 end
@@ -194,15 +194,15 @@ end
 --   around the sensor_position.y, so it's easy to know if the character can step up/down,
 --   and so that it's meaningful to check for ceiling obstacles after the character did his best to step
 --  the test should be tile-insensitive so it is possible to detect step up/down in vertical-neighboring tiles
-function player_character:_compute_signed_distance_to_closest_ground(sensor_position)
+function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
-  assert(flr(sensor_position.x) == sensor_position.x, "player_character:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
+  assert(flr(sensor_position.x) == sensor_position.x, "player_char:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
   initial_y = flr(sensor_position.y)
 
   -- check the presence of a collider pixel from top to bottom, from max step up - 1 to min step up (we don't go until + 1
   --  because if we found nothing until min step down, signed distance will be max step down + 1 anyway)
-  local query_info = collision.ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil)
-  for offset_y = -playercharacter_data.max_ground_escape_height - 1, playercharacter_data.max_ground_snap_height do
+  local query_info = collision.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
+  for offset_y = -pc_data.max_ground_escape_height - 1, pc_data.max_ground_snap_height do
     local does_collide, slope_angle = world.get_pixel_collision_info(sensor_position.x, initial_y + offset_y)
     if does_collide then
       -- signed_distance is just the current offset, minus the initial subpixel fraction that we ignored for the pixel test iteration
@@ -232,7 +232,7 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
   -- compute relative height of sensor from tile bottom (y axis is downward)
   local sensor_location_bottom = sensor_location_topleft.y + tile_size
   local sensor_height = sensor_location_bottom - sensor_position.y
-  assert(sensor_height > 0, "player_character:_compute_signed_distance_to_closest_ground: sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
+  assert(sensor_height > 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_height is not positive, yet it was computed using sensor_position:to_location() which should always select a tile where the sensor is strictly above the bottom")
 
   -- check that ground sensor #i is on top of or below the mask column
   local signed_distance = sensor_height - ground_column_height
@@ -256,8 +256,8 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
     -- column is full (reaches the top of the tile), we must check if there are any tiles
     --  stacked on top of this one, in which case the penetration height will be incremented by everything above (up to a limit of tile_size, so we clamp
     --  the added value by tile_size minus what we've already got)
-    assert(signed_distance <= 0, "player_character:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
-    local next_column_height, next_slope_angle = player_character._compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
+    assert(signed_distance <= 0, "player_char:_compute_signed_distance_to_closest_ground: column is full yet sensor is considered above it")
+    local next_column_height, next_slope_angle = player_char._compute_stacked_column_height_above(sensor_location, column_index0, tile_size + signed_distance)
     signed_distance = signed_distance - next_column_height
     -- if we found a tile above, use its slope instead of the slope of the tile at the current location
     if next_slope_angle then
@@ -265,8 +265,8 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
     end
   elseif ground_column_height == 0 then
     -- column is empty, check for more space below, up to a tile size
-    assert(signed_distance >= 0, "player_character:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
-    local next_column_height, next_slope_angle = player_character._compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
+    assert(signed_distance >= 0, "player_char:_compute_signed_distance_to_closest_ground: column is empty yet sensor is considered below it")
+    local next_column_height, next_slope_angle = player_char._compute_stacked_empty_column_height_below(sensor_location, column_index0, tile_size - signed_distance)
     signed_distance = signed_distance + next_column_height
     -- if we found a tile below, use its slope instead of the slope of the tile at the current location
     if next_slope_angle then
@@ -289,7 +289,7 @@ end
 -- if the upper_limit is overrun during the loop before a non-full column is found, however,
 --  return the upper_limit + 1
 -- this method is important to compute the penetration height/escape distance to escape from multiple stacked tiles at once
-function player_character._compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
+function player_char._compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
 
   local stacked_column_height = 0
   local current_tile_location = bottom_tile_location:copy()
@@ -330,7 +330,7 @@ end
 --  all along the passed column_index0, down to the first solid tile having a non-empty column there
 -- if the upper_limit is overrun during the loop before a non-empty column is found, however,
 --  return the upper_limit + 1. this also will in particular prevent infinite loops
-function player_character._compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
+function player_char._compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
 
   local stacked_empty_column_height = 0
   local current_tile_location = top_tile_location:copy()
@@ -371,10 +371,10 @@ end
 -- if the character cannot escape, we don't need to reset the slope angle to arbitrary 0, as this method is only called
 --  when spawning or from an airborne motion, where slope angle is already 0
 -- return true iff the character was either touching the ground or inside it (even too deep)
-function player_character:_check_escape_from_ground()
+function player_char:_check_escape_from_ground()
   local query_info = self:_compute_ground_sensors_signed_distance(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  local should_escape = signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= playercharacter_data.max_ground_escape_height
+  local should_escape = signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= pc_data.max_ground_escape_height
   if should_escape then
     self.position.y = self.position.y + signed_distance_to_closest_ground
   end
@@ -387,7 +387,7 @@ function player_character:_check_escape_from_ground()
 end
 
 -- enter motion state, reset state vars appropriately
-function player_character:_enter_motion_state(next_motion_state)
+function player_char:_enter_motion_state(next_motion_state)
   self.motion_state = next_motion_state
   if next_motion_state == motion_states.airborne then
     -- we have just left the ground, enter airborne state
@@ -405,7 +405,7 @@ function player_character:_enter_motion_state(next_motion_state)
 end
 
 -- update velocity, position and state based on current motion state
-function player_character:_update_platformer_motion()
+function player_char:_update_platformer_motion()
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
@@ -421,7 +421,7 @@ function player_character:_update_platformer_motion()
 end
 
 -- update motion following platformer grounded motion rules
-function player_character:_update_platformer_motion_grounded()
+function player_char:_update_platformer_motion_grounded()
   self:_update_ground_speed()
 
   local ground_motion_result = self:_compute_ground_motion_result()
@@ -454,7 +454,7 @@ function player_character:_update_platformer_motion_grounded()
 end
 
 -- update ground speed
-function player_character:_update_ground_speed()
+function player_char:_update_ground_speed()
   -- we need to update ground speed by intention first so accel/decel is handled correctly
   --  otherwise, when starting at speed 0 on an ascending slope, gravity changes speed to < 0
   --  and a right move intention would be handled as a decel, which is fast enough to climb up
@@ -469,38 +469,38 @@ function player_character:_update_ground_speed()
 end
 
 -- update ground speed based on current slope
-function player_character:_update_ground_speed_by_slope()
+function player_char:_update_ground_speed_by_slope()
   if self.slope_angle ~= 0 then
-    self.ground_speed_frame = self.ground_speed_frame - playercharacter_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+    self.ground_speed_frame = self.ground_speed_frame - pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
   end
 end
 
 -- update ground speed based on current move intention
-function player_character:_update_ground_speed_by_intention()
+function player_char:_update_ground_speed_by_intention()
   if self.move_intention.x ~= 0 then
     if self.ground_speed_frame == 0 or sgn(self.ground_speed_frame) == sgn(self.move_intention.x) then
       -- accelerate
-      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_accel_frame2
+      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * pc_data.ground_accel_frame2
     else
       -- decelerate
-      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * playercharacter_data.ground_decel_frame2
+      self.ground_speed_frame = self.ground_speed_frame + self.move_intention.x * pc_data.ground_decel_frame2
       -- if speed must switch sign this frame, clamp it by ground accel in absolute value to prevent exploit of
       --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
       local has_changed_sign = self.ground_speed_frame ~= 0 and sgn(self.ground_speed_frame) == sgn(self.move_intention.x)
-      if has_changed_sign and abs(self.ground_speed_frame) > playercharacter_data.ground_accel_frame2 then
-        self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.ground_accel_frame2
+      if has_changed_sign and abs(self.ground_speed_frame) > pc_data.ground_accel_frame2 then
+        self.ground_speed_frame = sgn(self.ground_speed_frame) * pc_data.ground_accel_frame2
       end
     end
   elseif self.ground_speed_frame ~= 0 then
     -- friction
-    self.ground_speed_frame = sgn(self.ground_speed_frame) * max(0, abs(self.ground_speed_frame) - playercharacter_data.ground_friction_frame2)
+    self.ground_speed_frame = sgn(self.ground_speed_frame) * max(0, abs(self.ground_speed_frame) - pc_data.ground_friction_frame2)
   end
 end
 
 -- clamp ground speed to max
-function player_character:_clamp_ground_speed()
-  if abs(self.ground_speed_frame) > playercharacter_data.max_ground_speed_frame then
-    self.ground_speed_frame = sgn(self.ground_speed_frame) * playercharacter_data.max_ground_speed_frame
+function player_char:_clamp_ground_speed()
+  if abs(self.ground_speed_frame) > pc_data.max_ground_speed_frame then
+    self.ground_speed_frame = sgn(self.ground_speed_frame) * pc_data.max_ground_speed_frame
   end
 end
 
@@ -508,7 +508,7 @@ end
 --  - next_position is the position of the character next frame considering his current ground speed
 --  - is_blocked is true iff the character encounters a wall during this motion
 --  - is_falling is true iff the character leaves the ground just by running during this motion
-function player_character:_compute_ground_motion_result()
+function player_char:_compute_ground_motion_result()
   -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
   if self.ground_speed_frame == 0 then
     return collision.ground_motion_result(
@@ -534,7 +534,7 @@ function player_character:_compute_ground_motion_result()
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
   local distance_x = self.ground_speed_frame * cos(self.slope_angle)
-  local max_column_distance = player_character._compute_max_column_distance(self.position.x, distance_x)
+  local max_column_distance = player_char._compute_max_column_distance(self.position.x, distance_x)
     log("max_column_distance: "..max_column_distance, "trace")
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
@@ -577,7 +577,7 @@ end
 -- return the number of new pixel columns explored when moving from initial_position_x
 --  over ground_speed_frame * 1 frame. this is either flr(ground_speed_frame)
 --  or flr(ground_speed_frame) + 1 (if subpixels from initial position x and speed sum up to 1.0 or more)
-function player_character._compute_max_column_distance(initial_position_x, ground_speed_frame)
+function player_char._compute_max_column_distance(initial_position_x, ground_speed_frame)
   return abs(flr(initial_position_x + ground_speed_frame) - flr(initial_position_x))
 end
 
@@ -587,7 +587,7 @@ end
 -- if character is fallling, it updates the position and flag is_falling
 -- ground_motion_result.position.x should be floored for these steps
 --  although _compute_ground_sensors_signed_distance will floor in x anyway
-function player_character:_next_ground_step(horizontal_dir, motion_result)
+function player_char:_next_ground_step(horizontal_dir, motion_result)
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = horizontal_direction_vectors[horizontal_dir]
   local next_position_candidate = motion_result.position + step_vec
@@ -598,7 +598,7 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
   if signed_distance_to_closest_ground < 0 then
     -- position is inside ground, check if we can step up during this step
     local penetration_height = - signed_distance_to_closest_ground
-    if penetration_height <= playercharacter_data.max_ground_escape_height then
+    if penetration_height <= pc_data.max_ground_escape_height then
       -- step up
       next_position_candidate.y = next_position_candidate.y - penetration_height
       -- if we left the ground during a previous step, cancel that (step up land, very rare)
@@ -611,7 +611,7 @@ function player_character:_next_ground_step(horizontal_dir, motion_result)
     end
   elseif signed_distance_to_closest_ground > 0 then
     -- position is above ground, check if we can step down during this step
-    if signed_distance_to_closest_ground <= playercharacter_data.max_ground_snap_height then
+    if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
       -- if character left the ground during a previous step, cancel that (step down land, very rare)
@@ -653,14 +653,14 @@ end
 
 -- return true iff the character cannot stand in his full height (based on ground_sensor_extent_x)
 --  at position because of the ceiling (or a full tile if standing at the top of a tile)
-function player_character:_is_blocked_by_ceiling_at(center_position)
+function player_char:_is_blocked_by_ceiling_at(center_position)
 
   -- check ceiling from both ground sensors. if any finds one, return true
   for i in all({horizontal_directions.left, horizontal_directions.right}) do
 
     -- check if ground sensor #i has ceiling closer than a character's height
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
-    if player_character._is_column_blocked_by_ceiling_at(sensor_position) then
+    if player_char._is_column_blocked_by_ceiling_at(sensor_position) then
       return true
     end
 
@@ -675,9 +675,9 @@ end
 --  because we assume that if the character could step this up, it would have and the passed
 --  sensor_position would be the resulting position, so only higher tiles will be considered
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
-function player_character._is_column_blocked_by_ceiling_at(sensor_position)
+function player_char._is_column_blocked_by_ceiling_at(sensor_position)
 
-  assert(flr(sensor_position.x) == sensor_position.x, "player_character:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
+  assert(flr(sensor_position.x) == sensor_position.x, "player_char:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
 
   -- find the tile where this sensor is located
   local current_tile_location = sensor_position:to_location()
@@ -709,11 +709,11 @@ function player_character._is_column_blocked_by_ceiling_at(sensor_position)
       --  the head is below the ceiling:
       -- local current_tile_bottom = current_tile_top + tile_size
       -- local height_distance = sensor_position.y - current_tile_bottom
-      -- return height_distance < playercharacter_data.full_height_standing
+      -- return height_distance < pc_data.full_height_standing
     end
 
     local height_distance = sensor_position.y - current_tile_top
-    if height_distance >= playercharacter_data.full_height_standing then
+    if height_distance >= pc_data.full_height_standing then
       return false
     end
 
@@ -724,7 +724,7 @@ end
 -- if character intends to jump, prepare jump for next frame
 -- this extra frame allows us to detect if the player wants a variable jump or a hop
 --  depending whether input is hold or not
-function player_character:_check_jump_intention()
+function player_char:_check_jump_intention()
   if self.jump_intention then
     -- jump_intention is set each frame, no need to consume it here
     self.should_jump = true
@@ -734,7 +734,7 @@ end
 -- if character intends to jump, apply jump velocity from current ground
 --  and enter the airborne state
 -- return true iff jump was applied
-function player_character:_check_jump()
+function player_char:_check_jump()
   if self.should_jump then
     self.should_jump = false
 
@@ -742,10 +742,10 @@ function player_character:_check_jump()
     local initial_jump_speed
     if self.hold_jump_intention then
       -- variable jump
-      initial_jump_speed = playercharacter_data.initial_var_jump_speed_frame
+      initial_jump_speed = pc_data.initial_var_jump_speed_frame
     else
       -- hop
-      initial_jump_speed = playercharacter_data.jump_interrupt_speed_frame
+      initial_jump_speed = pc_data.jump_interrupt_speed_frame
       -- mark jump as interrupted so we don't check it again
       --  (optional, since we will never be able to interrupt such a small jump anyway)
       self.has_interrupted_jump = true
@@ -760,16 +760,16 @@ function player_character:_check_jump()
 end
 
 -- update motion following platformer airborne motion rules
-function player_character:_update_platformer_motion_airborne()
+function player_char:_update_platformer_motion_airborne()
   -- check if player is continuing or interrupting jump *before* applying gravity
-  --  since our playercharacter_data.jump_interrupt_speed_frame is defined to be applied before gravity
+  --  since our pc_data.jump_interrupt_speed_frame is defined to be applied before gravity
   self:_check_hold_jump()
 
   -- apply gravity to current speed y
-  self.velocity_frame.y = self.velocity_frame.y + playercharacter_data.gravity_frame2
+  self.velocity_frame.y = self.velocity_frame.y + pc_data.gravity_frame2
 
   -- apply x acceleration via intention (if not 0)
-  self.velocity_frame.x = self.velocity_frame.x + self.move_intention.x * playercharacter_data.air_accel_x_frame2
+  self.velocity_frame.x = self.velocity_frame.x + self.move_intention.x * pc_data.air_accel_x_frame2
 
   -- apply air motion
   self:move_by(self.velocity_frame)
@@ -783,14 +783,14 @@ end
 
 -- check if character wants to interrupt jump by not holding anymore,
 --  and set vertical speed to interrupt speed if so
-function player_character:_check_hold_jump()
+function player_char:_check_hold_jump()
   if not self.has_interrupted_jump and not self.hold_jump_intention then
     -- character has not interrupted jump yet and wants to
     -- flag jump as interrupted even if it's too late, so we don't enter this block anymore
     self.has_interrupted_jump = true
 
     -- character tries to interrupt jump, check if's not too late
-    local signed_jump_interrupt_speed_frame = -playercharacter_data.jump_interrupt_speed_frame
+    local signed_jump_interrupt_speed_frame = -pc_data.jump_interrupt_speed_frame
     if self.velocity_frame.y < signed_jump_interrupt_speed_frame then
       self.velocity_frame.y = signed_jump_interrupt_speed_frame
     end
@@ -798,12 +798,12 @@ function player_character:_check_hold_jump()
 end
 
 -- update the velocity and position of the character following debug motion rules
-function player_character:_update_debug()
+function player_char:_update_debug()
   self:_update_velocity_debug()
   self:move_by(self.debug_velocity * delta_time)
 end
 
-function player_character:_update_velocity_debug()
+function player_char:_update_velocity_debug()
   -- update velocity from input
   -- in debug mode, cardinal speeds are independent and max speed applies to each
   self:_update_velocity_component_debug("x")
@@ -812,7 +812,7 @@ end
 
 -- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"
-function player_character:_update_velocity_component_debug(coord)
+function player_char:_update_velocity_component_debug(coord)
   if self.move_intention[coord] ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
     local clamped_move_intention_comp = mid(-1, self.move_intention[coord], 1)
@@ -827,8 +827,8 @@ function player_character:_update_velocity_component_debug(coord)
 end
 
 -- render the player character sprite at its current position
-function player_character:render()
+function player_char:render()
  self.spr_data[self.current_sprite]:render(self.position)
 end
 
-return player_character
+return player_char

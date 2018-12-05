@@ -23,22 +23,22 @@ colors = {
 
 --#if log
 color_strings = {
-  [colors.black] = "black",
-  [colors.dark_blue] = "dark_blue",
-  [colors.dark_purple] = "dark_purple",
-  [colors.dark_green] = "dark_green",
-  [colors.brown] = "brown",
-  [colors.dark_gray] = "dark_gray",
-  [colors.light_gray] = "light_gray",
-  [colors.white] = "white",
-  [colors.red] = "red",
-  [colors.orange] = "orange",
-  [colors.yellow] = "yellow",
-  [colors.green] = "green",
-  [colors.blue] = "blue",
-  [colors.indigo] = "indigo",
-  [colors.pink] = "pink",
-  [colors.peach] = "peach"
+  [0] = "black",
+  "dark_blue",
+  "dark_purple",
+  "dark_green",
+  "brown",
+  "dark_gray",
+  "light_gray",
+  "white",
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "indigo",
+  "pink",
+  "peach"
 }
 
 function color_tostring(colour)

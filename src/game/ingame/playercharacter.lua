@@ -161,11 +161,11 @@ end
 function player_char:_get_prioritized_dir()
   if self.motion_state == motion_states.grounded then
     if self.ground_speed ~= 0 then
-      return signed_speed_to_direction(self.ground_speed)
+      return signed_speed_to_dir(self.ground_speed)
     end
   else
     if self.velocity.x ~= 0 then
-      return signed_speed_to_direction(self.velocity.x)
+      return signed_speed_to_dir(self.velocity.x)
     end
   end
   return self.horizontal_dir
@@ -292,15 +292,15 @@ end
 function player_char._compute_stacked_column_height_above(bottom_tile_location, column_index0, upper_limit)
 
   local stacked_column_height = 0
-  local current_tile_location = bottom_tile_location:copy()
+  local curr_tile_loc = bottom_tile_location:copy()
   local detected_slope = nil
 
   while true do
 
     -- move 1 tile up from the start
-    current_tile_location.j = current_tile_location.j - 1
+    curr_tile_loc.j = curr_tile_loc.j - 1
 
-    local ground_array_height, slope_angle = world._compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height, slope_angle = world._compute_column_height_at(curr_tile_loc, column_index0)
 
     -- add column height to total (may be 0, in which case we'll break below)
     stacked_column_height = stacked_column_height + ground_array_height
@@ -325,23 +325,26 @@ function player_char._compute_stacked_column_height_above(bottom_tile_location, 
 
 end
 
+-- top_tile_loc    tile_vector
+-- column_index0   int
+-- upper_limit     int
 -- return the sum of complementary column heights (height measured from top on negative tile collision mask)
---  of colliding tiles starting from the tile just below the passed top_tile_location,
+--  of colliding tiles starting from the tile just below the passed top_tile_loc,
 --  all along the passed column_index0, down to the first solid tile having a non-empty column there
 -- if the upper_limit is overrun during the loop before a non-empty column is found, however,
 --  return the upper_limit + 1. this also will in particular prevent infinite loops
-function player_char._compute_stacked_empty_column_height_below(top_tile_location, column_index0, upper_limit)
+function player_char._compute_stacked_empty_column_height_below(top_tile_loc, column_index0, upper_limit)
 
   local stacked_empty_column_height = 0
-  local current_tile_location = top_tile_location:copy()
+  local curr_tile_loc = top_tile_loc:copy()
   local detected_slope = nil
 
   while true do
 
     -- move 1 tile up from the start
-    current_tile_location.j = current_tile_location.j + 1
+    curr_tile_loc.j = curr_tile_loc.j + 1
 
-    local ground_array_height, slope_angle = world._compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height, slope_angle = world._compute_column_height_at(curr_tile_loc, column_index0)
 
     -- add complementary height (empty space above column, may be 0, in which case we'll break below)
     stacked_empty_column_height = stacked_empty_column_height + (tile_size - ground_array_height)
@@ -519,7 +522,7 @@ function player_char:_compute_ground_motion_result()
     )
   end
 
-  local horizontal_dir = signed_speed_to_direction(self.ground_speed)
+  local horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
   -- initialise result
   local motion_result = collision.ground_motion_result(
@@ -680,8 +683,8 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
   assert(flr(sensor_position.x) == sensor_position.x, "player_char:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
 
   -- find the tile where this sensor is located
-  local current_tile_location = sensor_position:to_location()
-  local sensor_location_topleft = current_tile_location:to_topleft_position()
+  local curr_tile_loc = sensor_position:to_location()
+  local sensor_location_topleft = curr_tile_loc:to_topleft_position()
   local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
 
   while true do
@@ -695,10 +698,10 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
     --  rather than just checking if _compute_column_height_at() > 0
     -- to avoid tile rotation check, we can also check if _compute_column_bottom_height_at() is lower than the feet (so we can ignore it)
     -- (90 and 270-rotated tiles will be ignored as they are not supposed to block the character's head)
-    current_tile_location.j = current_tile_location.j - 1
-    local current_tile_top = current_tile_location:to_topleft_position().y
+    curr_tile_loc.j = curr_tile_loc.j - 1
+    local current_tile_top = curr_tile_loc:to_topleft_position().y
 
-    local ground_array_height, _ = world._compute_column_height_at(current_tile_location, column_index0)
+    local ground_array_height, _ = world._compute_column_height_at(curr_tile_loc, column_index0)
     if ground_array_height ~= nil and ground_array_height > 0 then
       -- with non-rotated tiles, we are sure to hit the ceiling at this point
       --  because ceiling is always at a tile bottom, and we return false

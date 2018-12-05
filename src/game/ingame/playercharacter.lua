@@ -203,7 +203,6 @@ function player_character:_compute_signed_distance_to_closest_ground(sensor_posi
   --  because if we found nothing until min step down, signed distance will be max step down + 1 anyway)
   local query_info = collision.ground_query_info(playercharacter_data.max_ground_snap_height + 1, nil)
   for offset_y = -playercharacter_data.max_ground_escape_height - 1, playercharacter_data.max_ground_snap_height do
-    -- printh("offset_y: "..offset_y)
     local does_collide, slope_angle = world.get_pixel_collision_info(sensor_position.x, initial_y + offset_y)
     if does_collide then
       -- signed_distance is just the current offset, minus the initial subpixel fraction that we ignored for the pixel test iteration

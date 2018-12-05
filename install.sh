@@ -5,16 +5,35 @@
 # check that source and output paths have been provided
 if [[ $# -lt 1 ]] ; then
     echo "build.sh takes 1 param, provided $#:
-    \$1: game release file path (must contain .p8 pr .p8.png)"
+    \$1: config ('debug' or 'release')"
     exit 1
 fi
 
-if [[ $1 == *..* ]]; then
-	echo "$0: build path is unsafe: '$1'"
-	exit 1
+# option "png" will export the png cartridge
+if [[ $2 = "png" ]] ; then
+	SUFFIX=".png"
+else [[ $2 = "solo" ]]
+	SUFFIX=""
 fi
 
-BUILT_GAME_FILEPATH="build/$1"
+. helper/config_helper.sh
+
+# will define: MAIN_SOURCE_BASENAME, OUTPUT_BASENAME, REPLACE_ARG_SUBSTITUTES
+define_build_vars "main"
+
+if [[ $? -ne 0 ]]; then
+    echo "define_build_vars failed, STOP."
+    exit 1
+fi
+
+. helper/path_helper.sh
+
+if is_unsafe_path "$OUTPUT_BASENAME"; then
+    echo "$0: build path is unsafe: '$OUTPUT_BASENAME'"
+    exit 1
+fi
+
+BUILT_GAME_FILEPATH="build/${OUTPUT_BASENAME}_$1.p8${SUFFIX}"
 CARTS_DIRPATH="$HOME/.lexaloffle/pico-8/carts"
 
 if [[ ! -f "${BUILT_GAME_FILEPATH}" ]]; then

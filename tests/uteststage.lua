@@ -494,12 +494,12 @@ describe('stage', function ()
       describe('(stage state entered)', function ()
 
         before_each(function ()
-          flow:_change_gamestate(stage.state)
+          flow:_change_state(stage.state)
         end)
 
         after_each(function ()
-          flow.current_gamestate:on_exit()
-          flow.current_gamestate = nil
+          flow.curr_state:on_exit()
+          flow.curr_state = nil
         end)
 
         describe('player_char', function ()
@@ -745,7 +745,7 @@ describe('stage', function ()
       describe('(enter stage state each time)', function ()
 
         before_each(function ()
-          flow:_change_gamestate(stage.state)
+          flow:_change_state(stage.state)
 
           -- clear any intro or back to title menu coroutines so the tests on coroutine curries are not messed up
           clear_table(stage.state.coroutine_curries)
@@ -753,8 +753,8 @@ describe('stage', function ()
 
         after_each(function ()
           stage.state.has_reached_goal = false
-          flow.current_gamestate:on_exit()  -- whatever the current gamestate is
-          flow.current_gamestate = nil
+          flow.curr_state:on_exit()  -- whatever the current gamestate is
+          flow.curr_state = nil
         end)
 
         describe('check_reached_goal', function ()
@@ -831,7 +831,7 @@ describe('stage', function ()
             for i = 1, stage_data.back_to_titlemenu_delay * fps + 1 do
               flow:update()
             end
-            assert.are_equal(gamestate.types.titlemenu, flow.current_gamestate.type)
+            assert.are_equal(gamestate.types.titlemenu, flow.curr_state.type)
           end)
 
         end)
@@ -864,7 +864,7 @@ describe('stage', function ()
           it('should change gamestate to titlemenu on next update', function ()
             stage.state:back_to_titlemenu()
             flow:update()
-            assert.are_equal(gamestate.types.titlemenu, flow.current_gamestate.type)
+            assert.are_equal(gamestate.types.titlemenu, flow.curr_state.type)
           end)
 
         end)
@@ -997,7 +997,7 @@ describe('stage', function ()
         describe('on exit stage state to enter titlemenu state', function ()
 
           before_each(function ()
-            flow:_change_gamestate(titlemenu.state)
+            flow:_change_state(titlemenu.state)
           end)
 
           it('player character should be nil', function ()
@@ -1014,7 +1014,7 @@ describe('stage', function ()
 
             -- should be each
             before_each(function ()
-              flow:_change_gamestate(stage.state)
+              flow:_change_state(stage.state)
             end)
 
             it('current substate should be play', function ()

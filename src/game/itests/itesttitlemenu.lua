@@ -30,7 +30,7 @@ end)
 
 -- check that we entered the credits state
 itest.final_assertion = function ()
-  return flow.current_gamestate.type == gamestate.types.credits, "current game state is not '"..gamestate.types.credits.."', has instead type: "..flow.current_gamestate.type
+  return flow.curr_state.type == gamestate.types.credits, "current game state is not '"..gamestate.types.credits.."', has instead type: "..flow.curr_state.type
 end
 
 itest_manager:register(itest)

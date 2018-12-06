@@ -13,20 +13,31 @@ itest_manager:register_itest('player select credits, confirm',
     flow:change_gamestate_by_type(gamestate.types.titlemenu)
   end)
 
+  wait(1.0)
+
   -- player holds down, causing a just pressed input
-  add_action(time_trigger(1.0), function ()
+  act(function ()
     input.simulated_buttons_down[0][button_ids.down] = true
   end)
+  
+  wait(0.5)
+
   -- end short press. cursor should point to 'credits'
-  add_action(time_trigger(0.5), function ()
+  act(function ()
     input.simulated_buttons_down[0][button_ids.down] = false
   end)
+
+  wait(0.5)
+
   -- player holds x, causing a just pressed input. this should enter the credits
-  add_action(time_trigger(0.5), function ()
+  act(function ()
     input.simulated_buttons_down[0][button_ids.x] = true
   end)
+
+  wait(0.5)
+
   -- end short press (1 frame after press is enough to load the next game state)
-  add_action(time_trigger(0.5), function ()
+  act(function ()
     input.simulated_buttons_down[0][button_ids.x] = false
   end)
 

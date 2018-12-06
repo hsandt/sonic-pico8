@@ -30,11 +30,18 @@ describe('itest_manager', function ()
       local function setup_fn() end
       local function action1() end
       local function action2() end
+      local function action3() end
+      local function action4() end
       local function final_assert_fn() end
       itest_manager:register_itest('test 1', {'titlemenu'}, function ()
         setup_callback(setup_fn)
-        add_action(time_trigger(1.0), action1)
-        add_action(time_trigger(0.5), action2)
+        act(action1)  -- test immediate action
+        wait(0.5)
+        wait(0.6)     -- test closing previous wait
+        act(action2)  -- test action with previous wait
+        act(action3)  -- test immediate action
+        add_action(time_trigger(1.0), action4)  -- test retro-compatible function
+        wait(0.7)     -- test wait-action closure
         final_assert(final_assert_fn)
       end)
       local created_itest = itest_manager.itests[1]
@@ -43,8 +50,12 @@ describe('itest_manager', function ()
           {'titlemenu'},
           setup_fn,
           {
-            scripted_action(time_trigger(1.0), action1),
-            scripted_action(time_trigger(0.5), action2)
+            scripted_action(time_trigger(0.0), action1),
+            scripted_action(time_trigger(0.5), dummy),
+            scripted_action(time_trigger(0.6), action2),
+            scripted_action(time_trigger(0.0), action3),
+            scripted_action(time_trigger(1.0), action4),
+            scripted_action(time_trigger(0.7), dummy)
           },
           final_assert_fn
         },

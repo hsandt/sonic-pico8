@@ -51,11 +51,19 @@ function itest_manager:register_itest(name, states, definition)
   local itest = integrationtest.integration_test(name, states)
   self:register(itest)
 
+  -- context
+  -- last time trigger
+  local last_time_trigger = nil
+
   -- we are defining global functions capturing local variables, which is bad
   --  but it's acceptable to have them accessible inside the definition callback
   --  (as getfenv/setfenv cannot be implemented in pico8 due to missing debug.getupvalue)
   -- actually they would be callable even after calling register_itest as they "leak"
   -- later, we'll build a full dsl parser that will not require such functions
+
+  -- helpers
+  local immediate_trigger = integrationtest.time_trigger(0)
+  function dummy() end
 
   -- don't name setup, busted would hide this name
   function setup_callback(callback)
@@ -66,11 +74,35 @@ function itest_manager:register_itest(name, states, definition)
     itest:add_action(trigger, callback, name)
   end
 
+  function wait(time, use_frame_unit)
+    if last_time_trigger then
+      -- we were already waiting, so finish last wait with empty action
+      itest:add_action(last_time_trigger, dummy)
+    end
+    last_time_trigger = integrationtest.time_trigger(time, use_frame_unit)
+  end
+
+  function act(callback)
+    if last_time_trigger then
+      itest:add_action(last_time_trigger, callback)
+      last_time_trigger = nil  -- consume so we know no final wait-action is needed
+    else
+      -- no wait since last action (or this is the first action), so use immediate trigger
+      itest:add_action(immediate_trigger, callback)
+    end
+  end
+
   function final_assert(callback)
     itest.final_assertion = callback
   end
 
   definition()
+
+  -- if we finished with a wait (with or without final assertion),
+  --  we need to close the itest with a wait-action
+  if last_time_trigger then
+    itest:add_action(last_time_trigger, dummy)
+  end
 end
 
 -- register a created itest instance

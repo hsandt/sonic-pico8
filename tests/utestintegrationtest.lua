@@ -20,6 +20,45 @@ end
 
 describe('itest_manager', function ()
 
+  describe('register_itest', function ()
+
+    after_each(function ()
+      clear_table(itest_manager.itests)
+    end)
+
+    it('should register a new test', function ()
+      local function setup_fn() end
+      local function action1() end
+      local function action2() end
+      local function final_assert_fn() end
+      itest_manager:register_itest('test 1', {'titlemenu'}, function ()
+        setup_callback(setup_fn)
+        add_action(time_trigger(1.0), action1)
+        add_action(time_trigger(0.5), action2)
+        final_assert(final_assert_fn)
+      end)
+      local created_itest = itest_manager.itests[1]
+      assert.are_same({
+          'test 1',
+          {'titlemenu'},
+          setup_fn,
+          {
+            scripted_action(time_trigger(1.0), action1),
+            scripted_action(time_trigger(0.5), action2)
+          },
+          final_assert_fn
+        },
+        {
+          created_itest.name,
+          created_itest.active_gamestates,
+          created_itest.setup,
+          created_itest.action_sequence,
+          created_itest.final_assertion
+        })
+    end)
+
+  end)
+
   describe('register', function ()
 
     after_each(function ()

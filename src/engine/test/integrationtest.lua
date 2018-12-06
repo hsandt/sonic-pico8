@@ -25,6 +25,56 @@ itest_manager = singleton(function (self)
 end)
 integrationtest.itest_manager = itest_manager
 
+-- all-in-one utility function that creates and register a new itest,
+-- defining setup, actions and final assertion inside a contextual callback,
+-- as in the describe-it pattern
+-- name        string        itest name
+-- states      {gamestates}  sequence of non-dummy gamestates used for the itest
+-- definition  function      definition callback
+
+-- definition example:
+--   function ()
+--     setup(function ()
+--       -- setup test
+--     end)
+--     add_action(time_trigger(1.0), function ()
+--       -- change character intention
+--     end)
+--     add_action(time_trigger(0.5), function ()
+--       -- more actions
+--     end)
+--     final_assert(function ()
+--       return -- true if everything is as expected
+--     end)
+--   end)
+function itest_manager:register_itest(name, states, definition)
+  local itest = integrationtest.integration_test(name, states)
+  self:register(itest)
+
+  -- we are defining global functions capturing local variables, which is bad
+  --  but it's acceptable to have them accessible inside the definition callback
+  --  (as getfenv/setfenv cannot be implemented in pico8 due to missing debug.getupvalue)
+  -- actually they would be callable even after calling register_itest as they "leak"
+  -- later, we'll build a full dsl parser that will not require such functions
+
+  -- don't name setup, busted would hide this name
+  function setup_callback(callback)
+    itest.setup = callback
+  end
+
+  function add_action(trigger, callback, name)
+    itest:add_action(trigger, callback, name)
+  end
+
+  function final_assert(callback)
+    itest.final_assertion = callback
+  end
+
+  definition()
+end
+
+-- register a created itest instance
+-- you can add actions and final assertion later
 function itest_manager:register(itest)
   add(self.itests, itest)
 end

@@ -899,7 +899,7 @@ end
 
 --[[
 
-itest = integration_test('#solo platformer slope wall block right', {stage.state.type})
+itest = integration_test('platformer slope wall block right', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()

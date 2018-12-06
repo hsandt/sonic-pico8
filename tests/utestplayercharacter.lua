@@ -376,7 +376,7 @@ describe('player_char', function ()
               get_prioritized_dir_mock:revert()
             end)
 
-            it('#solo should return the signed distance to right ground if both sensors are at the same level, but left is prioritized', function ()
+            it('should return the signed distance to right ground if both sensors are at the same level, but left is prioritized', function ()
               -- 3 vs 3 => 3 right
               assert.are_same(collision.ground_query_info(3, 0.125), pc:_compute_ground_sensors_signed_distance(vector(0, 2)))
             end)

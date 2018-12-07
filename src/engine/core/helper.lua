@@ -1,5 +1,8 @@
 require("engine/application/constants")
 
+-- do nothing
+function dummy() end
+
 -- return true if the table is empty (contrary to #t == 0,
 --  it also supports non-sequence tables)
 function is_empty(t)

@@ -63,7 +63,6 @@ function itest_manager:register_itest(name, states, definition)
 
   -- helpers
   local immediate_trigger = integrationtest.time_trigger(0)
-  function dummy() end
 
   -- don't name setup, busted would hide this name
   function setup_callback(callback)

@@ -53,12 +53,14 @@ local function copy(struct_instance)
 end
 
 -- create and return a new class
--- every class should implement :_init(), :_tostring() and if relevant .__eq()
+-- every class should implement :_init(),
+--  if useful for logging :_tostring(), and if relevant .__eq()
 -- note that most .__eq() definitions are only duck-typing lhs and rhs,
--- so we can compare two instances of different classes (maybe related by inheritance)
--- with the same members. slicing will occur when comparing a base instance
--- and a derived instance with more members. add a class type member to simulate rtti
--- and make sure only objects of the same class are considered equal (but we often don't need this)
+--  so we can compare two instances of different classes (maybe related by inheritance)
+--  with the same members. slicing will occur when comparing a base instance
+--  and a derived instance with more members. add a class type member to simulate rtti
+--  and make sure only objects of the same class are considered equal (but we often don't need this)
+-- we recommend using a struct for simple structures, as they implement __eq automatically
 function new_class()
   local class = {}
   class.__index = class  -- 1st class as instance metatable

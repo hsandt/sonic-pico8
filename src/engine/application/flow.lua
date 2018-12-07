@@ -3,13 +3,7 @@ require("engine/core/class")
 local logging = require("engine/debug/logging")
 --#endif
 
--- gamestate singleton interface
--- type        string       gamestate type name
--- on_enter    function()   gamestate enter callback
--- on_exit     function()   gamestate exit callback
--- update      function()   gamestate update callback
--- render      function()   gamestate render callback
-
+-- flow singleton
 -- state vars
 -- curr_state   gamestates     current gamestate
 -- next_state   gamestates     next gamestate, nil if no transition expected

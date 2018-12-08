@@ -94,8 +94,9 @@ end
 -- - don't add trailing space at end of line
 -- - don't add eol at the end of the last line
 -- - count the extra separator before next word in the line length prediction test
+-- i kept the fact that we don't collapse spaces so 2x, 3x spaces are preserved
 
---word wrap (string, char width)
+-- word wrap (string, char width)
 function wwrap(s,w)
   local retstr = ""
   local lines = strspl(s, "\n")
@@ -140,15 +141,24 @@ function wwrap(s,w)
   return retstr
 end
 
---string split(string, separator)
-function strspl(s,sep)
+-- port of lua string.split(string, separator)
+-- separator must be only one character
+-- added parameter collapse:
+--  if true, collapse consecutive separators into a big one
+--  if false or nil, handle each separator separately,
+--   adding an empty string between each consecutive pair
+-- ex1: strspl("|a||b", "|")       => {"", "a", "", "b"}
+-- ex2: strspl("|a||b", "|", true) => {"a", "b"}
+function strspl(s,sep,collapse)
   local ret = {}
   local buffer = ""
 
   for i = 1, #s do
     if sub(s, i, i) == sep then
-      add(ret, buffer)
-      buffer = ""
+      if #buffer > 0 or not collapse then
+        add(ret, buffer)
+        buffer = ""
+      end
     else
       buffer = buffer..sub(s,i,i)
     end

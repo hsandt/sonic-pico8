@@ -3,14 +3,19 @@ require("math")
 local itest_dsl = require("engine/test/itest_dsl")
 local dsl_itest, command = itest_dsl.dsl_itest, itest_dsl.command
 local integrationtest = require("engine/test/integrationtest")
-local time_trigger = integrationtest.time_trigger
+local time_trigger, integration_test = integrationtest.time_trigger, integrationtest.integration_test
 local flow = require("engine/application/flow")
+local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
 local stage = require("game/ingame/stage")
-require("engine/test/unittest_helper")
+local pc_data = require("game/data/playercharacter_data")
 
 
 describe('itest_dsl', function ()
+
+  after_each(function ()
+    itest_dsl:init()
+  end)
 
   describe('command', function ()
 
@@ -18,7 +23,7 @@ describe('itest_dsl', function ()
       it('should create a new dsl itest', function ()
         local cmd = command(itest_dsl_command_types.move, {horizontal_dirs.left})
         assert.is_not_nil(cmd)
-        assert.are_same({itest_dsl_command_types.move, {horizontal_dirs.left}}, {cmd.cmd_type, cmd.args})
+        assert.are_same({itest_dsl_command_types.move, {horizontal_dirs.left}}, {cmd.type, cmd.args})
       end)
     end)
 
@@ -30,7 +35,7 @@ describe('itest_dsl', function ()
       it('should create a new dsl itest', function ()
         local dsli = dsl_itest()
         assert.is_not_nil(dsli)
-        assert.are_same({nil, nil, {}}, {dsli.gamestate, dsli.stage, dsli.commands})
+        assert.are_same({nil, nil, {}}, {dsli.gamestate_type, dsli.stage, dsli.commands})
       end)
     end)
 
@@ -43,31 +48,27 @@ describe('itest_dsl', function ()
 \
                                         \
 spawn 12 45                             \
+wait 1                                  \
 move left                               \
 wait 2                                  \
 expect pc_pos 10 45                     \
 "
       local dsli = itest_dsl.parse(dsli_source)
       assert.is_not_nil(dsli)
-      expected_commands = {
-        command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
-        command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
-        command(itest_dsl_command_types.wait,   { 2 }                          ),
-        command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
-      }
       assert.are_same(
         {
           'stage',
           "test1",
           {
             command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+            command(itest_dsl_command_types.wait,   { 1 }                          ),
             command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
             command(itest_dsl_command_types.wait,   { 2 }                          ),
             command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
           }
         },
         {
-          dsli.gamestate,
+          dsli.gamestate_type,
           dsli.stage,
           dsli.commands
         })
@@ -75,37 +76,41 @@ expect pc_pos 10 45                     \
 
   end)
 
-  describe('#mute create_itest', function ()
+  describe('create_itest', function ()
 
     it('should create an itest with a name and a dsl itest', function ()
       local dsli = dsl_itest()
-      dsli.gamestate = 'stage'
+      dsli.gamestate_type = 'stage'
       dsli.stage = "test1"
       dsli.commands = {
         command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+        command(itest_dsl_command_types.wait,   { 10 }                          ),
+        command(itest_dsl_command_types.wait,   { 1 }                          ),
         command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
         command(itest_dsl_command_types.wait,   { 2 }                          ),
-        command(itest_dsl_command_types.expect, {itest_dsl_values.pc_pos, vector(10, 45)}),
+        command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
       }
 
-      local test = itest_dsl.create_itest("test 1", dsli)
-      assert.is_not_nil(test)
+      local test = itest_dsl:create_itest("test 1", dsli)
 
+      -- interface
+      assert.is_not_nil(test)
+      assert.are_equal(4, #test.action_sequence)
       assert.are_same({
           "test 1",
           {'stage'},
-          {
-            time_trigger(0, true),  -- spawn immediately
-            time_trigger(0, true),  -- start moving immediately
-            scripted_action(time_trigger(2, true), dummy)  -- empty action after 2 frames
-          }
+          time_trigger(0, true),  -- spawn immediately
+          scripted_action(time_trigger(10, true), nil),  -- empty action after 10 frames
+          time_trigger(1, true),  -- start moving after 1 frame
+          scripted_action(time_trigger(2, true), nil)    -- empty action after 2 frames
         },
         {
           test.name,
           test.active_gamestates,
-          test.action_sequence[0].trigger,
           test.action_sequence[1].trigger,
-          test.action_sequence[2]
+          test.action_sequence[2],
+          test.action_sequence[3].trigger,
+          test.action_sequence[4]
         })
 
       -- we could not directly test if generated functions are correct
@@ -116,22 +121,77 @@ expect pc_pos 10 45                     \
       -- note that most actions depend on the previous one, so we exceptionally
       --  assert multiple times in chain in a single utest
 
+      -- simulate the itest runner behavior by initializing gameapp to inject active gamestates
+      gameapp.init(test.active_gamestates)
+
+      -- verify setup callback behavior
       test.setup()
-      assert.are_equal(gamestate.types.stage, stage.curr_state.type)
+      assert.are_equal(gamestate.types.stage, flow.curr_state.type)
 
-      test.action_sequence[1]()
-      assert.is_not_nil(stage.player_char)
-      assert.are_equal(vector(12, 45), stage.player_char.position)
+      -- verify spawn callback behavior
+      test.action_sequence[1].callback()
+      assert.is_not_nil(stage.state.player_char)
+      assert.are_equal(vector(12, 45 - pc_data.center_height_standing), stage.state.player_char.position)
 
-      test.action_sequence[2]()
-      assert.are_equal(vector(-1, 0), stage.player_char.move_intention)
+      -- verify move callback behavior
+      test.action_sequence[3].callback()
+      assert.are_equal(vector(-1, 0), stage.state.player_char.move_intention)
 
       -- we have not passed time so the character cannot have reached expected position
       assert.is_false(test.final_assertion())
 
       -- but if we cheat and warp him on the spot, final assertion will work
-      stage.player_char.position = vector(10, 45)
+      stage.state.player_char.position = vector(10, 45)
       assert.is_true(test.final_assertion())
+    end)
+
+  end)
+
+  describe('_evaluate', function ()
+
+    it('should assert if an unknown gameplay value type is passed', function ()
+      assert.has_error(function ()
+        itest_dsl._evaluate(-1)
+      end, "unknown gameplay value: -1")
+    end)
+
+  end)
+
+  describe('_final_assert', function ()
+
+    setup(function ()
+      -- mock _evaluate (we won't care about the 1st argument thx to this)
+      stub(itest_dsl, "_evaluate", function ()
+        return 27
+      end)
+    end)
+
+    teardown(function ()
+      itest_dsl._evaluate:revert()
+    end)
+
+    it('should set the final assertion as returning true when the gameplay value is expected', function ()
+      itest_dsl._itest = integration_test('test', {})
+      itest_dsl:_final_assert(nil, 27)
+      assert.is_true(itest_dsl._itest.final_assertion())
+    end)
+
+    it('should set the final assertion as returning false when the gameplay value is not expected', function ()
+      itest_dsl._itest = integration_test('test', {})
+      itest_dsl:_final_assert(nil, 28)
+      assert.is_false(itest_dsl._itest.final_assertion())
+    end)
+
+  end)
+
+  describe('_evaluate', function ()
+
+    -- add gameplay value types tests here
+
+    it('should assert if an unknown gameplay value type is passed', function ()
+      assert.has_error(function ()
+        itest_dsl._evaluate(-1)
+      end, "unknown gameplay value: -1")
     end)
 
   end)

@@ -267,11 +267,14 @@ describe('ui', function ()
           input:toggle_mouse(false)
         end)
 
+        -- bugfix history:
+        -- .. i forgot to use match.ref, which was ok until struct_eq uses are_same with compare_raw_content: true
+        --    which causes infinite recursion when trying to compare a spied method on a struct (as it contains a ref to itself)
         it('should call cursor sprite render at (12, 48)', function ()
           ui:render_mouse()
           assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
           assert.spy(cursor_render_stub).was_called(1)
-          assert.spy(cursor_render_stub).was_called_with(ui.cursor_sprite_data, vector(12, 48))
+          assert.spy(cursor_render_stub).was_called_with(match.ref(ui.cursor_sprite_data), vector(12, 48))
         end)
 
       end)

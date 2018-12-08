@@ -290,12 +290,14 @@ dir_vectors = {
   vector(0., 1.)
 }
 
---#ifn pico8
+-- we are not stripping this enum as we need dynamic string-to-value
+--  conversion for itest dsl; we don't need it for normal build
+--  though, so when 'or' is supported in preprocessing, it will
+--  be better to surround this in --#if ~pico8 or itest
 horizontal_dirs = {
   left = 1,
   right = 2
 }
---#endif
 
 horizontal_dir_vectors = {
   vector(-1., 0.),  -- to left

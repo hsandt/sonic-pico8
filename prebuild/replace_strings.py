@@ -40,7 +40,8 @@ SYMBOL_SUBSTITUTE_TABLE = {
     # Enums
 
     # for every enum added here, surround enum definition with --#ifn pico8
-    # to strip it from the build, which doesn't need it anymore
+    #   to strip it from the build, unless you need to map the enum string
+    #   to its value dynamically
     # remember to update the values of any preprocessed enum modified
 
     # color
@@ -85,6 +86,14 @@ SYMBOL_SUBSTITUTE_TABLE = {
 
     'input_modes.native': 0,
     'input_modes.simulated': 1,
+
+    # itest
+    'itest_dsl_command_types.spawn':   1,
+    'itest_dsl_command_types.move':    2,
+    'itest_dsl_command_types.wait':   11,
+    'itest_dsl_command_types.expect': 21,
+
+    'itest_dsl_value_types.pc_pos':  1,
 }
 
 # prefix of all arg identifiers

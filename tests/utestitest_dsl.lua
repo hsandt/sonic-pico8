@@ -1,14 +1,28 @@
 require("bustedhelper")
 require("math")
 local itest_dsl = require("engine/test/itest_dsl")
-local dsl_itest, command_types, values, command = itest_dsl.dsl_itest, itest_dsl.command_types, itest_dsl.values, itest_dsl.command
+local dsl_itest, command = itest_dsl.dsl_itest, itest_dsl.command
 local integrationtest = require("engine/test/integrationtest")
 local time_trigger = integrationtest.time_trigger
 local flow = require("engine/application/flow")
 local gamestate = require("game/application/gamestate")
 local stage = require("game/ingame/stage")
+require("engine/test/unittest_helper")
+
 
 describe('itest_dsl', function ()
+
+  describe('command', function ()
+
+    describe('_init', function ()
+      it('should create a new dsl itest', function ()
+        local cmd = command(itest_dsl_command_types.move, {horizontal_dirs.left})
+        assert.is_not_nil(cmd)
+        assert.are_same({itest_dsl_command_types.move, {horizontal_dirs.left}}, {cmd.cmd_type, cmd.args})
+      end)
+    end)
+
+  end)
 
   describe('dsl_itest', function ()
 
@@ -16,6 +30,7 @@ describe('itest_dsl', function ()
       it('should create a new dsl itest', function ()
         local dsli = dsl_itest()
         assert.is_not_nil(dsli)
+        assert.are_same({nil, nil, {}}, {dsli.gamestate, dsli.stage, dsli.commands})
       end)
     end)
 
@@ -25,22 +40,30 @@ describe('itest_dsl', function ()
 
     it('should parse the itest source written in domain-specific language into a dsl itest', function ()
       local dsli_source = "@stage test1 \
+\
+                                        \
 spawn 12 45                             \
 move left                               \
 wait 2                                  \
-expect pc.pos 10 45                     \
+expect pc_pos 10 45                     \
 "
       local dsli = itest_dsl.parse(dsli_source)
       assert.is_not_nil(dsli)
+      expected_commands = {
+        command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+        command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
+        command(itest_dsl_command_types.wait,   { 2 }                          ),
+        command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
+      }
       assert.are_same(
         {
           'stage',
           "test1",
           {
-            command(command_types.spawn,  { vector(12, 45) }             ),
-            command(command_types.move,   { horizontal_dirs.left }       ),
-            command(command_types.wait,   { 2 }                          ),
-            command(command_types.expect, {values.pc_pos, vector(10, 45)}),
+            command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+            command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
+            command(itest_dsl_command_types.wait,   { 2 }                          ),
+            command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
           }
         },
         {
@@ -52,17 +75,17 @@ expect pc.pos 10 45                     \
 
   end)
 
-  describe('create_itest', function ()
+  describe('#mute create_itest', function ()
 
     it('should create an itest with a name and a dsl itest', function ()
       local dsli = dsl_itest()
       dsli.gamestate = 'stage'
       dsli.stage = "test1"
       dsli.commands = {
-        command(command_types.spawn,  { vector(12, 45) }             ),
-        command(command_types.move,   { horizontal_dirs.left }       ),
-        command(command_types.wait,   { 2 }                          ),
-        command(command_types.expect, {values.pc_pos, vector(10, 45)}),
+        command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+        command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
+        command(itest_dsl_command_types.wait,   { 2 }                          ),
+        command(itest_dsl_command_types.expect, {itest_dsl_values.pc_pos, vector(10, 45)}),
       }
 
       local test = itest_dsl.create_itest("test 1", dsli)

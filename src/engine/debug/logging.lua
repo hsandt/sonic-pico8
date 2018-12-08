@@ -80,7 +80,7 @@ local logger = singleton(function (self)
     trace = true
   }
   self.current_level = logging.level.info
-  self.dump_max_recursion_level = 2
+  self.dump_max_recursion_level = 5
 
   -- streams to log to
   self._streams = {}

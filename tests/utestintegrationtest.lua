@@ -20,11 +20,11 @@ end
 
 describe('itest_manager', function ()
 
-  describe('register_itest', function ()
+  after_each(function ()
+    itest_manager:init()
+  end)
 
-    after_each(function ()
-      clear_table(itest_manager.itests)
-    end)
+  describe('register_itest', function ()
 
     it('should register a new test', function ()
       local function setup_fn() end
@@ -72,10 +72,6 @@ describe('itest_manager', function ()
 
   describe('register', function ()
 
-    after_each(function ()
-      clear_table(itest_manager.itests)
-    end)
-
     it('should register a new test', function ()
       local itest = integration_test('test 1', {'titlemenu'})
       itest_manager:register(itest)
@@ -106,10 +102,6 @@ describe('itest_manager', function ()
       itest_runner_own_method:clear()
     end)
 
-    after_each(function ()
-      clear_table(itest_manager.itests)
-    end)
-
     it('should delegate to itest runner', function ()
       local itest = integration_test('test 1', {'titlemenu'})
       itest_manager:register(itest)
@@ -136,7 +128,7 @@ describe('integration_test_runner', function ()
 
   local test
 
-  setup(function ()
+  before_each(function ()
     test = integration_test('character walks', {'stage'})
   end)
 
@@ -220,13 +212,9 @@ describe('integration_test_runner', function ()
 
     describe('(when state is running for some actions)', function ()
 
-      setup(function ()
+      before_each(function ()
         test:add_action(time_trigger(1.0), function () end, 'some_action')
         integration_test_runner:start(test)
-      end)
-
-      teardown(function ()
-        clear_table(test.action_sequence)
       end)
 
       it('should update the gameapp and the passed test', function ()
@@ -243,14 +231,16 @@ describe('integration_test_runner', function ()
 
       local log_stub
 
-      setup(function ()
+      before_each(function ()
         test:add_action(time_trigger(0.017), function () end, 'some_action')
         integration_test_runner:start(test)
+      end)
+
+      setup(function ()
         log_stub = stub(_G, "log")
       end)
 
       teardown(function ()
-        clear_table(test.action_sequence)
         log_stub:revert()
       end)
 
@@ -270,18 +260,19 @@ describe('integration_test_runner', function ()
 
       local log_stub
 
-      setup(function ()
+      before_each(function ()
         test:add_action(time_trigger(0.017), function () end, 'some_action')
         test.final_assertion = function ()
           return false, "character walks failed"
         end
         integration_test_runner:start(test)
+      end)
+
+      setup(function ()
         log_stub = stub(_G, "log")
       end)
 
       teardown(function ()
-        clear_table(test.action_sequence)
-        test.final_assertion = nil
         log_stub:revert()
       end)
 
@@ -330,21 +321,22 @@ describe('integration_test_runner', function ()
   describe('start', function ()
 
     setup(function ()
-      test.setup = spy.new(function () end)
       spy.on(integration_test_runner, "_initialize")
       spy.on(integration_test_runner, "_check_end")
       spy.on(integration_test_runner, "_check_next_action")
     end)
 
     teardown(function ()
-      test.setup = nil
       integration_test_runner._initialize:revert()
       integration_test_runner._check_end:revert()
       integration_test_runner._check_next_action:revert()
     end)
 
+    before_each(function ()
+      test.setup = spy.new(function () end)
+    end)
+
     after_each(function ()
-      test.setup:clear()
       integration_test_runner._initialize:clear()
       integration_test_runner._check_end:clear()
       integration_test_runner._check_next_action:clear()
@@ -398,12 +390,8 @@ describe('integration_test_runner', function ()
 
     describe('(when some actions)', function ()
 
-      setup(function ()
+      before_each(function ()
         test:add_action(time_trigger(1.0), function () end, 'some_action')
-      end)
-
-      teardown(function ()
-        clear_table(test.action_sequence)
       end)
 
       it('should check the next action immediately (if at time 0, will also call it)', function ()
@@ -421,15 +409,8 @@ describe('integration_test_runner', function ()
 
     describe('(after a first start)', function ()
 
-      setup(function ()
-        test:add_action(time_trigger(1.0), function () end, 'restart_action')
-      end)
-
-      teardown(function ()
-        clear_table(test.action_sequence)
-      end)
-
       before_each(function ()
+        test:add_action(time_trigger(1.0), function () end, 'restart_action')
         -- some progress
         integration_test_runner:start(test)
         repeat_callback(1.0, function ()
@@ -470,16 +451,14 @@ describe('integration_test_runner', function ()
 
     describe('(after test started)', function ()
 
-      local action_callback
+      local action_callback = spy.new(function () end)
 
-      setup(function ()
-        action_callback = spy.new(function () end)
+      before_each(function ()
         -- need at least 1/60=0.1666s above 1.0s so it's not called after 1.0s converted to frames
         test:add_action(time_trigger(1.02), action_callback, 'update_test_action')
       end)
 
       teardown(function ()
-        clear_table(test.action_sequence)
         action_callback:revert()
       end)
 
@@ -531,7 +510,7 @@ describe('integration_test_runner', function ()
 
       describe('(with timeout set to 2s and more actions after that, usually unmet conditions)', function ()
 
-        setup(function ()
+        before_each(function ()
           test:add_action(time_trigger(3.0), function () end, 'more action')
           test:set_timeout(2.0)
         end)
@@ -678,102 +657,114 @@ describe('integration_test_runner', function ()
   end)
 
 
-  describe('_check_next_action', function ()
+  describe('_check_next_action (with single action)', function ()
 
-    local action_callback
+    describe('(with dummy action after 1s)', function ()
 
-    setup(function ()
-      action_callback = spy.new(function () end)
-      test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
-      -- don't stub a function if the return value matters, as in start
-      spy.on(integration_test_runner, "_check_end")
-    end)
-
-    teardown(function ()
-      clear_table(test.action_sequence)
-      action_callback:revert()
-      integration_test_runner._check_end:revert()
-    end)
-
-    before_each(function ()
-      integration_test_runner:start(test)
-    end)
-
-    after_each(function ()
-      action_callback:clear()
-      integration_test_runner._check_end:clear()
-    end)
-
-    describe('(when next action index is 1/1)', function ()
-
-      before_each(function ()
-        integration_test_runner._next_action_index = 1
-      end)
-
-      describe('(when next action time trigger is not reached yet)', function ()
-
-        before_each(function ()
-          -- time trigger uses relative frames, so compare the difference since last trigger to 60
-          integration_test_runner.current_frame = 158
-          integration_test_runner._last_trigger_frame = 100
-          test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
-        end)
-
-        after_each(function ()
-          clear_table(test.action_sequence)
-        end)
-
-        it('should not call the action nor advance the time/index', function ()
-          integration_test_runner._check_end:clear()  -- was called on start in before_each
-          integration_test_runner:_check_next_action()
-          assert.spy(action_callback).was_not_called()
-          assert.are_equal(100, integration_test_runner._last_trigger_frame)
-          assert.are_equal(1, integration_test_runner._next_action_index)
-          assert.spy(integration_test_runner._check_end).was_not_called()
-        end)
-
-      end)
-
-      describe('(when next action time trigger is reached)', function ()
-
-        before_each(function ()
-          -- time trigger uses relative frames, so compare the difference since last trigger to 60
-          integration_test_runner.current_frame = 160
-          integration_test_runner._last_trigger_frame = 100
-          test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
-        end)
-
-        after_each(function ()
-          clear_table(test.action_sequence)
-        end)
-
-        it('should call the action and advance the timeindex', function ()
-          integration_test_runner._check_end:clear()  -- was called on start in before_each
-          integration_test_runner:_check_next_action()
-          assert.spy(action_callback).was_called(1)
-          assert.spy(action_callback).was_called_with()
-          assert.are_equal(160, integration_test_runner._last_trigger_frame)
-          assert.are_equal(2, integration_test_runner._next_action_index)
-          assert.spy(integration_test_runner._check_end).was_called(1)
-          assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
-        end)
-
-      end)
-
-    end)
-
-    describe('(when next action index is 2/1)', function ()
+      local action_callback = spy.new(function () end)
 
       before_each(function ()
         test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
-        integration_test_runner._next_action_index = 2
+        -- don't stub a function if the return value matters, as in start
+        spy.on(integration_test_runner, "_check_end")
+      end)
+
+      teardown(function ()
+        action_callback:revert()
+        integration_test_runner._check_end:revert()
+      end)
+
+      before_each(function ()
+        integration_test_runner:start(test)
+      end)
+
+      after_each(function ()
+        action_callback:clear()
+        integration_test_runner._check_end:clear()
+      end)
+
+      describe('(when next action index is 1/1)', function ()
+
+        before_each(function ()
+          integration_test_runner._next_action_index = 1
+        end)
+
+        describe('(when next action time trigger is not reached yet)', function ()
+
+          before_each(function ()
+            -- time trigger uses relative frames, so compare the difference since last trigger to 60
+            integration_test_runner.current_frame = 158
+            integration_test_runner._last_trigger_frame = 100
+            test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+          end)
+
+          it('should not call the action nor advance the time/index', function ()
+            integration_test_runner._check_end:clear()  -- was called on start in before_each
+            integration_test_runner:_check_next_action()
+            assert.spy(action_callback).was_not_called()
+            assert.are_equal(100, integration_test_runner._last_trigger_frame)
+            assert.are_equal(1, integration_test_runner._next_action_index)
+            assert.spy(integration_test_runner._check_end).was_not_called()
+          end)
+
+        end)
+
+        describe('(when next action time trigger is reached)', function ()
+
+          before_each(function ()
+            -- time trigger uses relative frames, so compare the difference since last trigger to 60
+            integration_test_runner.current_frame = 160
+            integration_test_runner._last_trigger_frame = 100
+            test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+          end)
+
+          it('should call the action and advance the timeindex', function ()
+            integration_test_runner._check_end:clear()  -- was called on start in before_each
+            integration_test_runner:_check_next_action()
+            assert.spy(action_callback).was_called(1)
+            assert.spy(action_callback).was_called_with()
+            assert.are_equal(160, integration_test_runner._last_trigger_frame)
+            assert.are_equal(2, integration_test_runner._next_action_index)
+            assert.spy(integration_test_runner._check_end).was_called(1)
+            assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+          end)
+
+        end)
+
+      end)
+
+      describe('(when next action index is 2/1)', function ()
+
+        before_each(function ()
+          -- we still have the dummy action from the outer scope
+          integration_test_runner._next_action_index = 2  -- we are now at 2/1
+        end)
+
+        it('should assert', function ()
+          assert.has_error(function ()
+            integration_test_runner:_check_next_action()
+          end,
+          "self._next_action_index (2) is out of bounds for self.current_test.action_sequence (size 1)")
+        end)
+
+      end)
+
+    end)
+
+    describe('(with empty action)', function ()
+
+      before_each(function ()
+        -- empty actions are useful to just wait until the test end and delay the final assertion
+        test:add_action(time_trigger(1, true), nil, 'empty action')
       end)
 
       it('should assert', function ()
-        assert.has_error(function ()
+        integration_test_runner:start(test)
+        integration_test_runner.current_frame = 2  -- to trigger action to do at end of frame 1
+
+        assert.has_no_errors(function ()
           integration_test_runner:_check_next_action()
-        end,
-        "self._next_action_index (2) is out of bounds for self.current_test.action_sequence (size 1)")
+        end)
       end)
 
     end)
@@ -801,14 +792,10 @@ describe('integration_test_runner', function ()
 
       describe('(when final assertion passes)', function ()
 
-        setup(function ()
+        before_each(function ()
           test.final_assertion = function ()
             return true
           end
-        end)
-
-        teardown(function ()
-          test.final_assertion = nil
         end)
 
         it('should check the final assertion immediately, end with success and return true', function ()
@@ -822,14 +809,10 @@ describe('integration_test_runner', function ()
 
       describe('(when final assertion passes)', function ()
 
-        setup(function ()
+        before_each(function ()
           test.final_assertion = function ()
             return false, "error message"
           end
-        end)
-
-        teardown(function ()
-          test.final_assertion = nil
         end)
 
         it('should check the final assertion immediately, end with failure and return true', function ()
@@ -844,12 +827,8 @@ describe('integration_test_runner', function ()
 
     describe('(when some actions left)', function ()
 
-      setup(function ()
+      before_each(function ()
         test:add_action(time_trigger(1.0), function () end, 'check_end_test_action')
-      end)
-
-      teardown(function ()
-        clear_table(test.action_sequence)
       end)
 
       it('should return false', function ()
@@ -882,14 +861,10 @@ describe('integration_test_runner', function ()
 
     describe('(when final assertion passes)', function ()
 
-      setup(function ()
+      before_each(function ()
         test.final_assertion = function ()
           return true
         end
-      end)
-
-      teardown(function ()
-        test.final_assertion = nil
       end)
 
       it('should check the final assertion and end with success', function ()
@@ -901,14 +876,10 @@ describe('integration_test_runner', function ()
 
     describe('(when final assertion passes)', function ()
 
-      setup(function ()
+      before_each(function ()
         test.final_assertion = function ()
           return false, "error message"
         end
-      end)
-
-      teardown(function ()
-        test.final_assertion = nil
       end)
 
       it('should check the final assertion and end with failure', function ()
@@ -945,12 +916,8 @@ describe('integration_test_runner', function ()
 
     describe('(when teardown is set)', function ()
 
-      setup(function ()
+      before_each(function ()
         test.teardown = spy.new(function () end)
-      end)
-
-      teardown(function ()
-        test.teardown = nil
       end)
 
       it('should call teardown', function ()

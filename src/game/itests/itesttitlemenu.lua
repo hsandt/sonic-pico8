@@ -19,7 +19,7 @@ itest_manager:register_itest('player select credits, confirm',
   act(function ()
     input.simulated_buttons_down[0][button_ids.down] = true
   end)
-  
+
   wait(0.5)
 
   -- end short press. cursor should point to 'credits'

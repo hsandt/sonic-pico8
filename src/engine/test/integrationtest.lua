@@ -61,8 +61,6 @@ function itest_manager:register_itest(name, states, definition)
   -- actually they would be callable even after calling register_itest as they "leak"
   -- later, we'll build a full dsl parser that will not require such functions
 
-  -- helpers
-  local immediate_trigger = integrationtest.time_trigger(0)
 
   -- don't name setup, busted would hide this name
   function setup_callback(callback)
@@ -76,7 +74,7 @@ function itest_manager:register_itest(name, states, definition)
   function wait(time, use_frame_unit)
     if last_time_trigger then
       -- we were already waiting, so finish last wait with empty action
-      itest:add_action(last_time_trigger, dummy)
+      itest:add_action(last_time_trigger, nil)
     end
     last_time_trigger = integrationtest.time_trigger(time, use_frame_unit)
   end
@@ -87,7 +85,7 @@ function itest_manager:register_itest(name, states, definition)
       last_time_trigger = nil  -- consume so we know no final wait-action is needed
     else
       -- no wait since last action (or this is the first action), so use immediate trigger
-      itest:add_action(immediate_trigger, callback)
+      itest:add_action(integrationtest.immediate_trigger, callback)
     end
   end
 
@@ -100,7 +98,7 @@ function itest_manager:register_itest(name, states, definition)
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
   if last_time_trigger then
-    itest:add_action(last_time_trigger, dummy)
+    itest:add_action(last_time_trigger, nil)
   end
 end
 
@@ -259,8 +257,10 @@ function integration_test_runner:_check_next_action()
   local next_action = self.current_test.action_sequence[self._next_action_index]
   local should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
   if should_trigger_next_action then
-    -- apply next action and update time/index
-    next_action.callback()
+    -- apply next action and update time/index, unless nil (useful to just wait before itest end and final assertion)
+    if next_action.callback then
+      next_action.callback()
+    end
     self._last_trigger_frame = self.current_frame
     self._next_action_index = self._next_action_index + 1
     self:_check_end()
@@ -270,6 +270,8 @@ end
 function integration_test_runner:_check_end()
   -- check if last action was applied, end now
   -- this means you can define an 'end' action just by adding an empty action at the end
+  if self.current_test.action_sequence[1] then
+  end
   if self._next_action_index > #self.current_test.action_sequence then
     self:_end_with_final_assertion()
     return true
@@ -333,6 +335,9 @@ function time_trigger:_check(elapsed_frames)
   return elapsed_frames >= self.frames
 end
 
+-- helper triggers
+integrationtest.immediate_trigger = time_trigger(0, true)
+
 
 -- scripted action struct (but we use class because comparing functions only work by reference)
 scripted_action = new_class()
@@ -387,9 +392,9 @@ function integration_test:_tostring()
 end
 --#endif
 
+-- add an action to the action sequence. nil callback is acceptable, it acts like an empty function.
 function integration_test:add_action(trigger, callback, name)
   assert(trigger ~= nil, "integration_test:add_action: passed trigger is nil")
-  assert(callback ~= nil, "integration_test:add_action: passed callback is nil")
   add(self.action_sequence, scripted_action(trigger, callback, name))
 end
 

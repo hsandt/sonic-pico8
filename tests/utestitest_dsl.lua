@@ -3,7 +3,7 @@ require("math")
 local itest_dsl = require("engine/test/itest_dsl")
 local dsl_itest, command = itest_dsl.dsl_itest, itest_dsl.command
 local integrationtest = require("engine/test/integrationtest")
-local time_trigger, integration_test = integrationtest.time_trigger, integrationtest.integration_test
+local itest_manager, time_trigger, integration_test = integrationtest.itest_manager, integrationtest.time_trigger, integrationtest.integration_test
 local flow = require("engine/application/flow")
 local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
@@ -37,6 +37,36 @@ describe('itest_dsl', function ()
         assert.is_not_nil(dsli)
         assert.are_same({nil, nil, {}}, {dsli.gamestate_type, dsli.stage, dsli.commands})
       end)
+    end)
+
+  end)
+
+  describe('register', function ()
+
+    setup(function ()
+      -- mock parse
+      stub(itest_dsl, "parse", function (dsli_source)
+        return dsli_source.."_parsed"
+      end)
+      -- mock create_itest
+      stub(itest_dsl, "create_itest", function (name, dsli)
+        return name..": "..dsli.."_itest"
+      end)
+    end)
+
+    teardown(function ()
+      itest_dsl.parse:revert()
+      itest_dsl.create_itest:revert()
+    end)
+
+    after_each(function ()
+      itest_manager:init()
+    end)
+
+    it('should parse, create and register an itest by name and source', function ()
+      itest_dsl.register("my test", "dsl_source")
+      assert.are_equal(1, #itest_manager.itests)
+      assert.are_equal("my test: dsl_source_parsed_itest", itest_manager.itests[1])
     end)
 
   end)
@@ -91,7 +121,7 @@ expect pc_pos 10 45                     \
         command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
       }
 
-      local test = itest_dsl:create_itest("test 1", dsli)
+      local test = itest_dsl.create_itest("test 1", dsli)
 
       -- interface
       assert.is_not_nil(test)
@@ -161,7 +191,7 @@ expect pc_pos 10 45                     \
 
     setup(function ()
       -- mock _evaluate (we won't care about the 1st argument thx to this)
-      stub(itest_dsl, "_evaluate", function ()
+      stub(itest_dsl, "_evaluate", function (gameplay_value_type)
         return 27
       end)
     end)

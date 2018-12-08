@@ -1,6 +1,6 @@
 require("engine/core/helper")
 local integrationtest = require("engine/test/integrationtest")
-local integration_test = integrationtest.integration_test
+local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
 
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
@@ -59,6 +59,13 @@ function dsl_itest:_init()
 end
 
 
+-- parse, create and register itest from dsl
+function itest_dsl.register(name, dsli_source)
+  local dsli = itest_dsl.parse(dsli_source)
+  local test = itest_dsl.create_itest(name, dsli)
+  itest_manager:register(test)
+end
+
 -- parse a dsl itest source and return a dsl itest
 function itest_dsl.parse(dsli_source)
   -- create dsl itest
@@ -87,7 +94,7 @@ function itest_dsl.parse(dsli_source)
         add(args_str, words[j])
       end
       local cmd_type = itest_dsl_command_types[cmd_type_str]
-      local parse_fn_name = 'parse_args_'..cmd_type_str
+      local parse_fn_name = '_parse_args_'..cmd_type_str
       assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
       local args = {itest_dsl[parse_fn_name](args_str)}
       add(dsli.commands, command(cmd_type, args))
@@ -97,25 +104,25 @@ function itest_dsl.parse(dsli_source)
 end
 
 -- convert string args to vector
-function itest_dsl.parse_args_spawn(args)
+function itest_dsl._parse_args_spawn(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))  -- bottom position
 end
 
 -- convert string args to vector
-function itest_dsl.parse_args_move(args)
+function itest_dsl._parse_args_move(args)
   assert(#args == 1, "got "..#args.." args")
   return horizontal_dirs[args[1]]                -- move intention
 end
 
 -- convert string args to vector
-function itest_dsl.parse_args_wait(args)
+function itest_dsl._parse_args_wait(args)
   assert(#args == 1, "got "..#args.." args")
   return tonum(args[1])                          -- frames to wait
 end
 
 -- convert string args to vector
-function itest_dsl.parse_args_expect(args)
+function itest_dsl._parse_args_expect(args)
   assert(#args > 1, "got "..#args.." args")
   -- same principle as itest_dsl.parse, the type of the first arg
   --  determines how we parse the rest of the args, named "value components"
@@ -128,22 +135,22 @@ function itest_dsl.parse_args_expect(args)
   -- determine the type of value reference tested for comparison (e.g. pc position)
   local value_type = itest_dsl_value_types[value_type_str]
   -- parse the value components to semantical type (e.g. vector)
-  local parse_fn_name = 'parse_value_'..value_type_str
+  local parse_fn_name = '_parse_value_'..value_type_str
   assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
   local expected_value = itest_dsl[parse_fn_name](expected_value_comps)
   return value_type, expected_value
 end
 
 -- convert string args to vector
-function itest_dsl.parse_value_pc_pos(args)
+function itest_dsl._parse_value_pc_pos(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))
 end
 
 -- create and return an itest from a dsli, providing a name
-function itest_dsl:create_itest(name, dsli)
-  self._itest = integration_test(name, {dsli.gamestate_type})
-  self._itest.setup = function ()
+function itest_dsl.create_itest(name, dsli)
+  itest_dsl._itest = integration_test(name, {dsli.gamestate_type})
+  itest_dsl._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
       assert(dsli.stage)
@@ -152,41 +159,34 @@ function itest_dsl:create_itest(name, dsli)
   end
 
   for cmd in all(dsli.commands) do
-    print(cmd.type)
     if cmd.type == itest_dsl_command_types.spawn then
-      print(dump(self._itest))
-      self:_act(function ()
+      itest_dsl:_act(function ()
         stage.state.player_char:spawn_at(vector(cmd.args[1].x, cmd.args[1].y - pc_data.center_height_standing))
       end)
-      print(dump(self._itest))
     elseif cmd.type == itest_dsl_command_types.move then
-      print(dump(self._itest))
-      self:_act(function ()
+      itest_dsl:_act(function ()
         stage.state.player_char.move_intention = horizontal_dir_vectors[cmd.args[1]]
       end)
     elseif cmd.type == itest_dsl_command_types.wait then
-      print("wait")
-      self:_wait(cmd.args[1])
+      itest_dsl:_wait(cmd.args[1])
     elseif cmd.type == itest_dsl_command_types.expect then
-      print("expect")
       -- we currently don't support live assertions, only final assertion
-      self:_final_assert(unpack(cmd.args))
+      itest_dsl:_final_assert(unpack(cmd.args))
 
     end
   end
 
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
-  if self._last_time_trigger then
-    print("final")
-    self._itest:add_action(self._last_time_trigger, nil)
+  if itest_dsl._last_time_trigger then
+    itest_dsl._itest:add_action(itest_dsl._last_time_trigger, nil)
   end
 
-  local test = self._itest
+  local test = itest_dsl._itest
 
   -- cleanup
-  self._itest = nil
-  self._last_time_trigger = nil
+  itest_dsl._itest = nil
+  itest_dsl._last_time_trigger = nil
 
   return test
 end
@@ -208,7 +208,6 @@ function itest_dsl:_wait(interval)
   end
   -- we only support frame unit in the dsl
   self._last_time_trigger = integrationtest.time_trigger(interval, true)
-  print("set wait")
 end
 
 function itest_dsl:_final_assert(gameplay_value_type, expected_gameplay_value)

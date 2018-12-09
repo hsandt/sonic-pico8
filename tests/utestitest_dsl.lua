@@ -14,10 +14,22 @@ local pc_data = require("game/data/playercharacter_data")
 
 describe('itest_dsl', function ()
 
+  setup(function ()
+    -- stub setup_map_data which can have side effects on tile flags
+    --  as we don't need those anyway, just the tile ids themselves
+    stub(_G, "setup_map_data")
+  end)
+
+  teardown(function ()
+    setup_map_data:revert()
+  end)
+
   after_each(function ()
     itest_dsl:init()
     flow:init()
     stage.state:init()
+    pico8:clear_map()
+    setup_map_data:clear()
   end)
 
   describe('command', function ()
@@ -76,9 +88,12 @@ describe('itest_dsl', function ()
 
   describe('parse', function ()
 
+    -- bugfix history:
+    -- + spot tilemap not being set, although parse_gamestate_definition worked, so the error is in the glue code
     it('should parse the itest source written in domain-specific language into a dsl itest', function ()
-      local dsli_source = [[@stage test1
-
+      local dsli_source = [[@stage #
+..##
+##..
 
 spawn 12 45
 wait 1
@@ -93,8 +108,11 @@ expect pc_bottom_pos 10 45
       assert.are_same(
         {
           'stage',
-          "test1",
-          nil,
+          '#',
+          tilemap({
+            { 0,  0, 64, 64},
+            {64, 64,  0,  0}
+          }),
           {
             command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
             command(itest_dsl_command_types.wait,   { 1 }                          ),
@@ -353,6 +371,37 @@ expect pc_bottom_pos 10 45
       -- but if we cheat and warp him on the spot, final assertion will work
       stage.state.player_char:set_bottom_center(vector(10, 45))
       assert.is_true(test.final_assertion())
+    end)
+
+    describe('(spying tilemap load)', function ()
+
+      setup(function ()
+        spy.on(tilemap, "load")
+      end)
+
+      teardown(function ()
+        tilemap.load:revert()
+      end)
+
+      it('should call setup_map_data and load on the tilemap if custom stage definition', function ()
+        local dsli = dsl_itest()
+        dsli.gamestate_type = 'stage'
+        dsli.stage_name = "#"
+        dsli.tilemap = tilemap({})
+        dsli.commands = {}
+
+        local test = itest_dsl.create_itest("test 1", dsli)
+
+        gameapp.init(test.active_gamestates)
+        test.setup()
+
+        -- implementation
+        assert.spy(setup_map_data).was_called(1)
+        assert.spy(setup_map_data).was_called_with()
+        assert.spy(tilemap.load).was_called(1)
+        assert.spy(tilemap.load).was_called_with(match.ref(dsli.tilemap))
+      end)
+
     end)
 
   end)

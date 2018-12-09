@@ -7,11 +7,6 @@ local stub = require("luassert.stub")
 
 local tile_test_data = {}
 
-tile_symbol_to_ids = {
-  ['.'] = 0,   -- empty
-  ['#'] = 64,  -- full tile
-}
-
 local height_array_init_mock
 
 function tile_test_data.setup()

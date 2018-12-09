@@ -2,8 +2,7 @@ require("engine/core/helper")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
 
--- we exceptionally require if for pico8 as well, as we need tile_symbol_to_ids
-local tile_test_data = require("game/test_data/tile_test_data")
+local tile_data = require("game/data/tile_data")
 local tilemap = require("engine/data/tilemap")
 
 -- dsl interpretation requirements
@@ -56,10 +55,10 @@ end
 -- dsl itest struct
 
 -- attributes
--- gamestate_type  string             gamestate type to start test in (also the only active gamestate)
--- stage_name      string|nil         stage name to play if gamestate type is 'stage', nil else
--- map_data        tile_map_data|nil  tilemap data if gamestate type is 'stage', nil else
--- commands        {commands}         sequence of commands to apply
+-- gamestate_type  string          gamestate type to start test in (also the only active gamestate)
+-- stage_name      string|nil      stage name to play if gamestate type is 'stage', nil else
+-- tilemap        tilemap|nil     tilemap data if gamestate type is 'stage', nil else
+-- commands        {commands}      sequence of commands to apply
 local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
 
@@ -100,7 +99,7 @@ function itest_dsl.parse(dsli_source)
 
   -- parse in 2 steps: gamestate and action sequence
   local next_line_index
-  dsli.gamestate_type, dsli.stage_name, dsli.map_data, next_line_index = itest_dsl.parse_gamestate_definition(lines)
+  dsli.gamestate_type, dsli.stage_name, dsli.tilemap, next_line_index = itest_dsl.parse_gamestate_definition(lines)
   dsli.commands = itest_dsl.parse_action_sequence(lines, next_line_index)
 
   return dsli
@@ -126,14 +125,14 @@ function itest_dsl.parse_gamestate_definition(lines)
     stage_name = header_parts[2]
   end
 
-  local map_data = nil
+  local tm = nil
   local next_line_index = 3
   if stage_name == '#' then
     -- we are defining a custom tilemap, let's parse it
-    map_data, next_line_index = itest_dsl.parse_tilemap(lines)
+    tm, next_line_index = itest_dsl.parse_tilemap(lines)
   end
 
-  return gamestate_type, stage_name, map_data, next_line_index
+  return gamestate_type, stage_name, tm, next_line_index
 end
 
 function itest_dsl.parse_tilemap(lines)
@@ -243,8 +242,12 @@ function itest_dsl.create_itest(name, dsli)
   itest_dsl._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
-      assert(dsli.stage_name)
-      -- load stage by name when api is ready
+      if dsli.stage_name == '#' then
+        setup_map_data()
+        dsli.tilemap:load()
+      else
+        -- load stage by name when api is ready
+      end
     end
   end
 

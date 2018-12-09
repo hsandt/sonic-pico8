@@ -6,32 +6,10 @@ local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
 local pc_data = require("game/data/playercharacter_data")
+local tile_data = require("game/data/tile_data")
 --#ifn pico8
 local tile_test_data = require("game/test_data/tile_test_data")
 --#endif
-
-
--- for itests that need map setup, we exceptionally not teardown
---  the map since we would need to store a backup of the original map
---  and we don't care, since each itest will build its own mock map
-local function setup_map_data()
---#ifn pico8
-  tile_test_data.setup()
-  pico8:clear_map()
---#endif
-
---[[#pico8
-  -- clear map data
-  memset(0x2000, 0, 0x1000)
--- #pico8]]
-end
-
-local function teardown_map_data()
---#ifn pico8
-  tile_test_data.teardown()
---#endif
-end
-
 
 local itest
 

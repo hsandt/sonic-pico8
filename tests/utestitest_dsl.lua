@@ -77,15 +77,15 @@ describe('itest_dsl', function ()
   describe('parse', function ()
 
     it('should parse the itest source written in domain-specific language into a dsl itest', function ()
-      local dsli_source = "@stage test1 \
-\
-                                        \
-spawn 12 45                             \
-wait 1                                  \
-move left                               \
-wait 2                                  \
-expect pc_bottom_pos 10 45                     \
-"
+      local dsli_source = [[@stage test1
+
+
+spawn 12 45
+wait 1
+move left
+wait 2
+expect pc_bottom_pos 10 45
+]]
       local dsli = itest_dsl.parse(dsli_source)
 
       -- interface

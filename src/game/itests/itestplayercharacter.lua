@@ -1,5 +1,6 @@
 -- gamestates: stage
 local integrationtest = require("engine/test/integrationtest")
+local itest_dsl = require("engine/test/itest_dsl")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
@@ -33,6 +34,66 @@ end
 
 
 local itest
+
+
+-- dsl training
+
+itest_dsl.register('#solo platformer accel right flat', [[
+@stage test1
+
+spawn 4 80
+move right
+wait 30
+expect pc_pos 14.8984375 80.
+]]
+)
+
+--[[ original
+itest.setup = function ()
+  -- setup_map_data()
+
+  -- mset(0, 10, 64)
+  -- mset(1, 10, 64)
+  -- mset(2, 10, 64)
+
+  -- stage.state.player_char.control_mode = control_modes.puppet
+  -- stage.state.player_char.motion_mode = motion_modes.platformer
+end
+
+itest.teardown = function ()
+  -- teardown_map_data()
+end
+
+-- check that player char has moved to the right and is still on the ground
+itest.final_assertion = function ()
+  -- local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
+  -- no almost eq
+  -- no bottom center
+  local is_position_expected, position_message = almost_eq_with_message(vector(14.8984375, 80.), stage.state.player_char:get_bottom_center(), 1/256)
+  -- local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.703125, stage.state.player_char.ground_speed, 1/256)
+  -- local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.703125, 0), stage.state.player_char.velocity, 1/256)
+
+  -- local final_message = ""
+
+  -- local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
+  -- if not success then
+  --   if not is_motion_state_expected then
+  --     final_message = final_message..motion_state_message.."\n"
+  --   end
+  --   if not is_position_expected then
+  --     final_message = final_message..position_message.."\n"
+  --   end
+  --   if not is_ground_speed_expected then
+  --     final_message = final_message..ground_speed_message.."\n"
+  --   end
+  --   if not is_velocity_expected then
+  --     final_message = final_message..velocity_message.."\n"
+  --   end
+
+  -- end
+end
+--]]
+
 
 --[[
 itest = integration_test('debug move right', {stage.state.type})

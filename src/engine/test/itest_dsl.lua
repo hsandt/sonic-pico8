@@ -24,9 +24,14 @@ itest_dsl_command_types = {
   expect = 21
 }
 
--- type of values available for expectations
-itest_dsl_value_types = {
+-- type of gameplay values available for expectations
+itest_dsl_gp_value_types = {
   pc_pos = 1
+}
+
+-- string mapping for itest messages
+local value_type_strings = {
+  "player character position"
 }
 
 
@@ -133,7 +138,7 @@ function itest_dsl._parse_args_expect(args)
     add(expected_value_comps, args[i])
   end
   -- determine the type of value reference tested for comparison (e.g. pc position)
-  local value_type = itest_dsl_value_types[value_type_str]
+  local value_type = itest_dsl_gp_value_types[value_type_str]
   -- parse the value components to semantical type (e.g. vector)
   local parse_fn_name = '_parse_value_'..value_type_str
   assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
@@ -210,19 +215,26 @@ function itest_dsl:_wait(interval)
   self._last_time_trigger = integrationtest.time_trigger(interval, true)
 end
 
-function itest_dsl:_final_assert(gameplay_value_type, expected_gameplay_value)
+function itest_dsl:_final_assert(gp_value_type, expected_gp_value)
+  local gp_value_name = value_type_strings[gp_value_type]
+  assert(gp_value_name, "invalid gp_value_type: "..gp_value_type)
   self._itest.final_assertion = function ()
-    return self._evaluate(gameplay_value_type) == expected_gameplay_value
+    local gp_value = self._evaluate(gp_value_type)
+    return gp_value == expected_gp_value,
+      "Passed gameplay value '"..gp_value_name.."':\n"..
+      gp_value.."\n"..
+      "Expected:\n"..
+      expected_gp_value
   end
 end
 
 -- evaluate gameplay value. it is important to call this at expect
 --  time, not when defining the test, to get the actual runtime value
-function itest_dsl._evaluate(gameplay_value_type)
-  if gameplay_value_type == itest_dsl_value_types.pc_pos then
+function itest_dsl._evaluate(gp_value_type)
+  if gp_value_type == itest_dsl_gp_value_types.pc_pos then
     return stage.state.player_char.position
   else
-    assert(false, "unknown gameplay value: "..gameplay_value_type)
+    assert(false, "unknown gameplay value: "..gp_value_type)
   end
 end
 

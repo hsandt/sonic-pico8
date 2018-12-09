@@ -94,7 +94,7 @@ expect pc_pos 10 45                     \
             command(itest_dsl_command_types.wait,   { 1 }                          ),
             command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
             command(itest_dsl_command_types.wait,   { 2 }                          ),
-            command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
+            command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_pos, vector(10, 45)}),
           }
         },
         {
@@ -118,7 +118,7 @@ expect pc_pos 10 45                     \
         command(itest_dsl_command_types.wait,   { 1 }                          ),
         command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
         command(itest_dsl_command_types.wait,   { 2 }                          ),
-        command(itest_dsl_command_types.expect, {itest_dsl_value_types.pc_pos, vector(10, 45)}),
+        command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_pos, vector(10, 45)}),
       }
 
       local test = itest_dsl.create_itest("test 1", dsli)
@@ -200,16 +200,25 @@ expect pc_pos 10 45                     \
       itest_dsl._evaluate:revert()
     end)
 
-    it('should set the final assertion as returning true when the gameplay value is expected', function ()
+    it('#solo should set the final assertion as returning true, message when the gameplay value is expected', function ()
       itest_dsl._itest = integration_test('test', {})
-      itest_dsl:_final_assert(nil, 27)
-      assert.is_true(itest_dsl._itest.final_assertion())
+      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_pos, 27)
+      local message = "Passed gameplay value 'player character position':\n27\nExpected:\n27"
+      assert.are_same({true, message}, {itest_dsl._itest.final_assertion()})
     end)
 
-    it('should set the final assertion as returning false when the gameplay value is not expected', function ()
+    it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
       itest_dsl._itest = integration_test('test', {})
-      itest_dsl:_final_assert(nil, 28)
-      assert.is_false(itest_dsl._itest.final_assertion())
+      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_pos, 28)
+      local message = "Passed gameplay value 'player character position':\n27\nExpected:\n28"
+      assert.are_same({false, message}, {itest_dsl._itest.final_assertion()})
+    end)
+
+    it('should assert when the passed gameplay value type is invalid', function ()
+      itest_dsl._itest = integration_test('test', {})
+      assert.has_error(function ()
+        itest_dsl:_final_assert(-1, 20)
+      end)
     end)
 
   end)

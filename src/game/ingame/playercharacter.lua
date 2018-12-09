@@ -83,7 +83,17 @@ end
 -- spawn character at given position, and escape from ground / enter airborne state if needed
 function player_char:spawn_at(position)
   self:_setup()
+  self:warp_to(position)
+end
 
+-- spawn character at given bottom position, with same post-process as spawn_at
+function player_char:spawn_bottom_at(bottom_position)
+  self:spawn_at(bottom_position - vector(0, pc_data.center_height_standing))
+end
+
+-- warp character to specific position, and update motion state
+--  use this when you don't want to reset the character state as spawn_at does
+function player_char:warp_to(position)
   self.position = position
 
   -- character is initialized grounded, but let him fall if he is spawned in the air
@@ -93,9 +103,9 @@ function player_char:spawn_at(position)
   end
 end
 
--- spawn character at given bottom position, with same post-process as spawn_at
-function player_char:spawn_bottom_at(position)
-  self:spawn_at(position - vector(0, pc_data.center_height_standing))
+-- same as warp_to, but with bottom position
+function player_char:warp_bottom_to(bottom_position)
+  self:warp_to(bottom_position - vector(0, pc_data.center_height_standing))
 end
 
 -- move the player character so that the bottom center is at the given position
@@ -283,7 +293,6 @@ function player_char:_update_platformer_motion_grounded()
   self:_update_ground_speed()
 
   local ground_motion_result = self:_compute_ground_motion_result()
-  log("ground_motion_result: "..ground_motion_result, "trace")
 
   -- reset ground speed if blocked
   if ground_motion_result.is_blocked then
@@ -393,7 +402,6 @@ function player_char:_compute_ground_motion_result()
   --  so first estimate how many full pixel columns the character may actually explore this frame
   local distance_x = self.ground_speed * cos(self.slope_angle)
   local max_column_distance = player_char._compute_max_column_distance(self.position.x, distance_x)
-    log("max_column_distance: "..max_column_distance, "trace")
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -403,7 +411,6 @@ function player_char:_compute_ground_motion_result()
   while column_distance <= max_column_distance and not motion_result.is_blocked do
     self:_next_ground_step(horizontal_dir, motion_result)
     column_distance = column_distance + 1
-    log("new slope: "..stringify(motion_result.slope_angle), "trace")
   end
 
   -- check if we need to add or cut subpixels

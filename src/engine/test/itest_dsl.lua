@@ -242,7 +242,10 @@ function itest_dsl.create_itest(name, dsli)
   itest_dsl._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
+      -- puppet control
+      stage.state.player_char.control_mode = control_modes.puppet
       if dsli.stage_name == '#' then
+        -- load custom tilemap data
         setup_map_data()
         dsli.tilemap:load()
       else
@@ -254,7 +257,7 @@ function itest_dsl.create_itest(name, dsli)
   for cmd in all(dsli.commands) do
     if cmd.type == itest_dsl_command_types.spawn then
       itest_dsl:_act(function ()
-        stage.state.player_char:spawn_bottom_at(vector(cmd.args[1].x, cmd.args[1].y))
+        stage.state.player_char:warp_bottom_to(vector(cmd.args[1].x, cmd.args[1].y))
       end)
     elseif cmd.type == itest_dsl_command_types.move then
       itest_dsl:_act(function ()

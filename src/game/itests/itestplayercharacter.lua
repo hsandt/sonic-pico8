@@ -30,13 +30,6 @@ expect pc_bottom_pos 14.8984375 8.
 
 --[[ original
 itest.setup = function ()
-  -- setup_map_data()
-
-  -- mset(0, 10, 64)
-  -- mset(1, 10, 64)
-  -- mset(2, 10, 64)
-
-  -- stage.state.player_char.control_mode = control_modes.puppet
   -- stage.state.player_char.motion_mode = motion_modes.platformer
 end
 

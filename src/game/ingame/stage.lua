@@ -150,6 +150,7 @@ end
 
 -- input
 
+-- refactor: move to player_character
 -- handle player input
 function state:handle_input()
   if self.player_char.control_mode == control_modes.human then

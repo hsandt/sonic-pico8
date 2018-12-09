@@ -133,6 +133,54 @@ describe('player_char', function ()
 
     describe('spawn_at', function ()
 
+      setup(function ()
+        stub(player_char, "_setup")
+        stub(player_char, "warp_to")
+      end)
+
+      teardown(function ()
+        player_char._setup:revert()
+        player_char.warp_to:revert()
+      end)
+
+      before_each(function ()
+        -- setup is called on construction, so clear just after that
+        player_char._setup:clear()
+      end)
+
+      it('should call _setup and warp_to', function ()
+        player_char._setup:clear()
+        pc:spawn_at(vector(56, 12))
+
+        -- implementation
+        assert.spy(player_char._setup).was_called(1)
+        assert.spy(player_char._setup).was_called_with(match.ref(pc))
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(56, 12))
+      end)
+
+    end)
+
+    describe('spawn_bottom_at', function ()
+
+      setup(function ()
+        spy.on(player_char, "spawn_at")
+      end)
+
+      teardown(function ()
+        player_char.spawn_at:revert()
+      end)
+
+      it('should call spawn_at with the position offset by -(character center height)', function ()
+        pc:spawn_bottom_at(vector(56, 12))
+        assert.spy(player_char.spawn_at).was_called(1)
+        assert.spy(player_char.spawn_at).was_called_with(match.ref(pc), vector(56, 12 - pc_data.center_height_standing))
+      end)
+
+    end)
+
+    describe('warp_to', function ()
+
       local enter_motion_state_stub
 
       setup(function ()
@@ -148,7 +196,7 @@ describe('player_char', function ()
       end)
 
       it('should set the character\'s position', function ()
-        pc:spawn_at(vector(56, 12))
+        pc:warp_to(vector(56, 12))
         assert.are_equal(vector(56, 12), pc.position)
       end)
 
@@ -205,20 +253,20 @@ describe('player_char', function ()
 
     end)
 
-    describe('spawn_bottom_at', function ()
+    describe('warp_bottom_to', function ()
 
       setup(function ()
-        spy.on(player_char, "spawn_at")
+        spy.on(player_char, "warp_to")
       end)
 
       teardown(function ()
-        player_char.spawn_at:revert()
+        player_char.warp_to:revert()
       end)
 
-      it('should call spawn_at with the position offset by -(character center height)', function ()
-        pc:spawn_bottom_at(vector(56, 12))
-        assert.spy(player_char.spawn_at).was_called(1)
-        assert.spy(player_char.spawn_at).was_called_with(match.ref(pc), vector(56, 12 - pc_data.center_height_standing))
+      it('should call warp_to with the position offset by -(character center height)', function ()
+        pc:warp_bottom_to(vector(56, 12))
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(56, 12 - pc_data.center_height_standing))
       end)
 
     end)

@@ -395,6 +395,9 @@ expect pc_bottom_pos 10 45
         gameapp.init(test.active_gamestates)
         test.setup()
 
+        -- interface
+        assert.are_equal(control_modes.puppet, stage.state.player_char.control_mode)
+
         -- implementation
         assert.spy(setup_map_data).was_called(1)
         assert.spy(setup_map_data).was_called_with()

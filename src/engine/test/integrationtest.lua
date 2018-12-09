@@ -5,6 +5,8 @@ require("engine/test/assertions")
 --#if log
 local logging = require("engine/debug/logging")
 --#endif
+-- engine -> game reference is not good, consider using flow directly
+--  and isolating active gamestates somewhere else (e.g. a generic gameapp in engine)
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 

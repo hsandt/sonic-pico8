@@ -8,6 +8,7 @@ local flow = require("engine/application/flow")
 local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
 local stage = require("game/ingame/stage")
+local tilemap = require("engine/data/tilemap")
 local pc_data = require("game/data/playercharacter_data")
 
 
@@ -105,7 +106,7 @@ expect pc_bottom_pos 10 45                     \
         {
           dsli.gamestate_type,
           dsli.stage_name,
-          dsli.map_data,
+          dsli.tilemap,
           dsli.commands
         })
 
@@ -119,20 +120,20 @@ expect pc_bottom_pos 10 45                     \
 
   describe('parse_gamestate_definition', function ()
 
-    it('should return gamestate name, nil, nil and 2 for a non-stage gamestate and no extra line', function ()
+    it('should return gamestate name, nil, nil and 3 for a non-stage gamestate and no extra line', function ()
       local dsli_lines = {"@titlemenu"}
-      local gamestate_type, stage_name, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      local gamestate_type, stage_name, tm, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
       assert.are_same(
         {
           'titlemenu',
           nil,
           nil,
-          2         -- it's usually 3, but clamps to 2 if the text ends right after the first line
+          3
         },
         {
           gamestate_type,
           stage_name,
-          map_data,
+          tm,
           next_line_index
         })
     end)
@@ -144,7 +145,7 @@ expect pc_bottom_pos 10 45                     \
         "",
         "???"
       }
-      local gamestate_type, stage_name, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      local gamestate_type, stage_name, tm, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
       assert.are_same(
         {
           'stage',
@@ -155,37 +156,103 @@ expect pc_bottom_pos 10 45                     \
         {
           gamestate_type,
           stage_name,
-          map_data,
+          tm,
           next_line_index
         })
     end)
 
-    it('should return \'stage\', \'#\', tilemap data and 7 for a custom stage definition finishing at line 6 (including blank line)', function ()
+    it('should return \'stage\', \'#\', tilemap data and 6 for a custom stage definition finishing at line 5 (including blank line)', function ()
       local dsli_lines = {
-        "@stage test1",
+        "@stage #",
         "....",
         "##..",
         "..##",
         "",
         "???"
       }
-      local gamestate_type, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      local gamestate_type, stage_name, tm, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
       assert.are_same(
         {
           'stage',
           '#',
-          map_data({
+          tilemap({
             { 0,  0,  0,  0},
             {64, 64,  0,  0},
             { 0,  0, 64, 64}
           }),
-          7
+          6
         },
         {
           gamestate_type,
-          map_data,
+          stage_name,
+          tm,
           next_line_index
         })
+    end)
+
+  end)
+
+  describe('parse_tilemap', function ()
+
+    it('should return a tilemap data with tiles corresponding to the tile symbols in the string', function ()
+      local tilemap_text = {
+        "????",
+        "....",
+        "##..",
+        "..##"
+      }
+      local tm, next_line_index = itest_dsl.parse_tilemap(tilemap_text)
+      assert.are_same(
+        {
+          tilemap({
+            { 0,  0,  0,  0},
+            {64, 64,  0,  0},
+            { 0,  0, 64, 64}
+          }),
+          6
+        },
+        {tm, next_line_index})
+    end)
+
+    it('should assert if there as fewer than 2 lines', function ()
+      local tilemap_text = {
+        "?"
+      }
+      assert.has_error(function ()
+        itest_dsl.parse_tilemap(tilemap_text)
+      end, "only 1 line(s), need at least 2")
+    end)
+
+    it('should assert if line 2 has width 0', function ()
+      local tilemap_text = {
+        "?",
+        "",
+        "?"
+      }
+      assert.has_error(function ()
+        itest_dsl.parse_tilemap(tilemap_text)
+      end)
+    end)
+
+    it('should assert if line width is inconsistent', function ()
+      local tilemap_text = {
+        "",
+        "....",
+        "..."
+      }
+      assert.has_error(function ()
+        itest_dsl.parse_tilemap(tilemap_text)
+      end, "inconsistent line length: 3 vs 4")
+    end)
+
+    it('should assert if unknown tile symbol is found', function ()
+      local tilemap_text = {
+        "",
+        "?"
+      }
+      assert.has_error(function ()
+        itest_dsl.parse_tilemap(tilemap_text)
+      end, "unknown tile symbol: ?")
     end)
 
   end)
@@ -224,7 +291,7 @@ expect pc_bottom_pos 10 45                     \
       local dsli = dsl_itest()
       dsli.gamestate_type = 'stage'
       dsli.stage_name = "test1"
-      dsli.map_data = nil
+      dsli.tilemap = nil
       dsli.commands = {
         command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
         command(itest_dsl_command_types.wait,   { 10 }                          ),

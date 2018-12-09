@@ -2,6 +2,10 @@ require("engine/core/helper")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
 
+-- we exceptionally require if for pico8 as well, as we need tile_symbol_to_ids
+local tile_test_data = require("game/test_data/tile_test_data")
+local tilemap = require("engine/data/tilemap")
+
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
@@ -123,17 +127,50 @@ function itest_dsl.parse_gamestate_definition(lines)
   end
 
   local map_data = nil
-
-  local next_line_index = 2
-  for i = 2, #lines do
-    if #lines[i] == 0 then
-      next_line_index = i + 1
-      break
-    end
+  local next_line_index = 3
+  if stage_name == '#' then
+    -- we are defining a custom tilemap, let's parse it
+    map_data, next_line_index = itest_dsl.parse_tilemap(lines)
   end
 
   return gamestate_type, stage_name, map_data, next_line_index
 end
+
+function itest_dsl.parse_tilemap(lines)
+  -- tilemap should always start at line 2
+  -- first line will give the tilemap width
+  assert(#lines >= 2, "only "..#lines.." line(s), need at least 2")
+  local width = #lines[2]
+  assert(width > 0)
+
+  local content = {}
+
+  for i = 2, #lines do
+    local line_str = lines[i]
+    if #line_str == 0 then
+      -- we reached the end of tilemap definition
+      break
+    end
+
+    -- ensure that width is consistent
+    assert(#line_str == width, "inconsistent line length: "..#line_str.." vs "..width)
+
+    local current_row = {}
+
+    for j = 1, width do
+      local tile_symbol = sub(line_str, j, j)
+      local tile_id = tile_symbol_to_ids[tile_symbol]
+      assert(tile_id, "unknown tile symbol: "..tile_symbol)
+      add(current_row, tile_id)
+    end
+
+    add(content, current_row)
+  end
+
+  -- return tilemap, next line = initial line index + nb rows + 1
+  return tilemap(content), 2 + #content + 1
+end
+
 
 function itest_dsl.parse_action_sequence(lines, next_line_index)
   local commands = {}

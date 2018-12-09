@@ -21,7 +21,7 @@ itest_dsl.register('#solo platformer accel right flat', [[
 ...
 ###
 
-spawn 4 8
+warp 4 8
 move right
 wait 30
 expect pc_bottom_pos 14.8984375 8.

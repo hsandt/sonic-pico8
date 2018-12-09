@@ -95,7 +95,7 @@ describe('itest_dsl', function ()
 ..##
 ##..
 
-spawn 12 45
+warp 12 45
 wait 1
 move left
 wait 2
@@ -114,7 +114,7 @@ expect pc_bottom_pos 10 45
             {64, 64,  0,  0}
           }),
           {
-            command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+            command(itest_dsl_command_types.warp,  { vector(12, 45) }             ),
             command(itest_dsl_command_types.wait,   { 1 }                          ),
             command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
             command(itest_dsl_command_types.wait,   { 2 }                          ),
@@ -283,7 +283,7 @@ expect pc_bottom_pos 10 45
         "???",
         "???",
         "",
-        "spawn 12 45",
+        "warp 12 45",
         "wait 1",
         "move left",
         "wait 2",
@@ -292,7 +292,7 @@ expect pc_bottom_pos 10 45
       local commands = itest_dsl.parse_action_sequence(dsli_lines, 5)
       assert.are_same(
           {
-            command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+            command(itest_dsl_command_types.warp,  { vector(12, 45) }             ),
             command(itest_dsl_command_types.wait,   { 1 }                          ),
             command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
             command(itest_dsl_command_types.wait,   { 2 }                          ),
@@ -311,7 +311,7 @@ expect pc_bottom_pos 10 45
       dsli.stage_name = "test1"
       dsli.tilemap = nil
       dsli.commands = {
-        command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+        command(itest_dsl_command_types.warp,  { vector(12, 45) }             ),
         command(itest_dsl_command_types.wait,   { 10 }                          ),
         command(itest_dsl_command_types.wait,   { 1 }                          ),
         command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
@@ -327,7 +327,7 @@ expect pc_bottom_pos 10 45
       assert.are_same({
           "test 1",
           {'stage'},
-          time_trigger(0, true),  -- spawn immediately
+          time_trigger(0, true),  -- warp immediately
           scripted_action(time_trigger(10, true), nil),  -- empty action after 10 frames
           time_trigger(1, true),  -- start moving after 1 frame
           scripted_action(time_trigger(2, true), nil)    -- empty action after 2 frames
@@ -356,7 +356,7 @@ expect pc_bottom_pos 10 45
       test.setup()
       assert.are_equal(gamestate.types.stage, flow.curr_state.type)
 
-      -- verify spawn callback behavior
+      -- verify warp callback behavior
       test.action_sequence[1].callback()
       assert.is_not_nil(stage.state.player_char)
       assert.are_equal(vector(12, 45 - pc_data.center_height_standing), stage.state.player_char.position)
@@ -460,7 +460,7 @@ expect pc_bottom_pos 10 45
     -- add gameplay value types tests here
 
     it('should return the player character bottom position for ', function ()
-      stage.state:spawn_player_char()
+      stage.state:warp_player_char()
       stage.state.player_char:set_bottom_center(vector(2, 8))
 
       assert.are_equal(vector(2, 8), itest_dsl._evaluate(itest_dsl_gp_value_types.pc_bottom_pos))

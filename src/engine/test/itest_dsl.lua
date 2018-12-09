@@ -21,7 +21,7 @@ end)
 
 -- type of commands available
 itest_dsl_command_types = {
-  spawn  = 1,   -- spawn player character bottom  args: {bottom position: vector}
+  warp  = 1,   -- warp player character bottom  args: {bottom position: vector}
   move   = 2,   -- set sticky pc move intention   args: {move_dir: horizontal_dirs}
   wait   = 11,  --
   expect = 21
@@ -85,7 +85,7 @@ end
 -- ...                          < for custom stage, provide the tilemap in ascii
 -- ###                          < . for empty tile, # for full tile, etc.
 --                              < blank after tilemap to mark the end
--- spawn 4 8                    < initial setup (it's an action like any other)
+-- warp 4 8                    < initial setup (it's an action like any other)
 -- move right                   < more actions...
 -- wait 30                      < wait delays the next action (here, the nil action)
 -- expect pc_bottom_pos 14. 8.  < expectation (only final assertion is supported)
@@ -193,7 +193,7 @@ function itest_dsl.parse_action_sequence(lines, next_line_index)
 end
 
 -- convert string args to vector
-function itest_dsl._parse_args_spawn(args)
+function itest_dsl._parse_args_warp(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))  -- bottom position
 end
@@ -255,7 +255,7 @@ function itest_dsl.create_itest(name, dsli)
   end
 
   for cmd in all(dsli.commands) do
-    if cmd.type == itest_dsl_command_types.spawn then
+    if cmd.type == itest_dsl_command_types.warp then
       itest_dsl:_act(function ()
         stage.state.player_char:warp_bottom_to(vector(cmd.args[1].x, cmd.args[1].y))
       end)

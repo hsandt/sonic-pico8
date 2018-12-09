@@ -15,6 +15,8 @@ describe('itest_dsl', function ()
 
   after_each(function ()
     itest_dsl:init()
+    flow:init()
+    stage.state:init()
   end)
 
   describe('command', function ()
@@ -81,7 +83,7 @@ spawn 12 45                             \
 wait 1                                  \
 move left                               \
 wait 2                                  \
-expect pc_pos 10 45                     \
+expect pc_bottom_pos 10 45                     \
 "
       local dsli = itest_dsl.parse(dsli_source)
       assert.is_not_nil(dsli)
@@ -94,7 +96,7 @@ expect pc_pos 10 45                     \
             command(itest_dsl_command_types.wait,   { 1 }                          ),
             command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
             command(itest_dsl_command_types.wait,   { 2 }                          ),
-            command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_pos, vector(10, 45)}),
+            command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
           }
         },
         {
@@ -118,7 +120,7 @@ expect pc_pos 10 45                     \
         command(itest_dsl_command_types.wait,   { 1 }                          ),
         command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
         command(itest_dsl_command_types.wait,   { 2 }                          ),
-        command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_pos, vector(10, 45)}),
+        command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
       }
 
       local test = itest_dsl.create_itest("test 1", dsli)
@@ -171,7 +173,7 @@ expect pc_pos 10 45                     \
       assert.is_false(test.final_assertion())
 
       -- but if we cheat and warp him on the spot, final assertion will work
-      stage.state.player_char.position = vector(10, 45)
+      stage.state.player_char:set_bottom_center(vector(10, 45))
       assert.is_true(test.final_assertion())
     end)
 
@@ -200,17 +202,17 @@ expect pc_pos 10 45                     \
       itest_dsl._evaluate:revert()
     end)
 
-    it('#solo should set the final assertion as returning true, message when the gameplay value is expected', function ()
+    it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
       itest_dsl._itest = integration_test('test', {})
-      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_pos, 27)
-      local message = "Passed gameplay value 'player character position':\n27\nExpected:\n27"
+      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_bottom_pos, 27)
+      local message = "Passed gameplay value 'player character bottom position':\n27\nExpected:\n27"
       assert.are_same({true, message}, {itest_dsl._itest.final_assertion()})
     end)
 
     it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
       itest_dsl._itest = integration_test('test', {})
-      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_pos, 28)
-      local message = "Passed gameplay value 'player character position':\n27\nExpected:\n28"
+      itest_dsl:_final_assert(itest_dsl_gp_value_types.pc_bottom_pos, 28)
+      local message = "Passed gameplay value 'player character bottom position':\n27\nExpected:\n28"
       assert.are_same({false, message}, {itest_dsl._itest.final_assertion()})
     end)
 
@@ -226,6 +228,13 @@ expect pc_pos 10 45                     \
   describe('_evaluate', function ()
 
     -- add gameplay value types tests here
+
+    it('should return the player character bottom position for ', function ()
+      stage.state:spawn_player_char()
+      stage.state.player_char:set_bottom_center(vector(2, 8))
+
+      assert.are_equal(vector(2, 8), itest_dsl._evaluate(itest_dsl_gp_value_types.pc_bottom_pos))
+    end)
 
     it('should assert if an unknown gameplay value type is passed', function ()
       assert.has_error(function ()

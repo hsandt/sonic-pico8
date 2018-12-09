@@ -30,6 +30,9 @@ function flow:render()
 end
 
 -- add a gamestate
+-- currently, we are not asserting if gamestate has already been added,
+--  as there are some places in utests that add the same gamestate twice,
+--  but it would definitely be cleaner
 function flow:add_gamestate(gamestate)
   assert(gamestate ~= nil, "flow:add_gamestate: passed gamestate is nil")
   self.gamestates[gamestate.type] = gamestate

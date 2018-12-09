@@ -44,7 +44,7 @@ itest_dsl.register('#solo platformer accel right flat', [[
 spawn 4 80
 move right
 wait 30
-expect pc_pos 14.8984375 80.
+expect pc_bottom_pos 14.8984375 80.
 ]]
 )
 

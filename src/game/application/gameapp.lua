@@ -22,6 +22,10 @@ local ui = require("engine/ui/ui")
 
 local gameapp = {}
 
+-- todo: consider making gameapp a singleton with init like the other modules,
+--  so we can easily reinit it (implementation would b more a reset than the init
+--  below, as it would reinit the flow, etc.)
+
 -- in pico8 builds, pass nothing for active_gamestates
 -- in busted tests, pass active_gamestates so they can be required automatically on gameapp init
 function gameapp.init(active_gamestates)

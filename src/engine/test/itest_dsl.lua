@@ -26,12 +26,12 @@ itest_dsl_command_types = {
 
 -- type of gameplay values available for expectations
 itest_dsl_gp_value_types = {
-  pc_pos = 1
+  pc_bottom_pos = 1
 }
 
 -- string mapping for itest messages
 local value_type_strings = {
-  "player character position"
+  "player character bottom position"
 }
 
 
@@ -147,7 +147,7 @@ function itest_dsl._parse_args_expect(args)
 end
 
 -- convert string args to vector
-function itest_dsl._parse_value_pc_pos(args)
+function itest_dsl._parse_value_pc_bottom_pos(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))
 end
@@ -166,7 +166,7 @@ function itest_dsl.create_itest(name, dsli)
   for cmd in all(dsli.commands) do
     if cmd.type == itest_dsl_command_types.spawn then
       itest_dsl:_act(function ()
-        stage.state.player_char:spawn_at(vector(cmd.args[1].x, cmd.args[1].y - pc_data.center_height_standing))
+        stage.state.player_char:spawn_bottom_at(vector(cmd.args[1].x, cmd.args[1].y))
       end)
     elseif cmd.type == itest_dsl_command_types.move then
       itest_dsl:_act(function ()
@@ -231,8 +231,8 @@ end
 -- evaluate gameplay value. it is important to call this at expect
 --  time, not when defining the test, to get the actual runtime value
 function itest_dsl._evaluate(gp_value_type)
-  if gp_value_type == itest_dsl_gp_value_types.pc_pos then
-    return stage.state.player_char.position
+  if gp_value_type == itest_dsl_gp_value_types.pc_bottom_pos then
+    return stage.state.player_char:get_bottom_center()
   else
     assert(false, "unknown gameplay value: "..gp_value_type)
   end

@@ -93,6 +93,11 @@ function player_char:spawn_at(position)
   end
 end
 
+-- spawn character at given bottom position, with same post-process as spawn_at
+function player_char:spawn_bottom_at(position)
+  self:spawn_at(position - vector(0, pc_data.center_height_standing))
+end
+
 -- move the player character so that the bottom center is at the given position
 function player_char:get_bottom_center()
   return self.position + vector(0, pc_data.center_height_standing)

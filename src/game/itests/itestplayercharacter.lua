@@ -39,12 +39,14 @@ local itest
 -- dsl training
 
 itest_dsl.register('#solo platformer accel right flat', [[
-@stage test1
+@stage #
+...
+###
 
-spawn 4 80
+spawn 4 8
 move right
 wait 30
-expect pc_bottom_pos 14.8984375 80.
+expect pc_bottom_pos 14.8984375 8.
 ]]
 )
 

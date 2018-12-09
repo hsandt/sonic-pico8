@@ -37,7 +37,7 @@ describe('itest_dsl', function ()
       it('should create a new dsl itest', function ()
         local dsli = dsl_itest()
         assert.is_not_nil(dsli)
-        assert.are_same({nil, nil, {}}, {dsli.gamestate_type, dsli.stage, dsli.commands})
+        assert.are_same({nil, nil, nil}, {dsli.gamestate_type, dsli.stage_name, dsli.commands})
       end)
     end)
 
@@ -86,11 +86,14 @@ wait 2                                  \
 expect pc_bottom_pos 10 45                     \
 "
       local dsli = itest_dsl.parse(dsli_source)
+
+      -- interface
       assert.is_not_nil(dsli)
       assert.are_same(
         {
           'stage',
           "test1",
+          nil,
           {
             command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
             command(itest_dsl_command_types.wait,   { 1 }                          ),
@@ -101,9 +104,116 @@ expect pc_bottom_pos 10 45                     \
         },
         {
           dsli.gamestate_type,
-          dsli.stage,
+          dsli.stage_name,
+          dsli.map_data,
           dsli.commands
         })
+
+      -- implementation
+      -- todo: check call to parse_gamestate_definition and parse_action_sequence
+      --  to avoid test redundancy
+    end)
+
+  end)
+
+
+  describe('parse_gamestate_definition', function ()
+
+    it('should return gamestate name, nil, nil and 2 for a non-stage gamestate and no extra line', function ()
+      local dsli_lines = {"@titlemenu"}
+      local gamestate_type, stage_name, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      assert.are_same(
+        {
+          'titlemenu',
+          nil,
+          nil,
+          2         -- it's usually 3, but clamps to 2 if the text ends right after the first line
+        },
+        {
+          gamestate_type,
+          stage_name,
+          map_data,
+          next_line_index
+        })
+    end)
+
+    it('should return \'stage\', the stage name, nil and 4 for a pre-defined stage definition after 1 blank line', function ()
+      local dsli_lines = {
+        "@stage test1",
+        "",
+        "",
+        "???"
+      }
+      local gamestate_type, stage_name, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      assert.are_same(
+        {
+          'stage',
+          "test1",
+          nil,
+          3
+        },
+        {
+          gamestate_type,
+          stage_name,
+          map_data,
+          next_line_index
+        })
+    end)
+
+    it('should return \'stage\', \'#\', tilemap data and 7 for a custom stage definition finishing at line 6 (including blank line)', function ()
+      local dsli_lines = {
+        "@stage test1",
+        "....",
+        "##..",
+        "..##",
+        "",
+        "???"
+      }
+      local gamestate_type, map_data, next_line_index = itest_dsl.parse_gamestate_definition(dsli_lines)
+      assert.are_same(
+        {
+          'stage',
+          '#',
+          map_data({
+            { 0,  0,  0,  0},
+            {64, 64,  0,  0},
+            { 0,  0, 64, 64}
+          }),
+          7
+        },
+        {
+          gamestate_type,
+          map_data,
+          next_line_index
+        })
+    end)
+
+  end)
+
+  describe('parse_action_sequence', function ()
+
+    it('should return ', function ()
+      local dsli_lines = {
+        "???",
+        "???",
+        "???",
+        "",
+        "spawn 12 45",
+        "wait 1",
+        "move left",
+        "wait 2",
+        "expect pc_bottom_pos 10 45"
+      }
+      local commands = itest_dsl.parse_action_sequence(dsli_lines, 5)
+      assert.are_same(
+          {
+            command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
+            command(itest_dsl_command_types.wait,   { 1 }                          ),
+            command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
+            command(itest_dsl_command_types.wait,   { 2 }                          ),
+            command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
+          },
+          commands)
     end)
 
   end)
@@ -113,7 +223,8 @@ expect pc_bottom_pos 10 45                     \
     it('should create an itest with a name and a dsl itest', function ()
       local dsli = dsl_itest()
       dsli.gamestate_type = 'stage'
-      dsli.stage = "test1"
+      dsli.stage_name = "test1"
+      dsli.map_data = nil
       dsli.commands = {
         command(itest_dsl_command_types.spawn,  { vector(12, 45) }             ),
         command(itest_dsl_command_types.wait,   { 10 }                          ),

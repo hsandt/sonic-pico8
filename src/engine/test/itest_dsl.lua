@@ -18,8 +18,8 @@ end)
 
 -- type of commands available
 itest_dsl_command_types = {
-  spawn  = 1,   -- spawn player character        args: {bottom position: vector}
-  move   = 2,   -- set sticky pc move intention  args: {move_dir: horizontal_dirs}
+  spawn  = 1,   -- spawn player character bottom  args: {bottom position: vector}
+  move   = 2,   -- set sticky pc move intention   args: {move_dir: horizontal_dirs}
   wait   = 11,  --
   expect = 21
 }
@@ -52,15 +52,15 @@ end
 -- dsl itest struct
 
 -- attributes
--- gamestate_type  string      gamestate type to start test in (also the only active gamestate)
--- stage           string|nil  stage to play in if gamestate type is 'stage', nil else
--- commands        {commands}  sequence of commands to apply
+-- gamestate_type  string             gamestate type to start test in (also the only active gamestate)
+-- stage_name      string|nil         stage name to play if gamestate type is 'stage', nil else
+-- map_data        tile_map_data|nil  tilemap data if gamestate type is 'stage', nil else
+-- commands        {commands}         sequence of commands to apply
 local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
 
 function dsl_itest:_init()
   -- all attributes are initially nil or empty
-  self.commands = {}
 end
 
 
@@ -72,6 +72,21 @@ function itest_dsl.register(name, dsli_source)
 end
 
 -- parse a dsl itest source and return a dsl itest
+-- an itest is defined by a scenario and expectations
+-- a dsl itest is split into 2 parts:
+--  1. gamestate definition
+--  2. action sequence and expectations
+-- ex:
+-- [[
+-- @stage #                     < gamestate 'stage' with tag '#' for custom
+-- ...                          < for custom stage, provide the tilemap in ascii
+-- ###                          < . for empty tile, # for full tile, etc.
+--                              < blank after tilemap to mark the end
+-- spawn 4 8                    < initial setup (it's an action like any other)
+-- move right                   < more actions...
+-- wait 30                      < wait delays the next action (here, the nil action)
+-- expect pc_bottom_pos 14. 8.  < expectation (only final assertion is supported)
+-- ]]
 function itest_dsl.parse(dsli_source)
   -- create dsl itest
   local dsli = dsl_itest()
@@ -79,17 +94,50 @@ function itest_dsl.parse(dsli_source)
   -- split source lines
   local lines = strspl(dsli_source, '\n', true)
 
+  -- parse in 2 steps: gamestate and action sequence
+  local next_line_index
+  dsli.gamestate_type, dsli.stage_name, dsli.map_data, next_line_index = itest_dsl.parse_gamestate_definition(lines)
+  dsli.commands = itest_dsl.parse_action_sequence(lines, next_line_index)
+
+  return dsli
+end
+
+-- return gamestate type, stage_name, tilemap data and index of next line to parse so we can chain parsing
+-- the format of the gamestate definition is:
+-- @[gamestate] (stage_name|#)?   < 2nd part only if gamestate == 'stage', '#' for custom tilemap
+-- [tilemap row 1]                < only for custom tilemap
+-- ...
+-- [tilemap row n]
+--                                < blank after tilemap (or one-line gamestate definition) to mark the end
+-- ?                              < we don't check what's after, just return this line's index
+function itest_dsl.parse_gamestate_definition(lines)
   -- parse first line to get state and optional stage
-  local state_line = lines[1]
-  assert(sub(state_line, 1, 1) == '@', "state_line '"..state_line.."' doesn't start with @")
-  local words = strspl(state_line, ' ', true)
-  dsli.gamestate_type = sub(words[1], 2)
-  if dsli.gamestate_type == 'stage' then
-    assert(#words == 2)
-    dsli.stage = words[2]
+  local gamestate_header = lines[1]
+  assert(sub(gamestate_header, 1, 1) == '@', "gamestate_header '"..gamestate_header.."' doesn't start with @")
+  local header_parts = strspl(gamestate_header, ' ', true)
+  local gamestate_type = sub(header_parts[1], 2)
+  local stage_name = nil
+  if gamestate_type == 'stage' then
+    assert(#header_parts == 2)
+    stage_name = header_parts[2]
   end
 
+  local map_data = nil
+
+  local next_line_index = 2
   for i = 2, #lines do
+    if #lines[i] == 0 then
+      next_line_index = i + 1
+      break
+    end
+  end
+
+  return gamestate_type, stage_name, map_data, next_line_index
+end
+
+function itest_dsl.parse_action_sequence(lines, next_line_index)
+  local commands = {}
+  for i = next_line_index, #lines do
     words = strspl(lines[i], ' ', true)
     -- if there are no words, the line is empty, so continue
     if #words > 0 then
@@ -102,10 +150,10 @@ function itest_dsl.parse(dsli_source)
       local parse_fn_name = '_parse_args_'..cmd_type_str
       assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
       local args = {itest_dsl[parse_fn_name](args_str)}
-      add(dsli.commands, command(cmd_type, args))
+      add(commands, command(cmd_type, args))
     end
   end
-  return dsli
+  return commands
 end
 
 -- convert string args to vector
@@ -158,7 +206,7 @@ function itest_dsl.create_itest(name, dsli)
   itest_dsl._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
-      assert(dsli.stage)
+      assert(dsli.stage_name)
       -- load stage by name when api is ready
     end
   end

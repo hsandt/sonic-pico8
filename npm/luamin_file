@@ -1,0 +1,56 @@
+#!/usr/bin/env node
+
+// based on luamin/bin/luamin
+// - only takes 1+ filepath arguments, no -f option
+// - handles non-TTY input stream
+(function() {
+
+	var fs = require('fs');
+	var luamin = require('luamin/luamin.js');
+	var minify = luamin.minify;
+	var snippets = process.argv.splice(2);
+	var stdin = process.stdin;
+	var data;
+	var log = console.log;
+	var main = function() {
+		if (!snippets.length) {
+			log('Error: luamin_file` requires a filepath argument.', option);
+			return process.exit(1);
+		}
+
+		snippets.forEach(function(snippet) {
+			var result;
+			try {
+				snippet = fs.readFileSync(snippet, 'utf8');
+			} catch(error) {
+				log('Error: no such file. (`%s`)', snippet);
+				return process.exit(1);
+			}
+			try {
+				result = minify(snippet);
+				log(result);
+			} catch(error) {
+				log(error.message + '\n');
+				log('Error: failed to minify. Make sure the Lua code is valid.');
+				log('If you think this is a bug in luamin, please report it:');
+				log('https://github.com/mathiasbynens/luamin/issues/new');
+				log(
+					'\nStack trace using luamin@%s and luaparse@%s:\n',
+					luamin.version,
+					require('luaparse').version
+				);
+				log(error.stack);
+				return process.exit(1);
+			}
+		});
+		// Return with exit status 0 outside of the `forEach` loop, in case
+		// multiple snippets or files were passed in.
+		return process.exit(0);
+
+	};
+
+	// hack: handle shell arguments, even for non-TTY input stream
+	// to avoid stalling while trying to handle pipes in build scripts
+	main();
+
+}());

@@ -460,7 +460,6 @@ expect pc_bottom_pos 10 45
     -- add gameplay value types tests here
 
     it('should return the player character bottom position for ', function ()
-      stage.state:warp_player_char()
       stage.state.player_char:set_bottom_center(vector(2, 8))
 
       assert.are_equal(vector(2, 8), itest_dsl._evaluate(itest_dsl_gp_value_types.pc_bottom_pos))

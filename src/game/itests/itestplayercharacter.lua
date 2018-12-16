@@ -860,6 +860,8 @@ end
 
 --]]
 
+--[[
+
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
 itest = integration_test('platformer ground wall block right', {stage.state.type})
@@ -930,6 +932,8 @@ itest.final_assertion = function ()
 
   return success, final_message
 end
+
+--]]
 
 --[[
 

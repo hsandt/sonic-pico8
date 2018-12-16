@@ -25,50 +25,95 @@ Version: 2.2
 * Character rendered with Idle and Spin sprite
 * Environment rendered with tilemap
 
-## Build dependency
+## Build
 
-### picotool
+### Supported platforms
+
+Only Linux Ubuntu (and supposedly the Debian family) is fully supported to build the game from sources. Other Linux distributions and UNIX platforms should be able to run most scripts, providing the right tools are installed, but a few references like `gnome-terminal` in `run.sh` would require adaptation.
+
+Development environments for Windows such as MinGW and Cygwin have not been tested.
+
+### Build dependencies
+
+#### Python 3.6
+
+Prebuild and postbuild scripts are written in Python 3 and use 3.6 features such as formatted strings.
+
+#### picotool
 
 A build pipeline for PICO-8 ([GitHub](https://github.com/dansanderson/picotool))
 
-The build script (`build.sh`) only works on Unix platforms.
+#### luamin
 
-### Sublime Text
+A Lua minifier ([luamin](https://github.com/mathiasbynens/luamin))
 
-Sublime Text 3 is not required but it makes it easy to run the build commands described in the Sublime Project file. If you use a different code editor, have a look at `sonic-2d-tech-demo.sublime-project` and copy the commands to your build file of choice.
+You don't need to install it globally, instead you can:
 
-## Test dependency
+* `cd npm`
+* `npm update`
 
-### Lua 5.3
-
-Tests run under Lua 5.3, although Lua 5.2 should also have the needed features (in particular the bit32 module).
-
-### busted
-
-A Lua unit test framework ([GitHub](https://github.com/Olivine-Labs/busted))
-
-The test script (`test.sh`) only works on Linux (it uses gnome-terminal).
-
-## Build pipeline
-
-The .sublime-project file contains the most used commands for building the game. If you don't use Sublime Text, you can still use the commands described in a terminal or transfer them to the project configuration of your favorite code editor.
+It will install `luamin` (along with `luaparse`), which is used in `npm/luamin_file`, itself used inside `build.sh`. `luamin_file` is just a stripped down version of the `luamin` script, which only takes a file path argument, and behaves as if the input always came from a TTY, which avoids stalling while building from a non-terminal environment such as a Sublime Text build system (it's a hack).
 
 ### Build and run
 
 The most straightforward way to build and run the game on Unix platforms is:
 
 * `cd path/to/sonic-pico8-repo`
-* `./build.sh main game`
-* `pico8 -run build/game.p8`
+* `./build.sh main release`
+* `./run.sh main release`
 
-### Build and test
+or, if `pico8` is not in your path:
+
+* `pico8 -run build/sonic-pico8_v${BUILD_VERSION}_release.p8`
+
+where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.travis.yml`.
+
+`sonic-2d-tech-demo.sublime-project` contains the most used commands for building the game. If you don't use Sublime Text, you won't be able to run the commands directly, but you can use them directly in a terminal, or copy-paste them to the project configuration of your favorite code editor.
+
+All the build and run commands are usage variants around the script `build.sh` and `run.sh`. `build.sh` relies on picotool as well as custom shell and Python scripts in the `prebuild` and `postbuild` folders.
+
+`build.sh` can take a build configuration as 2nd argument. The complete list of configurations is listed in `sonic-2d-tech-demo.sublime-project` and `prebuild/preprocess.py`. The config of biggest output size is `build` (generally it has too many tokens to even fit in a cartridge), while the config of smallest output size is `release`, and is used to release the final game cartridge.
+
+Finally, `build.sh` takes a file base name as 1st argument. To build the game, passing `main` is enough, but to build rendered integration tests, you need to pass the name of the test, such as `itestplayercharacter`.
+
+## Test
+
+## Supported platforms
+
+* Unit tests and headless integration tests are run directly in Lua, making them cross-platform.
+
+* Rendered integration tests are run with PICO-8, on special builds dedicated to testing. Therefore, a build step is required, which is only possible on UNIX platforms.
+
+### Test dependencies
+
+#### Lua 5.3
+
+Tests run under Lua 5.3, although Lua 5.2 should also have the needed features (in particular the bit32 module).
+
+#### busted
+
+A Lua unit test framework ([GitHub](https://github.com/Olivine-Labs/busted))
+
+The test script (`test.sh`) only works on Linux (it uses gnome-terminal).
+
+### Run unit tests and headless integration tests
 
 To test the modules:
 
 * `cd path/to/sonic-pico8-repo`
 * `./test.sh all` or `./test.sh all all` if you want to include `#mute` tests (longer)
 
+This will run all the unit tests, as well as headless integration tests. To only run the latter type, use `./test.sh headless_itests`.
+
 I try to aim for 100% test coverage before pushing but you can always verify the Travis and CodeCov badges at the top of this README.
+
+### Run rendered integration tests
+
+Those tests need to be built with picotool and run with PICO-8. We recommend the itest_light config, which has no visual logging but increases the odds to have a build that fits into a cartridge. For example:
+
+* `cd path/to/sonic-pico8-repo`
+* `./build.sh itestplayercharacter itest_light`
+* `./run.sh itestplayercharacter itest_light`
 
 ### New project
 
@@ -108,11 +153,13 @@ Low-level functions have the same behavior as in PICO-8 (add, del, etc.), wherea
 
 ### Code
 
-See LICENSE.md for the main code
+The LICENSE file at the root applies to the main code.
 
 The PICO8-WTK submodule contains its own license.
 
-picolove and gamax92's fork are under zlib license.
+The original picolove and gamax92's fork are under zlib license.
+
+The `npm` folder has its own MIT license because I adapted a script from the `luamin` package. After installing npm packages, you will also see package-specific licenses in `node_modules`.
 
 ### Assets
 

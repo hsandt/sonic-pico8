@@ -39,6 +39,7 @@ rm -f "$OUTPUT_FILEPATH"
 # Pre-build
 # 1. Copy all the source files to an intermediate/$config folder
 # 2. Apply preprocessing directives to strip code unused in the current build config
+# 3. Apply lua minification to reduce character count
 echo "Pre-build..."
 prebuild/copy_source_folder.sh src "intermediate/$2" &&
 python3.6 prebuild/preprocess.py "intermediate/$2" "$2" &&
@@ -50,7 +51,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Build
-# 1. Copy metadata.p8 to future built file path because it's currently the only way p8tool can obtain the title, author and label
+# 1. Copy metadata.p8 to future built file path because it's currently the only way p8tool can obtain the label (title and author will be lost, and re-added in postbuild anyway)
 # 2. Build the game from the different modules in intermediate/$config folder
 mkdir -p build
 # copying metadata for mere p8 (not png) is still useful because __label__ will be preserved on overwriting build
@@ -66,7 +67,7 @@ BUILD_COMMAND="p8tool build --lua \"$INTERMEDIATE_MAIN_SOURCE_FILEPATH\" --lua-p
 echo "> $BUILD_COMMAND"
 bash -c "$BUILD_COMMAND"
 
-# locally, prefer using pico8 export script directly
+# p8tool png export is broken, export manually from pico8 to the different formats instead
 # p8tool build --lua "intermediate/$2/game/$1.lua" --lua-path="$(pwd)/intermediate/$2/?.lua" --gfx "data/data.p8" --gff "data/data.p8" --map "data/data.p8" --sfx "data/data.p8" --music "data/data.p8" "${OUTPUT_FILEPATH}.png" "${@:3}"
 
 if [[ $? -ne 0 ]]; then
@@ -75,16 +76,25 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Post-build:
-# 1. Add game title and author at the top of source code for .p8.png
-# 2. Add __label__ section from separate file for .p8.png (to make up for the lack of --label option in p8tool)
-# 3. Replace special and api strings
+# 1. Minify lua code
+# 2. Add game title and author at the top of source code for .p8.png
+# 3. Add __label__ section from separate file for .p8.png (to make up for the lack of --label option in p8tool)
+# 4. Replace special and api strings
 echo "Post-build..."
+
+postbuild/minify.py "$OUTPUT_FILEPATH"
+
+if [[ $? -ne 0 ]]; then
+    echo "Minification failed, STOP."
+    exit 1
+fi
+
 # Don't use add_label_info in add_metadata.py as we have already copied metadata.p8 to reuse its label, so pass "-"
 python3.6 postbuild/add_metadata.py "$OUTPUT_FILEPATH" "-" "sonic pico-8" "hsandt" &&
 
 if [[ $? -ne 0 ]]
 then
-	echo "Post-build failed, STOP."
+	echo "Add metadata failed, STOP."
 	exit 1
 else
 	echo "Build succeeded: $OUTPUT_FILEPATH"

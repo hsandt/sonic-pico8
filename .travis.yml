@@ -33,6 +33,10 @@ install:
   # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
+  # install npm packages for minification
+  - pushd npm
+  - npm update
+  - popd
 
 before_script:
   # download picotool if needed

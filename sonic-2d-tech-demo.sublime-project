@@ -248,6 +248,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "python: test minify",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m postbuild.test_minify"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "lua: parse",
 			"selector": "source.lua,source.p8",
 			"working_dir": "${project_path}",

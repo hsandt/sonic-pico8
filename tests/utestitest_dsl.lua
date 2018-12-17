@@ -9,6 +9,7 @@ local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
 local stage = require("game/ingame/stage")
 local tilemap = require("engine/data/tilemap")
+local player_char = require("game/ingame/playercharacter")
 local pc_data = require("game/data/playercharacter_data")
 
 
@@ -460,7 +461,9 @@ expect pc_bottom_pos 10 45
     -- add gameplay value types tests here
 
     it('should return the player character bottom position for ', function ()
-      stage.state.player_char:set_bottom_center(vector(2, 8))
+      -- simulate stage state on_enter by just creating pc
+      stage.state.player_char = player_char()
+      stage.state.player_char:spawn_bottom_at(vector(2, 8))
 
       assert.are_equal(vector(2, 8), itest_dsl._evaluate(itest_dsl_gp_value_types.pc_bottom_pos))
     end)

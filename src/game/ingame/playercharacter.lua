@@ -98,9 +98,10 @@ function player_char:warp_to(position)
 
   -- character is initialized grounded, but let him fall if he is spawned in the air
   local is_grounded = self:_check_escape_from_ground()
-  if not is_grounded then
-    self:_enter_motion_state(motion_states.airborne)
-  end
+  -- always enter new state depending on whether ground is detected,
+  --  forcing state vars reset even if we haven't changed state
+  local new_state = is_grounded and motion_states.grounded or motion_states.airborne
+  self:_enter_motion_state(new_state)
 end
 
 -- same as warp_to, but with bottom position

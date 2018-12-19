@@ -240,13 +240,14 @@ describe('player_char', function ()
           check_escape_from_ground_mock:revert()
         end)
 
-        it('should call _check_escape_from_ground and _enter_motion_state(motion_states.airborne)', function ()
+        it('should call _check_escape_from_ground and _enter_motion_state(motion_states.grounded)', function ()
           pc:spawn_at(vector(56, 12))
 
           -- implementation
           assert.spy(check_escape_from_ground_mock).was_called(1)
           assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(pc))
-          assert.spy(enter_motion_state_stub).was_not_called()
+          assert.spy(enter_motion_state_stub).was_called(1)
+          assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.grounded)
         end)
 
       end)

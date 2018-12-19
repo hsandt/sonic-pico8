@@ -239,17 +239,29 @@ end
 -- create and return an itest from a dsli, providing a name
 function itest_dsl.create_itest(name, dsli)
   itest_dsl._itest = integration_test(name, {dsli.gamestate_type})
+
   itest_dsl._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
       -- puppet control
       stage.state.player_char.control_mode = control_modes.puppet
       if dsli.stage_name == '#' then
-        -- load custom tilemap data
+        -- load tilemap data and build it from ascii
         setup_map_data()
         dsli.tilemap:load()
       else
         -- load stage by name when api is ready
+      end
+    end
+  end
+
+  itest_dsl._itest.teardown = function ()
+    flow:change_gamestate_by_type(dsli.gamestate_type)
+    if dsli.gamestate_type == "stage" then
+      if dsli.stage_name == '#' then
+        -- clear tilemap and unload tilemap data
+        clear_map()
+        teardown_map_data()
       end
     end
   end

@@ -16,13 +16,16 @@ local pc_data = require("game/data/playercharacter_data")
 describe('itest_dsl', function ()
 
   setup(function ()
-    -- stub setup_map_data which can have side effects on tile flags
-    --  as we don't need those anyway, just the tile ids themselves
+    -- spying should be enough, but we stub so it's easier to call these functions
+    --  without calling the symmetrical one (e.g. teardown may fail with nil reference
+    --  if setup is not called first)
     stub(_G, "setup_map_data")
+    stub(_G, "teardown_map_data")
   end)
 
   teardown(function ()
     setup_map_data:revert()
+    teardown_map_data:revert()
   end)
 
   after_each(function ()
@@ -31,6 +34,7 @@ describe('itest_dsl', function ()
     stage.state:init()
     pico8:clear_map()
     setup_map_data:clear()
+    teardown_map_data:clear()
   end)
 
   describe('command', function ()
@@ -384,7 +388,7 @@ expect pc_bottom_pos 10 45
         tilemap.load:revert()
       end)
 
-      it('should call setup_map_data and load on the tilemap if custom stage definition', function ()
+      it('setup should call setup_map_data and load on the tilemap if custom stage definition', function ()
         local dsli = dsl_itest()
         dsli.gamestate_type = 'stage'
         dsli.stage_name = "#"
@@ -402,6 +406,25 @@ expect pc_bottom_pos 10 45
         -- implementation
         assert.spy(setup_map_data).was_called(1)
         assert.spy(setup_map_data).was_called_with()
+        assert.spy(tilemap.load).was_called(1)
+        assert.spy(tilemap.load).was_called_with(match.ref(dsli.tilemap))
+      end)
+
+      it('teardown should call clear_map and teardown_map_data if custom stage definition', function ()
+        local dsli = dsl_itest()
+        dsli.gamestate_type = 'stage'
+        dsli.stage_name = "#"
+        dsli.tilemap = tilemap({})
+        dsli.commands = {}
+
+        local test = itest_dsl.create_itest("test 1", dsli)
+
+        gameapp.init(test.active_gamestates)
+        test.teardown()
+
+        -- implementation
+        assert.spy(teardown_map_data).was_called(1)
+        assert.spy(teardown_map_data).was_called_with()
         assert.spy(tilemap.load).was_called(1)
         assert.spy(tilemap.load).was_called_with(match.ref(dsli.tilemap))
       end)

@@ -8,6 +8,8 @@ sprite_flags = {
 return {
 
   -- table mapping tile sprite id to tile data (collision mask + slope)
+  -- the mask is generally placed just below the visual tile in pico8 sprite editor,
+  --  hence the location @ (i, j) but the sprite_id_location(i, j + 1)
   -- this will be completed as tiles are added, adding extra information
   --  such as "mirror_y: true" for upside-down tiles
   -- for readability we also indicate the sprite id location in comment
@@ -18,9 +20,9 @@ return {
   --  for headless tests
   tiles_data = {
     [64] = tile_data(sprite_id_location(0, 5), 0),       -- 64 @ (0, 4)
-    [65] = tile_data(sprite_id_location(1, 5), -0.125),   -- 65 @ (1, 4)
-    [66] = tile_data(sprite_id_location(2, 5), 0.125),  -- 66 @ (2, 4)
-    [67] = tile_data(sprite_id_location(3, 5), -0.0625),  -- 67 @ (3, 4)
+    [65] = tile_data(sprite_id_location(1, 5), -0.125),  -- 65 @ (1, 4)
+    [66] = tile_data(sprite_id_location(2, 5), 0.125),   -- 66 @ (2, 4)
+    [67] = tile_data(sprite_id_location(3, 5), -0.0625), -- 67 @ (3, 4)
     [68] = tile_data(sprite_id_location(4, 5), 0),       -- 68 @ (4, 4)
     [69] = tile_data(sprite_id_location(5, 5), 0),       -- 69 @ (5, 4)
     [70] = tile_data(sprite_id_location(6, 5), 0),       -- 70 @ (6, 4)

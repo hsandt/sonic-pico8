@@ -34,6 +34,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   -- teardown_map_data()
 end
 
@@ -88,6 +89,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -124,6 +126,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -159,6 +162,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -220,6 +224,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -287,6 +292,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -358,6 +364,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -440,6 +447,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -506,6 +514,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -573,6 +582,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -644,6 +654,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -719,6 +730,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -807,6 +819,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -889,6 +902,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -962,6 +976,7 @@ itest.setup = function ()
 end
 
 itest.teardown = function ()
+  clear_map()
   teardown_map_data()
 end
 
@@ -1031,9 +1046,10 @@ end
 
 --[[#pico8
 -- human test for pico8 only to check rendering
--- bugfix history: fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
---  and not actual sprite topleft in the spritesheet
-itest = integration_test('= character is correctly rendered idle', {stage.state.type})
+-- bugfix history:
+-- = fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
+--   and not actual sprite topleft in the spritesheet
+itest = integration_test('character is correctly rendered idle', {stage.state.type})
 itest_manager:register(itest)
 
 itest.setup = function ()
@@ -1042,9 +1058,14 @@ itest.setup = function ()
   mset(0, 10, 64)  -- to stand on
 
   flow:change_gamestate_by_type(stage.state.type)
-  stage.state.player_char:set_bottom_center(vector(4., 80.))
+  stage.state.player_char:warp_bottom_to(vector(4., 80.))
   stage.state.player_char.control_mode = control_modes.puppet
   stage.state.player_char.motion_mode = motion_modes.debug
+end
+
+itest.teardown = function ()
+  clear_map()
+  teardown_map_data()
 end
 
 -- wait just 0.1 second so the character can be rendered at least 1 frame because the test pauses

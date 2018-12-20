@@ -1,4 +1,4 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 import argparse
 import logging

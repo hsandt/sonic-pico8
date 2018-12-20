@@ -34,13 +34,7 @@ describe('titlemenu', function ()
       end)
 
       teardown(function ()
-        input:toggle_mouse(false)
         titlemenu.state.current_cursor_index = 0
-      end)
-
-      it('should show the mouse', function ()
-        titlemenu.state:on_enter()
-        assert.is_true(input.mouse_active)
       end)
 
       it('should initialize cursor at index 0', function ()
@@ -51,12 +45,6 @@ describe('titlemenu', function ()
     end)
 
     describe('state:on_exit', function ()
-
-      it('should hide the mouse', function ()
-        titlemenu.state:on_exit()
-        assert.is_false(input.mouse_active)
-      end)
-
     end)
 
     describe('(titlemenu state entered)', function ()

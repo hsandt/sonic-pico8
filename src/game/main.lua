@@ -7,7 +7,7 @@ logging.logger:register_stream(logging.console_log_stream)
 
 --#if visual_logger
 local vlogger = require("engine/debug/visual_logger")
-logging.logger:register_stream(vlogger.visual_log_stream)
+logging.logger:register_stream(vlogger.vlog_stream)
 vlogger.window:show()
 --#endif
 

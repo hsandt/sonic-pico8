@@ -107,7 +107,7 @@ fi
 echo "Post-build..."
 
 if [[ "$minify" == true ]]; then
-    postbuild/minify.py "$OUTPUT_FILEPATH"
+    python3.6 postbuild/minify.py "$OUTPUT_FILEPATH"
 
     if [[ $? -ne 0 ]]; then
         echo "Minification failed, STOP."

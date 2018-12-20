@@ -139,25 +139,36 @@ function itest_dsl.parse_tilemap(lines)
   -- tilemap should always start at line 2
   -- first line will give the tilemap width
   assert(#lines >= 2, "only "..#lines.." line(s), need at least 2")
-  local width = #lines[2]
-  assert(width > 0)
 
-  local content = {}
+  local content = {}  -- sequence of sequence of tilemap symbols
+  local width = 0     -- number of symbols per tilemap row
 
   for i = 2, #lines do
     local line_str = lines[i]
-    if #line_str == 0 then
+
+    -- ensure that line is either empty or made of one block of symbols with no spaces
+    -- this step will also trim any extra space (e.g. from "   \" used to chain lines)
+    local line_blocks = strspl(line_str, ' ', true)
+    if #line_blocks == 0 then
       -- we reached the end of tilemap definition
       break
     end
 
-    -- ensure that width is consistent
-    assert(#line_str == width, "inconsistent line length: "..#line_str.." vs "..width)
+    assert(#line_blocks == 1, "too many blocks: "..#line_blocks..", expected 1")
+    local trimmed_line_str = line_blocks[1]
+    if width == 0 then
+      -- no width defined on first line (i == 2), store it now
+       width = #trimmed_line_str
+    else
+      -- on further lines, check consistency
+      assert(#trimmed_line_str == width, "inconsistent line length: "..#trimmed_line_str.." vs "..width)
+    end
+
 
     local current_row = {}
 
     for j = 1, width do
-      local tile_symbol = sub(line_str, j, j)
+      local tile_symbol = sub(trimmed_line_str, j, j)
       local tile_id = tile_symbol_to_ids[tile_symbol]
       assert(tile_id, "unknown tile symbol: "..tile_symbol)
       add(current_row, tile_id)
@@ -178,14 +189,14 @@ function itest_dsl.parse_action_sequence(lines, next_line_index)
     -- if there are no words, the line is empty, so continue
     if #words > 0 then
       local cmd_type_str = words[1]
-      local args_str = {}
+      local arg_strings = {}
       for j = 2, #words do
-        add(args_str, words[j])
+        add(arg_strings, words[j])
       end
       local cmd_type = itest_dsl_command_types[cmd_type_str]
       local parse_fn_name = '_parse_args_'..cmd_type_str
       assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
-      local args = {itest_dsl[parse_fn_name](args_str)}
+      local args = {itest_dsl[parse_fn_name](arg_strings)}
       add(commands, command(cmd_type, args))
     end
   end
@@ -280,7 +291,6 @@ function itest_dsl.create_itest(name, dsli)
     elseif cmd.type == itest_dsl_command_types.expect then
       -- we currently don't support live assertions, only final assertion
       itest_dsl:_final_assert(unpack(cmd.args))
-
     end
   end
 

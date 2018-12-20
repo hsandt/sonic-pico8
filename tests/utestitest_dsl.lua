@@ -215,14 +215,36 @@ expect pc_bottom_pos 10 45
 
   end)
 
+  -- bugfix history:
+  -- + removed "local" in "local width =" inside loop after applying trimming
+  --   to lines to support "  \" multilines
   describe('parse_tilemap', function ()
 
-    it('should return a tilemap data with tiles corresponding to the tile symbols in the string', function ()
+    it('should return an empty tilemap data if the 2nd line is blank', function ()
       local tilemap_text = {
-        "????",
+        "@stage # (ignored)",
+        "",
+        ".... (ignored)",  -- next line: 3
+        ".... (ignored)"
+      }
+      local tm, next_line_index = itest_dsl.parse_tilemap(tilemap_text)
+      assert.are_same(
+        {
+          tilemap({}),
+          3
+        },
+        {tm, next_line_index})
+    end)
+
+     it('should return a tilemap data with tiles corresponding to the tile symbols in the string', function ()
+      local tilemap_text = {
+        "@stage # (ignored)",
         "....",
         "##..",
-        "..##"
+        "..##",
+        "",
+        "(ignored)",  -- next line: 6
+        "(ignored)"
       }
       local tm, next_line_index = itest_dsl.parse_tilemap(tilemap_text)
       assert.are_same(
@@ -246,20 +268,19 @@ expect pc_bottom_pos 10 45
       end, "only 1 line(s), need at least 2")
     end)
 
-    it('should assert if line 2 has width 0', function ()
+    it('should assert if there are too many blocks', function ()
       local tilemap_text = {
-        "?",
-        "",
-        "?"
+        "@stage # (ignored)",
+        "... ..."
       }
       assert.has_error(function ()
         itest_dsl.parse_tilemap(tilemap_text)
-      end)
+      end, "too many blocks: 2, expected 1")
     end)
 
     it('should assert if line width is inconsistent', function ()
       local tilemap_text = {
-        "",
+        "@stage # (ignored)",
         "....",
         "..."
       }
@@ -270,7 +291,7 @@ expect pc_bottom_pos 10 45
 
     it('should assert if unknown tile symbol is found', function ()
       local tilemap_text = {
-        "",
+        "@stage # (ignored)",
         "?"
       }
       assert.has_error(function ()

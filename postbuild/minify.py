@@ -56,13 +56,19 @@ def minify_lua_in_p8(cartridge_filepath):
     with open(lua_filepath, 'r') as lua_file:
         # create temporary file object (we still need to open it with mode to get file descriptor)
         temp_file_object, temp_filepath = tempfile.mkstemp()
+        original_char_count = sum(len(line) for line in lua_file)
+        print(f"Original lua code has {original_char_count} characters")
+        lua_file.seek(0)
         clean_lua(lua_file, os.fdopen(temp_file_object, 'w'))
     os.remove(lua_filepath)
     shutil.move(temp_filepath, lua_filepath)
 
     # Step 3: apply luamin
-    with open(min_lua_filepath, 'w') as min_lua_file:
+    with open(min_lua_filepath, 'w+') as min_lua_file:
         minify_lua(lua_filepath, min_lua_file)
+        min_lua_file.seek(0)
+        min_char_count = sum(len(line) for line in min_lua_file)
+        print(f"Minified lua code to {min_char_count} characters")
 
     # Step 4-6: inject minified lua code
     phase = Phase.CARTRIDGE_HEADER

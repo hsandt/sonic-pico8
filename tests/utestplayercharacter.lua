@@ -1,6 +1,7 @@
 require("bustedhelper")
 require("engine/core/math")
 local player_char = require("game/ingame/playercharacter")
+local input = require("engine/input/input")
 local collision = require("engine/physics/collision")
 local ground_query_info = collision.ground_query_info
 local pc_data = require("game/data/playercharacter_data")
@@ -294,6 +295,116 @@ describe('player_char', function ()
       end)
     end)
 
+    describe('handle_input', function ()
+
+      after_each(function ()
+        input.players_btn_states[0] = generate_initial_btn_states()
+      end)
+
+      describe('(when player character control mode is not human)', function ()
+
+        before_each(function ()
+          pc.control_mode = control_modes.ai  -- or puppet
+        end)
+
+        it('should do nothing', function ()
+          input.players_btn_states[0][button_ids.left] = btn_states.pressed
+          pc:handle_input()
+          assert.are_equal(vector:zero(), pc.move_intention)
+          input.players_btn_states[0][button_ids.up] = btn_states.pressed
+          pc:handle_input()
+          assert.are_equal(vector:zero(), pc.move_intention)
+        end)
+
+      end)
+
+      -- control mode is human by default
+
+      it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
+        input.players_btn_states[0][button_ids.left] = btn_states.pressed
+        pc:handle_input()
+        assert.are_equal(vector(-1, 0), pc.move_intention)
+      end)
+
+      it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(1, 0), pc.move_intention)
+      end)
+
+      it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
+        input.players_btn_states[0][button_ids.left] = btn_states.pressed
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(-1, 0), pc.move_intention)
+      end)
+
+       it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
+        input.players_btn_states[0][button_ids.up] = btn_states.pressed
+        pc:handle_input()
+        assert.are_equal(vector(0, -1), pc.move_intention)
+      end)
+
+      it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
+        input.players_btn_states[0][button_ids.down] = btn_states.pressed
+        pc:handle_input()
+        assert.are_equal(vector(0, 1), pc.move_intention)
+      end)
+
+      it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
+        input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
+        input.players_btn_states[0][button_ids.down] = btn_states.pressed
+        pc:handle_input()
+        assert.are_equal(vector(0, -1), pc.move_intention)
+      end)
+
+      it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
+        input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
+        input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(-1, -1), pc.move_intention)
+      end)
+
+      it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
+        input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
+        input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(-1, 1), pc.move_intention)
+      end)
+
+      it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+        input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(1, -1), pc.move_intention)
+      end)
+
+      it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+        input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_equal(vector(1, 1), pc.move_intention)
+      end)
+
+      it('(when input o is released) it should update the player character\'s jump intention to false, hold jump intention to false', function ()
+        pc:handle_input()
+        assert.are_same({false, false}, {pc.jump_intention, pc.hold_jump_intention})
+      end)
+
+      it('(when input o is just pressed) it should update the player character\'s jump intention to true, hold jump intention to true', function ()
+        input.players_btn_states[0][button_ids.o] = btn_states.just_pressed
+        pc:handle_input()
+        assert.are_same({true, true}, {pc.jump_intention, pc.hold_jump_intention})
+      end)
+
+      it('(when input o is pressed) it should update the player character\'s jump intention to false, hold jump intention to true', function ()
+        input.players_btn_states[0][button_ids.o] = btn_states.pressed
+        pc:handle_input()
+        assert.are_same({false, true}, {pc.jump_intention, pc.hold_jump_intention})
+      end)
+
+    end)
+
     describe('update', function ()
 
       local update_platformer_motion_stub
@@ -331,7 +442,10 @@ describe('player_char', function ()
           pc.motion_mode = motion_modes.debug
         end)
 
-        it('. should call _update_debug', function ()
+        -- bugfix history
+        -- .
+        -- * the test revealed a missing return, as _update_platformer_motion was called but shouldn't
+        it('should call _update_debug', function ()
           pc:update()
           assert.spy(update_platformer_motion_stub).was_not_called()
           assert.spy(update_debug_stub).was_called(1)

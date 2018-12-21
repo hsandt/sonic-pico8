@@ -1,5 +1,4 @@
 require("bustedhelper")
-local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
 local stage = require("game/ingame/stage")
 local state = stage.state
@@ -345,7 +344,7 @@ describe('stage', function ()
     describe('on_enter', function ()
 
       local spawn_player_char_stub
-      local handle_input_stub
+      local start_coroutine_method_stub
       local play_bgm_stub
 
       setup(function ()
@@ -402,7 +401,7 @@ describe('stage', function ()
     describe('on_exit', function ()
 
       local title_overlay_clear_labels_stub
-      local handle_input_stub
+      local start_coroutine_method_stub
       local stop_bgm_stub
 
       setup(function ()
@@ -503,128 +502,6 @@ describe('stage', function ()
           flow.curr_state = nil
         end)
 
-        describe('player_char', function ()
-
-          describe('handle_input', function ()
-
-            after_each(function ()
-              input.players_btn_states[0][button_ids.left] = btn_states.released
-              input.players_btn_states[0][button_ids.right] = btn_states.released
-              input.players_btn_states[0][button_ids.up] = btn_states.released
-              input.players_btn_states[0][button_ids.down] = btn_states.released
-              input.players_btn_states[0][button_ids.o] = btn_states.released
-
-              state.player_char.move_intention = vector.zero()
-              state.player_char.jump_intention = false
-              state.player_char.hold_jump_intention = false
-            end)
-
-            describe('(when player character control mode is not human)', function ()
-
-              before_each(function ()
-                state.player_char.control_mode = control_modes.ai
-              end)
-
-              it('should do nothing', function ()
-                input.players_btn_states[0][button_ids.left] = btn_states.pressed
-                state:handle_input()
-                assert.are_equal(vector:zero(), state.player_char.move_intention)
-                input.players_btn_states[0][button_ids.up] = btn_states.pressed
-                state:handle_input()
-                assert.are_equal(vector:zero(), state.player_char.move_intention)
-              end)
-
-            end)
-
-            -- control mode is human by default
-
-            it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
-              input.players_btn_states[0][button_ids.left] = btn_states.pressed
-              state:handle_input()
-              assert.are_equal(vector(-1, 0), state.player_char.move_intention)
-            end)
-
-            it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
-              input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(1, 0), state.player_char.move_intention)
-            end)
-
-            it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
-              input.players_btn_states[0][button_ids.left] = btn_states.pressed
-              input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(-1, 0), state.player_char.move_intention)
-            end)
-
-             it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
-              input.players_btn_states[0][button_ids.up] = btn_states.pressed
-              state:handle_input()
-              assert.are_equal(vector(0, -1), state.player_char.move_intention)
-            end)
-
-            it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
-              input.players_btn_states[0][button_ids.down] = btn_states.pressed
-              state:handle_input()
-              assert.are_equal(vector(0, 1), state.player_char.move_intention)
-            end)
-
-            it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
-              input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
-              input.players_btn_states[0][button_ids.down] = btn_states.pressed
-              state:handle_input()
-              assert.are_equal(vector(0, -1), state.player_char.move_intention)
-            end)
-
-            it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
-              input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
-              input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(-1, -1), state.player_char.move_intention)
-            end)
-
-            it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
-              input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
-              input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(-1, 1), state.player_char.move_intention)
-            end)
-
-            it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
-              input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
-              input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(1, -1), state.player_char.move_intention)
-            end)
-
-            it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
-              input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
-              input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_equal(vector(1, 1), state.player_char.move_intention)
-            end)
-
-            it('(when input o is released) it should update the player character\'s jump intention to false, hold jump intention to false', function ()
-              state:handle_input()
-              assert.are_same({false, false}, {state.player_char.jump_intention, state.player_char.hold_jump_intention})
-            end)
-
-            it('(when input o is just pressed) it should update the player character\'s jump intention to true, hold jump intention to true', function ()
-              input.players_btn_states[0][button_ids.o] = btn_states.just_pressed
-              state:handle_input()
-              assert.are_same({true, true}, {state.player_char.jump_intention, state.player_char.hold_jump_intention})
-            end)
-
-            it('(when input o is pressed) it should update the player character\'s jump intention to false, hold jump intention to true', function ()
-              input.players_btn_states[0][button_ids.o] = btn_states.pressed
-              state:handle_input()
-              assert.are_same({false, true}, {state.player_char.jump_intention, state.player_char.hold_jump_intention})
-            end)
-
-          end)
-
-        end)
-
         describe('update_camera', function ()
 
           before_each(function ()
@@ -641,14 +518,12 @@ describe('stage', function ()
         describe('update', function ()
 
           local update_coroutines_stub
-          local handle_input_stub
           local player_char_update_stub
           local check_reached_goal_stub
           local update_camera_stub
 
           setup(function ()
             update_coroutines_stub = stub(state, "update_coroutines")
-            handle_input_stub = stub(state, "handle_input")
             player_char_update_stub = stub(player_char, "update")
             check_reached_goal_stub = stub(state, "check_reached_goal")
             update_camera_stub = stub(state, "update_camera")
@@ -656,7 +531,6 @@ describe('stage', function ()
 
           teardown(function ()
             update_coroutines_stub:revert()
-            handle_input_stub:revert()
             player_char_update_stub:revert()
             check_reached_goal_stub:revert()
             update_camera_stub:revert()
@@ -664,7 +538,6 @@ describe('stage', function ()
 
           after_each(function ()
             update_coroutines_stub:clear()
-            handle_input_stub:clear()
             player_char_update_stub:clear()
             check_reached_goal_stub:clear()
             update_camera_stub:clear()
@@ -672,13 +545,11 @@ describe('stage', function ()
 
           describe('(current substate is play)', function ()
 
-            it('should call handle_input, player_char:update, check_reached_goal and update_camera', function ()
+            it('should call player_char:update, check_reached_goal and update_camera', function ()
               state.current_substate = stage.substates.play
               state:update()
               assert.spy(update_coroutines_stub).was_called(1)
               assert.spy(update_coroutines_stub).was_called_with(match.ref(state))
-              assert.spy(handle_input_stub).was_called(1)
-              assert.spy(handle_input_stub).was_called_with(match.ref(state))
               assert.spy(player_char_update_stub).was_called(1)
               assert.spy(player_char_update_stub).was_called_with(match.ref(state.player_char))
               assert.spy(check_reached_goal_stub).was_called(1)
@@ -689,12 +560,11 @@ describe('stage', function ()
 
           describe('(current substate is result)', function ()
 
-            it('should call handle_input, player_char:update, check_reached_goal and update_camera', function ()
+            it('should call player_char:update, check_reached_goal and update_camera', function ()
               state.current_substate = stage.substates.result
               state:update()
               assert.spy(update_coroutines_stub).was_called(1)
               assert.spy(update_coroutines_stub).was_called_with(match.ref(state))
-              assert.spy(handle_input_stub).was_not_called()
               assert.spy(player_char_update_stub).was_not_called()
               assert.spy(check_reached_goal_stub).was_not_called()
               assert.spy(update_camera_stub).was_not_called()

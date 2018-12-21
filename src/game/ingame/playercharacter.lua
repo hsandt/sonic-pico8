@@ -3,6 +3,7 @@ require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
 require("engine/render/sprite")
+local input = require("engine/input/input")
 local collision = require("engine/physics/collision")
 local world = require("engine/physics/world")
 local pc_data = require("game/data/playercharacter_data")
@@ -130,11 +131,41 @@ function player_char:move_by(delta_vector)
   self.position = self.position + delta_vector
 end
 
+-- update intention based on current input
+function player_char:handle_input()
+  if self.control_mode == control_modes.human then
+    -- move
+    local player_move_intention = vector.zero()
+
+    if input:is_down(button_ids.left) then
+      player_move_intention:add_inplace(vector(-1, 0))
+    elseif input:is_down(button_ids.right) then
+      player_move_intention:add_inplace(vector(1, 0))
+    end
+
+    if input:is_down(button_ids.up) then
+      player_move_intention:add_inplace(vector(0, -1))
+    elseif input:is_down(button_ids.down) then
+      player_move_intention:add_inplace(vector(0, 1))
+    end
+
+    self.move_intention = player_move_intention
+
+    -- jump
+    local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
+    -- set jump intention each frame, don't set it to true for later consumption to avoid sticky input
+    --  without needing a reset later during update
+    self.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
+    self.hold_jump_intention = is_jump_input_down
+  end
+end
+
 -- update player position
 function player_char:update()
 --#if cheat
   if self.motion_mode == motion_modes.debug then
     self:_update_debug()
+    return
   end
   -- else: self.motion_mode == motion_modes.platformer
 --#endif

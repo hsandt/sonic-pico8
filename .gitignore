@@ -2,6 +2,9 @@
 /intermediate
 /build
 
+# Backup
+/backup
+
 # Code coverage report
 *.out
 

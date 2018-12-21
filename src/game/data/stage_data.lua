@@ -19,11 +19,17 @@ return {
       -- stage title
       title = "proto zone",
 
+      width = 100,
+      height = 40,
+
       -- where the player character spawns on stage start
-      spawn_location = location(2, 6),
+      spawn_location = location(2, 10),
 
       -- the x to reach to finish the stage
-      goal_x = 16 * 8,
+      goal_x = 100 * 8,
+
+      -- background color
+      background_color = colors.dark_blue,
 
       -- bgm id
       bgm_id = audio.music_pattern_ids.green_hill

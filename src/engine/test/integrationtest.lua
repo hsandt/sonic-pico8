@@ -5,6 +5,8 @@ require("engine/test/assertions")
 --#if log
 local logging = require("engine/debug/logging")
 --#endif
+-- engine -> game reference is not good, consider using flow directly
+--  and isolating active gamestates somewhere else (e.g. a generic gameapp in engine)
 local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
@@ -25,6 +27,85 @@ itest_manager = singleton(function (self)
 end)
 integrationtest.itest_manager = itest_manager
 
+-- all-in-one utility function that creates and register a new itest,
+-- defining setup, actions and final assertion inside a contextual callback,
+-- as in the describe-it pattern
+-- name        string        itest name
+-- states      {gamestates}  sequence of non-dummy gamestates used for the itest
+-- definition  function      definition callback
+
+-- definition example:
+--   function ()
+--     setup(function ()
+--       -- setup test
+--     end)
+--     add_action(time_trigger(1.0), function ()
+--       -- change character intention
+--     end)
+--     add_action(time_trigger(0.5), function ()
+--       -- more actions
+--     end)
+--     final_assert(function ()
+--       return -- true if everything is as expected
+--     end)
+--   end)
+function itest_manager:register_itest(name, states, definition)
+  local itest = integrationtest.integration_test(name, states)
+  self:register(itest)
+
+  -- context
+  -- last time trigger
+  local last_time_trigger = nil
+
+  -- we are defining global functions capturing local variables, which is bad
+  --  but it's acceptable to have them accessible inside the definition callback
+  --  (as getfenv/setfenv cannot be implemented in pico8 due to missing debug.getupvalue)
+  -- actually they would be callable even after calling register_itest as they "leak"
+  -- later, we'll build a full dsl parser that will not require such functions
+
+
+  -- don't name setup, busted would hide this name
+  function setup_callback(callback)
+    itest.setup = callback
+  end
+
+  function add_action(trigger, callback, name)
+    itest:add_action(trigger, callback, name)
+  end
+
+  function wait(time, use_frame_unit)
+    if last_time_trigger then
+      -- we were already waiting, so finish last wait with empty action
+      itest:add_action(last_time_trigger, nil)
+    end
+    last_time_trigger = integrationtest.time_trigger(time, use_frame_unit)
+  end
+
+  function act(callback)
+    if last_time_trigger then
+      itest:add_action(last_time_trigger, callback)
+      last_time_trigger = nil  -- consume so we know no final wait-action is needed
+    else
+      -- no wait since last action (or this is the first action), so use immediate trigger
+      itest:add_action(integrationtest.immediate_trigger, callback)
+    end
+  end
+
+  function final_assert(callback)
+    itest.final_assertion = callback
+  end
+
+  definition()
+
+  -- if we finished with a wait (with or without final assertion),
+  --  we need to close the itest with a wait-action
+  if last_time_trigger then
+    itest:add_action(last_time_trigger, nil)
+  end
+end
+
+-- register a created itest instance
+-- you can add actions and final assertion later
 function itest_manager:register(itest)
   add(self.itests, itest)
 end
@@ -37,6 +118,9 @@ function itest_manager:init_game_and_start_by_index(index)
 end
 
 -- integration test runner singleton
+-- test lifetime:
+-- none -> running -> success/failure/timeout (still alive, but not updated)
+--  -> stopped when a another test starts running
 integration_test_runner = singleton(function (self)
   self.initialized = false
   self.current_test = nil
@@ -68,6 +152,7 @@ function integration_test_runner:update_game_and_test()
     --  after everything has been computed
     -- time_trigger(0.)  initial actions will still be applied before first frame
     --  thanks to the initial _check_next_action on start, but setup is still recommended
+    log("frame #"..self.current_frame + 1, "trace")
     gameapp.update()
     self:update()
     if self.current_state ~= test_states.running then
@@ -154,16 +239,14 @@ function integration_test_runner:_initialize()
   input.mode = input_modes.simulated
 
 --#if log
-  -- all itests should only print itest logs
-  for category in pairs(logging.logger.active_categories) do
-    local value
-    if category == 'itest' then
-      value = true
-    else
-      value = false
-    end
-    logging.logger.active_categories[category] = value
-  end
+  -- all itests should only print itest logs, and maybe trace if you want
+  logging.logger:deactivate_all_categories()
+
+--[[#pico8
+  logging.logger.active_categories["itest"] = true
+--#pico8]]
+
+  logging.logger.active_categories["trace"] = false
 --#endif
 
   self.initialized = true
@@ -176,8 +259,10 @@ function integration_test_runner:_check_next_action()
   local next_action = self.current_test.action_sequence[self._next_action_index]
   local should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
   if should_trigger_next_action then
-    -- apply next action and update time/index
-    next_action.callback()
+    -- apply next action and update time/index, unless nil (useful to just wait before itest end and final assertion)
+    if next_action.callback then
+      next_action.callback()
+    end
     self._last_trigger_frame = self.current_frame
     self._next_action_index = self._next_action_index + 1
     self:_check_end()
@@ -187,6 +272,8 @@ end
 function integration_test_runner:_check_end()
   -- check if last action was applied, end now
   -- this means you can define an 'end' action just by adding an empty action at the end
+  if self.current_test.action_sequence[1] then
+  end
   if self._next_action_index > #self.current_test.action_sequence then
     self:_end_with_final_assertion()
     return true
@@ -203,15 +290,16 @@ function integration_test_runner:_end_with_final_assertion()
     self.current_state = test_states.failure
     self.current_message = message
   end
+end
+
+-- stop the current test, tear it down and reset all values
+-- this is only called when starting a new test, not when it finished,
+--  so we can still access info on the current test while the user examines its result
+function integration_test_runner:stop()
   if self.current_test.teardown then
     self.current_test.teardown()
   end
-end
 
--- stop the current test and reset all values
--- this is different from ending the test properly via update
--- in particular, you won't be able to retrieve the test result
-function integration_test_runner:stop()
   self.current_test = nil
   self.current_frame = 0
   self._last_trigger_frame = 0
@@ -248,6 +336,9 @@ end
 function time_trigger:_check(elapsed_frames)
   return elapsed_frames >= self.frames
 end
+
+-- helper triggers
+integrationtest.immediate_trigger = time_trigger(0, true)
 
 
 -- scripted action struct (but we use class because comparing functions only work by reference)
@@ -303,9 +394,9 @@ function integration_test:_tostring()
 end
 --#endif
 
+-- add an action to the action sequence. nil callback is acceptable, it acts like an empty function.
 function integration_test:add_action(trigger, callback, name)
   assert(trigger ~= nil, "integration_test:add_action: passed trigger is nil")
-  assert(callback ~= nil, "integration_test:add_action: passed callback is nil")
   add(self.action_sequence, scripted_action(trigger, callback, name))
 end
 

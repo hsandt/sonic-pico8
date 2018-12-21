@@ -34,13 +34,7 @@ describe('titlemenu', function ()
       end)
 
       teardown(function ()
-        input:toggle_mouse(false)
         titlemenu.state.current_cursor_index = 0
-      end)
-
-      it('should show the mouse', function ()
-        titlemenu.state:on_enter()
-        assert.is_true(input.mouse_active)
       end)
 
       it('should initialize cursor at index 0', function ()
@@ -51,23 +45,17 @@ describe('titlemenu', function ()
     end)
 
     describe('state:on_exit', function ()
-
-      it('should hide the mouse', function ()
-        titlemenu.state:on_exit()
-        assert.is_false(input.mouse_active)
-      end)
-
     end)
 
     describe('(titlemenu state entered)', function ()
 
       setup(function ()
-        flow:_change_gamestate(titlemenu.state)
+        flow:_change_state(titlemenu.state)
       end)
 
       teardown(function ()
-        flow.current_gamestate:on_exit()
-        flow.current_gamestate = nil
+        flow.curr_state:on_exit()
+        flow.curr_state = nil
       end)
 
       describe('state.current_cursor_index', function ()
@@ -93,9 +81,9 @@ describe('titlemenu', function ()
         end)
 
         after_each(function ()
-          input.players_button_states[0][button_ids.up] = button_states.released
-          input.players_button_states[0][button_ids.down] = button_states.released
-          input.players_button_states[0][button_ids.x] = button_states.released
+          input.players_btn_states[0][button_ids.up] = btn_states.released
+          input.players_btn_states[0][button_ids.down] = btn_states.released
+          input.players_btn_states[0][button_ids.x] = btn_states.released
 
           move_cursor_up_stub:clear()
           move_cursor_down_stub:clear()
@@ -103,21 +91,21 @@ describe('titlemenu', function ()
         end)
 
         it('(when input up in down) it should be move cursor up', function ()
-          input.players_button_states[0][button_ids.up] = button_states.just_pressed
+          input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_up_stub).was_called(1)
           assert.spy(move_cursor_up_stub).was_called_with(match.ref(titlemenu.state))
         end)
 
         it('(when input down in down) it should be move cursor down', function ()
-          input.players_button_states[0][button_ids.down] = button_states.just_pressed
+          input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
           titlemenu.state:update()
           assert.spy(move_cursor_down_stub).was_called(1)
           assert.spy(move_cursor_down_stub).was_called_with(match.ref(titlemenu.state))
         end)
 
         it('(when input x in down) it should be move cursor x', function ()
-          input.players_button_states[0][button_ids.x] = button_states.just_pressed
+          input.players_btn_states[0][button_ids.x] = btn_states.just_pressed
           titlemenu.state:update()
           assert.spy(confirm_current_selection_stub).was_called(1)
           assert.spy(confirm_current_selection_stub).was_called_with(match.ref(titlemenu.state))
@@ -245,12 +233,12 @@ describe('titlemenu', function ()
     describe('(enter titlemenu state each time)', function ()
 
       before_each(function ()
-        flow:_change_gamestate(titlemenu.state)
+        flow:_change_state(titlemenu.state)
       end)
 
       after_each(function ()
-        flow.current_gamestate:on_exit()  -- whatever the current gamestate is
-        flow.current_gamestate = nil
+        flow.curr_state:on_exit()  -- whatever the current gamestate is
+        flow.curr_state = nil
       end)
 
       describe('state:confirm_current_selection', function ()
@@ -258,7 +246,7 @@ describe('titlemenu', function ()
         it('should have queried stage state', function ()
           titlemenu.state.current_cursor_index = 0
           titlemenu.state:confirm_current_selection()
-          assert.are_equal(gamestate.types.stage, flow.next_gamestate.type)
+          assert.are_equal(gamestate.types.stage, flow.next_state.type)
         end)
 
       end)
@@ -268,7 +256,7 @@ describe('titlemenu', function ()
         it('should have queried credits state', function ()
           titlemenu.state.current_cursor_index = 1
           titlemenu.state:confirm_current_selection()
-          assert.are_equal(gamestate.types.credits, flow.next_gamestate.type)
+          assert.are_equal(gamestate.types.credits, flow.next_state.type)
         end)
 
       end)

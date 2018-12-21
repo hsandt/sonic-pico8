@@ -4,7 +4,7 @@ return {
 	},
 
 	exclude = {
-		"/usr/local/share/lua"
+		"/share/lua",  -- /usr/local/share/lua, $HEREROCKS_PATH/lua5.3/share/lua, etc.
 	}
 
 }

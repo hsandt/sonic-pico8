@@ -97,6 +97,7 @@ function vector.almost_eq(lhs, rhs, eps)
 end
 
 function vector.__add(lhs, rhs)
+  assert(getmetatable(lhs) == vector and getmetatable(rhs) == vector, "vector.__add: lhs and rhs are not both vectors (lhs: "..dump(lhs)..", rhs: "..dump(rhs)..")")
   return vector(lhs.x + rhs.x, lhs.y + rhs.y)
 end
 
@@ -107,6 +108,7 @@ function vector:add_inplace(other)
 end
 
 function vector.__sub(lhs, rhs)
+  assert(getmetatable(lhs) == vector and getmetatable(rhs) == vector, "vector.__sub: lhs and rhs are not both vectors (lhs: "..dump(lhs)..", rhs: "..dump(rhs)..")")
   return vector(lhs.x - rhs.x, lhs.y - rhs.y)
 end
 
@@ -272,24 +274,46 @@ end
 
 -- enums data
 
+--#ifn pico8
 directions = {
   left = 0,
   up = 1,
   right = 2,
   down = 3
 }
+--#endif
 
-direction_vectors = {
+dir_vectors = {
   [0] = vector(-1., 0.),
   vector(0., -1.),
   vector(1., 0.),
   vector(0., 1.)
 }
 
-horizontal_directions = {
+-- we are not stripping this enum as we need dynamic string-to-value
+--  conversion for itest dsl; we don't need it for normal build
+--  though, so when 'or' is supported in preprocessing, it will
+--  be better to surround this in --#if ~pico8 or itest
+horizontal_dirs = {
   left = 1,
   right = 2
 }
+
+horizontal_dir_vectors = {
+  vector(-1., 0.),  -- to left
+  vector(1., 0.)    -- to right
+}
+
+horizontal_dir_signs = {
+  -1,               -- left sign
+  1                 -- right sign
+}
+
+-- return left if signed speed is negative, right if positive. ub unless signed speed is not 0
+function signed_speed_to_dir(signed_speed)
+  assert(signed_speed ~= 0)
+  return signed_speed < 0 and horizontal_dirs.left or horizontal_dirs.right
+end
 
 function oppose_direction(direction)
   return (direction + 2) % 4

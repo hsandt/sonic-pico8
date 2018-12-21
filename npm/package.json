@@ -1,0 +1,14 @@
+{
+  "name": "sonic-pico8-luamin",
+  "version": "1.0.0",
+  "description": "Wrapper around luamin to support non-tty scripts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hsandt",
+  "license": "MIT",
+  "dependencies": {
+    "luamin": "^1.0.4"
+  }
+}

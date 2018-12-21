@@ -1,11 +1,11 @@
-#!/usr/bin/python3.6
+#!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 import argparse
 import os
 
-# This script replace glyph identifiers, some functions and arg substitutes ($arg)
-# with the corresponding unicode characters and substitute function names.
-# Set the glyphs and functions to replace in GLYPH_TABLE and FUNCTION_SUBSTITUTE_TABLE.
+# This script replace glyph identifiers, some functions and symbols in general, and arg substitutes ($arg)
+# with the corresponding unicode characters and substitute symbol names.
+# Set the glyphs and symbols to replace in GLYPH_TABLE and SYMBOL_SUBSTITUTE_TABLE.
 
 # input glyphs
 # (when using input functions (btn, btnp), prefer enum input.button_ids)
@@ -29,9 +29,71 @@ GLYPH_TABLE = {
     'o': GLYPH_O,
 }
 
-FUNCTION_SUBSTITUTE_TABLE = {
+# functions and enum constants to substitute
+# enums are only substituted for token/char limit reasons
+SYMBOL_SUBSTITUTE_TABLE = {
+    # Functions
+
     # api.print is useful for tests using native print but in runtime, just use print
-    'api.print': 'print'
+    'api.print': 'print',
+
+    # Enums
+
+    # for every enum added here, surround enum definition with --#ifn pico8
+    #   to strip it from the build, unless you need to map the enum string
+    #   to its value dynamically
+    # remember to update the values of any preprocessed enum modified
+
+    # color
+    'colors.black': 0,
+    'colors.dark_blue': 1,
+    'colors.dark_purple': 2,
+    'colors.dark_green': 3,
+    'colors.brown': 4,
+    'colors.dark_gray': 5,
+    'colors.light_gray': 6,
+    'colors.white': 7,
+    'colors.red': 8,
+    'colors.orange': 9,
+    'colors.yellow': 10,
+    'colors.green': 11,
+    'colors.blue': 12,
+    'colors.indigo': 13,
+    'colors.pink': 14,
+    'colors.peach': 15,
+
+    # math
+    'directions.left': 0,
+    'directions.right': 1,
+    'directions.up': 2,
+    'directions.down': 3,
+
+    'horizontal_dirs.left': 1,
+    'horizontal_dirs.right': 2,
+
+    # input
+    'button_ids.left': 0,
+    'button_ids.right': 1,
+    'button_ids.up': 2,
+    'button_ids.down': 3,
+    'button_ids.o': 4,
+    'button_ids.x': 5,
+
+    'btn_states.released': 0,
+    'btn_states.just_pressed': 1,
+    'btn_states.pressed': 2,
+    'btn_states.just_released': 3,
+
+    'input_modes.native': 0,
+    'input_modes.simulated': 1,
+
+    # itest
+    'itest_dsl_command_types.spawn':   1,
+    'itest_dsl_command_types.move':    2,
+    'itest_dsl_command_types.wait':   11,
+    'itest_dsl_command_types.expect': 21,
+
+    'itest_dsl_value_types.pc_pos':  1,
 }
 
 # prefix of all arg identifiers
@@ -46,7 +108,7 @@ DEFAULT_ARG_SUBSTITUTES = {
 
 def replace_all_strings_in_dir(dirpath, arg_substitutes_table):
     """
-    Replace all the glyph identifiers, functions and arg substitutes in all source files in a given directory
+    Replace all the glyph identifiers, symbols and arg substitutes in all source files in a given directory
 
     """
     for root, dirs, files in os.walk(dirpath):
@@ -57,7 +119,7 @@ def replace_all_strings_in_dir(dirpath, arg_substitutes_table):
 
 def replace_all_strings_in_file(filepath, arg_substitutes_table):
     """
-    Replace all the glyph identifiers, functions and arg substitutes in a given file
+    Replace all the glyph identifiers, symbols and arg substitutes in a given file
 
     test.txt:
         require('itest_$itest')
@@ -77,7 +139,7 @@ def replace_all_strings_in_file(filepath, arg_substitutes_table):
     with open(filepath, 'r+') as f:
         data = f.read()
         data = replace_all_glyphs_in_string(data)
-        data = replace_all_functions_in_string(data)
+        data = replace_all_symbols_in_string(data)
         data = replace_all_args_in_string(data, arg_substitutes_table)
         # replace file content (truncate as the new content may be shorter)
         f.seek(0)
@@ -96,16 +158,21 @@ def replace_all_glyphs_in_string(text):
         text = text.replace(GLYPH_PREFIX + identifier_char, glyph)
     return text
 
-def replace_all_functions_in_string(text):
+def replace_all_symbols_in_string(text):
     """
-    Replace functions with the corresponding substitutes
+    Replace symbols with the corresponding substitutes
+    Convert integer to string for replacement to support enum constants
 
-    >>> replace_all_functions_in_string("api.print(\"hello\")")
+    >>> replace_all_symbols_in_string("api.print(\"hello\")")
     'print("hello")'
 
     """
-    for original_fun_name, substitute_fun_name in FUNCTION_SUBSTITUTE_TABLE.items():
-        text = text.replace(original_fun_name, substitute_fun_name)
+    for original_symbol, substitute_symbol in SYMBOL_SUBSTITUTE_TABLE.items():
+        # enum constants are defined with integer substitutes for simplicity,
+        # so convert them to string first
+        if type(substitute_symbol) == int:
+            substitute_symbol = str(substitute_symbol)
+        text = text.replace(original_symbol, substitute_symbol)
     return text
 
 

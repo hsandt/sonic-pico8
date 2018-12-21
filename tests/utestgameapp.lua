@@ -61,7 +61,7 @@ describe('gameapp', function ()
 
     it('should query titlemenu as initial state', function ()
       gameapp.init({})
-      assert.are_equal(titlemenu.state, flow.next_gamestate)
+      assert.are_equal(titlemenu.state, flow.next_state)
     end)
 
   end)

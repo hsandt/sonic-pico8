@@ -8,6 +8,9 @@
 			"cmd": ["./build.sh $file_base_name debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
+			"env": {
+				"BUILD_VERSION": "2.2"
+			},
 			"variants":
 			[
 				{
@@ -31,6 +34,14 @@
 					"cmd": ["./build.sh $file_base_name visual_log"]
 				},
 				{
+					"name": "pico8_utest (headless)",
+					"cmd": ["./build.sh $file_base_name pico8_utest"]
+				},
+				{
+					"name": "pico8_utest (headless) (--no-minify)",
+					"cmd": ["./build.sh $file_base_name pico8_utest -m"]
+				},
+				{
 					"name": "log",
 					"cmd": ["./build.sh $file_base_name log"]
 				},
@@ -47,6 +58,9 @@
 			"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
+			"env": {
+				"BUILD_VERSION": "2.2"
+			},
 			"variants":
 			[
 				{
@@ -74,6 +88,10 @@
 					"cmd": ["./build.sh $file_base_name pico8_utest && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
+					"name": "pico8_utest (headless) (--no-minify)",
+					"cmd": ["./build.sh $file_base_name pico8_utest -m && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
+				},
+				{
 					"name": "log",
 					"cmd": ["./build.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
 				},
@@ -88,6 +106,9 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./run.sh $file_base_name debug"],
+			"env": {
+				"BUILD_VERSION": "2.2"
+			},
 			"variants":
 			[
 				{
@@ -111,6 +132,10 @@
 					"cmd": ["./run.sh $file_base_name visual_log"]
 				},
 				{
+					"name": "pico8_utest (headless)",
+					"cmd": ["./run.sh $file_base_name pico8_utest"]
+				},
+				{
 					"name": "log",
 					"cmd": ["./run.sh $file_base_name log"]
 				},
@@ -121,40 +146,83 @@
 			]
 		},
 		{
-			"name": "p8tool: install game cartridge",
+			"name": "p8tool: install game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./install.sh sonic-pico8_debug.p8.png"],
+			"cmd": ["./install.sh release"],
+			"env": {
+				"BUILD_VERSION": "2.2"
+			},
 			"variants":
 			[
 				{
+					"name": "debug",
+					"cmd": ["./install.sh debug"],
+				},
+				{
 					"name": "assert",
-					"cmd": ["./install.sh sonic-pico8_assert.p8.png"],
+					"cmd": ["./install.sh assert"],
 				},
 				{
 					"name": "itest",
-					"cmd": ["./install.sh sonic-pico8_itest.p8.png"],
+					"cmd": ["./install.sh itest"],
 				},
 				{
 					"name": "itest_light",
-					"cmd": ["./install.sh sonic-pico8_itest_light.p8.png"],
+					"cmd": ["./install.sh itest_light"],
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./install.sh sonic-pico8_profiler.p8.png"],
+					"cmd": ["./install.sh profiler"],
 				},
 				{
 					"name": "visual_log",
-					"cmd": ["./install.sh sonic-pico8_visual_log.p8.png"],
+					"cmd": ["./install.sh visual_log"],
+				},
+				{
+					"name": "pico8_utest (headless)",
+					"cmd": ["./install.sh pico8_utest"],
 				},
 				{
 					"name": "log",
-					"cmd": ["./install.sh sonic-pico8_log.p8.png"],
+					"cmd": ["./install.sh log"],
 				},
 				{
-					"name": "release",
-					"cmd": ["./install.sh sonic-pico8_release.p8.png"],
+					"name": "debug (png)",
+					"cmd": ["./install.sh debug png"],
 				},
+				{
+					"name": "assert (png)",
+					"cmd": ["./install.sh assert png"],
+				},
+				{
+					"name": "itest (png)",
+					"cmd": ["./install.sh itest png"],
+				},
+				{
+					"name": "itest_light (png)",
+					"cmd": ["./install.sh itest_light png"],
+				},
+				{
+					"name": "profiler (png)",
+					"cmd": ["./install.sh profiler png"],
+				},
+				{
+					"name": "visual_log (png)",
+					"cmd": ["./install.sh visual_log png"],
+				},
+				{
+					"name": "pico8_utest (headless) (png)",
+					"cmd": ["./install.sh pico8_utest png"],
+				},
+				{
+					"name": "log (png)",
+					"cmd": ["./install.sh log png"],
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install.sh release png"],
+				}
 			]
 		},
 		{
@@ -184,6 +252,14 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["python3 -m postbuild.test_add_metadata"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "python: test minify",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m postbuild.test_minify"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

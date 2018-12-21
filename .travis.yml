@@ -11,7 +11,7 @@ os:
   - linux
 
 env:
-  - LUA="lua 5.3"
+  - LUA="lua 5.3"         BUILD_VERSION="2.2"
 
 cache:
   apt: true  # private repositories only
@@ -33,6 +33,10 @@ install:
   # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
+  # install npm packages for minification
+  - pushd npm
+  - npm update
+  - popd
 
 before_script:
   # download picotool if needed
@@ -60,7 +64,7 @@ script:
 deploy:
   provider: releases
   api_key: $DEPLOY_API_KEY
-  file: "build/sonic-pico8_release.p8"
+  file: "build/sonic-pico8_v${BUILD_VERSION}_release.p8"
   skip_cleanup: true
   on:
     branch: master

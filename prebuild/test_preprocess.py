@@ -434,6 +434,80 @@ class TestPreprocess(unittest.TestCase):
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
+    def test_preprocess_ignored_if_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#if log\n',
+            'log only\n',
+            '--#endif\n',
+            '--#pico8]] exceptionally ignored\n',
+            'print("end")\n'
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
+    def test_preprocess_accepted_if_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#if log\n',
+            'log only\n',
+            '--#endif\n',
+            '--#pico8]] exceptionally ignored\n',
+            'print("end")\n'
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'log only\n',
+            'print("end")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_ignored_ifn_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#ifn log\n',
+            'release only\n',
+            '--#endif\n',
+            '--#pico8]] exceptionally ignored\n',
+            'print("end")\n'
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_accepted_ifn_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#ifn log\n',
+            'release only\n',
+            '--#endif\n',
+            '--#pico8]] exceptionally ignored\n',
+            'print("end")\n'
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'release only\n',
+            'print("end")\n'
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
     @unittest.skip("we don't use a perfect regex able to detect start and end of block comment on the same line")
     def test_preprocess_comment_block_start_end_in_the_middle(self):
         test_lines = [

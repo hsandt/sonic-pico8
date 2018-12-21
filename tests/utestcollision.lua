@@ -3,7 +3,10 @@ require("engine/application/constants")
 require("engine/core/math")
 local collision = require("engine/physics/collision")
 local aabb = collision.aabb
+local tile_data = collision.tile_data
 local height_array = collision.height_array
+local ground_query_info = collision.ground_query_info
+local ground_motion_result = collision.ground_motion_result
 
 -- retrieve the filter arguments so we can optimize by only generating tests we will need
 local cli = require('busted.modules.cli')()
@@ -677,7 +680,73 @@ describe('collision', function ()
 
   end)
 
-  describe('#solo height_array', function ()
+  describe('ground_query_info', function ()
+
+    describe('_init', function ()
+
+      it('should create a ground_query_info with signed_distance, slope_angle', function ()
+        local info = ground_query_info(-2.0, 0.25)
+        assert.are_same({-2.0, 0.25}, {info.signed_distance, info.slope_angle})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "ground_query_info({self.signed_distance}, 0.125)"', function ()
+        local info = ground_query_info(-2.0, 0.25)
+        assert.are_equal("ground_query_info(-2.0, 0.25)", info:_tostring())
+      end)
+
+    end)
+
+  end)
+
+  describe('ground_motion_result', function ()
+
+    describe('_init', function ()
+
+      it('should create a ground_motion_result with position, slope_angle, is_blocked, is_falling', function ()
+        local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
+        assert.are_same({vector(2, 3), 0.25, false, true}, {gmr.position, gmr.slope_angle, gmr.is_blocked, gmr.is_falling})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
+        local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
+        assert.are_equal("ground_motion_result(vector(2, 3), 0.25, false, true)", gmr:_tostring())
+      end)
+
+    end)
+
+  end)
+
+  describe('tile_data', function ()
+
+    describe('_init', function ()
+
+      it('should create a tile data setting the sprite id location and the slope angle', function ()
+        local td = tile_data(sprite_id_location(1, 2), 0.125)
+        assert.are_same({sprite_id_location(1, 2), 0.125}, {td.id_loc, td.slope_angle})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
+        local td = tile_data(sprite_id_location(1, 2), 0.125)
+        assert.are_equal("tile_data(sprite_id_location(1, 2), 0.125)", td:_tostring())
+      end)
+
+    end)
+
+  end)
+
+  describe('height_array', function ()
 
     describe("mocking _fill_array", function ()
 
@@ -702,8 +771,8 @@ describe('collision', function ()
       describe('_init', function ()
 
         it('should create a height array using fill_array and setting the slope angle', function ()
-          local h_array = height_array(sprite_id_location(1, 2), 0.125)
-          assert.are_same({{4, 5, 6, 7, 8, 9, 10, 11}, 0.125}, {h_array._array, h_array._slope_angle})
+          local h_array = height_array(tile_data(sprite_id_location(1, 2), 0.125))
+          assert.are_same({{4, 5, 6, 7, 8, 9, 10, 11}, 0.125}, {h_array._array, h_array.slope_angle})
         end)
 
       end)
@@ -711,7 +780,7 @@ describe('collision', function ()
       describe('_tostring', function ()
 
         it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
-          local h_array = height_array(sprite_id_location(1, 2), 0.125)
+          local h_array = height_array(tile_data(sprite_id_location(1, 2), 0.125))
           assert.are_equal("height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)", h_array:_tostring())
         end)
 
@@ -720,7 +789,7 @@ describe('collision', function ()
       describe('get_height', function ()
 
         it('should return the height at the given column index', function ()
-          local h_array = height_array(sprite_id_location(1, 2), 0.125)
+          local h_array = height_array(tile_data(sprite_id_location(1, 2), 0.125))
           assert.are_equal(6, h_array:get_height(2))
         end)
 

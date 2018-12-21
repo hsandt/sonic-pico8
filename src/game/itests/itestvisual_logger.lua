@@ -2,7 +2,7 @@
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local logging = require("engine/debug/logging")
-local visual_logger = require("engine/debug/visual_logger")
+local vlogger = require("engine/debug/visual_logger")
 local flow = require("engine/application/flow")
 local gamestate = require("game/application/gamestate")
 
@@ -10,13 +10,13 @@ local itest = integration_test('human test: visual logger is displayed correctly
 
 itest.setup = function ()
   logging.logger:register_stream(logging.console_log_stream)
-  logging.logger:register_stream(visual_logger.visual_log_stream)
+  logging.logger:register_stream(vlogger.vlog_stream)
 
   -- in case default changes, set it here for precise testing
-  visual_logger.buffer_size = 5
-  visual_logger.window:init()
+  vlogger.buffer_size = 5
+  vlogger.window:init()
 
-  visual_logger.window:show()
+  vlogger.window:show()
   flow:change_gamestate_by_type(gamestate.types.titlemenu)
 end
 
@@ -48,7 +48,7 @@ end)
 itest:add_action(time_trigger(0.7), function ()
   log("pushing up 3", "itest")
   logging.console_log_stream.active = old_console_log_stream_active
-  visual_logger.visual_log_stream.active = false  -- hide visual log again, so we don't print the success message in the vertical layout
+  vlogger.vlog_stream.active = false  -- hide visual log again, so we don't print the success message in the vertical layout
 end)
 
 -- human check: before "pushing up" messages, add new messages. then pop top messages each time.

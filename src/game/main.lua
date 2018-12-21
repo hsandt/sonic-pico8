@@ -6,9 +6,9 @@ local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
 
 --#if visual_logger
-local visual_logger = require("engine/debug/visual_logger")
-logging.logger:register_stream(visual_logger.visual_log_stream)
-visual_logger.window:show()
+local vlogger = require("engine/debug/visual_logger")
+logging.logger:register_stream(vlogger.vlog_stream)
+vlogger.window:show()
 --#endif
 
 --#endif
@@ -22,6 +22,11 @@ profiler.window:show()
 local codetuner = require("engine/debug/codetuner")
 codetuner:show()
 codetuner.active = true
+--#endif
+
+--#if mouse
+local input = require("engine/input/input")
+input:toggle_mouse(true)
 --#endif
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool

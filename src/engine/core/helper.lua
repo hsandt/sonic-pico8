@@ -1,5 +1,6 @@
 require("engine/application/constants")
 
+
 -- return true if the table is empty (contrary to #t == 0,
 --  it also supports non-sequence tables)
 function is_empty(t)
@@ -9,10 +10,32 @@ function is_empty(t)
   return true
 end
 
--- return true if both tables have the same keys and values
--- keys and values are compared by usual equality, which may be shallow or deep depending on __eq override
--- metatables are not checked
-function are_same(t1, t2)
+-- return true if t1 and t2 have the same recursive content:
+--  - if t1 and t2 are tables, if they have the same keys and values,
+--   if compare_raw_content is false, table values with __eq method are compared by ==,
+--    but tables without __eq are still compared by content
+--   if compare_raw_content is true, tables are compared by pure content, as in busted assert.are_same
+--    however, keys are still compared with ==
+--    (simply because it's more complicated to check all keys for deep equality, and rarely useful)
+--  - else, if they have the same values (if different types, it will return false)
+-- if no_deep_raw_content is true, do not pass the compare_raw_content parameter to deeper calls
+--  this is useful if you want to compare content at the first level but delegate equality for embedded structs
+function are_same(t1, t2, compare_raw_content, no_deep_raw_content)
+  if type(t1) ~= 'table' or type(t2) ~= 'table' then
+    -- we have at least one non-table argument, compare by equality
+    -- if both arguments have different types, it will return false
+    return t1 == t2
+  end
+
+  -- both arguments are tables
+
+  if (t1.__eq or t2.__eq) and not compare_raw_content then
+    -- we are not comparing raw content and equality is defined, use it
+    return t1 == t2
+  end
+
+  -- we must compare keys and values
+
   -- first iteration: check that all keys of t1 are in t2, with the same value
   for k1, v1 in pairs(t1) do
     local v2 = t2[k1]
@@ -20,10 +43,11 @@ function are_same(t1, t2)
       -- t2 misses key k1 that t1 has
       return false
     end
-    if v1 ~= v2 then
+    if not are_same(v1, v2, compare_raw_content and not no_deep_raw_content) then
       return false
     end
   end
+
   -- second iteration: check that all keys of t2 are in t1. don't check values, it has already been done
   for k2, _ in pairs(t2) do
     if t1[k2] == nil then
@@ -52,7 +76,7 @@ end
 --#if log
 
 function stringify(value)
-  if type(value) == "table" and value._tostring then
+  if type(value) == 'table' and value._tostring then
     return value:_tostring()
   else
     return tostr(value)
@@ -91,8 +115,9 @@ end
 -- - don't add trailing space at end of line
 -- - don't add eol at the end of the last line
 -- - count the extra separator before next word in the line length prediction test
+-- i kept the fact that we don't collapse spaces so 2x, 3x spaces are preserved
 
---word wrap (string, char width)
+-- word wrap (string, char width)
 function wwrap(s,w)
   local retstr = ""
   local lines = strspl(s, "\n")
@@ -137,15 +162,24 @@ function wwrap(s,w)
   return retstr
 end
 
---string split(string, separator)
-function strspl(s,sep)
+-- port of lua string.split(string, separator)
+-- separator must be only one character
+-- added parameter collapse:
+--  if true, collapse consecutive separators into a big one
+--  if false or nil, handle each separator separately,
+--   adding an empty string between each consecutive pair
+-- ex1: strspl("|a||b", "|")       => {"", "a", "", "b"}
+-- ex2: strspl("|a||b", "|", true) => {"a", "b"}
+function strspl(s,sep,collapse)
   local ret = {}
   local buffer = ""
 
   for i = 1, #s do
     if sub(s, i, i) == sep then
-      add(ret, buffer)
-      buffer = ""
+      if #buffer > 0 or not collapse then
+        add(ret, buffer)
+        buffer = ""
+      end
     else
       buffer = buffer..sub(s,i,i)
     end

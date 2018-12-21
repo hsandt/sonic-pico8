@@ -9,14 +9,25 @@ end
 
 -- generic concat metamethod (requires _tostring method on tables)
 local function concat(lhs, rhs)
+--[[#pico8
+--#ifn log
+  -- caution: concat cannot be used as log symbol is not defined for this config
+  return tostr(lhs)..tostr(rhs)
+--#endif
+--#pico8]]
+--#if log
   return stringify(lhs)..stringify(rhs)
+--#endif
 end
 
 -- metatable and memberwise equality comparison with usual equality operator
 -- (shallow or deep depending on override)
 -- return true iff tables have the same metatable and their members are equal
 local function struct_eq(lhs, rhs)
-  return getmetatable(lhs) == getmetatable(rhs) and are_same(lhs, rhs)
+  -- we *must* compare by raw content to avoid infinite recursion on __eq, so we pass true as 3rd arg
+  -- we also re-enable defined equality at deeper levels to make sure the struct type matches in embedded attributes
+  -- so we pass true as 4th argument (this also prevents infinite recursion when forgetting match.ref on a struct in a busted spy test)
+  return getmetatable(lhs) == getmetatable(rhs) and are_same(lhs, rhs, true, true)
 end
 
 -- return a copy of a struct instance
@@ -31,8 +42,7 @@ local function copy(struct_instance)
     if type(value) == 'table' then
 --#if assert
       assert(type(value.copy) == 'function', "value "..stringify(value)..
-        " is a table member of a struct but it doesn't have a copy method, so it's not a struct itself. "..
-        "this is not supported.")
+        " is a table member of a struct but it doesn't have expected copy method, so it's not a struct itself")
 --#endif
       -- deep copy the struct member itself. never use circular references
       -- between structs or you'll get an infinite recursion
@@ -46,12 +56,14 @@ local function copy(struct_instance)
 end
 
 -- create and return a new class
--- every class should implement :_init(), :_tostring() and if relevant .__eq()
+-- every class should implement :_init(),
+--  if useful for logging :_tostring(), and if relevant .__eq()
 -- note that most .__eq() definitions are only duck-typing lhs and rhs,
--- so we can compare two instances of different classes (maybe related by inheritance)
--- with the same members. slicing will occur when comparing a base instance
--- and a derived instance with more members. add a class type member to simulate rtti
--- and make sure only objects of the same class are considered equal (but we often don't need this)
+--  so we can compare two instances of different classes (maybe related by inheritance)
+--  with the same members. slicing will occur when comparing a base instance
+--  and a derived instance with more members. add a class type member to simulate rtti
+--  and make sure only objects of the same class are considered equal (but we often don't need this)
+-- we recommend using a struct for simple structures, as they implement __eq automatically
 function new_class()
   local class = {}
   class.__index = class  -- 1st class as instance metatable

@@ -2,17 +2,20 @@ require("bustedhelper")
 require("engine/core/math")
 local logging = require("engine/debug/logging")
 
+-- bustedhelper require affects logging, so reset the state
+logging.logger:init()
+
 describe('logging', function ()
 
-  local log_message = logging.log_message
+  local log_msg = logging.log_msg
   local log_stream = logging.log_stream
 
-  describe('log_message', function ()
+  describe('log_msg', function ()
 
     describe('_init', function ()
 
-      it('should create a log_message with level, category, message content', function ()
-        local lm = log_message(logging.level.info, "character", "moving")
+      it('should create a log_msg with level, category, message content', function ()
+        local lm = log_msg(logging.level.info, "character", "moving")
         assert.is_not_nil(lm)
         assert.are_same({logging.level.info, "character", "moving"},
           {lm.level, lm.category, lm.text})
@@ -22,9 +25,9 @@ describe('logging', function ()
 
     describe('_tostring', function ()
 
-      it('should return "log_message({self.level}, {self.category}, {self.message})"', function ()
-        local lm = log_message(logging.level.info, "character", "moving")
-        assert.are_equal('log_message(1, "character", "moving")', lm:_tostring())
+      it('should return "log_msg({self.level}, {self.category}, {self.message})"', function ()
+        local lm = log_msg(logging.level.info, "character", "moving")
+        assert.are_equal('log_msg(1, "character", "moving")', lm:_tostring())
       end)
 
     end)
@@ -34,17 +37,17 @@ describe('logging', function ()
   describe('compound_message', function ()
 
     it('should return a string concatenating [category] and message for info', function ()
-      local lm = log_message(logging.level.info, "default", "hello")
+      local lm = log_msg(logging.level.info, "default", "hello")
       assert.are_equal("[default] hello", logging.compound_message(lm))
     end)
 
     it('should return a string concatenating [category], log level and message for warning', function ()
-      local lm = log_message(logging.level.warning, "player", "caution")
+      local lm = log_msg(logging.level.warning, "player", "caution")
       assert.are_equal("[player] warning: caution", logging.compound_message(lm))
     end)
 
     it('should return a string concatenating [category], log level and message for error', function ()
-      local lm = log_message(logging.level.error, "flow", "danger")
+      local lm = log_msg(logging.level.error, "flow", "danger")
       assert.are_equal("[flow] error: danger", logging.compound_message(lm))
     end)
 
@@ -80,13 +83,13 @@ describe('logging', function ()
 
       it('should do nothing is inactive', function ()
         dummy_log_stream.active = false
-        local lm = log_message(logging.level.warning, "player", "caution")
+        local lm = log_msg(logging.level.warning, "player", "caution")
         dummy_log_stream:log(lm)
         assert.spy(dummy_log_stream.on_log).was_called(0)
       end)
 
       it('should call on_log callback if active', function ()
-        local lm = log_message(logging.level.warning, "player", "caution")
+        local lm = log_msg(logging.level.warning, "player", "caution")
         dummy_log_stream:log(lm)
         assert.spy(dummy_log_stream.on_log).was_called(1)
         assert.spy(dummy_log_stream.on_log).was_called_with(dummy_log_stream, match.ref(lm))
@@ -108,7 +111,7 @@ describe('logging', function ()
 
       it('should set all active categories flags to true', function ()
         for category, _ in pairs(logger.active_categories) do
-          assert.is_true(logger.active_categories[category])
+          assert.is_true(logger.active_categories[category], "category '"..category.."' is not active")
         end
       end)
 
@@ -212,7 +215,7 @@ describe('logging', function ()
             logger:_generic_log(log_level, "flow", "text")
 
             -- implementation
-            local lm = log_message(log_level, "flow", "text")
+            local lm = log_msg(log_level, "flow", "text")
             assert.spy(fake_stream1.log).was_called(1)
             assert.spy(fake_stream1.log).was_called_with(match.ref(fake_stream1), lm)
             assert.spy(fake_stream2.log).was_called(1)
@@ -856,6 +859,7 @@ describe('logging', function ()
         assert.are_equal("{[{[1] = 1, [2] = [table], [3] = \"rest\"}] = {[1] = 1, [2] = [table], [3] = \"rest\"}}", dump({[{1, {2, {3, {4}}}, "rest"}] = {1, {2, {3, {4}}}, "rest"}}, false, 2))
       end)
       it('without level arg, use default level (2): {...} => "{{[1] = 1 [2] = [table] [3] = "rest"} = {idem}', function ()
+        logger.dump_max_recursion_level = 2  -- it is now more, so simulate a default level of 2 manually
         assert.are_equal("{[{[1] = 1, [2] = [table], [3] = \"rest\"}] = {[1] = 1, [2] = [table], [3] = \"rest\"}}", dump({[{1, {2, {3, {4}}}, "rest"}] = {1, {2, {3, {4}}}, "rest"}}))
       end)
 

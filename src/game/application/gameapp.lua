@@ -5,7 +5,7 @@ local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
 --#if visual_logger
-local visual_logger = require("engine/debug/visual_logger")
+local vlogger = require("engine/debug/visual_logger")
 --#endif
 
 --#if tuner
@@ -22,6 +22,10 @@ local ui = require("engine/ui/ui")
 
 local gameapp = {}
 
+-- todo: consider making gameapp a singleton with init like the other modules,
+--  so we can easily reinit it (implementation would b more a reset than the init
+--  below, as it would reinit the flow, etc.)
+
 -- in pico8 builds, pass nothing for active_gamestates
 -- in busted tests, pass active_gamestates so they can be required automatically on gameapp init
 function gameapp.init(active_gamestates)
@@ -37,9 +41,9 @@ function gameapp.init(active_gamestates)
   gamestate_proxy:require_gamestates(active_gamestates)
 --#endif
 
-  flow:add_gamestate(gamestate_proxy:get("titlemenu"))
-  flow:add_gamestate(gamestate_proxy:get("credits"))
-  flow:add_gamestate(gamestate_proxy:get("stage"))
+  for state in all({"titlemenu", "credits", "stage"}) do
+    flow:add_gamestate(gamestate_proxy:get(state))
+  end
   flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
@@ -62,7 +66,7 @@ function gameapp.update()
   flow:update()
 
 --#if visual_logger
-  visual_logger.window:update()
+  vlogger.window:update()
 --#endif
 
 --#if profiler
@@ -79,7 +83,7 @@ function gameapp.draw()
   flow:render()
 
 --#if visual_logger
-  visual_logger.window:render()
+  vlogger.window:render()
 --#endif
 
 --#if profiler

@@ -127,7 +127,7 @@ end
 function aabb:compute_escape_vector(other, prioritized_escape_direction)
   signed_distance, escape_direction = self:_compute_signed_distance_and_escape_direction(other, prioritized_escape_direction)
   if signed_distance < 0 then
-    return abs(signed_distance) * direction_vectors[escape_direction]
+    return abs(signed_distance) * dir_vectors[escape_direction]
   else
     return nil
   end
@@ -151,23 +151,81 @@ function aabb:intersects(other)
   return signed_distance <= 0
 end
 
+-- struct containing the result of a ground detection test
+local ground_query_info = new_struct()
+collision.ground_query_info = ground_query_info
+
+-- signed_distance    float   signed distance to the detected ground (clamped to min-1 amd max+1)
+-- slope_angle        float   slope angle of the detected ground (nil if no ground)
+function ground_query_info:_init(signed_distance, slope_angle)
+  self.signed_distance = signed_distance
+  self.slope_angle = slope_angle
+end
+
+--#if log
+function ground_query_info:_tostring()
+  return "ground_query_info("..joinstr(", ", self.signed_distance, self.slope_angle)..")"
+end
+--#endif
+
+
+-- struct representing the expected result of a character move over a frame,
+--  computed step by step
+local ground_motion_result = new_struct()
+collision.ground_motion_result = ground_motion_result
+
+-- position     vector   position at the end of motion
+-- slope_angle  float    slope angle of the final position
+-- is_blocked   bool     was the character blocked during motion?
+-- is_falling   bool     should the character fall after this motion?
+function ground_motion_result:_init(position, slope_angle, is_blocked, is_falling)
+  self.position = position
+  self.slope_angle = slope_angle
+  self.is_blocked = is_blocked
+  self.is_falling = is_falling
+end
+
+--#if log
+function ground_motion_result:_tostring()
+  return "ground_motion_result("..joinstr(", ", self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
+end
+--#endif
+
+
+local tile_data = new_struct()
+collision.tile_data = tile_data
+
+-- id_loc         sprite_id_location    sprite location on the spritesheet
+-- slope_angle    float                 slope angle in turn ratio (0.0 to 1.0, positive clockwise)
+function tile_data:_init(id_loc, slope_angle)
+  self.id_loc = id_loc
+  self.slope_angle = slope_angle
+end
+
+--#if log
+function tile_data:_tostring()
+  return "tile_data("..joinstr(", ", self.id_loc:_tostring(), self.slope_angle)..")"
+end
+--#endif
+
+
 local height_array = new_struct()
 collision.height_array = height_array
 
--- _array       [int]      sequence of heights of a tile collision mask column per index,
---                          counting index from the left, height from the bottom
---                         it is filled based on tile_mask_id_location
--- tile_mask_id_location   sprite_id_location     sprite id location of the tile mask
--- _slope_angle float      slope angle in turn ratio (0.0 to 1.0)
-function height_array:_init(tile_mask_id_location, slope_angle)
+-- tile_data_value    tile_data              tile data to generate the height array from
+-- _array             [int]                  sequence of heights of a tile collision mask column per index,
+--                                            counting index from the left, height from the bottom
+--                                            it is filled based on tile_mask_id_location
+-- slope_angle        float                  slope angle in turn ratio (0.0 to 1.0)
+function height_array:_init(tile_data_value)
   self._array = {}
-  self._fill_array(self._array, tile_mask_id_location)
-  self._slope_angle = slope_angle
+  self._fill_array(self._array, tile_data_value.id_loc)
+  self.slope_angle = tile_data_value.slope_angle
 end
 
 --#if log
 function height_array:_tostring()
-  return "height_array("..joinstr(", ", "{"..joinstr_table(", ", self._array).."}", self._slope_angle)..")"
+  return "height_array("..joinstr(", ", "{"..joinstr_table(", ", self._array).."}", self.slope_angle)..")"
 end
 --#endif
 

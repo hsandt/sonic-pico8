@@ -9,6 +9,7 @@ return {
 	exclude = {
 		"src/engine/wtk",
 		"src/game/itests",
+		"src/game/test_data"
 	}
 
 }

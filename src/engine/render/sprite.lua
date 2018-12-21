@@ -1,4 +1,5 @@
 require("engine/core/math")
+require("engine/render/color")
 
 -- sprite class
 sprite_data = new_struct()
@@ -24,6 +25,8 @@ end
 -- flip_x    bool
 -- flip_y    bool
 function sprite_data:render(position, flip_x, flip_y)
+  set_unique_transparency(colors.pink)
+  
   local draw_pos = position - self.pivot
   spr(self.id_loc:to_sprite_id(),
     draw_pos.x, draw_pos.y,

@@ -1,12 +1,13 @@
 require("engine/core/class")
 
 -- an intermediate module that breaks dependencies by providing the wanted
--- version of each gamestate for the current build
+--  version of each gamestate for the current build
+-- each module is a lua gamestate module, either the authentic or a dummy one
 local gamestate_proxy = singleton(function (self)
-  self._gamestate_modules = {}
-  self._gamestate_modules.titlemenu = nil
-  self._gamestate_modules.credits = nil
-  self._gamestate_modules.stage = nil
+  self._state_modules = {}
+  self._state_modules.titlemenu = nil
+  self._state_modules.credits = nil
+  self._state_modules.stage = nil
 end)
 
 -- load a particular version of the gamestate: standard or dummy
@@ -15,9 +16,9 @@ end)
 function gamestate_proxy:require_gamestates(active_gamestates)
 
 --[[#pico8
-  self._gamestate_modules.titlemenu = require("game/menu/titlemenu$titlemenu_ver")
-  self._gamestate_modules.credits = require("game/menu/credits$credits_ver")
-  self._gamestate_modules.stage = require("game/ingame/stage$stage_ver")
+  self._state_modules.titlemenu = require("game/menu/titlemenu$titlemenu_ver")
+  self._state_modules.credits = require("game/menu/credits$credits_ver")
+  self._state_modules.stage = require("game/ingame/stage$stage_ver")
 --#pico8]]
 
 --#ifn pico8
@@ -40,7 +41,7 @@ function gamestate_proxy:require_gamestates(active_gamestates)
     else
       version_suffix = "_dummy"
     end
-    self._gamestate_modules[gamestate] = require("game/"..dirs[gamestate].."/"..gamestate..version_suffix)
+    self._state_modules[gamestate] = require("game/"..dirs[gamestate].."/"..gamestate..version_suffix)
   end
 --#endif
 
@@ -52,9 +53,9 @@ end
 -- with a lightweight dummy state
 function gamestate_proxy:get(module_name)
   assert(type(module_name) == "string")
-  assert(self._gamestate_modules[module_name] ~= nil, "gamestate_proxy:get: self._gamestate_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
-  assert(type(self._gamestate_modules[module_name]) == "table" and self._gamestate_modules[module_name].state, "gamestate_proxy:get: self._gamestate_modules[module_name] is not a function with a 'state' member")
-  return self._gamestate_modules[module_name].state
+  assert(self._state_modules[module_name] ~= nil, "gamestate_proxy:get: self._state_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
+  assert(type(self._state_modules[module_name]) == "table" and self._state_modules[module_name].state, "gamestate_proxy:get: self._state_modules[module_name] is not a function with a 'state' member")
+  return self._state_modules[module_name].state
 end
 
 return gamestate_proxy

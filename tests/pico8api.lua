@@ -1,4 +1,7 @@
 -- pico-8 api placeholders for tests run under vanilla lua
+-- pico8:method calls in non-test scripts should be surrounded by
+-- "--#ifn pico8" but don't need a require("pico8api") (since they will
+-- always be required by a utest script already requiring bustedhelper)
 
 -- functions taken from gamax92's fork of picolove
 -- https://github.com/gamax92/picolove/blob/master/api.lua

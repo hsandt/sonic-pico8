@@ -7,6 +7,8 @@ local collision = require("engine/physics/collision")
 local world = require("engine/physics/world")
 local pc_data = require("game/data/playercharacter_data")
 
+--#ifn pico8
+
 -- enum for character control
 control_modes = {
   human = 1,      -- player controls character
@@ -25,6 +27,8 @@ motion_states = {
   grounded = 1,       -- character is on the ground
   airborne = 2        -- character is in the air
 }
+
+--#endif
 
 local player_char = new_class()
 

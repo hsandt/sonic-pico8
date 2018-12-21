@@ -87,6 +87,17 @@ SYMBOL_SUBSTITUTE_TABLE = {
     'input_modes.native': 0,
     'input_modes.simulated': 1,
 
+    # playercharacter
+    'control_modes.human': 1,
+    'control_modes.ai': 2,
+    'control_modes.puppet': 3,
+
+    'motion_modes.platformer': 1,
+    'motion_modes.debug': 2,
+
+    'motion_states.grounded': 1,
+    'motion_states.airborne': 2,
+
     # itest
     'itest_dsl_command_types.spawn':   1,
     'itest_dsl_command_types.move':    2,

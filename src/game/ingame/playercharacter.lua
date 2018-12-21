@@ -42,7 +42,7 @@ local player_char = new_class()
 -- state vars
 
 -- control_mode           control_modes control mode: human (default) or ai
--- motion_mode            motion_modes  motion mode: platformer (under gravity) or debug (fly around)
+-- motion_mode (cheat)    motion_modes  motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states motion state (platformer mode only)
 -- position               vector        current position (character center "between" pixels)
 -- ground_speed           float         current speed along the ground (~px/frame)
@@ -66,7 +66,9 @@ end
 
 function player_char:_setup()
   self.control_mode = control_modes.human
+--#if cheat
   self.motion_mode = motion_modes.platformer
+--#endif
   self.motion_state = motion_states.grounded
 
   self.position = vector.zero()
@@ -130,11 +132,14 @@ end
 
 -- update player position
 function player_char:update()
-  if self.motion_mode == motion_modes.platformer then
-    self:_update_platformer_motion()
-  else  -- self.motion_mode == motion_modes.debug
+--#if cheat
+  if self.motion_mode == motion_modes.debug then
     self:_update_debug()
   end
+  -- else: self.motion_mode == motion_modes.platformer
+--#endif
+
+  self:_update_platformer_motion()
 end
 
 -- return (signed_distance, slope_angle) where:
@@ -667,6 +672,8 @@ function player_char:_check_hold_jump()
   end
 end
 
+--#if cheat
+
 -- update the velocity and position of the character following debug motion rules
 function player_char:_update_debug()
   self:_update_velocity_debug()
@@ -679,6 +686,8 @@ function player_char:_update_velocity_debug()
   self:_update_velocity_component_debug("x")
   self:_update_velocity_component_debug("y")
 end
+
+--#endif
 
 -- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"

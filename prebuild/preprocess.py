@@ -19,7 +19,7 @@ from enum import Enum
 # but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
 # the code is only needed for a purpose of redundancy and unit test harnessing in general.
 defined_symbols_table = {
-    'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse', 'cheat'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
     'itest':       ['pico8', 'log', 'visual_logger', 'test'],
     'itest_light': ['pico8', 'log', 'test'],
@@ -27,6 +27,7 @@ defined_symbols_table = {
     'visual_log':  ['pico8', 'log', 'visual_logger'],
     'pico8_utest': ['pico8', 'assert', 'log'],
     'log':         ['pico8', 'log'],
+    'cheat':       ['pico8', 'cheat'],
     'release':     ['pico8']
 }
 
@@ -44,6 +45,7 @@ stripped_functions_table = {
     'visual_log':  ['assert'],
     'pico8_utest': [],
     'log':         ['assert'],
+    'cheat':       ['assert', 'log'],
     'release':     ['assert', 'log', 'warn', 'err']
 }
 

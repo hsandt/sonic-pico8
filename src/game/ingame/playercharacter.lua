@@ -173,8 +173,15 @@ end
 
 --#if cheat
 function player_char:_toggle_debug_motion()
-  self.motion_mode = self.motion_mode == motion_modes.debug and
-    motion_modes.platformer or motion_modes.debug
+  if self.motion_mode == motion_modes.debug then
+    -- respawn character at current position. this will in particular:
+    --   - set the motion mode back to platformer
+    --   - detect ground and update the motion state correctly
+    self:spawn_at(self.position)
+  else  -- self.motion_mode == motion_modes.platformer
+    self.motion_mode = motion_modes.debug
+    self.debug_velocity = vector.zero()
+  end
 end
 --#endif
 

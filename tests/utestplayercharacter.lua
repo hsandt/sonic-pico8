@@ -457,16 +457,40 @@ describe('player_char', function ()
 
     describe('_toggle_debug_motion', function ()
 
+      setup(function ()
+        -- don't stub, we need to check if the motion mode actually changed after toggle > spawn_at
+        spy.on(player_char, "spawn_at")
+      end)
+
+      teardown(function ()
+        player_char.spawn_at:revert()
+      end)
+
+      after_each(function ()
+        input.players_btn_states[0] = generate_initial_btn_states()
+
+        player_char.spawn_at:clear()
+      end)
+
       it('(motion mode is platformer) it should toggle motion mode to debug', function ()
         pc.motion_mode = motion_modes.platformer
         pc:_toggle_debug_motion()
         assert.are_equal(motion_modes.debug, pc.motion_mode)
+        assert.are_equal(vector.zero(), pc.debug_velocity)
       end)
 
       it('(motion mode is debug) it should toggle motion mode to platformer', function ()
+        local previous_position = pc.position  -- in case we change it during the spawn
         pc.motion_mode = motion_modes.debug
+
         pc:_toggle_debug_motion()
+
+        -- interface (partial)
         assert.are_equal(motion_modes.platformer, pc.motion_mode)
+
+        -- implementation
+        assert.spy(pc.spawn_at).was_called(1)
+        assert.spy(pc.spawn_at).was_called_with(match.ref(pc), previous_position)
       end)
 
     end)

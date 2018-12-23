@@ -131,8 +131,13 @@ function player_char:move_by(delta_vector)
   self.position = self.position + delta_vector
 end
 
+function player_char:update()
+  self:_handle_input()
+  self:_update_motion()
+end
+
 -- update intention based on current input
-function player_char:handle_input()
+function player_char:_handle_input()
   if self.control_mode == control_modes.human then
     -- move
     local player_move_intention = vector.zero()
@@ -174,7 +179,7 @@ end
 --#endif
 
 -- update player position
-function player_char:update()
+function player_char:_update_motion()
 --#if cheat
   if self.motion_mode == motion_modes.debug then
     self:_update_debug()

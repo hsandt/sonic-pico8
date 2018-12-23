@@ -297,8 +297,18 @@ describe('player_char', function ()
 
     describe('handle_input', function ()
 
+      setup(function ()
+        stub(player_char, "_toggle_debug_motion")
+      end)
+
+      teardown(function ()
+        player_char._toggle_debug_motion:revert()
+      end)
+
       after_each(function ()
         input.players_btn_states[0] = generate_initial_btn_states()
+
+        player_char._toggle_debug_motion:clear()
       end)
 
       describe('(when player character control mode is not human)', function ()
@@ -401,6 +411,32 @@ describe('player_char', function ()
         input.players_btn_states[0][button_ids.o] = btn_states.pressed
         pc:handle_input()
         assert.are_same({false, true}, {pc.jump_intention, pc.hold_jump_intention})
+      end)
+
+      it('(when input x is pressed) it should call _toggle_debug_motion', function ()
+        input.players_btn_states[0][button_ids.x] = btn_states.just_pressed
+
+        pc:handle_input()
+
+        -- implementation
+        assert.spy(pc._toggle_debug_motion).was_called(1)
+        assert.spy(pc._toggle_debug_motion).was_called_with(match.ref(pc))
+      end)
+
+    end)
+
+    describe('_toggle_debug_motion', function ()
+
+      it('(motion mode is platformer) it should toggle motion mode to debug', function ()
+        pc.motion_mode = motion_modes.platformer
+        pc:_toggle_debug_motion()
+        assert.are_equal(motion_modes.debug, pc.motion_mode)
+      end)
+
+      it('(motion mode is debug) it should toggle motion mode to platformer', function ()
+        pc.motion_mode = motion_modes.debug
+        pc:_toggle_debug_motion()
+        assert.are_equal(motion_modes.platformer, pc.motion_mode)
       end)
 
     end)

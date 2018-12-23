@@ -157,8 +157,21 @@ function player_char:handle_input()
     --  without needing a reset later during update
     self.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
     self.hold_jump_intention = is_jump_input_down
+
+--#if cheat
+    if input:is_just_pressed(button_ids.x) then
+      self:_toggle_debug_motion()
+    end
+--#endif
   end
 end
+
+--#if cheat
+function player_char:_toggle_debug_motion()
+  self.motion_mode = self.motion_mode == motion_modes.debug and
+    motion_modes.platformer or motion_modes.debug
+end
+--#endif
 
 -- update player position
 function player_char:update()

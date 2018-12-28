@@ -439,6 +439,7 @@
 			"folder_exclude_patterns":
 			[
 				".git",
+				"backup",
 				"build",
 				"intermediate",
 				"__pycache__"

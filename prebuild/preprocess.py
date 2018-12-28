@@ -7,11 +7,9 @@ import re
 from enum import Enum
 
 # This script applies preprocessing and stripping to the code:
-# 1. it will strip leading and trailing whitespace, ignoring empty lines completely
-# 2. it will remove all line comments (doesn't support block comments)
-# 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
-# 4. it will enable all code between --[[#pico8 and --#pico8]]
-# 5. it will strip debug function calls like log() or assert()
+# 1. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
+# 2. it will enable all code between --[[#pico8 and --#pico8]] (unless stripped by 1.)
+# 3. it will strip debug function calls like log() or assert() in configs that don't use those symbols
 
 # Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
 # Remember that busted will not preprocess at all and will therefore go through all the blocks.
@@ -34,7 +32,7 @@ defined_symbols_table = {
 # Functions to strip for each config (not all configs need to be present as keys)
 # Make sure you never insert gameplay code inside a log or assert (such as assert(coresume(coroutine)))
 # and always split gameplay/debug code in 2 lines
-# Also make sure all your sripped function calls are on 1 line (multi-line regex catch is currently not supported)
+# Also make sure all your stripped function calls are on 1 line (multi-line regex catch is currently not supported)
 # or that you surround them with the corresponding #if (e.g. #if assert for a multi-line assert)
 stripped_functions_table = {
     'debug':       [],
@@ -67,28 +65,27 @@ class ParsingMode(Enum):
 pico8_start_pattern = re.compile(r"--\[\[#pico8")
 # closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
 pico8_end_pattern = re.compile(r"--#pico8]]")
-# capture the previous part (we recommend to start a line with --[[, but in case it is found in the middle of a line)
-block_comment_start_pattern = re.compile(r"(.*)--\[\[")
-# capture the part after (same, we recommend to end a line with --]])
-block_comment_end_pattern = re.compile(r"(?:.*)]](.*)")
-# Known limitation: an open/close block comment on a single line won't be detected. Use a line comment in this case!
 
 if_pattern = re.compile(r"--#if (\w+)")    # ! ignore anything after 1st symbol
 ifn_pattern = re.compile(r"--#ifn (\w+)")  # ! ignore anything after 1st symbol
 endif_pattern = re.compile(r"--#endif")
-comment_pattern = re.compile(r'("[^"\\]*(?:\\.[^"\\]*)*")|(?:--.*)')
 stripped_function_call_patterns_table = {}
 for config, stripped_functions in stripped_functions_table.items():
-    # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
-    # so we use a very simple regex, but remember to never put anything fancy on a log/assert line that may have side effects, since they will be stripped on release
-    # ex: '^(?:log|warn|err)\(.*\)$'
-    # for better regex with PCRE, see:
-    # https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
-    # https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
-    # https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets#546457
-    # https://stackoverflow.com/questions/18906514/regex-for-matching-functions-and-capturing-their-arguments#18908330
-    function_name_alternative_pattern = f"(?:{'|'.join(stripped_functions)})"
-    stripped_function_call_patterns_table[config] = re.compile(f'^{function_name_alternative_pattern}\\(.*\\)$')
+    # if there is nothing to strip, avoid creating a regex with just "(?:)\(\)" that would match a line starting with brackets
+    if stripped_functions:
+        # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
+        # so we use a very simple regex, but remember to never put anything fancy on a log/assert line that may have side effects, since they will be stripped on release
+        # comments after call are ok
+        # for better regex with PCRE to detect surrounding brackets and quotes, see:
+        # https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
+        # https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
+        # https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets#546457
+        # https://stackoverflow.com/questions/18906514/regex-for-matching-functions-and-capturing-their-arguments#18908330
+
+        # ex: '(?:log|warn|err)'
+        function_name_alternative_pattern = f"(?:{'|'.join(stripped_functions)})"
+        # ex: '^\s*(?:log|warn|err)\(.*\)\s*(?:--.*)?$'
+        stripped_function_call_patterns_table[config] = re.compile(rf'^\s*{function_name_alternative_pattern}\(.*\)\s*(?:--.*)?$')
 
 def preprocess_dir(dirpath, config):
     """Apply preprocessor directives to all the source files inside the given directory, for the given config"""
@@ -148,7 +145,6 @@ def preprocess_lines(lines, config):
     preprocessed_lines = []
 
     inside_pico8_block = False
-    inside_comment_block = False
 
     # explore the tree of #if by storing the current stack of ifs encountered from top to bottom
     if_block_modes_stack = []  # can only be filled with [IfBlockMode.ACCEPTED*, IfBlockMode.REFUSED?, IfBlockMode.IGNORED* (only if 1 REFUSED)]
@@ -196,77 +192,31 @@ def preprocess_lines(lines, config):
                 if last_mode is IfBlockMode.REFUSED:
                     current_mode = ParsingMode.ACTIVE
         elif current_mode is ParsingMode.ACTIVE:
-            force_append = False
             if pico8_start_pattern.match(line):
-                if not inside_comment_block:
+                # we detected a pico8 block and should continue appending the lines normally (since we are building for pico8)
+                # the bool flag is only here to check that 1 end pattern will match 1 start pattern
+                # since we don't really need embedded pico8 blocks, we assume only 1 level and don't use a stack here
+                if not inside_pico8_block:
                     inside_pico8_block = True
-                    # we must not append this line
-                    continue
                 else:
-                    logging.warning('a pico8 block start was encountered inside a comment block. It will be ignored')
+                    logging.warning('a pico8 block start was encountered inside a pico8 block. It will be ignored')
             elif pico8_end_pattern.match(line):
                 if inside_pico8_block:
-                    if inside_comment_block:
-                        logging.warning('a pico8 block end was encountered inside a pico8 block, but also inside a comment block. It will still end the pico8 block, but crossing blocks like this will end in weird behavior in busted')
                     inside_pico8_block = False
-                    # we must not append this line
-                    continue
                 else:
                     logging.warning('a pico8 block end was encountered outside a pico8 block. It will be ignored')
             else:
-                block_comment_start_match = block_comment_start_pattern.match(line)
-                if block_comment_start_match:
-                    inside_comment_block = True
-                    # preserve part just before block start if any
-                    # you need to force append in this case because inside_comment_block is now True
-                    line = block_comment_start_match.group(1)
-                    if line:
-                        force_append = True
-                else:
-                    block_comment_end_match = block_comment_end_pattern.match(line)
-                    if block_comment_end_match:
-                        # only end block comment if inside a comment
-                        # else, this is a legit Lua case, where ]] will be interpreted as normal code
-                        # of course, --]] would still be stripped as a comment
-                        if inside_comment_block:
-                            inside_comment_block = False
-                            # technically we are now outside the block, so it's important to only retrieve the part of the line after comment closure
-                            # so we don't append the whole line containing the block end itself
-                            line = block_comment_end_match.group(1)
-
-            # inside a pico8 block, we continue appending the lines (since we are preprocessing, so we are building for pico8)
-            if not inside_comment_block or force_append:
-                line = strip_line_content(line, config)
-                # if resulting line is empty, ignore it
-                if line:
-                    # we stripped eol, so re-add it now
-                    preprocessed_lines.append(line + '\n')
+                if not is_function_call_to_strip(line, config):
+                    preprocessed_lines.append(line)
 
     if if_block_modes_stack:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
     return preprocessed_lines
 
-def strip_line_content(line, config):
-    """Strip line content as much as possible. Return line without eol. May be empty."""
-    # 2. strip comments first (so we can trim whitespace left by after-code comment afterward)
-    line = strip_comments(line)
-    # 1. strip blanks (this includes any remaining end of line)
-    line = line.strip()
-    # 4. strip debug function calls if not debug
-    line = strip_function_calls(line, config)
-    return line
 
-def strip_comments(line):
-    # this will keep trailing whitespaces as well as eol, but we count on strip to finish the job
-    # \1 will preserve the original code
-    return comment_pattern.sub('\\1', line)
-
-
-def strip_function_calls(line, config):
-    if config in stripped_function_call_patterns_table and stripped_function_call_patterns_table[config].match(line):
-        return ''
-    else:
-        return line
+def is_function_call_to_strip(line, config):
+    """Return true iff the line contains a function call (and optionally a comment) that should be stripped in the passed config"""
+    return config in stripped_function_call_patterns_table and bool(stripped_function_call_patterns_table[config].match(line))
 
 
 if __name__ == '__main__':

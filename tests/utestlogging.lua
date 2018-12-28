@@ -109,9 +109,13 @@ describe('logging', function ()
 
     describe('init', function ()
 
-      it('should set all active categories flags to true', function ()
+      it('should set all active categories flags to true, except trace', function ()
         for category, _ in pairs(logger.active_categories) do
-          assert.is_true(logger.active_categories[category], "category '"..category.."' is not active")
+          if category == "trace" then
+            assert.is_false(logger.active_categories[category], "category '"..category.."' is active")
+          else
+            assert.is_true(logger.active_categories[category], "category '"..category.."' is not active")
+          end
         end
       end)
 

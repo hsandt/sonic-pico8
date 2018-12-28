@@ -18,16 +18,16 @@ local itest
 
 -- pico8 doesn't like [[]] and will replace lines after the 3rd with
 -- empty lines... need "text \n".. or "text  \ to continue to next line
-itest_dsl.register('#solo platformer accel right flat',
-"@stage #                             \
-...                                   \
-###                                   \
-                                      \
-warp 4 8                              \
-move right                            \
-wait 30                               \
-expect pc_bottom_pos 14.8984375 8.    \
-"
+itest_dsl.register('#solo platformer accel right flat', [[
+@stage #
+...
+###
+
+warp 4 8
+move right
+wait 30
+expect pc_bottom_pos 14.8984375 8.
+]]
 )
 
 --[[ original

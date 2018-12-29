@@ -318,7 +318,8 @@ describe('stage', function ()
       state:init()
     end)
 
-    it('. init', function ()
+    -- bugifx history: .
+    it('init', function ()
       assert.are_same({
           gamestate.types.stage,
           {},

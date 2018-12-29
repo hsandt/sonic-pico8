@@ -1,6 +1,7 @@
 -- gamestates: stage
 local integrationtest = require("engine/test/integrationtest")
 local itest_dsl = require("engine/test/itest_dsl")
+local itest_dsl_parser = itest_dsl.itest_dsl_parser
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
@@ -14,11 +15,12 @@ local tile_test_data = require("game/test_data/tile_test_data")
 local itest
 
 
+
 -- dsl training
 
 -- pico8 doesn't like [[]] and will replace lines after the 3rd with
 -- empty lines... need "text \n".. or "text  \ to continue to next line
-itest_dsl.register('#solo platformer accel right flat', [[
+itest_dsl_parser.register('#solo platformer accel right flat', [[
 @stage #
 ...
 ###
@@ -29,6 +31,7 @@ wait 30
 expect pc_bottom_pos 14.8984375 8.
 ]]
 )
+
 
 --[[ original
 itest.setup = function ()

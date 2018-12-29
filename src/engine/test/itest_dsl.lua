@@ -10,13 +10,9 @@ local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
 local pc_data = require("game/data/playercharacter_data")
 
--- itest dsl parser singleton, with parser context state
--- _itest               integration_test  current integration test in construction
--- _last_time_trigger   time_trigger      last time trigger registered with wait command
-local itest_dsl = singleton(function (self)
-  self._itest = nil
-  self._last_time_trigger = nil
-end)
+
+-- module
+local itest_dsl = {}
 
 
 -- type of commands available
@@ -52,13 +48,27 @@ function command:_init(cmd_type, args)
 end
 
 
+-- expectation struct
+
+-- attributes
+-- gp_value_type  itest_dsl_gp_value_types       type of gameplay value to compare
+-- expected_value {type used for gp_value_type}  expected gameplay value
+local expectation = new_struct()
+itest_dsl.expectation = expectation
+
+function expectation:_init(gp_value_type, expected_value)
+  self.gp_value_type = gp_value_type
+  self.expected_value = expected_value
+end
+
+
 -- dsl itest struct
 
 -- attributes
--- gamestate_type  string          gamestate type to start test in (also the only active gamestate)
--- stage_name      string|nil      stage name to play if gamestate type is 'stage', nil else
+-- gamestate_type  string         gamestate type to start test in (also the only active gamestate)
+-- stage_name      string|nil     stage name to play if gamestate type is 'stage', nil else
 -- tilemap        tilemap|nil     tilemap data if gamestate type is 'stage', nil else
--- commands        {commands}      sequence of commands to apply
+-- commands        {command}      sequence of commands to apply
 local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
 
@@ -67,10 +77,21 @@ function dsl_itest:_init()
 end
 
 
+-- itest dsl parser singleton, with parser context state
+-- _itest               integration_test  current integration test in construction
+-- _last_time_trigger   time_trigger      last time trigger registered with wait command
+-- _final_expectations  {expectation}     sequence of expectations to verify
+local itest_dsl_parser = singleton(function (self)
+  self._itest = nil
+  self._last_time_trigger = nil
+  self._final_expectations = {}
+end)
+itest_dsl.itest_dsl_parser = itest_dsl_parser
+
 -- parse, create and register itest from dsl
-function itest_dsl.register(name, dsli_source)
-  local dsli = itest_dsl.parse(dsli_source)
-  local test = itest_dsl.create_itest(name, dsli)
+function itest_dsl_parser.register(name, dsli_source)
+  local dsli = itest_dsl_parser.parse(dsli_source)
+  local test = itest_dsl_parser.create_itest(name, dsli)
   itest_manager:register(test)
 end
 
@@ -90,7 +111,7 @@ end
 -- wait 30                      < wait delays the next action (here, the nil action)
 -- expect pc_bottom_pos 14. 8.  < expectation (only final assertion is supported)
 -- ]]
-function itest_dsl.parse(dsli_source)
+function itest_dsl_parser.parse(dsli_source)
   -- create dsl itest
   local dsli = dsl_itest()
 
@@ -99,8 +120,8 @@ function itest_dsl.parse(dsli_source)
 
   -- parse in 2 steps: gamestate and action sequence
   local next_line_index
-  dsli.gamestate_type, dsli.stage_name, dsli.tilemap, next_line_index = itest_dsl.parse_gamestate_definition(lines)
-  dsli.commands = itest_dsl.parse_action_sequence(lines, next_line_index)
+  dsli.gamestate_type, dsli.stage_name, dsli.tilemap, next_line_index = itest_dsl_parser.parse_gamestate_definition(lines)
+  dsli.commands = itest_dsl_parser.parse_action_sequence(lines, next_line_index)
 
   return dsli
 end
@@ -113,7 +134,7 @@ end
 -- [tilemap row n]
 --                                < blank after tilemap (or one-line gamestate definition) to mark the end
 -- ?                              < we don't check what's after, just return this line's index
-function itest_dsl.parse_gamestate_definition(lines)
+function itest_dsl_parser.parse_gamestate_definition(lines)
   -- parse first line to get state and optional stage
   local gamestate_header = lines[1]
   assert(sub(gamestate_header, 1, 1) == '@', "gamestate_header '"..gamestate_header.."' doesn't start with @")
@@ -129,13 +150,13 @@ function itest_dsl.parse_gamestate_definition(lines)
   local next_line_index = 3
   if stage_name == '#' then
     -- we are defining a custom tilemap, let's parse it
-    tm, next_line_index = itest_dsl.parse_tilemap(lines)
+    tm, next_line_index = itest_dsl_parser.parse_tilemap(lines)
   end
 
   return gamestate_type, stage_name, tm, next_line_index
 end
 
-function itest_dsl.parse_tilemap(lines)
+function itest_dsl_parser.parse_tilemap(lines)
   -- tilemap should always start at line 2
   -- first line will give the tilemap width
   assert(#lines >= 2, "only "..#lines.." line(s), need at least 2")
@@ -182,7 +203,7 @@ function itest_dsl.parse_tilemap(lines)
 end
 
 
-function itest_dsl.parse_action_sequence(lines, next_line_index)
+function itest_dsl_parser.parse_action_sequence(lines, next_line_index)
   local commands = {}
   for i = next_line_index, #lines do
     words = strspl(lines[i], ' ', true)
@@ -195,8 +216,8 @@ function itest_dsl.parse_action_sequence(lines, next_line_index)
       end
       local cmd_type = itest_dsl_command_types[cmd_type_str]
       local parse_fn_name = '_parse_args_'..cmd_type_str
-      assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
-      local args = {itest_dsl[parse_fn_name](arg_strings)}
+      assert(itest_dsl_parser[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
+      local args = {itest_dsl_parser[parse_fn_name](arg_strings)}
       add(commands, command(cmd_type, args))
     end
   end
@@ -204,27 +225,27 @@ function itest_dsl.parse_action_sequence(lines, next_line_index)
 end
 
 -- convert string args to vector
-function itest_dsl._parse_args_warp(args)
+function itest_dsl_parser._parse_args_warp(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))  -- bottom position
 end
 
 -- convert string args to vector
-function itest_dsl._parse_args_move(args)
+function itest_dsl_parser._parse_args_move(args)
   assert(#args == 1, "got "..#args.." args")
   return horizontal_dirs[args[1]]                -- move intention
 end
 
 -- convert string args to vector
-function itest_dsl._parse_args_wait(args)
+function itest_dsl_parser._parse_args_wait(args)
   assert(#args == 1, "got "..#args.." args")
   return tonum(args[1])                          -- frames to wait
 end
 
 -- convert string args to vector
-function itest_dsl._parse_args_expect(args)
+function itest_dsl_parser._parse_args_expect(args)
   assert(#args > 1, "got "..#args.." args")
-  -- same principle as itest_dsl.parse, the type of the first arg
+  -- same principle as itest_dsl_parser.parse, the type of the first arg
   --  determines how we parse the rest of the args, named "value components"
   local value_type_str = args[1]
   -- gather all the value components as strings (e.g. {"3", "4"} for vector(3, 4))
@@ -236,22 +257,22 @@ function itest_dsl._parse_args_expect(args)
   local value_type = itest_dsl_gp_value_types[value_type_str]
   -- parse the value components to semantical type (e.g. vector)
   local parse_fn_name = '_parse_value_'..value_type_str
-  assert(itest_dsl[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
-  local expected_value = itest_dsl[parse_fn_name](expected_value_comps)
+  assert(itest_dsl_parser[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
+  local expected_value = itest_dsl_parser[parse_fn_name](expected_value_comps)
   return value_type, expected_value
 end
 
 -- convert string args to vector
-function itest_dsl._parse_value_pc_bottom_pos(args)
+function itest_dsl_parser._parse_value_pc_bottom_pos(args)
   assert(#args == 2, "got "..#args.." args")
   return vector(tonum(args[1]), tonum(args[2]))
 end
 
 -- create and return an itest from a dsli, providing a name
-function itest_dsl.create_itest(name, dsli)
-  itest_dsl._itest = integration_test(name, {dsli.gamestate_type})
+function itest_dsl_parser.create_itest(name, dsli)
+  itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
 
-  itest_dsl._itest.setup = function ()
+  itest_dsl_parser._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
       -- puppet control
@@ -266,7 +287,7 @@ function itest_dsl.create_itest(name, dsli)
     end
   end
 
-  itest_dsl._itest.teardown = function ()
+  itest_dsl_parser._itest.teardown = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == "stage" then
       if dsli.stage_name == '#' then
@@ -279,37 +300,39 @@ function itest_dsl.create_itest(name, dsli)
 
   for cmd in all(dsli.commands) do
     if cmd.type == itest_dsl_command_types.warp then
-      itest_dsl:_act(function ()
+      itest_dsl_parser:_act(function ()
         stage.state.player_char:warp_bottom_to(vector(cmd.args[1].x, cmd.args[1].y))
       end)
     elseif cmd.type == itest_dsl_command_types.move then
-      itest_dsl:_act(function ()
+      itest_dsl_parser:_act(function ()
         stage.state.player_char.move_intention = horizontal_dir_vectors[cmd.args[1]]
       end)
     elseif cmd.type == itest_dsl_command_types.wait then
-      itest_dsl:_wait(cmd.args[1])
+      itest_dsl_parser:_wait(cmd.args[1])
     elseif cmd.type == itest_dsl_command_types.expect then
       -- we currently don't support live assertions, only final assertion
-      itest_dsl:_final_assert(unpack(cmd.args))
+      itest_dsl_parser:_add_final_expectation(unpack(cmd.args))
     end
   end
 
+
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
-  if itest_dsl._last_time_trigger then
-    itest_dsl._itest:add_action(itest_dsl._last_time_trigger, nil)
+  if itest_dsl_parser._last_time_trigger then
+    itest_dsl_parser._itest:add_action(itest_dsl_parser._last_time_trigger, nil)
+    itest_dsl_parser._last_time_trigger = nil  -- consume and cleanup for next itest
   end
 
-  local test = itest_dsl._itest
+  -- glue code to remain retro-compatible with function-based final assertion
+  itest_dsl_parser:_define_final_assertion()
 
-  -- cleanup
-  itest_dsl._itest = nil
-  itest_dsl._last_time_trigger = nil
+  local test = itest_dsl_parser._itest
+  itest_dsl_parser._itest = nil  -- consume and cleanup for next itest
 
   return test
 end
 
-function itest_dsl:_act(callback)
+function itest_dsl_parser:_act(callback)
   if self._last_time_trigger then
     self._itest:add_action(self._last_time_trigger, callback)
     self._last_time_trigger = nil  -- consume so we know no final wait-action is needed
@@ -319,7 +342,7 @@ function itest_dsl:_act(callback)
   end
 end
 
-function itest_dsl:_wait(interval)
+function itest_dsl_parser:_wait(interval)
   if self._last_time_trigger then
     -- we were already waiting, so finish last wait with empty action
     self._itest:add_action(self._last_time_trigger, nil)
@@ -328,22 +351,51 @@ function itest_dsl:_wait(interval)
   self._last_time_trigger = integrationtest.time_trigger(interval, true)
 end
 
-function itest_dsl:_final_assert(gp_value_type, expected_gp_value)
-  local gp_value_name = value_type_strings[gp_value_type]
-  assert(gp_value_name, "invalid gp_value_type: "..gp_value_type)
+-- add final expectation to sequence, for future evaluation
+function itest_dsl_parser:_add_final_expectation(gp_value_type, expected_gp_value)
+  add(self._final_expectations, expectation(gp_value_type, expected_gp_value))
+end
+
+-- define final assertion based on sequence of final expectations
+-- this is a glue method to make it retro-compatible with the function-based final assertion
+-- eventually, the itest will only hold expectations (possibly predefined functions for currying)
+--  to avoid creating lambda
+function itest_dsl_parser:_define_final_assertion()
+  -- define an intermediate local variable to avoid the "local variable closure issue"
+  --  i.e. if we access "self._final_expectations" directly from inside the function
+  --  constructed below, it would get the actual value of self._final_expectations
+  --  at evaluation time (too late, the temporary table reference would have been lost
+  --  and the table gc-ed). So we either need to copy the table content (then clear table)
+  --  or store the reference in an intermediate variable like this one (then create new table)
+  local final_expectations_proxy = self._final_expectations
+  self._final_expectations = {}  -- consume and cleanup for next itest
+
   self._itest.final_assertion = function ()
-    local gp_value = self._evaluate(gp_value_type)
-    return gp_value == expected_gp_value,
-      "Passed gameplay value '"..gp_value_name.."':\n"..
-      gp_value.."\n"..
-      "Expected:\n"..
-      expected_gp_value
+    local success = true
+    local full_message = ""
+
+    -- check each expectation one by one
+    for exp in all(final_expectations_proxy) do
+      local gp_value = self._evaluate(exp.gp_value_type)
+      if gp_value ~= exp.expected_value then
+        success = false
+        local gp_value_name = value_type_strings[exp.gp_value_type]
+        assert(gp_value_name, "invalid exp.gp_value_type: "..exp.gp_value_type)
+        local message = "Passed gameplay value '"..gp_value_name.."':\n"..
+          gp_value.."\n"..
+          "Expected:\n"..
+          exp.expected_value
+        full_message = full_message..message.."\n"
+      end
+    end
+
+    return success, full_message
   end
 end
 
 -- evaluate gameplay value. it is important to call this at expect
 --  time, not when defining the test, to get the actual runtime value
-function itest_dsl._evaluate(gp_value_type)
+function itest_dsl_parser._evaluate(gp_value_type)
   if gp_value_type == itest_dsl_gp_value_types.pc_bottom_pos then
     return stage.state.player_char:get_bottom_center()
   else

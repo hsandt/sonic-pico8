@@ -1,5 +1,6 @@
 require("bustedhelper")
-require("math")
+require("engine/core/helper")
+require("engine/core/math")
 local itest_dsl = require("engine/test/itest_dsl")
 local dsl_itest, command, expectation, itest_dsl_parser = itest_dsl.dsl_itest, itest_dsl.command, itest_dsl.expectation, itest_dsl.itest_dsl_parser
 local integrationtest = require("engine/test/integrationtest")
@@ -120,20 +121,42 @@ describe('itest_dsl', function ()
 
     describe('parse', function ()
 
+      setup(function ()
+        stub(itest_dsl_parser, "parse_gamestate_definition", function (lines)
+          local tile_id = tonum(lines[3])
+          return lines[1],
+            lines[2],
+            tilemap({
+              { 0,      tile_id},
+              {tile_id,       0}
+            }),
+            5
+        end)
+        stub(itest_dsl_parser, "parse_action_sequence", function (lines, next_line_index)
+          return {
+            command(itest_dsl_command_types[lines[next_line_index]],   { vector(1, 2) }                                      ),
+            command(itest_dsl_command_types[lines[next_line_index+1]], {itest_dsl_gp_value_types.pc_bottom_pos, vector(3, 4)})
+          }
+        end)
+      end)
+
+      teardown(function ()
+        itest_dsl_parser.parse_gamestate_definition:revert()
+        itest_dsl_parser.parse_action_sequence:revert()
+      end)
+
       -- bugfix history:
       -- + spot tilemap not being set, although parse_gamestate_definition worked, so the error is in the glue code
       it('should parse the itest source written in domain-specific language into a dsl itest', function ()
-        local dsli_source = [[@stage #
-..##
-##..
+        local dsli_source = [[
+stage
+#
+64
 
-warp 12 45
-wait 1
-move left
-wait 2
-expect pc_bottom_pos 10 45
-expect pc_velocity -2 3.5
+warp
+expect
 ]]
+
         local dsli = itest_dsl_parser.parse(dsli_source)
 
         -- interface
@@ -143,16 +166,12 @@ expect pc_velocity -2 3.5
             'stage',
             '#',
             tilemap({
-              { 0,  0, 64, 64},
-              {64, 64,  0,  0}
+              { 0, 64},
+              {64,  0}
             }),
             {
-              command(itest_dsl_command_types.warp,  { vector(12, 45) }             ),
-              command(itest_dsl_command_types.wait,   { 1 }                          ),
-              command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
-              command(itest_dsl_command_types.wait,   { 2 }                          ),
-              command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
-              command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_velocity, vector(-2, 3.5)}),
+              command(itest_dsl_command_types.warp,   { vector(1, 2) }                                       ),
+              command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(3, 4)})
             }
           },
           {
@@ -161,10 +180,6 @@ expect pc_velocity -2 3.5
             dsli.tilemap,
             dsli.commands
           })
-
-        -- implementation
-        -- todo: check call to parse_gamestate_definition and parse_action_sequence
-        --  to avoid test redundancy
       end)
 
     end)
@@ -213,33 +228,49 @@ expect pc_velocity -2 3.5
           })
       end)
 
-      it('should return \'stage\', \'#\', tilemap data and 6 for a custom stage definition finishing at line 5 (including blank line)', function ()
-        local dsli_lines = {
-          "@stage #",
-          "....",
-          "##..",
-          "..##",
-          "",
-          "???"
-        }
-        local gamestate_type, stage_name, tm, next_line_index = itest_dsl_parser.parse_gamestate_definition(dsli_lines)
-        assert.are_same(
-          {
-            'stage',
-            '#',
-            tilemap({
-              { 0,  0,  0,  0},
-              {64, 64,  0,  0},
-              { 0,  0, 64, 64}
-            }),
-            6
-          },
-          {
-            gamestate_type,
-            stage_name,
-            tm,
-            next_line_index
-          })
+      describe('(mocking parse_tilemap)', function ()
+
+        setup(function ()
+          stub(itest_dsl_parser, "parse_tilemap", function ()
+            return tilemap({
+              {70, 64},
+              {64, 70}
+            }), 5
+          end)
+        end)
+
+        teardown(function ()
+          itest_dsl_parser.parse_tilemap:revert()
+        end)
+
+        it('should return \'stage\', \'#\', tilemap data and 6 for a custom stage definition finishing at line 5 (including blank line)', function ()
+          local dsli_lines = {
+            "@stage #",
+            "[this part is ignored, mocked parse_tilemap]",
+            "[will return predefined tilemap]"
+          }
+
+          local gamestate_type, stage_name, tm, next_line_index = itest_dsl_parser.parse_gamestate_definition(dsli_lines)
+
+          -- interface
+          assert.are_same(
+            {
+              'stage',
+              '#',
+              tilemap({
+                {70, 64},
+                {64, 70}
+              }),
+              5
+            },
+            {
+              gamestate_type,
+              stage_name,
+              tm,
+              next_line_index
+            })
+        end)
+
       end)
 
     end)
@@ -433,7 +464,7 @@ expect pc_velocity -2 3.5
         stage.state.player_char.velocity = vector(2, -3.5)
         assert.are_same({true, ""}, {test.final_assertion()})
 
-        -- verify that parser is cleaned up, ready for next parsing
+        -- verify that parser state is cleaned up, ready for next parsing
         assert.are_same({
             nil,
             nil,

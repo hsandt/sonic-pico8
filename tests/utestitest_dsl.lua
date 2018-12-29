@@ -132,6 +132,7 @@ wait 1
 move left
 wait 2
 expect pc_bottom_pos 10 45
+expect pc_velocity -2 3.5
 ]]
         local dsli = itest_dsl_parser.parse(dsli_source)
 
@@ -151,6 +152,7 @@ expect pc_bottom_pos 10 45
               command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
               command(itest_dsl_command_types.wait,   { 2 }                          ),
               command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
+              command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_velocity, vector(-2, 3.5)}),
             }
           },
           {
@@ -340,7 +342,8 @@ expect pc_bottom_pos 10 45
           "wait 1",
           "move left",
           "wait 2",
-          "expect pc_bottom_pos 10 45"
+          "expect pc_bottom_pos 10 45",
+          "expect pc_velocity 2 -3.5"
         }
         local commands = itest_dsl_parser.parse_action_sequence(dsli_lines, 5)
         assert.are_same(
@@ -350,6 +353,7 @@ expect pc_bottom_pos 10 45
               command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
               command(itest_dsl_command_types.wait,   { 2 }                          ),
               command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
+              command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_velocity, vector(2, -3.5)}),
             },
             commands)
       end)
@@ -370,6 +374,7 @@ expect pc_bottom_pos 10 45
           command(itest_dsl_command_types.move,   { horizontal_dirs.left }       ),
           command(itest_dsl_command_types.wait,   { 2 }                          ),
           command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_bottom_pos, vector(10, 45)}),
+          command(itest_dsl_command_types.expect, {itest_dsl_gp_value_types.pc_velocity, vector(2, -3.5)}),
         }
 
         local test = itest_dsl_parser.create_itest("test 1", dsli)
@@ -419,11 +424,13 @@ expect pc_bottom_pos 10 45
         assert.are_equal(vector(-1, 0), stage.state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
-        local expected_message = "Passed gameplay value 'player character bottom position':\nvector(12, 45)\nExpected:\nvector(10, 45)\n"
+        local expected_message = "Passed gameplay value 'player character bottom position':\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
+          "Passed gameplay value 'player character velocity':\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
         -- but if we cheat and warp him on the spot, final assertion will work
         stage.state.player_char:set_bottom_center(vector(10, 45))
+        stage.state.player_char.velocity = vector(2, -3.5)
         assert.are_same({true, ""}, {test.final_assertion()})
 
         -- verify that parser is cleaned up, ready for next parsing
@@ -511,10 +518,20 @@ expect pc_bottom_pos 10 45
       end)
 
       it('should add to the final expectation an expectation with gameplay value type and expected value', function ()
-        itest_dsl_parser:_add_final_expectation(itest_dsl_gp_value_types.pc_bottom_pos, 27)
-        local message = "Passed gameplay value 'player character bottom position':\n27\nExpected:\n27"
+        itest_dsl_parser:_add_final_expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30))
         assert.are_equal(1, #itest_dsl_parser._final_expectations)
-        assert.are_equal(expectation(itest_dsl_gp_value_types.pc_bottom_pos, 27), itest_dsl_parser._final_expectations[1])
+        assert.are_equal(expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30)), itest_dsl_parser._final_expectations[1])
+      end)
+
+      it('should add to the final expectation an expectation with gameplay value type and expected value', function ()
+        itest_dsl_parser._final_expectations = {
+          expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30))
+        }
+
+        itest_dsl_parser:_add_final_expectation(itest_dsl_gp_value_types.pc_velocity, vector(-5, 3))
+
+        assert.are_equal(2, #itest_dsl_parser._final_expectations)
+        assert.are_equal(expectation(itest_dsl_gp_value_types.pc_velocity, vector(-5, 3)), itest_dsl_parser._final_expectations[2])
       end)
 
     end)
@@ -523,8 +540,12 @@ expect pc_bottom_pos 10 45
 
       setup(function ()
         -- mock _evaluate (we won't care about the 1st argument thx to this)
-        stub(itest_dsl_parser, "_evaluate", function (gameplay_value_type)
-          return vector(27, 30)
+        stub(itest_dsl_parser, "_evaluate", function (gp_value_type)
+          if gp_value_type == itest_dsl_gp_value_types.pc_bottom_pos then
+            return vector(27, 30)
+          else
+            return vector(-3, 2.5)
+          end
         end)
       end)
 
@@ -538,7 +559,8 @@ expect pc_bottom_pos 10 45
 
       it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
         itest_dsl_parser._final_expectations = {
-          expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30))
+          expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30)),
+          expectation(itest_dsl_gp_value_types.pc_velocity, vector(-3, 2.5))
         }
         itest_dsl_parser:_define_final_assertion()
         assert.are_same({true, ""}, {itest_dsl_parser._itest.final_assertion()})
@@ -546,10 +568,11 @@ expect pc_bottom_pos 10 45
 
       it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
         itest_dsl_parser._final_expectations = {
-          expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(28, 30))
+          expectation(itest_dsl_gp_value_types.pc_bottom_pos, vector(27, 30)),  -- ok
+          expectation(itest_dsl_gp_value_types.pc_velocity, vector(-3, 7.5))    -- different from actual
         }
         itest_dsl_parser:_define_final_assertion()
-        local expected_message = "Passed gameplay value 'player character bottom position':\nvector(27, 30)\nExpected:\nvector(28, 30)\n"
+        local expected_message = "Passed gameplay value 'player character velocity':\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
         assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
       end)
 

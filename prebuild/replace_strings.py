@@ -99,12 +99,14 @@ SYMBOL_SUBSTITUTE_TABLE = {
     'motion_states.airborne': 2,
 
     # itest
-    'itest_dsl_command_types.spawn':   1,
+    'itest_dsl_command_types.warp':    1,
     'itest_dsl_command_types.move':    2,
     'itest_dsl_command_types.wait':   11,
     'itest_dsl_command_types.expect': 21,
 
-    'itest_dsl_value_types.pc_pos':  1,
+    'itest_dsl_gp_value_types.pc_bottom_pos':  1,
+    'itest_dsl_gp_value_types.pc_velocity':   11,
+    'itest_dsl_gp_value_types.pc_ground_spd': 12,
 }
 
 # prefix of all arg identifiers

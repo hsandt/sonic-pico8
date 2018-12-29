@@ -17,20 +17,24 @@ local itest_dsl = {}
 
 -- type of commands available
 itest_dsl_command_types = {
-  warp  = 1,   -- warp player character bottom  args: {bottom position: vector}
-  move   = 2,   -- set sticky pc move intention   args: {move_dir: horizontal_dirs}
+  warp   =  1,  -- warp player character bottom  args: {bottom position: vector}
+  move   =  2,  -- set sticky pc move intention   args: {move_dir: horizontal_dirs}
   wait   = 11,  --
-  expect = 21
+  expect = 21,
 }
 
 -- type of gameplay values available for expectations
 itest_dsl_gp_value_types = {
-  pc_bottom_pos = 1
+  pc_bottom_pos =  1,
+  pc_velocity   = 11,
+  pc_ground_spd = 12,
 }
 
--- string mapping for itest messages
+-- string mapping for itest messages (to debug failing itests)
 local value_type_strings = {
-  "player character bottom position"
+  [1] = "player character bottom position",
+  [11] = "player character velocity",
+  [12] = "player character ground speed",
 }
 
 
@@ -268,6 +272,12 @@ function itest_dsl_parser._parse_value_pc_bottom_pos(args)
   return vector(tonum(args[1]), tonum(args[2]))
 end
 
+-- convert string args to vector
+function itest_dsl_parser._parse_value_pc_velocity(args)
+  assert(#args == 2, "got "..#args.." args")
+  return vector(tonum(args[1]), tonum(args[2]))
+end
+
 -- create and return an itest from a dsli, providing a name
 function itest_dsl_parser.create_itest(name, dsli)
   itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
@@ -380,7 +390,7 @@ function itest_dsl_parser:_define_final_assertion()
       if gp_value ~= exp.expected_value then
         success = false
         local gp_value_name = value_type_strings[exp.gp_value_type]
-        assert(gp_value_name, "invalid exp.gp_value_type: "..exp.gp_value_type)
+        assert(gp_value_name, "value_type_strings["..exp.gp_value_type.."] is not defined")
         local message = "Passed gameplay value '"..gp_value_name.."':\n"..
           gp_value.."\n"..
           "Expected:\n"..
@@ -398,6 +408,8 @@ end
 function itest_dsl_parser._evaluate(gp_value_type)
   if gp_value_type == itest_dsl_gp_value_types.pc_bottom_pos then
     return stage.state.player_char:get_bottom_center()
+  elseif gp_value_type == itest_dsl_gp_value_types.pc_velocity then
+    return stage.state.player_char.velocity
   else
     assert(false, "unknown gameplay value: "..gp_value_type)
   end

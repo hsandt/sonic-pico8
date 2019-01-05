@@ -2,6 +2,30 @@ require("bustedhelper")
 helper = require("engine/core/helper")
 math = require("engine/core/math")  -- just to test stringify and are_same
 
+describe('transform', function ()
+  it('should return a table where an operation has been applied to each element of the original table', function ()
+    local t = {-1, 2, 3}
+    local function double(x)
+      return 2 * x
+    end
+    assert.are_same({-2, 4, 6}, transform(t, double))
+  end)
+end)
+
+describe('get_members', function ()
+  it('should return a sequence of module members from their names', function ()
+    local module = {
+      a = 1,
+      b = 2,
+      [3] = function () end
+    }
+    assert.are_same({module.a, module.b, module[3]},
+      {get_members(module, "a", "b", 3)})
+  end)
+end)
+
+-- local a, b = import_members(mymodule, "a", "b")    -- v2
+
 describe('is_empty', function ()
   it('return true if the table is empty', function ()
     assert.is_true(is_empty({}))
@@ -147,6 +171,12 @@ describe('unpack', function ()
       assert.are_not_equal(50, d)
     end
     foo(unpack({45, 1, "foo", 20.2, 50}, 2, 4))
+  end)
+end)
+
+describe('invert_table', function ()
+  it('should return a table with reversed keys and values', function ()
+    assert.are_same({[41] = "a", foo = 1}, invert_table({a = 41, [1] = "foo"}))
   end)
 end)
 

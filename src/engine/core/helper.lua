@@ -1,6 +1,28 @@
 require("engine/application/constants")
 
 
+-- implementation of "map" in other languages (but "map" means something else in pico8)
+function transform(t, func)
+  local transformed_t = {}
+  for value in all(t) do
+    add(transformed_t, func(value))
+  end
+  return transformed_t
+end
+
+-- return a sequence of module members from their names
+-- use it after require("module") to define
+--  local a, b = get_members(module, "a", "b")
+--  for more simple access
+function get_members(module, ...)
+  local member_names = {...}
+  return unpack(transform(member_names,
+    function(member_name)
+      return module[member_name]
+    end)
+  )
+end
+
 -- return true if the table is empty (contrary to #t == 0,
 --  it also supports non-sequence tables)
 function is_empty(t)
@@ -73,6 +95,18 @@ function unpack(t, from, to)
   return t[from], unpack(t, from+1, to)
 end
 
+--#if assert
+-- return a table reversing keys and values, assuming the original table is injective
+-- this is "assert" only because we mostly need it to generate enum-to-string tables
+function invert_table(t)
+  inverted_t = {}
+  for key, value in pairs(t) do
+    inverted_t[value] = key
+  end
+  return inverted_t
+end
+--#endif
+
 --#if log
 
 function stringify(value)
@@ -106,6 +140,7 @@ end
 function joinstr(separator, ...)
   return joinstr_table(separator, {...})
 end
+
 --#endif
 
 -- https://pastebin.com/NS8rxMwH

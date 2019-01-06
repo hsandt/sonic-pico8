@@ -1,7 +1,9 @@
 #!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
 import argparse
+import logging
 import os
+import re
 
 # This script replace glyph identifiers, some functions and symbols in general, and arg substitutes ($arg)
 # with the corresponding unicode characters and substitute symbol names.
@@ -31,82 +33,107 @@ GLYPH_TABLE = {
 
 # functions and enum constants to substitute
 # enums are only substituted for token/char limit reasons
+# format: { namespace1: {name1: substitute1, name 2: substitute2, ...}, ... }
 SYMBOL_SUBSTITUTE_TABLE = {
     # Functions
 
-    # api.print is useful for tests using native print but in runtime, just use print
-    'api.print': 'print',
+    # api.print is useful for tests using native print, but in runtime, just use print
+    'api': {
+        'print': 'print'
+    },
 
     # Enums
 
     # for every enum added here, surround enum definition with --#ifn pico8
     #   to strip it from the build, unless you need to map the enum string
-    #   to its value dynamically
+    #   to its value dynamically with enum_values[dynamic_string]
     # remember to update the values of any preprocessed enum modified
 
     # color
-    'colors.black': 0,
-    'colors.dark_blue': 1,
-    'colors.dark_purple': 2,
-    'colors.dark_green': 3,
-    'colors.brown': 4,
-    'colors.dark_gray': 5,
-    'colors.light_gray': 6,
-    'colors.white': 7,
-    'colors.red': 8,
-    'colors.orange': 9,
-    'colors.yellow': 10,
-    'colors.green': 11,
-    'colors.blue': 12,
-    'colors.indigo': 13,
-    'colors.pink': 14,
-    'colors.peach': 15,
+    'colors': {
+        'black':        0,
+        'dark_blue':    1,
+        'dark_purple':  2,
+        'dark_green':   3,
+        'brown':        4,
+        'dark_gray':    5,
+        'light_gray':   6,
+        'white':        7,
+        'red':          8,
+        'orange':       9,
+        'yellow':       10,
+        'green':        11,
+        'blue':         12,
+        'indigo':       13,
+        'pink':         14,
+        'peach':        15,
+    },
 
     # math
-    'directions.left': 0,
-    'directions.right': 1,
-    'directions.up': 2,
-    'directions.down': 3,
+    'directions': {
+        'left':  0,
+        'right': 1,
+        'up':    2,
+        'down':  3,
+    },
 
-    'horizontal_dirs.left': 1,
-    'horizontal_dirs.right': 2,
+    'horizontal_dirs': {
+        'left':     1,
+        'right':    2,
+    },
 
     # input
-    'button_ids.left': 0,
-    'button_ids.right': 1,
-    'button_ids.up': 2,
-    'button_ids.down': 3,
-    'button_ids.o': 4,
-    'button_ids.x': 5,
+    'button_ids': {
+        'left':     0,
+        'right':    1,
+        'up':       2,
+        'down':     3,
+        'o':        4,
+        'x':        5,
+    },
 
-    'btn_states.released': 0,
-    'btn_states.just_pressed': 1,
-    'btn_states.pressed': 2,
-    'btn_states.just_released': 3,
+    'btn_states': {
+        'released':         0,
+        'just_pressed':     1,
+        'pressed':          2,
+        'just_released':    3,
+    },
 
-    'input_modes.native': 0,
-    'input_modes.simulated': 1,
+    'input_modes': {
+        'native':       0,
+        'simulated':    1,
+    },
 
     # playercharacter
-    'control_modes.human': 1,
-    'control_modes.ai': 2,
-    'control_modes.puppet': 3,
+    'control_modes': {
+        'human':    1,
+        'ai':       2,
+        'puppet':   3,
+    },
 
-    'motion_modes.platformer': 1,
-    'motion_modes.debug': 2,
+    'motion_modes': {
+        'platformer':   1,
+        'debug':        2,
+    },
 
-    'motion_states.grounded': 1,
-    'motion_states.airborne': 2,
+    'motion_states': {
+        'grounded': 1,
+        'airborne': 2,
+    },
 
-    # itest
-    'itest_dsl_command_types.warp':    1,
-    'itest_dsl_command_types.move':    2,
-    'itest_dsl_command_types.wait':   11,
-    'itest_dsl_command_types.expect': 21,
+    # itest_dsl
+    'itest_dsl_command_types': {
+        'warp':    1,
+        'move':    2,
+        'wait':   11,
+        'expect': 21,
+    },
 
-    'itest_dsl_gp_value_types.pc_bottom_pos':  1,
-    'itest_dsl_gp_value_types.pc_velocity':   11,
-    'itest_dsl_gp_value_types.pc_ground_spd': 12,
+    'itest_dsl_gp_value_types': {
+        'pc_bottom_pos':  1,
+        'pc_velocity':   11,
+        'pc_ground_spd': 12,
+    },
 }
 
 # prefix of all arg identifiers
@@ -149,7 +176,10 @@ def replace_all_strings_in_file(filepath, arg_substitutes_table):
         print("press ❎")
 
     """
-    with open(filepath, 'r+') as f:
+    # make sure to open files as utf-8 so we can handle glyphs on any platform
+    # (when locale.getpreferredencoding() and sys.getfilesystemencoding() are not "UTF-8" and "utf-8")
+    # you can also set PYTHONIOENCODING="UTF-8" to visualize glyphs when debugging if needed
+    with open(filepath, 'r+', encoding='utf-8') as f:
         data = f.read()
         data = replace_all_glyphs_in_string(data)
         data = replace_all_symbols_in_string(data)
@@ -171,21 +201,31 @@ def replace_all_glyphs_in_string(text):
         text = text.replace(GLYPH_PREFIX + identifier_char, glyph)
     return text
 
+def generate_get_substitute_from_dict(substitutes):
+    def get_substitute(match):
+        member = match.group(1)  # "{member}"
+        if member in substitutes:
+            return str(substitutes[member])  # enums are substituted with integers, so convert
+        else:
+            original_symbol = match.group(0)  # "{namespace}.{member}"
+            # in general, we should substitute all members of a namespace, especially enums
+            logging.warning(f'no substitute defined for {original_symbol}, but the namespace is present in SYMBOL_SUBSTITUTE_TABLE')
+            return original_symbol
+    return get_substitute
+
 def replace_all_symbols_in_string(text):
     """
-    Replace symbols with the corresponding substitutes
+    Replace symbols "namespace.member" defined in SYMBOL_SUBSTITUTE_TABLE
+    with the corresponding substitutes
     Convert integer to string for replacement to support enum constants
 
     >>> replace_all_symbols_in_string("api.print(\"hello\")")
     'print("hello")'
 
     """
-    for original_symbol, substitute_symbol in SYMBOL_SUBSTITUTE_TABLE.items():
-        # enum constants are defined with integer substitutes for simplicity,
-        # so convert them to string first
-        if type(substitute_symbol) == int:
-            substitute_symbol = str(substitute_symbol)
-        text = text.replace(original_symbol, substitute_symbol)
+    for namespace, substitutes in SYMBOL_SUBSTITUTE_TABLE.items():
+        SYMBOL_PATTERN = re.compile(rf"{namespace}\.(\w+)")
+        text = SYMBOL_PATTERN.sub(generate_get_substitute_from_dict(substitutes), text)
     return text
 
 
@@ -226,6 +266,8 @@ if __name__ == '__main__':
         help='extra substitutes table in the format "arg1=substitute1 arg2=substitute2 ...". \
             Does not support spaces in names because surrounding quotes would be part of the names')
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO)
     arg_substitutes_table = parse_arg_substitutes(args.substitutes)
     replace_all_strings_in_dir(args.dirpath, arg_substitutes_table)
     print(f"Replaced all strings in all files in {args.dirpath} with substitutes: {arg_substitutes_table}.")

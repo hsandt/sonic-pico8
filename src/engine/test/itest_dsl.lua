@@ -52,6 +52,7 @@ parsable_types = {
   number         =  1,
   vector         =  2,
   horizontal_dir = 11,
+  motion_state   = 12,
   expect         = 21,  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
 }
 
@@ -83,9 +84,10 @@ command_arg_types = {
 
 -- type of gameplay values available for expectations
 gp_value_types = {
-  pc_bottom_pos =  1,  -- bottom position of player character
-  pc_velocity   = 11,  -- velocity of player character
-  pc_ground_spd = 12,  -- ground speed of player character
+  pc_bottom_pos   =  1,  -- bottom position of player character
+  pc_velocity     = 11,  -- velocity of player character
+  pc_ground_spd   = 12,  -- ground speed of player character
+  pc_motion_state = 21,  -- motion state of player character
 }
 
 --#if assert
@@ -97,6 +99,7 @@ local gp_value_data_t = {
   [gp_value_types.pc_bottom_pos] = gameplay_value_data("player character bottom position", parsable_types.vector),
   [gp_value_types.pc_velocity]   = gameplay_value_data("player character velocity",        parsable_types.vector),
   [gp_value_types.pc_ground_spd] = gameplay_value_data("player character ground speed",    parsable_types.number),
+  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
 }
 
 
@@ -114,7 +117,16 @@ end
 
 function itest_dsl.parse_horizontal_dir(arg_strings)
   assert(#arg_strings == 1, "parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
-  return horizontal_dirs[arg_strings[1]]
+  local horizontal_dir = horizontal_dirs[arg_strings[1]]
+  assert(horizontal_dir, "horizontal_dirs["..arg_strings[1].."] is not defined")
+  return horizontal_dir
+end
+
+function itest_dsl.parse_motion_state(arg_strings)
+  assert(#arg_strings == 1, "parse_motion_state: got "..#arg_strings.." args, expected 1")
+  local motion_state = motion_states[arg_strings[1]]
+  assert(motion_state, "motion_states["..arg_strings[1].."] is not defined")
+  return motion_states[arg_strings[1]]
 end
 
 -- convert string args to vector
@@ -174,6 +186,10 @@ end
 
 function itest_dsl.eval_pc_ground_spd()
   return stage.state.player_char.ground_speed
+end
+
+function itest_dsl.eval_pc_motion_state()
+  return stage.state.player_char.motion_state
 end
 
 -- table of functions used to evaluate and returns the gameplay value in current game state

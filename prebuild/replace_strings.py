@@ -126,6 +126,7 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'number':          1,
         'vector':          2,
         'horizontal_dir': 11,
+        'motion_state':   12,
         'expect':         21,
     },
 

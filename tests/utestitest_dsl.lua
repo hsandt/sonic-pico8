@@ -3,9 +3,9 @@ require("engine/core/helper")
 require("engine/core/math")
 local itest_dsl = require("engine/test/itest_dsl")
 local gameplay_value_data, generate_function_table = get_members(itest_dsl, "gameplay_value_data", "generate_function_table")
-local parse_number, parse_vector, parse_horizontal_dir, parse_expect = get_members(itest_dsl, "parse_number", "parse_vector", "parse_horizontal_dir", "parse_expect")
+local parse_number, parse_vector, parse_horizontal_dir, parse_motion_state, parse_expect = get_members(itest_dsl, "parse_number", "parse_vector", "parse_horizontal_dir", "parse_motion_state", "parse_expect")
 local execute_warp, execute_move, execute_wait = get_members(itest_dsl, "execute_warp", "execute_move", "execute_wait")
-local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd = get_members(itest_dsl, "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd")
+local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state = get_members(itest_dsl, "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state")
 local command, expectation = get_members(itest_dsl, "command", "expectation")
 local dsl_itest, itest_dsl_parser = get_members(itest_dsl, "dsl_itest", "itest_dsl_parser")
 local integrationtest = require("engine/test/integrationtest")
@@ -85,6 +85,20 @@ describe('itest_dsl', function ()
 
     it('should return the single argument as horizontal direction', function ()
       assert.are_equal(horizontal_dirs.right, parse_horizontal_dir({"right"}))
+    end)
+
+  end)
+
+  describe('parse_motion_state', function ()
+
+    it('should assert when the number of arguments is wrong', function ()
+      assert.has_error(function ()
+        parse_motion_state({"too", "many"})
+      end, "parse_motion_state: got 2 args, expected 1")
+    end)
+
+    it('should return the single argument as motion state', function ()
+      assert.are_equal(motion_states.airborne, parse_motion_state({"airborne"}))
     end)
 
   end)
@@ -181,6 +195,15 @@ describe('itest_dsl', function ()
       it('should return the ground speed current player character', function ()
         stage.state.player_char.ground_speed = 3.5
         assert.are_equal(3.5, eval_pc_ground_spd())
+      end)
+
+    end)
+
+    describe('eval_pc_motion_state', function ()
+
+      it('should return the ground speed current player character', function ()
+        stage.state.player_char.motion_state = motion_states.airborne
+        assert.are_equal(motion_states.airborne, eval_pc_motion_state())
       end)
 
     end)

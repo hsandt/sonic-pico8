@@ -5,7 +5,7 @@ local itest_dsl = require("engine/test/itest_dsl")
 local gameplay_value_data, generate_function_table = get_members(itest_dsl, "gameplay_value_data", "generate_function_table")
 local parse_number, parse_vector, parse_horizontal_dir, parse_expect = get_members(itest_dsl, "parse_number", "parse_vector", "parse_horizontal_dir", "parse_expect")
 local execute_warp, execute_move, execute_wait = get_members(itest_dsl, "execute_warp", "execute_move", "execute_wait")
-local eval_pc_bottom_pos, eval_pc_velocity = get_members(itest_dsl, "eval_pc_bottom_pos", "eval_pc_velocity")
+local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd = get_members(itest_dsl, "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd")
 local command, expectation = get_members(itest_dsl, "command", "expectation")
 local dsl_itest, itest_dsl_parser = get_members(itest_dsl, "dsl_itest", "itest_dsl_parser")
 local integrationtest = require("engine/test/integrationtest")
@@ -137,7 +137,7 @@ describe('itest_dsl', function ()
 
     describe('execute_move', function ()
 
-      it('should call warp_bottom_to on the current player character', function ()
+      it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
         execute_move({horizontal_dirs.right})
         assert.are_equal(vector(1, 0), stage.state.player_char.move_intention)
       end)
@@ -160,7 +160,7 @@ describe('itest_dsl', function ()
 
     describe('eval_pc_bottom_pos', function ()
 
-      it('should call warp_bottom_to on the current player character', function ()
+      it('should return the bottom position of the current player character', function ()
         stage.state.player_char:set_bottom_center(vector(12, 47))
         assert.are_equal(vector(12, 47), eval_pc_bottom_pos())
       end)
@@ -169,9 +169,18 @@ describe('itest_dsl', function ()
 
     describe('eval_pc_velocity', function ()
 
-      it('should call warp_bottom_to on the current player character', function ()
+      it('should return the velocity the current player character', function ()
         stage.state.player_char.velocity = vector(1, -4)
         assert.are_equal(vector(1, -4), eval_pc_velocity())
+      end)
+
+    end)
+
+    describe('eval_pc_ground_spd', function ()
+
+      it('should return the ground speed current player character', function ()
+        stage.state.player_char.ground_speed = 3.5
+        assert.are_equal(3.5, eval_pc_ground_spd())
       end)
 
     end)
@@ -524,7 +533,7 @@ expect
 
     end)
 
-    describe('#solo parse_action_sequence', function ()
+    describe('parse_action_sequence', function ()
 
       it('should return a sequence of commands read in lines, starting at next_line_index', function ()
         local dsli_lines = {
@@ -632,8 +641,8 @@ expect
         assert.are_equal(vector(-1, 0), stage.state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
-        local expected_message = "Passed gameplay value 'player character bottom position':\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
-          "Passed gameplay value 'player character velocity':\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
+        local expected_message = "\nPassed gameplay value 'player character bottom position':\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
+          "\nPassed gameplay value 'player character velocity':\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
         -- but if we cheat and warp him on the spot, final assertion will work
@@ -792,7 +801,7 @@ expect
           expectation(gp_value_types.pc_velocity, vector(-3, 7.5))    -- different from actual
         }
         itest_dsl_parser:_define_final_assertion()
-        local expected_message = "Passed gameplay value 'player character velocity':\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
+        local expected_message = "\nPassed gameplay value 'player character velocity':\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
         assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
       end)
 

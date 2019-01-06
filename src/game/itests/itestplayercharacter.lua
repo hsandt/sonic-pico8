@@ -28,20 +28,14 @@ itest_dsl_parser.register('#solo platformer accel right flat', [[
 warp 4 8
 move right
 wait 30
-expect pc_bottom_pos 14.8984375 8.
+expect pc_bottom_pos 14.8984375 8
+expect pc_ground_spd 0.703125
+expect pc_velocity 0.703125 0
 ]]
 )
 
 
 --[[ original
-itest.setup = function ()
-  -- stage.state.player_char.motion_mode = motion_modes.platformer
-end
-
-itest.teardown = function ()
-  clear_map()
-  -- teardown_map_data()
-end
 
 -- check that player char has moved to the right and is still on the ground
 itest.final_assertion = function ()

@@ -172,6 +172,10 @@ function itest_dsl.eval_pc_velocity()
   return stage.state.player_char.velocity
 end
 
+function itest_dsl.eval_pc_ground_spd()
+  return stage.state.player_char.ground_speed
+end
+
 -- table of functions used to evaluate and returns the gameplay value in current game state
 evaluators = generate_function_table(itest_dsl, gp_value_types, "eval_")
 itest_dsl.evaluators = evaluators
@@ -482,13 +486,15 @@ function itest_dsl_parser:_define_final_assertion()
 
     -- check each expectation one by one
     for exp in all(final_expectations_proxy) do
-      local gp_value = evaluators[exp.gp_value_type]()
+      local evaluator = evaluators[exp.gp_value_type]
+      assert(evaluator, "evaluators["..exp.gp_value_type.."] (for '"..gp_value_type_strings[exp.gp_value_type].."') is not defined")
+      local gp_value = evaluator()
       if gp_value ~= exp.expected_value then
         success = false
         local gp_value_data = gp_value_data_t[exp.gp_value_type]
         assert(gp_value_data, "gp_value_data_t["..exp.gp_value_type.."] is not defined")
         local gp_value_name = gp_value_data.name
-        local message = "Passed gameplay value '"..gp_value_name.."':\n"..
+        local message = "\nPassed gameplay value '"..gp_value_name.."':\n"..
           gp_value.."\n"..
           "Expected:\n"..
           exp.expected_value

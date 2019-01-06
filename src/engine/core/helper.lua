@@ -10,7 +10,7 @@ function transform(t, func)
   return transformed_t
 end
 
--- return a sequence of module members from their names
+-- return module members from their names as multiple values
 -- use it after require("module") to define
 --  local a, b = get_members(module, "a", "b")
 --  for more simple access

@@ -13,7 +13,7 @@ describe('transform', function ()
 end)
 
 describe('get_members', function ()
-  it('should return a sequence of module members from their names', function ()
+  it('should return module members from their names as multiple values', function ()
     local module = {
       a = 1,
       b = 2,

@@ -14,29 +14,167 @@ local pc_data = require("game/data/playercharacter_data")
 -- module
 local itest_dsl = {}
 
+local value_parsers
+local executors
+local evaluators
+
+-- struct holding data on a gameplay value for expectations
+
+-- attributes
+-- name             string           descriptive name of the gameplay value (to debug failing itests)
+-- parsable_type    parsable_type    type of gameplay value (for expected args parsing)
+local gameplay_value_data = new_struct()
+itest_dsl.gameplay_value_data = gameplay_value_data
+
+function gameplay_value_data:_init(name, parsable_type, eval)
+  self.name = name
+  self.parsable_type = parsable_type
+end
+
+
+-- optimize tokens: if this is too much, remove proxy function tables
+--  altogether and directly access functions via itest_dsl[prefix..type_name]
+-- return table containing functions named {prefix}{enum_type_name}
+--  inside a module, indexed by enum value
+local function generate_function_table(module, enum_types, prefix)
+  local t = {}
+  for type_name, enum_type in pairs(enum_types) do
+    t[enum_type] = module[prefix..type_name]
+  end
+  return t
+end
+--#if utest
+itest_dsl.generate_function_table = generate_function_table
+--#endif
+
+-- type of variables that can be parsed
+parsable_types = {
+  number         =  1,
+  vector         =  2,
+  horizontal_dir = 11,
+  expect         = 21,  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
+}
+
+--#if assert
+parsable_type_strings = invert_table(parsable_types)
+--#endif
+
 
 -- type of commands available
-itest_dsl_command_types = {
-  warp   =  1,  -- warp player character bottom  args: {bottom position: vector}
-  move   =  2,  -- set sticky pc move intention   args: {move_dir: horizontal_dirs}
-  wait   = 11,  --
-  expect = 21,
+command_types = {
+  warp   =  1,  -- warp player character bottom  args: {bottom_position: vector}
+  move   =  2,  -- set sticky pc move intention  args: {move_dir: horizontal_dirs}
+  wait   = 11,  -- wait some frames              args: {frames: int}
+  expect = 21,  -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
+
+--#if assert
+command_type_strings = invert_table(command_types)
+--#endif
+
+-- argument types expected after those commands
+command_arg_types = {
+  [command_types.warp]   = parsable_types.vector,
+  [command_types.move]   = parsable_types.horizontal_dir,
+  [command_types.wait]   = parsable_types.number,
+  [command_types.expect] = parsable_types.expect,
+}
+
 
 -- type of gameplay values available for expectations
-itest_dsl_gp_value_types = {
-  pc_bottom_pos =  1,
-  pc_velocity   = 11,
-  pc_ground_spd = 12,
+gp_value_types = {
+  pc_bottom_pos =  1,  -- bottom position of player character
+  pc_velocity   = 11,  -- velocity of player character
+  pc_ground_spd = 12,  -- ground speed of player character
 }
 
--- string mapping for itest messages (to debug failing itests)
-local value_type_strings = {
-  [1] = "player character bottom position",
-  [11] = "player character velocity",
-  [12] = "player character ground speed",
+--#if assert
+gp_value_type_strings = invert_table(gp_value_types)
+--#endif
+
+-- data for each gameplay value type
+local gp_value_data_t = {
+  [gp_value_types.pc_bottom_pos] = gameplay_value_data("player character bottom position", parsable_types.vector),
+  [gp_value_types.pc_velocity]   = gameplay_value_data("player character velocity",        parsable_types.vector),
+  [gp_value_types.pc_ground_spd] = gameplay_value_data("player character ground speed",    parsable_types.number),
 }
 
+
+-- parsing functions
+
+function itest_dsl.parse_number(arg_strings)
+  assert(#arg_strings == 1, "parse_number: got "..#arg_strings.." args, expected 1")
+  return tonum(arg_strings[1])
+end
+
+function itest_dsl.parse_vector(arg_strings)
+  assert(#arg_strings == 2, "parse_vector: got "..#arg_strings.." args, expected 2")
+  return vector(tonum(arg_strings[1]), tonum(arg_strings[2]))
+end
+
+function itest_dsl.parse_horizontal_dir(arg_strings)
+  assert(#arg_strings == 1, "parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
+  return horizontal_dirs[arg_strings[1]]
+end
+
+-- convert string args to vector
+function itest_dsl.parse_expect(arg_strings)
+  assert(#arg_strings > 1, "parse_expect: got "..#arg_strings.." args, expected at least 2")
+  -- same principle as itest_dsl_parser.parse, the type of the first arg
+  --  determines how we parse the rest of the args, named "value components"
+  local gp_value_type_str = arg_strings[1]
+  -- gather all the value components as strings (e.g. {"3", "4"} for vector(3, 4))
+  local expected_value_comps = {}
+  for i = 2, #arg_strings do
+    add(expected_value_comps, arg_strings[i])
+  end
+  -- determine the type of value reference tested for comparison (e.g. pc position)
+  local gp_value_type = gp_value_types[gp_value_type_str]
+  -- parse the value components to semantical type (e.g. vector)
+  local gp_value_data = gp_value_data_t[gp_value_type]
+  local expected_value_parser = value_parsers[gp_value_data.parsable_type]
+  assert(expected_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
+  local expected_value = expected_value_parser(expected_value_comps)
+
+  return gp_value_type, expected_value
+end
+
+-- table of parsers for command args and gameplay values, indexed by parsed type
+value_parsers = generate_function_table(itest_dsl, parsable_types, "parse_")
+itest_dsl.value_parsers = value_parsers
+
+
+-- functions to execute dsl commands. they take the dsl parser as 1st parameter
+-- so they can update its state if needed
+
+function itest_dsl.execute_warp(args)
+  stage.state.player_char:warp_bottom_to(args[1])
+end
+
+function itest_dsl.execute_move(args)
+      stage.state.player_char.move_intention = horizontal_dir_vectors[args[1]]
+end
+
+-- wait and expect are not timed actions and will be handled as special cases
+
+-- table of functions to call when applying a command with args, indexed by command type
+executors = generate_function_table(itest_dsl, command_types, "execute_")
+itest_dsl.executors = executors
+
+
+-- gameplay value evaluation functions
+
+function itest_dsl.eval_pc_bottom_pos()
+  return stage.state.player_char:get_bottom_center()
+end
+
+function itest_dsl.eval_pc_velocity()
+  return stage.state.player_char.velocity
+end
+
+-- table of functions used to evaluate and returns the gameplay value in current game state
+evaluators = generate_function_table(itest_dsl, gp_value_types, "eval_")
+itest_dsl.evaluators = evaluators
 
 -- command struct
 
@@ -55,7 +193,7 @@ end
 -- expectation struct
 
 -- attributes
--- gp_value_type  itest_dsl_gp_value_types       type of gameplay value to compare
+-- gp_value_type  gp_value_types       type of gameplay value to compare
 -- expected_value {type used for gp_value_type}  expected gameplay value
 local expectation = new_struct()
 itest_dsl.expectation = expectation
@@ -77,7 +215,7 @@ local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
 
 function dsl_itest:_init()
-  -- all attributes are initially nil or empty
+  -- all attributes are initially nil (even commands, as we construct the table during parsing)
 end
 
 
@@ -110,7 +248,7 @@ end
 -- ...                          < for custom stage, provide the tilemap in ascii
 -- ###                          < . for empty tile, # for full tile, etc.
 --                              < blank after tilemap to mark the end
--- warp 4 8                    < initial setup (it's an action like any other)
+-- warp 4 8                     < initial setup (it's an action like any other)
 -- move right                   < more actions...
 -- wait 30                      < wait delays the next action (here, the nil action)
 -- expect pc_bottom_pos 14. 8.  < expectation (only final assertion is supported)
@@ -207,6 +345,7 @@ function itest_dsl_parser.parse_tilemap(lines)
 end
 
 
+-- return a sequence of commands read in lines, starting at next_line_index
 function itest_dsl_parser.parse_action_sequence(lines, next_line_index)
   local commands = {}
   for i = next_line_index, #lines do
@@ -218,65 +357,19 @@ function itest_dsl_parser.parse_action_sequence(lines, next_line_index)
       for j = 2, #words do
         add(arg_strings, words[j])
       end
-      local cmd_type = itest_dsl_command_types[cmd_type_str]
-      local parse_fn_name = '_parse_args_'..cmd_type_str
-      assert(itest_dsl_parser[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
-      local args = {itest_dsl_parser[parse_fn_name](arg_strings)}
+      local cmd_type = command_types[cmd_type_str]
+      assert(cmd_type, "no command type named '"..cmd_type_str.."'")
+      local arg_parsable_type = command_arg_types[cmd_type]
+      assert(arg_parsable_type, "no command arg type defined for command '"..command_type_strings[cmd_type].."'")
+      local arg_parser = value_parsers[arg_parsable_type]
+      assert(arg_parser, "no value parser defined for arg type '"..parsable_type_strings[arg_parsable_type].."'")
+      local args = {arg_parser(arg_strings)}
       add(commands, command(cmd_type, args))
     end
   end
   return commands
 end
 
--- convert string args to vector
-function itest_dsl_parser._parse_args_warp(args)
-  assert(#args == 2, "got "..#args.." args")
-  return vector(tonum(args[1]), tonum(args[2]))  -- bottom position
-end
-
--- convert string args to vector
-function itest_dsl_parser._parse_args_move(args)
-  assert(#args == 1, "got "..#args.." args")
-  return horizontal_dirs[args[1]]                -- move intention
-end
-
--- convert string args to vector
-function itest_dsl_parser._parse_args_wait(args)
-  assert(#args == 1, "got "..#args.." args")
-  return tonum(args[1])                          -- frames to wait
-end
-
--- convert string args to vector
-function itest_dsl_parser._parse_args_expect(args)
-  assert(#args > 1, "got "..#args.." args")
-  -- same principle as itest_dsl_parser.parse, the type of the first arg
-  --  determines how we parse the rest of the args, named "value components"
-  local value_type_str = args[1]
-  -- gather all the value components as strings (e.g. {"3", "4"} for vector(3, 4))
-  local expected_value_comps = {}
-  for i = 2, #args do
-    add(expected_value_comps, args[i])
-  end
-  -- determine the type of value reference tested for comparison (e.g. pc position)
-  local value_type = itest_dsl_gp_value_types[value_type_str]
-  -- parse the value components to semantical type (e.g. vector)
-  local parse_fn_name = '_parse_value_'..value_type_str
-  assert(itest_dsl_parser[parse_fn_name], "parse function '"..parse_fn_name.."' is not defined")
-  local expected_value = itest_dsl_parser[parse_fn_name](expected_value_comps)
-  return value_type, expected_value
-end
-
--- convert string args to vector
-function itest_dsl_parser._parse_value_pc_bottom_pos(args)
-  assert(#args == 2, "got "..#args.." args")
-  return vector(tonum(args[1]), tonum(args[2]))
-end
-
--- convert string args to vector
-function itest_dsl_parser._parse_value_pc_velocity(args)
-  assert(#args == 2, "got "..#args.." args")
-  return vector(tonum(args[1]), tonum(args[2]))
-end
 
 -- create and return an itest from a dsli, providing a name
 function itest_dsl_parser.create_itest(name, dsli)
@@ -309,22 +402,21 @@ function itest_dsl_parser.create_itest(name, dsli)
   end
 
   for cmd in all(dsli.commands) do
-    if cmd.type == itest_dsl_command_types.warp then
-      itest_dsl_parser:_act(function ()
-        stage.state.player_char:warp_bottom_to(vector(cmd.args[1].x, cmd.args[1].y))
-      end)
-    elseif cmd.type == itest_dsl_command_types.move then
-      itest_dsl_parser:_act(function ()
-        stage.state.player_char.move_intention = horizontal_dir_vectors[cmd.args[1]]
-      end)
-    elseif cmd.type == itest_dsl_command_types.wait then
+    if cmd.type == command_types.wait then
       itest_dsl_parser:_wait(cmd.args[1])
-    elseif cmd.type == itest_dsl_command_types.expect then
-      -- we currently don't support live assertions, only final assertion
-      itest_dsl_parser:_add_final_expectation(unpack(cmd.args))
+
+    elseif cmd.type == command_types.expect then
+      -- we currently don't support live assertions, but we support multiple
+      -- final expectations
+      add(itest_dsl_parser._final_expectations, expectation(cmd.args[1], cmd.args[2]))
+
+    else
+      -- common action, store callback for execution during
+      itest_dsl_parser:_act(function ()
+        executors[cmd.type](cmd.args)
+      end)
     end
   end
-
 
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
@@ -342,6 +434,14 @@ function itest_dsl_parser.create_itest(name, dsli)
   return test
 end
 
+-- glue code for old callback-based system
+-- the time trigger system makes actions and waiting asymmetrical,
+--  as waiting is not an action but adds a parameter to the next action,
+--  and requires nil actions to chain waiting (they don't even merge)
+-- prefer a flat sequence of generic actions that can be actual gameplay
+--  changes or waiting. when waiting, just skip frames until waiting ends,
+--  at which point you can apply all further actions immediately, until
+--  a new wait action is found.
 function itest_dsl_parser:_act(callback)
   if self._last_time_trigger then
     self._itest:add_action(self._last_time_trigger, callback)
@@ -361,10 +461,6 @@ function itest_dsl_parser:_wait(interval)
   self._last_time_trigger = integrationtest.time_trigger(interval, true)
 end
 
--- add final expectation to sequence, for future evaluation
-function itest_dsl_parser:_add_final_expectation(gp_value_type, expected_gp_value)
-  add(self._final_expectations, expectation(gp_value_type, expected_gp_value))
-end
 
 -- define final assertion based on sequence of final expectations
 -- this is a glue method to make it retro-compatible with the function-based final assertion
@@ -386,11 +482,12 @@ function itest_dsl_parser:_define_final_assertion()
 
     -- check each expectation one by one
     for exp in all(final_expectations_proxy) do
-      local gp_value = self._evaluate(exp.gp_value_type)
+      local gp_value = evaluators[exp.gp_value_type]()
       if gp_value ~= exp.expected_value then
         success = false
-        local gp_value_name = value_type_strings[exp.gp_value_type]
-        assert(gp_value_name, "value_type_strings["..exp.gp_value_type.."] is not defined")
+        local gp_value_data = gp_value_data_t[exp.gp_value_type]
+        assert(gp_value_data, "gp_value_data_t["..exp.gp_value_type.."] is not defined")
+        local gp_value_name = gp_value_data.name
         local message = "Passed gameplay value '"..gp_value_name.."':\n"..
           gp_value.."\n"..
           "Expected:\n"..
@@ -403,16 +500,5 @@ function itest_dsl_parser:_define_final_assertion()
   end
 end
 
--- evaluate gameplay value. it is important to call this at expect
---  time, not when defining the test, to get the actual runtime value
-function itest_dsl_parser._evaluate(gp_value_type)
-  if gp_value_type == itest_dsl_gp_value_types.pc_bottom_pos then
-    return stage.state.player_char:get_bottom_center()
-  elseif gp_value_type == itest_dsl_gp_value_types.pc_velocity then
-    return stage.state.player_char.velocity
-  else
-    assert(false, "unknown gameplay value: "..gp_value_type)
-  end
-end
 
 return itest_dsl

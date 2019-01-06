@@ -267,6 +267,8 @@
 			"cmd": ["pico8 -run data/data.p8"],
 			"working_dir": "${project_path}"
 		},
+		// it's better to use our custom main in unittest scripts to get the correct log level
+		// for filtering, it's easier to use -m unittest, but it will show all the warnings
 		{
 			"name": "python: test preprocess (TestPreprocessLines)",
 			"working_dir": "${project_path}",

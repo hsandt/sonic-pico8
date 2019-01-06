@@ -122,14 +122,21 @@ SYMBOL_SUBSTITUTE_TABLE = {
     },
 
     # itest_dsl
-    'itest_dsl_command_types': {
+    'parsable_types': {
+        'number':          1,
+        'vector':          2,
+        'horizontal_dir': 11,
+        'expect':         21,
+    },
+
+    'command_types': {
         'warp':    1,
         'move':    2,
         'wait':   11,
         'expect': 21,
     },
 
-    'itest_dsl_gp_value_types': {
+    'gp_value_types': {
         'pc_bottom_pos':  1,
         'pc_velocity':   11,
         'pc_ground_spd': 12,

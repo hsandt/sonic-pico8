@@ -2,13 +2,14 @@ require("bustedhelper")
 helper = require("engine/core/helper")
 math = require("engine/core/math")  -- just to test stringify and are_same
 
-describe('transform', function ()
-  it('should return a table where an operation has been applied to each element of the original table', function ()
-    local t = {-1, 2, 3}
-    local function double(x)
-      return 2 * x
-    end
-    assert.are_same({-2, 4, 6}, transform(t, double))
+describe('enum', function ()
+  it('should return a table containing enum variants with names passed as variadic parameters, values starting from 1', function ()
+    assert.are_same({
+        left = 1,
+        right = 2,
+        up = 3,
+        down = 4
+      }, enum("left", "right", "up", "down"))
   end)
 end)
 

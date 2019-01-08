@@ -1,6 +1,20 @@
 require("engine/application/constants")
 
 
+-- create an enum from variadic arguments
+function enum(...)
+  local variant_names = {...}
+  local t = {}
+  local i = 1
+
+  for variant_name in all(variant_names) do
+    t[variant_name] = i
+    i = i + 1
+  end
+
+  return t
+end
+
 -- implementation of "map" in other languages (but "map" means something else in pico8)
 function transform(t, func)
   local transformed_t = {}

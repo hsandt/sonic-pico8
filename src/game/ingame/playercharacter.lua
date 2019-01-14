@@ -23,13 +23,20 @@ motion_modes = {
   debug = 2       -- debug "fly" mode
 }
 
+--#endif
+
+-- motion_states is accessed dynamically via variant name in itest_dsl
+--  so we don't strip it away from pico8 builds
+-- it is only used for expectations, though, so it could be #if test only,
+--  but the dsl may be used for attract mode later (dsl) so unless we distinguish
+--  parsable types like motion_states that are only used for expectations
+--  as opposed to actions, we should keep this in the release build
+
 -- enum for character motion state in platformer mode
 motion_states = {
   grounded = 1,       -- character is on the ground
   airborne = 2        -- character is in the air
 }
-
---#endif
 
 local player_char = new_class()
 

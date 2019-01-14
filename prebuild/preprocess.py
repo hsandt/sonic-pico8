@@ -16,10 +16,17 @@ from enum import Enum
 # For non-pico8 builds, we use --#ifn pico8 to indicate we won't have preprocessing,
 # but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
 # the code is only needed for a purpose of redundancy and unit test harnessing in general.
+
+# assert
+# If 'assert' is defined here, it should *not* be stripped in the next table.
+# The 'assert' symbol if only here to only to strip multi-line asserts or blocks of functions only used inside assert calls.
+
+# visual_logger
+# 'visual_logger' requires 'log', the dependeency is not automatically solved.
 defined_symbols_table = {
     'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse', 'cheat'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
-    'itest':       ['pico8', 'log', 'visual_logger', 'test'],
+    'itest':       ['pico8', 'assert', 'log', 'test'],
     'itest_light': ['pico8', 'log', 'test'],
     'profiler':    ['pico8', 'log', 'visual_logger', 'profiler'],
     'visual_log':  ['pico8', 'log', 'visual_logger'],
@@ -37,7 +44,7 @@ defined_symbols_table = {
 stripped_functions_table = {
     'debug':       [],
     'assert':      [],
-    'itest':       ['assert'],
+    'itest':       [],
     'itest_light': ['assert'],
     'profiler':    ['assert'],
     'visual_log':  ['assert'],

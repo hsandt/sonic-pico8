@@ -1,9 +1,8 @@
 require("engine/application/constants")
 
 
--- create an enum from variadic arguments
-function enum(...)
-  local variant_names = {...}
+-- create an enum from a sequence of variant names
+function enum(variant_names)
   local t = {}
   local i = 1
 

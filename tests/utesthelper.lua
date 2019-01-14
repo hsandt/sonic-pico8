@@ -3,13 +3,13 @@ helper = require("engine/core/helper")
 math = require("engine/core/math")  -- just to test stringify and are_same
 
 describe('enum', function ()
-  it('should return a table containing enum variants with names passed as variadic parameters, values starting from 1', function ()
+  it('should return a table containing enum variants with the names passed as a sequence, values starting from 1', function ()
     assert.are_same({
         left = 1,
         right = 2,
         up = 3,
         down = 4
-      }, enum("left", "right", "up", "down"))
+      }, enum {"left", "right", "up", "down"})
   end)
 end)
 

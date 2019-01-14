@@ -1,6 +1,7 @@
 require("engine/core/helper")
 local integrationtest = require("engine/test/integrationtest")
-local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
+local itest_manager,   integration_test = get_members(integrationtest,
+     "itest_manager", "integration_test")
 
 local tile_data = require("game/data/tile_data")
 local tilemap = require("engine/data/tilemap")
@@ -8,6 +9,7 @@ local tilemap = require("engine/data/tilemap")
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
+local player_char = require("game/ingame/playercharacter")
 local pc_data = require("game/data/playercharacter_data")
 
 

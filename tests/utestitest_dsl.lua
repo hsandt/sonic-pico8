@@ -2,14 +2,20 @@ require("bustedhelper")
 require("engine/core/helper")
 require("engine/core/math")
 local itest_dsl = require("engine/test/itest_dsl")
-local gameplay_value_data, generate_function_table = get_members(itest_dsl, "gameplay_value_data", "generate_function_table")
+local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
+     "gameplay_value_data", "generate_function_table")
 local parse_number, parse_vector, parse_horizontal_dir, parse_motion_state, parse_expect = get_members(itest_dsl, "parse_number", "parse_vector", "parse_horizontal_dir", "parse_motion_state", "parse_expect")
-local execute_warp, execute_move, execute_wait = get_members(itest_dsl, "execute_warp", "execute_move", "execute_wait")
-local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state = get_members(itest_dsl, "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state")
-local command, expectation = get_members(itest_dsl, "command", "expectation")
-local dsl_itest, itest_dsl_parser = get_members(itest_dsl, "dsl_itest", "itest_dsl_parser")
+local execute_warp,   execute_move,   execute_wait = get_members(itest_dsl,
+     "execute_warp", "execute_move", "execute_wait")
+local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state = get_members(itest_dsl,
+     "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state")
+local command,   expectation = get_members(itest_dsl,
+     "command", "expectation")
+local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
+     "dsl_itest", "itest_dsl_parser")
 local integrationtest = require("engine/test/integrationtest")
-local itest_manager, time_trigger, integration_test = get_members(integrationtest, "itest_manager", "time_trigger", "integration_test")
+local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
+     "itest_manager", "time_trigger", "integration_test")
 local flow = require("engine/application/flow")
 local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")

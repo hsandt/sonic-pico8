@@ -48,12 +48,12 @@ itest_dsl.generate_function_table = generate_function_table
 --#endif
 
 -- type of variables that can be parsed
-parsable_types = {
-  number         =  1,
-  vector         =  2,
-  horizontal_dir = 11,
-  motion_state   = 12,
-  expect         = 21,  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
+parsable_types = enum {
+  "number",
+  "vector",
+  "horizontal_dir",
+  "motion_state",
+  "expect",  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
 }
 
 --#if assert
@@ -62,11 +62,12 @@ parsable_type_strings = invert_table(parsable_types)
 
 
 -- type of commands available
-command_types = {
-  warp   =  1,  -- warp player character bottom  args: {bottom_position: vector}
-  move   =  2,  -- set sticky pc move intention  args: {move_dir: horizontal_dirs}
-  wait   = 11,  -- wait some frames              args: {frames: int}
-  expect = 21,  -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
+command_types = enum {
+  "warp",   -- warp player character bottom  args: {bottom_position: vector}
+  "move",   -- set sticky pc move intention  args: {move_dir: horizontal_dirs}
+  -- todo: stop, jump, crouch, spin_dash
+  "wait",   -- wait some frames              args: {frames: int}
+  "expect",  -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
 
 --#if assert
@@ -83,11 +84,11 @@ command_arg_types = {
 
 
 -- type of gameplay values available for expectations
-gp_value_types = {
-  pc_bottom_pos   =  1,  -- bottom position of player character
-  pc_velocity     = 11,  -- velocity of player character
-  pc_ground_spd   = 12,  -- ground speed of player character
-  pc_motion_state = 21,  -- motion state of player character
+gp_value_types = enum {
+  "pc_bottom_pos",   -- bottom position of player character
+  "pc_velocity",     -- velocity of player character
+  "pc_ground_spd",   -- ground speed of player character
+  "pc_motion_state", -- motion state of player character
 }
 
 --#if assert
@@ -99,7 +100,7 @@ local gp_value_data_t = {
   [gp_value_types.pc_bottom_pos] = gameplay_value_data("player character bottom position", parsable_types.vector),
   [gp_value_types.pc_velocity]   = gameplay_value_data("player character velocity",        parsable_types.vector),
   [gp_value_types.pc_ground_spd] = gameplay_value_data("player character ground speed",    parsable_types.number),
-  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
+  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",  parsable_types.motion_state),
 }
 
 
@@ -142,8 +143,10 @@ function itest_dsl.parse_expect(arg_strings)
   end
   -- determine the type of value reference tested for comparison (e.g. pc position)
   local gp_value_type = gp_value_types[gp_value_type_str]
+  assert(gp_value_type, "gp_value_types['"..gp_value_type_str.."'] is not defined")
   -- parse the value components to semantical type (e.g. vector)
   local gp_value_data = gp_value_data_t[gp_value_type]
+  assert(gp_value_data, "gp_value_data_t["..gp_value_type.."] (for '"..gp_value_type_str.."') is not defined")
   local expected_value_parser = value_parsers[gp_value_data.parsable_type]
   assert(expected_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
   local expected_value = expected_value_parser(expected_value_comps)

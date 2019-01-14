@@ -125,22 +125,23 @@ SYMBOL_SUBSTITUTE_TABLE = {
     'parsable_types': {
         'number':          1,
         'vector':          2,
-        'horizontal_dir': 11,
-        'motion_state':   12,
-        'expect':         21,
+        'horizontal_dir':  3,
+        'motion_state':    4,
+        'expect':          5,
     },
 
     'command_types': {
         'warp':    1,
         'move':    2,
-        'wait':   11,
-        'expect': 21,
+        'wait':    3,
+        'expect':  4,
     },
 
     'gp_value_types': {
-        'pc_bottom_pos':  1,
-        'pc_velocity':   11,
-        'pc_ground_spd': 12,
+        'pc_bottom_pos':   1,
+        'pc_velocity':     2,
+        'pc_ground_spd':   3,
+        'pc_motion_state': 4,
     },
 }
 

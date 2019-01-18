@@ -553,7 +553,19 @@ function itest_dsl_parser:_define_final_assertion()
       local evaluator = evaluators[exp.gp_value_type]
       assert(evaluator, "evaluators["..exp.gp_value_type.."] (for '"..gp_value_type_strings[exp.gp_value_type].."') is not defined")
       local gp_value = evaluator()
+--[[#pico8
+      -- in pico8, we use fixed point precision, which is what we expect as final values
+      -- however, precomputing 16.16 fixed precision values by hand is very hard,
+      --  so I may end up using the same approx as with busted below
       local value_success, value_eq_message = eq_with_message(exp.expected_value, gp_value)
+--#pico8]]
+--#if utest
+      -- with busted, we use float point precision, which gives us slightly different values
+      -- unfortunately, the error accumulates over time, and position integrates from speed from accel,
+      --  so depending on the simulation time and the gameplay value type, the error threshold will vary
+      -- to be safe, we use 1/64 (0.015) although 1/256 is often enough)
+      local value_success, value_eq_message = almost_eq_with_message(exp.expected_value, gp_value, 1/64)
+--#endif
       if not value_success then
         success = false
         local gp_value_data = gp_value_data_t[exp.gp_value_type]

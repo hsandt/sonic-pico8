@@ -34,11 +34,7 @@ expect pc_ground_spd 0.703125
 expect pc_velocity 0.703125 0
 ]])
 
--- todo:
--- eq (add = symbol before expected value)
--- almost_eq (add ~ symbol before expected value, default to threshold: 1/256)
-
-itest_dsl_parser.register('#solo debug move right', [[
+itest_dsl_parser.register('debug move right', [[
 @stage #
 .#
 
@@ -47,44 +43,14 @@ warp 0 8
 move right
 wait 60
 
-expect pc_bottom_pos 56.7185 8
+expect pc_bottom_pos 0x0038.b7f1 8
 ]])
 
+-- precision note on expected pc_bottom_pos:
+-- 56.7185211181640625 (0x0038.b7f1) in PICO-8 fixed point precision
+-- 56.7333 in Lua floating point precision
+
 --[[
-
-itest = integration_test('debug move right', {stage.state.type})
-itest_manager:register(itest)
-
-itest.setup = function ()
-  setup_map_data()
-
-  -- just add a tile in the way to make sure debug motion ignores collisions
-  mset(1, 10, 64)
-
-  flow:change_gamestate_by_type(stage.state.type)
-  stage.state.player_char.position = vector(0., 80.)
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.debug
-
-  -- player char starts moving to the right
-  stage.state.player_char.move_intention = vector(1., 0.)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- stop after 1 second
-itest:add_action(time_trigger(1.), function () end)
-
--- check that player char has moved a little to the right (integrate accel)
-itest.final_assertion = function ()
-  -- 56.7185 in PICO-8 fixed point precision
-  -- 56.7333 in Lua floating point precision
-  return almost_eq_with_message(vector(56.7185, 80.), stage.state.player_char.position, 0.015)
-end
-
 
 -- bugfix history:
 -- . test failed because initial character position was wrong in the test

@@ -128,6 +128,8 @@ function tostr(val, hex)
       return tostring(val)
     end
   elseif kind == "boolean" then
+    -- this is even more precise that pico8 tostr, that will skip the last decimals (e.g. 1e-4 in 1+1e-4),
+    --  even if fixed point precision didn't lose them. but it's fine since it's mostly useful to debug failing tests
     return tostring(val)
   else
     return "[" .. kind .. "]"

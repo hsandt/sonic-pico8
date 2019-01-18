@@ -694,9 +694,10 @@ expect
         assert.are_equal(vector(-1, 0), stage.state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
-        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be equal.\n"..
+        -- note we are testing as busted, so we get the almost_eq messages
+        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
           "Passed in:\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
-          "\nFor gameplay value 'player character velocity':\nExpected objects to be equal.\n"..
+          "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
           "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
@@ -856,7 +857,7 @@ expect
           expectation(gp_value_types.pc_velocity, vector(-3, 7.5))    -- different from actual
         }
         itest_dsl_parser:_define_final_assertion()
-        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be equal.\n"..
+        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
         "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
         assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
       end)

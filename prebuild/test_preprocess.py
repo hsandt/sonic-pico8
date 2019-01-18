@@ -392,6 +392,21 @@ class TestPreprocessLines(unittest.TestCase):
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
+    def test_preprocess_lines_missing_end_pico8_ignored(self):
+        test_lines = [
+            'print("start")\n',
+            '--[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            'print("end")\n',
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n',
+        ]
+        # this will also trigger a warning, but we don't test it
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
     def test_preprocess_lines_with_unknown_config(self):
         test_lines = []
         self.assertRaises(ValueError, preprocess.preprocess_lines, test_lines, 'unknown')

@@ -26,8 +26,8 @@ from enum import Enum
 defined_symbols_table = {
     'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse', 'cheat'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
-    'itest':       ['pico8', 'assert', 'log', 'test', 'cheat'],
-    'itest_light': ['pico8', 'log', 'test'],
+    'itest':       ['pico8', 'assert', 'log', 'itest', 'cheat'],
+    'itest_light': ['pico8', 'log', 'itest'],
     'profiler':    ['pico8', 'log', 'visual_logger', 'profiler'],
     'visual_log':  ['pico8', 'log', 'visual_logger'],
     'pico8_utest': ['pico8', 'assert', 'log'],
@@ -218,6 +218,8 @@ def preprocess_lines(lines, config):
 
     if if_block_modes_stack:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
+    if inside_pico8_block:
+        logging.warning('file ended inside a --[[#pico8 block. Make sure the block is closed by a --#pico8]] directive')
     return preprocessed_lines
 
 

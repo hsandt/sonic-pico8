@@ -27,6 +27,7 @@ expect gp_value_type  expect a gameplay value to be equal to (...)
 --]]
 
 require("engine/core/helper")
+require("engine/test/assertions")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager,   integration_test = get_members(integrationtest,
      "itest_manager", "integration_test")
@@ -552,22 +553,19 @@ function itest_dsl_parser:_define_final_assertion()
       local evaluator = evaluators[exp.gp_value_type]
       assert(evaluator, "evaluators["..exp.gp_value_type.."] (for '"..gp_value_type_strings[exp.gp_value_type].."') is not defined")
       local gp_value = evaluator()
-      if gp_value ~= exp.expected_value then
+      local value_success, value_eq_message = eq_with_message(exp.expected_value, gp_value)
+      if not value_success then
         success = false
         local gp_value_data = gp_value_data_t[exp.gp_value_type]
         assert(gp_value_data, "gp_value_data_t["..exp.gp_value_type.."] is not defined")
         local gp_value_name = gp_value_data.name
-        local message = "\nPassed gameplay value '"..gp_value_name.."':\n"..
-          gp_value.."\n"..
-          "Expected:\n"..
-          exp.expected_value
-        full_message = full_message..message.."\n"
+        local value_message = "\nFor gameplay value '"..gp_value_name.."':\n"..value_eq_message
+        full_message = full_message..value_message.."\n"
       end
     end
 
     return success, full_message
   end
 end
-
 
 return itest_dsl

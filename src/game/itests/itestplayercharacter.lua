@@ -1056,6 +1056,6 @@ end
 itest:add_action(time_trigger(1.), function () end)
 
 -- no final assertion, let the user check if result is correct or not (note it will display success whatever)
--- #pico8]]
+--#pico8]]
 
 --]]

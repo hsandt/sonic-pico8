@@ -31,5 +31,5 @@ function clear_map()
 --[[#pico8
   -- clear map data
   memset(0x2000, 0, 0x1000)
--- #pico8]]
+--#pico8]]
 end

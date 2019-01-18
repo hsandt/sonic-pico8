@@ -126,15 +126,17 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'number':          1,
         'vector':          2,
         'horizontal_dir':  3,
-        'motion_state':    4,
-        'expect':          5,
+        'motion_mode':     4,
+        'motion_state':    5,
+        'expect':          6,
     },
 
     'command_types': {
-        'warp':    1,
-        'move':    2,
-        'wait':    3,
-        'expect':  4,
+        'warp':            1,
+        'set_motion_mode': 2,
+        'move':            3,
+        'wait':            4,
+        'expect':          5,
     },
 
     'gp_value_types': {

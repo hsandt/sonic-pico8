@@ -1,3 +1,31 @@
+--[[ itest domain-specific language definition and parser
+
+usage example:
+
+```
+itest_dsl_parser.register('debug move right', [[
+@stage #
+...
+###
+
+warp 4 8
+move right
+wait 30
+expect pc_bottom_pos 14. 8.
+```
+
+list of commands:
+
+warp x y              warp player character bottom to (x, y)
+set_motion_mode mode  set motion mode (do it before warping to avoid
+                        unwanted position adjustment on arrival)
+move dir              set sticky pc move intention toward [dir]
+wait n                wait [n] frames
+expect gp_value_type  expect a gameplay value to be equal to (...)
+      (value params...)
+
+--]]
+
 require("engine/core/helper")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager,   integration_test = get_members(integrationtest,
@@ -54,6 +82,7 @@ parsable_types = enum {
   "number",
   "vector",
   "horizontal_dir",
+  "motion_mode",
   "motion_state",
   "expect",  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
 }
@@ -65,10 +94,11 @@ parsable_type_strings = invert_table(parsable_types)
 
 -- type of commands available
 command_types = enum {
-  "warp",   -- warp player character bottom  args: {bottom_position: vector}
-  "move",   -- set sticky pc move intention  args: {move_dir: horizontal_dirs}
+  "warp",    -- warp player character bottom  args: {bottom_position: vector}
+  "set_motion_mode",   -- set motion mode     args: {motion_mode_str: motion_modes key}
+  "move",    -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
   -- todo: stop, jump, crouch, spin_dash
-  "wait",   -- wait some frames              args: {frames: int}
+  "wait",    -- wait some frames              args: {frames: int}
   "expect",  -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
 
@@ -78,10 +108,11 @@ command_type_strings = invert_table(command_types)
 
 -- argument types expected after those commands
 command_arg_types = {
-  [command_types.warp]   = parsable_types.vector,
-  [command_types.move]   = parsable_types.horizontal_dir,
-  [command_types.wait]   = parsable_types.number,
-  [command_types.expect] = parsable_types.expect,
+  [command_types.warp]            = parsable_types.vector,
+  [command_types.set_motion_mode] = parsable_types.motion_mode,
+  [command_types.move]            = parsable_types.horizontal_dir,
+  [command_types.wait]            = parsable_types.number,
+  [command_types.expect]          = parsable_types.expect,
 }
 
 
@@ -125,6 +156,13 @@ function itest_dsl.parse_horizontal_dir(arg_strings)
   return horizontal_dir
 end
 
+function itest_dsl.parse_motion_mode(arg_strings)
+  assert(#arg_strings == 1, "parse_motion_mode: got "..#arg_strings.." args, expected 1")
+  local motion_mode = motion_modes[arg_strings[1]]
+  assert(motion_mode, "motion_modes["..arg_strings[1].."] is not defined")
+  return motion_mode
+end
+
 function itest_dsl.parse_motion_state(arg_strings)
   assert(#arg_strings == 1, "parse_motion_state: got "..#arg_strings.." args, expected 1")
   local motion_state = motion_states[arg_strings[1]]
@@ -166,6 +204,10 @@ itest_dsl.value_parsers = value_parsers
 
 function itest_dsl.execute_warp(args)
   stage.state.player_char:warp_bottom_to(args[1])
+end
+
+function itest_dsl.execute_set_motion_mode(args)
+  stage.state.player_char.motion_mode = args[1]
 end
 
 function itest_dsl.execute_move(args)

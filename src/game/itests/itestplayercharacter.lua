@@ -2,7 +2,8 @@
 local integrationtest = require("engine/test/integrationtest")
 local itest_dsl = require("engine/test/itest_dsl")
 local itest_dsl_parser = itest_dsl.itest_dsl_parser
-local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
+local itest_manager,   integration_test,   time_trigger = get_members(integrationtest,
+     "itest_manager", "integration_test", "time_trigger")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local stage = require("game/ingame/stage")  -- required
@@ -16,11 +17,9 @@ local itest
 
 
 
--- dsl training
+-- dsl definition
 
--- pico8 doesn't like [[]] and will replace lines after the 3rd with
--- empty lines... need "text \n".. or "text  \ to continue to next line
-itest_dsl_parser.register('#solo platformer accel right flat', [[
+itest_dsl_parser.register('platformer accel right flat', [[
 @stage #
 ...
 ###
@@ -28,18 +27,31 @@ itest_dsl_parser.register('#solo platformer accel right flat', [[
 warp 4 8
 move right
 wait 30
+
 expect pc_bottom_pos 14.8984375 8
 expect pc_motion_state grounded
 expect pc_ground_spd 0.703125
 expect pc_velocity 0.703125 0
-]]
-)
+]])
 
 -- todo:
 -- eq (add = symbol before expected value)
 -- almost_eq (add ~ symbol before expected value, default to threshold: 1/256)
 
+itest_dsl_parser.register('#solo debug move right', [[
+@stage #
+.#
+
+set_motion_mode debug
+warp 0 8
+move right
+wait 60
+
+expect pc_bottom_pos 56.7185 8
+]])
+
 --[[
+
 itest = integration_test('debug move right', {stage.state.type})
 itest_manager:register(itest)
 
@@ -1014,6 +1026,8 @@ end
 
 --]]
 
+--[[ Really comment this block out for now, as it makes too many chars
+
 --[[#pico8
 -- human test for pico8 only to check rendering
 -- bugfix history:
@@ -1043,3 +1057,5 @@ itest:add_action(time_trigger(1.), function () end)
 
 -- no final assertion, let the user check if result is correct or not (note it will display success whatever)
 -- #pico8]]
+
+--]]

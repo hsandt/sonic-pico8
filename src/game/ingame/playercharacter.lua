@@ -17,20 +17,20 @@ control_modes = {
   puppet = 3      -- itest script controls character
 }
 
+--#endif
+
+-- motion_modes and motion_states are accessed dynamically via variant name in itest_dsl
+--  so we don't strip them away from pico8 builds
+-- it is only used for debug and expectations, though, so it could be #if cheat/test only,
+--  but the dsl may be used for attract mode later (dsl) so unless we distinguish
+--  parsable types like motion_states that are only used for expectations (and cheat actions)
+--  as opposed to actions, we should keep this in the release build
+
 -- enum for character motion mode
 motion_modes = {
   platformer = 1, -- normal in-game
   debug = 2       -- debug "fly" mode
 }
-
---#endif
-
--- motion_states is accessed dynamically via variant name in itest_dsl
---  so we don't strip it away from pico8 builds
--- it is only used for expectations, though, so it could be #if test only,
---  but the dsl may be used for attract mode later (dsl) so unless we distinguish
---  parsable types like motion_states that are only used for expectations
---  as opposed to actions, we should keep this in the release build
 
 -- enum for character motion state in platformer mode
 motion_states = {

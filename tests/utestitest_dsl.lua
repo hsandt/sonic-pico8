@@ -4,9 +4,6 @@ require("engine/core/math")
 local itest_dsl = require("engine/test/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
-local parse_number, parse_vector, parse_horizontal_dir, parse_motion_state, parse_expect = get_members(itest_dsl, "parse_number", "parse_vector", "parse_horizontal_dir", "parse_motion_state", "parse_expect")
-local execute_warp,   execute_move,   execute_wait = get_members(itest_dsl,
-     "execute_warp", "execute_move", "execute_wait")
 local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state = get_members(itest_dsl,
      "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state")
 local command,   expectation = get_members(itest_dsl,
@@ -53,73 +50,91 @@ describe('itest_dsl', function ()
 
   end)
 
-  describe('parse_number', function ()
+  describe('parse_', function ()
 
-    it('should assert when the number of arguments is wrong', function ()
-      assert.has_error(function ()
-        parse_number({"too", "many"})
-      end, "parse_number: got 2 args, expected 1")
+    describe('parse_number', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_number({"too", "many"})
+        end, "parse_number: got 2 args, expected 1")
+      end)
+
+      it('should return the single string argument as number', function ()
+        assert.are_equal(5, itest_dsl.parse_number({"5"}))
+      end)
+
     end)
 
-    it('should return the single string argument as number', function ()
-      assert.are_equal(5, parse_number({"5"}))
+    describe('parse_vector', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_vector({"too few"})
+        end, "parse_vector: got 1 args, expected 2")
+      end)
+
+      it('should return the 2 coordinate string arguments as vector', function ()
+        assert.are_equal(vector(2, -3.5), itest_dsl.parse_vector({"2", "-3.5"}))
+      end)
+
     end)
 
-  end)
+    describe('parse_horizontal_dir', function ()
 
-  describe('parse_vector', function ()
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_horizontal_dir({"too", "many"})
+        end, "parse_horizontal_dir: got 2 args, expected 1")
+      end)
 
-    it('should assert when the number of arguments is wrong', function ()
-      assert.has_error(function ()
-        parse_vector({"too few"})
-      end, "parse_vector: got 1 args, expected 2")
+      it('should return the single argument as horizontal direction', function ()
+        assert.are_equal(horizontal_dirs.right, itest_dsl.parse_horizontal_dir({"right"}))
+      end)
+
     end)
 
-    it('should return the 2 coordinate string arguments as vector', function ()
-      assert.are_equal(vector(2, -3.5), parse_vector({"2", "-3.5"}))
+    describe('parse_motion_mode', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_motion_mode({"too", "many"})
+        end, "parse_motion_mode: got 2 args, expected 1")
+      end)
+
+      it('should return the single argument as motion mode', function ()
+        assert.are_equal(motion_modes.debug, itest_dsl.parse_motion_mode({"debug"}))
+      end)
+
     end)
 
-  end)
+    describe('parse_motion_state', function ()
 
-  describe('parse_horizontal_dir', function ()
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_motion_state({"too", "many"})
+        end, "parse_motion_state: got 2 args, expected 1")
+      end)
 
-    it('should assert when the number of arguments is wrong', function ()
-      assert.has_error(function ()
-        parse_horizontal_dir({"too", "many"})
-      end, "parse_horizontal_dir: got 2 args, expected 1")
+      it('should return the single argument as motion state', function ()
+        assert.are_equal(motion_states.airborne, itest_dsl.parse_motion_state({"airborne"}))
+      end)
+
     end)
 
-    it('should return the single argument as horizontal direction', function ()
-      assert.are_equal(horizontal_dirs.right, parse_horizontal_dir({"right"}))
-    end)
+    describe('parse_expect', function ()
 
-  end)
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_expect({"too few"})
+        end, "parse_expect: got 1 args, expected at least 2")
+      end)
 
-  describe('parse_motion_state', function ()
+      it('should return the gameplay value type and the expected value, itself recursively parsed', function ()
+        assert.are_same({gp_value_types.pc_bottom_pos, vector(1, 3)},
+          {itest_dsl.parse_expect({"pc_bottom_pos", "1", "3"})})
+      end)
 
-    it('should assert when the number of arguments is wrong', function ()
-      assert.has_error(function ()
-        parse_motion_state({"too", "many"})
-      end, "parse_motion_state: got 2 args, expected 1")
-    end)
-
-    it('should return the single argument as motion state', function ()
-      assert.are_equal(motion_states.airborne, parse_motion_state({"airborne"}))
-    end)
-
-  end)
-
-  describe('parse_expect', function ()
-
-    it('should assert when the number of arguments is wrong', function ()
-      assert.has_error(function ()
-        parse_expect({"too few"})
-      end, "parse_expect: got 1 args, expected at least 2")
-    end)
-
-    it('should return the gameplay value type and the expected value, itself recursively parsed', function ()
-      assert.are_same({gp_value_types.pc_bottom_pos, vector(1, 3)},
-        {parse_expect({"pc_bottom_pos", "1", "3"})})
     end)
 
   end)
@@ -147,7 +162,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should call warp_bottom_to on the current player character', function ()
-        execute_warp({vector(1, 3)})
+        itest_dsl.execute_warp({vector(1, 3)})
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
         assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(stage.state.player_char), vector(1, 3))
@@ -155,10 +170,19 @@ describe('itest_dsl', function ()
 
     end)
 
+    describe('execute_set_motion_mode', function ()
+
+      it('should set the motion mode', function ()
+        itest_dsl.execute_set_motion_mode({motion_modes.debug})
+        assert.are_equal(motion_modes.debug, stage.state.player_char.motion_mode)
+      end)
+
+    end)
+
     describe('execute_move', function ()
 
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
-        execute_move({horizontal_dirs.right})
+        itest_dsl.execute_move({horizontal_dirs.right})
         assert.are_equal(vector(1, 0), stage.state.player_char.move_intention)
       end)
 

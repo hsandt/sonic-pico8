@@ -16,23 +16,7 @@ local tile_test_data = require("game/test_data/tile_test_data")
 local itest
 
 
-
--- dsl definition
-
-itest_dsl_parser.register('platformer accel right flat', [[
-@stage #
-...
-###
-
-warp 4 8
-move right
-wait 30
-
-expect pc_bottom_pos 14.8984375 8
-expect pc_motion_state grounded
-expect pc_ground_spd 0.703125
-expect pc_velocity 0.703125 0
-]])
+-- debug motion
 
 itest_dsl_parser.register('debug move right', [[
 @stage #
@@ -50,171 +34,65 @@ expect pc_bottom_pos 0x0038.b7f1 8
 -- 56.7185211181640625 (0x0038.b7f1) in PICO-8 fixed point precision
 -- 56.7333 in Lua floating point precision
 
---[[
+
+-- ground motion
+
+-- bugfix history:
+-- . test was wrong, initialize in setup, not at time trigger 0
+itest_dsl_parser.register('platformer accel right flat', [[
+@stage #
+...
+###
+
+warp 4 8
+move right
+wait 30
+
+expect pc_bottom_pos 14.8984375 8
+expect pc_motion_state grounded
+expect pc_ground_spd 0.703125
+expect pc_velocity 0.703125 0
+]])
+
+itest_dsl_parser.register('#solo platformer decel right flat', [[
+@stage #
+...
+###
+
+warp 4 8
+move right
+wait 30
+move left
+wait 10
+
+expect pc_bottom_pos 14.7109375 8
+expect pc_motion_state grounded
+expect pc_ground_spd -0.1875
+expect pc_velocity -0.1875 0
+]])
+
+
+-- air motion
 
 -- bugfix history:
 -- . test failed because initial character position was wrong in the test
 -- * test failed in pico8 only because in _compute_signed_distance_to_closest_ground,
---  I was setting min_signed_distance = 32768 = -32767
-itest = integration_test('platformer land vertical', {stage.state.type})
-itest_manager:register(itest)
+--   I was setting min_signed_distance = 32768 = -32767
+itest_dsl_parser.register('platformer land vertical', [[
+@stage #
+.
+.
+.
+#
 
-itest.setup = function ()
-  setup_map_data()
+warp 4 0
+wait 21
 
-  -- add tile where the character will land
-  mset(0, 10, 64)
-
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character in the air (important to always start with airborne state)
-  stage.state.player_char:spawn_at(vector(4., 48.))
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- wait 1 second and stop
-itest:add_action(time_trigger(1.), function () end)
-
--- check that player char has landed and snapped to the ground
-itest.final_assertion = function ()
-  return almost_eq_with_message(vector(4., 80.), stage.state.player_char:get_bottom_center(), 1/256)
-end
+expect pc_bottom_pos 4 24
+]])
 
 
--- bugfix history: . test was wrong, initialize in setup, not at time trigger 0
-itest = integration_test('platformer accel right flat', {stage.state.type})
-itest_manager:register(itest)
-
-itest.setup = function ()
-  setup_map_data()
-
-  mset(0, 10, 64)
-  mset(1, 10, 64)
-  mset(2, 10, 64)
-
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- wait 30 frames and stop
-itest:add_action(time_trigger(0.5), function () end)
-
--- check that player char has moved to the right and is still on the ground
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
-  -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
-  local is_position_expected, position_message = almost_eq_with_message(vector(14.8984375, 80.), stage.state.player_char:get_bottom_center(), 1/256)
-  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.703125, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.703125, 0), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
-
-
-itest = integration_test('platformer decel right flat', {stage.state.type})
-itest_manager:register(itest)
-
-itest.setup = function ()
-  setup_map_data()
-
-  -- add tiles where the character will move
-  mset(0, 10, 64)
-  mset(1, 10, 64)
-  mset(2, 10, 64)
-
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- at frame 30, decelerate (brake)
-itest:add_action(time_trigger(0.5), function ()
-  stage.state.player_char.move_intention = vector(-1, 0)
-end)
-
--- wait 10 frames and stop
-itest:add_action(time_trigger(10, true), function () end)
-
--- check that player char has moved to the right and is still on the ground
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
-  -- to compute position, apply deceleration to the current speed and sum to the last position at frame 30. don't forget to clamp speed to - max speed when changing sign over max speed,
-  --  before continuing to increase speed with - max accel each step after that
-  local is_position_expected, position_message = almost_eq_with_message(vector(14.7109375, 80.), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(-0.1875, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(-0.1875, 0), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
-
+--[[
 
 itest = integration_test('platformer friction right flat', {stage.state.type})
 itest_manager:register(itest)

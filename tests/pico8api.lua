@@ -110,10 +110,20 @@ end
 function cursor(x, y)
 end
 
+-- convert string to number, preserve number
+-- return nil if it fails to parse (unlike pico8 which returns custom value [no value])
+-- tonumber is even a little better than pico8 tonum which fails on negative number strings:
+-- e.g. "-0.1875" -> 0xffff.d001 instead of 0xffff.d000
+-- https://www.lexaloffle.com/bbs/?tid=3780
+-- for this reason, we recommend not using tonum in actual pico8 code
+-- and to use helper's tonum_precise instead
 function tonum(val)
   return tonumber(val) -- not a direct assignment to prevent usage of the radix argument
 end
 
+-- http://pico-8.wikia.com/wiki/Tostr
+-- slight difference with pico8: when passing the result of a function
+-- that returns nothing, we return "[nil]" instead of "[no value]"
 function tostr(val, hex)
   local kind=type(val)
   if kind == "string" then

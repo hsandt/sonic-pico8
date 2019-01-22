@@ -120,6 +120,19 @@ function invert_table(t)
 end
 --#endif
 
+-- alternative to tonum that only works with strings (and numbers
+--   thanks to sub converting them implicitly)
+-- it fixes the 0x0000.0001 issue on negative number strings
+function string_tonum(val)
+  -- inspired by cheepicus's workaround in
+  -- https://www.lexaloffle.com/bbs/?tid=3780
+  if sub(val, 1, 1) == '-' then
+    return - tonum(sub(val, 2))
+  else
+    return tonum(val)
+  end
+end
+
 --#if log
 
 function stringify(value)

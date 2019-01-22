@@ -142,12 +142,12 @@ local gp_value_data_t = {
 
 function itest_dsl.parse_number(arg_strings)
   assert(#arg_strings == 1, "parse_number: got "..#arg_strings.." args, expected 1")
-  return tonum(arg_strings[1])
+  return string_tonum(arg_strings[1])
 end
 
 function itest_dsl.parse_vector(arg_strings)
   assert(#arg_strings == 2, "parse_vector: got "..#arg_strings.." args, expected 2")
-  return vector(tonum(arg_strings[1]), tonum(arg_strings[2]))
+  return vector(string_tonum(arg_strings[1]), string_tonum(arg_strings[2]))
 end
 
 function itest_dsl.parse_horizontal_dir(arg_strings)
@@ -191,7 +191,6 @@ function itest_dsl.parse_expect(arg_strings)
   local expected_value_parser = value_parsers[gp_value_data.parsable_type]
   assert(expected_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
   local expected_value = expected_value_parser(expected_value_comps)
-
   return gp_value_type, expected_value
 end
 

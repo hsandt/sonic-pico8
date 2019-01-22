@@ -88,30 +88,34 @@ describe('pico8api', function ()
   describe('tonum', function ()
 
     it('should return the number corresponding to a number', function ()
-      assert.are_equal(5, tonum(5))
+      assert.are_equal(-25.34, tonum(-25.34))
     end)
 
-    it('should return the number corresponding to a string', function ()
-      assert.are_equal(5, tonum("5"))
+    it('should return the positive number corresponding to a string', function ()
+      assert.are_equal(25, tonum("25"))
     end)
 
-  end)
-
-  describe('tonum', function ()
-
-    it('should return the number corresponding to a number', function ()
-      assert.are_equal(5, tonum(5))
+    it('should return the negative number corresponding to a string (not fractional power of 2)', function ()
+      assert.are_equal(-25.34, tonum("-25.34"))
     end)
 
-    it('should return the number corresponding to a string', function ()
-      assert.are_equal(5, tonum("5"))
+    -- this one is for native Lua only: PICO-8 itself doesn't pass it
+    -- because tonum fails on negative number strings of 0x0000.0001!
+    it('should return the negative number corresponding to a string (fractional power of 2)', function ()
+      assert.are_equal(-25.25, tonum("-25.25"))
     end)
 
   end)
 
   describe('tostr', function ()
     it('nil => "[nil]"', function ()
-      assert.are_equal("[nil]", tostr(nil))
+      assert.are_equal("[nil]", tostr(nil))  -- or tostr()
+    end)
+    -- this one works for native Lua only; it differs from pico8
+    -- which would return "[no value]", indicating a special value
+    it('empty function return => "[nil]"', function ()
+      function f() end
+      assert.are_equal("[nil]", tostr(f()))
     end)
     it('"string" => "string"', function ()
       assert.are_equal("string", tostr("string"))

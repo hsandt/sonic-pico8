@@ -56,13 +56,15 @@ It will install `luamin` (along with `luaparse`), which is used in `npm/luamin_f
 
 ### Build and run
 
+First, make sure the `pico8` executable is in your path.
+
 The most straightforward way to build and run the game on Unix platforms is:
 
 * `cd path/to/sonic-pico8-repo`
 * `./build.sh main release`
 * `./run.sh main release`
 
-or, if `pico8` is not in your path:
+Instead of the last instruction, you can also enter directly:
 
 * `pico8 -run build/sonic-pico8_v${BUILD_VERSION}_release.p8`
 

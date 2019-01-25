@@ -80,6 +80,7 @@ itest_dsl.generate_function_table = generate_function_table
 
 -- type of variables that can be parsed
 parsable_types = enum {
+  "none",
   "number",
   "vector",
   "horizontal_dir",
@@ -95,12 +96,13 @@ parsable_type_strings = invert_table(parsable_types)
 
 -- type of commands available
 command_types = enum {
-  "warp",    -- warp player character bottom  args: {bottom_position: vector}
-  "set_motion_mode",   -- set motion mode     args: {motion_mode_str: motion_modes key}
-  "move",    -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
-  -- todo: stop, jump, crouch, spin_dash
-  "wait",    -- wait some frames              args: {frames: int}
-  "expect",  -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
+  "warp",            -- warp player character bottom  args: {bottom_position: vector}
+  "set_motion_mode", -- set motion mode               args: {motion_mode_str: motion_modes key}
+  "move",            -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
+  "stop",            -- stop moving horizontally      args: {}
+  -- todo: jump, crouch, spin_dash
+  "wait",            -- wait some frames              args: {frames: int}
+  "expect",          -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
 
 --#if assert
@@ -112,6 +114,7 @@ command_arg_types = {
   [command_types.warp]            = parsable_types.vector,
   [command_types.set_motion_mode] = parsable_types.motion_mode,
   [command_types.move]            = parsable_types.horizontal_dir,
+  [command_types.stop]            = parsable_types.none,
   [command_types.wait]            = parsable_types.number,
   [command_types.expect]          = parsable_types.expect,
 }
@@ -139,6 +142,11 @@ local gp_value_data_t = {
 
 
 -- parsing functions
+
+function itest_dsl.parse_none(arg_strings)
+  assert(#arg_strings == 0, "parse_none: got "..#arg_strings.." args, expected 0")
+  return nil
+end
 
 function itest_dsl.parse_number(arg_strings)
   assert(#arg_strings == 1, "parse_number: got "..#arg_strings.." args, expected 1")
@@ -212,6 +220,10 @@ end
 
 function itest_dsl.execute_move(args)
       stage.state.player_char.move_intention = horizontal_dir_vectors[args[1]]
+end
+
+function itest_dsl.execute_stop(args)
+      stage.state.player_char.move_intention = vector.zero()
 end
 
 -- wait and expect are not timed actions and will be handled as special cases

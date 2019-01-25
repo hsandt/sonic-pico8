@@ -52,6 +52,20 @@ describe('itest_dsl', function ()
 
   describe('parse_', function ()
 
+    describe('parse_none', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_none({"too many"})
+        end, "parse_none: got 1 args, expected 0")
+      end)
+
+      it('should return nil', function ()
+        assert.is_nil(itest_dsl.parse_none({}))
+      end)
+
+    end)
+
     describe('parse_number', function ()
 
       it('should assert when the number of arguments is wrong', function ()
@@ -184,6 +198,15 @@ describe('itest_dsl', function ()
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
         itest_dsl.execute_move({horizontal_dirs.right})
         assert.are_equal(vector(1, 0), stage.state.player_char.move_intention)
+      end)
+
+    end)
+
+    describe('execute_stop', function ()
+
+      it('should set the move intention of the current player character to vector zero', function ()
+        itest_dsl.execute_stop({})
+        assert.are_equal(vector.zero(), stage.state.player_char.move_intention)
       end)
 
     end)

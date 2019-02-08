@@ -126,6 +126,7 @@ gp_value_types = enum {
   "pc_velocity",     -- velocity of player character
   "pc_ground_spd",   -- ground speed of player character
   "pc_motion_state", -- motion state of player character
+  "pc_slope",        -- current slope on which player character is grounded
 }
 
 --#if assert
@@ -138,6 +139,7 @@ local gp_value_data_t = {
   [gp_value_types.pc_velocity]   = gameplay_value_data("player character velocity",        parsable_types.vector),
   [gp_value_types.pc_ground_spd] = gameplay_value_data("player character ground speed",    parsable_types.number),
   [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",  parsable_types.motion_state),
+  [gp_value_types.pc_slope] = gameplay_value_data("player character slope",  parsable_types.number),
 }
 
 
@@ -249,6 +251,10 @@ end
 
 function itest_dsl.eval_pc_motion_state()
   return stage.state.player_char.motion_state
+end
+
+function itest_dsl.eval_pc_slope()
+  return stage.state.player_char.slope_angle
 end
 
 -- table of functions used to evaluate and returns the gameplay value in current game state

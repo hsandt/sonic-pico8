@@ -4,8 +4,8 @@ require("engine/core/math")
 local itest_dsl = require("engine/test/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
-local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state = get_members(itest_dsl,
-     "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state")
+local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
+     "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state", "eval_pc_slope")
 local command,   expectation = get_members(itest_dsl,
      "command", "expectation")
 local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
@@ -257,6 +257,15 @@ describe('itest_dsl', function ()
       it('should return the ground speed current player character', function ()
         stage.state.player_char.motion_state = motion_states.airborne
         assert.are_equal(motion_states.airborne, eval_pc_motion_state())
+      end)
+
+    end)
+
+    describe('eval_pc_slope', function ()
+
+      it('should return the ground speed current player character', function ()
+        stage.state.player_char.slope_angle = -0.125
+        assert.are_equal(-0.125, eval_pc_slope())
       end)
 
     end)

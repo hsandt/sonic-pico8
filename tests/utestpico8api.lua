@@ -135,6 +135,15 @@ describe('pico8api', function ()
     it('0x58cb.fd85 => "0x58cb.fd85" (hex)', function ()
       assert.are_equal("0x58cb.fd85", tostr(0x58cb.fd85, true))
     end)
+    -- this one is only useful to test robustness with native Lua:
+    --  in PICO-8, floats have 16:16 fixed point precision,
+    --  so they can never get more than 4 hex figures after the point
+    -- with busted, we need to cut the extra hex figures to avoid
+    --  error "number (local 'val') has no integer representation"
+    --  when applying binary operations
+    it('0x58cb.fd8524 => "0x58cb.fd85" (hex)', function ()
+      assert.are_equal("0x58cb.fd85", tostr(0x58cb.fd8524, true))
+    end)
     it('{} => "[table]" (_tostring not implemented)', function ()
       assert.are_equal("[table]", tostr({}))
     end)

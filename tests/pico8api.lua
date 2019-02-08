@@ -130,7 +130,10 @@ function tostr(val, hex)
     return val
   elseif kind == "number" then
     if hex then
-      val=val*0x10000
+      -- in floating-point precision Lua, val may have more that 4 hex figures
+      --  after the hexadecimal point
+      val=flr(val*0x10000)
+      local test = val & 0xFFFF0000
       local part1=(val & 0xFFFF0000) >> 16  -- fixed from original api.lua
       local part2=val & 0xFFFF
       return string.format("0x%04x.%04x", part1, part2)

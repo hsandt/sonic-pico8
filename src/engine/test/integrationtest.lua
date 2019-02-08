@@ -255,6 +255,9 @@ end
 function integration_test_runner:_check_next_action()
   assert(self._next_action_index <= #self.current_test.action_sequence, "self._next_action_index ("..self._next_action_index..") is out of bounds for self.current_test.action_sequence (size "..#self.current_test.action_sequence..")")
 
+  -- test: chain actions with no intervals between them
+  local should_trigger_next_action
+  repeat
   -- check if next action should be applied
   local next_action = self.current_test.action_sequence[self._next_action_index]
   local should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
@@ -265,8 +268,11 @@ function integration_test_runner:_check_next_action()
     end
     self._last_trigger_frame = self.current_frame
     self._next_action_index = self._next_action_index + 1
-    self:_check_end()
+      if self:_check_end() then
+        break
+      end
   end
+  until not should_trigger_next_action
 end
 
 function integration_test_runner:_check_end()

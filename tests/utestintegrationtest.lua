@@ -657,20 +657,22 @@ describe('integration_test_runner', function ()
   end)
 
 
-  describe('_check_next_action (with single action)', function ()
+  describe('_check_next_action', function ()
 
     describe('(with dummy action after 1s)', function ()
 
       local action_callback = spy.new(function () end)
+      local action_callback2 = spy.new(function () end)
 
       before_each(function ()
-        test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
+        test:add_action(time_trigger(1.0), action_callback, 'action_callback')
         -- don't stub a function if the return value matters, as in start
         spy.on(integration_test_runner, "_check_end")
       end)
 
       teardown(function ()
         action_callback:revert()
+        action_callback2:revert()
         integration_test_runner._check_end:revert()
       end)
 
@@ -680,6 +682,7 @@ describe('integration_test_runner', function ()
 
       after_each(function ()
         action_callback:clear()
+        action_callback2:clear()
         integration_test_runner._check_end:clear()
       end)
 
@@ -695,7 +698,6 @@ describe('integration_test_runner', function ()
             -- time trigger uses relative frames, so compare the difference since last trigger to 60
             integration_test_runner.current_frame = 158
             integration_test_runner._last_trigger_frame = 100
-            test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
           end)
 
           it('should not call the action nor advance the time/index', function ()
@@ -715,7 +717,6 @@ describe('integration_test_runner', function ()
             -- time trigger uses relative frames, so compare the difference since last trigger to 60
             integration_test_runner.current_frame = 160
             integration_test_runner._last_trigger_frame = 100
-            test:add_action(time_trigger(1.0), action_callback, '_check_next_action_test_action')
           end)
 
           it('should call the action and advance the timeindex', function ()
@@ -749,6 +750,119 @@ describe('integration_test_runner', function ()
 
       end)
 
+      describe('(with 2nd dummy action immediately after the other)', function ()
+
+        describe('(when next action index is 1/1)', function ()
+
+          before_each(function ()
+            integration_test_runner._next_action_index = 1
+          end)
+
+          describe('(when next action time trigger is not reached yet)', function ()
+
+            before_each(function ()
+              -- time trigger uses relative frames, so compare the difference since last trigger to 60
+              test:add_action(time_trigger(0.0), action_callback2, 'action_callback2')
+              integration_test_runner.current_frame = 158
+              integration_test_runner._last_trigger_frame = 100
+            end)
+
+            it('should not call any actions nor advance the time/index', function ()
+              integration_test_runner._check_end:clear()  -- was called on start in before_each
+              integration_test_runner:_check_next_action()
+              assert.spy(action_callback).was_not_called()
+              assert.spy(action_callback2).was_not_called()
+              assert.are_equal(100, integration_test_runner._last_trigger_frame)
+              assert.are_equal(1, integration_test_runner._next_action_index)
+              assert.spy(integration_test_runner._check_end).was_not_called()
+            end)
+
+          end)
+
+          describe('(when next action time trigger is reached)', function ()
+
+            before_each(function ()
+              -- time trigger uses relative frames, so compare the difference since last trigger to 60
+              test:add_action(time_trigger(0.0), action_callback2, 'action_callback2')
+              integration_test_runner.current_frame = 160
+              integration_test_runner._last_trigger_frame = 100
+            end)
+
+            it('should call both actions and advance the timeindex by 2', function ()
+              integration_test_runner._check_end:clear()  -- was called on start in before_each
+              integration_test_runner:_check_next_action()
+              assert.spy(action_callback).was_called(1)
+              assert.spy(action_callback).was_called_with()
+              assert.spy(action_callback2).was_called(1)  -- thx to action chaining when next action time is 0
+              assert.spy(action_callback2).was_called_with()
+              assert.are_equal(160, integration_test_runner._last_trigger_frame)
+              assert.are_equal(3, integration_test_runner._next_action_index)  -- after action 2
+              assert.spy(integration_test_runner._check_end).was_called(2)     -- checked after each action
+              assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+            end)
+
+          end)
+
+        end)
+
+      end)
+
+      describe('(with 2nd dummy action some frames after the other)', function ()
+
+        describe('(when next action index is 1/1)', function ()
+
+          before_each(function ()
+            integration_test_runner._next_action_index = 1
+          end)
+
+          describe('(when next action time trigger is not reached yet)', function ()
+
+            before_each(function ()
+              -- time trigger uses relative frames, so compare the difference since last trigger to 60
+              test:add_action(time_trigger(0.2), action_callback2, 'action_callback2')
+              integration_test_runner.current_frame = 158
+              integration_test_runner._last_trigger_frame = 100
+            end)
+
+            it('should not call any actions nor advance the time/index', function ()
+              integration_test_runner._check_end:clear()  -- was called on start in before_each
+              integration_test_runner:_check_next_action()
+              assert.spy(action_callback).was_not_called()
+              assert.spy(action_callback2).was_not_called()
+              assert.are_equal(100, integration_test_runner._last_trigger_frame)
+              assert.are_equal(1, integration_test_runner._next_action_index)
+              assert.spy(integration_test_runner._check_end).was_not_called()
+            end)
+
+          end)
+
+          describe('(when next action time trigger is reached)', function ()
+
+            before_each(function ()
+              -- time trigger uses relative frames, so compare the difference since last trigger to 60
+              test:add_action(time_trigger(0.2), action_callback2, 'action_callback2')
+              integration_test_runner.current_frame = 160
+              integration_test_runner._last_trigger_frame = 100
+            end)
+
+            it('should call only the first action and advance the timeindex', function ()
+              integration_test_runner._check_end:clear()  -- was called on start in before_each
+              integration_test_runner:_check_next_action()
+              assert.spy(action_callback).was_called(1)
+              assert.spy(action_callback).was_called_with()
+              assert.spy(action_callback2).was_not_called()  -- at least 1 frame before action2, no action chaining
+              assert.are_equal(160, integration_test_runner._last_trigger_frame)
+              assert.are_equal(2, integration_test_runner._next_action_index)
+              assert.spy(integration_test_runner._check_end).was_called(1)
+              assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+            end)
+
+          end)
+
+        end)
+
+      end)
+
     end)
 
     describe('(with empty action)', function ()
@@ -758,7 +872,7 @@ describe('integration_test_runner', function ()
         test:add_action(time_trigger(1, true), nil, 'empty action')
       end)
 
-      it('should assert', function ()
+      it('should recognize next empty action and do nothing', function ()
         integration_test_runner:start(test)
         integration_test_runner.current_frame = 2  -- to trigger action to do at end of frame 1
 

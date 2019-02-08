@@ -127,85 +127,39 @@ expect pc_bottom_pos 4 24
 -- ! identified bug in _compute_ground_motion_result where slope angle was set on extra step,
 --   despite being only a subpixel extra move
 -- . was expecting positive speed but slope was ascending
-itest = integration_test('platformer ascending slope right', {stage.state.type})
-itest_manager:register(itest)
+itest_dsl_parser.register(
+  'platformer ascending slope right', [[
+@stage #
+..
+./
+#.
 
-itest.setup = function ()
-  setup_map_data()
+warp 4 16
+move right
+wait 15
 
-  -- add tiles where the character will move
-  mset(0, 10, 64)  -- flat ground
-  mset(1, 9, 65)   -- ascending slope 45, one level up
+expect pc_bottom_pos 6.519668501758 15
+expect pc_motion_state grounded
+expect pc_slope -0.125
+expect pc_ground_spd 0.26318359375
+expect pc_velocity 0.1860961140625 -0.1860961140625
+]])
 
-  flow:change_gamestate_by_type(stage.state.type)
+-- pc_slope -45/360 = -1/8 = -0.125
 
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- wait 30 frames and stop
--- ground_accel_frame2 = 0.0234375
--- at frame  1: bottom pos (4 + ground_accel_frame2, 80), velocity (ground_accel_frame2, 0), ground_speed (ground_accel_frame2)
--- at frame n before slope: bpos (4 + n(n+1)/2*ground_accel_frame2, 80), velocity (n*ground_accel_frame2, 0)
+-- calculation notes:
+-- at frame  1: bottom pos (4 + ground_accel_frame2, 16), velocity (ground_accel_frame2, 0), ground_speed (ground_accel_frame2)
+-- at frame n before slope: bpos (4 + n(n+1)/2*ground_accel_frame2, 16), velocity (n*ground_accel_frame2, 0)
 -- character makes first step on slope when right sensor reaches position x = 8 (column 0 height of tile 65 is 1)
 --  i.e. center reaches 8 - ground_sensor_extent_x = 5.5
--- at frame  1: bpos (4.0234375, 80), velocity (0.0234375, 0), ground_speed(0.0234375)
--- at frame  9: bpos (5.0546875, 80), velocity (0.2109375, 0), ground_speed(0.2109375)
--- at frame 10: bpos (5.2890625, 80), velocity (0.234375, 0), ground_speed(0.234375)
--- at frame 11: bpos (5.546875, 80), velocity (0.2578125, 0), ground_speed(0.2578125)
--- at frame 12: bpos (5.828125, 80), velocity (0.28125, 0), ground_speed(0.28125)
--- at frame 13: bpos (6.1328125, 79), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
--- at frame 14: bpos (6.333572387695, 79), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
--- at frame 15: bpos (6.519668501758, 79), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
--- note that speed decrease on slope is not implemented yet (via cosine but also gravity), so this test will have to change when it is
---  however, the result should stay true for a very low slope (a wave where registered slope is 0)
-itest:add_action(time_trigger(15, true), function () end)
-
--- check that player char has moved to the right and is still on the ground
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
-  -- to compute position, use the fact that friction == accel, so our speed describes a pyramid over time with a non-mirrored, unique max at 0.703125,
-  --  so we can 2x the accumulated distance computed in the first test (only accel over 30 frames), then subtract the non-doubled max value, and add the initial position x
-  local is_position_expected, position_message = almost_eq_with_message(vector(6.519668501758, 79), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_slope_expected, slope_message = almost_eq_with_message(-45/360, stage.state.player_char.slope_angle, 1/256)
-  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0.26318359375, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.1860961140625, -0.1860961140625), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message.."motion_state: \n"..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message.."position_message: \n"..position_message.."\n"
-    end
-    if not is_slope_expected then
-      final_message = final_message.."slope_message: \n"..slope_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message.."ground_speed_message: \n"..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message.."velocity_message: \n"..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
+-- at frame  1: bpos (4.0234375, 16), velocity (0.0234375, 0), ground_speed(0.0234375)
+-- at frame  9: bpos (5.0546875, 16), velocity (0.2109375, 0), ground_speed(0.2109375)
+-- at frame 10: bpos (5.2890625, 16), velocity (0.234375, 0), ground_speed(0.234375)
+-- at frame 11: bpos (5.546875, 16), velocity (0.2578125, 0), ground_speed(0.2578125)
+-- at frame 12: bpos (5.828125, 16), velocity (0.28125, 0), ground_speed(0.28125)
+-- at frame 13: bpos (6.1328125, 15), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
+-- at frame 14: bpos (6.333572387695, 15), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
+-- at frame 15: bpos (6.519668501758, 15), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
 
 --[[
 -- bugfix history: ! identified bug in _update_platformer_motion where absence of elseif

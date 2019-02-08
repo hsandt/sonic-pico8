@@ -101,27 +101,6 @@ expect pc_velocity 0 0
 -- otherwise, character has stopped so expected speed is 0
 
 
--- air motion
-
--- bugfix history:
--- . test failed because initial character position was wrong in the test
--- * test failed in pico8 only because in _compute_signed_distance_to_closest_ground,
---   I was setting min_signed_distance = 32768 = -32767
-itest_dsl_parser.register(
-  'platformer land vertical', [[
-@stage #
-.
-.
-.
-#
-
-warp 4 0
-wait 21
-
-expect pc_bottom_pos 4 24
-]])
-
-
 -- bugfix history:
 -- . forgot to add a solid ground below the slope to confirm ground
 -- ! identified bug in _compute_ground_motion_result where slope angle was set on extra step,
@@ -161,75 +140,65 @@ expect pc_velocity 0.1860961140625 -0.1860961140625
 -- at frame 14: bpos (6.333572387695, 15), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
 -- at frame 15: bpos (6.519668501758, 15), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
 
---[[
--- bugfix history: ! identified bug in _update_platformer_motion where absence of elseif
+
+-- air motion
+
+-- bugfix history:
+-- . test failed because initial character position was wrong in the test
+-- * test failed in pico8 only because in _compute_signed_distance_to_closest_ground,
+--   I was setting min_signed_distance = 32768 = -32767
+itest_dsl_parser.register(
+  'platformer land vertical', [[
+@stage #
+.
+.
+.
+#
+
+warp 4 0
+wait 21
+
+expect pc_bottom_pos 4 24
+expect pc_motion_state grounded
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+
+-- bugfix history:
+-- ! identified bug in _update_platformer_motion where absence of elseif
 --  allowed to enter both grounded and airborne update, causing 2x update when leaving the cliff
-itest = integration_test('platformer fall cliff', {stage.state.type})
-itest_manager:register(itest)
+-- * revealed that new system always flooring pixel position x caused leaving cliff
+--  frame later, adding a grounded frame with friction
+itest_dsl_parser.register(
+  'platformer fall cliff', [[
+@stage #
+..
+##
 
-itest.setup = function ()
-  setup_map_data()
+warp 4 8
+move right
+wait 36
+stop
+wait 24
 
-  -- add tiles where the character will move
-  mset(0, 10, 64)
-  mset(1, 10, 64)
+expect pc_bottom_pos 39.859375 40.8125
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0.84375 2.625
+]])
 
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- at frame 34: pos (17.9453125, 74), velocity (0.796875, 0), grounded
--- at frame 35: pos (18.765625, 74), velocity (0.8203125, 0), airborne -> stop accel
-itest:add_action(time_trigger(35, true), function ()
-  stage.state.player_char.move_intention = vector.zero()
-end)
-
--- wait 25 frames and stop
--- at frame 60: pos (39.2734375, 74 + 35.546875), velocity (0.8203125, 2.734375), airborne
-itest:add_action(time_trigger(25, true), function () end)
-
--- check that player char has moved to the right and fell
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(39.2734375, 80. + 35.546875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0.8203125, 2.734375), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
+-- calculation notes:
+-- at frame 1: pos (17.9453125, 8), velocity (0.796875, 0), grounded
+-- at frame 34: pos (17.9453125, 8), velocity (0.796875, 0), grounded
+-- at frame 35: pos (18.765625, 8), velocity (0.8203125, 0), grounded (do not apply ground sensor extent: -2.5 directly, floor to full px first)
+-- at frame 36: pos (19.609375, 8), velocity (0.84375, 0), airborne (flr_x=19) -> stop accel
+-- wait 24 frames and stop
+-- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
+-- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), airborne
 
 
+--[[
 itest = integration_test('platformer hop flat', {stage.state.type})
 itest_manager:register(itest)
 

@@ -389,7 +389,11 @@ function player_char:_update_platformer_motion_grounded()
   end
 
   log("self.position: "..self.position, "trace")
+  log("self.position.x (hex): "..tostr(self.position.x, true), "trace")
+  log("self.position.y (hex): "..tostr(self.position.y, true), "trace")
   log("self.velocity: "..self.velocity, "trace")
+  log("self.velocity.x (hex): "..tostr(self.velocity.x, true), "trace")
+  log("self.velocity.y (hex): "..tostr(self.velocity.y, true), "trace")
   log("self.ground_speed: "..self.ground_speed, "trace")
 end
 

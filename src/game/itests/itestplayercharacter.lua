@@ -33,7 +33,7 @@ expect pc_bottom_pos 0x0038.b7f1 8
 
 -- precision note on expected pc_bottom_pos:
 -- 56.7185211181640625 (0x0038.b7f1) in PICO-8 fixed point precision
--- 56.7333 in Lua floating point precision
+-- 56.733333333333 in Lua floating point precision
 
 
 -- ground motion
@@ -117,12 +117,22 @@ warp 4 16
 move right
 wait 15
 
-expect pc_bottom_pos 6.519668501758 15
+expect pc_bottom_pos 0x0006.8509 15
 expect pc_motion_state grounded
 expect pc_slope -0.125
 expect pc_ground_spd 0.26318359375
-expect pc_velocity 0.1860961140625 -0.1860961140625
+expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
 ]])
+
+-- precision note on expected pc_bottom_pos:
+-- 6.5196685791015625, 15 (0x0006.8509, 0x000f.0000) in PICO-8 fixed point precision
+-- 6.5196741403377, 15 in Lua floating point precision
+
+-- precision note on expected pc_velocity:
+-- 0.18609619140625, −0.186111450195 (0x0000.2fa4, 0xffff.d05b = -1 + 0x0000.d05b = -0x0000.2fa5) in PICO-8 fixed point precision
+-- (we cannot use 0xffff. which would be interpreted as 65535; also note that vx != -vy due to cos imprecision of 0x0001 I guess)
+-- 0.1860922277609, -0.1860922277609 in Lua floating point precision
+
 
 -- pc_slope -45/360 = -1/8 = -0.125
 

@@ -116,7 +116,7 @@ end
 -- e.g. "-0.1875" -> 0xffff.d001 instead of 0xffff.d000
 -- https://www.lexaloffle.com/bbs/?tid=3780
 -- for this reason, we recommend not using tonum in actual pico8 code
--- and to use helper's tonum_precise instead
+-- and to use helper's string_tonum instead
 function tonum(val)
   return tonumber(val) -- not a direct assignment to prevent usage of the radix argument
 end

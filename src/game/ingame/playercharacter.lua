@@ -381,6 +381,9 @@ function player_char:_update_platformer_motion_grounded()
   self.position = ground_motion_result.position
   self.slope_angle = ground_motion_result.slope_angle
 
+  -- todo: reset jump intention on fall... we don't want character to cancel a natural fall by releasing jump button
+  -- (does not happen because of negative jump speed interrupt threshold, but could happen
+  --  once inertia is added by running off an ascending cliff)
   if ground_motion_result.is_falling then
     self:_enter_motion_state(motion_states.airborne)
   else
@@ -680,21 +683,12 @@ function player_char:_check_jump()
   if self.should_jump then
     self.should_jump = false
 
-    -- compute initial jump speed based on whether player is still holding jump button
-    local initial_jump_speed
-    if self.hold_jump_intention then
-      -- variable jump
-      initial_jump_speed = pc_data.initial_var_jump_speed_frame
-    else
-      -- hop
-      initial_jump_speed = pc_data.jump_interrupt_speed_frame
-      -- mark jump as interrupted so we don't check it again
-      --  (optional, since we will never be able to interrupt such a small jump anyway)
-      self.has_interrupted_jump = true
-    end
-
-    -- only support flat ground for now
-    self.velocity.y = self.velocity.y - initial_jump_speed
+    -- apply initial jump speed for variable jump
+    -- note: if the player is doing a hop, the vertical speed will be reset
+    --  to the interrupt speed during the same frame in _update_platformer_motion_airborne
+    --  (we don't do it here so we centralize the check and don't apply gravity during such a frame)
+    -- limitation: only support flat ground for now
+    self.velocity.y = self.velocity.y - pc_data.initial_var_jump_speed_frame
     self:_enter_motion_state(motion_states.airborne)
     return true
   end
@@ -703,12 +697,12 @@ end
 
 -- update motion following platformer airborne motion rules
 function player_char:_update_platformer_motion_airborne()
-  -- check if player is continuing or interrupting jump *before* applying gravity
-  --  since our pc_data.jump_interrupt_speed_frame is defined to be applied before gravity
-  self:_check_hold_jump()
-
   -- apply gravity to current speed y
   self.velocity.y = self.velocity.y + pc_data.gravity_frame2
+
+  -- check if player is continuing or interrupting jump *after* applying gravity
+  -- this means gravity will *not* be applied during the hop/interrupt jump frame
+  self:_check_hold_jump()
 
   -- apply x acceleration via intention (if not 0)
   self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
@@ -721,6 +715,9 @@ function player_char:_update_platformer_motion_airborne()
   if has_landed then
     self:_enter_motion_state(motion_states.grounded)
   end
+
+  log("self.position: "..self.position, "trace")
+  log("self.velocity: "..self.velocity, "trace")
 end
 
 -- check if character wants to interrupt jump by not holding anymore,

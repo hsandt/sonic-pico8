@@ -205,8 +205,29 @@ describe('itest_dsl', function ()
     describe('execute_stop', function ()
 
       it('should set the move intention of the current player character to vector zero', function ()
+        stage.state.player_char.move_intention = vector(99, -99)
         itest_dsl.execute_stop({})
         assert.are_equal(vector.zero(), stage.state.player_char.move_intention)
+      end)
+
+    end)
+
+    describe('execute_jump', function ()
+
+      it('should set the jump intention and hold jump intention to true', function ()
+        itest_dsl.execute_jump({})
+        assert.are_same({true, true},
+          {stage.state.player_char.jump_intention, stage.state.player_char.hold_jump_intention})
+      end)
+
+    end)
+
+    describe('execute_stop_jump', function ()
+
+      it('should set the hold jump intention to false', function ()
+        stage.state.player_char.hold_jump_intention = true
+        itest_dsl.execute_stop_jump({})
+        assert.is_false(stage.state.player_char.hold_jump_intention)
       end)
 
     end)

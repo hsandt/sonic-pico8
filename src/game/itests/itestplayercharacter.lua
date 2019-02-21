@@ -133,7 +133,6 @@ expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
 -- (we cannot use 0xffff. which would be interpreted as 65535; also note that vx != -vy due to cos imprecision of 0x0001 I guess)
 -- 0.1860922277609, -0.1860922277609 in Lua floating point precision
 
-
 -- pc_slope -45/360 = -1/8 = -0.125
 
 -- calculation notes:
@@ -207,77 +206,39 @@ expect pc_velocity 0.84375 2.625
 -- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
 -- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), airborne
 
+itest_dsl_parser.register(
+  'platformer hop flat', [[
+@stage #
+.
+#
 
---[[
-itest = integration_test('platformer hop flat', {stage.state.type})
-itest_manager:register(itest)
+warp 4 8
+jump
+stop_jump
+wait 20
 
-itest.setup = function ()
-  setup_map_data()
+expect pc_bottom_pos 4 -11.296875
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -0.03125
+]])
 
-  -- add tiles where the character will move
-  mset(0, 10, 64)
-
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start jump
-  stage.state.player_char.jump_intention = true  -- will be consumed
-  -- don't set hold_jump_intention at all to get a hop
-  -- (you can also set it on setup and reset it at end of frame 1)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
+-- calculation notes
 
 -- wait for apogee (frame 20) and stop
--- at frame 1:  bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2:  bpos (4, 80 - 2), velocity (0, -2), airborne (hop confirmed)
--- at frame 3:  bpos (4, 80 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
--- at frame 19: pos (4, 80 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 20: pos (4, 80 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 21: pos (4, 80 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 38: pos (4, 80 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
--- at frame 39: pos (4, 80), velocity (0, 0), grounded -> has landed
-itest:add_action(time_trigger(20, true), function ()
-end)
+-- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), airborne (hop confirmed, no gravity applied this frame)
+-- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), airborne
+-- at frame 19: pos (4, 8 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 20: pos (4, 8 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 21: pos (4, 8 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 38: pos (4, 8 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 39: pos (4, 8), velocity (0, 0), grounded -> has landed
 
--- check that player char has moved to the right and fell
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80. - 19.296875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
+-- => apogee at y = 8 - 19.296875 = -11.296875
 
 
+--[[
 itest = integration_test('platformer jump f2 interrupt flat', {stage.state.type})
 itest_manager:register(itest)
 

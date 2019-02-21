@@ -2584,19 +2584,9 @@ describe('player_char', function ()
           assert.are_same({false, vector(4.1, -1), motion_states.grounded}, {result, pc.velocity, pc.motion_state})
         end)
 
-        it('should consume should_jump, add initial hop velocity, update motion state and return false when should_jump is true and hold_jump_intention is false', function ()
+        it('should consume should_jump, add initial var jump velocity, update motion state and return false when should_jump is true', function ()
           pc.velocity = vector(4.1, -1)
           pc.should_jump = true
-          local result = pc:_check_jump()
-
-          -- interface
-          assert.are_same({true, vector(4.1, -3), motion_states.airborne}, {result, pc.velocity, pc.motion_state})
-        end)
-
-        it('should consume should_jump, add initial var jump velocity, update motion state and return false when should_jump is true and hold_jump_intention is true', function ()
-          pc.velocity = vector(4.1, -1)
-          pc.should_jump = true
-          pc.hold_jump_intention = true
           local result = pc:_check_jump()
 
           -- interface
@@ -2607,27 +2597,38 @@ describe('player_char', function ()
 
       describe('_update_platformer_motion_airborne', function ()
 
-        local check_hold_jump_stub
-        local enter_motion_state_stub
-
         setup(function ()
-          check_hold_jump_stub = stub(player_char, "_check_hold_jump")
-          enter_motion_state_stub = stub(player_char, "_enter_motion_state")
+          spy.on(player_char, "_enter_motion_state")
         end)
 
         teardown(function ()
-          check_hold_jump_stub:revert()
-          enter_motion_state_stub:revert()
+          player_char._enter_motion_state:revert()
         end)
 
-        after_each(function ()
-          check_hold_jump_stub:clear()
-          enter_motion_state_stub:clear()
+        before_each(function ()
+          -- optional, just to enter airborne state and be in a meaningful state
+          pc:_enter_motion_state(motion_states.airborne)
+          -- clear spy just after this instead of after_each to avoid messing the call count
+          player_char._enter_motion_state:clear()
         end)
 
-        it('. should apply gravity to speed y', function ()
+        it('should apply gravity to speed y when not interrupting jump', function ()
+          pc.velocity.y = -3
+          pc.hold_jump_intention = true
+
           pc:_update_platformer_motion_airborne()
-          assert.are_equal(pc_data.gravity_frame2, pc.velocity.y)
+
+          assert.are_equal(-3 + pc_data.gravity_frame2, pc.velocity.y)
+        end)
+
+        it('should set to speed y to interrupt speed (no gravity added) when interrupting jump', function ()
+          pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
+          pc.hold_jump_intention = false
+
+          pc:_update_platformer_motion_airborne()
+
+          -- interface: we are assessing the effect of _check_hold_jump directly
+          assert.are_equal(-pc_data.jump_interrupt_speed_frame, pc.velocity.y)
         end)
 
         it('should apply accel x', function ()
@@ -2639,18 +2640,15 @@ describe('player_char', function ()
           assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
         end)
 
-        it('. should update position with new speed y', function ()
+        -- bugfix history:
+        -- .
+        it('should update position with new speed y', function ()
           pc.position = vector(4, -4)
-          pc:_update_platformer_motion_airborne()
-          assert.are_equal(vector(4, -4 + pc_data.gravity_frame2), pc.position)
-        end)
+          pc.velocity.y = -3
+          pc.hold_jump_intention = true
 
-        it('should call _check_hold_jump', function ()
           pc:_update_platformer_motion_airborne()
-
-          -- implementation
-          assert.spy(check_hold_jump_stub).was_called(1)
-          assert.spy(check_hold_jump_stub).was_called_with(match.ref(pc))
+          assert.are_equal(vector(4, -4 - 3 + pc_data.gravity_frame2), pc.position)
         end)
 
         describe('(_check_escape_from_ground returns false, so has not landed)', function ()
@@ -2671,7 +2669,7 @@ describe('player_char', function ()
             pc:_update_platformer_motion_airborne()
 
             -- implementation
-            assert.spy(enter_motion_state_stub).was_not_called()
+            assert.spy(pc._enter_motion_state).was_not_called()
           end)
 
         end)
@@ -2694,8 +2692,8 @@ describe('player_char', function ()
             pc:_update_platformer_motion_airborne()
 
             -- implementation
-            assert.spy(enter_motion_state_stub).was_called(1)
-            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(pc._enter_motion_state).was_called(1)
+            assert.spy(pc._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
           end)
 
         end)

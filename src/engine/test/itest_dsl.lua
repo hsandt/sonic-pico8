@@ -100,7 +100,9 @@ command_types = enum {
   "set_motion_mode", -- set motion mode               args: {motion_mode_str: motion_modes key}
   "move",            -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
   "stop",            -- stop moving horizontally      args: {}
-  -- todo: jump, crouch, spin_dash
+  "jump",            -- start and hold jump           args: {}
+  "stop_jump",       -- stop any jump intention       args: {}
+  -- todo: crouch, spin_dash
   "wait",            -- wait some frames              args: {frames: int}
   "expect",          -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
@@ -115,6 +117,8 @@ command_arg_types = {
   [command_types.set_motion_mode] = parsable_types.motion_mode,
   [command_types.move]            = parsable_types.horizontal_dir,
   [command_types.stop]            = parsable_types.none,
+  [command_types.jump]            = parsable_types.none,
+  [command_types.stop_jump]       = parsable_types.none,
   [command_types.wait]            = parsable_types.number,
   [command_types.expect]          = parsable_types.expect,
 }
@@ -226,6 +230,15 @@ end
 
 function itest_dsl.execute_stop(args)
       stage.state.player_char.move_intention = vector.zero()
+end
+
+function itest_dsl.execute_jump(args)
+  stage.state.player_char.jump_intention = true  -- will be consumed
+  stage.state.player_char.hold_jump_intention = true
+end
+
+function itest_dsl.execute_stop_jump(args)
+  stage.state.player_char.hold_jump_intention = false
 end
 
 -- wait and expect are not timed actions and will be handled as special cases

@@ -137,8 +137,10 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'set_motion_mode': 2,
         'move':            3,
         'stop':            4,
-        'wait':            5,
-        'expect':          6,
+        'jump':            5,
+        'stop_jump':       6,
+        'wait':            7,
+        'expect':          8,
     },
 
     'gp_value_types': {

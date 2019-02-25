@@ -61,6 +61,7 @@ local player_char = new_class()
 -- jump_intention         bool          current intention to start jump (consumed on jump)
 -- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
 -- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
+-- has_jumped_this_frame  bool          has the character started a jump/hop this frame?
 -- has_interrupted_jump   bool          has the character already interrupted his jump once?
 -- current_sprite         string        current sprite key in the spr_data
 function player_char:_init()
@@ -89,6 +90,7 @@ function player_char:_setup()
   self.jump_intention = false
   self.hold_jump_intention = false
   self.should_jump = false
+  self.has_jumped_this_frame = false
   self.has_interrupted_jump = false
 
   self.current_sprite = "idle"
@@ -340,6 +342,7 @@ function player_char:_enter_motion_state(next_motion_state)
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
     self.velocity.y = 0  -- no velocity retain yet on y
+    self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
     self.current_sprite = "idle"
   end
@@ -690,6 +693,7 @@ function player_char:_check_jump()
     -- limitation: only support flat ground for now
     self.velocity.y = self.velocity.y - pc_data.initial_var_jump_speed_frame
     self:_enter_motion_state(motion_states.airborne)
+    self.has_jumped_this_frame = true
     return true
   end
   return false
@@ -697,8 +701,13 @@ end
 
 -- update motion following platformer airborne motion rules
 function player_char:_update_platformer_motion_airborne()
-  -- apply gravity to current speed y
-  self.velocity.y = self.velocity.y + pc_data.gravity_frame2
+  if self.has_jumped_this_frame then
+    -- do not apply gravity on first frame of jump, and consume has_jumped_this_frame
+    self.has_jumped_this_frame = false
+  else
+    -- apply gravity to current speed y
+    self.velocity.y = self.velocity.y + pc_data.gravity_frame2
+  end
 
   -- check if player is continuing or interrupting jump *after* applying gravity
   -- this means gravity will *not* be applied during the hop/interrupt jump frame

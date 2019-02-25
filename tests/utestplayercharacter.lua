@@ -101,6 +101,7 @@ describe('player_char', function ()
           false,
           false,
           false,
+          false,
           "idle"
         },
         {
@@ -113,6 +114,7 @@ describe('player_char', function ()
           pc.jump_intention,
           pc.hold_jump_intention,
           pc.should_jump,
+          pc.has_jumped_this_frame,
           pc.has_interrupted_jump,
           pc.current_sprite
         }
@@ -1206,11 +1208,13 @@ describe('player_char', function ()
               motion_states.grounded,
               0,
               false,
+              false,
               "idle"
             },
             {
               pc.motion_state,
               pc.velocity.y,
+              pc.has_jumped_this_frame,
               pc.has_interrupted_jump,
               pc.current_sprite
             })
@@ -2576,21 +2580,21 @@ describe('player_char', function ()
 
       describe('_check_jump', function ()
 
-        it('should return false when should_jump is false', function ()
+        it('should not set jump members and return false when should_jump is false', function ()
           pc.velocity = vector(4.1, -1)
           local result = pc:_check_jump()
 
           -- interface
-          assert.are_same({false, vector(4.1, -1), motion_states.grounded}, {result, pc.velocity, pc.motion_state})
+          assert.are_same({false, vector(4.1, -1), motion_states.grounded, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame})
         end)
 
-        it('should consume should_jump, add initial var jump velocity, update motion state and return false when should_jump is true', function ()
+        it('should consume should_jump, add initial var jump velocity, update motion state, set has_jumped_this_frame flag and return true when should_jump is true', function ()
           pc.velocity = vector(4.1, -1)
           pc.should_jump = true
           local result = pc:_check_jump()
 
           -- interface
-          assert.are_same({true, vector(4.1, -4.25), motion_states.airborne}, {result, pc.velocity, pc.motion_state})
+          assert.are_same({true, vector(4.1, -4.25), motion_states.airborne, true}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame})
         end)
 
       end)
@@ -2612,23 +2616,45 @@ describe('player_char', function ()
           player_char._enter_motion_state:clear()
         end)
 
-        it('should apply gravity to speed y when not interrupting jump', function ()
+        it('should preserve (supposedly initial hop) velocity y on first frame of hop and clear has_jumped_this_frame flag', function ()
+          pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
+          pc.has_jumped_this_frame = true
+          pc.hold_jump_intention = false
+
+          pc:_update_platformer_motion_airborne()
+
+          assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+        end)
+
+        it('should preserve (supposedly initial jump) velocity y on first frame of jump (not hop) and clear has_jumped_this_frame flag', function ()
           pc.velocity.y = -3
+          pc.has_jumped_this_frame = true
           pc.hold_jump_intention = true
 
           pc:_update_platformer_motion_airborne()
 
-          assert.are_equal(-3 + pc_data.gravity_frame2, pc.velocity.y)
+          assert.are_same({-3, false}, {pc.velocity.y, pc.has_jumped_this_frame})
         end)
 
-        it('should set to speed y to interrupt speed (no gravity added) when interrupting jump', function ()
+        it('should apply gravity to velocity y when not on first frame of jump and not interrupting jump', function ()
+          pc.velocity.y = -1
+          pc.has_jumped_this_frame = false
+          pc.hold_jump_intention = true
+
+          pc:_update_platformer_motion_airborne()
+
+          assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+        end)
+
+        it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
           pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
+          pc.has_jumped_this_frame = false
           pc.hold_jump_intention = false
 
           pc:_update_platformer_motion_airborne()
 
           -- interface: we are assessing the effect of _check_hold_jump directly
-          assert.are_equal(-pc_data.jump_interrupt_speed_frame, pc.velocity.y)
+          assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
         end)
 
         it('should apply accel x', function ()

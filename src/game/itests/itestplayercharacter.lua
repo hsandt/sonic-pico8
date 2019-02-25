@@ -238,79 +238,82 @@ expect pc_velocity 0 -0.03125
 -- => apogee at y = 8 - 19.296875 = -11.296875
 
 
---[[
-itest = integration_test('platformer jump f2 interrupt flat', {stage.state.type})
-itest_manager:register(itest)
+itest_dsl_parser.register(
+  'platformer jump start flat', [[
+@stage #
+.
+#
 
-itest.setup = function ()
-  setup_map_data()
+warp 4 8
+jump
+wait 2
 
-  -- add tiles where the character will move
-  mset(0, 10, 64)
+expect pc_bottom_pos 4 4.75
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -3.25
+]])
 
-  flow:change_gamestate_by_type(stage.state.type)
 
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
+itest_dsl_parser.register(
+  'platformer jump interrupt flat', [[
+@stage #
+.
+#
 
-  -- start jump
-  stage.state.player_char.jump_intention = true  -- will be consumed
-  stage.state.player_char.hold_jump_intention = true
-end
+warp 4 8
+jump
+wait 4
+stop_jump
+wait 1
 
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
+expect pc_bottom_pos 4 -3.421875
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -2
+]])
+
+-- calculation notes
 
 -- interrupt variable jump at the end of frame 2
--- at frame 1: bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: bpos (4, 80 - 3.25), velocity (0, -3.25), airborne (jump confirmed)
-itest:add_action(time_trigger(2, true), function ()
-  stage.state.player_char.hold_jump_intention = false
-end)
-
--- wait for the apogee (frame 20) and stop
--- at frame 3:  bpos (4, 80 - 5.140625), velocity (0, -1.890625), airborne -> jump interrupted (gravity is applied *after* setting speed y to -2)
--- at frame 19: bpos (4, 80 - 20.515625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 20: bpos (4, 80 - 20.546875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 21: bpos (4, 80 - 20.46875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 39: bpos (4, 80 - 0.3594), velocity (0, 2.15625), airborne -> about to land
--- at frame 40: bpos (4, 80), velocity (0, 0), grounded -> has landed
-itest:add_action(time_trigger(18, true), function () end)
-
--- check that player char has reached the apogee of the jump
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(4, 80 - 20.546875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, -0.03125), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
+-- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), airborne (jump confirmed)
+-- at frame 3: bpos (4, 8 - 6.390625), velocity (0, -3.140625), airborne
+-- at frame 4: bpos (4, 8 - 9.421875), velocity (0, -3.03125), airborne
+-- at frame 5: bpos (4, 8 - 11.421875), velocity (0, -2), airborne (interrupt jump, no extra gravity)
 
 
+itest_dsl_parser.register(
+  '#solo platformer small jump flat', [[
+@stage #
+.
+#
+
+warp 4 8
+jump
+wait 4
+stop_jump
+wait 6
+
+expect pc_bottom_pos 4 -11.7813
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -1.453125
+]])
+
+-- calculation notes
+
+-- frames 1-5 is same as 'platformer jump interrupt flat'
+
+-- wait 5 frames and stop
+-- at frame 6:  bpos (4, 8 - 13.3125), velocity (0, -1.890625), airborne
+-- at frame 7:  bpos (4, 8 - 15.09375), velocity (0, -1.78125), airborne
+-- at frame 8:  bpos (4, 8 - 16.765675), velocity (0, -1.671925), airborne
+-- at frame 9:  bpos (4, 8 - 18.328175), velocity (0, -1.5625), airborne
+-- at frame 10: bpos (4, 8 - 19.7813), velocity (0, -1.453125), airborne
+
+
+--[[
 itest = integration_test('platformer full jump flat', {stage.state.type})
 itest_manager:register(itest)
 

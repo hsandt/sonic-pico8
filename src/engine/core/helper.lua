@@ -127,9 +127,13 @@ function string_tonum(val)
   -- inspired by cheepicus's workaround in
   -- https://www.lexaloffle.com/bbs/?tid=3780
   if sub(val, 1, 1) == '-' then
-    return - tonum(sub(val, 2))
+    local abs_num = tonum(sub(val, 2))
+    assert(abs_num, "could not parse absolute part of number: '-"..sub(val, 2).."'")
+    return - abs_num
   else
-    return tonum(val)
+    local num = tonum(val)
+    assert(num, "could not parse number: '"..val.."'")
+    return num
   end
 end
 

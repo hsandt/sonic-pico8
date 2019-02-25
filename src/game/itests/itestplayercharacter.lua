@@ -295,7 +295,7 @@ wait 4
 stop_jump
 wait 6
 
-expect pc_bottom_pos 4 -11.7813
+expect pc_bottom_pos 4 -11.78125
 expect pc_motion_state airborne
 expect pc_ground_spd 0
 expect pc_velocity 0 -1.453125
@@ -308,9 +308,9 @@ expect pc_velocity 0 -1.453125
 -- wait 5 frames and stop
 -- at frame 6:  bpos (4, 8 - 13.3125), velocity (0, -1.890625), airborne
 -- at frame 7:  bpos (4, 8 - 15.09375), velocity (0, -1.78125), airborne
--- at frame 8:  bpos (4, 8 - 16.765675), velocity (0, -1.671925), airborne
--- at frame 9:  bpos (4, 8 - 18.328175), velocity (0, -1.5625), airborne
--- at frame 10: bpos (4, 8 - 19.7813), velocity (0, -1.453125), airborne
+-- at frame 8:  bpos (4, 8 - 16.765625), velocity (0, -1.671875), airborne
+-- at frame 9:  bpos (4, 8 - 18.328125), velocity (0, -1.5625), airborne
+-- at frame 10: bpos (4, 8 - 19.78125), velocity (0, -1.453125), airborne
 
 
 itest_dsl_parser.register(

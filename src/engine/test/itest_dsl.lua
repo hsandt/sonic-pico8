@@ -37,7 +37,8 @@ local tilemap = require("engine/data/tilemap")
 
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
-local stage = require("game/ingame/stage")  -- required
+local input = require("engine/input/input")
+local stage = require("game/ingame/stage")
 local player_char = require("game/ingame/playercharacter")
 local pc_data = require("game/data/playercharacter_data")
 
@@ -87,6 +88,7 @@ parsable_types = enum {
   "control_mode",
   "motion_mode",
   "motion_state",
+  "button_id",
   "expect",  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
 }
 
@@ -105,6 +107,8 @@ command_types = enum {
   "jump",             -- start and hold jump           args: {}
   "stop_jump",        -- stop any jump intention       args: {}
   -- todo: crouch, spin_dash
+  "press",            -- press and hold button         args: {button_id_str: button_ids key}
+  "release",          -- release button                args: {button_id_str: button_ids key}
   "wait",             -- wait some frames              args: {frames: int}
   "expect",           -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
@@ -122,6 +126,8 @@ command_arg_types = {
   [command_types.stop]             = parsable_types.none,
   [command_types.jump]             = parsable_types.none,
   [command_types.stop_jump]        = parsable_types.none,
+  [command_types.press]            = parsable_types.button_id,
+  [command_types.release]          = parsable_types.button_id,
   [command_types.wait]             = parsable_types.number,
   [command_types.expect]           = parsable_types.expect,
 }
@@ -142,11 +148,11 @@ gp_value_type_strings = invert_table(gp_value_types)
 
 -- data for each gameplay value type
 local gp_value_data_t = {
-  [gp_value_types.pc_bottom_pos] = gameplay_value_data("player character bottom position", parsable_types.vector),
-  [gp_value_types.pc_velocity]   = gameplay_value_data("player character velocity",        parsable_types.vector),
-  [gp_value_types.pc_ground_spd] = gameplay_value_data("player character ground speed",    parsable_types.number),
-  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",  parsable_types.motion_state),
-  [gp_value_types.pc_slope] = gameplay_value_data("player character slope",  parsable_types.number),
+  [gp_value_types.pc_bottom_pos]   = gameplay_value_data("player character bottom position", parsable_types.vector),
+  [gp_value_types.pc_velocity]     = gameplay_value_data("player character velocity",        parsable_types.vector),
+  [gp_value_types.pc_ground_spd]   = gameplay_value_data("player character ground speed",    parsable_types.number),
+  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
+  [gp_value_types.pc_slope]        = gameplay_value_data("player character slope",           parsable_types.number),
 }
 
 
@@ -193,6 +199,13 @@ function itest_dsl.parse_motion_state(arg_strings)
   local motion_state = motion_states[arg_strings[1]]
   assert(motion_state, "motion_states["..arg_strings[1].."] is not defined")
   return motion_states[arg_strings[1]]
+end
+
+function itest_dsl.parse_button_id(arg_strings)
+  assert(#arg_strings == 1, "parse_button_id: got "..#arg_strings.." args, expected 1")
+  local button_id = button_ids[arg_strings[1]]
+  assert(button_id, "button_ids["..arg_strings[1].."] is not defined")
+  return button_ids[arg_strings[1]]
 end
 
 -- convert string args to vector
@@ -253,6 +266,16 @@ end
 
 function itest_dsl.execute_stop_jump(args)
   stage.state.player_char.hold_jump_intention = false
+end
+
+function itest_dsl.execute_press(args)
+  -- simulate sticky press for player 0
+  input.simulated_buttons_down[0][args[1]] = true
+end
+
+function itest_dsl.execute_release(args)
+  -- simulate release for player 0
+  input.simulated_buttons_down[0][args[1]] = false
 end
 
 -- wait and expect are not timed actions and will be handled as special cases

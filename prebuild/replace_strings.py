@@ -130,7 +130,8 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'control_mode':     5,
         'motion_mode':      6,
         'motion_state':     7,
-        'expect':           8,
+        'button_id':        8,
+        'expect':           9,
     },
 
     'command_types': {
@@ -141,8 +142,10 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'stop':             5,
         'jump':             6,
         'stop_jump':        7,
-        'wait':             8,
-        'expect':           9,
+        'press':            8,
+        'release':          9,
+        'wait':            10,
+        'expect':          11,
     },
 
     'gp_value_types': {

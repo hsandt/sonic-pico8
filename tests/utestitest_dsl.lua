@@ -14,6 +14,7 @@ local integrationtest = require("engine/test/integrationtest")
 local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
      "itest_manager", "time_trigger", "integration_test")
 local flow = require("engine/application/flow")
+local input = require("engine/input/input")
 local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
 local stage = require("game/ingame/stage")
@@ -136,6 +137,20 @@ describe('itest_dsl', function ()
 
     end)
 
+    describe('parse_button_id', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_button_id({"too", "many"})
+        end, "parse_button_id: got 2 args, expected 1")
+      end)
+
+      it('should return the single argument as motion mode', function ()
+        assert.are_equal(button_ids.o, itest_dsl.parse_button_id({"o"}))
+      end)
+
+    end)
+
     describe('parse_motion_state', function ()
 
       it('should assert when the number of arguments is wrong', function ()
@@ -251,6 +266,26 @@ describe('itest_dsl', function ()
         stage.state.player_char.hold_jump_intention = true
         itest_dsl.execute_stop_jump({})
         assert.is_false(stage.state.player_char.hold_jump_intention)
+      end)
+
+    end)
+
+    describe('execute_press', function ()
+
+      it('should set the simulated button down state to true', function ()
+        input.simulated_buttons_down[0][button_ids.x] = false
+        itest_dsl.execute_press({button_ids.x})
+        assert.is_true(input.simulated_buttons_down[0][button_ids.x])
+      end)
+
+    end)
+
+    describe('execute_release', function ()
+
+      it('should set the simulated button down state to true', function ()
+        input.simulated_buttons_down[0][button_ids.up] = true
+        itest_dsl.execute_release({button_ids.up})
+        assert.is_false(input.simulated_buttons_down[0][button_ids.up])
       end)
 
     end)

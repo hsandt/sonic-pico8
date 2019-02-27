@@ -84,6 +84,7 @@ parsable_types = enum {
   "number",
   "vector",
   "horizontal_dir",
+  "control_mode",
   "motion_mode",
   "motion_state",
   "expect",  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
@@ -96,15 +97,16 @@ parsable_type_strings = invert_table(parsable_types)
 
 -- type of commands available
 command_types = enum {
-  "warp",            -- warp player character bottom  args: {bottom_position: vector}
-  "set_motion_mode", -- set motion mode               args: {motion_mode_str: motion_modes key}
-  "move",            -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
-  "stop",            -- stop moving horizontally      args: {}
-  "jump",            -- start and hold jump           args: {}
-  "stop_jump",       -- stop any jump intention       args: {}
+  "warp",             -- warp player character bottom  args: {bottom_position: vector}
+  "set_control_mode", -- set control mode              args: {control_mode_str: control_modes key}
+  "set_motion_mode",  -- set motion mode               args: {motion_mode_str: motion_modes key}
+  "move",             -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
+  "stop",             -- stop moving horizontally      args: {}
+  "jump",             -- start and hold jump           args: {}
+  "stop_jump",        -- stop any jump intention       args: {}
   -- todo: crouch, spin_dash
-  "wait",            -- wait some frames              args: {frames: int}
-  "expect",          -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
+  "wait",             -- wait some frames              args: {frames: int}
+  "expect",           -- expect a gameplay value       args: {gp_value_type: gp_value_types, expected_args...: matching gp value parsable type}
 }
 
 --#if assert
@@ -113,14 +115,15 @@ command_type_strings = invert_table(command_types)
 
 -- argument types expected after those commands
 command_arg_types = {
-  [command_types.warp]            = parsable_types.vector,
-  [command_types.set_motion_mode] = parsable_types.motion_mode,
-  [command_types.move]            = parsable_types.horizontal_dir,
-  [command_types.stop]            = parsable_types.none,
-  [command_types.jump]            = parsable_types.none,
-  [command_types.stop_jump]       = parsable_types.none,
-  [command_types.wait]            = parsable_types.number,
-  [command_types.expect]          = parsable_types.expect,
+  [command_types.warp]             = parsable_types.vector,
+  [command_types.set_control_mode] = parsable_types.control_mode,
+  [command_types.set_motion_mode]  = parsable_types.motion_mode,
+  [command_types.move]             = parsable_types.horizontal_dir,
+  [command_types.stop]             = parsable_types.none,
+  [command_types.jump]             = parsable_types.none,
+  [command_types.stop_jump]        = parsable_types.none,
+  [command_types.wait]             = parsable_types.number,
+  [command_types.expect]           = parsable_types.expect,
 }
 
 
@@ -171,6 +174,13 @@ function itest_dsl.parse_horizontal_dir(arg_strings)
   return horizontal_dir
 end
 
+function itest_dsl.parse_control_mode(arg_strings)
+  assert(#arg_strings == 1, "parse_control_mode: got "..#arg_strings.." args, expected 1")
+  local control_mode = control_modes[arg_strings[1]]
+  assert(control_mode, "control_modes["..arg_strings[1].."] is not defined")
+  return control_mode
+end
+
 function itest_dsl.parse_motion_mode(arg_strings)
   assert(#arg_strings == 1, "parse_motion_mode: got "..#arg_strings.." args, expected 1")
   local motion_mode = motion_modes[arg_strings[1]]
@@ -218,6 +228,10 @@ itest_dsl.value_parsers = value_parsers
 
 function itest_dsl.execute_warp(args)
   stage.state.player_char:warp_bottom_to(args[1])
+end
+
+function itest_dsl.execute_set_control_mode(args)
+  stage.state.player_char.control_mode = args[1]
 end
 
 function itest_dsl.execute_set_motion_mode(args)

@@ -108,6 +108,20 @@ describe('itest_dsl', function ()
 
     end)
 
+    describe('parse_control_mode', function ()
+
+      it('should assert when the number of arguments is wrong', function ()
+        assert.has_error(function ()
+          itest_dsl.parse_control_mode({"too", "many"})
+        end, "parse_control_mode: got 2 args, expected 1")
+      end)
+
+      it('should return the single argument as control mode', function ()
+        assert.are_equal(control_modes.ai, itest_dsl.parse_control_mode({"ai"}))
+      end)
+
+    end)
+
     describe('parse_motion_mode', function ()
 
       it('should assert when the number of arguments is wrong', function ()
@@ -180,6 +194,15 @@ describe('itest_dsl', function ()
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
         assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(stage.state.player_char), vector(1, 3))
+      end)
+
+    end)
+
+    describe('execute_set_control_mode', function ()
+
+      it('should set the control mode', function ()
+        itest_dsl.execute_set_control_mode({control_modes.puppet})
+        assert.are_equal(control_modes.puppet, stage.state.player_char.control_mode)
       end)
 
     end)

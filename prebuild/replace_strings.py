@@ -123,24 +123,26 @@ SYMBOL_SUBSTITUTE_TABLE = {
 
     # itest_dsl
     'parsable_types': {
-        'none':            1,
-        'number':          2,
-        'vector':          3,
-        'horizontal_dir':  4,
-        'motion_mode':     5,
-        'motion_state':    6,
-        'expect':          7,
+        'none':             1,
+        'number':           2,
+        'vector':           3,
+        'horizontal_dir':   4,
+        'control_mode':     5,
+        'motion_mode':      6,
+        'motion_state':     7,
+        'expect':           8,
     },
 
     'command_types': {
-        'warp':            1,
-        'set_motion_mode': 2,
-        'move':            3,
-        'stop':            4,
-        'jump':            5,
-        'stop_jump':       6,
-        'wait':            7,
-        'expect':          8,
+        'warp':             1,
+        'set_control_mode': 2,
+        'set_motion_mode':  3,
+        'move':             4,
+        'stop':             5,
+        'jump':             6,
+        'stop_jump':        7,
+        'wait':             8,
+        'expect':           9,
     },
 
     'gp_value_types': {

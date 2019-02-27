@@ -8,7 +8,6 @@ local collision = require("engine/physics/collision")
 local world = require("engine/physics/world")
 local pc_data = require("game/data/playercharacter_data")
 
---#ifn pico8
 
 -- enum for character control
 control_modes = {
@@ -16,8 +15,6 @@ control_modes = {
   ai = 2,         -- ai controls character
   puppet = 3      -- itest script controls character
 }
-
---#endif
 
 -- motion_modes and motion_states are accessed dynamically via variant name in itest_dsl
 --  so we don't strip them away from pico8 builds
@@ -37,6 +34,7 @@ motion_states = {
   grounded = 1,       -- character is on the ground
   airborne = 2        -- character is in the air
 }
+
 
 local player_char = new_class()
 

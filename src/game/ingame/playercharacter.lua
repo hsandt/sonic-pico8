@@ -672,7 +672,8 @@ end
 --  depending whether input is hold or not
 function player_char:_check_jump_intention()
   if self.jump_intention then
-    -- jump_intention is set each frame, no need to consume it here
+    -- consume intention so puppet control mode (which is sticky) also works
+    self.jump_intention = false
     self.should_jump = true
   end
 end

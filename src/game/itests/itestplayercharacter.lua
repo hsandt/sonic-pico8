@@ -386,82 +386,44 @@ expect pc_velocity 0 0
 -- and wait an extra frame to see if Sonic will jump due to holding jump input,
 -- so stop at frame 40
 
---[[
-itest = integration_test('platformer jump air accel', {stage.state.type})
-itest_manager:register(itest)
 
-itest.setup = function ()
-  setup_map_data()
+itest_dsl_parser.register(
+  'platformer jump air accel', [[
+@stage #
+.
+#
 
-  -- add tiles where the character will move
-  mset(0, 10, 64)
+warp 4 8
+jump
+wait 2
+move right
+wait 29
 
-  flow:change_gamestate_by_type(stage.state.type)
+expect pc_bottom_pos 24.390625 -41.921875
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 1.359375 -0.078125
+]])
 
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
 
-  -- start full jump and immediately try to move right
-  stage.state.player_char.jump_intention = true  -- will be consumed
-  stage.state.player_char.hold_jump_intention = true
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
+-- calculation notes
 
 -- wait 2 frame (1 to register jump, 1 to confirm and leave ground) then move to the right
 -- this is just to avoid starting moving on the ground, as we only want to test air control here,
 --  not how ground speed is transferred to air velocity
-itest:add_action(time_trigger(2, true), function ()
-  stage.state.player_char.move_intention = vector(1, 0)
-end)
-
 
 -- wait for the apogee (frame 31) and stop
--- at frame 1: pos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: pos (4, 80 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump, no air accel yet)
--- at frame 3: pos (4 + 0.046875, 80 - 49.84375), velocity (0.046875, -3.140625), airborne -> accel forward
--- at frame 30: pos (4 + 19.03125, 80 - 49.84375), velocity (1.3125, -0.1875), airborne -> before apogee
--- at frame 31: pos (4 + 20.390625, 80 - 49.921875), velocity (1.359375, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
--- at frame 32: pos (4 + 21.796875, 80 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
--- at frame 61: pos (4 + 82.96875, 80 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
--- at frame 62: pos (4 + 85.78125, 80), velocity (2.8125, 0), grounded -> has landed, preserve x speed
-itest:add_action(time_trigger(29, true), function () end)
+-- at frame 1: pos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: pos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump, no air accel yet)
+-- at frame 3: pos (4 + 0.046875, 8 - 49.84375), velocity (0.046875, -3.140625), airborne -> accel forward
+-- at frame 30: pos (4 + 19.03125, 8 - 49.84375), velocity (1.3125, -0.1875), airborne -> before apogee
+-- at frame 31: pos (4 + 20.390625, 8 - 49.921875), velocity (1.359375, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+-- at frame 32: pos (4 + 21.796875, 8 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
+-- at frame 61: pos (4 + 82.96875, 8 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
+-- at frame 62: pos (4 + 85.78125, 8), velocity (2.8125, 0), grounded -> has landed, preserve x speed
 
--- check that player char has moved to the right and fell
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.airborne == stage.state.player_char.motion_state, "Expected motion state 'airborne', got "..stage.state.player_char.motion_state
-  local is_position_expected, position_message = almost_eq_with_message(vector(4 + 20.390625, 80 - 49.921875), stage.state.player_char:get_bottom_center(), 1/256)
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(1.359375, -0.078125), stage.state.player_char.velocity, 1/256)
+-- check for apogee
 
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
-
---]]
 
 --[[
 

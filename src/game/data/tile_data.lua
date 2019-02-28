@@ -3,9 +3,11 @@
 local tile_test_data = require("game/test_data/tile_test_data")
 
 tile_symbol_to_ids = {
-  ['.'] = 0,   -- empty
-  ['#'] = 64,  -- full tile
-  ['/'] = 65,  -- ascending slope 45
+  ['.']  = 0,   -- empty
+  ['#']  = 64,  -- full tile
+  ['/']  = 65,  -- ascending slope 45
+  ['\\'] = 66,  -- descending slope 45
+  ['<']  = 67,  -- ascending slope 22.5
 }
 
 -- for itests that need map setup, we exceptionally not teardown

@@ -66,6 +66,7 @@ end
 
 -- optimize tokens: if this is too much, remove proxy function tables
 --  altogether and directly access functions via itest_dsl[prefix..type_name]
+--  (this requires to keep the enum_strings table in config with #itest)
 -- return table containing functions named {prefix}{enum_type_name}
 --  inside a module, indexed by enum value
 local function generate_function_table(module, enum_types, prefix)
@@ -89,7 +90,7 @@ parsable_types = enum {
   "motion_mode",
   "motion_state",
   "button_id",
-  "expect",  -- meta-type meaning we must check the 1st arg (gp_value_type) to know what the rest should be
+  "gp_value",  -- meta-type compounded of [gp_value_type, gp_value_args...] where gp_value_args depend on gp_value_type
 }
 
 --#if assert
@@ -100,6 +101,7 @@ parsable_type_strings = invert_table(parsable_types)
 -- type of commands available
 command_types = enum {
   "warp",             -- warp player character bottom  args: {bottom_position: vector}
+  "set",              -- set gameplay value            args: {gp_value_type: gp_value_types, new_value_args...: matching gp value parsable type}
   "set_control_mode", -- set control mode              args: {control_mode_str: control_modes key}
   "set_motion_mode",  -- set motion mode               args: {motion_mode_str: motion_modes key}
   "move",             -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
@@ -120,6 +122,7 @@ command_type_strings = invert_table(command_types)
 -- argument types expected after those commands
 command_arg_types = {
   [command_types.warp]             = parsable_types.vector,
+  [command_types.set]              = parsable_types.gp_value,
   [command_types.set_control_mode] = parsable_types.control_mode,
   [command_types.set_motion_mode]  = parsable_types.motion_mode,
   [command_types.move]             = parsable_types.horizontal_dir,
@@ -129,7 +132,7 @@ command_arg_types = {
   [command_types.press]            = parsable_types.button_id,
   [command_types.release]          = parsable_types.button_id,
   [command_types.wait]             = parsable_types.number,
-  [command_types.expect]           = parsable_types.expect,
+  [command_types.expect]           = parsable_types.gp_value,
 }
 
 
@@ -208,16 +211,15 @@ function itest_dsl.parse_button_id(arg_strings)
   return button_ids[arg_strings[1]]
 end
 
--- convert string args to vector
-function itest_dsl.parse_expect(arg_strings)
-  assert(#arg_strings > 1, "parse_expect: got "..#arg_strings.." args, expected at least 2")
+function itest_dsl.parse_gp_value(arg_strings)
+  assert(#arg_strings > 1, "parse_gp_value: got "..#arg_strings.." args, expected at least 2")
   -- same principle as itest_dsl_parser.parse, the type of the first arg
   --  determines how we parse the rest of the args, named "value components"
   local gp_value_type_str = arg_strings[1]
   -- gather all the value components as strings (e.g. {"3", "4"} for vector(3, 4))
-  local expected_value_comps = {}
+  local gp_value_comps = {}
   for i = 2, #arg_strings do
-    add(expected_value_comps, arg_strings[i])
+    add(gp_value_comps, arg_strings[i])
   end
   -- determine the type of value reference tested for comparison (e.g. pc position)
   local gp_value_type = gp_value_types[gp_value_type_str]
@@ -225,10 +227,10 @@ function itest_dsl.parse_expect(arg_strings)
   -- parse the value components to semantical type (e.g. vector)
   local gp_value_data = gp_value_data_t[gp_value_type]
   assert(gp_value_data, "gp_value_data_t["..gp_value_type.."] (for '"..gp_value_type_str.."') is not defined")
-  local expected_value_parser = value_parsers[gp_value_data.parsable_type]
-  assert(expected_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
-  local expected_value = expected_value_parser(expected_value_comps)
-  return gp_value_type, expected_value
+  local gp_value_parser = value_parsers[gp_value_data.parsable_type]
+  assert(gp_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
+  local gp_value = gp_value_parser(gp_value_comps)
+  return gp_value_type, gp_value
 end
 
 -- table of parsers for command args and gameplay values, indexed by parsed type
@@ -241,6 +243,18 @@ itest_dsl.value_parsers = value_parsers
 
 function itest_dsl.execute_warp(args)
   stage.state.player_char:warp_bottom_to(args[1])
+end
+
+function itest_dsl.execute_set(args)
+  local gp_value_type = args[1]
+  local new_gp_value = args[2]
+
+  -- if you remove *all* generate_function_table, it's worth having parse_gp_value
+  -- return a gp_value_type_str rather than an index to avoid going back and forth
+  -- between key and value
+  local setter = itest_dsl["set_"..gp_value_type_strings[gp_value_type]]
+  assert(setter, "itest_dsl.set_"..gp_value_type_strings[gp_value_type].." is not defined")
+  setter(new_gp_value)
 end
 
 function itest_dsl.execute_set_control_mode(args)
@@ -310,6 +324,18 @@ end
 -- table of functions used to evaluate and returns the gameplay value in current game state
 evaluators = generate_function_table(itest_dsl, gp_value_types, "eval_")
 itest_dsl.evaluators = evaluators
+
+
+-- gameplay value setters (only when setting value directly makes sense)
+
+function itest_dsl.set_pc_velocity(value)
+  stage.state.player_char.velocity = value
+end
+
+function itest_dsl.set_pc_ground_spd(value)
+  stage.state.player_char.ground_speed = value
+end
+
 
 -- command struct
 

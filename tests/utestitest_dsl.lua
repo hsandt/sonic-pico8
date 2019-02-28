@@ -165,17 +165,17 @@ describe('itest_dsl', function ()
 
     end)
 
-    describe('parse_expect', function ()
+    describe('parse_gp_value', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_expect({"too few"})
-        end, "parse_expect: got 1 args, expected at least 2")
+          itest_dsl.parse_gp_value({"too few"})
+        end, "parse_gp_value: got 1 args, expected at least 2")
       end)
 
       it('should return the gameplay value type and the expected value, itself recursively parsed', function ()
         assert.are_same({gp_value_types.pc_bottom_pos, vector(1, 3)},
-          {itest_dsl.parse_expect({"pc_bottom_pos", "1", "3"})})
+          {itest_dsl.parse_gp_value({"pc_bottom_pos", "1", "3"})})
       end)
 
     end)
@@ -209,6 +209,21 @@ describe('itest_dsl', function ()
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
         assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(stage.state.player_char), vector(1, 3))
+      end)
+
+    end)
+
+    describe('"execute_set', function ()
+
+      it('should set pc velocity to (1, -3)', function ()
+        itest_dsl.execute_set({gp_value_types.pc_velocity, vector(1, -3)})
+        assert.are_equal(vector(1, -3), stage.state.player_char.velocity)
+      end)
+
+      it('should fail with unsupported gp_value_type for setting', function ()
+        assert.has_error(function ()
+          itest_dsl.execute_set({gp_value_types.pc_slope, -2})
+        end, "itest_dsl.set_pc_slope is not defined")
       end)
 
     end)
@@ -345,6 +360,39 @@ describe('itest_dsl', function ()
       it('should return the ground speed current player character', function ()
         stage.state.player_char.slope_angle = -0.125
         assert.are_equal(-0.125, eval_pc_slope())
+      end)
+
+    end)
+
+  end)
+
+
+  describe('set_', function ()
+
+    before_each(function ()
+      -- some setters require the player character
+      stage.state.player_char = player_char()
+    end)
+
+    after_each(function ()
+      -- clean up dummy player character
+      stage.state:init()
+    end)
+
+    describe('set_pc_velocity', function ()
+
+      it('should return the velocity the current player character', function ()
+        itest_dsl.set_pc_velocity(vector(1, -4))
+        assert.are_equal(vector(1, -4), stage.state.player_char.velocity)
+      end)
+
+    end)
+
+    describe('set_pc_ground_spd', function ()
+
+      it('should return the ground speed current player character', function ()
+        itest_dsl.set_pc_ground_spd(3.5)
+        assert.are_equal(3.5, stage.state.player_char.ground_speed)
       end)
 
     end)

@@ -425,81 +425,32 @@ expect pc_velocity 1.359375 -0.078125
 -- check for apogee
 
 
---[[
-
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
-itest = integration_test('platformer ground wall block right', {stage.state.type})
-itest_manager:register(itest)
+itest_dsl_parser.register(
+  'platformer ground wall block right', [[
+@stage #
+..#
+##.
 
-itest.setup = function ()
-  setup_map_data()
+warp 4 8
+move right
+wait 28
 
-  --   X
-  -- XXX
-  mset(0, 10, 64)  -- to walk on
-  mset(1, 10, 64)  -- to walk on
-  mset(2, 10, 64)  -- for now, we need supporting block
-  mset(2,  9, 64)  -- blocking wall
+expect pc_bottom_pos 13 8
+expect pc_motion_state grounded
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
 
-  flow:change_gamestate_by_type(stage.state.type)
+-- calculation notes
 
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
+-- wait 28 frames and stop
+-- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
 
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
-
--- wait 29 frames and stop
--- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
--- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
--- character will be blocked when right wall sensor is at x = 16, so when center is at x = 12
--- at frame 1: pos (4 + 0.0234375, 80), velocity (0.0234375, 0), grounded
--- at frame 27: pos (12.8359375, 80 - 8), velocity (0.6328125, 0), about to meet wall
--- at frame 28: pos (13, 80 - 8), velocity (0, 0), hit wall
-itest:add_action(time_trigger(28, true), function () end)
-
--- check that player char has moved to the right and is still on the ground
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
-  -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
-  local is_position_expected, position_message = almost_eq_with_message(vector(13., 80.), stage.state.player_char:get_bottom_center(), 1/256)
-  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
-
---]]
+-- at frame 1: pos (4 + 0.0234375, 8), velocity (0.0234375, 0), grounded
+-- at frame 27: pos (12.8359375, 8), velocity (0.6328125, 0), about to meet wall
+-- at frame 28: pos (13, 8), velocity (0, 0), hit wall
 
 --[[
 

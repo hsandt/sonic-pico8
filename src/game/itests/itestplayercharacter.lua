@@ -38,6 +38,11 @@ expect pc_bottom_pos 0x0038.b7f1 8
 
 -- ground motion
 
+-- common calculation notes:
+-- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
+-- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
+
+
 -- bugfix history:
 -- . test was wrong, initialize in setup, not at time trigger 0
 itest_dsl_parser.register(
@@ -148,6 +153,95 @@ expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
 -- at frame 13: bpos (6.1328125, 15), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
 -- at frame 14: bpos (6.333572387695, 15), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
 -- at frame 15: bpos (6.519668501758, 15), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
+
+
+-- calculation notes
+
+-- wait 2 frame (1 to register jump, 1 to confirm and leave ground) then move to the right
+-- this is just to avoid starting moving on the ground, as we only want to test air control here,
+--  not how ground speed is transferred to air velocity
+
+-- wait for the apogee (frame 31) and stop
+-- at frame 1: pos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: pos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump, no air accel yet)
+-- at frame 3: pos (4 + 0.046875, 8 - 49.84375), velocity (0.046875, -3.140625), airborne -> accel forward
+-- at frame 30: pos (4 + 19.03125, 8 - 49.84375), velocity (1.3125, -0.1875), airborne -> before apogee
+-- at frame 31: pos (4 + 20.390625, 8 - 49.921875), velocity (1.359375, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+-- at frame 32: pos (4 + 21.796875, 8 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
+-- at frame 61: pos (4 + 82.96875, 8 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
+-- at frame 62: pos (4 + 85.78125, 8), velocity (2.8125, 0), grounded -> has landed, preserve x speed
+
+-- check for apogee
+
+
+-- bugfix history:
+-- + revealed that spawn_at was not resetting state vars, so added _setup method
+itest_dsl_parser.register(
+  'platformer ground wall block right', [[
+@stage #
+..#
+##.
+
+warp 4 8
+move right
+wait 28
+
+expect pc_bottom_pos 13 8
+expect pc_motion_state grounded
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+-- calculation notes
+
+-- wait 28 frames and stop
+-- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
+
+-- at frame 1: pos (4 + 0.0234375, 8), velocity (0.0234375, 0), grounded
+-- at frame 27: pos (12.8359375, 8), velocity (0.6328125, 0), about to meet wall
+-- at frame 28: pos (13, 8), velocity (0, 0), hit wall
+
+
+itest_dsl_parser.register(
+  '#solo platformer slope ceiling block right', [[
+@stage #
+..#
+.<.
+#..
+
+warp 4 16
+set pc_ground_spd 3
+move right
+wait 4
+
+expect pc_bottom_pos 13 11
+expect pc_motion_state grounded
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+
+-- calculation notes
+
+-- ground speed start at 40 for fast startup (velocity will be updated on first frame)
+
+-- wait 29 frames and stop
+
+-- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
+
+-- if move intention is applied after slope factor (or both are applied, then ground speed is clamped as we should):
+-- at frame 1: pos (7, 14), velocity (3, 0), grounded
+-- at frame 2: pos (7 + 0x0002.c589 = 9.771621704102, 13), velocity (3, 0), grounded
+-- at frame 3: pos (7 + 2 * 0x0002.c589 = 12.543243408204, 11), velocity (3, 0), grounded
+-- at frame 4: pos (13, 11), velocity (3, 0), grounded
+
+-- in practice, slope after is applied after intention, causing a slight decel:
+
+-- frame 2: ground speed 2.9995
+-- frame 3: ground speed 2.9991
+
+-- however, this strongly depends on the slope factor x intention combination before clamping
+-- and is likely to change, so no need to test this far for being blocked by the final ceiling
 
 
 -- air motion
@@ -406,146 +500,6 @@ expect pc_velocity 1.359375 -0.078125
 ]])
 
 
--- calculation notes
-
--- wait 2 frame (1 to register jump, 1 to confirm and leave ground) then move to the right
--- this is just to avoid starting moving on the ground, as we only want to test air control here,
---  not how ground speed is transferred to air velocity
-
--- wait for the apogee (frame 31) and stop
--- at frame 1: pos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: pos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump, no air accel yet)
--- at frame 3: pos (4 + 0.046875, 8 - 49.84375), velocity (0.046875, -3.140625), airborne -> accel forward
--- at frame 30: pos (4 + 19.03125, 8 - 49.84375), velocity (1.3125, -0.1875), airborne -> before apogee
--- at frame 31: pos (4 + 20.390625, 8 - 49.921875), velocity (1.359375, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
--- at frame 32: pos (4 + 21.796875, 8 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
--- at frame 61: pos (4 + 82.96875, 8 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
--- at frame 62: pos (4 + 85.78125, 8), velocity (2.8125, 0), grounded -> has landed, preserve x speed
-
--- check for apogee
-
-
--- bugfix history:
--- + revealed that spawn_at was not resetting state vars, so added _setup method
-itest_dsl_parser.register(
-  'platformer ground wall block right', [[
-@stage #
-..#
-##.
-
-warp 4 8
-move right
-wait 28
-
-expect pc_bottom_pos 13 8
-expect pc_motion_state grounded
-expect pc_ground_spd 0
-expect pc_velocity 0 0
-]])
-
--- calculation notes
-
--- wait 28 frames and stop
--- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
-
--- at frame 1: pos (4 + 0.0234375, 8), velocity (0.0234375, 0), grounded
--- at frame 27: pos (12.8359375, 8), velocity (0.6328125, 0), about to meet wall
--- at frame 28: pos (13, 8), velocity (0, 0), hit wall
-
---[[
-
-itest = integration_test('platformer slope wall block right', {stage.state.type})
-itest_manager:register(itest)
-
-itest.setup = function ()
-  setup_map_data()
-
-  mset(0, 10, 64)  -- to walk on
-  mset(1, 10, 64)  -- support ground for slope
-  mset(1,  9, 67)  -- ascending slope 22.5 to walk on
-  mset(2,  8, 64)  -- blocking wall at the top of the slope
-
-  flow:change_gamestate_by_type(stage.state.type)
-
-  -- respawn character on the ground (important to always start with grounded state)
-  stage.state.player_char:spawn_at(vector(4., 80. - pc_data.center_height_standing))  -- set bottom y at 80
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.platformer
-
-  -- start moving to the right from frame 0 by setting intention in setup
-  stage.state.player_char.move_intention = vector(1, 0)
-  -- cheat for fast startup (velocity will be updated on first frame)
-  stage.state.player_char.ground_speed = 40
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- wait 29 frames and stop
-
--- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
--- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
--- character will be blocked when right wall sensor is at x = 16, so when center is at x = 12
--- remember character must reach x=13 (not visible, inside frame calculation) to detect the wall, then snap to 12!
--- at frame 1: pos (4 + 0.0234375, 80), velocity (0.0234375, 0), grounded
-
--- at frame 12: bpos (5.828125, 80), velocity (0.28125, 0), ground_speed(0.28125)
--- at frame 13: bpos (6.1328125, 79), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
--- at frame 14: bpos (6.333572387695, 79), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
--- at frame 15: bpos (6.519668501758, 79), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
--- problem: with slope 45, character slows down and never get past x=7
--- instead, we just cheat and add an extra speed, then just check the final position after a long time enough to reach the block at the top
-
--- at frame 27: pos (12.8359375, 80 - 8), velocity (0.6328125, 0), about to meet wall
--- at frame 28: pos (13, 80 - 8), velocity (0, 0), hit wall
-
--- at frame  1: bpos (4.0234375, 80), velocity (0.0234375, 0), ground_speed(0.0234375)
--- at frame  9: bpos (5.0546875, 80), velocity (0.2109375, 0), ground_speed(0.2109375)
--- at frame 10: bpos (5.2890625, 80), velocity (0.234375, 0), ground_speed(0.234375)
--- at frame 11: bpos (5.546875, 80), velocity (0.2578125, 0), ground_speed(0.2578125)
-
--- even at 22.5, character doesn't manage to climb up perfectly and oscillates near the top...
-
--- note that speed decrease on slope is not implemented yet (via cosine but also gravity), so this test will have to change when it is
---  when it is, prefer passing a very low slope or apply slope factor to adapt the position/velocity calculation
-
-itest:add_action(time_trigger(28, true), function () end)
-
--- check that player char has moved to the right and is still on the ground
-itest.final_assertion = function ()
-  local is_motion_state_expected, motion_state_message = motion_states.grounded == stage.state.player_char.motion_state, "Expected motion state 'grounded', got "..stage.state.player_char.motion_state
-  -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
-  -- actually 13 if we use more narrow ground sensor
-  local is_position_expected, position_message = almost_eq_with_message(vector(13, 80 - 8), stage.state.player_char:get_bottom_center(), 1/256)
-  -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-  local is_ground_speed_expected, ground_speed_message = almost_eq_with_message(0, stage.state.player_char.ground_speed, 1/256)
-  local is_velocity_expected, velocity_message = almost_eq_with_message(vector(0, 0), stage.state.player_char.velocity, 1/256)
-
-  local final_message = ""
-
-  local success = is_position_expected and is_ground_speed_expected and is_velocity_expected and is_motion_state_expected
-  if not success then
-    if not is_motion_state_expected then
-      final_message = final_message..motion_state_message.."\n"
-    end
-    if not is_position_expected then
-      final_message = final_message..position_message.."\n"
-    end
-    if not is_ground_speed_expected then
-      final_message = final_message..ground_speed_message.."\n"
-    end
-    if not is_velocity_expected then
-      final_message = final_message..velocity_message.."\n"
-    end
-
-  end
-
-  return success, final_message
-end
-
---]]
 
 --[[ Really comment this block out for now, as it makes too many chars
 

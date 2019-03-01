@@ -203,7 +203,7 @@ expect pc_velocity 0 0
 
 
 itest_dsl_parser.register(
-  '#solo platformer slope ceiling block right', [[
+  'platformer slope ceiling block right', [[
 @stage #
 ..#
 .<.
@@ -500,37 +500,21 @@ expect pc_velocity 1.359375 -0.078125
 ]])
 
 
-
---[[ Really comment this block out for now, as it makes too many chars
-
---[[#pico8
--- human test for pico8 only to check rendering
+-- human tests
+-- pico8 only, since human must check rendering
+--[=[#pico8
 -- bugfix history:
 -- = fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
 --   and not actual sprite topleft in the spritesheet
-itest = integration_test('character is correctly rendered idle', {stage.state.type})
-itest_manager:register(itest)
+itest_dsl_parser.register(
+  'pc render idle', [[
+@stage #
+.
+#
 
-itest.setup = function ()
-  setup_map_data()
-
-  mset(0, 10, 64)  -- to stand on
-
-  flow:change_gamestate_by_type(stage.state.type)
-  stage.state.player_char:warp_bottom_to(vector(4., 80.))
-  stage.state.player_char.control_mode = control_modes.puppet
-  stage.state.player_char.motion_mode = motion_modes.debug
-end
-
-itest.teardown = function ()
-  clear_map()
-  teardown_map_data()
-end
-
--- wait just 0.1 second so the character can be rendered at least 1 frame because the test pauses
-itest:add_action(time_trigger(1.), function () end)
+warp 4 8
+]])
 
 -- no final assertion, let the user check if result is correct or not (note it will display success whatever)
---#pico8]]
 
---]]
+--#pico8]=]

@@ -198,14 +198,25 @@ local air_motion_result = new_struct()
 collision.air_motion_result = air_motion_result
 
 -- position               vector   position at the end of motion
--- is_blocked_by_ceiling  bool     was the character blocked by a ceiling during motion?
 -- is_blocked_by_wall     bool     was the character blocked by a left/right wall during motion?
+-- is_blocked_by_ceiling  bool     was the character blocked by a ceiling during motion?
 -- is_landing   bool      bool     has the character landed at the end of this motion?
-function air_motion_result:_init(position, is_blocked_by_ceiling, is_blocked_by_wall, is_landing)
+function air_motion_result:_init(position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing)
   self.position = position
-  self.is_blocked_by_ceiling = is_blocked_by_ceiling
   self.is_blocked_by_wall = is_blocked_by_wall
+  self.is_blocked_by_ceiling = is_blocked_by_ceiling
   self.is_landing = is_landing
+end
+
+-- return true iff motion result indicates a blocker in the given direction
+function air_motion_result:is_blocked_along(direction)
+  if direction == directions.left or direction == directions.right then
+    return self.is_blocked_by_wall
+  elseif direction == directions.up then
+    return self.is_blocked_by_ceiling
+  else  -- direction == directions.down
+    return self.is_landing
+  end
 end
 
 --#if log

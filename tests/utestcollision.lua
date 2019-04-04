@@ -729,9 +729,53 @@ describe('collision', function ()
 
     describe('_init', function ()
 
-      it('should create a air_motion_result with position, is_blocked_by_ceiling, is_blocked_by_wall, is_landing', function ()
+      it('should create a air_motion_result with position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing', function ()
+        local gmr = air_motion_result(vector(2, 3), true, false, true)
+        assert.are_same({vector(2, 3), true, false, true}, {gmr.position, gmr.is_blocked_by_wall, gmr.is_blocked_by_ceiling, gmr.is_landing})
+      end)
+
+    end)
+
+    describe('is_blocked_along', function ()
+
+      it('return false if direction is left and is_blocked_by_wall is false', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, false)
+        assert.is_false(gmr:is_blocked_along(directions.left))
+      end)
+
+      it('return true if direction is left and is_blocked_by_wall is true', function ()
+        local gmr = air_motion_result(vector(2, 3), true, false, false)
+        assert.is_true(gmr:is_blocked_along(directions.left))
+      end)
+
+      it('return false if direction is right and is_blocked_by_wall is false', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, false)
+        assert.is_false(gmr:is_blocked_along(directions.right))
+      end)
+
+      it('return true if direction is right and is_blocked_by_wall is true', function ()
+        local gmr = air_motion_result(vector(2, 3), true, false, false)
+        assert.is_true(gmr:is_blocked_along(directions.right))
+      end)
+
+      it('return false if direction is up and is_blocked_by_ceiling is false', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, false)
+        assert.is_false(gmr:is_blocked_along(directions.up))
+      end)
+
+      it('return true if direction is up and is_blocked_by_ceiling is true', function ()
+        local gmr = air_motion_result(vector(2, 3), false, true, false)
+        assert.is_true(gmr:is_blocked_along(directions.up))
+      end)
+
+      it('return false if direction is down and is_landing is false', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, false)
+        assert.is_false(gmr:is_blocked_along(directions.down))
+      end)
+
+      it('return true if direction is down and is_landing is true', function ()
         local gmr = air_motion_result(vector(2, 3), false, false, true)
-        assert.are_same({vector(2, 3), false, false, true}, {gmr.position, gmr.is_blocked_by_ceiling, gmr.is_blocked_by_wall, gmr.is_landing})
+        assert.is_true(gmr:is_blocked_along(directions.down))
       end)
 
     end)

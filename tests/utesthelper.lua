@@ -25,8 +25,6 @@ describe('get_members', function ()
   end)
 end)
 
--- local a, b = import_members(mymodule, "a", "b")    -- v2
-
 describe('is_empty', function ()
   it('return true if the table is empty', function ()
     assert.is_true(is_empty({}))
@@ -43,7 +41,6 @@ describe('is_empty', function ()
 end)
 
 describe('are_same', function ()
-
   local single_t = {}
 
   local comparable_mt = {

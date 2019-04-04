@@ -3,22 +3,22 @@ return {
   -- platformer motion
 
   -- ground acceleration (px/frame^2)
-  ground_accel_frame2 = 0.0234375,
+  ground_accel_frame2 = 0.0234375,  -- 1.5/64
 
   -- ground active deceleration (brake) (px/frame^2)
-  ground_decel_frame2 = 0.25,
+  ground_decel_frame2 = 0.25,  -- 16/64
 
   -- ground friction (passive deceleration) (px/frame^2)
-  ground_friction_frame2 = 0.0234375,
+  ground_friction_frame2 = 0.0234375,  -- 1.5/64
 
   -- gravity acceleration (px/frame^2)
-  gravity_frame2 = 0.109375,
+  gravity_frame2 = 0.109375,  -- 7/64
 
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
-  slope_accel_factor_frame2 = 0.0625,
+  slope_accel_factor_frame2 = 0.0625,  -- 7/64
 
   -- air acceleration on x axis (px/frames^2)
-  air_accel_x_frame2 = 0.046875,
+  air_accel_x_frame2 = 0.046875,  -- 3/64
 
   -- ground acceleration (px/frame)
   max_ground_speed = 3,

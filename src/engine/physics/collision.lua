@@ -169,8 +169,8 @@ end
 --#endif
 
 
--- struct representing the expected result of a character move over a frame,
---  computed step by step
+-- struct representing the expected result of a character ground move over a frame,
+--  computed step by step. similar to a raycast hit info, specialized for ground motion
 local ground_motion_result = new_struct()
 collision.ground_motion_result = ground_motion_result
 
@@ -188,6 +188,30 @@ end
 --#if log
 function ground_motion_result:_tostring()
   return "ground_motion_result("..joinstr(", ", self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
+end
+--#endif
+
+
+-- struct representing the expected result of a character air move over a frame,
+--  computed step by step. similar to a raycast hit info, specialized for air motion
+local air_motion_result = new_struct()
+collision.air_motion_result = air_motion_result
+
+-- position               vector   position at the end of motion
+-- is_blocked_by_ceiling  bool     was the character blocked by a ceiling during motion?
+-- is_blocked_by_wall     bool     was the character blocked by a left/right wall during motion?
+-- is_landing   bool      bool     has the character landed at the end of this motion?
+function air_motion_result:_init(position, is_blocked_by_ceiling, is_blocked_by_wall, is_landing)
+  self.position = position
+  self.is_blocked_by_ceiling = is_blocked_by_ceiling
+  self.is_blocked_by_wall = is_blocked_by_wall
+  self.is_landing = is_landing
+end
+
+--#if log
+function air_motion_result:_tostring()
+  return "air_motion_result("..joinstr(", ",
+    self.position, self.is_blocked_by_ceiling, self.is_blocked_by_wall, self.is_landing)..")"
 end
 --#endif
 

@@ -6,7 +6,8 @@ local aabb = collision.aabb
 local tile_data = collision.tile_data
 local height_array = collision.height_array
 local ground_query_info = collision.ground_query_info
-local ground_motion_result = collision.ground_motion_result
+local ground_motion_result,   air_motion_result = get_members(collision,
+     "ground_motion_result", "air_motion_result")
 
 -- retrieve the filter arguments so we can optimize by only generating tests we will need
 local cli = require('busted.modules.cli')()
@@ -715,9 +716,31 @@ describe('collision', function ()
 
     describe('_tostring', function ()
 
-      it('should return "height_array({4, 5, 6, 7, 8, 9, 10, 11}, 0.125)"', function ()
+      it('should return "ground_motion_result(vector(2, 3), 0.25, false, true)"', function ()
         local gmr = ground_motion_result(vector(2, 3), 0.25, false, true)
         assert.are_equal("ground_motion_result(vector(2, 3), 0.25, false, true)", gmr:_tostring())
+      end)
+
+    end)
+
+  end)
+
+  describe('air_motion_result', function ()
+
+    describe('_init', function ()
+
+      it('should create a air_motion_result with position, is_blocked_by_ceiling, is_blocked_by_wall, is_landing', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, true)
+        assert.are_same({vector(2, 3), false, false, true}, {gmr.position, gmr.is_blocked_by_ceiling, gmr.is_blocked_by_wall, gmr.is_landing})
+      end)
+
+    end)
+
+    describe('_tostring', function ()
+
+      it('should return "air_motion_result(vector(2, 3), false, false, true)"', function ()
+        local gmr = air_motion_result(vector(2, 3), false, false, true)
+        assert.are_equal("air_motion_result(vector(2, 3), false, false, true)", gmr:_tostring())
       end)
 
     end)

@@ -565,6 +565,12 @@ function player_char:_next_ground_step(horizontal_dir, motion_result)
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
+      -- caution: we are not updating y at all, which means the character starts
+      --  "walking horizontally in the air". in sonic games, we would expect
+      --  momentum to take over and send the character upward/downward, preserving
+      --  velocity y from last frame
+      -- so when adding momentum, consider reusing the last delta y (e.g. signed_distance_to_closest_ground)
+      --  and applying it this frame
       motion_result.is_falling = true
     end
   else
@@ -582,8 +588,8 @@ function player_char:_next_ground_step(horizontal_dir, motion_result)
 
     -- only advance if character is still not blocked (else, preserve previous position,
     --  which should be floored)
-    -- this only works because the wall sensors are 1px farther from the character
-    --  center than the ground sensors; if there were even farther, we'd even need to
+    -- this only works because the wall sensors are 1px farther from the character center
+    --  than the ground sensors; if there were even farther, we'd even need to
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
     --  when motion_result.is_blocked (and adapt y)
     if not motion_result.is_blocked then
@@ -623,7 +629,7 @@ end
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
 function player_char._is_column_blocked_by_ceiling_at(sensor_position)
 
-  assert(flr(sensor_position.x) == sensor_position.x, "player_char:_is_blocked_by_ceiling_at_column: sensor_position.x must be floored")
+  assert(flr(sensor_position.x) == sensor_position.x, "player_char:_is_column_blocked_by_ceiling_at: sensor_position.x must be floored")
 
   -- find the tile where this sensor is located
   local curr_tile_loc = sensor_position:to_location()
@@ -643,6 +649,14 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
     -- (90 and 270-rotated tiles will be ignored as they are not supposed to block the character's head)
     curr_tile_loc.j = curr_tile_loc.j - 1
     local current_tile_top = curr_tile_loc:to_topleft_position().y
+    local current_tile_bottom = current_tile_top + tile_size
+
+    -- if the bottom of next ceiling to check is already higher than, or equal to
+    --  one character height, if cannot block him, so return false
+    local height_distance = sensor_position.y - current_tile_bottom
+    if height_distance >= pc_data.full_height_standing then
+      return false
+    end
 
     local ground_array_height, _ = world._compute_column_height_at(curr_tile_loc, column_index0)
     if ground_array_height ~= nil and ground_array_height > 0 then
@@ -653,14 +667,8 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
       -- with ceiling tiles, we will need to check if the ceiling column height
       --  hits the head or not. if it doesn't stop here, return false,
       --  the head is below the ceiling:
-      -- local current_tile_bottom = current_tile_top + tile_size
       -- local height_distance = sensor_position.y - current_tile_bottom
       -- return height_distance < pc_data.full_height_standing
-    end
-
-    local height_distance = sensor_position.y - current_tile_top
-    if height_distance >= pc_data.full_height_standing then
-      return false
     end
 
   end

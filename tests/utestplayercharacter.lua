@@ -2504,7 +2504,7 @@ describe('player_char', function ()
         describe('(1 full tile)', function ()
 
           before_each(function ()
-            -- X
+            -- .X
             mset(1, 0, 64)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
@@ -2517,6 +2517,11 @@ describe('player_char', function ()
             assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(7, 8)))
           end)
 
+          -- bugfix history:
+          --  ? i thought that by design, function should return true but realized it was not consistent
+          --  ? actually I was right, since if the character moves inside the 2nd of a diagonal tile pattern,
+          --    it *must* be blocked. when character has a foot on the lower tile, it is considered to be
+          --    in this lower tile
           it('should return true for sensor position at the bottom-left of the tile', function ()
             assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(8, 8)))
           end)
@@ -2533,6 +2538,11 @@ describe('player_char', function ()
             assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(12, 8 + pc_data.full_height_standing - 1)))
           end)
 
+          -- bugfix history:
+          --  < i realized that values of full_height_standing < 8 would fail the test
+          --    so i moved the height_distance >= pc_data.full_height_standing check above
+          --    the ground_array_height check (computing height_distance from tile bottom instead of top)
+          --    to pass it in this case too
           it('should return false for sensor position below the tile, at character height', function ()
             assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(12, 8 + pc_data.full_height_standing)))
           end)

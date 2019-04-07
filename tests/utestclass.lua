@@ -1,25 +1,25 @@
 require("bustedhelper")
 local class = require("engine/core/class")
 
+local dummy_class = new_class()
+
+function dummy_class:_init(value)
+  self.value = value
+end
+
+function dummy_class:_tostring()
+  return "dummy:"..tostr(self.value)
+end
+
+function dummy_class.__eq(lhs, rhs)
+  return lhs.value == rhs.value
+end
+
+function dummy_class:get_incremented_value()
+  return self.value + 1
+end
+
 describe('new_class', function ()
-
-  local dummy_class = new_class()
-
-  function dummy_class:_init(value)
-    self.value = value
-  end
-
-  function dummy_class:_tostring()
-    return "dummy:"..tostr(self.value)
-  end
-
-  function dummy_class.__eq(lhs, rhs)
-    return lhs.value == rhs.value
-  end
-
-  function dummy_class:get_incremented_value()
-    return self.value + 1
-  end
 
   it('should create a new class with _init()', function ()
     local dummy = dummy_class(3)
@@ -143,6 +143,31 @@ describe('new_struct', function ()
     return self.value1 + self.value2
   end
 
+  local complex_struct = new_struct()
+
+  function complex_struct:_init(value1, value2)
+    self.sum = value1 + value2
+    self.sub_struct = dummy_struct(value1, value2)
+  end
+
+  function complex_struct:_tostring()
+    return "complex_struct: "..joinstr(", ", self.sum, self.sub_struct)
+  end
+
+  local invalid_struct = new_struct()
+
+  function invalid_struct:_init(value)
+    self.table = dummy_class(value)  -- struct should never contain non-struct tables
+  end
+
+  function invalid_struct:_tostring()
+    return "invalid_struct: "..tostr(self.value)
+  end
+
+  function invalid_struct:_tostring()
+    return "invalid_struct: "..joinstr(", ", self.sum, self.sub_struct)
+  end
+
   it('should create a new struct with _init()', function ()
     local dummy = dummy_struct(3, 7)
     assert.are_same({3, 7}, {dummy.value1, dummy.value2})
@@ -182,31 +207,75 @@ describe('new_struct', function ()
 
   describe('copy', function ()
 
-    it('+ should return a copy of the struct, with the same content but not the same reference', function ()
+    it('should error if the struct contains non-struct members at some depth level', function ()
+      assert.has_error(function ()
+        invalid_struct(99):copy()
+      end, "value dummy:99 is a table member of a struct but it doesn't have expected copy method, so it's not a struct itself")
+    end)
+
+    -- bugfix history: +
+    it('should return a copy of the struct, with the same content but not the same reference', function ()
       local dummy = dummy_struct(3, 7)
       local copied_dummy = dummy:copy()
-      assert.are_same(dummy, copied_dummy)
+
+      assert.are_same(dummy, copied_dummy)  -- are_equal also works, provided __eq is working
       assert.is_false(rawequal(dummy, copied_dummy))
     end)
 
     describe('with struct containing struct', function ()
 
-      local complex_struct = new_struct()
-
-      function complex_struct:_init(value1, value2)
-        self.sum = value1 + value2
-        self.sub_struct = dummy_struct(value1, value2)
-      end
-
-      function complex_struct:_tostring()
-        return "complex_struct: "..joinstr(", ", self.sum, self.sub_struct)
-      end
-
       it('should return a copy of the struct and its struct members, with the same contents but not the same references', function ()
         local complex = complex_struct(3, 7)
         local copied_complex = complex:copy()
+
         assert.are_same(complex, copied_complex)
-        assert.is_false(rawequal(picomplcomplexex, copied_complex))
+        assert.is_false(rawequal(complex, copied_complex))
+        assert.are_same(complex.sub_struct, copied_complex.sub_struct)
+        assert.is_false(rawequal(complex.sub_struct, copied_complex.sub_struct))
+      end)
+
+    end)
+
+  end)
+
+  describe('copy_assign', function ()
+
+    it('should error if self and from have different types', function ()
+      local simple_from = dummy_struct(3, 7)
+      local complex_to = complex_struct(4, 5)
+
+      assert.has_error(function ()
+        complex_to:copy_assign(simple_from)
+      end, "copy_assign: expected 'self' (complex_struct: 9, dummy: 4, 5) and 'from' (dummy: 3, 7) to have the same struct type")
+    end)
+
+    it('should error if the struct contains non-struct members at some depth level', function ()
+      assert.has_error(function ()
+        invalid_struct(9):copy_assign(invalid_struct(99))
+      end, "value dummy:99 is a table member of a struct but it doesn't have expected copy_assign method, so it's not a struct itself")
+    end)
+
+    it('should assign all the values of `from` to `to`', function ()
+      local from = dummy_struct(3, 7)
+      local to = dummy_struct(99, -99)
+
+      to:copy_assign(from)
+
+      assert.are_same(from, to)  -- are_equal also works, provided __eq is working
+    end)
+
+    describe('with struct containing struct', function ()
+
+      it('should return a copy of the struct and its struct members, with the same contents but not the same references', function ()
+        local from = complex_struct(3, 7)
+        local to = complex_struct(99, -99)
+
+        to:copy_assign(from)
+
+        assert.are_same(from, to)
+        assert.is_false(rawequal(from, to))
+        assert.are_same(from.sub_struct, to.sub_struct)
+        assert.is_false(rawequal(from.sub_struct, to.sub_struct))
       end)
 
     end)
@@ -267,7 +336,6 @@ describe('new_struct', function ()
       end)
 
     end)
-
 
   end)
 

@@ -30,15 +30,15 @@ local function struct_eq(lhs, rhs)
   return getmetatable(lhs) == getmetatable(rhs) and are_same(lhs, rhs, true, true)
 end
 
--- return a copy of a struct instance
+-- return a copy of a struct instance 'self'
 -- this is a simplified version of deepcopy implementations and only support
 -- structs referencing primitive types or structs (at least copy-able tables)
 -- with no reference cycle
-local function copy(struct_instance)
-  -- we can't access the 'struct' variable from here so we get it back via getmetatable
-  local copied = setmetatable({}, getmetatable(struct_instance))
+local function copy(self)
+  -- we can't access the struct type from here so we get it back via getmetatable
+  local copied = setmetatable({}, getmetatable(self))
 
-  for key, value in pairs(struct_instance) do
+  for key, value in pairs(self) do
     if type(value) == 'table' then
 --#if assert
       assert(type(value.copy) == 'function', "value "..stringify(value)..
@@ -53,6 +53,28 @@ local function copy(struct_instance)
   end
 
   return copied
+end
+
+-- copy assign struct members of 'from' to struct members of 'self'
+-- from and to must be struct instances of the same type
+-- copy_assign is useful when manipulating a struct instance reference whose content
+--  must be changed in-place, because the function caller will continue using the same reference
+local function copy_assign(self, from)
+  assert(getmetatable(self) == getmetatable(from), "copy_assign: expected 'self' ("..self..") and 'from' ("..from..") to have the same struct type")
+
+  for key, value in pairs(from) do
+    if type(value) == 'table' then
+--#if assert
+      assert(type(value.copy_assign) == 'function', "value "..stringify(value)..
+        " is a table member of a struct but it doesn't have expected copy_assign method, so it's not a struct itself")
+--#endif
+      -- recursively copy-assign the struct members. never use circular references
+      -- between structs or you'll get an infinite recursion
+      self[key]:copy_assign(value)
+    else
+      self[key] = value
+    end
+  end
 end
 
 -- create and return a new class
@@ -98,6 +120,7 @@ function new_struct()
   struct.__concat = concat
   struct.__eq = struct_eq
   struct.copy = copy
+  struct.copy_assign = copy_assign
 
   setmetatable(struct, {
     __call = new

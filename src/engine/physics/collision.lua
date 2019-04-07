@@ -174,10 +174,10 @@ end
 local ground_motion_result = new_struct()
 collision.ground_motion_result = ground_motion_result
 
--- position     vector   position at the end of motion
--- slope_angle  float    slope angle of the final position
--- is_blocked   bool     was the character blocked during motion?
--- is_falling   bool     should the character fall after this motion?
+-- position     vector      position at the end of motion
+-- slope_angle  float|nil   slope angle of the final position (nil if is_falling is true)
+-- is_blocked   bool        was the character blocked during motion?
+-- is_falling   bool        should the character fall after this motion?
 function ground_motion_result:_init(position, slope_angle, is_blocked, is_falling)
   self.position = position
   self.slope_angle = slope_angle
@@ -197,15 +197,17 @@ end
 local air_motion_result = new_struct()
 collision.air_motion_result = air_motion_result
 
--- position               vector   position at the end of motion
--- is_blocked_by_wall     bool     was the character blocked by a left/right wall during motion?
--- is_blocked_by_ceiling  bool     was the character blocked by a ceiling during motion?
--- is_landing   bool      bool     has the character landed at the end of this motion?
-function air_motion_result:_init(position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing)
+-- position               vector    position at the end of motion
+-- is_blocked_by_wall     bool      was the character blocked by a left/right wall during motion?
+-- is_blocked_by_ceiling  bool      was the character blocked by a ceiling during motion?
+-- is_landing             bool      has the character landed at the end of this motion?
+-- slope_angle            float|nil slope angle of the final position (nil unless is_landing is true)
+function air_motion_result:_init(position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle)
   self.position = position
   self.is_blocked_by_wall = is_blocked_by_wall
   self.is_blocked_by_ceiling = is_blocked_by_ceiling
   self.is_landing = is_landing
+  self.slope_angle = slope_angle
 end
 
 -- return true iff motion result indicates a blocker in the given direction
@@ -222,7 +224,7 @@ end
 --#if log
 function air_motion_result:_tostring()
   return "air_motion_result("..joinstr(", ",
-    self.position, self.is_blocked_by_ceiling, self.is_blocked_by_wall, self.is_landing)..")"
+    self.position, self.is_blocked_by_ceiling, self.is_blocked_by_wall, self.is_landing, self.slope_angle)..")"
 end
 --#endif
 

@@ -262,6 +262,7 @@ end
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
 -- subpixels are ignored
 function player_char:_get_ground_sensor_position_from(center_position, horizontal_dir)
+
   -- ignore subpixels from center position in x
   local x_floored_center_position = vector(flr(center_position.x), center_position.y)
   local x_floored_bottom_center = x_floored_center_position + vector(0, pc_data.center_height_standing)
@@ -469,7 +470,7 @@ function player_char:_compute_ground_motion_result()
 
   local horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
-  -- initialise result
+  -- initialise result with floored x (we will reinject subpixels if character didn't touch a wall)
   local motion_result = collision.ground_motion_result(
     vector(flr(self.position.x), self.position.y),
     self.slope_angle,
@@ -477,12 +478,10 @@ function player_char:_compute_ground_motion_result()
     false
   )
 
-  -- fixme: consider slope angle cos to reduce motion along x
-
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
   local distance_x = self.ground_speed * cos(self.slope_angle)
-  local max_column_distance = player_char._compute_max_column_distance(self.position.x, distance_x)
+  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, distance_x)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -511,7 +510,8 @@ function player_char:_compute_ground_motion_result()
         -- character has not touched a wall at all, so add the remaining subpixels
         --  (it's simpler to just recompute the full motion in x; don't touch y tough,
         --  as it depends on the shape of the ground)
-        -- also set the slope since we may have moved to another tile
+        -- do not apply other changes (like slope) since technically we have not reached
+        --  the next tile yet, only advanced of some subpixels
         motion_result.position.x = self.position.x + distance_x
       end
     end
@@ -520,23 +520,23 @@ function player_char:_compute_ground_motion_result()
   return motion_result
 end
 
--- return the number of new pixel columns explored when moving from initial_position_x
---  over ground_speed * 1 frame. this is either flr(ground_speed)
---  or flr(ground_speed) + 1 (if subpixels from initial position x and speed sum up to 1.0 or more)
-function player_char._compute_max_column_distance(initial_position_x, ground_speed)
-  return abs(flr(initial_position_x + ground_speed) - flr(initial_position_x))
+-- return the number of new pixel columns explored when moving from initial_position_coord (x or y)
+--  over velocity_coord (x or y) * 1 frame. this is either flr(velocity_coord)
+--  or flr(velocity_coord) + 1 (if subpixels from initial position coord and speed sum up to 1.0 or more)
+function player_char._compute_max_pixel_distance(initial_position_coord, velocity_coord)
+  return abs(flr(initial_position_coord + velocity_coord) - flr(initial_position_coord))
 end
 
--- update motion_result: collision.ground_motion_result for a character trying to move
+-- update ref_motion_result: collision.ground_motion_result for a character trying to move
 --  by 1 pixel step in horizontal_dir, taking obstacles into account
 -- if character is blocked, it doesn't update the position and flag is_blocked
--- if character is fallling, it updates the position and flag is_falling
+-- if character is falling, it updates the position and flag is_falling
 -- ground_motion_result.position.x should be floored for these steps
---  although _compute_ground_sensors_signed_distance will floor in x anyway
-function player_char:_next_ground_step(horizontal_dir, motion_result)
+--  (some functions assert when giving subpixel coordinates)
+function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = horizontal_dir_vectors[horizontal_dir]
-  local next_position_candidate = motion_result.position + step_vec
+  local next_position_candidate = ref_motion_result.position + step_vec
 
   -- check if next position is inside/above ground
   local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
@@ -548,12 +548,12 @@ function player_char:_next_ground_step(horizontal_dir, motion_result)
       -- step up
       next_position_candidate.y = next_position_candidate.y - penetration_height
       -- if we left the ground during a previous step, cancel that (step up land, very rare)
-      motion_result.is_falling = false
+      ref_motion_result.is_falling = false
     else
       -- step blocked: step up is too high, character is blocked
       -- if character left the ground during a previous step, let it this way;
       --  character will simply hit the wall, then fall
-      motion_result.is_blocked = true
+      ref_motion_result.is_blocked = true
     end
   elseif signed_distance_to_closest_ground > 0 then
     -- position is above ground, check if we can step down during this step
@@ -561,7 +561,7 @@ function player_char:_next_ground_step(horizontal_dir, motion_result)
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
       -- if character left the ground during a previous step, cancel that (step down land, very rare)
-      motion_result.is_falling = false
+      ref_motion_result.is_falling = false
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
@@ -571,33 +571,33 @@ function player_char:_next_ground_step(horizontal_dir, motion_result)
       --  velocity y from last frame
       -- so when adding momentum, consider reusing the last delta y (e.g. signed_distance_to_closest_ground)
       --  and applying it this frame
-      motion_result.is_falling = true
+      ref_motion_result.is_falling = true
     end
   else
     -- step flat
     -- if character left the ground during a previous step, cancel that (very rare)
-    motion_result.is_falling = false
+    ref_motion_result.is_falling = false
   end
 
   -- character is not blocked by a steep step up/wall, but we need to check if it is
   --  blocked by a ceiling too low; in the extreme case, a diagonal tile pattern
   --  ->X
   --   X
-  if not motion_result.is_blocked then
-    motion_result.is_blocked = self:_is_blocked_by_ceiling_at(next_position_candidate)
+  if not ref_motion_result.is_blocked then
+    ref_motion_result.is_blocked = self:_is_blocked_by_ceiling_at(next_position_candidate)
 
     -- only advance if character is still not blocked (else, preserve previous position,
     --  which should be floored)
     -- this only works because the wall sensors are 1px farther from the character center
     --  than the ground sensors; if there were even farther, we'd even need to
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
-    --  when motion_result.is_blocked (and adapt y)
-    if not motion_result.is_blocked then
-      motion_result.position = next_position_candidate
-      if motion_result.is_falling then
-        motion_result.slope_angle = nil
+    --  when ref_motion_result.is_blocked (and adapt y)
+    if not ref_motion_result.is_blocked then
+      ref_motion_result.position = next_position_candidate
+      if ref_motion_result.is_falling then
+        ref_motion_result.slope_angle = nil
       else
-        motion_result.slope_angle = next_slope_angle
+        ref_motion_result.slope_angle = next_slope_angle
       end
     end
   end
@@ -696,7 +696,8 @@ function player_char:_check_jump()
     -- apply initial jump speed for variable jump
     -- note: if the player is doing a hop, the vertical speed will be reset
     --  to the interrupt speed during the same frame in _update_platformer_motion_airborne
-    --  (we don't do it here so we centralize the check and don't apply gravity during such a frame)
+    --  via _check_hold_jump (we don't do it here so we centralize the check and
+    --  don't apply gravity during such a frame)
     -- limitation: only support flat ground for now
     self.velocity.y = self.velocity.y - pc_data.initial_var_jump_speed_frame
     self:_enter_motion_state(motion_states.airborne)
@@ -724,11 +725,21 @@ function player_char:_update_platformer_motion_airborne()
   self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
 
   -- apply air motion
-  self:move_by(self.velocity)
 
-  -- detect ground and snap up for landing
-  local has_landed = self:_check_escape_from_ground()
-  if has_landed then
+  local air_motion_result = self:_compute_air_motion_result()
+
+  self.position = air_motion_result.position
+
+  if air_motion_result.is_blocked_by_wall then
+    self.velocity.x = 0
+  end
+
+  if air_motion_result.is_blocked_by_ceiling then
+    self.velocity.y = 0
+  end
+
+  if air_motion_result.is_landing then
+    self.slope_angle = air_motion_result.slope_angle
     self:_enter_motion_state(motion_states.grounded)
   end
 
@@ -749,6 +760,183 @@ function player_char:_check_hold_jump()
     if self.velocity.y < signed_jump_interrupt_speed_frame then
       self.velocity.y = signed_jump_interrupt_speed_frame
     end
+  end
+end
+
+-- return {next_position: vector, is_blocked_by_ceiling: bool, is_blocked_by_wall: bool, is_landing: bool} where
+--  - next_position is the position of the character next frame considering his current (air) velocity
+--  - is_blocked_by_ceiling is true iff the character encounters a ceiling during this motion
+--  - is_blocked_by_wall is true iff the character encounters a wall during this motion
+--  - is_landing is true iff the character touches a ground from above during this motion
+function player_char:_compute_air_motion_result()
+  -- if character is not moving, he is not blocked nor landing (we assume the environment is static)
+  if self.velocity == vector.zero() then
+    return collision.air_motion_result(
+      self.position,
+      false,
+      false,
+      false,
+      nil
+    )
+  end
+
+  -- initialize air motion result (do not floor coordinates, _advance_in_air_along will do it)
+  local motion_result = collision.air_motion_result(
+    vector(self.position.x, self.position.y),
+    false,
+    false,
+    false,
+    nil
+  )
+
+  -- from here, unlike ground motion, there are 3 ways to iterate:
+  -- a. describe a Bresenham's line, stepping on x and y, for the best precision
+  -- b. step on x until you reach the max distance x, then step on y (may hit wall you wouldn't have with a. or c.)
+  -- c. step on y until you reach the max distance y, then step on x (may hit ceiling you wouldn't have with a. or b.)
+
+  -- we focus on landing/ceiling first, and prefer simplicity to precision as long as motion seems ok,
+  --  so we choose c.
+  self:_advance_in_air_along(motion_result, self.velocity, "y")
+  self:_advance_in_air_along(motion_result, self.velocity, "x")
+
+  return motion_result
+end
+
+-- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
+--  over velocity[coord] px, where coord is "x" or "y"
+function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
+  if velocity_coord == 0 then return end
+
+  -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
+  --  so first estimate how many full pixel columns the character may actually explore this frame
+  local initial_position_coord = ref_motion_result.position[coord]
+  local max_pixel_distance = player_char._compute_max_pixel_distance(initial_position_coord, velocity[coord])
+
+  -- floor coordinate to simplify step by step pixel detection (mostly useful along x to avoid
+  --  flooring every time we query column heights)
+  -- since initial_position_coord is storing the original position with subpixels, we are losing information
+  ref_motion_result.position[coord] = flr(ref_motion_result.position[coord])
+
+  -- iterate pixel by pixel on the x direction until max possible distance is reached
+  --  only stopping if the character is blocked by a wall (not if falling, since we want
+  --  him to continue moving in the air as far as possible; in edge cases, he may even
+  --  touch the ground again some pixels farther)
+  local pixel_distance = 1
+  local direction
+  if coord == "x" then
+    direction = directions.right
+  else
+    direction = directions.down
+  end
+  if velocity[coord] < 0 then
+    direction = oppose_direction(direction)
+  end
+
+  local is_blocked = coord == "x" and ref_motion_result.is_blocked_by_wall or (ref_motion_result.is_blocked_by_wall or ref_motion_result.is_landing)
+  while pixel_distance <= max_pixel_distance and not ref_motion_result:is_blocked_along(direction) do
+    self:_next_air_step(direction, ref_motion_result)
+    pixel_distance = pixel_distance + 1
+  end
+
+
+  -- check if we need to add or cut subpixels
+  if not ref_motion_result:is_blocked_along(direction) then
+    local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position[coord]
+    if are_subpixels_left then
+      -- character has not been blocked and has some subpixels left to go
+      -- check if character has touched a wall (we need an extra step to "ceil" the subpixels)
+      local extra_step_motion_result = ref_motion_result:copy()
+      self:_next_air_step(direction, extra_step_motion_result)
+      if extra_step_motion_result:is_blocked_along(direction) then
+        -- character has just reached a wall, plus a few subpixels
+        -- unlike classic sonic, we decide to cut the subpixels and block the character
+        --  on the spot (we just reuse the result of the extra step, since is_falling doesn't change if is_blocked is true)
+        -- it's very important to keep the reference and assign member values instead
+        ref_motion_result:copy_assign(extra_step_motion_result)
+      else
+        -- character has not touched a wall at all, so add the remaining subpixels
+        --  (it's simpler to just recompute the full motion in x; don't touch y tough,
+        --  as it depends on the shape of the ground)
+        -- do not apply other changes (like slope) since technically we have not reached
+        --  the next tile yet, only advanced of some subpixels
+        ref_motion_result.position[coord] = initial_position_coord + velocity[coord]
+      end
+    end
+  end
+end
+
+-- update ref_motion_result: collision.air_motion_result for a character trying to move
+--  by 1 pixel step in direction in the air, taking obstacles into account
+-- if character is blocked by wall, ceiling or landing when moving toward left/right, up or down resp.,
+--  it doesn't update the position and the corresponding flag is set
+-- air_motion_result.position.x/y should be floored for these steps
+function player_char:_next_air_step(direction, ref_motion_result)
+  local step_vec = dir_vectors[direction]
+  local next_position_candidate = ref_motion_result.position + step_vec
+
+  -- we can only hit walls or the ground when moving left, right or down
+  if direction ~= directions.up then
+    -- query ground to check for obstacles (we only care about distance, not slope angle)
+    -- note that we reuse the ground sensors for air motion, because they are good at finding
+    --  collisions around the bottom left/right corners
+    local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
+    local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
+
+    -- check if the character has hit a ground or a wall
+    if signed_distance_to_closest_ground < 0 then
+      -- we do not activate step up during air motion, so any pixel above the character's bottom
+      --  is considered a hard obstacle
+      -- depending on the direction, we consider we were blocked by either a ceiling or a wall
+      if direction == directions.down then
+        -- landing: the character has just set foot on ground, flag it and initialize slope angle
+        -- note that we only consider the character to touch ground when it is about to enter it
+        -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
+        --  it is still technically considered in the air
+        -- if this step is blocked by landing, there is no extra motion,
+        --  but character will enter grounded state
+        ref_motion_result.is_landing = true
+        ref_motion_result.slope_angle = next_slope_angle
+      else
+        ref_motion_result.is_blocked_by_wall = true
+      end
+    elseif signed_distance_to_closest_ground > 0 then
+      -- in the air: the most common case, in general requires nothing to do
+      -- in rare cases, the character has landed on a previous step, and we must cancel that now
+      ref_motion_result.is_landing = false
+      ref_motion_result.slope_angle = nil
+    elseif ref_motion_result.is_landing then
+      -- if we enter this, direction must be horizontal, so update slope angle with new ground
+      ref_motion_result.slope_angle = next_slope_angle
+    end
+  end
+
+  -- we can only hit ceiling when moving left, right or up
+  -- note that the ceiling check is necessary during horizontal motion to complement
+  --  ground sensors, the edge case being when the bottom of the character matches
+  --  the bottom of a collision tile, ground sensors could only detect the tile below
+  -- if we have already found a blocker above (only possible for left and right),
+  --  then there is no need to check further, though
+  if direction ~= directions.down and not ref_motion_result.is_blocked_by_wall then
+    local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
+    if is_blocked_by_ceiling_at_next then
+      if direction == directions.up then
+        ref_motion_result.is_blocked_by_ceiling = true
+      else
+        -- we would be blocked by ceiling on the next position, but since we can't even go there,
+        --  we are actually blocked by the wall preventing the horizontal move
+        ref_motion_result.is_blocked_by_wall = true
+      end
+    end
+  end
+
+  -- only advance if character is still not blocked (else, preserve previous position,
+  --  which should be floored)
+  if not ref_motion_result:is_blocked_along(direction) then
+    -- this only works because the wall sensors are 1px farther from the character center
+    --  than the ground sensors; if there were even farther, we'd even need to
+    --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
+    --  when ref_motion_result:is_blocked_along() (and adapt y)
+    ref_motion_result.position = next_position_candidate
   end
 end
 

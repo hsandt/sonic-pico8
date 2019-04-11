@@ -1,6 +1,9 @@
 -- this script is similar to tile_test_data, but has some parts
 --  useful for itest in pico8, whereas tile_test_data is only for busted utests/itests
+-- it is used by tilemap for the dsl
+--#ifn pico8
 local tile_test_data = require("game/test_data/tile_test_data")
+--#endif
 
 tile_symbol_to_ids = {
   ['.']  = 0,   -- empty

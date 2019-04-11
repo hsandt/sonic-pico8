@@ -10,26 +10,26 @@ local tile_test_data = require("game/test_data/tile_test_data")
 describe('player_char', function ()
 
   -- static method
-  describe('_compute_max_column_distance', function ()
+  describe('_compute_max_pixel_distance', function ()
 
     it('(2, 0) => 0', function ()
-      assert.are_equal(0, player_char._compute_max_column_distance(2, 0))
+      assert.are_equal(0, player_char._compute_max_pixel_distance(2, 0))
     end)
 
     it('(2, 1.5) => 1', function ()
-      assert.are_equal(1, player_char._compute_max_column_distance(2, 1.5))
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2, 1.5))
     end)
 
     it('(2, 3) => 3', function ()
-      assert.are_equal(3, player_char._compute_max_column_distance(2, 3))
+      assert.are_equal(3, player_char._compute_max_pixel_distance(2, 3))
     end)
 
     it('(2.2, 1.7) => 1', function ()
-      assert.are_equal(1, player_char._compute_max_column_distance(2.2, 1.7))
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2.2, 1.7))
     end)
 
     it('(2.2, 1.8) => 2', function ()
-      assert.are_equal(2, player_char._compute_max_column_distance(2.2, 1.8))
+      assert.are_equal(2, player_char._compute_max_pixel_distance(2.2, 1.8))
     end)
 
   end)
@@ -722,7 +722,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-            mset(1, 1, 64)
+            mock_mset(1, 1, 64)
           end)
 
           -- on the sides
@@ -809,7 +809,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a half-tile at (1, 1), top-left at (8, 12), top-right at (15, 16) included
-            mset(1, 1, 70)
+            mock_mset(1, 1, 70)
           end)
 
           -- just above
@@ -899,7 +899,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create an ascending slope at (1, 1), i.e. (8, 15) to (15, 8) px
-            mset(1, 1, 65)
+            mock_mset(1, 1, 65)
           end)
 
           it('should return 0.0625, -45/360 if just above slope column 0', function ()
@@ -968,7 +968,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
-            mset(1, 1, 66)
+            mock_mset(1, 1, 66)
           end)
 
           it('. should return 0.0625, 45/360 if right sensors are just a little above column 0', function ()
@@ -1033,7 +1033,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-            mset(1, 1, 67)
+            mock_mset(1, 1, 67)
           end)
 
           it('should return -4, -22.5/360 if below column 7 by 4px)', function ()
@@ -1047,7 +1047,7 @@ describe('player_char', function ()
           before_each(function ()
             -- create a quarter-tile at (1, 1), i.e. (12, 12) to (15, 15) px
             -- note that the quarter-tile is made of 2 subtiles of slope 0, hence overall slope is considered 0, not an average slope between min and max height
-            mset(1, 1, 71)
+            mock_mset(1, 1, 71)
           end)
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
@@ -1082,8 +1082,8 @@ describe('player_char', function ()
             -- 11111111
             -- 11111111  23
 
-            mset(1, 1, 72)
-            mset(1, 2, 64)
+            mock_mset(1, 1, 72)
+            mock_mset(1, 2, 64)
           end)
 
           it('should return -4, 0 if below top by 4px, with character crossing 2 tiles', function ()
@@ -1101,7 +1101,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-            mset(1, 1, 64)
+            mock_mset(1, 1, 64)
           end)
 
           it('should do nothing when character is not touching ground at all, and return false', function ()
@@ -1142,7 +1142,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
-            mset(1, 1, 66)
+            mock_mset(1, 1, 66)
           end)
 
           it('should do nothing when character is not touching ground at all, and return false', function ()
@@ -1375,7 +1375,7 @@ describe('player_char', function ()
 
         end)
 
-      end)
+      end)  -- _update_platformer_motion
 
       -- bugfix history:
       --  ^ use fractional speed to check that fractional moves are supported
@@ -1510,7 +1510,7 @@ describe('player_char', function ()
 
         end)
 
-      end)
+      end)  -- _update_platformer_motion_grounded
 
       describe('_update_ground_speed', function ()
 
@@ -1554,7 +1554,8 @@ describe('player_char', function ()
           assert.spy(player_char._clamp_ground_speed).was_called(1)
           assert.spy(player_char._clamp_ground_speed).was_called_with(match.ref(pc))
         end)
-      end)
+
+      end)  -- _update_ground_speed
 
       describe('_update_ground_speed_by_slope', function ()
 
@@ -1579,7 +1580,7 @@ describe('player_char', function ()
           assert.are_equal(2 + pc_data.slope_accel_factor_frame2 * sqrt(2)/2, pc.ground_speed)
         end)
 
-      end)
+      end)  -- _update_ground_speed_by_slope
 
       describe('_update_ground_speed_by_intention', function ()
 
@@ -1689,7 +1690,7 @@ describe('player_char', function ()
           assert.are_equal(0, pc.ground_speed)
         end)
 
-      end)
+      end)  -- _update_ground_speed_by_intention
 
       describe('_clamp_ground_speed', function ()
 
@@ -1763,7 +1764,7 @@ describe('player_char', function ()
           it('(vector(3, 4) at speed 0.5) should return vector(3.5, 4), slope: 0, is_blocked: false, is_falling: false', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_column_distance is correct, so it should return 0
+            -- we assume _compute_max_pixel_distance is correct, so it should return 0
             -- but as there is no blocking, the remaining subpixels will still be added
 
             assert.are_equal(collision.ground_motion_result(
@@ -1796,7 +1797,7 @@ describe('player_char', function ()
           it('(vector(3.5, 4) at speed 0.5) should return vector(0.5, 4), is_blocked: false, is_falling: false', function ()
             pc.position = vector(3.5, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_column_distance is correct, so it should return 1
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
 
             assert.are_equal(collision.ground_motion_result(
                 vector(4, 4),
@@ -1847,7 +1848,7 @@ describe('player_char', function ()
           it('(vector(3.5, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             pc.position = vector(3.5, 4)
             pc.ground_speed = 1.5
-            -- we assume _compute_max_column_distance is correct, so it should return 2
+            -- we assume _compute_max_pixel_distance is correct, so it should return 2
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
@@ -1864,7 +1865,7 @@ describe('player_char', function ()
           it('(vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             pc.position = vector(4.5, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_column_distance is correct, so it should return 2
+            -- we assume _compute_max_pixel_distance is correct, so it should return 2
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
@@ -1897,7 +1898,7 @@ describe('player_char', function ()
           it('(vector(4, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
             pc.position = vector(4, 4)
             pc.ground_speed = 1.5
-            -- we assume _compute_max_column_distance is correct, so it should return 1
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
             -- the character will just touch the wall but because it has some extra subpixels
             --  going "into" the wall, we floor them and consider character as blocked
             --  (unlike Classic Sonic that would simply ignore subpixels)
@@ -1951,7 +1952,7 @@ describe('player_char', function ()
           it('+ (vector(5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: false, is_falling: false', function ()
             pc.position = vector(5, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_column_distance is correct, so it should return 0
+            -- we assume _compute_max_pixel_distance is correct, so it should return 0
             -- the character is already touching the wall, so any motion, even of just a few subpixels,
             --  is considered blocked
 
@@ -1972,7 +1973,7 @@ describe('player_char', function ()
             --  the character to x=5
             pc.position = vector(5.5, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_column_distance is correct, so it should return 1
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
             -- but we will be blocked by the wall anyway
 
             assert.are_equal(collision.ground_motion_result(
@@ -1988,7 +1989,7 @@ describe('player_char', function ()
           it('(vector(3, 4) at speed 3) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 3.5
-            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at x=5 instead of 6.5
 
             assert.are_equal(collision.ground_motion_result(
@@ -2034,7 +2035,7 @@ describe('player_char', function ()
           it('(vector(3, 4) at speed 3) should return vector(6, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 3
-            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling but not blocked, so we continue running in the air until x=6
 
             assert.are_equal(collision.ground_motion_result(
@@ -2050,7 +2051,7 @@ describe('player_char', function ()
           it('(vector(3, 4) at speed 3) should return vector(7, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 5
-            -- we assume _compute_max_column_distance is correct, so it should return 3
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling then blocked on 7
 
             assert.are_equal(collision.ground_motion_result(
@@ -2065,7 +2066,7 @@ describe('player_char', function ()
 
         end)
 
-      end)
+      end)  -- _compute_ground_motion_result
 
       describe('_next_ground_step', function ()
 
@@ -2076,7 +2077,7 @@ describe('player_char', function ()
         describe('(with flat ground)', function ()
 
           before_each(function ()
-            mset(0, 1, 64)  -- full tile
+            mock_mset(0, 1, 64)  -- full tile
           end)
 
           it('when stepping left with the right sensor still on the ground, decrement x', function ()
@@ -2191,11 +2192,11 @@ describe('player_char', function ()
           before_each(function ()
             -- X X
             -- XXX
-            mset(0, 0, 64)  -- full tile (left wall)
-            mset(0, 1, 64)  -- full tile
-            mset(1, 1, 64)  -- full tile
-            mset(2, 0, 64)  -- full tile
-            mset(2, 1, 64)  -- full tile (right wall)
+            mock_mset(0, 0, 64)  -- full tile (left wall)
+            mock_mset(0, 1, 64)  -- full tile
+            mock_mset(1, 1, 64)  -- full tile
+            mock_mset(2, 0, 64)  -- full tile
+            mock_mset(2, 1, 64)  -- full tile (right wall)
           end)
 
           it('when stepping left and hitting the wall, preserve x and block', function ()
@@ -2247,8 +2248,8 @@ describe('player_char', function ()
           before_each(function ()
             --  X
             -- X
-            mset(0, 1, 64)  -- full tile (ground)
-            mset(1, 0, 64)  -- full tile (wall without ground below)
+            mock_mset(0, 1, 64)  -- full tile (ground)
+            mock_mset(1, 0, 64)  -- full tile (wall without ground below)
           end)
 
           -- it will fail until _compute_signed_distance_to_closest_ground
@@ -2281,8 +2282,8 @@ describe('player_char', function ()
           before_each(function ()
             --  X
             -- =
-            mset(0, 1, 70)  -- bottom half-tile
-            mset(1, 0, 64)  -- full tile (head wall)
+            mock_mset(0, 1, 70)  -- bottom half-tile
+            mock_mset(1, 0, 64)  -- full tile (head wall)
           end)
 
           -- it will fail until _compute_signed_distance_to_closest_ground
@@ -2318,8 +2319,8 @@ describe('player_char', function ()
           before_each(function ()
             --  /
             -- X
-            mset(0, 1, 64)  -- full tile (ground)
-            mset(1, 0, 65)  -- ascending slope 45
+            mock_mset(0, 1, 64)  -- full tile (ground)
+            mock_mset(1, 0, 65)  -- ascending slope 45
           end)
 
           it('when stepping right from the bottom of the ascending slope, increment x and adjust y', function ()
@@ -2350,10 +2351,10 @@ describe('player_char', function ()
           before_each(function ()
             -- X X
             -- X/X
-            mset(0, 0, 64)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
-            mset(0, 1, 64)  -- full tile (wall)
-            mset(1, 1, 65)  -- ascending slope 45
-            mset(2, 0, 64)  -- full tile (wall)
+            mock_mset(0, 0, 64)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
+            mock_mset(0, 1, 64)  -- full tile (wall)
+            mock_mset(1, 1, 65)  -- ascending slope 45
+            mock_mset(2, 0, 64)  -- full tile (wall)
           end)
 
           it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
@@ -2442,7 +2443,7 @@ describe('player_char', function ()
 
         end)
 
-      end)
+      end)  -- _next_ground_step
 
       describe('_is_blocked_by_ceiling_at', function ()
 
@@ -2489,7 +2490,7 @@ describe('player_char', function ()
           assert.is_true(pc:_is_blocked_by_ceiling_at(vector(0, 4)))
         end)
 
-      end)
+      end)  -- _is_blocked_by_ceiling_at
 
       describe('_is_column_blocked_by_ceiling_at', function ()
 
@@ -2505,7 +2506,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- .X
-            mset(1, 0, 64)  -- full tile (act like a full ceiling if position is at bottom)
+            mock_mset(1, 0, 64)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
           it('should return false for sensor position just above the bottom of the tile', function ()
@@ -2553,7 +2554,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- /
-            mset(0, 0, 65)
+            mock_mset(0, 0, 65)
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
@@ -2571,7 +2572,7 @@ describe('player_char', function ()
 
         end)
 
-      end)
+      end)  -- _is_column_blocked_by_ceiling_at
 
       describe('_check_jump_intention', function ()
 
@@ -2626,113 +2627,251 @@ describe('player_char', function ()
           player_char._enter_motion_state:clear()
         end)
 
-        it('should preserve (supposedly initial hop) velocity y on first frame of hop and clear has_jumped_this_frame flag', function ()
-          pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
-          pc.has_jumped_this_frame = true
-          pc.hold_jump_intention = false
-
-          pc:_update_platformer_motion_airborne()
-
-          assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
-        end)
-
-        it('should preserve (supposedly initial jump) velocity y on first frame of jump (not hop) and clear has_jumped_this_frame flag', function ()
-          pc.velocity.y = -3
-          pc.has_jumped_this_frame = true
-          pc.hold_jump_intention = true
-
-          pc:_update_platformer_motion_airborne()
-
-          assert.are_same({-3, false}, {pc.velocity.y, pc.has_jumped_this_frame})
-        end)
-
-        it('should apply gravity to velocity y when not on first frame of jump and not interrupting jump', function ()
-          pc.velocity.y = -1
-          pc.has_jumped_this_frame = false
-          pc.hold_jump_intention = true
-
-          pc:_update_platformer_motion_airborne()
-
-          assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
-        end)
-
-        it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
-          pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
-          pc.has_jumped_this_frame = false
-          pc.hold_jump_intention = false
-
-          pc:_update_platformer_motion_airborne()
-
-          -- interface: we are assessing the effect of _check_hold_jump directly
-          assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
-        end)
-
-        it('should apply accel x', function ()
-          pc.velocity.x = 4
-          pc.move_intention.x = -1
-
-          pc:_update_platformer_motion_airborne()
-
-          assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
-        end)
-
-        -- bugfix history:
-        -- .
-        it('should update position with new speed y', function ()
-          pc.position = vector(4, -4)
-          pc.velocity.y = -3
-          pc.hold_jump_intention = true
-
-          pc:_update_platformer_motion_airborne()
-          assert.are_equal(vector(4, -4 - 3 + pc_data.gravity_frame2), pc.position)
-        end)
-
-        describe('(_check_escape_from_ground returns false, so has not landed)', function ()
-
-          local check_escape_from_ground_mock
+        describe('(when _compute_air_motion_result returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
 
           setup(function ()
-            check_escape_from_ground_mock = stub(player_char, "_check_escape_from_ground", function ()
-              return false
+            compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
+              return collision.air_motion_result(
+                vector(2, 8),
+                false,
+                false,
+                false,
+                nil
+              )
             end)
           end)
 
           teardown(function ()
-            check_escape_from_ground_mock:revert()
+            compute_air_motion_result_mock:revert()
           end)
 
-          it('should not enter grounded state', function ()
+          after_each(function ()
+            compute_air_motion_result_mock:clear()
+          end)
+
+          it('should set velocity y to -jump_interrupt_speed_frame on first frame of hop if velocity.y is not already greater, and clear has_jumped_this_frame flag', function ()
+            pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = false
+
             pc:_update_platformer_motion_airborne()
 
-            -- implementation
-            assert.spy(pc._enter_motion_state).was_not_called()
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
-        end)
+          it('should preserve velocity y completely on first frame of hop if velocity.y is already greater, and clear has_jumped_this_frame flag', function ()
+            -- this can happen when character is running down a steep slope, and hops with a normal close to horizontal
+            pc.velocity.y = -1  -- must be >= -pc_data.jump_interrupt_speed_frame (-2)
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = false
 
-        describe('(_check_escape_from_ground returns true, so has landed)', function ()
+            pc:_update_platformer_motion_airborne()
 
-          local check_escape_from_ground_mock
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_same({-1, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+          end)
+
+          it('should preserve (supposedly initial jump) velocity y on first frame of jump (not hop) and clear has_jumped_this_frame flag', function ()
+            pc.velocity.y = -3
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = true
+
+            pc:_update_platformer_motion_airborne()
+
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_same({-3, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+          end)
+
+          it('should apply gravity to velocity y when not on first frame of jump and not interrupting jump', function ()
+            pc.velocity.y = -1
+            pc.has_jumped_this_frame = false
+            pc.hold_jump_intention = true
+
+            pc:_update_platformer_motion_airborne()
+
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+          end)
+
+          it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
+            pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
+            pc.has_jumped_this_frame = false
+            pc.hold_jump_intention = false
+
+            pc:_update_platformer_motion_airborne()
+
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- note that gravity is applied *before* interrupt jump, so we don't see it in the final velocity.y
+            assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+          end)
+
+          it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
+            pc.velocity.y = -1  -- must be >= -pc_data.jump_interrupt_speed_frame (-2)
+            pc.has_jumped_this_frame = false
+            pc.hold_jump_intention = false
+
+            pc:_update_platformer_motion_airborne()
+
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+          end)
+
+          it('should apply air accel x', function ()
+            pc.velocity.x = 4
+            pc.move_intention.x = -1
+
+            pc:_update_platformer_motion_airborne()
+
+            -- interface: we are assessing the effect of _check_hold_jump directly
+            assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
+          end)
+
+          -- bugfix history:
+          -- .
+          it('should update position with air motion result position', function ()
+            pc.position = vector(0, 0)  -- doesn't matter, since we mock _compute_air_motion_result
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(vector(2, 8), pc.position)
+          end)
+
+          it('should preserve velocity.y', function ()
+            -- set those flags to true to make computations more simple:
+            -- velocity.y will not affected by gravity nor interrupt jump
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = true
+            pc.velocity = vector(10, -10)
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(-10, pc.velocity.y)
+          end)
+
+        end)  -- compute_air_motion_result_mock (vector(2, 8), false, false, false)
+
+        describe('(when _compute_air_motion_result returns a motion result with is_blocked_by_wall: false, is_blocked_by_ceiling: true)', function ()
 
           setup(function ()
-            check_escape_from_ground_mock = stub(player_char, "_check_escape_from_ground", function ()
-              return true
+            compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
+              return collision.air_motion_result(
+                vector(2, 8),
+                false, -- not the focus, but verified
+                true,  -- focus in this test
+                false,
+                nil
+              )
             end)
           end)
 
           teardown(function ()
-            check_escape_from_ground_mock:revert()
+            compute_air_motion_result_mock:revert()
           end)
 
-          it('should enter grounded state', function ()
+          after_each(function ()
+            compute_air_motion_result_mock:clear()
+          end)
+
+          it('should set velocity.y to 0', function ()
+            -- set those flags to true to make computations more simple:
+            -- velocity.y will not affected by gravity nor interrupt jump
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = true
+            pc.velocity = vector(10, -10)
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(0, pc.velocity.y)
+          end)
+
+          it('should preserve velocity.x', function ()
+            pc.velocity = vector(10, -10)
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(10, pc.velocity.x)
+          end)
+
+        end)  -- compute_air_motion_result_mock (is_blocked_by_ceiling: true)
+
+        describe('(when _compute_air_motion_result returns a motion result with is_blocked_by_wall: true, is_blocked_by_ceiling: false)', function ()
+
+          setup(function ()
+            compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
+              return collision.air_motion_result(
+                vector(2, 8),
+                true,  -- focus in this test
+                false, -- not the focus, but verified
+                false,
+                nil
+              )
+            end)
+          end)
+
+          teardown(function ()
+            compute_air_motion_result_mock:revert()
+          end)
+
+          after_each(function ()
+            compute_air_motion_result_mock:clear()
+          end)
+
+          it('should preserve velocity.y', function ()
+            -- set those flags to true to make computations more simple:
+            -- velocity.y will not affected by gravity nor interrupt jump
+            pc.has_jumped_this_frame = true
+            pc.hold_jump_intention = true
+            pc.velocity = vector(10, -10)
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(-10, pc.velocity.y)
+          end)
+
+          it('should set velocity.x to 0', function ()
+            pc.velocity = vector(10, -10)
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(0, pc.velocity.x)
+          end)
+
+        end)
+
+        describe('(when _compute_air_motion_result returns a motion result with is_landing: true, slope_angle: 0.5)', function ()
+
+          setup(function ()
+            compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
+              return collision.air_motion_result(
+                vector(2, 8),
+                false,
+                false,
+                true,  -- focus in this test
+                0.5
+              )
+            end)
+          end)
+
+          teardown(function ()
+            compute_air_motion_result_mock:revert()
+          end)
+
+          after_each(function ()
+            compute_air_motion_result_mock:clear()
+          end)
+
+          it('should enter grounded state with slope_angle: 0.5', function ()
             pc:_update_platformer_motion_airborne()
 
             -- implementation
             assert.spy(pc._enter_motion_state).was_called(1)
             assert.spy(pc._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+
+            assert.are_equal(0.5, pc.slope_angle)
           end)
 
-        end)
+        end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)
 
       end)  -- _update_platformer_motion_airborne
 
@@ -2780,6 +2919,437 @@ describe('player_char', function ()
       end)
 
     end)
+
+    describe('_compute_air_motion_result', function ()
+
+      it('(when velocity is zero) should return air_motion_result with initial position and no hits', function ()
+        pc.position = vector(4, 8)
+        assert.are_equal(collision.air_motion_result(
+            vector(4, 8),
+            false,
+            false,
+            false,
+            nil
+          ), pc:_compute_air_motion_result())
+      end)
+
+      describe('(when _advance_in_air_along returns an air_motion_result with full motion done along x, half motion done with hit ceiling along y)', function ()
+
+        setup(function ()
+          advance_in_air_along_mock = stub(player_char, "_advance_in_air_along", function (self, ref_motion_result, velocity, coord)
+            if coord == "x" then
+              local motion = vector(velocity.x, 0)
+              ref_motion_result.position = ref_motion_result.position + motion
+            else  -- coord == "y"
+              -- to make sure we are calling _advance_in_air_along on y before x, we add a check here:
+              --  if we have already moved from initial pos.x = 4.5 (see test below), block any motion along y
+              if ref_motion_result.position.x == 4.5 then
+                local motion = vector(0, velocity.y / 2)
+                ref_motion_result.position = ref_motion_result.position + motion
+              end
+              ref_motion_result.is_blocked_by_ceiling = true
+            end
+          end)
+        end)
+
+        teardown(function ()
+          advance_in_air_along_mock:revert()
+        end)
+
+        after_each(function ()
+          advance_in_air_along_mock:clear()
+        end)
+
+        it('(when velocity is zero) should return air_motion_result with initial position and no hits', function ()
+          pc.position = vector(4.5, 8)
+          pc.velocity = vector(5, -12)
+
+          -- character should advance of (5, -6) resulting in pos (9.5, 2)
+
+          -- interface: check that the final result is correct
+          assert.are_equal(collision.air_motion_result(
+              vector(9.5, 2),
+              false,
+              true,  -- hit ceiling
+              false,
+              nil
+            ), pc:_compute_air_motion_result())
+        end)
+
+      end)
+
+    end)
+
+    describe('_advance_in_air_along', function ()
+
+      describe('(when _next_air_step moves motion_result.position.x/y by 1px in the given direction, ' ..
+        'unless moving along x from x >= 5, where it is blocking by wall)', function ()
+
+        local next_air_step_mock
+
+        setup(function ()
+          next_air_step_mock = stub(player_char, "_next_air_step", function (self, direction, motion_result)
+            if coord == "y" or motion_result.position.x < 5 then
+              local step_vec = dir_vectors[direction]
+              motion_result.position = motion_result.position + step_vec
+            else
+              motion_result.is_blocked_by_wall = true
+            end
+          end)
+        end)
+
+        teardown(function ()
+          next_air_step_mock:revert()
+        end)
+
+        after_each(function ()
+          next_air_step_mock:clear()
+        end)
+
+        it('(vector(0.5, 10) at speed 0.5 along x) should move to vector(1, 10) without blocking', function ()
+          local motion_result = collision.air_motion_result(
+            vector(1, 10),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
+
+          assert.are_equal(collision.air_motion_result(
+              vector(1, 10),
+              false,
+              false,
+              false,
+              nil
+            ), motion_result
+          )
+        end)
+
+        it('(vector(0.4, 10) at speed 2.7 along x) should move to vector(3.1, 10)', function ()
+          local motion_result = collision.air_motion_result(
+            vector(0.4, 10),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(2.7, 99), "x")
+
+          assert.are_equal(collision.air_motion_result(
+              vector(3.1, 10),
+              false,
+              false,
+              false,
+              nil
+            ), motion_result
+          )
+        end)
+
+        it('(vector(2.5, 10) at speed 2.7 along x) should move to vector(5, 10) and blocked by wall', function ()
+          local motion_result = collision.air_motion_result(
+            vector(2.5, 10),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(2.7, 99), "x")
+
+          assert.are_equal(collision.air_motion_result(
+              vector(5, 10),
+              true,
+              false,
+              false,
+              nil
+            ), motion_result
+          )
+        end)
+
+        it('(vector(2.5, 7.3) at speed -4.4 along y) should move to vector(2.5, 2.9)', function ()
+          local motion_result = collision.air_motion_result(
+            vector(2.5, 7.3),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(99, -4.4), "y")
+
+          assert.is_true(almost_eq_with_message(vector(2.5, 2.9), motion_result.position))
+          assert.are_same({
+              false,
+              false,
+              false
+            }, {
+            motion_result.is_blocked_by_wall,
+            motion_result.is_blocked_by_ceiling,
+            motion_result.is_landing
+            })
+        end)
+
+      end)
+
+    end)
+
+    describe('_next_air_step', function ()
+      it('(in the air) direction up should move 1px up without being blocked', function ()
+        local motion_result = collision.air_motion_result(
+          vector(2, 7),
+          false,
+          false,
+          false,
+          nil
+        )
+
+        pc:_next_air_step(directions.up, motion_result)
+
+        assert.are_equal(collision.air_motion_result(
+            vector(2, 6),
+            false,
+            false,
+            false,
+            nil
+          ),
+          motion_result
+        )
+      end)
+
+      it('(in the air) direction down should move 1px down without being blocked', function ()
+        local motion_result = collision.air_motion_result(
+          vector(2, 7),
+          false,
+          false,
+          false,
+          nil
+        )
+
+        pc:_next_air_step(directions.down, motion_result)
+
+        assert.are_equal(collision.air_motion_result(
+            vector(2, 8),
+            false,
+            false,
+            false,
+            nil
+          ),
+          motion_result
+        )
+      end)
+
+      it('(in the air) direction left should move 1px left without being blocked', function ()
+        local motion_result = collision.air_motion_result(
+          vector(2, 7),
+          false,
+          false,
+          false,
+          nil
+        )
+
+        pc:_next_air_step(directions.left, motion_result)
+
+        assert.are_equal(collision.air_motion_result(
+            vector(1, 7),
+            false,
+            false,
+            false,
+            nil
+          ),
+          motion_result
+        )
+      end)
+
+      it('(in the air) direction right should move 1px right without being blocked', function ()
+        local motion_result = collision.air_motion_result(
+          vector(2, 7),
+          false,
+          false,
+          false,
+          nil
+        )
+
+        pc:_next_air_step(directions.right, motion_result)
+
+        assert.are_equal(collision.air_motion_result(
+            vector(3, 7),
+            false,
+            false,
+            false,
+            nil
+          ),
+          motion_result
+        )
+      end)
+
+      describe('(with mock tiles data setup)', function ()
+
+        setup(function ()
+          tile_test_data.setup()
+        end)
+
+        teardown(function ()
+          tile_test_data.teardown()
+        end)
+
+        after_each(function ()
+          pico8:clear_map()
+        end)
+
+        -- for these utests, we assume that _compute_ground_sensors_signed_distance and
+        --  _is_blocked_by_ceiling are correct,
+        --  so rather than mocking them, so we setup simple tiles to walk on
+
+        describe('(with flat ground)', function ()
+
+          before_each(function ()
+            mock_mset(0, 0, 64)  -- full tile
+          end)
+
+          it('direction up into ceiling should not move, and flag is_blocked_by_ceiling', function ()
+            local motion_result = collision.air_motion_result(
+              vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.up, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
+                false,
+                true,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction down into ground should not move, and flag is_landing with slope_angle', function ()
+            local motion_result = collision.air_motion_result(
+              vector(4, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.down, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(4, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction left into wall via ground should not move, and flag is_blocked_by_wall', function ()
+            local motion_result = collision.air_motion_result(
+              vector(11, 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(11, 1 - pc_data.center_height_standing),
+                true,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction right into wall via ceiling should not move, and flag is_blocked_by_wall', function ()
+            local motion_result = collision.air_motion_result(
+              vector(-3, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(-3, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+                true,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('(after landing in previous step) direction right onto new ground should move and update slope_angle', function ()
+            local motion_result = collision.air_motion_result(
+              vector(-3, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              true,
+              0.5
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(-2, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          it('(after landing in previous step) direction left into the air should move and unset is_landing', function ()
+            local motion_result = collision.air_motion_result(
+              vector(-2, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              true,
+              0
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(collision.air_motion_result(
+                vector(-3, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
+      end)  -- (with mock tiles data setup)
+
+    end)  -- _next_air_step
 
     describe('_update_debug', function ()
 

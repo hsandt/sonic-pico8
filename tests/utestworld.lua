@@ -29,7 +29,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create an invalid tile with a collision flag but no collision mask associated
-        mset(1, 1, 1)
+        mock_mset(1, 1, 1)
       end)
 
       it('should assert if tile has collision flag set but no collision mask id associated', function ()
@@ -45,7 +45,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-        mset(1, 1, 67)
+        mock_mset(1, 1, 67)
       end)
 
       it('should return 3 on column 3', function ()
@@ -62,7 +62,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-        mset(1, 1, 64)
+        mock_mset(1, 1, 64)
       end)
 
       it('should return {false, nil} on (7, 7)', function ()
@@ -141,7 +141,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create an ascending slope at (1, 1), i.e. (8, 15) to (15, 8) px
-        mset(1, 1, 65)
+        mock_mset(1, 1, 65)
       end)
 
       it('should return {false, nil} on (8, 14)', function ()

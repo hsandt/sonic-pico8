@@ -46,9 +46,11 @@ return {
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)
+  -- also the max step up of the character in ground motion
   max_ground_escape_height = 4,
 
   -- max vertical distance allowed to snap to a lower ground while running (on step or curve)
+  -- a.k.a. max step down
   max_ground_snap_height = 4,
 
   -- debug motion

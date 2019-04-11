@@ -59,6 +59,15 @@ function tile_test_data.teardown()
   height_array_init_mock:revert()
 end
 
+-- helper safety function that verifies that mock tile data is active when creating mock maps for utests
+-- always use it instead of mset in utest setup meant to test collisions
+function mock_mset(x, y, v)
+  -- verify that tile_test_data.setup has been called since the last tile_test_data.teardown
+  -- just check if the mock of height_array exists and is active
+  assert(height_array_init_mock and not height_array_init_mock.reverted, "mock_mset: tile_test_data.setup has not been called since the last tile_test_data.teardown")
+  mset(x, y, v)
+end
+
 return tile_test_data
 
 --#endif

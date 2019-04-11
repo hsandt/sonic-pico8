@@ -699,6 +699,11 @@ describe('collision', function ()
         assert.are_equal("ground_query_info(-2.0, 0.25)", info:_tostring())
       end)
 
+      it('should return "ground_query_info({self.signed_distance}, [nil])"', function ()
+        local info = ground_query_info(-2.0, nil)
+        assert.are_equal("ground_query_info(-2.0, [nil])", info:_tostring())
+      end)
+
     end)
 
   end)

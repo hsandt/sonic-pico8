@@ -155,8 +155,8 @@ end
 local ground_query_info = new_struct()
 collision.ground_query_info = ground_query_info
 
--- signed_distance    float   signed distance to the detected ground (clamped to min-1 amd max+1)
--- slope_angle        float   slope angle of the detected ground (nil if no ground)
+-- signed_distance    float       signed distance to the detected ground (clamped to min-1 amd max+1)
+-- slope_angle        float|nil   slope angle of the detected ground (nil if no ground)
 function ground_query_info:_init(signed_distance, slope_angle)
   self.signed_distance = signed_distance
   self.slope_angle = slope_angle
@@ -164,7 +164,7 @@ end
 
 --#if log
 function ground_query_info:_tostring()
-  return "ground_query_info("..joinstr(", ", self.signed_distance, self.slope_angle)..")"
+  return "ground_query_info("..joinstr(", ", self.signed_distance, tostr(self.slope_angle))..")"
 end
 --#endif
 

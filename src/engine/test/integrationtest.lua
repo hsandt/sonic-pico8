@@ -176,6 +176,9 @@ function integration_test_runner:start(test)
     self:_initialize()
   end
 
+  -- log after _initialize which sets up the logger
+  log("starting itest: "..test.name, "trace")
+
   if self.current_test then
     self:stop()
   end

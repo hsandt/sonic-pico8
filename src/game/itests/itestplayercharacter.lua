@@ -426,13 +426,13 @@ expect pc_velocity 0 -0.078125
 -- calculation notes
 
 -- wait for the apogee (frame 31) and stop
--- at frame 1: pos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: pos (4, 80 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump since we were grounded)
--- at frame 30: pos (4, 80 - 49.84375), velocity (0, -0.1875), airborne -> before apogee
--- at frame 31: pos (4, 80 - 49.921875), velocity (0, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
--- at frame 32: pos (4, 80 - 49.890625), velocity (0, 0.03125), airborne -> starts going down
--- at frame 61: pos (4, 80 - 1.40625), velocity (0, 3.203125), airborne -> about to land
--- at frame 62: pos (4, 80), velocity (0, 0), grounded -> has landed
+-- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump since we were grounded)
+-- at frame 30: bpos (4, 8 - 49.84375), velocity (0, -0.1875), airborne -> before apogee
+-- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+-- at frame 32: bpos (4, 8 - 49.890625), velocity (0, 0.03125), airborne -> starts going down
+-- at frame 61: bpos (4, 8 - 1.40625), velocity (0, 3.203125), airborne -> about to land
+-- at frame 62: bpos (4, 8), velocity (0, 0), grounded -> has landed
 
 
 itest_dsl_parser.register(
@@ -468,14 +468,14 @@ expect pc_velocity 0 0
 
 -- calculation notes:
 -- wait for apogee (frame 20) and stop
--- at frame 1:  bpos (4, 80), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2:  bpos (4, 80 - 2), velocity (0, -2), airborne (hop confirmed)
--- at frame 3:  bpos (4, 80 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
--- at frame 19: pos (4, 80 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 20: pos (4, 80 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 21: pos (4, 80 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 38: pos (4, 80 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
--- at frame 39: pos (4, 80), velocity (0, 0), grounded -> has landed
+-- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), airborne (hop confirmed)
+-- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
+-- at frame 19: bpos (4, 8 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
+-- at frame 20: bpos (4, 8 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
+-- at frame 21: bpos (4, 8 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
+-- at frame 38: bpos (4, 8 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 39: bpos (4, 8), velocity (0, 0), grounded -> has landed
 
 -- and wait an extra frame to see if Sonic will jump due to holding jump input,
 -- so stop at frame 40
@@ -499,6 +499,46 @@ expect pc_ground_spd 0
 expect pc_velocity 1.359375 -0.078125
 ]])
 
+
+itest_dsl_parser.register(
+  'platformer air wall block', [[
+@stage #
+.#
+..
+#.
+
+warp 4 16
+jump
+stop_jump
+wait 1
+move right
+wait 9
+
+expect pc_bottom_pos 5 1.9375
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -1.125
+]])
+
+-- calculation notes:
+-- start jump input
+-- at frame 1:  bpos (4, 16), velocity (0, 0), grounded
+-- wait 1 frame to confirm hop, and start moving right, then wait 9 frames
+-- at frame 2:  bpos (4 + .046875, 16 - 2), velocity (3/64, -2), airborne (hop)
+-- at frame 3:  bpos (4.140625, 16 - 3.890625), velocity (6/64, -1 - 57/64), airborne
+-- at frame 4:  bpos (4.28125, 16 - 5.671875), velocity (9/64, -1 - 50/64), airborne
+-- at frame 5:  bpos (4.46875, 16 - 7.34375), velocity (12/64, -1 - 43/64), airborne
+-- at frame 6:  bpos (4.703125, 16 - 8.90625), velocity (15/64, -1 - 36/64), airborne
+-- at frame 7:  bpos (4.984375, 16 - 10.359375), velocity (18/64, -1 - 29/64), airborne
+-- after 7 frames, we are almost touching the wall above
+-- at frame 8:  bpos (5, 16 - 11.703125), velocity (18/64, -1 - 22/64), airborne (hit wall)
+-- after 8 frames, we have hit the wall
+-- at frame 9:  bpos (5, 16 - 12.9375), velocity (0, -1 - 15/64), airborne (hit wall)
+-- at frame 10: bpos (5, 16 - 14.0625), velocity (0, -1 - 8/64), airborne (hit wall)
+
+-- /64 format is nice, but I need to make a helper
+-- that converts floats to this format if I want a meaningful
+-- comparison with itest trace log
 
 -- human tests
 -- pico8 only, since human must check rendering

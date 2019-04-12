@@ -471,8 +471,10 @@ function player_char:_compute_ground_motion_result()
   local horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
   -- initialise result with floored x (we will reinject subpixels if character didn't touch a wall)
+  -- note that left and right are not completely symmetrical since floor is asymmetrical
+  local floored_x = flr(self.position.x)
   local motion_result = collision.ground_motion_result(
-    vector(flr(self.position.x), self.position.y),
+    vector(floored_x, self.position.y),
     self.slope_angle,
     false,
     false
@@ -480,39 +482,58 @@ function player_char:_compute_ground_motion_result()
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local distance_x = self.ground_speed * cos(self.slope_angle)
-  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, distance_x)
+  local signed_distance_x = self.ground_speed * cos(self.slope_angle)
+  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, signed_distance_x)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
   --  him to continue moving in the air as far as possible; in edge cases, he may even
   --  touch the ground again some pixels farther)
-  local column_distance = 1
-  while column_distance <= max_column_distance and not motion_result.is_blocked do
+  local column_distance_before_step = 0
+  while column_distance_before_step < max_column_distance and not motion_result.is_blocked do
     self:_next_ground_step(horizontal_dir, motion_result)
-    column_distance = column_distance + 1
+    column_distance_before_step = column_distance_before_step + 1
   end
 
   -- check if we need to add or cut subpixels
   if not motion_result.is_blocked then
-    local are_subpixels_left = self.position.x + distance_x > motion_result.position.x
+    -- local max_distance_x = abs(signed_distance_x)
+    -- local distance_to_floored_x = abs(motion_result.position.x - floored_x)
+    -- since character was not blocked, we know that we have reached a column distance of max_column_distance
+    -- local are_subpixels_left = max_distance_x > distance_to_floored_x
+    -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
+    --   but this is correct, we will simply move backward a bit when moving left
+    local are_subpixels_left = self.position.x + signed_distance_x > motion_result.position.x
+
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
-      -- check if character has touched a wall (we need an extra step to "ceil" the subpixels)
-      local extra_step_motion_result = motion_result:copy()
-      self:_next_ground_step(horizontal_dir, extra_step_motion_result)
-      if extra_step_motion_result.is_blocked then
-        -- character has just reached a wall, plus a few subpixels
-        -- unlike Classic Sonic, we decide to cut the subpixels and block the character
-        --  on the spot (we just reuse the result of the extra step, since is_falling doesn't change if is_blocked is true)
-        motion_result = extra_step_motion_result
-      else
+      -- unlike Classic Sonic, and *only* when moving right, we decide to check if those
+      --   subpixels would leak to hitting a wall on the right, and cut them if so,
+      --   blocking the character on the spot (we just reuse the result of the extra step,
+      --   since is_falling doesn't change if is_blocked is true)
+      -- when moving left, the subpixels are a small "backward" motion to the right and should
+      --  never hit a wall back
+      local is_blocked_by_extra_step = false
+      if signed_distance_x > 0 then
+        local extra_step_motion_result = motion_result:copy()
+        self:_next_ground_step(horizontal_dir, extra_step_motion_result)
+        if extra_step_motion_result.is_blocked then
+          motion_result = extra_step_motion_result
+          is_blocked_by_extra_step = true
+        end
+      end
+
+      -- unless moving right and hitting a wall due to subpixels, apply the remaining subpixels
+      --   as they cannot affect collision anymore. when moving left, they go a little backward
+      if not is_blocked_by_extra_step then
         -- character has not touched a wall at all, so add the remaining subpixels
-        --  (it's simpler to just recompute the full motion in x; don't touch y tough,
-        --  as it depends on the shape of the ground)
+        --   (it's simpler to just recompute the full motion in x; don't touch y tough,
+        --   as it depends on the shape of the ground)
         -- do not apply other changes (like slope) since technically we have not reached
-        --  the next tile yet, only advanced of some subpixels
-        motion_result.position.x = self.position.x + distance_x
+        --   the next tile yet, only advanced of some subpixels
+        -- note that this calculation equivalent to adding to ref_motion_result.position[coord]
+        --   sign(signed_distance_x) * (max_distance_x - distance_to_floored_x)
+        motion_result.position.x = self.position.x + signed_distance_x
       end
     end
   end
@@ -521,8 +542,12 @@ function player_char:_compute_ground_motion_result()
 end
 
 -- return the number of new pixel columns explored when moving from initial_position_coord (x or y)
---  over velocity_coord (x or y) * 1 frame. this is either flr(velocity_coord)
+--  over velocity_coord (x or y) * 1 frame. consider full pixel motion starting at floored coord,
+--  even when moving in the negative direction
+-- this is either flr(velocity_coord)
 --  or flr(velocity_coord) + 1 (if subpixels from initial position coord and speed sum up to 1.0 or more)
+-- note that for negative motion, we must go a bit beyond the next integer to count a full pixel motion,
+--  and that is intended
 function player_char._compute_max_pixel_distance(initial_position_coord, velocity_coord)
   return abs(flr(initial_position_coord + velocity_coord) - flr(initial_position_coord))
 end
@@ -802,10 +827,12 @@ function player_char:_compute_air_motion_result()
   return motion_result
 end
 
+-- TODO: factorize with _compute_ground_motion_result
 -- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
 --  over velocity[coord] px, where coord is "x" or "y"
 function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
-  if velocity_coord == 0 then return end
+  if velocity[coord] == 0 then return end
+
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
@@ -821,7 +848,6 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   --  only stopping if the character is blocked by a wall (not if falling, since we want
   --  him to continue moving in the air as far as possible; in edge cases, he may even
   --  touch the ground again some pixels farther)
-  local pixel_distance = 1
   local direction
   if coord == "x" then
     direction = directions.right
@@ -832,33 +858,49 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
     direction = oppose_direction(direction)
   end
 
-  local is_blocked = coord == "x" and ref_motion_result.is_blocked_by_wall or (ref_motion_result.is_blocked_by_wall or ref_motion_result.is_landing)
-  while pixel_distance <= max_pixel_distance and not ref_motion_result:is_blocked_along(direction) do
+  local pixel_distance_before_step = 0
+  while pixel_distance_before_step < max_pixel_distance and not ref_motion_result:is_blocked_along(direction) do
     self:_next_air_step(direction, ref_motion_result)
-    pixel_distance = pixel_distance + 1
+    pixel_distance_before_step = pixel_distance_before_step + 1
   end
-
 
   -- check if we need to add or cut subpixels
   if not ref_motion_result:is_blocked_along(direction) then
-    local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position[coord]
+    -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
+    --   but this is correct, we will simply move backward a bit when moving left
+    local are_subpixels_left = initial_position_coord + velocity[coord] > ref_motion_result.position[coord]
+    -- local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position[coord]
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
-      -- check if character has touched a wall (we need an extra step to "ceil" the subpixels)
-      local extra_step_motion_result = ref_motion_result:copy()
-      self:_next_air_step(direction, extra_step_motion_result)
-      if extra_step_motion_result:is_blocked_along(direction) then
-        -- character has just reached a wall, plus a few subpixels
-        -- unlike classic sonic, we decide to cut the subpixels and block the character
-        --  on the spot (we just reuse the result of the extra step, since is_falling doesn't change if is_blocked is true)
-        -- it's very important to keep the reference and assign member values instead
-        ref_motion_result:copy_assign(extra_step_motion_result)
-      else
+      --  *only* when moving in the positive sense (right/up),
+      --  as a way to clean the subpixels unlike classic sonic,
+      --  we check if character is theoretically colliding a wall with those subpixels
+      --  (we need an extra step to "ceil" the subpixels)
+      -- when moving in the negative sense, the subpixels are a small "backward" motion
+      --  to the positive sense and should
+      --  never hit a wall back
+      local is_blocked_by_extra_step = false
+      if velocity[coord] > 0 then
+        local extra_step_motion_result = ref_motion_result:copy()
+        self:_next_air_step(direction, extra_step_motion_result)
+        if extra_step_motion_result:is_blocked_along(direction) then
+          -- character has just reached a wall, plus a few subpixels
+          -- unlike classic sonic, we decide to cut the subpixels and block the character
+          --  on the spot (we just reuse the result of the extra step, since is_falling doesn't change if is_blocked is true)
+          -- it's very important to keep the reference and assign member values instead
+          ref_motion_result:copy_assign(extra_step_motion_result)
+          is_blocked_by_extra_step = true
+        end
+      end
+
+      if not is_blocked_by_extra_step then
         -- character has not touched a wall at all, so add the remaining subpixels
         --  (it's simpler to just recompute the full motion in x; don't touch y tough,
         --  as it depends on the shape of the ground)
         -- do not apply other changes (like slope) since technically we have not reached
         --  the next tile yet, only advanced of some subpixels
+        -- note that this calculation equivalent to adding to ref_motion_result.position[coord]
+        --  sign(velocity[coord]) * (max_distance - distance_to_floored_coord)
         ref_motion_result.position[coord] = initial_position_coord + velocity[coord]
       end
     end

@@ -32,6 +32,38 @@ describe('player_char', function ()
       assert.are_equal(2, player_char._compute_max_pixel_distance(2.2, 1.8))
     end)
 
+    -- bugfix history:
+    -- / I completely forgot the left case, which is important to test flooring asymmetry
+    --   I thought it was hiding bugs, but I realize my asymmetrical design was actually fine
+
+    it('(2, -0.1) => 1', function ()
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2, -0.1))
+    end)
+
+    it('(2, -1) => 1', function ()
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2, -1))
+    end)
+
+    it('(2, -1.1) => 2', function ()
+      assert.are_equal(2, player_char._compute_max_pixel_distance(2, -1.1))
+    end)
+
+    it('(2.2, -0.2) => 0', function ()
+      assert.are_equal(0, player_char._compute_max_pixel_distance(2.2, -0.2))
+    end)
+
+    it('(2.2, -0.3) => 1', function ()
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2.2, -0.3))
+    end)
+
+    it('(2.2, -1.2) => 1', function ()
+      assert.are_equal(1, player_char._compute_max_pixel_distance(2.2, -1.2))
+    end)
+
+    it('(2.2, -1.3) => 2', function ()
+      assert.are_equal(2, player_char._compute_max_pixel_distance(2.2, -1.3))
+    end)
+
   end)
 
   describe('_init', function ()
@@ -1825,18 +1857,21 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _next_ground_step moves motion_result.position.x by 1px in the horizontal_dir, but blocks when motion_result.position.x >= 5)', function ()
+        describe('(when _next_ground_step moves motion_result.position.x by 1px in the horizontal_dir, but blocks when motion_result.position.x <= -5 or x >= 5)', function ()
 
           local next_ground_step_mock
 
           setup(function ()
             next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, horizontal_dir, motion_result)
               local step_vec = horizontal_dir_vectors[horizontal_dir]
-              if motion_result.position.x < 5 then
+              -- x < -4 <=> x <= -5 for an integer as passed to step functions,
+              --   but we want to make clear that flooring is asymmetrical
+              --   and that for floating coordinates, -4.01 is already hitting the left wall
+              if motion_result.position.x < -4 and step_vec.x < 0 or motion_result.position.x >= 5 and step_vec.x > 0 then
+                motion_result.is_blocked = true
+              else
                 motion_result.position = motion_result.position + step_vec
                 motion_result.slope_angle = 0.125
-              else
-                motion_result.is_blocked = true
               end
             end)
           end)
@@ -1860,15 +1895,46 @@ describe('player_char', function ()
             )
           end)
 
+          it('(vector(-3.5, 4) at speed -1.5) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(-3.5, 4)
+            pc.ground_speed = -1.5
+            -- we assume _compute_max_pixel_distance is correct, so it should return 2
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
+                0.125,
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
           -- bugfix history: + the test revealed that is_blocked should be false when just touching a wall on arrival
           --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
           it('(vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             pc.position = vector(4.5, 4)
             pc.ground_speed = 0.5
-            -- we assume _compute_max_pixel_distance is correct, so it should return 2
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.125,
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          -- the negative motion equivalent is not symmetrical due to flooring
+          it('(vector(-4, 4) at speed -0.1) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(-4, 4)
+            pc.ground_speed = -1
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
                 0.125,
                 false,
                 false
@@ -1883,10 +1949,27 @@ describe('player_char', function ()
             -- but we make sure that are_subpixels_left check takes the slope factor into account
             pc.position = vector(4.5, 4)
             pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 1
+            pc.ground_speed = 1    -- * slope cos = -0.5
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.125,  -- new slope angle, no relation with initial one
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          -- the negative motion equivalent is not symmetrical due to flooring
+          -- in particular, to update the slope angle, we need to change of full pixel
+          it('(vector(-4, 4) at speed -2 on slope cos 0.5) should return vector(-5, 4), is_blocked: false, is_falling: false', function ()
+            pc.position = vector(-4, 4)
+            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = -2   -- * slope cos = -1
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
                 0.125,  -- new slope angle, no relation with initial one
                 false,
                 false
@@ -1913,6 +1996,24 @@ describe('player_char', function ()
             )
           end)
 
+          it('(vector(-4, 4) at speed -1.5) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(-4, 4)
+            pc.ground_speed = -1.5
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
+            -- the character will just touch the wall but because it has some extra subpixels
+            --  going "into" the wall, we floor them and consider character as blocked
+            --  (unlike Classic Sonic that would simply ignore subpixels)
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
+                0.125,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
           -- bugfix history:
           -- ?? same reason as test far above where "character has not moved by a full pixel" so slope should not change
           it('(vector(4, 4) at speed 1.5 on slope cos 0.5) should return vector(4.75, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
@@ -1923,6 +2024,22 @@ describe('player_char', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(4.75, 4),
+                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(-4.1, 4) at speed -1.5 on slope cos 0.5) should return vector(-4.85, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+            -- start under -4 so we don't change full pixel and preserve slope angle
+            pc.position = vector(-4.1, 4)
+            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = -1.5  -- * slope cos = -0.75
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-4.85, 4),
                 -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
@@ -1947,9 +2064,25 @@ describe('player_char', function ()
             )
           end)
 
-          -- bugfix history: it failed until I added the subpixels check at the end of the method
-          --  (also fixed in v1: subpixel cut when max_column_distance is 0 and blocked on next column)
-          it('+ (vector(5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: false, is_falling: false', function ()
+          it('(vector(-4, 4) at speed 3 on slope cos 0.5) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(-4, 4)
+            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = -3  -- * slope cos = -1.5
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
+                0.125,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          -- bugfix history:
+          -- + it failed until I added the subpixels check at the end of the method
+          --   (also fixed in v1: subpixel cut when max_column_distance is 0 and blocked on next column)
+          it('(vector(5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
             pc.position = vector(5, 4)
             pc.ground_speed = 0.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 0
@@ -1966,7 +2099,24 @@ describe('player_char', function ()
             )
           end)
 
-          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: false, is_falling: false', function ()
+          it('(vector(-5, 4) at speed 0.5) should return vector(-5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(-5, 4)
+            pc.ground_speed = -0.5
+            -- we assume _compute_max_pixel_distance is correct, so it should return 0
+            -- the character is already touching the wall, so any motion, even of just a few subpixels,
+            --  is considered blocked
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
+                0,  -- character couldn't move at all, so we preserved the initial slope angle
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
             -- this is possible e.g. if character walked along 1.5 from x=4
             -- to reduce computation we didn't check an extra column for a wall
             --  at that time, but starting next frame we will, effectively clamping
@@ -1977,9 +2127,41 @@ describe('player_char', function ()
             -- but we will be blocked by the wall anyway
 
             assert.are_equal(collision.ground_motion_result(
-                vector(5, 4),
-                0,  -- character couldn't move at all, so we preserved the initial slope angle
+                vector(5, 4),  -- this works on the *right* thanks to subpixel cut working "inside" a wall
+                0,  -- character couldn't move and went back, so we preserved the initial slope angle
                 true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(-5.5, 4) at speed -0.5) should return vector(-6, 4), slope before moving, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(-5.5, 4)
+            pc.ground_speed = -0.5
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
+            -- but we will be blocked by the wall anyway
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-6, 4),  -- we are already inside the wall, floored to -6
+                0,  -- character only snap to floored x, so we preserved the slope angle
+                false,  -- no wall detected from inside!
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(-5.5, 4) at speed -1) should return vector(-6, 4), slope before moving, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(-5.5, 4)
+            pc.ground_speed = -1
+            -- we assume _compute_max_pixel_distance is correct, so it should return 1
+            -- but we will be blocked by the wall anyway
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-6, 4),  -- we are already inside the wall, floored to -6
+                0,  -- character only snap to floored x, so we preserved the slope angle
+                true,  -- wall detected from inside if moving 1 full pixel toward the next column on the left
                 false
               ),
               pc:_compute_ground_motion_result()
@@ -1994,6 +2176,22 @@ describe('player_char', function ()
 
             assert.are_equal(collision.ground_motion_result(
                 vector(5, 4),
+                0.125,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(vector(-3, 4) at speed -3) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(-3, 4)
+            pc.ground_speed = -3.5
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- but because of the blocking, we stop at x=5 instead of 6.5
+
+            assert.are_equal(collision.ground_motion_result(
+                vector(-5, 4),
                 0.125,
                 true,
                 false
@@ -3006,9 +3204,57 @@ describe('player_char', function ()
           next_air_step_mock:clear()
         end)
 
-        it('(vector(0.5, 10) at speed 0.5 along x) should move to vector(1, 10) without blocking', function ()
+        -- bugfix history:
+        -- = the itest 'platformer air wall block' showed that the subpixel check
+        --   was using the integer max_pixel_distance instead of the float velocity[coord]
+        --   and this revealed a bug of no motion on x at all when velocity.x is < 1 and x starts integer
+        it('(vector(0, 10) at speed 0.5 along x) should move to vector(0.7, 10) without being blocked', function ()
           local motion_result = collision.air_motion_result(
-            vector(1, 10),
+            vector(0, 10),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
+
+          assert.are_equal(collision.air_motion_result(
+              vector(0.5, 10),
+              false,
+              false,
+              false,
+              nil
+            ), motion_result
+          )
+        end)
+
+        it('(vector(0.2, 10) at speed 0.5 along x) should move to vector(0.7, 10) without being blocked', function ()
+          local motion_result = collision.air_motion_result(
+            vector(0.2, 10),
+            false,
+            false,
+            false,
+            nil
+          )
+
+          -- we assume _compute_max_pixel_distance is correct
+          pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
+
+          assert.are_equal(collision.air_motion_result(
+              vector(0.7, 10),
+              false,
+              false,
+              false,
+              nil
+            ), motion_result
+          )
+        end)
+
+        it('(vector(0.5, 10) at speed 0.5 along x) should move to vector(1, 10) without being blocked', function ()
+          local motion_result = collision.air_motion_result(
+            vector(0.5, 10),
             false,
             false,
             false,
@@ -3072,7 +3318,7 @@ describe('player_char', function ()
           )
         end)
 
-        it('(vector(2.5, 7.3) at speed -4.4 along y) should move to vector(2.5, 2.9)', function ()
+        it('(vector(2.5, 7.3) at speed -4.4 along y) should move to vector(2.5, 2.9) without being blocked', function ()
           local motion_result = collision.air_motion_result(
             vector(2.5, 7.3),
             false,

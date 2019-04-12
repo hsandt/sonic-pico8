@@ -154,6 +154,7 @@ SYMBOL_SUBSTITUTE_TABLE = {
         'pc_velocity':     2,
         'pc_ground_spd':   3,
         'pc_motion_state': 4,
+        'pc_slope':        5,
     },
 }
 

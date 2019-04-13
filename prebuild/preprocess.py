@@ -27,7 +27,9 @@ defined_symbols_table = {
     'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse', 'cheat'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
     'itest':       ['pico8', 'assert', 'log', 'itest', 'cheat'],
-    'itest_light': ['pico8', 'log', 'itest'],
+    # 'cheat' added as quick fix for itest that must test debug motion, while still stripping cheat input
+    # when #if <symbol1> or <symbol2> is implemented, remove 'cheat' and add "or itest" in front of "#if cheat" that need it
+    'itest_light': ['pico8', 'log', 'itest', 'cheat'],
     'profiler':    ['pico8', 'log', 'visual_logger', 'profiler'],
     'visual_log':  ['pico8', 'log', 'visual_logger'],
     'pico8_utest': ['pico8', 'assert', 'log'],

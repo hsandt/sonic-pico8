@@ -101,7 +101,7 @@ parsable_type_strings = invert_table(parsable_types)
 -- type of commands available
 command_types = enum {
   "warp",             -- warp player character bottom  args: {bottom_position: vector}
-  "set",              -- set gameplay value            args: {gp_value_type: gp_value_types, new_value_args...: matching gp value parsable type}
+  "set",              -- set gameplay value            args: {gp_value_type_str: string, new_value_args...: matching gp value parsable type}
   "set_control_mode", -- set control mode              args: {control_mode_str: control_modes key}
   "set_motion_mode",  -- set motion mode               args: {motion_mode_str: motion_modes key}
   "move",             -- set sticky pc move intention  args: {move_dir_str: horizontal_dirs key}
@@ -145,9 +145,6 @@ gp_value_types = enum {
   "pc_slope",        -- current slope on which player character is grounded
 }
 
---#if assert
-gp_value_type_strings = invert_table(gp_value_types)
---#endif
 
 -- data for each gameplay value type
 local gp_value_data_t = {
@@ -230,7 +227,7 @@ function itest_dsl.parse_gp_value(arg_strings)
   local gp_value_parser = value_parsers[gp_value_data.parsable_type]
   assert(gp_value_parser, "no value parser defined for gp value type '"..parsable_type_strings[gp_value_data.parsable_type].."'")
   local gp_value = gp_value_parser(gp_value_comps)
-  return gp_value_type, gp_value
+  return gp_value_type_str, gp_value
 end
 
 -- table of parsers for command args and gameplay values, indexed by parsed type
@@ -246,14 +243,10 @@ function itest_dsl.execute_warp(args)
 end
 
 function itest_dsl.execute_set(args)
-  local gp_value_type = args[1]
-  local new_gp_value = args[2]
+  local gp_value_type_str, new_gp_value = unpack(args)
 
-  -- if you remove *all* generate_function_table, it's worth having parse_gp_value
-  -- return a gp_value_type_str rather than an index to avoid going back and forth
-  -- between key and value
-  local setter = itest_dsl["set_"..gp_value_type_strings[gp_value_type]]
-  assert(setter, "itest_dsl.set_"..gp_value_type_strings[gp_value_type].." is not defined")
+  local setter = itest_dsl["set_"..gp_value_type_str]
+  assert(setter, "itest_dsl.set_"..gp_value_type_str.." is not defined")
   setter(new_gp_value)
 end
 
@@ -354,13 +347,13 @@ end
 -- expectation struct
 
 -- attributes
--- gp_value_type  gp_value_types       type of gameplay value to compare
--- expected_value {type used for gp_value_type}  expected gameplay value
+-- gp_value_type_str  string                             name of gameplay value to compare
+-- expected_value     {type used for gp_value_type_str}  expected gameplay value
 local expectation = new_struct()
 itest_dsl.expectation = expectation
 
-function expectation:_init(gp_value_type, expected_value)
-  self.gp_value_type = gp_value_type
+function expectation:_init(gp_value_type_str, expected_value)
+  self.gp_value_type_str = gp_value_type_str
   self.expected_value = expected_value
 end
 
@@ -643,8 +636,9 @@ function itest_dsl_parser:_define_final_assertion()
 
     -- check each expectation one by one
     for exp in all(final_expectations_proxy) do
-      local evaluator = evaluators[exp.gp_value_type]
-      assert(evaluator, "evaluators["..exp.gp_value_type.."] (for '"..gp_value_type_strings[exp.gp_value_type].."') is not defined")
+      local gp_value_type = gp_value_types[exp.gp_value_type_str]
+      local evaluator = evaluators[gp_value_type]
+      assert(evaluator, "evaluators["..gp_value_type.."] (for '"..exp.gp_value_type_str.."') is not defined")
       local gp_value = evaluator()
 --[[#pico8
       -- in pico8, we use fixed point precision, which is what we expect as final values
@@ -661,8 +655,8 @@ function itest_dsl_parser:_define_final_assertion()
 --#endif
       if not value_success then
         success = false
-        local gp_value_data = gp_value_data_t[exp.gp_value_type]
-        assert(gp_value_data, "gp_value_data_t["..exp.gp_value_type.."] is not defined")
+        local gp_value_data = gp_value_data_t[gp_value_type]
+        assert(gp_value_data, "gp_value_data_t["..gp_value_type.."] is not defined")
         local gp_value_name = gp_value_data.name
         local value_message = "\nFor gameplay value '"..gp_value_name.."':\n"..value_eq_message
         full_message = full_message..value_message.."\n"

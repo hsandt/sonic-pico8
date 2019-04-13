@@ -173,8 +173,8 @@ describe('itest_dsl', function ()
         end, "parse_gp_value: got 1 args, expected at least 2")
       end)
 
-      it('should return the gameplay value type and the expected value, itself recursively parsed', function ()
-        assert.are_same({gp_value_types.pc_bottom_pos, vector(1, 3)},
+      it('should return the gameplay value type string and the expected value, itself recursively parsed', function ()
+        assert.are_same({"pc_bottom_pos", vector(1, 3)},
           {itest_dsl.parse_gp_value({"pc_bottom_pos", "1", "3"})})
       end)
 
@@ -215,14 +215,14 @@ describe('itest_dsl', function ()
 
     describe('"execute_set', function ()
 
-      it('should set pc velocity to (1, -3)', function ()
-        itest_dsl.execute_set({gp_value_types.pc_velocity, vector(1, -3)})
+      it('#solo should set pc velocity to (1, -3)', function ()
+        itest_dsl.execute_set({"pc_velocity", vector(1, -3)})
         assert.are_equal(vector(1, -3), stage.state.player_char.velocity)
       end)
 
-      it('should fail with unsupported gp_value_type for setting', function ()
+      it('#solo should fail with unsupported gp_value_type for setting', function ()
         assert.has_error(function ()
-          itest_dsl.execute_set({gp_value_types.pc_slope, -2})
+          itest_dsl.execute_set({"pc_slope", -2})
         end, "itest_dsl.set_pc_slope is not defined")
       end)
 
@@ -416,9 +416,9 @@ describe('itest_dsl', function ()
 
     describe('_init', function ()
       it('should create a new dsl itest', function ()
-        local exp = expectation(gp_value_types.pc_bottom_pos, 24)
+        local exp = expectation("pc_bottom_pos", 24)
         assert.is_not_nil(exp)
-        assert.are_same({gp_value_types.pc_bottom_pos, 24}, {exp.gp_value_type, exp.expected_value})
+        assert.are_same({"pc_bottom_pos", 24}, {exp.gp_value_type_str, exp.expected_value})
       end)
     end)
 
@@ -767,8 +767,8 @@ expect
               command(command_types.wait,   { 1 }                          ),
               command(command_types.move,   { horizontal_dirs.left }       ),
               command(command_types.wait,   { 2 }                          ),
-              command(command_types.expect, {gp_value_types.pc_bottom_pos, vector(10, 45)}),
-              command(command_types.expect, {gp_value_types.pc_velocity, vector(2, -3.5)}),
+              command(command_types.expect, {"pc_bottom_pos", vector(10, 45)}),
+              command(command_types.expect, {"pc_velocity", vector(2, -3.5)}),
             },
             commands)
       end)
@@ -802,8 +802,8 @@ expect
           command(command_types.wait,   { 1 }                          ),
           command(command_types.move,   { horizontal_dirs.left }       ),
           command(command_types.wait,   { 2 }                          ),
-          command(command_types.expect, {gp_value_types.pc_bottom_pos, vector(10, 45)}),
-          command(command_types.expect, {gp_value_types.pc_velocity, vector(2, -3.5)}),
+          command(command_types.expect, {"pc_bottom_pos", vector(10, 45)}),
+          command(command_types.expect, {"pc_velocity", vector(2, -3.5)}),
         }
 
         local test = itest_dsl_parser.create_itest("test 1", dsli)
@@ -1001,19 +1001,19 @@ expect
         itest_dsl_parser._itest = integration_test('test', {})
       end)
 
-      it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
+      it('#solo should set the final assertion as returning true, message when the gameplay value is expected', function ()
         itest_dsl_parser._final_expectations = {
-          expectation(gp_value_types.pc_bottom_pos, vector(27, 30)),
-          expectation(gp_value_types.pc_velocity, vector(-3, 2.5))
+          expectation("pc_bottom_pos", vector(27, 30)),
+          expectation("pc_velocity", vector(-3, 2.5))
         }
         itest_dsl_parser:_define_final_assertion()
         assert.are_same({true, ""}, {itest_dsl_parser._itest.final_assertion()})
       end)
 
-      it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
+      it('#solo should set the final assertion as returning false, message when the gameplay value is not expected', function ()
         itest_dsl_parser._final_expectations = {
-          expectation(gp_value_types.pc_bottom_pos, vector(27, 30)),  -- ok
-          expectation(gp_value_types.pc_velocity, vector(-3, 7.5))    -- different from actual
+          expectation("pc_bottom_pos", vector(27, 30)),  -- ok
+          expectation("pc_velocity", vector(-3, 7.5))    -- different from actual
         }
         itest_dsl_parser:_define_final_assertion()
         local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..

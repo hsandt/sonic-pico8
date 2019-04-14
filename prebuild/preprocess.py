@@ -12,7 +12,10 @@ from enum import Enum
 # 3. it will strip debug function calls like log() or assert() in configs that don't use those symbols
 
 # Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
-# Remember that busted will not preprocess at all and will therefore go through all the blocks.
+# Remember that busted will not preprocess at all and will therefore go through all the blocks,
+#   even blocks surrounded by #if symbol and #ifn symbol for the same symbol!
+# In this case, we recomment surrounding the block that is never used by busted with --[[#pico8 and --#pico8]]
+
 # For non-pico8 builds, we use --#ifn pico8 to indicate we won't have preprocessing,
 # but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
 # the code is only needed for a purpose of redundancy and unit test harnessing in general.

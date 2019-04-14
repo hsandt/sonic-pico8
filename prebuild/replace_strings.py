@@ -231,8 +231,9 @@ def generate_get_substitute_from_dict(substitutes):
         else:
             original_symbol = match.group(0)  # "{namespace}.{member}"
             # in general, we should substitute all members of a namespace, especially enums
-            logging.warning(f'no substitute defined for {original_symbol}, but the namespace is present in SYMBOL_SUBSTITUTE_TABLE')
-            return original_symbol
+            logging.error(f'no substitute defined for {original_symbol}, but the namespace (first part) is present in SYMBOL_SUBSTITUTE_TABLE')
+            # return something easy to debug in PICO-8, in case the user missed the error message
+            return f'assert(false, "UNSUBSTITUTED {original_symbol}")'
     return get_substitute
 
 def replace_all_symbols_in_string(text):

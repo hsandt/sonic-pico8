@@ -77,6 +77,12 @@ file_log_stream = derived_singleton(log_stream, function (self)
 end)
 logging.file_log_stream = file_log_stream
 
+function file_log_stream:clear()
+  -- clear file by printing nothing while overwriting content
+  -- note: this will print an empty line at the beginning of the file
+  printh("", self.file_prefix.."_log", true)
+end
+
 function file_log_stream:on_log(lm)
   -- pico8 will add .p8l extension
   printh(logging.compound_message(lm), self.file_prefix.."_log")

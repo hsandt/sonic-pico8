@@ -626,7 +626,7 @@ function del(a, dv)
   end
 end
 
--- printh must not refer to the native print directly
+-- printh function must not refer to the native print directly (no printh = print)
 -- because params are different and to avoid spying on
 -- the wrong calls (busted -o TAP may print natively)
 function printh(str, filename, overwrite)

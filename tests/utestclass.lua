@@ -414,7 +414,7 @@ describe('derived_singleton', function ()
     assert.are_equal("custom", my_derived_singleton.types[1])
   end)
 
-  it('should define a derived_singleton with derived members', function ()
+  it('should define a derived_singleton with derived members using derived_init', function ()
     assert.are_equal("special", my_derived_singleton.subtype)
   end)
 

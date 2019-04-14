@@ -150,6 +150,17 @@ describe('logging', function ()
         end)
       end)
 
+      describe('clear', function ()
+        it('should call printh with empty message and overwrite mode', function ()
+          file_log_stream.file_prefix = "my_game"
+
+          file_log_stream:clear()
+
+          assert.spy(printh_stub).was_called(1)
+          assert.spy(printh_stub).was_called_with("", "my_game_log", true)
+        end)
+      end)
+
       describe('on_log', function ()
         it('should call printh with compounded message and target file "{self.file_prefix}_log.txt"', function ()
           file_log_stream.file_prefix = "my_game"

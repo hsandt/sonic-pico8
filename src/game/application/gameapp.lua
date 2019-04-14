@@ -4,6 +4,12 @@ local gamestate_proxy = require("game/application/gamestate_proxy")
 local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
+--#if log
+local logging = require("engine/debug/logging")
+-- pico8 doesn't support output file path containing "-" so use "_"
+logging.file_log_stream.file_prefix = "sonic_pico8_v2.2"
+--#endif
+
 --#if visual_logger
 local vlogger = require("engine/debug/visual_logger")
 --#endif

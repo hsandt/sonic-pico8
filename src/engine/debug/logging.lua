@@ -61,12 +61,27 @@ end
 -- function log_stream:on_log()
 -- end
 
+
+-- console log
 console_log_stream = derived_singleton(log_stream)
 logging.console_log_stream = console_log_stream
 
 function console_log_stream:on_log(lm)
   printh(logging.compound_message(lm))
 end
+
+
+-- file log
+file_log_stream = derived_singleton(log_stream, function (self)
+  self.file_prefix = "game"  -- override this to distinguish logs between games and versions
+end)
+logging.file_log_stream = file_log_stream
+
+function file_log_stream:on_log(lm)
+  -- pico8 will add .p8l extension
+  printh(logging.compound_message(lm), self.file_prefix.."_log")
+end
+
 
 local logger = singleton(function (self)
   self.active_categories = {
@@ -103,6 +118,9 @@ function logger:register_stream(stream)
   add(self._streams, stream)
 end
 
+-- level     logging.level
+-- category  str
+-- content   str
 function logger:_generic_log(level, category, content)
   category = category or "default"
   if logger.active_categories[category] and logger.current_level <= level then

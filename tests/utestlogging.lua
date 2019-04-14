@@ -7,8 +7,8 @@ logging.logger:init()
 
 describe('logging', function ()
 
-  local log_msg = logging.log_msg
-  local log_stream = logging.log_stream
+  local log_msg,   log_stream,   file_log_stream = get_members(logging,
+       "log_msg", "log_stream", "file_log_stream")
 
   describe('log_msg', function ()
 
@@ -117,6 +117,49 @@ describe('logging', function ()
             assert.is_true(logger.active_categories[category], "category '"..category.."' is not active")
           end
         end
+      end)
+
+    end)
+
+    -- for file logging, our tests are low-level and just check that on_log
+    -- is calling printh on the compounded message
+    describe('file_log_stream', function ()
+
+      local printh_stub
+
+      setup(function ()
+        printh_stub = stub(_G, "printh")
+      end)
+
+      teardown(function ()
+        printh_stub:revert()
+      end)
+
+      before_each(function ()
+        logger:register_stream(file_log_stream)
+      end)
+
+      after_each(function ()
+        file_log_stream:init()
+        printh_stub:clear()
+      end)
+
+      describe('derived_init', function ()
+        it('should set file_prefix to "game"', function ()
+          assert.are_equal("game", file_log_stream.file_prefix)
+        end)
+      end)
+
+      describe('on_log', function ()
+        it('should call printh with compounded message and target file "{self.file_prefix}_log.txt"', function ()
+          file_log_stream.file_prefix = "my_game"
+
+          local lm = log_msg(logging.level.info, "default", "dummy")
+          file_log_stream:on_log(lm)
+
+          assert.spy(printh_stub).was_called(1)
+          assert.spy(printh_stub).was_called_with(logging.compound_message(lm), "my_game_log")
+        end)
       end)
 
     end)
@@ -259,24 +302,23 @@ describe('logging', function ()
 
     end)
 
+    -- for console logging, our tests are high-level
+    -- and contain checking that compound_message is doing its job
     describe('console logging', function ()
 
       local printh_stub
 
       setup(function ()
-        -- important since busted_helper will set it to false
-        logging.console_log_stream.active = true
         printh_stub = stub(_G, "printh")
       end)
 
       teardown(function ()
-        logging.console_log_stream.active = false
         printh_stub:revert()
       end)
 
       before_each(function ()
         logger.active_categories.flow = true
-        logger:register_stream(logging.console_log_stream)
+        logger:register_stream(console_log_stream)
       end)
 
       after_each(function ()

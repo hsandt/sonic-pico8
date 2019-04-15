@@ -627,11 +627,36 @@ function del(a, dv)
 end
 
 -- printh function must not refer to the native print directly (no printh = print)
--- because params are different and to avoid spying on
--- the wrong calls (busted -o TAP may print natively)
-function printh(str, filename, overwrite)
+--   because params are different and to avoid spying on
+--   the wrong calls (busted -o TAP may print natively)
+-- exceptionally, we add a custom parameter `log_dirname`
+--   to make it easier to test this function itself in busted
+function printh(str, file_basename, overwrite, log_dirname)
+  if not log_dirname then
+    log_dirname = "log"
+  end
+
   -- file writing is not supported in tests
-  print(str)
+  if file_basename then
+    -- if log directory doesn't exist, create it
+    local log_dir_attr = lfs.attributes(log_dirname)
+    if not log_dir_attr then
+      lfs.mkdir(log_dirname)
+    else
+      assert(log_dir_attr.mode == "directory", "'"..log_dirname.."' is not a directory but a "..log_dir_attr.mode)
+    end
+
+    local mode = overwrite and "w" or "a"
+    -- when running in busted, put the logs in a log folder
+    --   and add the .txt extension (instead of .p8l)
+    --   for better organization
+    local log_filepath = log_dirname.."/"..file_basename..".txt"
+    local file = io.open(log_filepath, mode)
+    file:write(str, "\n")
+    file:close()
+  else
+    print(str)
+  end
 end
 
 api = {}

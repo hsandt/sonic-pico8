@@ -1040,57 +1040,154 @@ describe('pico8api', function ()
 
   describe('printh', function ()
 
-    local native_print_stub
+    -- caution: this will hide *all* native prints, including debug logs
+    -- so we only do this for the utests that really need it
+    describe('(stubbing print)', function ()
 
-    setup(function ()
-      native_print_stub = stub(_G, "print")  -- native print
+      local native_print_stub
+
+      setup(function ()
+        native_print_stub = stub(_G, "print")  -- native print
+      end)
+
+      teardown(function ()
+        native_print_stub:revert()
+      end)
+
+      after_each(function ()
+        native_print_stub:clear()
+      end)
+
+      it('should call native print', function ()
+        printh("hello")
+
+        assert.spy(native_print_stub).was_called(1)
+        assert.spy(native_print_stub).was_called_with("hello")
+      end)
+
     end)
 
-    teardown(function ()
-      native_print_stub:revert()
-    end)
+    describe('(with temp file', function ()
+      -- in general we should use os.tmpname, but because of the fact
+      --   that printh prints to a log folder, we prefer using a custom path
+      -- make sure to use a temp dir name that is not an actual folder in the project
+      local temp_dirname = "_temp"
+      local temp_file_basename = "temp"
+      local temp_filepath = temp_dirname.."/"..temp_file_basename..".txt"
+      local temp_file = nil
 
-    after_each(function ()
-      native_print_stub:clear()
-    end)
+      local function is_dir(dirpath)
+        local attr = lfs.attributes(dirpath)
+        return attr and attr.mode == "directory"
+      end
 
-    it('should print the current file:line with a message', function ()
-      print_at_line("text")
-    end)
+      -- https://stackoverflow.com/questions/37835565/lua-delete-non-empty-directory
+      local function remove_dir_recursive(dirpath)
+        for file in lfs.dir(dirpath) do
+            local file_path = dirpath..'/'..file
+            if file ~= "." and file ~= ".." then
+                if lfs.attributes(file_path, 'mode') == 'file' then
+                    os.remove(file_path)
+                elseif lfs.attributes(file_path, 'mode') == 'directory' then
+                    remove_dir_recursive(file_path)
+                end
+            end
+        end
+        lfs.rmdir(dirpath)
+      end
 
-    it('should call native print', function ()
-      printh("hello")
-      assert.spy(native_print_stub).was_called(1)
-      assert.spy(native_print_stub).was_called_with("hello")
-    end)
+      local function remove_if_exists(path)
+        local attr = lfs.attributes(path)
+        if attr then
+          if attr.mode == "directory" then
+            remove_dir_recursive(path)
+          else
+            os.remove(path)
+          end
+        end
+      end
 
-  end)
+      local function remove_file_if_exists(filepath)
+        local f = io.open(temp_filepath)
+        if f then
+          f:close()
+          os.remove(temp_filepath)
+        end
+      end
 
+      local function get_lines(file)
+        local lines = {}
+        for line in file:lines() do
+          add(lines, line)
+        end
+        return lines
+      end
 
-  describe('printh', function ()
+      before_each(function ()
+        remove_if_exists(temp_dirname)
+      end)
 
-    local native_print_stub
+      after_each(function ()
+        if temp_file then
+          -- an error occurred (maybe the assert failed)
+          -- and the temp file wasn't closed and set to nil
+          print("WARNING: emergency close needed, the last write operation likely failed")
+          temp_file:close()
+        end
 
-    setup(function ()
-      native_print_stub = stub(_G, "print")  -- native print
-    end)
+        remove_if_exists(temp_dirname)
+      end)
 
-    teardown(function ()
-      native_print_stub:revert()
-    end)
+      it('should create log directory if it doesn\'t exist', function ()
+        printh("hello", temp_file_basename, true, temp_dirname)
 
-    after_each(function ()
-      native_print_stub:clear()
-    end)
+        assert.is_true(is_dir(temp_dirname))
+      end)
 
-    it('should print the current file:line with a message', function ()
-      print_at_line("text")
-    end)
+      it('should assert if a non-directory "log" already exists', function ()
+        local f,error = io.open(temp_dirname, "w")
+        f:close()
 
-    it('should call native print', function ()
-      printh("hello")
-      assert.spy(native_print_stub).was_called(1)
-      assert.spy(native_print_stub).was_called_with("hello")
+        assert.has_error(function ()
+          printh("hello", temp_file_basename, true, temp_dirname)
+        end, "'_temp' is not a directory but a file")
+      end)
+
+      it('should overwrite a file with filepath and true', function ()
+        printh("hello", temp_file_basename, true, temp_dirname)
+
+        temp_file = io.open(temp_filepath)
+        assert.is_not_nil(temp_file)
+        assert.are_same({"hello"}, get_lines(temp_file))
+        temp_file = nil
+      end)
+
+      it('should append to a file with filepath and false', function ()
+        lfs.mkdir(temp_dirname)
+        temp_file = io.open(temp_filepath, "w")
+        temp_file:write("hello1\n")
+        temp_file:close()
+        temp_file = nil
+
+        printh("hello2", temp_file_basename, false, temp_dirname)
+
+        temp_file = io.open(temp_filepath)
+        assert.is_not_nil(temp_file)
+        assert.are_same({"hello1", "hello2"}, get_lines(temp_file))
+        temp_file = nil
+      end)
+
+      it('should append to a file with filepath and false, adding newline at the end', function ()
+        printh("hello1", temp_file_basename, false, temp_dirname)
+        printh("hello2", temp_file_basename, false, temp_dirname)
+        printh("hello3", temp_file_basename, false, temp_dirname)
+
+        temp_file = io.open(temp_filepath)
+        assert.is_not_nil(temp_file)
+        assert.are_same({"hello1", "hello2", "hello3"}, get_lines(temp_file))
+        temp_file = nil
+      end)
+
     end)
 
   end)

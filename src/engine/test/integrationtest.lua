@@ -218,9 +218,12 @@ function integration_test_runner:update()
 end
 
 function integration_test_runner:draw()
-  assert(self.current_test, "integration_test_runner:draw: current_test is not set")
-  api.print(self.current_test.name, 2, 2, colors.yellow)
-  api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
+  if self.current_test then
+    api.print(self.current_test.name, 2, 2, colors.yellow)
+    api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
+  else
+    api.print("no itest running", tuned("x", 8), tuned("y", 8), colors.white)
+  end
 end
 
 function integration_test_runner:_get_test_state_color(test_state)
@@ -249,7 +252,7 @@ function integration_test_runner:_initialize()
   logging.logger.active_categories["itest"] = true
 --#pico8]]
 
-  logging.logger.active_categories["trace"] = false
+  logging.logger.active_categories["trace"] = true
 --#endif
 
   self.initialized = true

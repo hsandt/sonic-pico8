@@ -169,12 +169,11 @@ describe('integration_test_runner', function ()
 
     describe('(when another test was running)', function ()
 
-      setup(function ()
-        integration_test_runner.current_test = integration_test('previous test', {})
-      end)
-
       it('should reinit the gameapp modules first', function ()
+        integration_test_runner.current_test = integration_test('previous test', {})
+
         integration_test_runner:init_game_and_start(test)
+
         assert.spy(gameapp_reinit_modules_stub).was_called(1)
         assert.spy(gameapp_reinit_modules_stub).was_called_with()
       end)
@@ -566,20 +565,9 @@ describe('integration_test_runner', function ()
 
   describe('draw', function ()
 
-    it('should assert if no current test is set', function ()
-      assert.has_error(function ()
-        integration_test_runner:draw()
-      end,
-      "integration_test_runner:draw: current_test is not set")
-    end)
-
-    describe('(when curent test is set)', function ()
-
-      local api_print_stub
+    describe('(stubbing api.print)', function ()
 
       setup(function ()
-        integration_test_runner.current_test = test
-        integration_test_runner.current_state = test_states.running
         api_print_stub = stub(api, "print")
       end)
 
@@ -591,9 +579,23 @@ describe('integration_test_runner', function ()
         api_print_stub:clear()
       end)
 
-      it('should draw information on the current test', function ()
+      it('should draw "no itest running"', function ()
         integration_test_runner:draw()
-        assert.spy(api_print_stub).was_called(2)
+        assert.spy(api_print_stub).was_called(1)
+      end)
+
+      describe('(when current test is set)', function ()
+
+        before_each(function ()
+          integration_test_runner.current_test = test
+          integration_test_runner.current_state = test_states.running
+        end)
+
+        it('should draw information on the current test', function ()
+          integration_test_runner:draw()
+          assert.spy(api_print_stub).was_called(2)
+        end)
+
       end)
 
     end)
@@ -664,8 +666,7 @@ describe('integration_test_runner', function ()
       local action_callback = spy.new(function () end)
       local action_callback2 = spy.new(function () end)
 
-      before_each(function ()
-        test:add_action(time_trigger(1.0), action_callback, 'action_callback')
+      setup(function ()
         -- don't stub a function if the return value matters, as in start
         spy.on(integration_test_runner, "_check_end")
       end)
@@ -678,6 +679,7 @@ describe('integration_test_runner', function ()
 
       before_each(function ()
         integration_test_runner:start(test)
+        test:add_action(time_trigger(1.0), action_callback, 'action_callback')
       end)
 
       after_each(function ()

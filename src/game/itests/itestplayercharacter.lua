@@ -15,7 +15,6 @@ local tile_test_data = require("game/test_data/tile_test_data")
 
 local itest
 
-
 -- debug motion
 
 itest_dsl_parser.register(
@@ -501,7 +500,7 @@ expect pc_velocity 1.359375 -0.078125
 
 
 itest_dsl_parser.register(
-  'platformer air wall block', [[
+  'platformer air right wall block', [[
 @stage #
 .#
 ..
@@ -539,6 +538,65 @@ expect pc_velocity 0 -1.125
 -- /64 format is nice, but I need to make a helper
 -- that converts floats to this format if I want a meaningful
 -- comparison with itest trace log
+
+
+itest_dsl_parser.register(
+  'platformer air left wall block', [[
+@stage #
+#.
+..
+.#
+
+warp 12 16
+jump
+stop_jump
+wait 1
+move left
+wait 9
+
+expect pc_bottom_pos 11 1.9375
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 -1.125
+]])
+
+itest_dsl_parser.register(
+  'platformer air ceiling block', [[
+@stage #
+#
+.
+.
+.
+#
+
+warp 4 32
+jump
+wait 4
+
+expect pc_bottom_pos 4 24
+expect pc_motion_state airborne
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+-- calculation notes
+
+-- we are still using sonic standing height during jump
+--   so he will hit ceiling at bottom pos = 24 = 32 - 8
+
+-- wait for the apogee (frame 31) and stop
+-- frame  bottom pos            velocity         state     event
+-- 1      (4, 32)               (0, 0)           grounded
+-- 2      (4, 32 - 3  - 16/64)  (0, -3 - 16/64)  airborne  confirm jump (no gravity on first frame)
+-- 3      (4, 32 - 6  - 25/64)  (0, -3 -  9/64)  airborne
+-- 4      (4, 32 - 8)           (0, 0)           airborne  hit ceiling
+
+-- keep calculation below for later, when sonic will have half height during spin
+-- 4      (4, 32 - 9  - 27/64)  (0, -3 -  2/64)  airborne
+-- 5      (4, 32 - 12 - 22/64)  (0, -2 - 59/64)  airborne
+-- 6      (4, 32 - 15 - 10/64)  (0, -2 - 52/64)  airborne
+-- 7      (4, 32 - 16)          (0, 0)           airborne  hit ceiling
+
 
 -- human tests
 -- pico8 only, since human must check rendering

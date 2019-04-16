@@ -783,6 +783,7 @@ function player_char:_check_hold_jump()
     -- character tries to interrupt jump, check if's not too late
     local signed_jump_interrupt_speed_frame = -pc_data.jump_interrupt_speed_frame
     if self.velocity.y < signed_jump_interrupt_speed_frame then
+      log("interrupt jump "..self.velocity.y.." -> "..signed_jump_interrupt_speed_frame, "trace")
       self.velocity.y = signed_jump_interrupt_speed_frame
     end
   end
@@ -822,7 +823,9 @@ function player_char:_compute_air_motion_result()
   -- we focus on landing/ceiling first, and prefer simplicity to precision as long as motion seems ok,
   --  so we choose c.
   self:_advance_in_air_along(motion_result, self.velocity, "y")
+  log("=> "..motion_result, "trace")
   self:_advance_in_air_along(motion_result, self.velocity, "x")
+  log("=> "..motion_result, "trace")
 
   return motion_result
 end
@@ -831,8 +834,9 @@ end
 -- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
 --  over velocity[coord] px, where coord is "x" or "y"
 function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
-  if velocity[coord] == 0 then return end
+  log("_advance_in_air_along: "..joinstr(", ", ref_motion_result, velocity, coord), "trace")
 
+  if velocity[coord] == 0 then return end
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
@@ -861,6 +865,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   local pixel_distance_before_step = 0
   while pixel_distance_before_step < max_pixel_distance and not ref_motion_result:is_blocked_along(direction) do
     self:_next_air_step(direction, ref_motion_result)
+    log("  => "..ref_motion_result, "trace")
     pixel_distance_before_step = pixel_distance_before_step + 1
   end
 
@@ -883,6 +888,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
       if velocity[coord] > 0 then
         local extra_step_motion_result = ref_motion_result:copy()
         self:_next_air_step(direction, extra_step_motion_result)
+        log("  => "..ref_motion_result, "trace")
         if extra_step_motion_result:is_blocked_along(direction) then
           -- character has just reached a wall, plus a few subpixels
           -- unlike classic sonic, we decide to cut the subpixels and block the character
@@ -913,8 +919,14 @@ end
 --  it doesn't update the position and the corresponding flag is set
 -- air_motion_result.position.x/y should be floored for these steps
 function player_char:_next_air_step(direction, ref_motion_result)
+  log("  _next_air_step: "..joinstr(", ", direction, ref_motion_result), "trace")
+
   local step_vec = dir_vectors[direction]
   local next_position_candidate = ref_motion_result.position + step_vec
+
+  log("direction: "..direction, "trace")
+  log("step_vec: "..step_vec, "trace")
+  log("next_position_candidate: "..next_position_candidate, "trace")
 
   -- we can only hit walls or the ground when moving left, right or down
   if direction ~= directions.up then
@@ -923,6 +935,8 @@ function player_char:_next_air_step(direction, ref_motion_result)
     --  collisions around the bottom left/right corners
     local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
     local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
+
+    log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace")
 
     -- check if the character has hit a ground or a wall
     if signed_distance_to_closest_ground < 0 then
@@ -940,6 +954,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
         ref_motion_result.slope_angle = next_slope_angle
       else
         ref_motion_result.is_blocked_by_wall = true
+        log("is blocked by wall", "trace")
       end
     elseif signed_distance_to_closest_ground > 0 then
       -- in the air: the most common case, in general requires nothing to do
@@ -949,6 +964,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     elseif ref_motion_result.is_landing then
       -- if we enter this, direction must be horizontal, so update slope angle with new ground
       ref_motion_result.slope_angle = next_slope_angle
+      log("is landing, setting slope angle to "..next_slope_angle, "trace")
     end
   end
 
@@ -963,6 +979,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then
         ref_motion_result.is_blocked_by_ceiling = true
+        log("is blocked by ceiling", "trace")
       else
         -- we would be blocked by ceiling on the next position, but since we can't even go there,
         --  we are actually blocked by the wall preventing the horizontal move

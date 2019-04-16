@@ -24,7 +24,7 @@ return {
   max_ground_speed = 3,
 
   -- initial variable jump speed (Sonic) (px/frame)
-  initial_var_jump_speed_frame = 3.25,
+  initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
   --  note that when jump is interrupted mid-air, gravity should still be applied just after that

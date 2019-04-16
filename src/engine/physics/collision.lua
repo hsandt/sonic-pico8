@@ -224,7 +224,7 @@ end
 --#if log
 function air_motion_result:_tostring()
   return "air_motion_result("..joinstr(", ",
-    self.position, self.is_blocked_by_ceiling, self.is_blocked_by_wall, self.is_landing, self.slope_angle)..")"
+    self.position, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"
 end
 --#endif
 

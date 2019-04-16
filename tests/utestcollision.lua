@@ -787,9 +787,9 @@ describe('collision', function ()
 
     describe('_tostring', function ()
 
-      it('should return "air_motion_result(vector(2, 3), false, false, true, -0.25)"', function ()
-        local gmr = air_motion_result(vector(2, 3), false, false, true, -0.25)
-        assert.are_equal("air_motion_result(vector(2, 3), false, false, true, -0.25)", gmr:_tostring())
+      it('should return "air_motion_result(vector(2, 3), true, false, true, -0.25)"', function ()
+        local gmr = air_motion_result(vector(2, 3), true, false, true, -0.25)
+        assert.are_equal("air_motion_result(vector(2, 3), true, false, true, -0.25)", gmr:_tostring())
       end)
 
     end)

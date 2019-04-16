@@ -49,6 +49,9 @@ SYMBOL_SUBSTITUTE_TABLE = {
     #   to its value dynamically with enum_values[dynamic_string]
     # remember to update the values of any preprocessed enum modified
 
+    # TODO: to avoid issues like enum values mismatch, parse the values
+    # directly from the .lua instead of writing them manually
+
     # color
     'colors': {
         'black':        0,
@@ -72,8 +75,8 @@ SYMBOL_SUBSTITUTE_TABLE = {
     # math
     'directions': {
         'left':  0,
-        'right': 1,
-        'up':    2,
+        'up':    1,
+        'right': 2,
         'down':  3,
     },
 

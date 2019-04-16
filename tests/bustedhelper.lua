@@ -8,6 +8,9 @@ logging.logger:register_stream(logging.console_log_stream)
 logging.logger:register_stream(logging.file_log_stream)
 logging.logger:deactivate_all_categories()  -- headless itests will restore "itest" and sometimes "trace"
 
+-- clear log file on new utest session
+logging.file_log_stream:clear()
+
 -- return the current file line in the format "{file}:{line}" to make it easy to navigate there from the printed message
 -- if you call this function from an intermediate helper function, add an extra level for each intermediate step
 function get_file_line(extra_level)

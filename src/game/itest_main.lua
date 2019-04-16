@@ -11,11 +11,17 @@ local input = require("engine/input/input")
 --#if log
 local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
+logging.logger:register_stream(logging.file_log_stream)
 --#endif
+
+local codetuner = require("engine/debug/codetuner")
 
 local current_itest_index = 0
 
 function _init()
+  -- clear log file on new itest session
+  logging.file_log_stream:clear()
+
   -- require only gamestate modules written on first line of the required $itest (pico8-build way)
   gamestate_proxy:require_gamestates()
 

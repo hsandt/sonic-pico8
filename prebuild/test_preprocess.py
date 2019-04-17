@@ -321,12 +321,12 @@ class TestPreprocessLines(unittest.TestCase):
     def test_preprocess_lines_refused_if_inside_pico8_block(self):
         test_lines = [
             'print("start")\n',
-            '--[[#pico8 pico8 start\n',
+            '--[=[#pico8 pico8 start\n',
             'real pico8 code\n',
             '--#if log\n',
             'log only\n',
             '--#endif\n',
-            '--#pico8]] exceptionally ignored\n',
+            '--#pico8]=] exceptionally ignored\n',
             'print("end")\n',
         ]
         expected_processed_lines = [
@@ -358,12 +358,12 @@ class TestPreprocessLines(unittest.TestCase):
     def test_preprocess_lines_refused_ifn_inside_pico8_block(self):
         test_lines = [
             'print("start")\n',
-            '--[[#pico8 pico8 start\n',
+            '--[==[#pico8 pico8 start\n',
             'real pico8 code\n',
             '--#ifn log\n',
             'release only\n',
             '--#endif\n',
-            '--#pico8]] exceptionally ignored\n',
+            '--#pico8]==] exceptionally ignored\n',
             'print("end")\n',
         ]
         expected_processed_lines = [

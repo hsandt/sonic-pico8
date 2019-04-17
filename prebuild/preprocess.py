@@ -74,9 +74,9 @@ class ParsingMode(Enum):
 
 # tag to enter a pico8-only block (it's a comment block so that busted never runs it but preprocess reactivates it)
 # unlike normal comment blocks, we expect to match from the line start
-pico8_start_pattern = re.compile(r"--\[\[#pico8")
+pico8_start_pattern = re.compile(r"--\[=*\[#pico8")
 # closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
-pico8_end_pattern = re.compile(r"--#pico8]]")
+pico8_end_pattern = re.compile(r"--#pico8]=*]")
 
 if_pattern = re.compile(r"--#if (\w+)")    # ! ignore anything after 1st symbol
 ifn_pattern = re.compile(r"--#ifn (\w+)")  # ! ignore anything after 1st symbol

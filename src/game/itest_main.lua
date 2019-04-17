@@ -19,8 +19,10 @@ local codetuner = require("engine/debug/codetuner")
 local current_itest_index = 0
 
 function _init()
+--#if log
   -- clear log file on new itest session
   logging.file_log_stream:clear()
+--#endif
 
   -- require only gamestate modules written on first line of the required $itest (pico8-build way)
   gamestate_proxy:require_gamestates()

@@ -35,8 +35,10 @@ input:toggle_mouse(true)
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
 function _init()
+--#if log
   -- clear log file on new game session
   logging.file_log_stream:clear()
+--#endif
 
   -- require all gamestate modules, according to preprocessing step
   gamestate_proxy:require_gamestates()

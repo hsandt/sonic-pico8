@@ -9,7 +9,8 @@ local tile_test_data = require("game/test_data/tile_test_data")
 
 describe('player_char', function ()
 
-  -- static method
+  -- static methods
+
   describe('_compute_max_pixel_distance', function ()
 
     it('(2, 0) => 0', function ()
@@ -66,6 +67,9 @@ describe('player_char', function ()
 
   end)
 
+
+  -- methods
+
   describe('_init', function ()
 
     setup(function ()
@@ -87,13 +91,6 @@ describe('player_char', function ()
       -- implementation
       assert.spy(player_char._setup).was_called(1)
       assert.spy(player_char._setup).was_called_with(match.ref(pc))
-    end)
-
-    it('should create a player character with control mode: human, motion mode: platformer, motion state: grounded', function ()
-      local pc = player_char()
-      assert.is_not_nil(pc)
-      assert.are_same({control_modes.human, motion_modes.platformer, motion_states.grounded},
-        {pc.control_mode, pc.motion_mode, pc.motion_state})
     end)
 
     it('should create a player character storing values from playercharacter_data', function ()
@@ -123,6 +120,10 @@ describe('player_char', function ()
       assert.is_not_nil(pc)
       assert.are_same(
         {
+          control_modes.human,
+          motion_modes.platformer,
+          motion_states.grounded,
+          horizontal_dirs.right,
           vector.zero(),
           0,
           vector.zero(),
@@ -137,11 +138,17 @@ describe('player_char', function ()
           "idle"
         },
         {
+          pc.control_mode,
+          pc.motion_mode,
+          pc.motion_state,
+          pc.horizontal_dir,
+
           pc.position,
           pc.ground_speed,
           pc.velocity,
           pc.debug_velocity,
           pc.slope_angle,
+
           pc.move_intention,
           pc.jump_intention,
           pc.hold_jump_intention,
@@ -1616,110 +1623,154 @@ describe('player_char', function ()
 
       describe('_update_ground_speed_by_intention', function ()
 
-        it('should accelerate when character has ground speed 0 and move intention x is not 0', function ()
+        it('should accelerate and set direction based on new speed when character is facing left, has ground speed 0 and move intention x > 0', function ()
+          pc.horizontal_dir = horizontal_dirs.left
           pc.move_intention.x = 1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(pc_data.ground_accel_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should accelerate when character has ground speed > 0 and move intention x > 0', function ()
+        it('should accelerate and set direction when character is facing left, has ground speed > 0 and move intention x > 0', function ()
+          pc.horizontal_dir = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward
           pc.ground_speed = 1.5
           pc.move_intention.x = 1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(1.5 + pc_data.ground_accel_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, 1.5 + pc_data.ground_accel_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should accelerate when character has ground speed < 0 and move intention x < 0', function ()
+        it('should accelerate and preserve direction when character is facing left, has ground speed < 0 and move intention x < 0', function ()
+          pc.horizontal_dir = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward
           pc.ground_speed = -1.5
           pc.move_intention.x = -1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(-1.5 - pc_data.ground_accel_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.left, -1.5 - pc_data.ground_accel_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should decelerate keeping same sign when character has high ground speed > 0 and move intention x < 0', function ()
+        it('should decelerate keeping same sign and direction when character is facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
           pc:_update_ground_speed_by_intention()
           -- ground_decel_frame2 = 0.25, subtract it from ground_speed
-          assert.are_equal(1.25, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, 1.25},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        -- bugfix history: missing tests that check the change of sign of ground speed
-        it('_ should decelerate and change sign when character has low ground speed > 0 and move intention x < 0 '..
+        it('should decelerate and stop exactly at speed 0, preserving direction, when character has ground speed = ground accel * 1 frame and move intention x < 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
+          pc.ground_speed = 0.25
+          pc.move_intention.x = -1
+          pc:_update_ground_speed_by_intention()
+          -- ground_decel_frame2 = 0.25, subtract it from ground_speed
+          assert.are_same({horizontal_dirs.right, 0},
+            {pc.horizontal_dir, pc.ground_speed})
+        end)
+
+        -- bugfix history:
+        -- _ missing tests that check the change of sign of ground speed
+        it('should decelerate and change sign and direction when character is facing right, '..
+          'has low ground speed > 0 but < ground accel * 1 frame and move intention x < 0 '..
           'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.24
           pc.move_intention.x = -1
           pc:_update_ground_speed_by_intention()
+          assert.are_equal(horizontal_dirs.left, pc.horizontal_dir)
           assert.is_true(almost_eq_with_message(-0.01, pc.ground_speed, 1e-16))
         end)
 
-        it('should decelerate and clamp to the max ground speed in the opposite sign '..
-          'when character has low ground speed > 0 and move intention x < 0', function ()
+        it('should change direction, decelerate and clamp to the max ground speed in the opposite sign '..
+          'when character is facing right, has low ground speed > 0 and move intention x < 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- start with speed < -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.12
           pc.move_intention.x = -1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(-pc_data.ground_accel_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.left, -pc_data.ground_accel_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
+        -- tests below seem symmetrical, but as a twist we have the character running backward
+        -- so he's facing the opposite direction of the run, so we can test direction update
+
         it('should decelerate keeping same sign when character has high ground speed < 0 and move intention x > 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           pc.ground_speed = -1.5
           pc.move_intention.x = 1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(-1.25, pc.ground_speed)
+          assert.are_same({horizontal_dirs.left, -1.25},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        -- bugfix history: missing tests that check the change of sign of ground speed
-        it('_ should decelerate and change sign when character has low ground speed < 0 and move intention x > 0 '..
+        it('should decelerate and change sign when character has low ground speed < 0 and move intention x > 0 '..
           'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- start with speed <= ground_accel_frame2 - ground_decel_frame2
           pc.ground_speed = -0.24
           pc.move_intention.x = 1
           pc:_update_ground_speed_by_intention()
+          assert.are_equal(horizontal_dirs.right, pc.horizontal_dir)
           assert.is_true(almost_eq_with_message(0.01, pc.ground_speed, 1e-16))
         end)
 
         it('should decelerate and clamp to the max ground speed in the opposite sign '..
           'when character has low ground speed < 0 and move intention x > 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- start with speed > ground_accel_frame2 - ground_decel_frame2
           pc.ground_speed = -0.12
           pc.move_intention.x = 1
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(pc_data.ground_accel_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should apply friction when character has ground speed > 0 and move intention x is 0', function ()
+        it('should apply friction and preserve direction when character has ground speed > 0 and move intention x is 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(1.5 - pc_data.ground_friction_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
         -- bugfix history: missing tests that check the change of sign of ground speed
-        it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
+        it('_ should apply friction and preserve direction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- must be < friction
           pc.ground_speed = 0.01
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(0, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, 0},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should apply friction when character has ground speed < 0 and move intention x is 0', function ()
+        -- tests below seem symmetrical, but the character is actually running backward
+
+        it('should apply friction and preserive direction when character has ground speed < 0 and move intention x is 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           pc.ground_speed = -1.5
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(-1.5 + pc_data.ground_friction_frame2, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, -1.5 + pc_data.ground_friction_frame2},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
         -- bugfix history: missing tests that check the change of sign of ground speed
         it('_ should apply friction but stop at 0 without changing ground speed sign when character has low ground speed < 0 and move intention x is 0', function ()
+          pc.horizontal_dir = horizontal_dirs.right
           -- must be < friction in abs
           pc.ground_speed = -0.01
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(0, pc.ground_speed)
+          assert.are_same({horizontal_dirs.right, 0},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
-        it('should not change ground speed when ground speed is 0 and move intention x is 0', function ()
+        it('should not change ground speed nor direction when ground speed is 0 and move intention x is 0', function ()
+          pc.horizontal_dir = horizontal_dirs.left
           pc:_update_ground_speed_by_intention()
-          assert.are_equal(0, pc.ground_speed)
+          assert.are_same({horizontal_dirs.left, 0},
+            {pc.horizontal_dir, pc.ground_speed})
         end)
 
       end)  -- _update_ground_speed_by_intention
@@ -3718,7 +3769,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('render', function ()
+    describe('#solo render', function ()
 
       local spr_data_render_stub
 
@@ -3734,11 +3785,25 @@ describe('player_char', function ()
         spr_data_render_stub:clear()
       end)
 
-      it('should call render on sonic sprite data: idle with the character\'s position', function ()
+      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x', function ()
+        pc.position = vector(12, 8)
+        pc.horizontal_dir = horizontal_dirs.left
+
         pc:render()
+
         assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), pc.position)
+        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), true)
       end)
+      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x', function ()
+        pc.position = vector(12, 8)
+        pc.horizontal_dir = horizontal_dirs.right
+
+        pc:render()
+
+        assert.spy(spr_data_render_stub).was_called(1)
+        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), false)
+      end)
+
     end)
 
   end)

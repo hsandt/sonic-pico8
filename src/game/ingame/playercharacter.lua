@@ -47,21 +47,22 @@ local player_char = new_class()
 
 -- state vars
 
--- control_mode           control_modes control mode: human (default) or ai
--- motion_mode (cheat)    motion_modes  motion mode: platformer (under gravity) or debug (fly around)
--- motion_state           motion_states motion state (platformer mode only)
--- position               vector        current position (character center "between" pixels)
--- ground_speed           float         current speed along the ground (~px/frame)
--- velocity         vector        current velocity in platformer mode (px/frame)
--- debug_velocity         vector        current velocity in debug mode (m/s)
--- slope_angle            float         slope angle of the current ground (clockwise turn ratio)
--- move_intention         vector        current move intention (normalized)
--- jump_intention         bool          current intention to start jump (consumed on jump)
--- hold_jump_intention    bool          current intention to hold jump (always true when jump_intention is true)
--- should_jump            bool          should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
--- has_jumped_this_frame  bool          has the character started a jump/hop this frame?
--- has_interrupted_jump   bool          has the character already interrupted his jump once?
--- current_sprite         string        current sprite key in the spr_data
+-- control_mode           control_modes   control mode: human (default) or ai
+-- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
+-- motion_state           motion_states   motion state (platformer mode only)
+-- horizontal_dir         horizontal_dirs direction faced by character
+-- position               vector          current position (character center "between" pixels)
+-- ground_speed           float           current speed along the ground (~px/frame)
+-- velocity               vector          current velocity in platformer mode (px/frame)
+-- debug_velocity         vector          current velocity in debug mode (m/s)
+-- slope_angle            float           slope angle of the current ground (clockwise turn ratio)
+-- move_intention         vector          current move intention (normalized)
+-- jump_intention         bool            current intention to start jump (consumed on jump)
+-- hold_jump_intention    bool            current intention to hold jump (always true when jump_intention is true)
+-- should_jump            bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
+-- has_jumped_this_frame  bool            has the character started a jump/hop this frame?
+-- has_interrupted_jump   bool            has the character already interrupted his jump once?
+-- current_sprite         string          current sprite key in the spr_data
 function player_char:_init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -77,6 +78,7 @@ function player_char:_setup()
   self.motion_mode = motion_modes.platformer
 --#endif
   self.motion_state = motion_states.grounded
+  self.horizontal_dir = horizontal_dirs.right
 
   self.position = vector.zero()
   self.ground_speed = 0.
@@ -427,6 +429,7 @@ end
 -- update ground speed based on current move intention
 function player_char:_update_ground_speed_by_intention()
   if self.move_intention.x ~= 0 then
+
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
@@ -440,6 +443,14 @@ function player_char:_update_ground_speed_by_intention()
         self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
       end
     end
+
+    if self.ground_speed ~= 0 then
+      -- always update direction when player tries to move and the character is moving after update
+      -- this is useful even when move intention x has same sign as ground speed,
+      -- as the character may be running backward after failing to run a steep slope up
+      self.horizontal_dir = signed_speed_to_dir(self.ground_speed)
+    end
+
   elseif self.ground_speed ~= 0 then
     -- friction
     self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
@@ -1034,7 +1045,8 @@ end
 
 -- render the player character sprite at its current position
 function player_char:render()
- self.spr_data[self.current_sprite]:render(self.position)
+local flip_x = self.horizontal_dir == horizontal_dirs.left
+ self.spr_data[self.current_sprite]:render(self.position, flip_x)
 end
 
 return player_char

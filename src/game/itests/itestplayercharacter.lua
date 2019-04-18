@@ -598,14 +598,18 @@ expect pc_velocity 0 0
 -- 7      (4, 32 - 16)          (0, 0)           airborne  hit ceiling
 
 
+--[=[#pico8
+
+
 -- human tests
 -- pico8 only, since human must check rendering
---[=[#pico8
+-- they have no final assertion, let the user check if result is correct or not (note it will display success whatever)
+
 -- bugfix history:
 -- = fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
 --   and not actual sprite topleft in the spritesheet
 itest_dsl_parser.register(
-  'pc render idle', [[
+  'pc render idle right', [[
 @stage #
 .
 #
@@ -613,6 +617,17 @@ itest_dsl_parser.register(
 warp 4 8
 ]])
 
--- no final assertion, let the user check if result is correct or not (note it will display success whatever)
+itest_dsl_parser.register(
+  'pc render idle left', [[
+@stage #
+.
+#
+
+warp 4 8
+move left
+wait 1
+stop
+]])
+
 
 --#pico8]=]

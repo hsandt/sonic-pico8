@@ -399,6 +399,8 @@ function max(a, b)
   return b
 end
 
+-- return value in the middle
+-- can also be used for clamping
 function mid(x, y, z)
   return (x<=y)and((y<=z)and y or((x<z)and z or x))or((x<=z)and x or((y<z)and z or y))
 end

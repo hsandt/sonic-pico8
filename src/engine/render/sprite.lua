@@ -1,3 +1,4 @@
+require("engine/application/constants")
 require("engine/core/math")
 require("engine/render/color")
 
@@ -26,8 +27,23 @@ end
 -- flip_y    bool
 function sprite_data:render(position, flip_x, flip_y)
   set_unique_transparency(colors.pink)
-  
-  local draw_pos = position - self.pivot
+
+  local pivot = self.pivot:copy()
+
+  if flip_x then
+    -- flip pivot on x
+    local spr_width = self.span.i * tile_size
+    pivot.x = spr_width - self.pivot.x
+  end
+
+  if flip_y then
+    -- flip pivot on y
+    local spr_height = self.span.j * tile_size
+    pivot.y = spr_height - self.pivot.y
+  end
+
+  local draw_pos = position - pivot
+
   spr(self.id_loc:to_sprite_id(),
     draw_pos.x, draw_pos.y,
     self.span.i, self.span.j,

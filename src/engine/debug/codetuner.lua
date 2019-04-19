@@ -39,10 +39,11 @@ function codetuner.below(w, dist)
  return w.x, w.y+w.h+(dist or 2)
 end
 
--- tuned variable class, represents a variable to tune in the code tuner
+-- todo: use this struct for easier variable handling
+-- tuned variable struct, represents a variable to tune in the code tuner
 -- currently unused, it will replace the free vars in codetuner.tuned_vars
 -- to provide better information (type, range, default value)
-codetuner.tuned_variable = new_class()
+codetuner.tuned_variable = new_struct()
 
 -- name           string   tuned variable identifier
 -- default_value  any      value used for tuned variable if codetuner is inactive
@@ -54,11 +55,6 @@ end
 -- return a string with format: tuned_variable "{name}" (default: {default_value})
 function codetuner.tuned_variable:_tostring(name, default_value)
   return "tuned_variable \""..self.name.."\" (default: "..self.default_value..")"
-end
-
--- return true if both tuned vars have the same name *and* default
-function codetuner.tuned_variable:__eq(other)
-  return self.name == other.name and self.default_value == other.default_value
 end
 
 -- return a function callback for the spinner, that sets the corresponding tuned variable

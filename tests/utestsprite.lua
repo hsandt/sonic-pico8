@@ -39,22 +39,6 @@ describe('sprite', function ()
 
   end)
 
-  describe('__eq', function ()
-
-    local spr_data = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))
-    local spr_data2 = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(2, 4))
-    local spr_data3 = sprite_data(sprite_id_location(1, 5), tile_vector(2, 3), vector(2, 4))
-
-    it('sprite_data((1 3) ...) == sprite_data((1 3) ...)', function ()
-      assert.are_equal(spr_data2, spr_data)
-    end)
-
-    it('sprite_data((1 3) ...) == sprite_data((1 5), ...)', function ()
-      assert.are_not_equal(spr_data3, spr_data)
-    end)
-
-  end)
-
   describe('render', function ()
 
     local spr_data = sprite_data(sprite_id_location(1, 3), tile_vector(2, 3), vector(11, 10))

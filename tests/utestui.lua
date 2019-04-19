@@ -27,20 +27,6 @@ describe('ui', function ()
 
     end)
 
-    describe('__eq', function ()
-
-      it('should return true for label with same text and position', function ()
-        assert.are_equal(label("good", vector(22, 62), colors.orange), label("good", vector(22, 62), colors.orange))
-      end)
-
-      it('should return false for label with different text or position', function ()
-        assert.are_not_equal(label("good", vector(22, 62), colors.orange), label("bad", vector(22, 62), colors.orange))
-        assert.are_not_equal(label("good", vector(23, 62), colors.orange), label("good", vector(22, 62), colors.orange))
-        assert.are_not_equal(label("good", vector(23, 62), colors.orange), label("good", vector(23, 62), colors.peach))
-      end)
-
-    end)
-
   end)
 
   describe('overlay', function ()

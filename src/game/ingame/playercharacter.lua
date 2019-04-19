@@ -757,8 +757,13 @@ function player_char:_update_platformer_motion_airborne()
   -- this means gravity will *not* be applied during the hop/interrupt jump frame
   self:_check_hold_jump()
 
-  -- apply x acceleration via intention (if not 0)
-  self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
+  if self.move_intention.x ~= 0 then
+    -- apply x acceleration via intention (if not 0)
+    self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
+
+    -- in the air, apply intended motion to direction immediately
+    self.horizontal_dir = signed_speed_to_dir(self.move_intention.x)
+  end
 
   -- apply air motion
 

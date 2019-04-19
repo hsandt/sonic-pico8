@@ -2976,6 +2976,26 @@ describe('player_char', function ()
             assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
           end)
 
+          it('should set horizontal direction to intended motion direction: left', function ()
+            pc.horizontal_dir = horizontal_dirs.right
+            pc.velocity.x = 4
+            pc.move_intention.x = -1
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(horizontal_dirs.left, pc.horizontal_dir)
+          end)
+
+          it('should set horizontal direction to intended motion direction: right', function ()
+            pc.horizontal_dir = horizontal_dirs.left
+            pc.velocity.x = 4
+            pc.move_intention.x = 1
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(horizontal_dirs.right, pc.horizontal_dir)
+          end)
+
           -- bugfix history:
           -- .
           it('should update position with air motion result position', function ()
@@ -3769,7 +3789,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('#solo render', function ()
+    describe('render', function ()
 
       local spr_data_render_stub
 
@@ -3818,7 +3838,7 @@ describe('player_char', function ()
         assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["spin"]), vector(12, 8), true)
       end)
 
-      it('#solo (when character is airborne, facing right) should call render on sonic sprite data: spin with the character\'s position, not flipped x', function ()
+      it('(when character is airborne, facing right) should call render on sonic sprite data: spin with the character\'s position, not flipped x', function ()
         pc.motion_state = motion_states.airborne  -- optional, just to be consistent with current_sprite
         pc.current_sprite = "spin"
         pc.position = vector(12, 8)

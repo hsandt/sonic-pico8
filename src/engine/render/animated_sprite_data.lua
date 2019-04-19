@@ -5,6 +5,8 @@ animated_sprite_data = new_struct()
 -- step_frames  int            how long a single sprite (step) is displayed, in frames
 -- looping      bool           true iff animation should loop
 function animated_sprite_data:_init(sprites, step_frames, looping)
+  assert(#sprites > 0)
+  assert(step_frames > 0)
   self.sprites = sprites
   self.step_frames = step_frames
   self.looping = looping or false

@@ -59,12 +59,14 @@ describe('sprite', function ()
 
     it('should render the sprite from the id location, at the draw position minus pivot, with correct span when not flipping', function ()
       spr_data:render(vector(41, 80), false, false)
+      
       assert.spy(spr_stub).was_called(1)
       assert.spy(spr_stub).was_called_with(49, 30, 70, 2, 3, false, false)
     end)
 
     it('should render the sprite from the id location, at the draw position minus pivot itself flipped on x, with correct span when flipping x', function ()
       spr_data:render(vector(41, 80), true, false)
+
       assert.spy(spr_stub).was_called(1)
       -- flip pivot (11, 10) around center x axis which is at 8 * span.x / 2 = 8 -> flipped pivot (5, 10)
       assert.spy(spr_stub).was_called_with(49, 36, 70, 2, 3, true, false)
@@ -72,6 +74,7 @@ describe('sprite', function ()
 
     it('should render the sprite from the id location, at the draw position minus pivot itself flipped on y, with correct span when flipping y', function ()
       spr_data:render(vector(41, 80), false, true)
+
       assert.spy(spr_stub).was_called(1)
       -- flip pivot (11, 10) around center y axis which is at 8 * span.y / 2 = 12 -> flipped pivot (11, 14)
       assert.spy(spr_stub).was_called_with(49, 30, 66, 2, 3, false, true)
@@ -79,12 +82,14 @@ describe('sprite', function ()
 
     it('should render the sprite from the id location, at the draw position minus pivot itself flipped on x and y, with correct span when flipping x and y', function ()
       spr_data:render(vector(41, 80), true, true)
+
       assert.spy(spr_stub).was_called(1)
       assert.spy(spr_stub).was_called_with(49, 36, 66, 2, 3, true, true)
     end)
 
     it('should render the sprite from the id location, at the draw position minus pivot located at center, with correct span when flipping x and y', function ()
       spr_data2:render(vector(8, 4), true, true)
+
       assert.spy(spr_stub).was_called(1)
       -- pivot is already at center, so flip has no effect on it
       -- and since position == pivot, it draws at the origin

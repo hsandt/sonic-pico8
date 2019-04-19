@@ -12,6 +12,16 @@ function animated_sprite_data:_init(sprites, step_frames, looping)
   self.looping = looping or false
 end
 
+-- factory function to create animated sprite data from a table
+--   of sprite data, and a sequence of keys
+function animated_sprite_data.create(sprite_data_table, sprite_keys, step_frames, looping)
+  local sprites = {}
+  for sprite_key in all(sprite_keys) do
+    add(sprites, sprite_data_table[sprite_key])
+  end
+  return animated_sprite_data(sprites, step_frames, looping)
+end
+
 --#if log
 function animated_sprite_data:_tostring()
   return "animated_sprite_data("..joinstr(", ", "["..#self.sprites.." sprites]", self.step_frames, self.looping)..")"

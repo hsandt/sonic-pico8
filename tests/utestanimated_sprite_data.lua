@@ -6,6 +6,7 @@ describe('animated_sprite_data', function ()
 
   local spr_data1 = sprite_data(sprite_id_location(1, 0), tile_vector(1, 2), vector(4, 6))
   local spr_data2 = sprite_data(sprite_id_location(2, 0), tile_vector(1, 2), vector(4, 6))
+  local spr_data_table = {step1 = spr_data1, step2 = spr_data2}
 
   describe('_init', function ()
     it('should init a sprite with all parameters', function ()
@@ -16,6 +17,14 @@ describe('animated_sprite_data', function ()
     it('should init a sprite with looping false by default', function ()
       local anim_spr_data = animated_sprite_data({spr_data1, spr_data2}, 2)
       assert.is_false(anim_spr_data.looping)
+    end)
+  end)
+
+  describe('create', function ()
+    it('should create an animated sprite data from a sprite data table and sprite keys, with step_frames and looping', function ()
+      local anim_spr_data = animated_sprite_data.create(spr_data_table, {"step1", "step2"}, 4, false)
+      assert.are_same({{spr_data1, spr_data2}, 4, false},
+        {anim_spr_data.sprites, anim_spr_data.step_frames, anim_spr_data.looping})
     end)
   end)
 

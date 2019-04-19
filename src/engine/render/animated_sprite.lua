@@ -23,26 +23,27 @@ end
 -- update the sprite animation
 -- this must be called once per update at 60 fps, before the render phase
 function animated_sprite:update()
-  local next_local_frame = self.local_frame + 1
-  -- self.local_frame = self.local_frame + 1
-  -- if self.local_frame >= self.data.step_frames then
-  if next_local_frame >= self.data.step_frames then
-    local next_step = self.current_step + 1
-    -- self.current_step = self.current_step + 1
-    -- if self.current_step > #self.data.sprites then
-    if next_step > #self.data.sprites then
+  -- check if we have reached the end of this step
+  if self.local_frame + 1 < self.data.step_frames then
+    -- keep same sprite and increment local frame counter
+    self.local_frame = self.local_frame + 1
+  else
+    -- end of step reached, check if there is another sprite afterward
+    if self.current_step < #self.data.sprites then
+      -- show next sprite and reset local frame counter
+      self.current_step = self.current_step + 1
+      self.local_frame = 0
+    else
+      -- end of last step reached, should we loop?
       if self.data.looping then
+        -- continue playing from start
         self.current_step = 1
         self.local_frame = 0
       else
+        -- stop playing
         self.playing = false
       end
-    else
-      self.current_step = next_step
-      self.local_frame = 0
     end
-  else
-    self.local_frame = next_local_frame
   end
 end
 

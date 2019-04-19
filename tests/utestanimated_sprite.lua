@@ -11,7 +11,7 @@ describe('animated_sprite', function ()
   local anim_spr_data_once = animated_sprite_data({spr_data1, spr_data2}, 10, false)
 
   describe('_init', function ()
-    it('should init a sprite with data, automatically playing from step 1, frame 0', function ()
+    it('should init an animated sprite with data, automatically playing from step 1, frame 0', function ()
       local anim_spr = animated_sprite(anim_spr_data)
       assert.are_same({anim_spr_data, true, 1, 0},
         {anim_spr.data, anim_spr.playing, anim_spr.current_step, anim_spr.local_frame})

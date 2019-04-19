@@ -1,3 +1,5 @@
+local sprite_data = require("engine/render/sprite_data")
+
 return {
 
   -- platformer motion

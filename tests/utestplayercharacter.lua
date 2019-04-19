@@ -3774,7 +3774,8 @@ describe('player_char', function ()
       local spr_data_render_stub
 
       setup(function ()
-        spr_data_render_stub = stub(pc_data.sonic_sprite_data["idle"], "render")
+        -- create a generic stub at struct level so it works with any particular sprite
+        spr_data_render_stub = stub(sprite_data, "render")
       end)
 
       teardown(function ()
@@ -3794,6 +3795,7 @@ describe('player_char', function ()
         assert.spy(spr_data_render_stub).was_called(1)
         assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), true)
       end)
+
       it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x', function ()
         pc.position = vector(12, 8)
         pc.horizontal_dir = horizontal_dirs.right
@@ -3802,6 +3804,30 @@ describe('player_char', function ()
 
         assert.spy(spr_data_render_stub).was_called(1)
         assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), false)
+      end)
+
+      it('(when character is airborne, facing left) should call render on sonic sprite data: spin with the character\'s position, flipped x', function ()
+        pc.motion_state = motion_states.airborne  -- optional, just to be consistent with current_sprite
+        pc.current_sprite = "spin"
+        pc.position = vector(12, 8)
+        pc.horizontal_dir = horizontal_dirs.left
+
+        pc:render()
+
+        assert.spy(spr_data_render_stub).was_called(1)
+        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["spin"]), vector(12, 8), true)
+      end)
+
+      it('#solo (when character is airborne, facing right) should call render on sonic sprite data: spin with the character\'s position, not flipped x', function ()
+        pc.motion_state = motion_states.airborne  -- optional, just to be consistent with current_sprite
+        pc.current_sprite = "spin"
+        pc.position = vector(12, 8)
+        pc.horizontal_dir = horizontal_dirs.right
+
+        pc:render()
+
+        assert.spy(spr_data_render_stub).was_called(1)
+        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["spin"]), vector(12, 8), false)
       end)
 
     end)

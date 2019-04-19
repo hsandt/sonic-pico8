@@ -47,3 +47,9 @@ end
 -- +    the test helped me identify potential bugs and tricky cases during implementation of the function using the test
 -- !    the test failed, revealing a bug hidden in another function indirectly used by the test but not developed at the same time
 -- *    the test revealed a regression/feature change later during development (very useful)
+
+-- Note about testing with was_called and was_called_with
+-- I reported this issue: assert.spy().was_called_with(...) doesn't provide helpful information on failure #578
+-- on https://github.com/Olivine-Labs/busted/issues/578
+-- When debugging arguments actually called, use this workaround:
+-- print(nice_dump(spy/stub.calls[i].refs/vals)), e.g. print(nice_dump(stub.calls[1].vals))

@@ -1045,8 +1045,8 @@ end
 
 -- render the player character sprite at its current position
 function player_char:render()
-local flip_x = self.horizontal_dir == horizontal_dirs.left
- self.spr_data[self.current_sprite]:render(self.position, flip_x)
+  local flip_x = self.horizontal_dir == horizontal_dirs.left
+  self.spr_data[self.current_sprite]:render(self.position, flip_x)
 end
 
 return player_char

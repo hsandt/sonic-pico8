@@ -629,5 +629,28 @@ wait 1
 stop
 ]])
 
+itest_dsl_parser.register(
+  'pc render airborne right', [[
+@stage #
+.
+#
+
+warp 4 7
+]])
+
+itest_dsl_parser.register(
+  'pc render airborne left', [[
+@stage #
+.
+#
+
+warp 4 7
+move left
+wait 1
+stop
+]])
+-- note: due to flooring, character will go 1px to the left in only 1 frame,
+-- so it will look offset compared to the previous test with right
+
 
 --#pico8]=]

@@ -2,7 +2,7 @@ require("engine/application/constants")
 require("engine/core/math")
 require("engine/render/color")
 
--- sprite class
+-- sprite struct
 sprite_data = new_struct()
 
 -- id_loc   sprite_id_location                      sprite location on the spritesheet
@@ -16,8 +16,7 @@ end
 
 --#if log
 function sprite_data:_tostring()
-  return "sprite_data("..(self.id_loc:_tostring())..", "..(self.span:_tostring())..", "..
-    (self.pivot:_tostring())..")"
+  return "sprite_data("..joinstr(", ", self.id_loc, self.span, self.pivot)..")"
 end
 --#endif
 

@@ -1,5 +1,5 @@
 require("bustedhelper")
-sprite = require("engine/render/sprite")
+require("engine/render/sprite")
 
 describe('sprite', function ()
 

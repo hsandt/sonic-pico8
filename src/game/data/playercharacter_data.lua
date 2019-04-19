@@ -70,7 +70,7 @@ return {
   -- stand right
   sonic_sprite_data = {
     idle = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8)),
-    spin = sprite_data(sprite_id_location(2, 2), tile_vector(2, 2), vector(6, 6)),
+    spin = sprite_data(sprite_id_location(2, 2), tile_vector(2, 2), vector(5, 5)),
   }
 
 }

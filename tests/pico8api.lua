@@ -117,6 +117,8 @@ end
 -- https://www.lexaloffle.com/bbs/?tid=3780
 -- for this reason, we recommend not using tonum in actual pico8 code
 -- and to use helper's string_tonum instead
+-- UPDATE: expect native tonum to be fixed in 0.1.12
+-- https://www.lexaloffle.com/bbs/?pid=63583
 function tonum(val)
   return tonumber(val) -- not a direct assignment to prevent usage of the radix argument
 end
@@ -456,6 +458,11 @@ function rotr(x, y)
 end
 
 function time()
+  -- starting pico8 0.1.12, time() returns time in seconds,
+  --   dividing by the appropriate fps (30 or 60 if using _update/_update60 resp.)
+  -- in this engine, we only use 60 fps updates, so we just hardcoded the result
+  -- note that _draw may still be called at 30fps, so using time() in draw would
+  --   give different results in busted utests
   return pico8.frames/60
 end
 t=time

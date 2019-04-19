@@ -123,6 +123,8 @@ end
 -- alternative to tonum that only works with strings (and numbers
 --   thanks to sub converting them implicitly)
 -- it fixes the 0x0000.0001 issue on negative number strings
+-- UPDATE: expect native tonum to be fixed in 0.1.12
+-- https://www.lexaloffle.com/bbs/?pid=63583
 function string_tonum(val)
   -- inspired by cheepicus's workaround in
   -- https://www.lexaloffle.com/bbs/?tid=3780

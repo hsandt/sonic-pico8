@@ -117,9 +117,23 @@ Those tests need to be built with picotool and run with PICO-8. We recommend the
 * `./build.sh itestplayercharacter itest_light`
 * `./run.sh itestplayercharacter itest_light`
 
-### New project
+## Modding
 
-If you use the scripts of this project to create a new game, in order to use build command *p8tool: edit data* you need to create a pico8 file at data/data.p8 first. To do this, open PICO-8, type *save data*, then copy the boilerplate file to data/data.p8.
+You can modify the spritesheet used in the build pipeline by running the custom Sublime Text build command `p8tool: edit data`, or in the shell: `pico8 -run data/data.p8`.
+
+This will open the cartridge `data.p8` in PICO-8. This cartridge contains only assets, and no code at all. Make your changes, save the cartridge, then build the project to see your result.
+
+For fast iterations, you can also directly modify assets while running the built game, but remember your changes are temporary and will be overwritten by the next build. To preserve your changes, you must save the cartridge, open it and copy the data parts (`__gfx__`, `__gff__`, `__map__`, `__sfx__` and `__music__`) and replace them in `data.p8` manually.
+
+Alternatively, to edit the spritesheet in your favorite editor:
+
+1. Export it from PICO-8 with the PICO-8 command `export spritesheet.png`
+2. Edit it in your favorite editor
+3. Import it back to PICO-8 with the PICO-8 command `import spritesheet.png`
+
+## New project
+
+If you use the scripts of this project to create a new game, in order to use build command `p8tool: edit data` you need to create a pico8 file at data/data.p8 first. To do this, open PICO-8, type `save data`, then copy the boilerplate file to data/data.p8.
 
 ## Runtime third-party libraries
 
@@ -165,6 +179,10 @@ The `npm` folder has its own MIT license because I adapted a script from the `lu
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, SEGA, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico). I only retain copyright for the manual work of adaptation.
+Most assets are derivative works of Sonic the Hedgehog (SEGA), especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter.
+
+SEGA owns the Sonic the Hedgehog trademark and retains all copyrights on the original assets.
+
+I only retain copyright for the manual work of adaptation (i.e. pixel art, but not music).
 
 Assets that are not derivative works are under CC BY 4.0.

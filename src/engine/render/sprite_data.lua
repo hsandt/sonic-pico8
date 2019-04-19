@@ -48,3 +48,5 @@ function sprite_data:render(position, flip_x, flip_y)
     self.span.i, self.span.j,
     flip_x, flip_y)
 end
+
+return sprite_data

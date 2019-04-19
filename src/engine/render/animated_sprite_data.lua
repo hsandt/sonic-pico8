@@ -1,4 +1,4 @@
-require("engine/render/sprite")
+local sprite_data = require("engine/render/sprite_data")
 
 -- struct containing data on animated sprite: sprite references and timing
 animated_sprite_data = new_struct()

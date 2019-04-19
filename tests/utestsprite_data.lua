@@ -1,5 +1,5 @@
 require("bustedhelper")
-require("engine/render/sprite")
+local sprite_data = require("engine/render/sprite_data")
 
 describe('sprite', function ()
 

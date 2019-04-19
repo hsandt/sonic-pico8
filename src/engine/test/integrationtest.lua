@@ -252,7 +252,7 @@ function integration_test_runner:_initialize()
   logging.logger.active_categories["itest"] = true
 --#pico8]]
 
-  logging.logger.active_categories["trace"] = true
+  logging.logger.active_categories["trace"] = false
 --#endif
 
   self.initialized = true

@@ -43,19 +43,19 @@ describe('headless itest', function ()
     it(itest.name..' should succeed', function ()
 
       itest_manager:init_game_and_start_by_index(i)
-      while integration_test_runner.current_state == test_states.running do
-        integration_test_runner:update_game_and_test()
+      while itest_runner.current_state == test_states.running do
+        itest_runner:update_game_and_test()
         if should_render then
-          integration_test_runner:draw_game_and_test()
+          itest_runner:draw_game_and_test()
         end
       end
 
       local itest_fail_message = nil
-      if integration_test_runner.current_message then
-        itest_fail_message = "itest '"..itest.name.."' ended with "..integration_test_runner.current_state.." due to:\n"..integration_test_runner.current_message
+      if itest_runner.current_message then
+        itest_fail_message = "itest '"..itest.name.."' ended with "..itest_runner.current_state.." due to:\n"..itest_runner.current_message
       end
 
-      assert.are_equal(test_states.success, integration_test_runner.current_state, itest_fail_message)
+      assert.are_equal(test_states.success, itest_runner.current_state, itest_fail_message)
 
     end)
 

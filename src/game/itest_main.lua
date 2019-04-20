@@ -33,11 +33,11 @@ end
 
 function _update60()
   handle_input()
-  integration_test_runner:update_game_and_test()
+  itest_runner:update_game_and_test()
 end
 
 function _draw()
-  integration_test_runner:draw_game_and_test()
+  itest_runner:draw_game_and_test()
 end
 
 function init_game_and_start_next_itest()
@@ -76,9 +76,9 @@ function handle_input()
     return
   end
 
-  if integration_test_runner.current_state == test_states.success or
-    integration_test_runner.current_state == test_states.failure or
-    integration_test_runner.current_state == test_states.timeout then
+  if itest_runner.current_state == test_states.success or
+    itest_runner.current_state == test_states.failure or
+    itest_runner.current_state == test_states.timeout then
     -- previous itest has finished, wait for x press to continue to next itest
     if btnp(button_ids.x) then
       init_game_and_start_next_itest()

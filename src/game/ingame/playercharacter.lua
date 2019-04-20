@@ -152,6 +152,7 @@ end
 function player_char:update()
   self:_handle_input()
   self:_update_motion()
+  self.anim_spr:update()
 end
 
 -- update intention based on current input

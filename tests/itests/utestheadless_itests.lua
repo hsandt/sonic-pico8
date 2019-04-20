@@ -3,6 +3,12 @@ require("engine/test/integrationtest")
 local gameapp = require("game/application/gameapp")
 local gamestate_proxy = require("game/application/gamestate_proxy")
 
+-- check options
+local should_render = false
+if contains(arg, "--render") then
+  should_render = true
+end
+
 local function find_all_scripts(dir)
   local files = {}
   local p = io.popen('find "'..dir..'" -type f -name *.lua')
@@ -39,6 +45,9 @@ describe('headless itest', function ()
       itest_manager:init_game_and_start_by_index(i)
       while integration_test_runner.current_state == test_states.running do
         integration_test_runner:update_game_and_test()
+        if should_render then
+          integration_test_runner:draw_game_and_test()
+        end
       end
 
       local itest_fail_message = nil

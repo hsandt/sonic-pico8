@@ -24,7 +24,7 @@ minify=true
 
 while [ "$1" != "" ]; do
     case $1 in
-        -m | --no-minify )           shift
+        -m | --no-minify )      shift
                                 minify=false
                                 ;;
         * )                     echo "unknown option: $1"

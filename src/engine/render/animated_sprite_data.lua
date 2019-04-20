@@ -9,7 +9,10 @@ function animated_sprite_data:_init(sprites, step_frames, looping)
   assert(step_frames > 0)
   self.sprites = sprites
   self.step_frames = step_frames
-  self.looping = looping or false
+  if looping == nil then
+    looping = false
+  end
+  self.looping = looping
 end
 
 -- factory function to create animated sprite data from a table

@@ -3,7 +3,9 @@ require("engine/core/helper")
 -- helper for unitests executed in pico8, that miss busted assertions
 
 function are_same_with_message(t, passed, compare_raw_content)
-  compare_raw_content = compare_raw_content or false
+  if compare_raw_content == nil then
+    compare_raw_content = false
+  end
   local result = are_same(t, passed, compare_raw_content)
   if result then
     -- passed is not same as t, return false with does_not_contain message (will appear when using assert(not are_same(...)))

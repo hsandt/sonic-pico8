@@ -228,10 +228,19 @@ only use this if you are sure that all the keys are comparable
 (e.g. only numeric or only strings)
 --]]
 function dump(dumped_value, as_key, level, use_tostring, sorted_keys)
-  as_key = as_key or false
+  if as_key == nil then
+    as_key = false
+  end
+
   level = level or logger.dump_max_recursion_level
-  use_tostring = use_tostring or false
-  sorted_keys = sorted_keys or false
+
+  if use_tostring == nil then
+    use_tostring = false
+  end
+
+  if sorted_keys == nil then
+    sorted_keys = false
+  end
 
   local repr
 

@@ -598,12 +598,9 @@ expect pc_velocity 0 0
 -- 7      (4, 32 - 16)          (0, 0)           airborne  hit ceiling
 
 
---[=[#pico8
-
-
--- human tests
--- pico8 only, since human must check rendering
--- they have no final assertion, let the user check if result is correct or not (note it will display success whatever)
+-- human tests: let human check rendering (until I find a way to automate this)
+-- they have no final assertion, and will always succeed
+-- although it's about rendering, we don't strip them from busted headless itests so we can debug the trace without having to run pico8
 
 -- bugfix history:
 -- = fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
@@ -656,5 +653,3 @@ warp 4 8
 move right
 wait 60
 ]])
-
---#pico8]=]

@@ -91,7 +91,7 @@ describe('itest_manager', function ()
   describe('init_game_and_start_by_index', function ()
 
     setup(function ()
-      itest_runner_own_method = stub(integration_test_runner, "init_game_and_start")
+      itest_runner_own_method = stub(itest_runner, "init_game_and_start")
     end)
 
     teardown(function ()
@@ -107,7 +107,7 @@ describe('itest_manager', function ()
       itest_manager:register(itest)
       itest_manager:init_game_and_start_by_index(1)
       assert.spy(itest_runner_own_method).was_called(1)
-      assert.spy(itest_runner_own_method).was_called_with(match.ref(integration_test_runner), itest)
+      assert.spy(itest_runner_own_method).was_called_with(match.ref(itest_runner), itest)
     end)
 
     it('should assert if the index is invalid', function ()
@@ -124,7 +124,7 @@ describe('itest_manager', function ()
 end)
 
 
-describe('integration_test_runner', function ()
+describe('itest_runner', function ()
 
   local test
 
@@ -134,7 +134,7 @@ describe('integration_test_runner', function ()
 
   after_each(function ()
     -- full reset
-    integration_test_runner:init()
+    itest_runner:init()
     input.mode = input_modes.native
     logging.logger:init()
   end)
@@ -144,7 +144,7 @@ describe('integration_test_runner', function ()
     setup(function ()
       gameapp_init_stub = stub(gameapp, "init")
       gameapp_reinit_modules_stub = stub(gameapp, "reinit_modules")
-      itest_runner_start_stub = stub(integration_test_runner, "start")
+      itest_runner_start_stub = stub(itest_runner, "start")
     end)
 
     teardown(function ()
@@ -160,19 +160,19 @@ describe('integration_test_runner', function ()
     end)
 
     it('should init the gameapp and the passed test', function ()
-      integration_test_runner:init_game_and_start(test)
+      itest_runner:init_game_and_start(test)
       assert.spy(gameapp_init_stub).was_called(1)
       assert.spy(gameapp_init_stub).was_called_with({'stage'})
       assert.spy(itest_runner_start_stub).was_called(1)
-      assert.spy(itest_runner_start_stub).was_called_with(match.ref(integration_test_runner), test)
+      assert.spy(itest_runner_start_stub).was_called_with(match.ref(itest_runner), test)
     end)
 
     describe('(when another test was running)', function ()
 
       it('should reinit the gameapp modules first', function ()
-        integration_test_runner.current_test = integration_test('previous test', {})
+        itest_runner.current_test = integration_test('previous test', {})
 
-        integration_test_runner:init_game_and_start(test)
+        itest_runner:init_game_and_start(test)
 
         assert.spy(gameapp_reinit_modules_stub).was_called(1)
         assert.spy(gameapp_reinit_modules_stub).was_called_with()
@@ -186,25 +186,25 @@ describe('integration_test_runner', function ()
 
     setup(function ()
       gameapp_update_stub = stub(gameapp, "update")
-      spy.on(integration_test_runner, "update")
+      spy.on(itest_runner, "update")
     end)
 
     teardown(function ()
       gameapp_update_stub:revert()
-      integration_test_runner.update:revert()
+      itest_runner.update:revert()
     end)
 
     after_each(function ()
       gameapp_update_stub:clear()
-      integration_test_runner.update:clear()
+      itest_runner.update:clear()
     end)
 
     describe('(when state is not running)', function ()
 
       it('should do nothing', function ()
-        integration_test_runner:update_game_and_test()
+        itest_runner:update_game_and_test()
         assert.spy(gameapp_update_stub).was_not_called()
-        assert.spy(integration_test_runner.update).was_not_called()
+        assert.spy(itest_runner.update).was_not_called()
       end)
 
     end)
@@ -213,15 +213,15 @@ describe('integration_test_runner', function ()
 
       before_each(function ()
         test:add_action(time_trigger(1.0), function () end, 'some_action')
-        integration_test_runner:start(test)
+        itest_runner:start(test)
       end)
 
       it('should update the gameapp and the passed test', function ()
-        integration_test_runner:update_game_and_test()
+        itest_runner:update_game_and_test()
         assert.spy(gameapp_update_stub).was_called(1)
         assert.spy(gameapp_update_stub).was_called_with()
-        assert.spy(integration_test_runner.update).was_called(1)
-        assert.spy(integration_test_runner.update).was_called_with(match.ref(integration_test_runner))
+        assert.spy(itest_runner.update).was_called(1)
+        assert.spy(itest_runner.update).was_called_with(match.ref(itest_runner))
       end)
 
     end)
@@ -232,7 +232,7 @@ describe('integration_test_runner', function ()
 
       before_each(function ()
         test:add_action(time_trigger(0.017), function () end, 'some_action')
-        integration_test_runner:start(test)
+        itest_runner:start(test)
       end)
 
       setup(function ()
@@ -248,7 +248,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should only log the result', function ()
-        integration_test_runner:update_game_and_test()
+        itest_runner:update_game_and_test()
         assert.spy(log_stub).was_called()  -- we only want 1 call, but we check "at least once" because there are other unrelated logs
         assert.spy(log_stub).was_called_with("itest 'character walks' ended with success", "itest")
       end)
@@ -264,7 +264,7 @@ describe('integration_test_runner', function ()
         test.final_assertion = function ()
           return false, "character walks failed"
         end
-        integration_test_runner:start(test)
+        itest_runner:start(test)
       end)
 
       setup(function ()
@@ -280,7 +280,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should log the result and failure message', function ()
-        integration_test_runner:update_game_and_test()
+        itest_runner:update_game_and_test()
         assert.spy(log_stub).was_called()  -- we only want 2 calls, but we check "at least twice" because there are other unrelated logs
         assert.spy(log_stub).was_called_with("itest 'character walks' ended with failure", "itest")
         assert.spy(log_stub).was_called_with("failed: character walks failed", "itest")
@@ -294,7 +294,7 @@ describe('integration_test_runner', function ()
 
     setup(function ()
       gameapp_draw_stub = stub(gameapp, "draw")
-      itest_runner_draw_stub = stub(integration_test_runner, "draw")
+      itest_runner_draw_stub = stub(itest_runner, "draw")
     end)
 
     teardown(function ()
@@ -308,11 +308,11 @@ describe('integration_test_runner', function ()
     end)
 
     it('should draw the gameapp and the passed test information', function ()
-      integration_test_runner:draw_game_and_test()
+      itest_runner:draw_game_and_test()
       assert.spy(gameapp_draw_stub).was_called(1)
       assert.spy(gameapp_draw_stub).was_called_with()
       assert.spy(itest_runner_draw_stub).was_called(1)
-      assert.spy(itest_runner_draw_stub).was_called_with(match.ref(integration_test_runner))
+      assert.spy(itest_runner_draw_stub).was_called_with(match.ref(itest_runner))
     end)
 
   end)
@@ -320,15 +320,15 @@ describe('integration_test_runner', function ()
   describe('start', function ()
 
     setup(function ()
-      spy.on(integration_test_runner, "_initialize")
-      spy.on(integration_test_runner, "_check_end")
-      spy.on(integration_test_runner, "_check_next_action")
+      spy.on(itest_runner, "_initialize")
+      spy.on(itest_runner, "_check_end")
+      spy.on(itest_runner, "_check_next_action")
     end)
 
     teardown(function ()
-      integration_test_runner._initialize:revert()
-      integration_test_runner._check_end:revert()
-      integration_test_runner._check_next_action:revert()
+      itest_runner._initialize:revert()
+      itest_runner._check_end:revert()
+      itest_runner._check_next_action:revert()
     end)
 
     before_each(function ()
@@ -336,53 +336,53 @@ describe('integration_test_runner', function ()
     end)
 
     after_each(function ()
-      integration_test_runner._initialize:clear()
-      integration_test_runner._check_end:clear()
-      integration_test_runner._check_next_action:clear()
+      itest_runner._initialize:clear()
+      itest_runner._check_end:clear()
+      itest_runner._check_next_action:clear()
     end)
 
     it('should set the current test to the passed test', function ()
-      integration_test_runner:start(test)
-      assert.are_equal(test, integration_test_runner.current_test)
+      itest_runner:start(test)
+      assert.are_equal(test, itest_runner.current_test)
     end)
 
     it('should initialize state vars', function ()
-      integration_test_runner:start(test)
+      itest_runner:start(test)
       assert.are_same({0, 0, 1}, {
-        integration_test_runner.current_frame,
-        integration_test_runner._last_trigger_frame,
-        integration_test_runner._next_action_index
+        itest_runner.current_frame,
+        itest_runner._last_trigger_frame,
+        itest_runner._next_action_index
       })
     end)
 
     it('should call the test setup callback', function ()
-      integration_test_runner:start(test)
+      itest_runner:start(test)
       assert.spy(test.setup).was_called(1)
       assert.spy(test.setup).was_called_with()
     end)
 
     it('should call _initialize the first time', function ()
-      integration_test_runner:start(test)
-      assert.spy(integration_test_runner._initialize).was_called(1)
-      assert.spy(integration_test_runner._initialize).was_called_with(match.ref(integration_test_runner))
+      itest_runner:start(test)
+      assert.spy(itest_runner._initialize).was_called(1)
+      assert.spy(itest_runner._initialize).was_called_with(match.ref(itest_runner))
     end)
 
     it('should call _check_end', function ()
-      integration_test_runner:start(test)
-      assert.spy(integration_test_runner._check_end).was_called(1)
-      assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+      itest_runner:start(test)
+      assert.spy(itest_runner._check_end).was_called(1)
+      assert.spy(itest_runner._check_end).was_called_with(match.ref(itest_runner))
     end)
 
     describe('(when no actions)', function ()
 
       it('should not check the next action', function ()
-        integration_test_runner:start(test)
-        assert.spy(integration_test_runner._check_next_action).was_not_called()
+        itest_runner:start(test)
+        assert.spy(itest_runner._check_next_action).was_not_called()
       end)
 
       it('should immediately end the run (result depends on final assertion)', function ()
-        integration_test_runner:start(test)
-        assert.are_not_equal(test_states.running, integration_test_runner.current_state)
+        itest_runner:start(test)
+        assert.are_not_equal(test_states.running, itest_runner.current_state)
       end)
 
     end)
@@ -394,14 +394,14 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the next action immediately (if at time 0, will also call it)', function ()
-        integration_test_runner:start(test)
-        assert.spy(integration_test_runner._check_next_action).was_called(1)
-        assert.spy(integration_test_runner._check_next_action).was_called_with(match.ref(integration_test_runner))
+        itest_runner:start(test)
+        assert.spy(itest_runner._check_next_action).was_called(1)
+        assert.spy(itest_runner._check_next_action).was_called_with(match.ref(itest_runner))
       end)
 
       it('should enter running state', function ()
-        integration_test_runner:start(test)
-        assert.are_equal(test_states.running, integration_test_runner.current_state)
+        itest_runner:start(test)
+        assert.are_equal(test_states.running, itest_runner.current_state)
       end)
 
     end)
@@ -411,28 +411,28 @@ describe('integration_test_runner', function ()
       before_each(function ()
         test:add_action(time_trigger(1.0), function () end, 'restart_action')
         -- some progress
-        integration_test_runner:start(test)
+        itest_runner:start(test)
         repeat_callback(1.0, function ()
-          integration_test_runner:update()
+          itest_runner:update()
         end)
       end)
 
       it('should automatically stop before restarting, effectively resetting state vars but the current test and state', function ()
-        integration_test_runner:start(test)
+        itest_runner:start(test)
         assert.are_same({0, 0, 1, test_states.running}, {
-          integration_test_runner.current_frame,
-          integration_test_runner._last_trigger_frame,
-          integration_test_runner._next_action_index,
-          integration_test_runner.current_state
+          itest_runner.current_frame,
+          itest_runner._last_trigger_frame,
+          itest_runner._next_action_index,
+          itest_runner.current_state
         })
       end)
 
       it('should not call _initialize the second time', function ()
         -- in this specific case, start was called in before_each so we need to clear manually
         -- just before we call start ourselves to have the correct count
-        integration_test_runner._initialize:clear()
-        integration_test_runner:start(test)
-        assert.spy(integration_test_runner._initialize).was_not_called()
+        itest_runner._initialize:clear()
+        itest_runner:start(test)
+        assert.spy(itest_runner._initialize).was_not_called()
       end)
 
     end)
@@ -443,9 +443,9 @@ describe('integration_test_runner', function ()
 
     it('should assert when no test has been started', function ()
       assert.has_error(function()
-        integration_test_runner:update()
+        itest_runner:update()
       end,
-      "integration_test_runner:update: current_test is not set")
+      "itest_runner:update: current_test is not set")
     end)
 
     describe('(after test started)', function ()
@@ -462,7 +462,7 @@ describe('integration_test_runner', function ()
       end)
 
       before_each(function ()
-        integration_test_runner:start(test)
+        itest_runner:start(test)
       end)
 
       after_each(function ()
@@ -470,41 +470,41 @@ describe('integration_test_runner', function ()
       end)
 
       it('should advance the current time by 1', function ()
-        integration_test_runner:update()
-        assert.are_equal(1, integration_test_runner.current_frame)
+        itest_runner:update()
+        assert.are_equal(1, itest_runner.current_frame)
       end)
 
       it('should call an initial action (t=0.) immediately, preserving last trigger time to 0 and incrementing the _next_action_index', function ()
-        integration_test_runner:update()
+        itest_runner:update()
         assert.spy(action_callback).was_not_called()
-        assert.are_equal(0., integration_test_runner._last_trigger_frame)
-        assert.are_equal(1, integration_test_runner._next_action_index)
+        assert.are_equal(0., itest_runner._last_trigger_frame)
+        assert.are_equal(1, itest_runner._next_action_index)
       end)
 
       it('should not call a later action (t=1.02) before the expected time (1.0s)', function ()
         repeat_callback(1.0, function ()
-          integration_test_runner:update()
+          itest_runner:update()
         end)
         assert.spy(action_callback).was_not_called()
-        assert.are_equal(0., integration_test_runner._last_trigger_frame)
-        assert.are_equal(1, integration_test_runner._next_action_index)
+        assert.are_equal(0., itest_runner._last_trigger_frame)
+        assert.are_equal(1, itest_runner._next_action_index)
       end)
 
       it('should call a later action (t=1.02) after the action time has been reached', function ()
         repeat_callback(1.02, function ()
-          integration_test_runner:update()
+          itest_runner:update()
         end)
         assert.spy(action_callback).was_called(1)
-        assert.are_equal(61, integration_test_runner._last_trigger_frame)
-        assert.are_equal(2, integration_test_runner._next_action_index)
+        assert.are_equal(61, itest_runner._last_trigger_frame)
+        assert.are_equal(2, itest_runner._next_action_index)
       end)
 
       it('should end the test once the last action has been applied', function ()
         repeat_callback(1.02, function ()
-          integration_test_runner:update()
+          itest_runner:update()
         end)
-        assert.are_equal(test_states.success, integration_test_runner.current_state)
-        assert.are_equal(2, integration_test_runner._next_action_index)
+        assert.are_equal(test_states.success, itest_runner.current_state)
+        assert.are_equal(2, itest_runner._next_action_index)
       end)
 
       describe('(with timeout set to 2s and more actions after that, usually unmet conditions)', function ()
@@ -517,12 +517,12 @@ describe('integration_test_runner', function ()
         describe('(when next frame is below 120)', function ()
 
           before_each(function ()
-            integration_test_runner.current_frame = 118
+            itest_runner.current_frame = 118
           end)
 
           it('should call next action (no time out)', function ()
-            integration_test_runner:update()
-            assert.are_equal(test_states.running, integration_test_runner.current_state)
+            itest_runner:update()
+            assert.are_equal(test_states.running, itest_runner.current_state)
             assert.spy(action_callback).was_called(1)
           end)
 
@@ -531,12 +531,12 @@ describe('integration_test_runner', function ()
         describe('(when next frame is 120 or above)', function ()
 
           before_each(function ()
-            integration_test_runner.current_frame = 119
+            itest_runner.current_frame = 119
           end)
 
           it('should time out without calling next action', function ()
-            integration_test_runner:update()
-            assert.are_equal(test_states.timeout, integration_test_runner.current_state)
+            itest_runner:update()
+            assert.are_equal(test_states.timeout, itest_runner.current_state)
             assert.spy(action_callback).was_not_called()
           end)
 
@@ -550,13 +550,13 @@ describe('integration_test_runner', function ()
 
       before_each(function ()
         -- without any action, start should end the test immediately
-        integration_test_runner:start(test)
+        itest_runner:start(test)
       end)
 
       it('should do nothing', function ()
-        assert.are_equal(integration_test_runner.current_state, test_states.success)
-        assert.has_no_errors(function () integration_test_runner:update() end)
-        assert.are_equal(integration_test_runner.current_state, test_states.success)
+        assert.are_equal(itest_runner.current_state, test_states.success)
+        assert.has_no_errors(function () itest_runner:update() end)
+        assert.are_equal(itest_runner.current_state, test_states.success)
       end)
 
     end)
@@ -580,19 +580,19 @@ describe('integration_test_runner', function ()
       end)
 
       it('should draw "no itest running"', function ()
-        integration_test_runner:draw()
+        itest_runner:draw()
         assert.spy(api_print_stub).was_called(1)
       end)
 
       describe('(when current test is set)', function ()
 
         before_each(function ()
-          integration_test_runner.current_test = test
-          integration_test_runner.current_state = test_states.running
+          itest_runner.current_test = test
+          itest_runner.current_state = test_states.running
         end)
 
         it('should draw information on the current test', function ()
-          integration_test_runner:draw()
+          itest_runner:draw()
           assert.spy(api_print_stub).was_called(2)
         end)
 
@@ -605,23 +605,23 @@ describe('integration_test_runner', function ()
   describe('_get_test_state_color', function ()
 
     it('should return white for none', function ()
-      assert.are_equal(colors.white, integration_test_runner:_get_test_state_color(test_states.none))
+      assert.are_equal(colors.white, itest_runner:_get_test_state_color(test_states.none))
     end)
 
     it('should return white for none', function ()
-      assert.are_equal(colors.white, integration_test_runner:_get_test_state_color(test_states.running))
+      assert.are_equal(colors.white, itest_runner:_get_test_state_color(test_states.running))
     end)
 
     it('should return green for success', function ()
-      assert.are_equal(colors.green, integration_test_runner:_get_test_state_color(test_states.success))
+      assert.are_equal(colors.green, itest_runner:_get_test_state_color(test_states.success))
     end)
 
     it('should return red for failure', function ()
-      assert.are_equal(colors.red, integration_test_runner:_get_test_state_color(test_states.failure))
+      assert.are_equal(colors.red, itest_runner:_get_test_state_color(test_states.failure))
     end)
 
     it('should return dark purple for timeout', function ()
-      assert.are_equal(colors.dark_purple, integration_test_runner:_get_test_state_color(test_states.timeout))
+      assert.are_equal(colors.dark_purple, itest_runner:_get_test_state_color(test_states.timeout))
     end)
 
   end)
@@ -629,12 +629,12 @@ describe('integration_test_runner', function ()
   describe('_initialize', function ()
 
     it('should set the input mode to simulated', function ()
-      integration_test_runner:_initialize()
+      itest_runner:_initialize()
       assert.are_equal(input_modes.simulated, input.mode)
     end)
 
     it('should set all logger categories (except itest, but that\'s only visible in pico8 build)', function ()
-      integration_test_runner:_initialize()
+      itest_runner:_initialize()
       -- hack until we implement #82 TEST integration-busted-trace-build-system
       -- since "trace" is not set in data but in code in _initialize,
       --  it promises to change often during development so we "hide" such tuning in code
@@ -645,15 +645,15 @@ describe('integration_test_runner', function ()
           player = false,
           ui = false,
           codetuner = false,
-          itest = false,   -- would be true in pico8 itests
+          itest = true,    -- now true for both pico8 and busted tests
           trace = false    -- forced to false for this test
         },
         logging.logger.active_categories)
     end)
 
     it('should set initialized to true', function ()
-      integration_test_runner:_initialize()
-      assert.is_true(integration_test_runner.initialized)
+      itest_runner:_initialize()
+      assert.is_true(itest_runner.initialized)
     end)
 
   end)
@@ -668,47 +668,47 @@ describe('integration_test_runner', function ()
 
       setup(function ()
         -- don't stub a function if the return value matters, as in start
-        spy.on(integration_test_runner, "_check_end")
+        spy.on(itest_runner, "_check_end")
       end)
 
       teardown(function ()
         action_callback:revert()
         action_callback2:revert()
-        integration_test_runner._check_end:revert()
+        itest_runner._check_end:revert()
       end)
 
       before_each(function ()
-        integration_test_runner:start(test)
+        itest_runner:start(test)
         test:add_action(time_trigger(1.0), action_callback, 'action_callback')
       end)
 
       after_each(function ()
         action_callback:clear()
         action_callback2:clear()
-        integration_test_runner._check_end:clear()
+        itest_runner._check_end:clear()
       end)
 
       describe('(when next action index is 1/1)', function ()
 
         before_each(function ()
-          integration_test_runner._next_action_index = 1
+          itest_runner._next_action_index = 1
         end)
 
         describe('(when next action time trigger is not reached yet)', function ()
 
           before_each(function ()
             -- time trigger uses relative frames, so compare the difference since last trigger to 60
-            integration_test_runner.current_frame = 158
-            integration_test_runner._last_trigger_frame = 100
+            itest_runner.current_frame = 158
+            itest_runner._last_trigger_frame = 100
           end)
 
           it('should not call the action nor advance the time/index', function ()
-            integration_test_runner._check_end:clear()  -- was called on start in before_each
-            integration_test_runner:_check_next_action()
+            itest_runner._check_end:clear()  -- was called on start in before_each
+            itest_runner:_check_next_action()
             assert.spy(action_callback).was_not_called()
-            assert.are_equal(100, integration_test_runner._last_trigger_frame)
-            assert.are_equal(1, integration_test_runner._next_action_index)
-            assert.spy(integration_test_runner._check_end).was_not_called()
+            assert.are_equal(100, itest_runner._last_trigger_frame)
+            assert.are_equal(1, itest_runner._next_action_index)
+            assert.spy(itest_runner._check_end).was_not_called()
           end)
 
         end)
@@ -717,19 +717,19 @@ describe('integration_test_runner', function ()
 
           before_each(function ()
             -- time trigger uses relative frames, so compare the difference since last trigger to 60
-            integration_test_runner.current_frame = 160
-            integration_test_runner._last_trigger_frame = 100
+            itest_runner.current_frame = 160
+            itest_runner._last_trigger_frame = 100
           end)
 
           it('should call the action and advance the timeindex', function ()
-            integration_test_runner._check_end:clear()  -- was called on start in before_each
-            integration_test_runner:_check_next_action()
+            itest_runner._check_end:clear()  -- was called on start in before_each
+            itest_runner:_check_next_action()
             assert.spy(action_callback).was_called(1)
             assert.spy(action_callback).was_called_with()
-            assert.are_equal(160, integration_test_runner._last_trigger_frame)
-            assert.are_equal(2, integration_test_runner._next_action_index)
-            assert.spy(integration_test_runner._check_end).was_called(1)
-            assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+            assert.are_equal(160, itest_runner._last_trigger_frame)
+            assert.are_equal(2, itest_runner._next_action_index)
+            assert.spy(itest_runner._check_end).was_called(1)
+            assert.spy(itest_runner._check_end).was_called_with(match.ref(itest_runner))
           end)
 
         end)
@@ -740,12 +740,12 @@ describe('integration_test_runner', function ()
 
         before_each(function ()
           -- we still have the dummy action from the outer scope
-          integration_test_runner._next_action_index = 2  -- we are now at 2/1
+          itest_runner._next_action_index = 2  -- we are now at 2/1
         end)
 
         it('should assert', function ()
           assert.has_error(function ()
-            integration_test_runner:_check_next_action()
+            itest_runner:_check_next_action()
           end,
           "self._next_action_index (2) is out of bounds for self.current_test.action_sequence (size 1)")
         end)
@@ -757,7 +757,7 @@ describe('integration_test_runner', function ()
         describe('(when next action index is 1/1)', function ()
 
           before_each(function ()
-            integration_test_runner._next_action_index = 1
+            itest_runner._next_action_index = 1
           end)
 
           describe('(when next action time trigger is not reached yet)', function ()
@@ -765,18 +765,18 @@ describe('integration_test_runner', function ()
             before_each(function ()
               -- time trigger uses relative frames, so compare the difference since last trigger to 60
               test:add_action(time_trigger(0.0), action_callback2, 'action_callback2')
-              integration_test_runner.current_frame = 158
-              integration_test_runner._last_trigger_frame = 100
+              itest_runner.current_frame = 158
+              itest_runner._last_trigger_frame = 100
             end)
 
             it('should not call any actions nor advance the time/index', function ()
-              integration_test_runner._check_end:clear()  -- was called on start in before_each
-              integration_test_runner:_check_next_action()
+              itest_runner._check_end:clear()  -- was called on start in before_each
+              itest_runner:_check_next_action()
               assert.spy(action_callback).was_not_called()
               assert.spy(action_callback2).was_not_called()
-              assert.are_equal(100, integration_test_runner._last_trigger_frame)
-              assert.are_equal(1, integration_test_runner._next_action_index)
-              assert.spy(integration_test_runner._check_end).was_not_called()
+              assert.are_equal(100, itest_runner._last_trigger_frame)
+              assert.are_equal(1, itest_runner._next_action_index)
+              assert.spy(itest_runner._check_end).was_not_called()
             end)
 
           end)
@@ -786,21 +786,21 @@ describe('integration_test_runner', function ()
             before_each(function ()
               -- time trigger uses relative frames, so compare the difference since last trigger to 60
               test:add_action(time_trigger(0.0), action_callback2, 'action_callback2')
-              integration_test_runner.current_frame = 160
-              integration_test_runner._last_trigger_frame = 100
+              itest_runner.current_frame = 160
+              itest_runner._last_trigger_frame = 100
             end)
 
             it('should call both actions and advance the timeindex by 2', function ()
-              integration_test_runner._check_end:clear()  -- was called on start in before_each
-              integration_test_runner:_check_next_action()
+              itest_runner._check_end:clear()  -- was called on start in before_each
+              itest_runner:_check_next_action()
               assert.spy(action_callback).was_called(1)
               assert.spy(action_callback).was_called_with()
               assert.spy(action_callback2).was_called(1)  -- thx to action chaining when next action time is 0
               assert.spy(action_callback2).was_called_with()
-              assert.are_equal(160, integration_test_runner._last_trigger_frame)
-              assert.are_equal(3, integration_test_runner._next_action_index)  -- after action 2
-              assert.spy(integration_test_runner._check_end).was_called(2)     -- checked after each action
-              assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+              assert.are_equal(160, itest_runner._last_trigger_frame)
+              assert.are_equal(3, itest_runner._next_action_index)  -- after action 2
+              assert.spy(itest_runner._check_end).was_called(2)     -- checked after each action
+              assert.spy(itest_runner._check_end).was_called_with(match.ref(itest_runner))
             end)
 
           end)
@@ -814,7 +814,7 @@ describe('integration_test_runner', function ()
         describe('(when next action index is 1/1)', function ()
 
           before_each(function ()
-            integration_test_runner._next_action_index = 1
+            itest_runner._next_action_index = 1
           end)
 
           describe('(when next action time trigger is not reached yet)', function ()
@@ -822,18 +822,18 @@ describe('integration_test_runner', function ()
             before_each(function ()
               -- time trigger uses relative frames, so compare the difference since last trigger to 60
               test:add_action(time_trigger(0.2), action_callback2, 'action_callback2')
-              integration_test_runner.current_frame = 158
-              integration_test_runner._last_trigger_frame = 100
+              itest_runner.current_frame = 158
+              itest_runner._last_trigger_frame = 100
             end)
 
             it('should not call any actions nor advance the time/index', function ()
-              integration_test_runner._check_end:clear()  -- was called on start in before_each
-              integration_test_runner:_check_next_action()
+              itest_runner._check_end:clear()  -- was called on start in before_each
+              itest_runner:_check_next_action()
               assert.spy(action_callback).was_not_called()
               assert.spy(action_callback2).was_not_called()
-              assert.are_equal(100, integration_test_runner._last_trigger_frame)
-              assert.are_equal(1, integration_test_runner._next_action_index)
-              assert.spy(integration_test_runner._check_end).was_not_called()
+              assert.are_equal(100, itest_runner._last_trigger_frame)
+              assert.are_equal(1, itest_runner._next_action_index)
+              assert.spy(itest_runner._check_end).was_not_called()
             end)
 
           end)
@@ -843,20 +843,20 @@ describe('integration_test_runner', function ()
             before_each(function ()
               -- time trigger uses relative frames, so compare the difference since last trigger to 60
               test:add_action(time_trigger(0.2), action_callback2, 'action_callback2')
-              integration_test_runner.current_frame = 160
-              integration_test_runner._last_trigger_frame = 100
+              itest_runner.current_frame = 160
+              itest_runner._last_trigger_frame = 100
             end)
 
             it('should call only the first action and advance the timeindex', function ()
-              integration_test_runner._check_end:clear()  -- was called on start in before_each
-              integration_test_runner:_check_next_action()
+              itest_runner._check_end:clear()  -- was called on start in before_each
+              itest_runner:_check_next_action()
               assert.spy(action_callback).was_called(1)
               assert.spy(action_callback).was_called_with()
               assert.spy(action_callback2).was_not_called()  -- at least 1 frame before action2, no action chaining
-              assert.are_equal(160, integration_test_runner._last_trigger_frame)
-              assert.are_equal(2, integration_test_runner._next_action_index)
-              assert.spy(integration_test_runner._check_end).was_called(1)
-              assert.spy(integration_test_runner._check_end).was_called_with(match.ref(integration_test_runner))
+              assert.are_equal(160, itest_runner._last_trigger_frame)
+              assert.are_equal(2, itest_runner._next_action_index)
+              assert.spy(itest_runner._check_end).was_called(1)
+              assert.spy(itest_runner._check_end).was_called_with(match.ref(itest_runner))
             end)
 
           end)
@@ -875,11 +875,11 @@ describe('integration_test_runner', function ()
       end)
 
       it('should recognize next empty action and do nothing', function ()
-        integration_test_runner:start(test)
-        integration_test_runner.current_frame = 2  -- to trigger action to do at end of frame 1
+        itest_runner:start(test)
+        itest_runner.current_frame = 2  -- to trigger action to do at end of frame 1
 
         assert.has_no_errors(function ()
-          integration_test_runner:_check_next_action()
+          itest_runner:_check_next_action()
         end)
       end)
 
@@ -890,7 +890,7 @@ describe('integration_test_runner', function ()
   describe('_check_end', function ()
 
     before_each(function ()
-      integration_test_runner:start(test)
+      itest_runner:start(test)
     end)
 
     describe('(when no actions left)', function ()
@@ -898,10 +898,10 @@ describe('integration_test_runner', function ()
       describe('(when no final assertion)', function ()
 
         it('should make test end immediately with success and return true', function ()
-          local result = integration_test_runner:_check_end(test)
+          local result = itest_runner:_check_end(test)
           assert.is_true(result)
           assert.are_same({test_states.success, nil},
-            {integration_test_runner.current_state, integration_test_runner.current_message})
+            {itest_runner.current_state, itest_runner.current_message})
         end)
 
       end)
@@ -915,10 +915,10 @@ describe('integration_test_runner', function ()
         end)
 
         it('should check the final assertion immediately, end with success and return true', function ()
-          local result = integration_test_runner:_check_end(test)
+          local result = itest_runner:_check_end(test)
           assert.is_true(result)
           assert.are_same({test_states.success, nil},
-            {integration_test_runner.current_state, integration_test_runner.current_message})
+            {itest_runner.current_state, itest_runner.current_message})
         end)
 
       end)
@@ -932,9 +932,9 @@ describe('integration_test_runner', function ()
         end)
 
         it('should check the final assertion immediately, end with failure and return true', function ()
-          local result = integration_test_runner:_check_end(test)
+          local result = itest_runner:_check_end(test)
           assert.is_true(result)
-          assert.are_equal(test_states.failure, integration_test_runner.current_state)
+          assert.are_equal(test_states.failure, itest_runner.current_state)
         end)
 
       end)
@@ -948,7 +948,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should return false', function ()
-        assert.is_false(integration_test_runner:_check_end(test))
+        assert.is_false(itest_runner:_check_end(test))
       end)
 
     end)
@@ -958,19 +958,19 @@ describe('integration_test_runner', function ()
   describe('_end_with_final_assertion', function ()
 
     before_each(function ()
-      -- inline some parts of integration_test_runner:start(test)
+      -- inline some parts of itest_runner:start(test)
       --  to get a boilerplate to test on
       -- avoid calling start() directly as it would call _check_end, messing the teardown spy count
-      integration_test_runner:_initialize()
-      integration_test_runner.current_test = test
-      integration_test_runner.current_state = test_states.running
+      itest_runner:_initialize()
+      itest_runner.current_test = test
+      itest_runner.current_state = test_states.running
     end)
 
     describe('(when no final assertion)', function ()
 
       it('should end with success', function ()
-        integration_test_runner:_end_with_final_assertion(test)
-        assert.are_equal(test_states.success, integration_test_runner.current_state)
+        itest_runner:_end_with_final_assertion(test)
+        assert.are_equal(test_states.success, itest_runner.current_state)
       end)
 
     end)
@@ -984,8 +984,8 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with success', function ()
-        integration_test_runner:_end_with_final_assertion(test)
-        assert.are_equal(test_states.success, integration_test_runner.current_state)
+        itest_runner:_end_with_final_assertion(test)
+        assert.are_equal(test_states.success, itest_runner.current_state)
       end)
 
     end)
@@ -999,9 +999,9 @@ describe('integration_test_runner', function ()
       end)
 
       it('should check the final assertion and end with failure', function ()
-        integration_test_runner:_end_with_final_assertion(test)
+        itest_runner:_end_with_final_assertion(test)
         assert.are_same({test_states.failure, "error message"},
-          {integration_test_runner.current_state, integration_test_runner.current_message})
+          {itest_runner.current_state, itest_runner.current_message})
       end)
 
     end)
@@ -1011,21 +1011,21 @@ describe('integration_test_runner', function ()
   describe('stop', function ()
 
     before_each(function ()
-      integration_test_runner:start(test)
+      itest_runner:start(test)
     end)
 
     it('should reset the current test', function ()
-      integration_test_runner:stop(test)
-      assert.is_nil(integration_test_runner.current_test)
+      itest_runner:stop(test)
+      assert.is_nil(itest_runner.current_test)
     end)
 
     it('should reset state vars', function ()
-      integration_test_runner:stop(test)
+      itest_runner:stop(test)
       assert.are_same({0, 0, 1, test_states.none}, {
-        integration_test_runner.current_frame,
-        integration_test_runner._last_trigger_frame,
-        integration_test_runner._next_action_index,
-        integration_test_runner.current_state
+        itest_runner.current_frame,
+        itest_runner._last_trigger_frame,
+        itest_runner._next_action_index,
+        itest_runner.current_state
       })
     end)
 
@@ -1037,7 +1037,7 @@ describe('integration_test_runner', function ()
       end)
 
       it('should call teardown', function ()
-        integration_test_runner:stop(test)
+        itest_runner:stop(test)
         assert.spy(test.teardown).was_called(1)
         assert.spy(test.teardown).was_called_with()
       end)

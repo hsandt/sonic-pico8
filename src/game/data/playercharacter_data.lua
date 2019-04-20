@@ -1,6 +1,7 @@
 local sprite_data = require("engine/render/sprite_data")
+local animated_sprite_data = require("engine/render/animated_sprite_data")
 
-return {
+local playercharacter_data = {
 
   -- platformer motion
 
@@ -70,9 +71,19 @@ return {
   -- sprite
 
   -- stand right
-  sonic_sprite_data = {
-    idle = sprite_data(sprite_id_location(0, 2), tile_vector(2, 2), vector(12, 8)),
-    spin = sprite_data(sprite_id_location(2, 2), tile_vector(2, 2), vector(5, 5)),
-  }
+  sonic_sprite_data_table = {
+    idle = sprite_data(sprite_id_location(0, 8), tile_vector(2, 2), vector(12, 8)),
+    run1 = sprite_data(sprite_id_location(2, 8), tile_vector(2, 2), vector(12, 8)),
+    spin = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(5, 5)),
+  },
 
 }
+
+-- define animated sprite data in a second step, as it needs sprite data to be defined first
+playercharacter_data.sonic_animated_sprite_data_table = {
+  idle = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle"}, 2, true),
+  run = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle", "run1"}, 2, true),
+  spin = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"spin"}, 2, true),
+}
+
+return playercharacter_data

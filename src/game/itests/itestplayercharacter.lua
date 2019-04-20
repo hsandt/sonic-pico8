@@ -609,16 +609,17 @@ expect pc_velocity 0 0
 -- = fixed character pivot computed from drawn sprite topleft (with some gap above character's head)
 --   and not actual sprite topleft in the spritesheet
 itest_dsl_parser.register(
-  'pc render idle right', [[
+  'pc anim idle right', [[
 @stage #
 .
 #
 
 warp 4 8
+wait 60
 ]])
 
 itest_dsl_parser.register(
-  'pc render idle left', [[
+  'pc anim idle left', [[
 @stage #
 .
 #
@@ -627,30 +628,33 @@ warp 4 8
 move left
 wait 1
 stop
-]])
-
-itest_dsl_parser.register(
-  'pc render airborne right', [[
-@stage #
-.
-#
-
-warp 4 7
-]])
-
-itest_dsl_parser.register(
-  'pc render airborne left', [[
-@stage #
-.
-#
-
-warp 4 7
-move left
-wait 1
-stop
+wait 59
 ]])
 -- note: due to flooring, character will go 1px to the left in only 1 frame,
 -- so it will look offset compared to the previous test with right
 
+
+itest_dsl_parser.register(
+  'pc anim run left and fall', [[
+@stage #
+...
+###
+
+warp 20 8
+move left
+wait 60
+]])
+
+
+itest_dsl_parser.register(
+  'pc anim run right and fall', [[
+@stage #
+...
+###
+
+warp 4 8
+move right
+wait 60
+]])
 
 --#pico8]=]

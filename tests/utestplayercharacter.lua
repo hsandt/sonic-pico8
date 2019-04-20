@@ -115,6 +115,14 @@ describe('player_char', function ()
 
   describe('_setup', function ()
 
+    setup(function ()
+      spy.on(animated_sprite, "play")
+    end)
+
+    teardown(function ()
+      animated_sprite.play:revert()
+    end)
+
     it('should reset the character state vars', function ()
       local pc = player_char()
       assert.is_not_nil(pc)
@@ -135,7 +143,6 @@ describe('player_char', function ()
           false,
           false,
           false,
-          "idle"
         },
         {
           pc.control_mode,
@@ -155,9 +162,10 @@ describe('player_char', function ()
           pc.should_jump,
           pc.has_jumped_this_frame,
           pc.has_interrupted_jump,
-          pc.current_sprite
         }
       )
+      assert.spy(animated_sprite.play).was_called(1)
+      assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
     end)
 
   end)
@@ -1222,41 +1230,58 @@ describe('player_char', function ()
 
       describe('_enter_motion_state', function ()
 
+        setup(function ()
+          spy.on(animated_sprite, "play")
+        end)
+
+        teardown(function ()
+          animated_sprite.play:revert()
+        end)
+
+        -- since pc is _init in before_each and _init calls _setup
+        --   which calls pc.anim_spr:play, we must clear call count just after that
+        before_each(function ()
+          animated_sprite.play:clear()
+        end)
+
         it('should enter passed state: airborne and reset ground-specific state vars', function ()
           -- character starts grounded
           pc:_enter_motion_state(motion_states.airborne)
+
           assert.are_same({
               motion_states.airborne,
               0,
-              false,
-              "spin"
+              false
             },
             {
               pc.motion_state,
               pc.ground_speed,
-              pc.should_jump,
-              pc.current_sprite
+              pc.should_jump
             })
+          assert.spy(animated_sprite.play).was_called(1)
+          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
         end)
 
-        it('. should enter passed state: grounded and reset speed y and has_interrupted_jump', function ()
+        -- bugfix history: .
+        it('should enter passed state: grounded and reset speed y and has_interrupted_jump', function ()
           pc.motion_state = motion_states.airborne
 
           pc:_enter_motion_state(motion_states.grounded)
+
           assert.are_same({
               motion_states.grounded,
               0,
               false,
               false,
-              "idle"
             },
             {
               pc.motion_state,
               pc.velocity.y,
               pc.has_jumped_this_frame,
               pc.has_interrupted_jump,
-              pc.current_sprite
             })
+          assert.spy(animated_sprite.play).was_called(1)
+          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
         end)
 
       end)
@@ -3791,19 +3816,19 @@ describe('player_char', function ()
 
     describe('render', function ()
 
-      local spr_data_render_stub
+      local anim_spr_render_stub
 
       setup(function ()
         -- create a generic stub at struct level so it works with any particular sprite
-        spr_data_render_stub = stub(sprite_data, "render")
+        anim_spr_render_stub = stub(animated_sprite, "render")
       end)
 
       teardown(function ()
-        spr_data_render_stub:revert()
+        anim_spr_render_stub:revert()
       end)
 
       after_each(function ()
-        spr_data_render_stub:clear()
+        anim_spr_render_stub:clear()
       end)
 
       it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x', function ()
@@ -3812,8 +3837,8 @@ describe('player_char', function ()
 
         pc:render()
 
-        assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), true)
+        assert.spy(anim_spr_render_stub).was_called(1)
+        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true)
       end)
 
       it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x', function ()
@@ -3822,32 +3847,8 @@ describe('player_char', function ()
 
         pc:render()
 
-        assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["idle"]), vector(12, 8), false)
-      end)
-
-      it('(when character is airborne, facing left) should call render on sonic sprite data: spin with the character\'s position, flipped x', function ()
-        pc.motion_state = motion_states.airborne  -- optional, just to be consistent with current_sprite
-        pc.current_sprite = "spin"
-        pc.position = vector(12, 8)
-        pc.horizontal_dir = horizontal_dirs.left
-
-        pc:render()
-
-        assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["spin"]), vector(12, 8), true)
-      end)
-
-      it('(when character is airborne, facing right) should call render on sonic sprite data: spin with the character\'s position, not flipped x', function ()
-        pc.motion_state = motion_states.airborne  -- optional, just to be consistent with current_sprite
-        pc.current_sprite = "spin"
-        pc.position = vector(12, 8)
-        pc.horizontal_dir = horizontal_dirs.right
-
-        pc:render()
-
-        assert.spy(spr_data_render_stub).was_called(1)
-        assert.spy(spr_data_render_stub).was_called_with(match.ref(pc_data.sonic_sprite_data["spin"]), vector(12, 8), false)
+        assert.spy(anim_spr_render_stub).was_called(1)
+        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false)
       end)
 
     end)

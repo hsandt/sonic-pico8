@@ -5,6 +5,7 @@ require("engine/core/math")
 local input = require("engine/input/input")
 local collision = require("engine/physics/collision")
 local world = require("engine/physics/world")
+local animated_sprite = require("engine/render/animated_sprite")
 local pc_data = require("game/data/playercharacter_data")
 
 
@@ -44,6 +45,12 @@ local player_char = new_class()
 -- debug_move_accel       float                   move acceleration in debug mode
 -- debug_move_decel       float                   move deceleration in debug mode
 
+
+-- components
+
+-- anim_spr               animated_sprite controls sprite animation, responsible for sprite rendering
+
+
 -- state vars
 
 -- control_mode           control_modes   control mode: human (default) or ai
@@ -68,6 +75,8 @@ function player_char:_init()
   self.debug_move_accel = pc_data.debug_move_accel
   self.debug_move_decel = pc_data.debug_move_decel
 
+  self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
+
   self:_setup()
 end
 
@@ -83,7 +92,7 @@ function player_char:_setup()
   self.ground_speed = 0.
   self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
-  self.slope_angle = 0
+  self.slope_angle = 0.
 
   self.move_intention = vector.zero()
   self.jump_intention = false
@@ -92,7 +101,7 @@ function player_char:_setup()
   self.has_jumped_this_frame = false
   self.has_interrupted_jump = false
 
-  self.current_sprite = "idle"
+  self.anim_spr:play("idle")
 end
 
 -- spawn character at given position, and escape from ground / enter airborne state if needed
@@ -337,14 +346,14 @@ function player_char:_enter_motion_state(next_motion_state)
     --  and since ground speed is now unused, reset it for clarity
     self.ground_speed = 0
     self.should_jump = false
-    self.current_sprite = "spin"
+    self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
     self.velocity.y = 0  -- no velocity retain yet on y
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
-    self.current_sprite = "idle"
+    self.anim_spr:play("idle")
   end
 end
 
@@ -1050,7 +1059,7 @@ end
 -- render the player character sprite at its current position
 function player_char:render()
   local flip_x = self.horizontal_dir == horizontal_dirs.left
-  self.spr_data[self.current_sprite]:render(self.position, flip_x)
+  self.anim_spr:render(self.position, flip_x)
 end
 
 return player_char

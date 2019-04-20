@@ -22,13 +22,26 @@ function animated_sprite:_tostring()
 end
 --#endif
 
--- start animation with given key: string
-function animated_sprite:play(anim_key)
+-- play animation with given key: string
+-- if this animation is not already set, play it from start
+-- if this animation is already set, check from_start:
+-- - if true, play it from start
+-- - if false, do nothing (if playing, it means continuing to play; if not playing (e.g. stopped at the end), do not replay from start)
+--   note that even if the animation is paused, it won't be resumed in this case (because we don't have a flag has_ended to distinguish pause and end)
+-- by default, continue animation already playing
+function animated_sprite:play(anim_key, from_start)
   assert(self.data_table[anim_key] ~= nil, "animated_sprite:play: self.data_table['"..anim_key.."'] doesn't exist")
-  self.playing = true
-  self.current_anim_key = anim_key
-  self.current_step = 1
-  self.local_frame = 0
+
+  if from_start == nil then
+    from_start = false
+  end
+
+  if self.current_anim_key ~= anim_key or from_start then
+    self.playing = true               -- this will do nothing if forcing replay from start during play
+    self.current_anim_key = anim_key  -- this will do nothing if this animation is already set
+    self.current_step = 1
+    self.local_frame = 0
+  end
 end
 
 -- update the sprite animation

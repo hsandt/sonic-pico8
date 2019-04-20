@@ -44,11 +44,51 @@ describe('animated_sprite', function ()
         "animated_sprite:play: self.data_table['unknown'] doesn't exist")
     end)
 
-    it('should start playing the anim from the first step, first frame', function ()
+    it('should start playing a new anim from the first step, first frame', function ()
       local anim_spr = animated_sprite(anim_spr_data_table)
+
       anim_spr:play("loop")
 
       assert.are_same({true, "loop", 1, 0},
+        {anim_spr.playing, anim_spr.current_anim_key, anim_spr.current_step, anim_spr.local_frame})
+    end)
+
+    it('should start playing the current anim from the first step, first frame if passing the current anim and from_start is true', function ()
+      local anim_spr = animated_sprite(anim_spr_data_table)
+      anim_spr.playing = true
+      anim_spr.current_anim_key = "loop"
+      anim_spr.current_step = 2
+      anim_spr.local_frame = 5
+
+      anim_spr:play("loop", true)
+
+      assert.are_same({true, "loop", 1, 0},
+        {anim_spr.playing, anim_spr.current_anim_key, anim_spr.current_step, anim_spr.local_frame})
+    end)
+
+    it('should continue playing the current anim if passing the current anim and from_start is false', function ()
+      local anim_spr = animated_sprite(anim_spr_data_table)
+      anim_spr.playing = true
+      anim_spr.current_anim_key = "no_loop"
+      anim_spr.current_step = 2
+      anim_spr.local_frame = 5
+
+      anim_spr:play("no_loop", false)
+
+      assert.are_same({true, "no_loop", 2, 5},
+        {anim_spr.playing, anim_spr.current_anim_key, anim_spr.current_step, anim_spr.local_frame})
+    end)
+
+    it('should not resume the current anim if paused, passing the current anim and from_start is false', function ()
+      local anim_spr = animated_sprite(anim_spr_data_table)
+      anim_spr.playing = false
+      anim_spr.current_anim_key = "no_loop"
+      anim_spr.current_step = 2
+      anim_spr.local_frame = 5
+
+      anim_spr:play("no_loop", false)
+
+      assert.are_same({false, "no_loop", 2, 5},
         {anim_spr.playing, anim_spr.current_anim_key, anim_spr.current_step, anim_spr.local_frame})
     end)
 

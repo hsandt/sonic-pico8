@@ -1451,6 +1451,8 @@ describe('player_char', function ()
         local compute_ground_motion_result_mock
 
         setup(function ()
+          spy.on(animated_sprite, "play")
+
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
             self.ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
           end)
@@ -1459,9 +1461,17 @@ describe('player_char', function ()
         end)
 
         teardown(function ()
+          animated_sprite.play:revert()
+
           update_ground_speed_mock:revert()
           enter_motion_state_stub:revert()
           check_jump_intention_stub:revert()
+        end)
+
+        -- since pc is _init in before_each and _init calls _setup
+        --   which calls pc.anim_spr:play, we must clear call count just after that
+        before_each(function ()
+          animated_sprite.play:clear()
         end)
 
         after_each(function ()
@@ -1478,12 +1488,13 @@ describe('player_char', function ()
           assert.spy(update_ground_speed_mock).was_called_with(match.ref(pc))
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), is_blocked: false, is_falling: false)', function ()
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.25, is_blocked: false, is_falling: false)', function ()
 
           setup(function ()
             compute_ground_motion_result_mock = stub(player_char, "_compute_ground_motion_result", function (self)
               return collision.ground_motion_result(
                 vector(3, 4),
+                0.25,
                 false,
                 false
               )
@@ -1498,20 +1509,28 @@ describe('player_char', function ()
             compute_ground_motion_result_mock:clear()
           end)
 
-          it('should set the position to vector(3, 4)', function ()
-            pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
-          end)
-
           it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
             pc:_update_platformer_motion_grounded()
+            -- interface: relying on _update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5, 0)}, {pc.ground_speed, pc.velocity})
           end)
 
           it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
             pc.slope_angle = -1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
             pc:_update_platformer_motion_grounded()
+            -- interface: relying on _update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
+          end)
+
+          it('should set the position to vector(3, 4)', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(vector(3, 4), pc.position)
+          end)
+
+          it('should set the slope angle to 0.25', function ()
+            pc.slope_angle = -0.25
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(0.25, pc.slope_angle)
           end)
 
           it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
@@ -1523,9 +1542,17 @@ describe('player_char', function ()
             assert.spy(enter_motion_state_stub).was_not_called()
           end)
 
+          it('should play the run animation (ground speed ~= 0)', function ()
+            pc:_update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(animated_sprite.play).was_called(1)
+            assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run")
+          end)
+
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4))', function ()
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.5, is_blocked: true, is_falling: false)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -1533,7 +1560,123 @@ describe('player_char', function ()
             compute_ground_motion_result_mock = stub(player_char, "_compute_ground_motion_result", function (self)
               return collision.ground_motion_result(
                 vector(3, 4),
-                -0.25,
+                0.5,
+                true,
+                false
+              )
+            end)
+          end)
+
+          teardown(function ()
+            compute_ground_motion_result_mock:revert()
+          end)
+
+          after_each(function ()
+            compute_ground_motion_result_mock:clear()
+          end)
+
+          it('should reset ground speed and velocity frame to zero (blocked)', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
+          end)
+
+          it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
+            pc:_update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(check_jump_intention_stub).was_called(1)
+            assert.spy(check_jump_intention_stub).was_called_with(match.ref(pc))
+            assert.spy(enter_motion_state_stub).was_not_called()
+          end)
+
+          it('should set the position to vector(3, 4)', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(vector(3, 4), pc.position)
+          end)
+
+          it('should set the slope angle to 0.5', function ()
+            pc.slope_angle = -0.25
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(0.5, pc.slope_angle)
+          end)
+
+          it('should play the idle animation (ground speed ~= 0)', function ()
+            pc:_update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(animated_sprite.play).was_called(1)
+            assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+          end)
+
+        end)
+
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: false, is_falling: true)', function ()
+
+          local compute_ground_motion_result_mock
+
+          setup(function ()
+            compute_ground_motion_result_mock = stub(player_char, "_compute_ground_motion_result", function (self)
+              return collision.ground_motion_result(
+                vector(3, 4),
+                nil,
+                false,
+                true
+              )
+            end)
+          end)
+
+          teardown(function ()
+            compute_ground_motion_result_mock:revert()
+          end)
+
+          after_each(function ()
+            compute_ground_motion_result_mock:clear()
+          end)
+
+          it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
+            pc:_update_platformer_motion_grounded()
+            -- interface: relying on _update_ground_speed implementation
+            assert.are_same({-2.5, vector(-2.5, 0)}, {pc.ground_speed, pc.velocity})
+          end)
+
+          it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
+            pc.slope_angle = -1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
+            pc:_update_platformer_motion_grounded()
+            -- interface: relying on _update_ground_speed implementation
+            assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
+          end)
+
+          it('should call _enter_motion_state with airborne state, not call _check_jump_intention nor anim_spr:play (falling)', function ()
+            pc:_update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.airborne)
+            assert.spy(check_jump_intention_stub).was_not_called()
+            assert.spy(animated_sprite.play).was_not_called()
+          end)
+
+          it('should set the position to vector(3, 4)', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(vector(3, 4), pc.position)
+          end)
+
+          it('should set the slope angle to nil', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.is_nil(pc.slope_angle)
+          end)
+
+        end)
+
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: true, is_falling: true)', function ()
+
+          local compute_ground_motion_result_mock
+
+          setup(function ()
+            compute_ground_motion_result_mock = stub(player_char, "_compute_ground_motion_result", function (self)
+              return collision.ground_motion_result(
+                vector(3, 4),
+                nil,
                 true,
                 true
               )
@@ -1548,28 +1691,29 @@ describe('player_char', function ()
             compute_ground_motion_result_mock:clear()
           end)
 
-          it('should set the position to vector(3, 4)', function ()
-            pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
-          end)
-
-          it('should set the slope angle to -0.25', function ()
-            pc:_update_platformer_motion_grounded()
-            assert.are_equal(-0.25, pc.slope_angle)
-          end)
-
           it('should reset ground speed and velocity frame to zero (blocked)', function ()
             pc:_update_platformer_motion_grounded()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with airborne state, not call _check_jump_intention (falling)', function ()
+          it('should call _enter_motion_state with airborne state, not call _check_jump_intention nor anim_spr:play (falling)', function ()
             pc:_update_platformer_motion_grounded()
 
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.airborne)
             assert.spy(check_jump_intention_stub).was_not_called()
+            assert.spy(animated_sprite.play).was_not_called()
+          end)
+
+          it('should set the position to vector(3, 4)', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.are_equal(vector(3, 4), pc.position)
+          end)
+
+          it('should set the slope angle to nil', function ()
+            pc:_update_platformer_motion_grounded()
+            assert.is_nil(pc.slope_angle)
           end)
 
         end)

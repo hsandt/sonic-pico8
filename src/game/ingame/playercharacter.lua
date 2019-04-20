@@ -92,6 +92,7 @@ function player_char:_setup()
   self.ground_speed = 0.
   self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
+  -- slope_angle starts at 0 instead of nil to match grounded state above (first spawn will set this anyway)
   self.slope_angle = 0.
 
   self.move_intention = vector.zero()
@@ -345,6 +346,7 @@ function player_char:_enter_motion_state(next_motion_state)
     -- we have just left the ground, enter airborne state
     --  and since ground speed is now unused, reset it for clarity
     self.ground_speed = 0
+    self.slope_angle = nil
     self.should_jump = false
     self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
@@ -399,8 +401,17 @@ function player_char:_update_platformer_motion_grounded()
   if ground_motion_result.is_falling then
     self:_enter_motion_state(motion_states.airborne)
   else
+    -- we are still grounded, so:
+
     -- only allow jump preparation for next frame if not already falling
     self:_check_jump_intention()
+
+    -- update ground animation based on speed
+    if self.ground_speed == 0 then
+      self.anim_spr:play("idle")
+    else
+      self.anim_spr:play("run")
+    end
   end
 
   log("self.position: "..self.position, "trace")

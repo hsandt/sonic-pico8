@@ -152,17 +152,86 @@ function err(content, category)
   logger:_generic_log(logging.level.error, category, content)
 end
 
--- return a precise variable content, including table entries
--- for sequence containing nils, nil is not shown but nil's index will be skipped
--- if as_key is true and t is not a string, surround it with []
--- by default table recursion will stop at a call depth of logger.dump_max_recursion_level
--- however, you can pass a custom number of remaining levels to see more
--- if use_tostring is true, use any implemented _tostring method for tables
--- you can also use dump on strings just to surround them with quotes
-function dump(dumped_value, as_key, level, use_tostring)
+--[[
+Ordered table iterator, allow to iterate on the natural order of the keys of a
+table.
+
+This is only here to allow dump and nice_dump functions to be deterministic
+by dumping elements with sorted keys (with an optional argument, as this is only possible
+if the keys are comparable), hence easier to debug and test.
+
+Source: http://lua-users.org/wiki/SortedIteration
+Modification:
+- updated API for modern Lua (# instead of getn)
+]]
+
+local function __genOrderedIndex( t )
+    local orderedIndex = {}
+    for key in pairs(t) do
+        table.insert(orderedIndex, key)
+    end
+    table.sort(orderedIndex)
+    return orderedIndex
+end
+
+local function orderedNext(t, state)
+    -- Equivalent of the next function, but returns the keys in the alphabetic
+    -- order. We use a temporary ordered key table that is stored in the
+    -- table being iterated.
+
+    local key = nil
+    if state == nil then
+        -- the first time, generate the index
+        t.__orderedIndex = __genOrderedIndex(t)
+        key = t.__orderedIndex[1]
+    else
+        -- fetch the next value
+        for i = 1, #t.__orderedIndex do
+            if t.__orderedIndex[i] == state then
+                key = t.__orderedIndex[i+1]
+            end
+        end
+    end
+
+    if key then
+        return key, t[key]
+    end
+
+    -- no more value to return, cleanup
+    t.__orderedIndex = nil
+    return
+end
+
+local function orderedPairs(t)
+    -- Equivalent of the pairs() function on tables. Allows to iterate
+    -- in order
+    return orderedNext, t, nil
+end
+
+
+--[[
+return a precise variable content, including table entries.
+
+for sequence containing nils, nil is not shown but nil's index will be skipped
+
+if as_key is true and t is not a string, surround it with []
+
+by default, table recursion will stop at a call depth of logger.dump_max_recursion_level
+however, you can pass a custom number of remaining levels to see more
+
+if use_tostring is true, use any implemented _tostring method for tables
+you can also use dump on strings just to surround them with quotes
+
+
+if sorted_keys is true, dump will try to sort the entries by key
+only use this if you are sure that all the keys are comparable
+(e.g. only numeric or only strings)
+--]]
+function dump(dumped_value, as_key, level, use_tostring, sorted_keys)
   as_key = as_key or false
   level = level or logger.dump_max_recursion_level
   use_tostring = use_tostring or false
+  sorted_keys = sorted_keys or false
 
   local repr
 
@@ -172,9 +241,10 @@ function dump(dumped_value, as_key, level, use_tostring)
     else
       if level > 0 then
         local entries = {}
-        for key, value in pairs(dumped_value) do
-          local key_repr = dump(key, true, level - 1, use_tostring)
-          local value_repr = dump(value, false, level - 1, use_tostring)
+        local pairs_callback = sorted_keys and orderedPairs or pairs
+        for key, value in pairs_callback(dumped_value) do
+          local key_repr = dump(key, true, level - 1, use_tostring, sorted_keys)
+          local value_repr = dump(value, false, level - 1, use_tostring, sorted_keys)
           add(entries, key_repr.." = "..value_repr)
         end
         repr = "{"..joinstr_table(", ", entries).."}"
@@ -199,8 +269,8 @@ function dump(dumped_value, as_key, level, use_tostring)
 end
 
 -- dump using _tostring method when possible
-function nice_dump(value)
-  return dump(value, false, nil, true)
+function nice_dump(value, sorted_keys)
+  return dump(value, false, nil, true, sorted_keys)
 end
 
 return logging

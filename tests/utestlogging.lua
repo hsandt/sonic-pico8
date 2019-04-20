@@ -828,7 +828,8 @@ describe('logging', function ()
 
     describe('dump', function ()
 
-      setup(function ()
+      before_each(function ()
+        -- no need to teardown, we are inside the 'logger' block that reinit logger after_each
         logger.dump_max_recursion_level = 2
       end)
 
@@ -853,7 +854,7 @@ describe('logging', function ()
         assert.are_equal("56.2", dump(56.2))
       end)
 
-      -- as key
+      -- as_key: used to mimic key representation in lua tables
 
       it('"string" => "string"', function ()
         assert.are_equal("string", dump("string", true))
@@ -865,11 +866,13 @@ describe('logging', function ()
         assert.are_equal("[56.2]", dump(56.2, true))
       end)
 
-      -- tables
+      -- sequence of mixed values
 
       it('{1 nil "string"} => "{[1] = 1 [3] = "string"}"', function ()
         assert.are_equal("{[1] = 1, [3] = \"string\"}", dump({1, nil, "string"}))
       end)
+
+      -- mix of non-comparable keys (cannot use sorted_keys here)
 
       it('{[7] = 5 string = "other"} => "{[7] = 5, string = "other"}" or "{string = "other", [7] = 5}"', function ()
         -- matchers are difficult to use outside of called_with, so we can't use match.any_of directly
@@ -877,6 +880,8 @@ describe('logging', function ()
         assert.is_true(contains_with_message({"{[7] = 5, string = \"other\"}", "{string = \"other\", [7] = 5}"},
           dump({[7] = 5, string = "other"})))
       end)
+
+      -- mix of sequence of and indexed values
 
       it('{5 "text" string = "other"} => "{[1] = 5 [2] = "text" string = "other"}', function ()
         assert.are_equal("{[1] = 5, [2] = \"text\", string = \"other\"}", dump({5, "text", string = "other"}))
@@ -886,6 +891,8 @@ describe('logging', function ()
         assert.are_equal("{[1] = 2, mytable = {[1] = 1, [2] = 3, key = \"value\"}}", dump({2, mytable = {1, 3, key = "value"}}))
       end)
 
+      -- tables as values
+
       it('{...} => "{{[1] = 1 [2] = 3 key = "value"} = 11}', function ()
         assert.are_equal("{[{[1] = 1, [2] = 3, key = \"value\"}] = 11}", dump({[{1, 3, key = "value"}] = 11}))
       end)
@@ -894,14 +901,18 @@ describe('logging', function ()
         assert.are_equal("{[{[1] = 1, [2] = 3, key = \"value\"}] = {[1] = true, [2] = false}}", dump({[{1, 3, key = "value"}] = {true, false}}))
       end)
 
-      -- tables with tostring
+      -- sequences with table elements implementing _tostring
 
       it('{1, "text", vector(2, 4)} => "{[1] = 1, [2] = "text", [3] = vector(2, 4)}"', function ()
         assert.are_equal("{[1] = 1, [2] = \"text\", [3] = vector(2, 4)}", dump({1, "text", vector(2, 4)}, false, 1, true))
       end)
 
-      it('{1, "text", vector(2, 4)} => "{[1] = 1, [2] = "text", [3] = vector(2, 4)}"', function ()
-        assert.are_equal("{[1] = 1, [2] = \"text\", [3] = vector(2, 4)}", nice_dump({1, "text", vector(2, 4)}))
+      -- non-sequence tables where ambiguous representation can be made deterministic with sorted_keys
+      --   as long as the keys are comparable
+      -- note that we are not testing __genOrderedIndex, orderedNext and orderedPairs, so we test them via dump with sorted_keys: true instead
+
+      it('{f = 4, ["0"] = "a", b = -100} => "{[0] = "a", b = -100, f = 4}"', function ()
+        assert.are_equal("{0 = \"a\", b = -100, f = 4}", dump({f = 4, ["0"] = "a", b = -100}, false, nil, true, --[[sorted_keys:]] true))
       end)
 
       -- infinite recursion prevention
@@ -930,6 +941,24 @@ describe('logging', function ()
 
     end)
 
-  end)
+    describe('nice_dump', function ()
+
+
+      before_each(function ()
+        -- no need to teardown, we are inside the 'logger' block that reinit logger after_each
+        logger.dump_max_recursion_level = 2
+      end)
+
+      it('{1, "text", vector(2, 4)} => "{[1] = 1, [2] = "text", [3] = vector(2, 4)}"', function ()
+        assert.are_equal("{[1] = 1, [2] = \"text\", [3] = vector(2, 4)}", nice_dump({1, "text", vector(2, 4)}))
+      end)
+
+      it('{[10.5] = "b", [-22] = "a", [34.7] = "c"} => "{[-22] = "a", [10.5] = "b", [34.7] = "c"}"', function ()
+        assert.are_equal("{[-22] = \"a\", [10.5] = \"b\", [34.7] = \"c\"}", nice_dump({[10.5] = "b", [-22] = "a", [34.7] = "c"}, true))
+      end)
+
+    end)
+
+  end)  -- logger
 
 end)

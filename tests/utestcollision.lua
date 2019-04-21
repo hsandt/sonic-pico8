@@ -58,7 +58,7 @@ local function describe_all_test_variants(original_bb1, original_bb2,
                 escape_vector:mul_inplace(-1)
               end
               if prioritized_escape_direction then
-                prioritized_escape_direction = oppose_direction(prioritized_escape_direction)
+                prioritized_escape_direction = oppose_dir(prioritized_escape_direction)
               end
             end
 
@@ -72,7 +72,7 @@ local function describe_all_test_variants(original_bb1, original_bb2,
                 escape_vector:mirror_x()
               end
               if prioritized_escape_direction then
-                prioritized_escape_direction = mirror_direction_x(prioritized_escape_direction)
+                prioritized_escape_direction = mirror_dir_x(prioritized_escape_direction)
               end
             end
 
@@ -84,7 +84,7 @@ local function describe_all_test_variants(original_bb1, original_bb2,
                 escape_vector:mirror_y()
               end
               if prioritized_escape_direction then
-                prioritized_escape_direction = mirror_direction_y(prioritized_escape_direction)
+                prioritized_escape_direction = mirror_dir_y(prioritized_escape_direction)
               end
             end
 
@@ -97,7 +97,7 @@ local function describe_all_test_variants(original_bb1, original_bb2,
                 escape_vector:rotate_90_cw_inplace()
               end
               if prioritized_escape_direction then
-                prioritized_escape_direction = rotate_direction_90_cw(prioritized_escape_direction)
+                prioritized_escape_direction = rotate_dir_90_cw(prioritized_escape_direction)
               end
             end
 

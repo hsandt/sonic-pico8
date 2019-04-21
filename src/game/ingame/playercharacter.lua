@@ -895,7 +895,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
     direction = directions.down
   end
   if velocity[coord] < 0 then
-    direction = oppose_direction(direction)
+    direction = oppose_dir(direction)
   end
 
   local pixel_distance_before_step = 0

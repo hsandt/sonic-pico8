@@ -5,7 +5,7 @@ local gamestate_proxy = require("game/application/gamestate_proxy")
 local logging = require("engine/debug/logging")
 logging.logger:register_stream(logging.console_log_stream)
 logging.logger:register_stream(logging.file_log_stream)
-logging.logger.active_categories["trace"] = true
+logging.logger.active_categories["trace"] = false
 
 --#if visual_logger
 local vlogger = require("engine/debug/visual_logger")

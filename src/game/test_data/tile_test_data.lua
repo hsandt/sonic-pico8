@@ -1,7 +1,7 @@
 --#ifn pico8
 
 require("pico8api")
-local collision = require("engine/physics/collision")
+local tile = require("game/platformer/tile")
 local collision_data = require("game/data/collision_data")
 local stub = require("luassert.stub")
 
@@ -23,7 +23,7 @@ function tile_test_data.setup()
   fset(73, sprite_flags.collision, true)  -- high-tile (3/4 filled)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
-  height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_data)
+  height_array_init_mock = stub(tile.height_array, "_init", function (self, tile_data)
     local tile_mask_id_location = tile_data.id_loc
     if tile_mask_id_location == collision_data.tiles_data[64].id_loc then
       self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile

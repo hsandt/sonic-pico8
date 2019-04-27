@@ -27,15 +27,3 @@ function teardown_map_data()
   tile_test_data.teardown()
 --#endif
 end
-
--- clear map, using appropriate interface (pico8 or busted pico8api)
-function clear_map()
---#ifn pico8
-  pico8:clear_map()
---#endif
-
---[[#pico8
-  -- clear map data
-  memset(0x2000, 0, 0x1000)
---#pico8]]
-end

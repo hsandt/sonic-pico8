@@ -3,10 +3,10 @@ require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
 local input = require("engine/input/input")
-local collision = require("engine/physics/collision")
-local world = require("engine/physics/world")
+local world = require("game/platformer/world")
 local animated_sprite = require("engine/render/animated_sprite")
 local pc_data = require("game/data/playercharacter_data")
+local motion = require("game/platformer/motion")
 
 
 -- enum for character control
@@ -254,7 +254,7 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
 
   end
 
-  return collision.ground_query_info(min_signed_distance, highest_ground_slope_angle)
+  return motion.ground_query_info(min_signed_distance, highest_ground_slope_angle)
 
 end
 
@@ -302,13 +302,13 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
   -- check the presence of a collider pixel from top to bottom, from max step up - 1 to min step up (we don't go until + 1
   --  because if we found nothing until min step down, signed distance will be max step down + 1 anyway)
-  local query_info = collision.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
+  local query_info = motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
   for offset_y = -pc_data.max_ground_escape_height - 1, pc_data.max_ground_snap_height do
     local does_collide, slope_angle = world.get_pixel_collision_info(sensor_position.x, initial_y + offset_y)
     if does_collide then
       -- signed_distance is just the current offset, minus the initial subpixel fraction that we ignored for the pixel test iteration
       local fraction_y = sensor_position.y - initial_y
-      query_info = collision.ground_query_info(offset_y - fraction_y, slope_angle)  -- slope_angle may still be nil if we are inside ground
+      query_info = motion.ground_query_info(offset_y - fraction_y, slope_angle)  -- slope_angle may still be nil if we are inside ground
       break
     else
       -- optimization: use extra info from is_collision_pixel to skip pixels that we know are empty already thx to the column system
@@ -491,7 +491,7 @@ end
 function player_char:_compute_ground_motion_result()
   -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
   if self.ground_speed == 0 then
-    return collision.ground_motion_result(
+    return motion.ground_motion_result(
       self.position,
       self.slope_angle,
       false,
@@ -504,7 +504,7 @@ function player_char:_compute_ground_motion_result()
   -- initialise result with floored x (we will reinject subpixels if character didn't touch a wall)
   -- note that left and right are not completely symmetrical since floor is asymmetrical
   local floored_x = flr(self.position.x)
-  local motion_result = collision.ground_motion_result(
+  local motion_result = motion.ground_motion_result(
     vector(floored_x, self.position.y),
     self.slope_angle,
     false,
@@ -583,7 +583,7 @@ function player_char._compute_max_pixel_distance(initial_position_coord, velocit
   return abs(flr(initial_position_coord + velocity_coord) - flr(initial_position_coord))
 end
 
--- update ref_motion_result: collision.ground_motion_result for a character trying to move
+-- update ref_motion_result: motion.ground_motion_result for a character trying to move
 --  by 1 pixel step in horizontal_dir, taking obstacles into account
 -- if character is blocked, it doesn't update the position and flag is_blocked
 -- if character is falling, it updates the position and flag is_falling
@@ -833,7 +833,7 @@ end
 function player_char:_compute_air_motion_result()
   -- if character is not moving, he is not blocked nor landing (we assume the environment is static)
   if self.velocity == vector.zero() then
-    return collision.air_motion_result(
+    return motion.air_motion_result(
       self.position,
       false,
       false,
@@ -843,7 +843,7 @@ function player_char:_compute_air_motion_result()
   end
 
   -- initialize air motion result (do not floor coordinates, _advance_in_air_along will do it)
-  local motion_result = collision.air_motion_result(
+  local motion_result = motion.air_motion_result(
     vector(self.position.x, self.position.y),
     false,
     false,
@@ -949,7 +949,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   end
 end
 
--- update ref_motion_result: collision.air_motion_result for a character trying to move
+-- update ref_motion_result: motion.air_motion_result for a character trying to move
 --  by 1 pixel step in direction in the air, taking obstacles into account
 -- if character is blocked by wall, ceiling or landing when moving toward left/right, up or down resp.,
 --  it doesn't update the position and the corresponding flag is set

@@ -549,7 +549,7 @@ function itest_dsl_parser.create_itest(name, dsli)
     if dsli.gamestate_type == "stage" then
       if dsli.stage_name == '#' then
         -- clear tilemap and unload tilemap data
-        clear_map()
+        tilemap.clear_map()
         teardown_map_data()
       end
     end

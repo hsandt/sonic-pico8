@@ -22,4 +22,25 @@ describe('tilemap', function ()
     end)
   end)
 
+  describe('clear_map', function ()
+
+    setup(function ()
+      stub(pico8, "clear_map")
+    end)
+
+    teardown(function ()
+      pico8.clear_map:revert()
+    end)
+
+    after_each(function ()
+      pico8.clear_map:clear()
+    end)
+
+    it('should call clear_map from pico8api (busted only)', function ()
+      tilemap.clear_map()
+      assert.spy(pico8.clear_map).was_called(1)
+      assert.spy(pico8.clear_map).was_called_with(match.ref(pico8))
+    end)
+  end)
+
 end)

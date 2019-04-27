@@ -1,4 +1,4 @@
-local world = require("engine/physics/world")
+local world = require("game/platformer/world")
 local tile_test_data = require("game/test_data/tile_test_data")
 
 describe('world (with mock tiles data setup)', function ()

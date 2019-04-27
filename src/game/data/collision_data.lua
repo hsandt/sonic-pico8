@@ -1,5 +1,6 @@
-local collision = require("engine/physics/collision")
-local tile_data = collision.tile_data
+require("engine/core/math")
+local tile = require("game/platformer/tile")
+local tile_data = tile.tile_data
 
 sprite_flags = {
   collision = 0

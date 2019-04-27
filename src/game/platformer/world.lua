@@ -1,4 +1,5 @@
-local collision = require("engine/physics/collision")
+local tile = require("game/platformer/tile")
+-- engine > game reference to clean
 local collision_data = require("game/data/collision_data")
 
 local world = {}
@@ -24,7 +25,7 @@ function world._compute_column_height_at(tile_location, column_index0)
       if tile_data_value then
         -- optimize: cache collision height array on game start (otherwise, we get all the data every time,
         --  including the unused slope angle)
-        local h_array = collision.height_array(tile_data_value)
+        local h_array = tile.height_array(tile_data_value)
         return h_array:get_height(column_index0), h_array.slope_angle
       end
 

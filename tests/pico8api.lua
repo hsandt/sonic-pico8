@@ -55,9 +55,9 @@ end
 -- busted-only helper to clear the map, as memset(0x2000, 0, 0x1000) wouldn't work
 function pico8:clear_map()
   for y = 0, 63 do
-    pico8.map[y] = {}
+    self.map[y] = {}
     for x = 0, 127 do
-      pico8.map[y][x] = 0
+      self.map[y][x] = 0
     end
   end
 end
@@ -66,7 +66,7 @@ end
 --  and we don't really do that in pico8 anyway
 function pico8:clear_spriteflags()
   for n = 0, 255 do
-    pico8.spriteflags[n] = 0
+    self.spriteflags[n] = 0
   end
 end
 

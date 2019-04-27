@@ -1,6 +1,6 @@
 --#ifn pico8
 
-require("pico8api")
+require("engine/test/pico8api")
 local tile = require("game/platformer/tile")
 local collision_data = require("game/data/collision_data")
 local stub = require("luassert.stub")

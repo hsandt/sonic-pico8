@@ -81,8 +81,8 @@ if [[ $RENDER = true ]]; then
 	EXTRA_ARGS+="--render"
 fi
 
-LUA_PATH="src/?.lua;tests/?.lua"
-CORE_TEST="busted tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v -- $EXTRA_ARGS"
+LUA_PATH="src/?.lua;src/engine/tests/?.lua;src/game/tests/?.lua"
+CORE_TEST="busted src/engine/tests src/game/tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v -- $EXTRA_ARGS"
 TEST_COMMAND="$PRE_TEST $CORE_TEST $POST_TEST"
 
 echo "Testing $1..."

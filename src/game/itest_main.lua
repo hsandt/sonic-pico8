@@ -4,9 +4,9 @@
 -- to use for the build. other states will be replaced with dummy equivalents.
 
 require("engine/test/integrationtest")
+local input = require("engine/input/input")
 require("game/itests/itest$itest")
 local gamestate_proxy = require("game/application/gamestate_proxy")
-local input = require("engine/input/input")
 
 --#if log
 local logging = require("engine/debug/logging")

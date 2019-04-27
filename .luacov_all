@@ -1,15 +1,15 @@
 return {
 
 	include = {
-		"src",
-		"tests/bustedhelper",
-		"tests/pico8api"
+		"src"
 	},
 
 	exclude = {
+		"src/engine/tests",
 		"src/engine/wtk",
 		"src/game/itests",
-		"src/game/test_data"
+		"src/game/test_data",
+		"src/game/tests"
 	}
 
 }

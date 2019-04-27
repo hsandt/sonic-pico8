@@ -56,15 +56,19 @@ end
 -- if no_deep_raw_content is true, do not pass the compare_raw_content parameter to deeper calls
 --  this is useful if you want to compare content at the first level but delegate equality for embedded structs
 function are_same(t1, t2, compare_raw_content, no_deep_raw_content)
+  -- compare_raw_content and no_deep_raw_content default to false (we count on nil being falsy here)
+
   if type(t1) ~= 'table' or type(t2) ~= 'table' then
     -- we have at least one non-table argument, compare by equality
     -- if both arguments have different types, it will return false
     return t1 == t2
   end
 
-  -- both arguments are tables
+  -- both arguments are tables, check meta __eq
 
-  if (t1.__eq or t2.__eq) and not compare_raw_content then
+  local mt1 = getmetatable(t1)
+  local mt2 = getmetatable(t2)
+  if (mt1 and mt1.__eq or mt2 and mt2.__eq) and not compare_raw_content then
     -- we are not comparing raw content and equality is defined, use it
     return t1 == t2
   end

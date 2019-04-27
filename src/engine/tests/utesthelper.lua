@@ -43,15 +43,62 @@ end)
 describe('are_same', function ()
   local single_t = {}
 
-  local comparable_mt = {
+  local comparable_mt_sum = {
     __eq = function (lhs, rhs)
-      return lhs.a == rhs.a and lhs.b == rhs.b
+      -- a flexible check that allows different member values to have the table considered equal in the end
+      return lhs.a + lhs.b == rhs.a + rhs.b
     end
   }
+  local comparable_mt_offset = {
+    __eq = function (lhs, rhs)
+      -- a contrived check that makes sure __eq is used by returning true when it should be false in raw content
+      return lhs.a == rhs.a - 1
+    end
+  }
+
   local comparable_struct1 = {a = 1, b = 2}
   local comparable_struct2 = {a = 1, b = 2}
-  setmetatable(comparable_struct1, comparable_mt)
-  setmetatable(comparable_struct2, comparable_mt)  -- actually, only one is enough
+  local comparable_struct3 = {a = 2, b = 1}
+  local comparable_struct4 = {a = 1}
+  local comparable_struct5 = {a = 1}
+  local comparable_struct6 = {a = 2}
+
+  setmetatable(comparable_struct1, comparable_mt_sum)
+  setmetatable(comparable_struct2, comparable_mt_sum)
+  setmetatable(comparable_struct3, comparable_mt_sum)
+  setmetatable(comparable_struct4, comparable_mt_offset)
+  setmetatable(comparable_struct5, comparable_mt_offset)
+  setmetatable(comparable_struct6, comparable_mt_offset)
+
+  -- bugfix history:
+  -- _ the non-table and comparable_struct tests below have been added, as I was exceptionally covering
+  --   the utest files themselves and saw that the metatables were not used at all; so I fixed are_same itself
+  --   to check __eq on the metatable instead of the table
+
+  it('return true if both elements are not table, but equal', function ()
+    assert.is_true(are_same(2, 2))
+  end)
+  it('return false if both elements are not table, and not equal', function ()
+    assert.is_false(are_same(2, 3))
+  end)
+
+  it('return true if both tables define __eq that returns true, and not comparing raw content', function ()
+    assert.is_true(are_same(comparable_struct1, comparable_struct2))
+    assert.is_true(are_same(comparable_struct1, comparable_struct3))
+    assert.is_true(are_same(comparable_struct4, comparable_struct6))
+  end)
+  it('return true if both tables define __eq that returns false, and not comparing raw content', function ()
+    assert.is_false(are_same(comparable_struct4, comparable_struct5))
+  end)
+
+  it('return false if both tables define __eq that returns true, but comparing different raw content', function ()
+    assert.is_false(are_same(comparable_struct1, comparable_struct3, true))
+    assert.is_false(are_same(comparable_struct4, comparable_struct6, true))
+  end)
+
+  it('return true if both tables define __eq that returns false, but comparing same raw content', function ()
+    assert.is_true(are_same(comparable_struct4, comparable_struct5, true))
+  end)
 
   it('return true both tables are empty', function ()
     assert.is_true(are_same({}, {}))

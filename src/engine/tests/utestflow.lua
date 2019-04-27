@@ -1,6 +1,9 @@
 require("engine/test/bustedhelper")
 local flow = require("engine/application/flow")
 local helper = require("engine/core/helper")
+-- engine -> game reference needs cleanup
+-- fortunately we are using nothing specific to those gamestates in the tests,
+--   so we could simply replace them with mock gamestates that do nothing
 local titlemenu = require("game/menu/titlemenu")
 local credits = require("game/menu/credits")
 

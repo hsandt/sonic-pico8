@@ -2,6 +2,7 @@ require("bustedhelper")
 require("engine/render/color")
 local ui = require("engine/ui/ui")
 local input = require("engine/input/input")
+local sprite_data = require("engine/render/sprite_data")
 
 local label = ui.label
 local overlay = ui.overlay

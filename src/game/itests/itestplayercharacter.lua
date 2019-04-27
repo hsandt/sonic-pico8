@@ -1,6 +1,6 @@
 -- gamestates: stage
 local integrationtest = require("engine/test/integrationtest")
-local itest_dsl = require("engine/test/itest_dsl")
+local itest_dsl = require("game/itests/itest_dsl")
 local itest_dsl_parser = itest_dsl.itest_dsl_parser
 local itest_manager,   integration_test,   time_trigger = get_members(integrationtest,
      "itest_manager", "integration_test", "time_trigger")

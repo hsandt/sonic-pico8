@@ -3,7 +3,6 @@ local logging = require("engine/debug/logging")
 --#endif
 
 local input = require("engine/input/input")
-local visual = require("game/resources/visual")
 
 local ui = {
   cursor_sprite_data = nil

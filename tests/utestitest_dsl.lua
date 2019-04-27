@@ -1,7 +1,7 @@
 require("bustedhelper")
 require("engine/core/helper")
 require("engine/core/math")
-local itest_dsl = require("engine/test/itest_dsl")
+local itest_dsl = require("game/itests/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
 local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,

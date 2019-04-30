@@ -72,9 +72,19 @@ local playercharacter_data = {
 
   -- stand right
   sonic_sprite_data_table = {
-    idle = sprite_data(sprite_id_location(0, 8), tile_vector(2, 2), vector(12, 8)),
-    run1 = sprite_data(sprite_id_location(2, 8), tile_vector(2, 2), vector(12, 8)),
-    spin = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(5, 5)),
+    idle  = sprite_data(sprite_id_location(0, 8),  tile_vector(2, 2), vector(11, 8)),
+    run1  = sprite_data(sprite_id_location(2, 8),  tile_vector(2, 2), vector(11, 8)),
+    run2  = sprite_data(sprite_id_location(4, 8),  tile_vector(2, 2), vector(11, 8)),
+    run3  = sprite_data(sprite_id_location(6, 8),  tile_vector(2, 2), vector(11, 8)),
+    run4  = sprite_data(sprite_id_location(8, 8),  tile_vector(2, 2), vector(11, 8)),
+    run5  = sprite_data(sprite_id_location(10, 8), tile_vector(2, 2), vector(11, 8)),
+    run6  = sprite_data(sprite_id_location(12, 8), tile_vector(2, 2), vector(11, 8)),
+    run7  = sprite_data(sprite_id_location(14, 8), tile_vector(2, 2), vector(11, 8)),
+    run8  = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(11, 8)),
+    run9  = sprite_data(sprite_id_location(2, 10), tile_vector(2, 2), vector(11, 8)),
+    run10 = sprite_data(sprite_id_location(4, 10), tile_vector(2, 2), vector(11, 8)),
+    run11 = sprite_data(sprite_id_location(6, 10), tile_vector(2, 2), vector(11, 8)),
+    spin  = sprite_data(sprite_id_location(0, 12), tile_vector(2, 2), vector(5, 5)),
   },
 
 }
@@ -82,7 +92,8 @@ local playercharacter_data = {
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
 playercharacter_data.sonic_animated_sprite_data_table = {
   idle = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle"}, 10, true),
-  run = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle", "run1"}, 10, true),
+  run = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
+    {"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"}, 5, true),
   spin = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"spin"}, 10, true),
 }
 

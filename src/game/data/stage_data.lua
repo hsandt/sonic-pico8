@@ -20,7 +20,7 @@ return {
       title = "proto zone",
 
       width = 100,
-      height = 40,
+      height = 32,
 
       -- where the player character spawns on stage start
       spawn_location = location(2, 10),

@@ -411,7 +411,7 @@ function player_char:_update_platformer_motion_grounded()
     if self.ground_speed == 0 then
       self.anim_spr:play("idle")
     else
-      self.anim_spr:play("run")
+      self.anim_spr:play("run", false, abs(self.ground_speed))
     end
   end
 

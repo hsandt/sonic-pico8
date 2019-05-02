@@ -9,7 +9,7 @@
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
@@ -67,7 +67,7 @@
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
@@ -123,7 +123,7 @@
 			"shell": true,
 			"cmd": ["./run.sh $file_base_name debug"],
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
@@ -175,7 +175,7 @@
 			"shell": true,
 			"cmd": ["./install.sh release"],
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[

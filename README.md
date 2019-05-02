@@ -12,17 +12,17 @@ A partial clone of classic Sonic the Hedgehog games made with PICO-8
 
 ## Features
 
-Version: 2.2
+Version: 2.3
 
 ### Physics
 
 * Character runs on flat ground and slopes
-* Character is blocked by walls when running
+* Character is blocked by walls when running, walls and ceiling when jumping
 * Character jumps with variable height
 
 ### Rendering
 
-* Character rendered with Idle and Spin sprite
+* Character rendered with Idle and Spin static sprite, Run animated sprite
 * Environment rendered with tilemap
 
 ## Build

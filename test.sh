@@ -48,8 +48,10 @@ if [[ $MODULE = "all" || -z $MODULE ]] ; then
 else
 	# prepend "utest" again, and append ".lua" in case a module name contains another one
 	# (e.g. logger for visual_logger or tile for tile_data)
-	TEST_FILE_PATTERN="utest$MODULE.lua"
-	COVERAGE_OPTIONS="-c .luacov_current \"/$MODULE\""
+	TEST_FILE_PATTERN="utest${MODULE}.lua"
+	# FIXME
+	# "/"" makes sure the filename starts with MODULE, but "."" is interpreted as "any char" so _data would be included
+	COVERAGE_OPTIONS="-c .luacov_current \"/${MODULE}.lua\""
 fi
 
 if [[ $TEST_FILTER_MODE = "all" ]] ; then

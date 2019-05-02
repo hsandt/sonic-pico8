@@ -102,7 +102,7 @@ describe('animated_sprite', function ()
 
       anim_spr:play("no_loop", false)
 
-      assert.are_equal(1, anim_spr.play_speed)
+      assert.are_equal(1, anim_spr.play_speed_frame)
     end)
 
     it('set play speed to any custom speed', function ()
@@ -114,7 +114,7 @@ describe('animated_sprite', function ()
 
       anim_spr:play("no_loop", true, 2.3)
 
-      assert.are_equal(2.3, anim_spr.play_speed)
+      assert.are_equal(2.3, anim_spr.play_speed_frame)
     end)
 
   end)

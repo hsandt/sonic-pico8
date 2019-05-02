@@ -42,7 +42,7 @@ function animated_sprite:play(anim_key, from_start, speed)
   speed = speed or 1.
 
   -- always update speed. this is useful to change anim speed while continue playing the same animation
-  self.play_speed = speed
+  self.play_speed_frame = speed
 
   if self.current_anim_key ~= anim_key or from_start then
     self.playing = true               -- this will do nothing if forcing replay from start during play

@@ -2,12 +2,12 @@ require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("engine/render/color")
+local flow = require("engine/application/flow")
+local ui = require("engine/ui/ui")
 local player_char = require("game/ingame/playercharacter")
 local gamestate = require("game/application/gamestate")
-local flow = require("engine/application/flow")
-local audio = require("game/resources/audio")
-local ui = require("engine/ui/ui")
 local stage_data = require("game/data/stage_data")
+local audio = require("game/resources/audio")
 
 local stage = {
 

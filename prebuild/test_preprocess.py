@@ -293,6 +293,30 @@ class TestPreprocessLines(unittest.TestCase):
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
+    def test_preprocess_lines_if_after_blank_acknowledged(self):
+        test_lines = [
+            '  --#if log\n',
+            '  print("debug")\n',
+            '  --#endif\n',
+        ]
+        expected_processed_lines = [
+            '  print("debug")\n',
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_lines_if_after_non_blank_preserved(self):
+        test_lines = [
+            'text before --#if log\n',
+            'print("debug")\n',
+            'text before --#endif\n',
+        ]
+        expected_processed_lines = [
+            'text before --#if log\n',
+            'print("debug")\n',
+            'text before --#endif\n',
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
     def test_preprocess_lines_pico8_block(self):
         test_lines = [
             'print("start")\n',
@@ -402,6 +426,40 @@ class TestPreprocessLines(unittest.TestCase):
         expected_processed_lines = [
             'print("start")\n',
             'real pico8 code\n',
+            'print("end")\n',
+        ]
+        # this will also trigger a warning, but we don't test it
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
+    def test_preprocess_lines_pico8_after_blank_acknowledged(self):
+        test_lines = [
+            'print("start")\n',
+            '  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '  --#pico8]] exceptionally ignored\n',
+            'print("end")\n',
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n',
+        ]
+        # this will also trigger a warning, but we don't test it
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
+    def test_preprocess_lines_pico8_after_non_blank_preserved(self):
+        test_lines = [
+            'print("start")\n',
+            'text  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            'text  --#pico8]] exceptionally ignored\n',
+            'print("end")\n',
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'text  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            'text  --#pico8]] exceptionally ignored\n',
             'print("end")\n',
         ]
         # this will also trigger a warning, but we don't test it

@@ -74,13 +74,13 @@ class ParsingMode(Enum):
 
 # tag to enter a pico8-only block (it's a comment block so that busted never runs it but preprocess reactivates it)
 # unlike normal comment blocks, we expect to match from the line start
-pico8_start_pattern = re.compile(r"--\[=*\[#pico8")
+pico8_start_pattern = re.compile(r"\s*--\[=*\[#pico8")
 # closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
-pico8_end_pattern = re.compile(r"--#pico8]=*]")
+pico8_end_pattern = re.compile(r"\s*--#pico8]=*]")
 
-if_pattern = re.compile(r"--#if (\w+)")    # ! ignore anything after 1st symbol
-ifn_pattern = re.compile(r"--#ifn (\w+)")  # ! ignore anything after 1st symbol
-endif_pattern = re.compile(r"--#endif")
+if_pattern = re.compile(r"\s*--#if (\w+)")    # ! ignore anything after 1st symbol
+ifn_pattern = re.compile(r"\s*--#ifn (\w+)")  # ! ignore anything after 1st symbol
+endif_pattern = re.compile(r"\s*--#endif")
 stripped_function_call_patterns_table = {}
 for config, stripped_functions in stripped_functions_table.items():
     # if there is nothing to strip, avoid creating a regex with just "(?:)\(\)" that would match a line starting with brackets

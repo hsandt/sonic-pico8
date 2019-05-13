@@ -1,6 +1,6 @@
 require("engine/test/bustedhelper")
 require("engine/test/integrationtest")
-local gameapp = require("game/application/gameapp")
+local picosonic_app = require("game/application/picosonic_app")
 local gamestate_proxy = require("game/application/gamestate_proxy")
 
 -- check options
@@ -31,8 +31,11 @@ end
 
 describe('headless itest', function ()
 
-  after_each(function ()
-    gameapp.reinit_modules()
+  local app = picosonic_app()
+
+  setup(function ()
+    app.initial_gamestate = "titlemenu"
+    itest_runner.app = app
   end)
 
   -- define a headless unit test for each registered itest so far
@@ -41,6 +44,10 @@ describe('headless itest', function ()
     local itest = itest_manager.itests[i]
 
     it(itest.name..' should succeed', function ()
+      -- just require the gamestates you need for this itest
+      -- (in practice, any gamestate module required at least once by an itest will be loaded
+      -- anyway; this will just redirect untested gamestates to a dummy to avoid useless processing)
+      gamestate_proxy:require_gamestates(itest.active_gamestates)
 
       itest_manager:init_game_and_start_by_index(i)
       while itest_runner.current_state == test_states.running do

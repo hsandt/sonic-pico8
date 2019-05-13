@@ -131,6 +131,14 @@ Alternatively, to edit the spritesheet in your favorite editor:
 2. Edit it in your favorite editor
 3. Import it back to PICO-8 with the PICO-8 command `import spritesheet.png`
 
+## Development
+
+### Documentation
+
+Most of the documentation lies in code comment.
+
+`<fun1, fun2>` means a duck-typed object that must implement functions named `fun1` and `fun2`
+
 ## New project
 
 If you use the scripts of this project to create a new game, in order to use build command `p8tool: edit data` you need to create a pico8 file at data/data.p8 first. To do this, open PICO-8, type `save data`, then copy the boilerplate file to data/data.p8.

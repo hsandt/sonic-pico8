@@ -3,6 +3,13 @@ require("engine/core/class")
 local logging = require("engine/debug/logging")
 --#endif
 
+-- abstract gamestate singleton (no actual class, make your own as long as it has member/interface below)
+-- type        string       gamestate type name
+-- on_enter    function()   gamestate enter callback
+-- on_exit     function()   gamestate exit callback
+-- update      function()   gamestate update callback
+-- render      function()   gamestate render callback
+
 -- flow singleton
 -- state vars
 -- curr_state   gamestates     current gamestate

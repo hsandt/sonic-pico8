@@ -1,5 +1,6 @@
-local gameapp = require("game/application/gameapp")
+local picosonic_app = require("game/application/picosonic_app")
 local gamestate_proxy = require("game/application/gamestate_proxy")
+local gamestate = require("game/application/gamestate")
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -34,6 +35,8 @@ input:toggle_mouse(true)
 
 -- pico-8 functions must be placed at the end to be parsed by p8tool
 
+local app = picosonic_app()
+
 function _init()
 --#if log
   -- clear log file on new game session
@@ -42,13 +45,14 @@ function _init()
 
   -- require all gamestate modules, according to preprocessing step
   gamestate_proxy:require_gamestates()
-  gameapp.init()
+  app.initial_gamestate = gamestate.types.titlemenu
+  app:start()
 end
 
 function _update60()
-  gameapp.update()
+  app:update()
 end
 
 function _draw()
-  gameapp.draw()
+  app:draw()
 end

@@ -4,7 +4,7 @@
 -- to use for the build. other states will be replaced with dummy equivalents.
 
 require("engine/test/integrationtest")
-local input = require("engine/input/input")
+local picosonic_app = require("game/application/picosonic_app")
 require("game/itests/itest$itest")
 local gamestate_proxy = require("game/application/gamestate_proxy")
 
@@ -23,6 +23,8 @@ function _init()
   -- clear log file on new itest session
   logging.file_log_stream:clear()
 --#endif
+
+  itest_runner.app = picosonic_app()
 
   -- require only gamestate modules written on first line of the required $itest (pico8-build way)
   gamestate_proxy:require_gamestates()

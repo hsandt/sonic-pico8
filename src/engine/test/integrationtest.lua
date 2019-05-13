@@ -5,9 +5,6 @@ require("engine/test/assertions")
 --#if log
 local logging = require("engine/debug/logging")
 --#endif
--- engine -> game reference is not good, consider using flow directly
---  and isolating active gamestates somewhere else (e.g. a generic gameapp in engine)
-local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
 local mod = {}
@@ -21,7 +18,7 @@ test_states = {
 }
 
 -- integration test manager: registers all itests
--- itests   {string: itest}   registered itests, indexed by name
+-- itests   {string: itest}  registered itests, indexed by name
 itest_manager = singleton(function (self)
   self.itests = {}
 end)
@@ -118,7 +115,26 @@ function itest_manager:init_game_and_start_by_index(index)
 end
 
 -- integration test runner singleton
--- test lifetime:
+-- usage:
+-- first, make sure you have registered itests via the itest_manager
+--   and that you are running an itest via itest_manager:init_game_and_start_by_index (a proxy for itest_runner:init_game_and_start)
+-- in _init, create a game app, set its initial_gamestate and set itest_runner.app to this app instance
+-- in _update(60), call itest_runner:update_game_and_test
+-- in _draw, call itest_runner:draw_game_and_test
+
+-- attributes
+-- initialized          bool              true if it has already been initialized.
+--                                        initialization is lazy and is only needed once
+-- current_test         integration_test  current itest being run
+-- current_frame        int               index of the current frame run
+-- _last_trigger_frame  int               stored index of the frame where the last command trigger was received
+-- _next_action_index   int               index of the next action to execute in the action list
+-- current_state        test_states       stores if test has not started, is still running or has succeeded/failed
+-- current_message      string            failure message, nil if test has not failed
+-- app                  gameapp           gameapp instance of the tested game
+--                                        must be set directly with itest_runner.app = ...
+
+-- a test's lifetime follows the phases:
 -- none -> running -> success/failure/timeout (still alive, but not updated)
 --  -> stopped when a another test starts running
 itest_runner = singleton(function (self)
@@ -128,32 +144,36 @@ itest_runner = singleton(function (self)
   self._last_trigger_frame = 0
   self._next_action_index = 1
   self.current_state = test_states.none
-  self.current_message = nil              -- only defined when current_state is failure
+  self.current_message = nil
+  self.app = nil
 end)
 
 -- helper method to use in rendered itest _init
 function itest_runner:init_game_and_start(test)
-  -- if there was a previous test, gameapp was already initialized,
-  --  so reset it now (we could also just keep it and change the gamestate
-  --  to void, if we are sure that all the itests have the same required modules)
+  assert(self.app ~= nil, "itest_runner:init_game_and_start: self.app is not set")
+
+  -- if there was a previous test, app was initialized too, so reset both now
+  -- (in reverse order of start)
   if self.current_test then
-      gameapp.reinit_modules()
+    self:stop()
+    self.app:reset()
   end
 
-  gameapp.init(test.active_gamestates)
+  self.app:start()
   itest_runner:start(test)
 end
 
 -- helper method to use in rendered itest _update60
 function itest_runner:update_game_and_test()
   if self.current_state == test_states.running then
-    -- update gameapp, then test runner
+
+    -- update app, then test runner
     -- updating test runner 2nd allows us to check the actual game state at final frame f,
     --  after everything has been computed
     -- time_trigger(0.)  initial actions will still be applied before first frame
     --  thanks to the initial _check_next_action on start, but setup is still recommended
     log("frame #"..self.current_frame + 1, "trace")
-    gameapp.update()
+    self.app:update()
     self:update()
     if self.current_state ~= test_states.running then
       log("itest '"..self.current_test.name.."' ended with "..self.current_state, "itest")
@@ -166,10 +186,11 @@ end
 
 -- helper method to use in rendered itest _draw
 function itest_runner:draw_game_and_test()
-  gameapp.draw()
+  self.app:draw()
   self:draw()
 end
 
+-- start a test: integration_test
 function itest_runner:start(test)
   -- lazy initialization
   if not self.initialized then
@@ -178,10 +199,6 @@ function itest_runner:start(test)
 
   -- log after _initialize which sets up the logger
   log("starting itest: "..test.name, "trace")
-
-  if self.current_test then
-    self:stop()
-  end
 
   self.current_test = test
   self.current_state = test_states.running
@@ -222,7 +239,7 @@ function itest_runner:draw()
     api.print(self.current_test.name, 2, 2, colors.yellow)
     api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
   else
-    api.print("no itest running", tuned("x", 8), tuned("y", 8), colors.white)
+    api.print("no itest running", 8, 8, colors.white)
   end
 end
 

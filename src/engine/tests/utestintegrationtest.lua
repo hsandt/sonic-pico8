@@ -1,10 +1,10 @@
 require("engine/test/bustedhelper")
 require("engine/core/helper")
 require("engine/render/color")
+local gameapp = require("engine/application/gameapp")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local logging = require("engine/debug/logging")
-local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
 local function repeat_callback(time, callback)
@@ -22,6 +22,14 @@ describe('itest_manager', function ()
 
   after_each(function ()
     itest_manager:init()
+  end)
+
+  describe('init', function ()
+
+    it('should create a singleton instance with empty itests', function ()
+      assert.are_same({}, itest_manager.itests)
+    end)
+
   end)
 
   describe('register_itest', function ()
@@ -126,6 +134,9 @@ end)
 
 describe('itest_runner', function ()
 
+  -- prepare mock app with default implementation
+  local mock_app = gameapp()
+
   local test
 
   before_each(function ()
@@ -139,183 +150,260 @@ describe('itest_runner', function ()
     logging.logger:init()
   end)
 
+  describe('init', function ()
+
+    it('should initialize parameters', function ()
+      assert.are_same({
+          false,
+          nil,
+          0,
+          0,
+          1,
+          test_states.none,
+          nil,
+          nil
+        },
+        {
+          itest_runner.initialized,
+          itest_runner.current_test,
+          itest_runner.current_frame,
+          itest_runner._last_trigger_frame,
+          itest_runner._next_action_index,
+          itest_runner.current_state,
+          itest_runner.current_message,
+          itest_runner.gameapp
+        })
+    end)
+
+  end)
+
   describe('init_game_and_start', function ()
 
     setup(function ()
-      gameapp_init_stub = stub(gameapp, "init")
-      gameapp_reinit_modules_stub = stub(gameapp, "reinit_modules")
-      itest_runner_start_stub = stub(itest_runner, "start")
+      stub(gameapp, "reset")
+      stub(gameapp, "start")
+      stub(itest_runner, "stop")
+      stub(itest_runner, "start")
     end)
 
     teardown(function ()
-      gameapp_init_stub:revert()
-      gameapp_reinit_modules_stub:revert()
-      itest_runner_start_stub:revert()
+      gameapp.reset:revert()
+      gameapp.start:revert()
+      itest_runner.stop:revert()
+      itest_runner.start:revert()
     end)
 
     after_each(function ()
-      gameapp_init_stub:clear()
-      gameapp_reinit_modules_stub:clear()
-      itest_runner_start_stub:clear()
+      gameapp.reset:clear()
+      gameapp.start:clear()
+      itest_runner.stop:clear()
+      itest_runner.start:clear()
     end)
 
-    it('should init the gameapp and the passed test', function ()
-      itest_runner:init_game_and_start(test)
-      assert.spy(gameapp_init_stub).was_called(1)
-      assert.spy(gameapp_init_stub).was_called_with({'stage'})
-      assert.spy(itest_runner_start_stub).was_called(1)
-      assert.spy(itest_runner_start_stub).was_called_with(match.ref(itest_runner), test)
+    it('should error if app is not set', function ()
+
+      assert.has_error(function ()
+        itest_runner:init_game_and_start(test)
+      end, "itest_runner:init_game_and_start: self.app is not set")
     end)
 
-    describe('(when another test was running)', function ()
+    describe('(with mock app)', function ()
 
-      it('should reinit the gameapp modules first', function ()
-        itest_runner.current_test = integration_test('previous test', {})
+      before_each(function ()
+        itest_runner.app = mock_app
+      end)
 
+      describe('(when current_test is already set)', function ()
+
+        before_each(function ()
+          itest_runner.current_test = test
+        end)
+
+        it('should reset the app', function ()
+          itest_runner:init_game_and_start(test)
+
+          local s = assert.spy(gameapp.reset)
+          s.was_called(1)
+          s.was_called_with(match.ref(mock_app))
+        end)
+
+        it('should stop', function ()
+          itest_runner:init_game_and_start(test)
+
+          local s = assert.spy(itest_runner.stop)
+          s.was_called(1)
+          s.was_called_with(match.ref(itest_runner))
+        end)
+
+      end)
+
+      it('should start the gameapp', function ()
         itest_runner:init_game_and_start(test)
 
-        assert.spy(gameapp_reinit_modules_stub).was_called(1)
-        assert.spy(gameapp_reinit_modules_stub).was_called_with()
+        local s = assert.spy(gameapp.start)
+        s.was_called(1)
+        s.was_called_with(match.ref(mock_app))
+      end)
+
+      it('should init a set gameapp and the passed test', function ()
+        itest_runner:init_game_and_start(test)
+
+        local s = assert.spy(itest_runner.start)
+        s.was_called(1)
+        s.was_called_with(match.ref(itest_runner), test)
       end)
 
     end)
 
   end)
 
-  describe('update_game_and_test', function ()
+  describe('(with mock app)', function ()
 
-    setup(function ()
-      gameapp_update_stub = stub(gameapp, "update")
-      spy.on(itest_runner, "update")
+    before_each(function ()
+      itest_runner.app = mock_app
     end)
 
-    teardown(function ()
-      gameapp_update_stub:revert()
-      itest_runner.update:revert()
-    end)
-
-    after_each(function ()
-      gameapp_update_stub:clear()
-      itest_runner.update:clear()
-    end)
-
-    describe('(when state is not running)', function ()
-
-      it('should do nothing', function ()
-        itest_runner:update_game_and_test()
-        assert.spy(gameapp_update_stub).was_not_called()
-        assert.spy(itest_runner.update).was_not_called()
-      end)
-
-    end)
-
-    describe('(when state is running for some actions)', function ()
-
-      before_each(function ()
-        test:add_action(time_trigger(1.0), function () end, 'some_action')
-        itest_runner:start(test)
-      end)
-
-      it('should update the gameapp and the passed test', function ()
-        itest_runner:update_game_and_test()
-        assert.spy(gameapp_update_stub).was_called(1)
-        assert.spy(gameapp_update_stub).was_called_with()
-        assert.spy(itest_runner.update).was_called(1)
-        assert.spy(itest_runner.update).was_called_with(match.ref(itest_runner))
-      end)
-
-    end)
-
-    describe('(when test ends on this update with success)', function ()
-
-      local log_stub
-
-      before_each(function ()
-        test:add_action(time_trigger(0.017), function () end, 'some_action')
-        itest_runner:start(test)
-      end)
+    describe('update_game_and_test', function ()
 
       setup(function ()
-        log_stub = stub(_G, "log")
+        stub(gameapp, "update")
+        spy.on(itest_runner, "update")
       end)
 
       teardown(function ()
-        log_stub:revert()
+        gameapp.update:revert()
+        itest_runner.update:revert()
       end)
 
       after_each(function ()
-        log_stub:clear()
+        gameapp.update:clear()
+        itest_runner.update:clear()
       end)
 
-      it('should only log the result', function ()
-        itest_runner:update_game_and_test()
-        assert.spy(log_stub).was_called()  -- we only want 1 call, but we check "at least once" because there are other unrelated logs
-        assert.spy(log_stub).was_called_with("itest 'character walks' ended with success", "itest")
+      describe('(when state is not running)', function ()
+
+        it('should do nothing', function ()
+          itest_runner:update_game_and_test()
+          assert.spy(gameapp.update).was_not_called()
+          assert.spy(itest_runner.update).was_not_called()
+        end)
+
+      end)
+
+      describe('(when state is running for some actions)', function ()
+
+        before_each(function ()
+          test:add_action(time_trigger(1.0), function () end, 'some_action')
+        end)
+
+        it('should update the set gameapp and the passed test', function ()
+          itest_runner:start(test)
+
+          itest_runner:update_game_and_test()
+
+          local s_app = assert.spy(gameapp.update)
+          s_app.was_called(1)
+          s_app.was_called_with(match.ref(mock_app))
+          local s_runner = assert.spy(itest_runner.update)
+          s_runner.was_called(1)
+          s_runner.was_called_with(match.ref(itest_runner))
+        end)
+
+      end)
+
+      describe('(when running, and test ends on this update with success)', function ()
+
+        before_each(function ()
+          test:add_action(time_trigger(0.017), function () end, 'some_action')
+          itest_runner:start(test)
+        end)
+
+        setup(function ()
+          stub(_G, "log")
+        end)
+
+        teardown(function ()
+          log:revert()
+        end)
+
+        after_each(function ()
+          log:clear()
+        end)
+
+        it('should only log the result', function ()
+          itest_runner:update_game_and_test()
+          local s = assert.spy(log)
+          s.was_called()  -- we only want 1 call, but we check "at least once" because there are other unrelated logs
+          s.was_called_with("itest 'character walks' ended with success", "itest")
+        end)
+
+      end)
+
+      describe('(when running, and test ends on this update with failure)', function ()
+
+        before_each(function ()
+          test:add_action(time_trigger(0.017), function () end, 'some_action')
+          test.final_assertion = function ()
+            return false, "character walks failed"
+          end
+            itest_runner:start(test)
+        end)
+
+        setup(function ()
+          stub(_G, "log")
+        end)
+
+        teardown(function ()
+          log:revert()
+        end)
+
+        after_each(function ()
+          log:clear()
+        end)
+
+        it('should log the result and failure message', function ()
+          itest_runner:update_game_and_test()
+          local s = assert.spy(log)
+          s.was_called()  -- we only want 2 calls, but we check "at least twice" because there are other unrelated logs
+          s.was_called_with("itest 'character walks' ended with failure", "itest")
+          s.was_called_with("failed: character walks failed", "itest")
+        end)
+
       end)
 
     end)
 
-    describe('(when test ends on this update with failure)', function ()
-
-      local log_stub
-
-      before_each(function ()
-        test:add_action(time_trigger(0.017), function () end, 'some_action')
-        test.final_assertion = function ()
-          return false, "character walks failed"
-        end
-        itest_runner:start(test)
-      end)
+    describe('draw_game_and_test', function ()
 
       setup(function ()
-        log_stub = stub(_G, "log")
+        stub(gameapp, "draw")
+        stub(itest_runner, "draw")
       end)
 
       teardown(function ()
-        log_stub:revert()
+        gameapp.draw:revert()
+        itest_runner.draw:revert()
       end)
 
       after_each(function ()
-        log_stub:clear()
+        gameapp.draw:clear()
+        itest_runner.draw:clear()
       end)
 
-      it('should log the result and failure message', function ()
-        itest_runner:update_game_and_test()
-        assert.spy(log_stub).was_called()  -- we only want 2 calls, but we check "at least twice" because there are other unrelated logs
-        assert.spy(log_stub).was_called_with("itest 'character walks' ended with failure", "itest")
-        assert.spy(log_stub).was_called_with("failed: character walks failed", "itest")
+      it('should draw the gameapp and the passed test information', function ()
+        itest_runner:draw_game_and_test()
+
+        local s_app = assert.spy(gameapp.draw)
+        s_app.was_called(1)
+        s_app.was_called_with(match.ref(mock_app))
+        local s_runner = assert.spy(itest_runner.draw)
+        s_runner.was_called(1)
+        s_runner.was_called_with(match.ref(itest_runner))
       end)
 
     end)
 
-  end)
-
-  describe('draw_game_and_test', function ()
-
-    setup(function ()
-      gameapp_draw_stub = stub(gameapp, "draw")
-      itest_runner_draw_stub = stub(itest_runner, "draw")
-    end)
-
-    teardown(function ()
-      gameapp_draw_stub:revert()
-      itest_runner_draw_stub:revert()
-    end)
-
-    after_each(function ()
-      gameapp_draw_stub:clear()
-      itest_runner_draw_stub:clear()
-    end)
-
-    it('should draw the gameapp and the passed test information', function ()
-      itest_runner:draw_game_and_test()
-      assert.spy(gameapp_draw_stub).was_called(1)
-      assert.spy(gameapp_draw_stub).was_called_with()
-      assert.spy(itest_runner_draw_stub).was_called(1)
-      assert.spy(itest_runner_draw_stub).was_called_with(match.ref(itest_runner))
-    end)
-
-  end)
+  end)  -- (with mock app)
 
   describe('start', function ()
 
@@ -415,16 +503,6 @@ describe('itest_runner', function ()
         repeat_callback(1.0, function ()
           itest_runner:update()
         end)
-      end)
-
-      it('should automatically stop before restarting, effectively resetting state vars but the current test and state', function ()
-        itest_runner:start(test)
-        assert.are_same({0, 0, 1, test_states.running}, {
-          itest_runner.current_frame,
-          itest_runner._last_trigger_frame,
-          itest_runner._next_action_index,
-          itest_runner.current_state
-        })
       end)
 
       it('should not call _initialize the second time', function ()
@@ -568,20 +646,22 @@ describe('itest_runner', function ()
     describe('(stubbing api.print)', function ()
 
       setup(function ()
-        api_print_stub = stub(api, "print")
+        stub(api, "print")
       end)
 
       teardown(function ()
-        api_print_stub:revert()
+        api.print:revert()
       end)
 
       after_each(function ()
-        api_print_stub:clear()
+        api.print:clear()
       end)
 
       it('should draw "no itest running"', function ()
         itest_runner:draw()
-        assert.spy(api_print_stub).was_called(1)
+        local s = assert.spy(api.print)
+        s.was_called(1)
+        s.was_called_with("no itest running", 8, 8, colors.white)
       end)
 
       describe('(when current test is set)', function ()
@@ -593,7 +673,7 @@ describe('itest_runner', function ()
 
         it('should draw information on the current test', function ()
           itest_runner:draw()
-          assert.spy(api_print_stub).was_called(2)
+          assert.spy(api.print).was_called(2)
         end)
 
       end)

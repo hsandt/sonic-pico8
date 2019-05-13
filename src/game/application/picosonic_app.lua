@@ -1,7 +1,7 @@
+local gameapp = require("engine/application/gameapp")
+
 local flow = require("engine/application/flow")
-local input = require("engine/input/input")
 local gamestate_proxy = require("game/application/gamestate_proxy")
-local gamestate = require("game/application/gamestate")
 local visual = require("game/resources/visual")
 
 --#if log
@@ -26,51 +26,29 @@ local profiler = require("engine/debug/profiler")
 local ui = require("engine/ui/ui")
 --#endif
 
-local gameapp = {}
+local picosonic_app = derived_class(gameapp)
 
--- todo: consider making gameapp a singleton with init like the other modules,
---  so we can easily reinit it (implementation would b more a reset than the init
---  below, as it would reinit the flow, etc.)
-
--- in pico8 builds, pass nothing for active_gamestates
--- in busted tests, pass active_gamestates so they can be required automatically on gameapp init
-function gameapp.init(active_gamestates)
---#ifn pico8
- assert(active_gamestates, "gameapp.init: non-pico8 build requires active_gamestates to define them at runtime")
---#endif
-
---#if mouse
-  ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
---#endif
-
---#ifn pico8
-  gamestate_proxy:require_gamestates(active_gamestates)
---#endif
-
+function picosonic_app:register_gamestates() -- override
   for state in all({"titlemenu", "credits", "stage"}) do
     flow:add_gamestate(gamestate_proxy:get(state))
   end
-  flow:query_gamestate_type(gamestate.types.titlemenu)
 end
 
---#ifn utest
-function gameapp.reinit_modules()
+function picosonic_app.on_start() -- override
+--#if mouse
+  ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
+--#endif
+end
+
+--#if itest
+function picosonic_app.on_reset() -- override
 --#if mouse
   ui:set_cursor_sprite_data(nil)
 --#endif
-
---#ifn pico8
-  gamestate_proxy:init()
---#endif
-
-  flow:init()
 end
 --#endif
 
-function gameapp.update()
-  input:process_players_inputs()
-  flow:update()
-
+function picosonic_app.on_update() -- override
 --#if visual_logger
   vlogger.window:update()
 --#endif
@@ -84,10 +62,7 @@ function gameapp.update()
 --#endif
 end
 
-function gameapp.draw()
-  cls()
-  flow:render()
-
+function picosonic_app.on_render()
 --#if visual_logger
   vlogger.window:render()
 --#endif
@@ -105,4 +80,4 @@ function gameapp.draw()
 --#endif
 end
 
-return gameapp
+return picosonic_app

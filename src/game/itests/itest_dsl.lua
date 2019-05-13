@@ -545,7 +545,8 @@ function itest_dsl_parser.create_itest(name, dsli)
   end
 
   itest_dsl_parser._itest.teardown = function ()
-    flow:change_gamestate_by_type(dsli.gamestate_type)
+    -- clear map
+    -- no need to "unload" the game state, the next test will reset the flow anyway
     if dsli.gamestate_type == "stage" then
       if dsli.stage_name == '#' then
         -- clear tilemap and unload tilemap data

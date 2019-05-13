@@ -15,8 +15,8 @@ local itest_manager,   time_trigger,   integration_test = get_members(integratio
      "itest_manager", "time_trigger", "integration_test")
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
-local gameapp = require("game/application/gameapp")
 local gamestate = require("game/application/gamestate")
+local gamestate_proxy = require("game/application/gamestate_proxy")
 local stage = require("game/ingame/stage")
 local tilemap = require("engine/data/tilemap")
 local player_char = require("game/ingame/playercharacter")
@@ -836,8 +836,14 @@ expect
         -- note that most actions depend on the previous one, so we exceptionally
         --  assert multiple times in chain in a single utest
 
-        -- simulate the itest runner behavior by initializing gameapp to inject active gamestates
-        gameapp.init(test.active_gamestates)
+        -- simulate the itest runner behavior by initializing active gamestates for this test
+        gamestate_proxy:require_gamestates(test.active_gamestates)
+
+        -- simulate picosonic_app:register_gamestates once gamestates have been registered,
+        --   so gamestates are available when starting an itest (we could also use the picosonic_app directly)
+        for state in all(test.active_gamestates) do
+          flow:add_gamestate(gamestate_proxy:get(state))
+        end
 
         -- verify setup callback behavior
         test.setup()
@@ -881,11 +887,18 @@ expect
       describe('(spying tilemap load)', function ()
 
         setup(function ()
-          spy.on(tilemap, "load")
+          stub(tilemap, "load")
+          stub(tilemap, "clear_map")
         end)
 
         teardown(function ()
           tilemap.load:revert()
+          tilemap.clear_map:revert()
+        end)
+
+        after_each(function ()
+          tilemap.load:clear()
+          tilemap.clear_map:clear()
         end)
 
         it('setup should call setup_map_data and load on the tilemap if custom stage definition', function ()
@@ -897,17 +910,27 @@ expect
 
           local test = itest_dsl_parser.create_itest("test 1", dsli)
 
-          gameapp.init(test.active_gamestates)
+          -- simulate the itest runner behavior by initializing active gamestates for this test
+          gamestate_proxy:require_gamestates(test.active_gamestates)
+
+          -- simulate picosonic_app:register_gamestates once gamestates have been registered,
+          --   so gamestates are available when starting an itest (we could also use the picosonic_app directly)
+          for state in all(test.active_gamestates) do
+            flow:add_gamestate(gamestate_proxy:get(state))
+          end
+
           test.setup()
 
           -- interface
           assert.are_equal(control_modes.puppet, stage.state.player_char.control_mode)
 
           -- implementation
-          assert.spy(setup_map_data).was_called(1)
-          assert.spy(setup_map_data).was_called_with()
-          assert.spy(tilemap.load).was_called(1)
-          assert.spy(tilemap.load).was_called_with(match.ref(dsli.tilemap))
+          local s_data = assert.spy(setup_map_data)
+          s_data.was_called(1)
+          s_data.was_called_with()
+          local s_load = assert.spy(tilemap.load)
+          s_load.was_called(1)
+          s_load.was_called_with(match.ref(dsli.tilemap))
         end)
 
         it('teardown should call clear_map and teardown_map_data if custom stage definition', function ()
@@ -919,14 +942,16 @@ expect
 
           local test = itest_dsl_parser.create_itest("test 1", dsli)
 
-          gameapp.init(test.active_gamestates)
+          gamestate_proxy:require_gamestates(test.active_gamestates)
           test.teardown()
 
           -- implementation
-          assert.spy(teardown_map_data).was_called(1)
-          assert.spy(teardown_map_data).was_called_with()
-          assert.spy(tilemap.load).was_called(1)
-          assert.spy(tilemap.load).was_called_with(match.ref(dsli.tilemap))
+          local s_clear = assert.spy(tilemap.clear_map)
+          s_clear.was_called(1)
+          s_clear.was_called_with()
+          local s_teardown = assert.spy(teardown_map_data)
+          s_teardown.was_called(1)
+          s_teardown.was_called_with()
         end)
 
       end)

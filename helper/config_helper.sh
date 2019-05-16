@@ -57,18 +57,19 @@ function define_build_vars {
 
 # OUTPUT_BASENAME is isolated because run.sh only needs this one
 function define_output_basename {
+    if [[ -z $BUILD_VERSION ]]; then
+        VERSION_SUFFIX=""
+    else
+        VERSION_SUFFIX="_v${BUILD_VERSION}"
+    fi
+
     if [[ ${1::5} = "itest" ]] ; then
-        OUTPUT_BASENAME="$1"
+        OUTPUT_BASENAME="$1${VERSION_SUFFIX}"
     elif [[ ${1::5} = "utest" ]] ; then
-        OUTPUT_BASENAME="$1"
+        OUTPUT_BASENAME="$1${VERSION_SUFFIX}"
     elif [[ $1 = "sandbox" ]]; then
         OUTPUT_BASENAME="sandbox"
     else
-        if [[ -z $BUILD_VERSION ]]; then
-            VERSION_SUFFIX=""
-        else
-            VERSION_SUFFIX="_v${BUILD_VERSION}"
-        fi
         OUTPUT_BASENAME="sonic-pico8${VERSION_SUFFIX}"
     fi
 }

@@ -1,6 +1,5 @@
 require("engine/core/math")
 
---#ifn pico8
 button_ids = {
   left = 0,
   right = 1,
@@ -10,6 +9,7 @@ button_ids = {
   x = 5
 }
 
+--#ifn pico8
 btn_states = {
   released = 0,
   just_pressed = 1,

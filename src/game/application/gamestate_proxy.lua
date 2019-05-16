@@ -53,7 +53,7 @@ end
 -- with a lightweight dummy state
 function gamestate_proxy:get(module_name)
   assert(type(module_name) == "string")
-  assert(self._state_modules[module_name] ~= nil, "gamestate_proxy:get: self._state_modules[module_name] is nil, make sure you have called gamestate_proxy:require_gamestates before")
+  assert(self._state_modules[module_name] ~= nil, "gamestate_proxy:get: self._state_modules['"..module_name.."'] is nil, make sure you have called gamestate_proxy:require_gamestates before")
   assert(type(self._state_modules[module_name]) == "table" and self._state_modules[module_name].state, "gamestate_proxy:get: self._state_modules[module_name] is not a function with a 'state' member")
   return self._state_modules[module_name].state
 end

@@ -7,43 +7,55 @@ import re
 from enum import Enum
 
 # This script applies preprocessing and stripping to the code:
-# 1. it will strip leading and trailing whitespace, ignoring empty lines completely
-# 2. it will remove all line comments (doesn't support block comments)
-# 3. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
-# 4. it will enable all code between --[[#pico8 and --#pico8]]
-# 5. it will strip debug function calls like log() or assert()
+# 1. it will strip all code between #if [symbol] and #endif if symbol is not defined for this config.
+# 2. it will enable all code between --[[#pico8 and --#pico8]] (unless stripped by 1.)
+# 3. it will strip debug function calls like log() or assert() in configs that don't use those symbols
 
 # Config for defined symbols (all configs have pico8, to distinguish from busted using the scripts directly)
-# Remember that busted will not preprocess at all and will therefore go through all the blocks.
+# Remember that busted will not preprocess at all and will therefore go through all the blocks,
+#   even blocks surrounded by #if symbol and #ifn symbol for the same symbol!
+# In this case, we recomment surrounding the block that is never used by busted with --[[#pico8 and --#pico8]]
+
 # For non-pico8 builds, we use --#ifn pico8 to indicate we won't have preprocessing,
 # but for busted unit tests we prefer using --#if utest (which is never defined) to make clear that
 # the code is only needed for a purpose of redundancy and unit test harnessing in general.
+
+# assert
+# If 'assert' is defined here, it should *not* be stripped in the next table.
+# The 'assert' symbol if only here to only to strip multi-line asserts or blocks of functions only used inside assert calls.
+
+# visual_logger
+# 'visual_logger' requires 'log', the dependeency is not automatically solved.
 defined_symbols_table = {
-    'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse'],
+    'debug':       ['pico8', 'assert', 'log', 'visual_logger', 'tuner', 'profiler', 'mouse', 'cheat'],
     'assert':      ['pico8', 'assert', 'log', 'visual_logger'],
-    'itest':       ['pico8', 'log', 'visual_logger', 'test'],
-    'itest_light': ['pico8', 'log', 'test'],
+    'itest':       ['pico8', 'assert', 'log', 'itest', 'cheat'],
+    # 'cheat' added as quick fix for itest that must test debug motion, while still stripping cheat input
+    # when #if <symbol1> or <symbol2> is implemented, remove 'cheat' and add "or itest" in front of "#if cheat" that need it
+    'itest_light': ['pico8', 'log', 'itest', 'cheat'],
     'profiler':    ['pico8', 'log', 'visual_logger', 'profiler'],
     'visual_log':  ['pico8', 'log', 'visual_logger'],
     'pico8_utest': ['pico8', 'assert', 'log'],
     'log':         ['pico8', 'log'],
+    'cheat':       ['pico8', 'cheat'],
     'release':     ['pico8']
 }
 
 # Functions to strip for each config (not all configs need to be present as keys)
 # Make sure you never insert gameplay code inside a log or assert (such as assert(coresume(coroutine)))
 # and always split gameplay/debug code in 2 lines
-# Also make sure all your sripped function calls are on 1 line (multi-line regex catch is currently not supported)
+# Also make sure all your stripped function calls are on 1 line (multi-line regex catch is currently not supported)
 # or that you surround them with the corresponding #if (e.g. #if assert for a multi-line assert)
 stripped_functions_table = {
     'debug':       [],
     'assert':      [],
-    'itest':       ['assert'],
+    'itest':       [],
     'itest_light': ['assert'],
     'profiler':    ['assert'],
     'visual_log':  ['assert'],
     'pico8_utest': [],
     'log':         ['assert'],
+    'cheat':       ['assert', 'log'],
     'release':     ['assert', 'log', 'warn', 'err']
 }
 
@@ -62,31 +74,30 @@ class ParsingMode(Enum):
 
 # tag to enter a pico8-only block (it's a comment block so that busted never runs it but preprocess reactivates it)
 # unlike normal comment blocks, we expect to match from the line start
-pico8_start_pattern = re.compile(r"--\[\[#pico8")
+pico8_start_pattern = re.compile(r"\s*--\[=*\[#pico8")
 # closing tag for pico8-only block. Unlike normal comment blocks, we expect to match from the line start and we ignore anything after the block end!
-pico8_end_pattern = re.compile(r"--#pico8]]")
-# capture the previous part (we recommend to start a line with --[[, but in case it is found in the middle of a line)
-block_comment_start_pattern = re.compile(r"(.*)--\[\[")
-# capture the part after (same, we recommend to end a line with --]])
-block_comment_end_pattern = re.compile(r"(?:.*)]](.*)")
-# Known limitation: an open/close block comment on a single line won't be detected. Use a line comment in this case!
+pico8_end_pattern = re.compile(r"\s*--#pico8]=*]")
 
-if_pattern = re.compile(r"--#if (\w+)")    # ! ignore anything after 1st symbol
-ifn_pattern = re.compile(r"--#ifn (\w+)")  # ! ignore anything after 1st symbol
-endif_pattern = re.compile(r"--#endif")
-comment_pattern = re.compile(r'("[^"\\]*(?:\\.[^"\\]*)*")|(?:--.*)')
+if_pattern = re.compile(r"\s*--#if (\w+)")    # ! ignore anything after 1st symbol
+ifn_pattern = re.compile(r"\s*--#ifn (\w+)")  # ! ignore anything after 1st symbol
+endif_pattern = re.compile(r"\s*--#endif")
 stripped_function_call_patterns_table = {}
 for config, stripped_functions in stripped_functions_table.items():
-    # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
-    # so we use a very simple regex, but remember to never put anything fancy on a log/assert line that may have side effects, since they will be stripped on release
-    # ex: '^(?:log|warn|err)\(.*\)$'
-    # for better regex with PCRE, see:
-    # https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
-    # https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
-    # https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets#546457
-    # https://stackoverflow.com/questions/18906514/regex-for-matching-functions-and-capturing-their-arguments#18908330
-    function_name_alternative_pattern = f"(?:{'|'.join(stripped_functions)})"
-    stripped_function_call_patterns_table[config] = re.compile(f'^{function_name_alternative_pattern}\\(.*\\)$')
+    # if there is nothing to strip, avoid creating a regex with just "(?:)\(\)" that would match a line starting with brackets
+    if stripped_functions:
+        # many good regex exist to match open and closing brackets, unfortunately they use PCRE features like ?> unsupported in Python re
+        # so we use a very simple regex, but remember to never put anything fancy on a log/assert line that may have side effects, since they will be stripped on release
+        # comments after call are ok
+        # for better regex with PCRE to detect surrounding brackets and quotes, see:
+        # https://stackoverflow.com/questions/2148587/finding-quoted-strings-with-escaped-quotes-in-c-sharp-using-a-regular-expression
+        # https://stackoverflow.com/questions/4568410/match-comments-with-regex-but-not-inside-a-quote adapted to lua comments
+        # https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets#546457
+        # https://stackoverflow.com/questions/18906514/regex-for-matching-functions-and-capturing-their-arguments#18908330
+
+        # ex: '(?:log|warn|err)'
+        function_name_alternative_pattern = f"(?:{'|'.join(stripped_functions)})"
+        # ex: '^\s*(?:log|warn|err)\(.*\)\s*(?:--.*)?$'
+        stripped_function_call_patterns_table[config] = re.compile(rf'^\s*{function_name_alternative_pattern}\(.*\)\s*(?:--.*)?$')
 
 def preprocess_dir(dirpath, config):
     """Apply preprocessor directives to all the source files inside the given directory, for the given config"""
@@ -146,7 +157,6 @@ def preprocess_lines(lines, config):
     preprocessed_lines = []
 
     inside_pico8_block = False
-    inside_comment_block = False
 
     # explore the tree of #if by storing the current stack of ifs encountered from top to bottom
     if_block_modes_stack = []  # can only be filled with [IfBlockMode.ACCEPTED*, IfBlockMode.REFUSED?, IfBlockMode.IGNORED* (only if 1 REFUSED)]
@@ -194,77 +204,33 @@ def preprocess_lines(lines, config):
                 if last_mode is IfBlockMode.REFUSED:
                     current_mode = ParsingMode.ACTIVE
         elif current_mode is ParsingMode.ACTIVE:
-            force_append = False
             if pico8_start_pattern.match(line):
-                if not inside_comment_block:
+                # we detected a pico8 block and should continue appending the lines normally (since we are building for pico8)
+                # the bool flag is only here to check that 1 end pattern will match 1 start pattern
+                # since we don't really need embedded pico8 blocks, we assume only 1 level and don't use a stack here
+                if not inside_pico8_block:
                     inside_pico8_block = True
-                    # we must not append this line
-                    continue
                 else:
-                    logging.warning('a pico8 block start was encountered inside a comment block. It will be ignored')
+                    logging.warning('a pico8 block start was encountered inside a pico8 block. It will be ignored')
             elif pico8_end_pattern.match(line):
                 if inside_pico8_block:
-                    if inside_comment_block:
-                        logging.warning('a pico8 block end was encountered inside a pico8 block, but also inside a comment block. It will still end the pico8 block, but crossing blocks like this will end in weird behavior in busted')
                     inside_pico8_block = False
-                    # we must not append this line
-                    continue
                 else:
                     logging.warning('a pico8 block end was encountered outside a pico8 block. It will be ignored')
             else:
-                block_comment_start_match = block_comment_start_pattern.match(line)
-                if block_comment_start_match:
-                    inside_comment_block = True
-                    # preserve part just before block start if any
-                    # you need to force append in this case because inside_comment_block is now True
-                    line = block_comment_start_match.group(1)
-                    if line:
-                        force_append = True
-                else:
-                    block_comment_end_match = block_comment_end_pattern.match(line)
-                    if block_comment_end_match:
-                        # only end block comment if inside a comment
-                        # else, this is a legit Lua case, where ]] will be interpreted as normal code
-                        # of course, --]] would still be stripped as a comment
-                        if inside_comment_block:
-                            inside_comment_block = False
-                            # technically we are now outside the block, so it's important to only retrieve the part of the line after comment closure
-                            # so we don't append the whole line containing the block end itself
-                            line = block_comment_end_match.group(1)
-
-            # inside a pico8 block, we continue appending the lines (since we are preprocessing, so we are building for pico8)
-            if not inside_comment_block or force_append:
-                line = strip_line_content(line, config)
-                # if resulting line is empty, ignore it
-                if line:
-                    # we stripped eol, so re-add it now
-                    preprocessed_lines.append(line + '\n')
+                if not is_function_call_to_strip(line, config):
+                    preprocessed_lines.append(line)
 
     if if_block_modes_stack:
         logging.warning('file ended inside an --#if block. Make sure the block is closed by an --#endif directive')
+    if inside_pico8_block:
+        logging.warning('file ended inside a --[[#pico8 block. Make sure the block is closed by a --#pico8]] directive')
     return preprocessed_lines
 
-def strip_line_content(line, config):
-    """Strip line content as much as possible. Return line without eol. May be empty."""
-    # 2. strip comments first (so we can trim whitespace left by after-code comment afterward)
-    line = strip_comments(line)
-    # 1. strip blanks (this includes any remaining end of line)
-    line = line.strip()
-    # 4. strip debug function calls if not debug
-    line = strip_function_calls(line, config)
-    return line
 
-def strip_comments(line):
-    # this will keep trailing whitespaces as well as eol, but we count on strip to finish the job
-    # \1 will preserve the original code
-    return comment_pattern.sub('\\1', line)
-
-
-def strip_function_calls(line, config):
-    if config in stripped_function_call_patterns_table and stripped_function_call_patterns_table[config].match(line):
-        return ''
-    else:
-        return line
+def is_function_call_to_strip(line, config):
+    """Return true iff the line contains a function call (and optionally a comment) that should be stripped in the passed config"""
+    return config in stripped_function_call_patterns_table and bool(stripped_function_call_patterns_table[config].match(line))
 
 
 if __name__ == '__main__':

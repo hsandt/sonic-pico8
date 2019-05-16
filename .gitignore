@@ -2,6 +2,9 @@
 /intermediate
 /build
 
+# Log
+/log
+
 # Backup
 /backup
 

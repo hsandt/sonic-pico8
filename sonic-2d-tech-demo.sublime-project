@@ -2,17 +2,21 @@
 	"build_systems":
 	[
 		{
-			"name": "p8tool: build current",
+			"name": "p8tool: build context",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build.sh $file_base_name debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
+				{
+					"name": "debug",
+					"cmd": ["./build.sh $file_base_name debug"]
+				},
 				{
 					"name": "assert",
 					"cmd": ["./build.sh $file_base_name assert"]
@@ -34,16 +38,20 @@
 					"cmd": ["./build.sh $file_base_name visual_log"]
 				},
 				{
-					"name": "pico8_utest (headless)",
+					"name": "pico8_utest",
 					"cmd": ["./build.sh $file_base_name pico8_utest"]
 				},
 				{
-					"name": "pico8_utest (headless) (--no-minify)",
+					"name": "pico8_utest (--no-minify)",
 					"cmd": ["./build.sh $file_base_name pico8_utest -m"]
 				},
 				{
 					"name": "log",
 					"cmd": ["./build.sh $file_base_name log"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build.sh $file_base_name cheat"]
 				},
 				{
 					"name": "release",
@@ -52,20 +60,24 @@
 			]
 		},
 		{
-			"name": "p8tool: build and run or reload current",
+			"name": "p8tool: build and run or reload context",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
 				{
 					"name": "assert",
 					"cmd": ["./build.sh $file_base_name assert && (./reload.sh || ./run.sh $file_base_name assert)"]
+				},
+				{
+					"name": "debug",
+					"cmd": ["./build.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"]
 				},
 				{
 					"name": "itest",
@@ -84,16 +96,20 @@
 					"cmd": ["./build.sh $file_base_name visual_log && (./reload.sh || ./run.sh $file_base_name visual_log)"]
 				},
 				{
-					"name": "pico8_utest (headless)",
+					"name": "pico8_utest",
 					"cmd": ["./build.sh $file_base_name pico8_utest && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
-					"name": "pico8_utest (headless) (--no-minify)",
+					"name": "pico8_utest (--no-minify)",
 					"cmd": ["./build.sh $file_base_name pico8_utest -m && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
 					"name": "log",
 					"cmd": ["./build.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build.sh $file_base_name cheat && (./reload.sh || ./run.sh $file_base_name cheat)"]
 				},
 				{
 					"name": "release",
@@ -102,15 +118,19 @@
 			]
 		},
 		{
-			"name": "p8tool: run current",
+			"name": "p8tool: run context",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./run.sh $file_base_name debug"],
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
+				{
+					"name": "debug",
+					"cmd": ["./run.sh $file_base_name debug"]
+				},
 				{
 					"name": "assert",
 					"cmd": ["./run.sh $file_base_name assert"]
@@ -132,12 +152,16 @@
 					"cmd": ["./run.sh $file_base_name visual_log"]
 				},
 				{
-					"name": "pico8_utest (headless)",
+					"name": "pico8_utest",
 					"cmd": ["./run.sh $file_base_name pico8_utest"]
 				},
 				{
 					"name": "log",
 					"cmd": ["./run.sh $file_base_name log"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./run.sh $file_base_name cheat"]
 				},
 				{
 					"name": "release",
@@ -151,7 +175,7 @@
 			"shell": true,
 			"cmd": ["./install.sh release"],
 			"env": {
-				"BUILD_VERSION": "2.2"
+				"BUILD_VERSION": "2.3"
 			},
 			"variants":
 			[
@@ -180,12 +204,20 @@
 					"cmd": ["./install.sh visual_log"],
 				},
 				{
-					"name": "pico8_utest (headless)",
+					"name": "pico8_utest",
 					"cmd": ["./install.sh pico8_utest"],
 				},
 				{
 					"name": "log",
 					"cmd": ["./install.sh log"],
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install.sh cheat"],
+				},
+				{
+					"name": "release",
+					"cmd": ["./install.sh release"],
 				},
 				{
 					"name": "debug (png)",
@@ -212,12 +244,16 @@
 					"cmd": ["./install.sh visual_log png"],
 				},
 				{
-					"name": "pico8_utest (headless) (png)",
+					"name": "pico8_utest (png)",
 					"cmd": ["./install.sh pico8_utest png"],
 				},
 				{
 					"name": "log (png)",
 					"cmd": ["./install.sh log png"],
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install.sh cheat png"],
 				},
 				{
 					"name": "release (png)",
@@ -230,6 +266,16 @@
 			"shell": true,
 			"cmd": ["pico8 -run data/data.p8"],
 			"working_dir": "${project_path}"
+		},
+		// it's better to use our custom main in unittest scripts to get the correct log level
+		// for filtering, it's easier to use -m unittest, but it will show all the warnings
+		{
+			"name": "python: test preprocess (TestPreprocessLines)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["python3 -m unittest prebuild.test_preprocess.TestPreprocessLines"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "python: test preprocess",
@@ -287,11 +333,11 @@
 			"variants":
 			[
 				{
-					"name": "current (solo)",
+					"name": "current - solo",
 					"cmd": ["./test.sh $file_base_name solo"],
 				},
 				{
-					"name": "current (all)",
+					"name": "current - all",
 					"cmd": ["./test.sh $file_base_name all"],
 				},
 				{
@@ -299,11 +345,11 @@
 					"cmd": ["./test.sh all"],
 				},
 				{
-					"name": "all (solo)",
+					"name": "all - solo",
 					"cmd": ["./test.sh all solo"],
 				},
 				{
-					"name": "all (all)",
+					"name": "all - all",
 					"cmd": ["./test.sh all all"],
 				},
 				{
@@ -383,8 +429,16 @@
 					"cmd": ["./test.sh headless_itests"],
 				},
 				{
-					"name": "headless_itests (solo)",
+					"name": "headless_itests (render)",
+					"cmd": ["./test.sh headless_itests --render"],
+				},
+				{
+					"name": "headless_itests - solo",
 					"cmd": ["./test.sh headless_itests solo"],
+				},
+				{
+					"name": "headless_itests - solo (render)",
+					"cmd": ["./test.sh headless_itests solo --render"],
 				},
 			],
 		},
@@ -403,6 +457,7 @@
 			"folder_exclude_patterns":
 			[
 				".git",
+				"backup",
 				"build",
 				"intermediate",
 				"__pycache__"

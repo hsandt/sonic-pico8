@@ -18,7 +18,7 @@ define_build_vars $1
 
 OUTPUT_FILEPATH="build/${OUTPUT_BASENAME}_$2.p8"
 
-echo "Running ${OUTPUT_FILEPATH} with ${@:3}..."
+echo "Running ${OUTPUT_FILEPATH} with extra args: '${@:3}'"
 # ${@:4} will pass remaining args after the first 2, such as "-x; exec bash
 # as a trick to run headless and keep terminal open"
 gnome-terminal -- bash -x -c "pico8 -run ${OUTPUT_FILEPATH} -gif_scale 4 ${@:3}"

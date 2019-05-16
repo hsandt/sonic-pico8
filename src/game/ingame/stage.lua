@@ -2,13 +2,12 @@ require("engine/core/class")
 require("engine/core/coroutine")
 require("engine/core/math")
 require("engine/render/color")
+local flow = require("engine/application/flow")
+local ui = require("engine/ui/ui")
 local player_char = require("game/ingame/playercharacter")
 local gamestate = require("game/application/gamestate")
-local flow = require("engine/application/flow")
-local audio = require("game/resources/audio")
-local input = require("engine/input/input")
-local ui = require("engine/ui/ui")
 local stage_data = require("game/data/stage_data")
+local audio = require("game/resources/audio")
 
 local stage = {
 
@@ -80,7 +79,6 @@ function state:update()
   self:update_coroutines()
 
   if self.current_substate == stage.substates.play then
-    self:handle_input()
     self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
@@ -145,39 +143,6 @@ function state:spawn_player_char()
   local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
   self.player_char = player_char()
   self.player_char:spawn_at(spawn_position)
-end
-
-
--- input
-
--- refactor: move to player_character
--- handle player input
-function state:handle_input()
-  if self.player_char.control_mode == control_modes.human then
-    -- move
-    local player_move_intention = vector.zero()
-
-    if input:is_down(button_ids.left) then
-      player_move_intention:add_inplace(vector(-1, 0))
-    elseif input:is_down(button_ids.right) then
-      player_move_intention:add_inplace(vector(1, 0))
-    end
-
-    if input:is_down(button_ids.up) then
-      player_move_intention:add_inplace(vector(0, -1))
-    elseif input:is_down(button_ids.down) then
-      player_move_intention:add_inplace(vector(0, 1))
-    end
-
-    self.player_char.move_intention = player_move_intention
-
-    -- jump
-    local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
-    -- set jump intention each frame, don't set it to true for later consumption to avoid sticky input
-    --  without needing a reset later during update
-    self.player_char.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
-    self.player_char.hold_jump_intention = is_jump_input_down  -- set each frame
-  end
 end
 
 

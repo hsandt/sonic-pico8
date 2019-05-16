@@ -1,7 +1,7 @@
 --#ifn pico8
 
-require("pico8api")
-local collision = require("engine/physics/collision")
+require("engine/test/pico8api")
+local tile = require("game/platformer/tile")
 local collision_data = require("game/data/collision_data")
 local stub = require("luassert.stub")
 
@@ -23,7 +23,7 @@ function tile_test_data.setup()
   fset(73, sprite_flags.collision, true)  -- high-tile (3/4 filled)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
-  height_array_init_mock = stub(collision.height_array, "_init", function (self, tile_data)
+  height_array_init_mock = stub(tile.height_array, "_init", function (self, tile_data)
     local tile_mask_id_location = tile_data.id_loc
     if tile_mask_id_location == collision_data.tiles_data[64].id_loc then
       self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile
@@ -57,6 +57,15 @@ function tile_test_data.teardown()
   pico8:clear_spriteflags()
 
   height_array_init_mock:revert()
+end
+
+-- helper safety function that verifies that mock tile data is active when creating mock maps for utests
+-- always use it instead of mset in utest setup meant to test collisions
+function mock_mset(x, y, v)
+  -- verify that tile_test_data.setup has been called since the last tile_test_data.teardown
+  -- just check if the mock of height_array exists and is active
+  assert(height_array_init_mock and not height_array_init_mock.reverted, "mock_mset: tile_test_data.setup has not been called since the last tile_test_data.teardown")
+  mset(x, y, v)
 end
 
 return tile_test_data

@@ -5,12 +5,9 @@ require("engine/test/assertions")
 --#if log
 local logging = require("engine/debug/logging")
 --#endif
--- engine -> game reference is not good, consider using flow directly
---  and isolating active gamestates somewhere else (e.g. a generic gameapp in engine)
-local gameapp = require("game/application/gameapp")
 local input = require("engine/input/input")
 
-local integrationtest = {}
+local mod = {}
 
 test_states = {
   none = 'none',          -- no test started
@@ -21,11 +18,11 @@ test_states = {
 }
 
 -- integration test manager: registers all itests
--- itests   {string: itest}   registered itests, indexed by name
+-- itests   {string: itest}  registered itests, indexed by name
 itest_manager = singleton(function (self)
   self.itests = {}
 end)
-integrationtest.itest_manager = itest_manager
+mod.itest_manager = itest_manager
 
 -- all-in-one utility function that creates and register a new itest,
 -- defining setup, actions and final assertion inside a contextual callback,
@@ -50,7 +47,7 @@ integrationtest.itest_manager = itest_manager
 --     end)
 --   end)
 function itest_manager:register_itest(name, states, definition)
-  local itest = integrationtest.integration_test(name, states)
+  local itest = mod.integration_test(name, states)
   self:register(itest)
 
   -- context
@@ -78,7 +75,7 @@ function itest_manager:register_itest(name, states, definition)
       -- we were already waiting, so finish last wait with empty action
       itest:add_action(last_time_trigger, nil)
     end
-    last_time_trigger = integrationtest.time_trigger(time, use_frame_unit)
+    last_time_trigger = mod.time_trigger(time, use_frame_unit)
   end
 
   function act(callback)
@@ -87,7 +84,7 @@ function itest_manager:register_itest(name, states, definition)
       last_time_trigger = nil  -- consume so we know no final wait-action is needed
     else
       -- no wait since last action (or this is the first action), so use immediate trigger
-      itest:add_action(integrationtest.immediate_trigger, callback)
+      itest:add_action(mod.immediate_trigger, callback)
     end
   end
 
@@ -114,46 +111,69 @@ end
 function itest_manager:init_game_and_start_by_index(index)
   local itest = self.itests[index]
   assert(itest, "itest_manager:init_game_and_start_by_index: index is "..tostr(index).." but only "..tostr(#self.itests).." were registered.")
-  integration_test_runner:init_game_and_start(itest)
+  itest_runner:init_game_and_start(itest)
 end
 
 -- integration test runner singleton
--- test lifetime:
+-- usage:
+-- first, make sure you have registered itests via the itest_manager
+--   and that you are running an itest via itest_manager:init_game_and_start_by_index (a proxy for itest_runner:init_game_and_start)
+-- in _init, create a game app, set its initial_gamestate and set itest_runner.app to this app instance
+-- in _update(60), call itest_runner:update_game_and_test
+-- in _draw, call itest_runner:draw_game_and_test
+
+-- attributes
+-- initialized          bool              true if it has already been initialized.
+--                                        initialization is lazy and is only needed once
+-- current_test         integration_test  current itest being run
+-- current_frame        int               index of the current frame run
+-- _last_trigger_frame  int               stored index of the frame where the last command trigger was received
+-- _next_action_index   int               index of the next action to execute in the action list
+-- current_state        test_states       stores if test has not started, is still running or has succeeded/failed
+-- current_message      string            failure message, nil if test has not failed
+-- app                  gameapp           gameapp instance of the tested game
+--                                        must be set directly with itest_runner.app = ...
+
+-- a test's lifetime follows the phases:
 -- none -> running -> success/failure/timeout (still alive, but not updated)
 --  -> stopped when a another test starts running
-integration_test_runner = singleton(function (self)
+itest_runner = singleton(function (self)
   self.initialized = false
   self.current_test = nil
   self.current_frame = 0
   self._last_trigger_frame = 0
   self._next_action_index = 1
   self.current_state = test_states.none
-  self.current_message = nil              -- only defined when current_state is failure
+  self.current_message = nil
+  self.app = nil
 end)
 
 -- helper method to use in rendered itest _init
-function integration_test_runner:init_game_and_start(test)
-  -- if there was a previous test, gameapp was already initialized,
-  --  so reset it now (we could also just keep it and change the gamestate
-  --  to void, if we are sure that all the itests have the same required modules)
+function itest_runner:init_game_and_start(test)
+  assert(self.app ~= nil, "itest_runner:init_game_and_start: self.app is not set")
+
+  -- if there was a previous test, app was initialized too, so reset both now
+  -- (in reverse order of start)
   if self.current_test then
-      gameapp.reinit_modules()
+    self:stop()
+    self.app:reset()
   end
 
-  gameapp.init(test.active_gamestates)
-  integration_test_runner:start(test)
+  self.app:start()
+  itest_runner:start(test)
 end
 
 -- helper method to use in rendered itest _update60
-function integration_test_runner:update_game_and_test()
+function itest_runner:update_game_and_test()
   if self.current_state == test_states.running then
-    -- update gameapp, then test runner
+
+    -- update app, then test runner
     -- updating test runner 2nd allows us to check the actual game state at final frame f,
     --  after everything has been computed
     -- time_trigger(0.)  initial actions will still be applied before first frame
     --  thanks to the initial _check_next_action on start, but setup is still recommended
     log("frame #"..self.current_frame + 1, "trace")
-    gameapp.update()
+    self.app:update()
     self:update()
     if self.current_state ~= test_states.running then
       log("itest '"..self.current_test.name.."' ended with "..self.current_state, "itest")
@@ -165,20 +185,20 @@ function integration_test_runner:update_game_and_test()
 end
 
 -- helper method to use in rendered itest _draw
-function integration_test_runner:draw_game_and_test()
-  gameapp.draw()
+function itest_runner:draw_game_and_test()
+  self.app:draw()
   self:draw()
 end
 
-function integration_test_runner:start(test)
+-- start a test: integration_test
+function itest_runner:start(test)
   -- lazy initialization
   if not self.initialized then
     self:_initialize()
   end
 
-  if self.current_test then
-    self:stop()
-  end
+  -- log after _initialize which sets up the logger
+  log("starting itest: "..test.name, "trace")
 
   self.current_test = test
   self.current_state = test_states.running
@@ -194,8 +214,8 @@ function integration_test_runner:start(test)
   end
 end
 
-function integration_test_runner:update()
-  assert(self.current_test, "integration_test_runner:update: current_test is not set")
+function itest_runner:update()
+  assert(self.current_test, "itest_runner:update: current_test is not set")
   if self.current_state ~= test_states.running then
     -- the current test is over and we already got the result
     -- do nothing and fail silently (to avoid crashing
@@ -214,13 +234,16 @@ function integration_test_runner:update()
   end
 end
 
-function integration_test_runner:draw()
-  assert(self.current_test, "integration_test_runner:draw: current_test is not set")
-  api.print(self.current_test.name, 2, 2, colors.yellow)
-  api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
+function itest_runner:draw()
+  if self.current_test then
+    api.print(self.current_test.name, 2, 2, colors.yellow)
+    api.print(self.current_state, 2, 9, self:_get_test_state_color(self.current_state))
+  else
+    api.print("no itest running", 8, 8, colors.white)
+  end
 end
 
-function integration_test_runner:_get_test_state_color(test_state)
+function itest_runner:_get_test_state_color(test_state)
   if test_state == test_states.none then
     return colors.white
   elseif test_state == test_states.running then
@@ -234,27 +257,26 @@ function integration_test_runner:_get_test_state_color(test_state)
   end
 end
 
-function integration_test_runner:_initialize()
+function itest_runner:_initialize()
   -- use simulated input during itests
   input.mode = input_modes.simulated
 
 --#if log
   -- all itests should only print itest logs, and maybe trace if you want
   logging.logger:deactivate_all_categories()
-
---[[#pico8
   logging.logger.active_categories["itest"] = true
---#pico8]]
-
   logging.logger.active_categories["trace"] = false
 --#endif
 
   self.initialized = true
 end
 
-function integration_test_runner:_check_next_action()
+function itest_runner:_check_next_action()
   assert(self._next_action_index <= #self.current_test.action_sequence, "self._next_action_index ("..self._next_action_index..") is out of bounds for self.current_test.action_sequence (size "..#self.current_test.action_sequence..")")
 
+  -- test: chain actions with no intervals between them
+  local should_trigger_next_action
+  repeat
   -- check if next action should be applied
   local next_action = self.current_test.action_sequence[self._next_action_index]
   local should_trigger_next_action = next_action.trigger:_check(self.current_frame - self._last_trigger_frame)
@@ -265,11 +287,14 @@ function integration_test_runner:_check_next_action()
     end
     self._last_trigger_frame = self.current_frame
     self._next_action_index = self._next_action_index + 1
-    self:_check_end()
+      if self:_check_end() then
+        break
+      end
   end
+  until not should_trigger_next_action
 end
 
-function integration_test_runner:_check_end()
+function itest_runner:_check_end()
   -- check if last action was applied, end now
   -- this means you can define an 'end' action just by adding an empty action at the end
   if self.current_test.action_sequence[1] then
@@ -281,7 +306,7 @@ function integration_test_runner:_check_end()
   return false
 end
 
-function integration_test_runner:_end_with_final_assertion()
+function itest_runner:_end_with_final_assertion()
   -- check the final assertion so we know if we should end with success or failure
   result, message = self.current_test:_check_final_assertion()
   if result then
@@ -295,7 +320,7 @@ end
 -- stop the current test, tear it down and reset all values
 -- this is only called when starting a new test, not when it finished,
 --  so we can still access info on the current test while the user examines its result
-function integration_test_runner:stop()
+function itest_runner:stop()
   if self.current_test.teardown then
     self.current_test.teardown()
   end
@@ -309,7 +334,7 @@ end
 
 -- time trigger struct
 local time_trigger = new_struct()
-integrationtest.time_trigger = time_trigger
+mod.time_trigger = time_trigger
 
 -- non-member parameters
 -- time            float time to wait before running callback after last trigger (in seconds by default, in frames if use_frame_unit is true)
@@ -338,7 +363,7 @@ function time_trigger:_check(elapsed_frames)
 end
 
 -- helper triggers
-integrationtest.immediate_trigger = time_trigger(0, true)
+mod.immediate_trigger = time_trigger(0, true)
 
 
 -- scripted action struct (but we use class because comparing functions only work by reference)
@@ -363,7 +388,7 @@ end
 
 -- integration test class
 local integration_test = new_class()
-integrationtest.integration_test = integration_test
+mod.integration_test = integration_test
 
 -- parameters
 -- name               string                         test name
@@ -419,4 +444,4 @@ function integration_test:_check_final_assertion()
   end
 end
 
-return integrationtest
+return mod

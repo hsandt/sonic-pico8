@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 from . import replace_strings
 
+import logging
 from os import path
 import shutil, tempfile
 
@@ -22,9 +25,18 @@ class TestReplaceStrings(unittest.TestCase):
         test_string = '##d and ##x ##d'
         self.assertEqual(replace_strings.replace_all_glyphs_in_string(test_string), '⬇️ and ❎ ⬇️')
 
-    def test_replace_all_symbols_in_string(self):
+    def test_replace_all_symbols_in_string_function(self):
         test_string = 'api.print("hello")'
         self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'print("hello")')
+
+    def test_replace_all_symbols_in_string_enum(self):
+        test_string = 'local c = colors.dark_purple'
+        self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'local c = 2')
+
+    def test_replace_all_symbols_in_string_missing_member(self):
+        test_string = 'local c = colors.unknown'
+        # this will trigger a warning, hide by setting logging level to ERROR in main
+        self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'local c = colors.unknown')
 
     def test_replace_all_args_in_string(self):
         test_string = 'require("itest_$itest")'
@@ -52,10 +64,10 @@ class TestReplaceStringsInFile(unittest.TestCase):
     def test_replace_strings(self):
         """^ Test replacing strings in a whole file, with substitutes being shorter or longer than original symbol to test if file is truncated"""
         test_filepath = path.join(self.test_dir, 'test.lua')
-        with open(test_filepath, 'w') as f:
+        with open(test_filepath, 'w', encoding='utf-8') as f:
             f.write('require("itest_$itest")\nrequire("$symbol_is_much_longer")\n##d or ##u\nand ##x\napi.print("press ##x")')
         replace_strings.replace_all_strings_in_file(test_filepath, {'itest': 'character', 'symbol_is_much_longer': 'short'})
-        with open(test_filepath, 'r') as f:
+        with open(test_filepath, 'r', encoding='utf-8') as f:
             self.assertEqual(f.read(), 'require("itest_character")\nrequire("short")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
 
 class TestReplaceStringsInDir(unittest.TestCase):
@@ -70,16 +82,17 @@ class TestReplaceStringsInDir(unittest.TestCase):
 
     def test_replace_all_strings_in_dir(self):
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
-        with open(test_filepath1, 'w') as f:
+        with open(test_filepath1, 'w', encoding='utf-8') as f:
             f.write('require("itest_$itest")\n##d or ##u\nand ##x\napi.print("press ##x")')
         test_filepath2 = path.join(self.test_dir, 'test2.lua')
-        with open(test_filepath2, 'w') as f:
+        with open(test_filepath2, 'w', encoding='utf-8') as f:
             f.write('require("itest_$itest")\n##l or ##r\nand ##o\napi.print("press ##o")')
         replace_strings.replace_all_strings_in_dir(self.test_dir, {'itest': 'character'})
-        with open(test_filepath1, 'r') as f:
+        with open(test_filepath1, 'r', encoding='utf-8') as f:
             self.assertEqual(f.read(), 'require("itest_character")\n⬇️ or ⬆️\nand ❎\nprint("press ❎")')
-        with open(test_filepath2, 'r') as f:
+        with open(test_filepath2, 'r', encoding='utf-8') as f:
             self.assertEqual(f.read(), 'require("itest_character")\n⬅️ or ➡️\nand 🅾️\nprint("press 🅾️")')
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.ERROR)
     unittest.main()

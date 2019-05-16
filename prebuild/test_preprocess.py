@@ -6,103 +6,74 @@ from os import path
 import shutil, tempfile
 
 
-class TestPreprocess(unittest.TestCase):
+class TestPreprocessLines(unittest.TestCase):
 
-    def test_strip_comments_full_line(self):
-        test_line = '-- my comment\n'
-        self.assertEqual(preprocess.strip_comments(test_line), '\n')
+    def test_is_function_call_to_strip_pure_brackets_false(self):
+        test_line = '(5)\n'
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'debug'))
 
-    def test_strip_comments_after_code(self):
-        test_line = 'print("hi") -- prints hi\n'
-        self.assertEqual(preprocess.strip_comments(test_line), 'print("hi") \n')
-
-    def test_strip_comments_outside_quotes(self):
-        test_line = 'print("hi  -- this is \"not\" a comment") -- prints hi\n'
-        self.assertEqual(preprocess.strip_comments(test_line), 'print("hi  -- this is \"not\" a comment") \n')
-
-    def test_strip_comments_after_code(self):
-        test_line = '"some \\"text" print("hi  -- this is \"not\" a comment") -- prints hi  "more text"  -- more comment\n'
-        self.assertEqual(preprocess.strip_comments(test_line), '"some \\"text" print("hi  -- this is "not" a comment") \n')
-
-    def test_strip_function_calls_no_change(self):
+    def test_is_function_call_to_strip_log_in_debug_false(self):
         test_line = 'log(5)\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'debug'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'debug'))
 
-    def test_strip_function_calls_empty_string(self):
+    def test_is_function_call_to_strip_log_in_debug_with_comment_false(self):
+        test_line = '    log("character moves", "[character]")  -- logging\n'
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'debug'))
+
+    def test_is_function_call_to_strip_log_in_release_with_comment_true(self):
+        test_line = '    log("character moves", "[character]")  -- logging\n'
+        expected_processed_lines = ''
+        self.assertTrue(preprocess.is_function_call_to_strip(test_line, 'release'))
+
+    def test_is_function_call_to_strip_log_in_release_true(self):
         test_line = 'log("character moves", "[character]")\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), '')
+        self.assertTrue(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_function_calls_tricky_bracket(self):
+    def test_is_function_call_to_strip_tricky_bracket(self):
         test_line = 'log("inside quotes )", "[character]")\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), '')
+        self.assertTrue(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_function_calls_embedded_brackets(self):
+    def test_is_function_call_to_strip_embedded_brackets(self):
         test_line = 'log(value.evaluate(with.style()), "[character]")\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), '')
+        self.assertTrue(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_function_calls_tricky_quotes(self):
+    def test_is_function_call_to_strip_tricky_quotes(self):
         test_line = 'log("inside quotes )\\"", "[character]")\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), '')
+        self.assertTrue(preprocess.is_function_call_to_strip(test_line, 'release'))
 
     def test_strip_function_after_something_else(self):
         test_line = 'dont strip log(this)\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'release'))
 
     def test_strip_function_after_something_else(self):
         test_line = 'log(this) shouldnt be stripped\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_function_calls_not_alone(self):
+    def test_is_function_call_to_strip_not_alone(self):
         test_line = 'log("inside quotes", "[character]") or a = 3\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_function_calls_not_alone2(self):
+    def test_is_function_call_to_strip_not_alone2(self):
         test_line = 'log("inside quotes )\\"", "[character]") or a = 3\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'release'))
 
     @unittest.skip("regex is not good enough to detect last bracket does not belong to the log")
-    def test_strip_function_calls_not_alone_end_bracket(self):
+    def test_is_function_call_to_strip_not_alone_end_bracket(self):
         test_line = 'log("inside quotes )\\"", "[character]") or fancy_side_effect()\n'
-        self.assertEqual(preprocess.strip_function_calls(test_line, 'release'), test_line)
+        self.assertFalse(preprocess.is_function_call_to_strip(test_line, 'release'))
 
-    def test_strip_line_content_debug(self):
-        test_line = '    log("character moves", "[character]")  -- logging\n'
-        expected_processed_line = 'log("character moves", "[character]")'
-        self.assertEqual(preprocess.strip_line_content(test_line, 'debug'), expected_processed_line)
-
-    def test_strip_line_content_release(self):
-        test_line = '    log("character moves", "[character]")  -- logging\n'
-        expected_processed_lines = ''
-        self.assertEqual(preprocess.strip_line_content(test_line, 'release'), '')
-
-    def test_preprocess_strip_blanks_after_comments(self):
+    def test_preprocess_lines_no_directives_preserve(self):
         test_lines = [
             'print ("hi")  \n',
             '\n',
             'if true:  \n',
             '    -- prints hello\n',
             '    print("hello")  -- comment\n',
-            '\n'
+            '\n',
         ]
-        expected_processed_lines = [
-            'print ("hi")\n',
-            'if true:\n',
-            'print("hello")\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), test_lines)
 
-    def test_preprocess_no_directives(self):
-        test_lines = [
-            'if true:\n',
-            '    print("hello")\n'
-        ]
-        expected_processed_lines = [
-            'if true:\n',
-            'print("hello")\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
-
-    def test_preprocess_if_log_in_debug(self):
+    def test_preprocess_lines_if_log_in_debug(self):
         test_lines = [
             'print("always")\n',
             '\n',
@@ -111,17 +82,19 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             '\n',
             'if true:\n',
-            '    print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
+            '\n',
             'print("debug")\n',
+            '\n',
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_if_log_in_release(self):
+    def test_preprocess_lines_if_log_in_release(self):
         test_lines = [
             'print("always")\n',
             '\n',
@@ -130,16 +103,18 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             '\n',
             'if true:\n',
-            'print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
+            '\n',
+            '\n',
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_2nd_if_refused(self):
+    def test_preprocess_lines_2nd_if_refused(self):
         test_lines = [
             '--#if log\n',
             'print("debug")\n',
@@ -148,17 +123,18 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             '\n',
             'if true:\n',
-            'print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
             '--#endif\n',
         ]
         expected_processed_lines = [
             'print("debug")\n',
+            '\n',
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_3rd_if_still_ignore(self):
+    def test_preprocess_lines_3rd_if_still_ignore(self):
         test_lines = [
             '--#if log\n',
             'print("debug")\n',
@@ -171,17 +147,18 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             '\n',
             'if true:\n',
-            'print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
             '--#endif\n',
         ]
         expected_processed_lines = [
             'print("debug")\n',
+            '\n',
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_3rd_if_ignored_even_if_true(self):
+    def test_preprocess_lines_3rd_if_ignored_even_if_true(self):
         test_lines = [
             '--#if log\n',
             'print("debug")\n',
@@ -194,31 +171,32 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             '\n',
             'if true:\n',
-            'print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
             '--#endif\n',
         ]
         expected_processed_lines = [
             'print("debug")\n',
+            '\n',
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_ifn(self):
+    def test_preprocess_lines_ifn(self):
         test_lines = [
             'print("always")\n',
             '--#ifn log\n',
             'print("no log")\n',
             '--#endif\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_if_and_ifn(self):
+    def test_preprocess_lines_if_and_ifn(self):
         test_lines = [
             'print("always")\n',
             '--#if log\n',
@@ -227,16 +205,16 @@ class TestPreprocess(unittest.TestCase):
             '--#ifn log\n',
             'print("no log")\n',
             '--#endif\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
             'print("log")\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_ifn_inside_if(self):
+    def test_preprocess_lines_ifn_inside_if(self):
         test_lines = [
             'print("always")\n',
             '--#if log\n',
@@ -246,17 +224,17 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             'print("log 2")\n',
             '--#endif\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
             'print("log")\n',
             'print("log 2")\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_if_inside_ifn(self):
+    def test_preprocess_lines_if_inside_ifn(self):
         test_lines = [
             'print("always")\n',
             '--#ifn log\n',
@@ -266,175 +244,123 @@ class TestPreprocess(unittest.TestCase):
             '--#endif\n',
             'print("no log 2")\n',
             '--#endif\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_ifn_log_in_release(self):
+    def test_preprocess_lines_ifn_log_in_release(self):
         test_lines = [
             'print("always")\n',
             '--#ifn log\n',
             'print("no log")\n',
             '--#endif\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         expected_processed_lines = [
             'print("always")\n',
             'print("no log")\n',
-            'print("hello")\n'
+            'print("hello")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_immediate_endif_ignored(self):
+    def test_preprocess_lines_immediate_endif_ignored(self):
         test_lines = [
             '--#endif\n',
             'if true:\n',
-            '    print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
         ]
         expected_processed_lines = [
             'if true:\n',
-            'print("hello")\n'
+            '    print("hello")  -- prints hello\n',
         ]
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_missing_endif_ignored(self):
+    def test_preprocess_lines_missing_endif_ignored(self):
         test_lines = [
             '--#if log\n',
             'print("debug")\n',
             '\n',
             'if true:\n',
-            'print("hello")  -- prints hello\n'
+            '    print("hello")  -- prints hello\n',
         ]
         expected_processed_lines = [
         ]
         # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_comment_block(self):
+    def test_preprocess_lines_if_after_blank_acknowledged(self):
         test_lines = [
-            'print("start")\n',
-            '--[[ comment start\n',
-            'more comment\n',
-            '--]]\n',
-            'print("end")\n'
+            '  --#if log\n',
+            '  print("debug")\n',
+            '  --#endif\n',
         ]
         expected_processed_lines = [
-            'print("start")\n',
-            'print("end")\n'
+            '  print("debug")\n',
         ]
-        logging.info("NOW")
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_comment_block_in_the_middle(self):
+    def test_preprocess_lines_if_after_non_blank_preserved(self):
         test_lines = [
-            'print("start")\n',
-            'some code --[[ comment start\n',
-            'more comment\n',
-            'end comment ]] more core\n',
-            'print("end")\n'
+            'text before --#if log\n',
+            'print("debug")\n',
+            'text before --#endif\n',
         ]
         expected_processed_lines = [
-            'print("start")\n',
-            'some code\n',
-            'more core\n',
-            'print("end")\n'
+            'text before --#if log\n',
+            'print("debug")\n',
+            'text before --#endif\n',
         ]
-        logging.info("NOW")
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_stop_comment_outside_comment_block(self):
-        test_lines = [
-            'print("start")\n',
-            'legit ]] code\n',
-            'print("end")\n'
-        ]
-        expected_processed_lines = [
-            'print("start")\n',
-            'legit ]] code\n',  # warning, ignore
-            'print("end")\n'
-        ]
-        logging.info("NOW")
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
-
-    def test_preprocess_pico8_block(self):
+    def test_preprocess_lines_pico8_block(self):
         test_lines = [
             'print("start")\n',
             '--[[#pico8 pico8 start\n',
             'real pico8 code\n',
             '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
             'real pico8 code\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_pico8_comment_block(self):
-        test_lines = [
-            'print("start")\n',
-            '--[[#pico8 pico8 start\n',
-            'real pico8 code\n',
-            'and --[[ comment inside\n',
-            'more comment\n',
-            'and ]] over\n',
-            'more pico8 code',
-            '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
-        ]
-        expected_processed_lines = [
-            'print("start")\n',
-            'real pico8 code\n',
-            'and\n',
-            'over\n',
-            'more pico8 code\n',
-            'print("end")\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
-
-    def test_preprocess_comment_pico8_block(self):
-        test_lines = [
-            '--[[ comment\n',
-            '--[[#pico8\n',  # warning here, ignored
-            'comment\n',
-            ']] over\n'
-        ]
-        expected_processed_lines = [
-            'over\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
-
-    def test_preprocess_stop_pico8_inside_comment_block(self):
-        test_lines = [
-            '--[[#pico8\n',
-            '--[[ comment\n',
-            'comment\n',
-            '--#pico8]]\n',  # warning here, will still close
-            'still comment\n',  # warning here, will still close
-            ']] code is back\n'
-        ]
-        expected_processed_lines = [
-            'code is back\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
-
-    def test_preprocess_stop_pico8_outside_pico8_block(self):
+    def test_preprocess_lines_stop_pico8_outside_pico8_block(self):
         test_lines = [
             '--#pico8]]\n',  # warning here, ignored
-            'code\n'
+            'code\n',
         ]
         expected_processed_lines = [
-            'code\n'
+            'code\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_ignored_if_inside_pico8_block(self):
+    def test_preprocess_lines_refused_if_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[=[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#if log\n',
+            'log only\n',
+            '--#endif\n',
+            '--#pico8]=] exceptionally ignored\n',
+            'print("end")\n',
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n',
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
+
+    def test_preprocess_lines_accepted_if_inside_pico8_block(self):
         test_lines = [
             'print("start")\n',
             '--[[#pico8 pico8 start\n',
@@ -443,35 +369,35 @@ class TestPreprocess(unittest.TestCase):
             'log only\n',
             '--#endif\n',
             '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
-        ]
-        expected_processed_lines = [
-            'print("start")\n',
-            'real pico8 code\n',
-            'print("end")\n'
-        ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
-
-    def test_preprocess_accepted_if_inside_pico8_block(self):
-        test_lines = [
-            'print("start")\n',
-            '--[[#pico8 pico8 start\n',
-            'real pico8 code\n',
-            '--#if log\n',
-            'log only\n',
-            '--#endif\n',
-            '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
             'real pico8 code\n',
             'log only\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
 
-    def test_preprocess_ignored_ifn_inside_pico8_block(self):
+    def test_preprocess_lines_refused_ifn_inside_pico8_block(self):
+        test_lines = [
+            'print("start")\n',
+            '--[==[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '--#ifn log\n',
+            'release only\n',
+            '--#endif\n',
+            '--#pico8]==] exceptionally ignored\n',
+            'print("end")\n',
+        ]
+        expected_processed_lines = [
+            'print("start")\n',
+            'real pico8 code\n',
+            'print("end")\n',
+        ]
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+
+    def test_preprocess_lines_accepted_ifn_inside_pico8_block(self):
         test_lines = [
             'print("start")\n',
             '--[[#pico8 pico8 start\n',
@@ -480,61 +406,66 @@ class TestPreprocess(unittest.TestCase):
             'release only\n',
             '--#endif\n',
             '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
             'real pico8 code\n',
-            'print("end")\n'
+            'release only\n',
+            'print("end")\n',
         ]
-        self.assertEqual(preprocess.preprocess_lines(test_lines, 'debug'), expected_processed_lines)
+        self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_accepted_ifn_inside_pico8_block(self):
+    def test_preprocess_lines_missing_end_pico8_ignored(self):
         test_lines = [
             'print("start")\n',
             '--[[#pico8 pico8 start\n',
             'real pico8 code\n',
-            '--#ifn log\n',
-            'release only\n',
-            '--#endif\n',
-            '--#pico8]] exceptionally ignored\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
             'real pico8 code\n',
-            'release only\n',
-            'print("end")\n'
+            'print("end")\n',
         ]
+        # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    @unittest.skip("we don't use a perfect regex able to detect start and end of block comment on the same line")
-    def test_preprocess_comment_block_start_end_in_the_middle(self):
+    def test_preprocess_lines_pico8_after_blank_acknowledged(self):
         test_lines = [
             'print("start")\n',
-            '--[[ --]] outside comment\n',
+            '  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            '  --#pico8]] exceptionally ignored\n',
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
-            'outside comment\n'
+            'real pico8 code\n',
+            'print("end")\n',
         ]
+        # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    @unittest.skip("we don't use a perfect regex able to detect end and start of block comment on the same line")
-    def test_preprocess_comment_block_end_start_in_the_middle(self):
+    def test_preprocess_lines_pico8_after_non_blank_preserved(self):
         test_lines = [
             'print("start")\n',
-            '--[[\n',
-            ']] outside comment --[[\n',
-            ']]\n'
+            'text  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            'text  --#pico8]] exceptionally ignored\n',
+            'print("end")\n',
         ]
         expected_processed_lines = [
             'print("start")\n',
-            'outside comment\n'
+            'text  --[[#pico8 pico8 start\n',
+            'real pico8 code\n',
+            'text  --#pico8]] exceptionally ignored\n',
+            'print("end")\n',
         ]
+        # this will also trigger a warning, but we don't test it
         self.assertEqual(preprocess.preprocess_lines(test_lines, 'release'), expected_processed_lines)
 
-    def test_preprocess_with_unknown_config(self):
+    def test_preprocess_lines_with_unknown_config(self):
         test_lines = []
         self.assertRaises(ValueError, preprocess.preprocess_lines, test_lines, 'unknown')
 
@@ -550,51 +481,62 @@ class TestPreprocessFile(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_preprocess_file_in_debug(self):
-        test_lines = [
-            'print("always")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            'print("hello")  -- prints hello\n'
-        ]
-        expected_processed_lines = [
-            'print("always")\n',
-            'print("debug")\n',
-            'if true:\n',
-            'print("hello")\n'
-        ]
+        test_code = """
+print("always")
+
+--#if log
+print("debug")
+--#endif
+
+if true:
+    print("hello")  -- prints hello
+    log("debug only")  --
+"""
+
+        expected_processed_code = """
+print("always")
+
+print("debug")
+
+if true:
+    print("hello")  -- prints hello
+    log("debug only")  --
+"""
+
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
-            f.write('\n'.join(test_lines))
+            f.write(test_code)
         preprocess.preprocess_file(test_filepath, 'debug')
         with open(test_filepath, 'r') as f:
-            self.assertEqual(f.read(), ''.join(expected_processed_lines))
+            self.assertEqual(f.read(), expected_processed_code)
 
     def test_preprocess_file_in_release(self):
-        test_lines = [
-            'print("always")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            '   print("hello")  -- prints hello\n'
-        ]
-        expected_processed_lines = [
-            'print("always")\n',
-            'if true:\n',
-            'print("hello")\n'
-        ]
+        test_code = """
+print("always")
+
+--#if log
+print("debug")
+--#endif
+
+if true:
+    print("hello")  -- prints hello
+    log("debug only")  --
+"""
+
+        expected_processed_code = """
+print("always")
+
+
+if true:
+    print("hello")  -- prints hello
+"""
+
         test_filepath = path.join(self.test_dir, 'test.lua')
         with open(test_filepath, 'w') as f:
-            f.write('\n'.join(test_lines))
+            f.write(test_code)
         preprocess.preprocess_file(test_filepath, 'release')
         with open(test_filepath, 'r') as f:
-            self.assertEqual(f.read(), ''.join(expected_processed_lines))
+            self.assertEqual(f.read(), expected_processed_code)
 
 class TestPreprocessDir(unittest.TestCase):
 
@@ -607,94 +549,106 @@ class TestPreprocessDir(unittest.TestCase):
         shutil.rmtree(self.test_dir)
 
     def test_preprocess_dir_in_debug(self):
-        test_lines1 = [
-            'print("file1")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug1")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            '    print("hello")  -- prints hello\n'
-        ]
-        test_lines2 = [
-            'print("file2")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug2")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            '   print("hello2")  -- prints hello\n'
-        ]
-        expected_processed_lines1 = [
-            'print("file1")\n',
-            'print("debug1")\n',
-            'if true:\n',
-            'print("hello")\n'
-        ]
-        expected_processed_lines2 = [
-            'print("file2")\n',
-            'print("debug2")\n',
-            'if true:\n',
-            'print("hello2")\n'
-        ]
+        test_code1 = """
+print("file1")
+
+--#if log
+print("debug1")
+--#endif
+
+if true:
+    print("hello")  -- prints hello
+"""
+
+        test_code2 = """
+print("file2")
+
+--#if log
+print("debug2")
+--#endif
+
+if true:
+    print("hello2")  -- prints hello
+"""
+
+        expected_processed_code1 = """
+print("file1")
+print("debug1")
+if true:
+    print("hello")
+"""
+
+        expected_processed_code2 = """
+print("file2")
+print("debug2")
+if true:
+    print("hello2")
+"""
+
         # files must end with .lua to be processed
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
         with open(test_filepath1, 'w') as f1:
-            f1.write('\n'.join(test_lines1))
+            f1.write(test_code1)
         test_filepath2 = path.join(self.test_dir, 'test2.lua')
         with open(test_filepath2, 'w') as f2:
-            f2.write('\n'.join(test_lines2))
+            f2.write(test_code2)
         preprocess.preprocess_dir(self.test_dir, 'debug')
         with open(test_filepath1, 'r') as f1:
-            self.assertEqual(f1.read(), '\n'.join(expected_processed_lines1))
+            self.assertEqual(f1.read(), expected_processed_code1)
         with open(test_filepath2, 'r') as f2:
-            self.assertEqual(f2.read(), '\n'.join(expected_processed_lines2))
+            self.assertEqual(f2.read(), expected_processed_code2)
 
     def test_preprocess_dir_in_debug(self):
-        test_lines1 = [
-            'print("file1")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug1")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            '    print("hello")  -- prints hello\n'
-        ]
-        test_lines2 = [
-            'print("file2")\n',
-            '\n',
-            '--#if log\n',
-            'print("debug2")\n',
-            '--#endif\n',
-            '\n',
-            'if true:\n',
-            '    print("hello2")  -- prints hello\n'
-        ]
-        expected_processed_lines1 = [
-            'print("file1")\n',
-            'if true:\n',
-            'print("hello")\n'
-        ]
-        expected_processed_lines2 = [
-            'print("file2")\n',
-            'if true:\n',
-            'print("hello2")\n'
-        ]
+        test_code1 = """
+print("file1")
+
+--#if log
+print("debug1")
+--#endif
+
+if true:
+    print("hello")  -- prints hello
+"""
+
+        test_code2 = """
+print("file2")
+
+--#if log
+print("debug2")
+--#endif
+
+if true:
+    print("hello2")  -- prints hello
+"""
+
+        expected_processed_code1 = """
+print("file1")
+
+
+if true:
+    print("hello")  -- prints hello
+"""
+
+        expected_processed_code2 = """
+print("file2")
+
+
+if true:
+    print("hello2")  -- prints hello
+"""
+
         # files must end with .lua to be processed
         test_filepath1 = path.join(self.test_dir, 'test1.lua')
         with open(test_filepath1, 'w') as f1:
-            f1.write('\n'.join(test_lines1))
+            f1.write(test_code1)
         test_filepath2 = path.join(self.test_dir, 'test2.lua')
         with open(test_filepath2, 'w') as f2:
-            f2.write('\n'.join(test_lines2))
+            f2.write(test_code2)
         preprocess.preprocess_dir(self.test_dir, 'release')
         with open(test_filepath1, 'r') as f1:
-            self.assertEqual(f1.read(), ''.join(expected_processed_lines1))
+            self.assertEqual(f1.read(), expected_processed_code1)
         with open(test_filepath2, 'r') as f2:
-            self.assertEqual(f2.read(), ''.join(expected_processed_lines2))
+            self.assertEqual(f2.read(), expected_processed_code2)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.ERROR)

@@ -4,8 +4,8 @@ require("engine/core/class")
 
 function almost_eq(lhs, rhs, eps)
   eps = eps or 0.01
-  assert(lhs)
-  assert(rhs)
+  assert(lhs, "lhs is nil")
+  assert(rhs, "rhs")
   if type(lhs) == "number" and type(rhs) == "number" then
     return abs(lhs - rhs) <= eps
   elseif lhs.almost_eq then
@@ -315,11 +315,11 @@ function signed_speed_to_dir(signed_speed)
   return signed_speed < 0 and horizontal_dirs.left or horizontal_dirs.right
 end
 
-function oppose_direction(direction)
+function oppose_dir(direction)
   return (direction + 2) % 4
 end
 
-function mirror_direction_x(direction)
+function mirror_dir_x(direction)
   if direction == directions.left then
     return directions.right
   elseif direction == directions.right then
@@ -329,7 +329,7 @@ function mirror_direction_x(direction)
   end
 end
 
-function mirror_direction_y(direction)
+function mirror_dir_y(direction)
   if direction == directions.up then
     return directions.down
   elseif direction == directions.down then
@@ -339,10 +339,10 @@ function mirror_direction_y(direction)
   end
 end
 
-function rotate_direction_90_cw(direction)
+function rotate_dir_90_cw(direction)
   return (direction + 1) % 4
 end
 
-function rotate_direction_90_ccw(direction)
+function rotate_dir_90_ccw(direction)
   return (direction - 1) % 4
 end

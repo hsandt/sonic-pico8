@@ -1,6 +1,41 @@
 require("engine/application/constants")
 
 
+-- create an enum from a sequence of variant names
+function enum(variant_names)
+  local t = {}
+  local i = 1
+
+  for variant_name in all(variant_names) do
+    t[variant_name] = i
+    i = i + 1
+  end
+
+  return t
+end
+
+-- implementation of "map" in other languages (but "map" means something else in pico8)
+function transform(t, func)
+  local transformed_t = {}
+  for value in all(t) do
+    add(transformed_t, func(value))
+  end
+  return transformed_t
+end
+
+-- return module members from their names as multiple values
+-- use it after require("module") to define
+--  local a, b = get_members(module, "a", "b")
+--  for more simple access
+function get_members(module, ...)
+  local member_names = {...}
+  return unpack(transform(member_names,
+    function(member_name)
+      return module[member_name]
+    end)
+  )
+end
+
 -- return true if the table is empty (contrary to #t == 0,
 --  it also supports non-sequence tables)
 function is_empty(t)
@@ -21,15 +56,19 @@ end
 -- if no_deep_raw_content is true, do not pass the compare_raw_content parameter to deeper calls
 --  this is useful if you want to compare content at the first level but delegate equality for embedded structs
 function are_same(t1, t2, compare_raw_content, no_deep_raw_content)
+  -- compare_raw_content and no_deep_raw_content default to false (we count on nil being falsy here)
+
   if type(t1) ~= 'table' or type(t2) ~= 'table' then
     -- we have at least one non-table argument, compare by equality
     -- if both arguments have different types, it will return false
     return t1 == t2
   end
 
-  -- both arguments are tables
+  -- both arguments are tables, check meta __eq
 
-  if (t1.__eq or t2.__eq) and not compare_raw_content then
+  local mt1 = getmetatable(t1)
+  local mt2 = getmetatable(t2)
+  if (mt1 and mt1.__eq or mt2 and mt2.__eq) and not compare_raw_content then
     -- we are not comparing raw content and equality is defined, use it
     return t1 == t2
   end
@@ -73,6 +112,37 @@ function unpack(t, from, to)
   return t[from], unpack(t, from+1, to)
 end
 
+--#if assert
+-- return a table reversing keys and values, assuming the original table is injective
+-- this is "assert" only because we mostly need it to generate enum-to-string tables
+function invert_table(t)
+  inverted_t = {}
+  for key, value in pairs(t) do
+    inverted_t[value] = key
+  end
+  return inverted_t
+end
+--#endif
+
+-- alternative to tonum that only works with strings (and numbers
+--   thanks to sub converting them implicitly)
+-- it fixes the 0x0000.0001 issue on negative number strings
+-- UPDATE: expect native tonum to be fixed in 0.1.12
+-- https://www.lexaloffle.com/bbs/?pid=63583
+function string_tonum(val)
+  -- inspired by cheepicus's workaround in
+  -- https://www.lexaloffle.com/bbs/?tid=3780
+  if sub(val, 1, 1) == '-' then
+    local abs_num = tonum(sub(val, 2))
+    assert(abs_num, "could not parse absolute part of number: '-"..sub(val, 2).."'")
+    return - abs_num
+  else
+    local num = tonum(val)
+    assert(num, "could not parse number: '"..val.."'")
+    return num
+  end
+end
+
 --#if log
 
 function stringify(value)
@@ -106,6 +176,7 @@ end
 function joinstr(separator, ...)
   return joinstr_table(separator, {...})
 end
+
 --#endif
 
 -- https://pastebin.com/NS8rxMwH

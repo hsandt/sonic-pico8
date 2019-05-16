@@ -1,12 +1,16 @@
 --#if tuner
 
---#if log
-local logging = require("engine/debug/logging")
---#endif
 require("engine/core/class")
 require("engine/render/color")
 local wtk = require("engine/wtk/pico8wtk")
 
+-- code tuner: a debug utility that allows to tune
+--   any value in code by using a small widget on screen
+-- usage:
+--   where you need to test different numerical values in your code,
+--     use `tuned("my var", default_value)` instead of `default_value`
+--   then, in game, in a build config that defines `tuner` symbol,
+--     use the number selection widget for entry "my var" to tune it
 local codetuner = singleton(function (self)
     -- parameters
 
@@ -35,10 +39,11 @@ function codetuner.below(w, dist)
  return w.x, w.y+w.h+(dist or 2)
 end
 
--- tuned variable class, represents a variable to tune in the code tuner
+-- todo: use this struct for easier variable handling
+-- tuned variable struct, represents a variable to tune in the code tuner
 -- currently unused, it will replace the free vars in codetuner.tuned_vars
 -- to provide better information (type, range, default value)
-codetuner.tuned_variable = new_class()
+codetuner.tuned_variable = new_struct()
 
 -- name           string   tuned variable identifier
 -- default_value  any      value used for tuned variable if codetuner is inactive
@@ -50,11 +55,6 @@ end
 -- return a string with format: tuned_variable "{name}" (default: {default_value})
 function codetuner.tuned_variable:_tostring(name, default_value)
   return "tuned_variable \""..self.name.."\" (default: "..self.default_value..")"
-end
-
--- return true if both tuned vars have the same name *and* default
-function codetuner.tuned_variable:__eq(other)
-  return self.name == other.name and self.default_value == other.default_value
 end
 
 -- return a function callback for the spinner, that sets the corresponding tuned variable
@@ -135,6 +135,22 @@ end
 -- at any time, even if the window is not shown
 codetuner:init_window()
 
-return codetuner
+--#endif
+
+-- prevent busted from parsing both versions of codetuner
+--[[#pico8
+
+--#ifn tuner
+
+local codetuner = {}
+
+-- if tuner is disabled, use default value
+function tuned(name, default_value)
+  return default_value
+end
 
 --#endif
+
+--#pico8]]
+
+return codetuner

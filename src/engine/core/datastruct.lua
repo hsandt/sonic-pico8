@@ -1,5 +1,7 @@
 -- circular buffer implementation. useful to represent fixed size queue
--- adapted from https://gist.github.com/johndgiese/3e1c6d6e0535d4536692
+--   adapted from https://gist.github.com/johndgiese/3e1c6d6e0535d4536692
+-- we are defining our own __eq, don't need copy and may contain reference
+-- to fully-fledged objects, so we don't use a struct
 circular_buffer = new_class()
 
 -- params

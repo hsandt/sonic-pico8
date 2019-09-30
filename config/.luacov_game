@@ -1,0 +1,10 @@
+return {
+
+  exclude = {
+    "_utest$",            -- needed when testing all (*) modules, as we include whole folders
+    "/share/lua/",        -- needed when testing specific module, to avoid homonymous library modules loaded by busted:
+                          --   /usr/local/share/lua, $HEREROCKS_PATH/lua5.3/share/lua, etc.
+    "/pico%-boots/src/",  -- needed when testing game to avoid covering engine sources too
+  }
+
+}

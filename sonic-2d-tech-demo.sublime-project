@@ -231,7 +231,7 @@
 			"name": "p8tool: build and run or reload context",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"],
+			"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run_legacy.sh $file_base_name debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
@@ -241,47 +241,47 @@
 			[
 				{
 					"name": "assert",
-					"cmd": ["./build_legacy.sh $file_base_name assert && (./reload.sh || ./run.sh $file_base_name assert)"]
+					"cmd": ["./build_legacy.sh $file_base_name assert && (./reload.sh || ./run_legacy.sh $file_base_name assert)"]
 				},
 				{
 					"name": "debug",
-					"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run.sh $file_base_name debug)"]
+					"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run_legacy.sh $file_base_name debug)"]
 				},
 				{
 					"name": "itest",
-					"cmd": ["./build_legacy.sh $file_base_name itest && (./reload.sh || ./run.sh $file_base_name itest)"]
+					"cmd": ["./build_legacy.sh $file_base_name itest && (./reload.sh || ./run_legacy.sh $file_base_name itest)"]
 				},
 				{
 					"name": "itest_light",
-					"cmd": ["./build_legacy.sh $file_base_name itest_light && (./reload.sh || ./run.sh $file_base_name itest_light)"]
+					"cmd": ["./build_legacy.sh $file_base_name itest_light && (./reload.sh || ./run_legacy.sh $file_base_name itest_light)"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_legacy.sh $file_base_name profiler && (./reload.sh || ./run.sh $file_base_name profiler)"]
+					"cmd": ["./build_legacy.sh $file_base_name profiler && (./reload.sh || ./run_legacy.sh $file_base_name profiler)"]
 				},
 				{
 					"name": "visual_log",
-					"cmd": ["./build_legacy.sh $file_base_name visual_log && (./reload.sh || ./run.sh $file_base_name visual_log)"]
+					"cmd": ["./build_legacy.sh $file_base_name visual_log && (./reload.sh || ./run_legacy.sh $file_base_name visual_log)"]
 				},
 				{
 					"name": "pico8_utest",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
+					"cmd": ["./build_legacy.sh $file_base_name pico8_utest && (./reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
 					"name": "pico8_utest (--no-minify)",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m && (./reload.sh || ./run.sh $file_base_name pico8_utest '-x; exec bash')"]
+					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m && (./reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
 					"name": "log",
-					"cmd": ["./build_legacy.sh $file_base_name log && (./reload.sh || ./run.sh $file_base_name log)"]
+					"cmd": ["./build_legacy.sh $file_base_name log && (./reload.sh || ./run_legacy.sh $file_base_name log)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_legacy.sh $file_base_name cheat && (./reload.sh || ./run.sh $file_base_name cheat)"]
+					"cmd": ["./build_legacy.sh $file_base_name cheat && (./reload.sh || ./run_legacy.sh $file_base_name cheat)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_legacy.sh $file_base_name release && (./reload.sh || ./run.sh $file_base_name release)"]
+					"cmd": ["./build_legacy.sh $file_base_name release && (./reload.sh || ./run_legacy.sh $file_base_name release)"]
 				},
 			]
 		},
@@ -289,7 +289,7 @@
 			"name": "p8tool: run context",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./run.sh $file_base_name debug"],
+			"cmd": ["./run_legacy.sh $file_base_name debug"],
 			"env": {
 				"BUILD_VERSION": "2.3"
 			},
@@ -297,43 +297,43 @@
 			[
 				{
 					"name": "debug",
-					"cmd": ["./run.sh $file_base_name debug"]
+					"cmd": ["./run_legacy.sh $file_base_name debug"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./run.sh $file_base_name assert"]
+					"cmd": ["./run_legacy.sh $file_base_name assert"]
 				},
 				{
 					"name": "itest",
-					"cmd": ["./run.sh $file_base_name itest"]
+					"cmd": ["./run_legacy.sh $file_base_name itest"]
 				},
 				{
 					"name": "itest_light",
-					"cmd": ["./run.sh $file_base_name itest_light"]
+					"cmd": ["./run_legacy.sh $file_base_name itest_light"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./run.sh $file_base_name profiler"]
+					"cmd": ["./run_legacy.sh $file_base_name profiler"]
 				},
 				{
 					"name": "visual_log",
-					"cmd": ["./run.sh $file_base_name visual_log"]
+					"cmd": ["./run_legacy.sh $file_base_name visual_log"]
 				},
 				{
 					"name": "pico8_utest",
-					"cmd": ["./run.sh $file_base_name pico8_utest"]
+					"cmd": ["./run_legacy.sh $file_base_name pico8_utest"]
 				},
 				{
 					"name": "log",
-					"cmd": ["./run.sh $file_base_name log"]
+					"cmd": ["./run_legacy.sh $file_base_name log"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./run.sh $file_base_name cheat"]
+					"cmd": ["./run_legacy.sh $file_base_name cheat"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./run.sh $file_base_name release"]
+					"cmd": ["./run_legacy.sh $file_base_name release"]
 				},
 			]
 		},
@@ -628,8 +628,8 @@
 			[
 				".git",
 				"backup",
-				"build",
-				"intermediate"
+				// "build",
+				// "intermediate"
 			],
 			"path": "."
 		}

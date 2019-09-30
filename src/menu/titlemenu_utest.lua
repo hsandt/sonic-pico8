@@ -81,9 +81,7 @@ describe('titlemenu', function ()
         end)
 
         after_each(function ()
-          input.players_btn_states[0][button_ids.up] = btn_states.released
-          input.players_btn_states[0][button_ids.down] = btn_states.released
-          input.players_btn_states[0][button_ids.x] = btn_states.released
+          input:init()
 
           move_cursor_up_stub:clear()
           move_cursor_down_stub:clear()

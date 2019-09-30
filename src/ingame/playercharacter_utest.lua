@@ -390,7 +390,7 @@ describe('player_char', function ()
       end)
 
       after_each(function ()
-        input.players_btn_states[0] = generate_initial_btn_states()
+        input:init()
 
         player_char._toggle_debug_motion:clear()
       end)
@@ -521,7 +521,7 @@ describe('player_char', function ()
       end)
 
       after_each(function ()
-        input.players_btn_states[0] = generate_initial_btn_states()
+        input:init()
 
         player_char.spawn_at:clear()
       end)

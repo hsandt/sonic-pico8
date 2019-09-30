@@ -1,93 +1,73 @@
 #!/bin/bash
-# $1: test name (module name)
 
-if [[ $# -lt 1 ]] ; then
-    echo "test.sh takes 1 mandatory param, 1 optional param and 1 option, provided $#:
-    $1: test file pattern
-    $2: test filter mode: (default 'standard') 'standard' to filter out all #mute, 'solo' to filter #solo, 'all' to include #mute
-    -r or --render to enable rendering in the itest loop (used for $1=headless_itests only)"
-    exit 1
-fi
+# Copied from pico-boots-demo/test.sh
 
+# Configuration
+game_src_path="$(dirname "$0")/src"
+game_config_path="$(dirname "$0")/config"
+picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
+
+help() {
+  echo "Test game modules with busted
+
+This is essentially a proxy script for pico-boots/scripts/test_scripts.sh that avoids
+passing src/FOLDER every time we want to test a group of scripts in the game.
+
+It doesn't prepend the engine path though, so if you want to test engine folders easily,
+use pico-boots/test.sh instead.
+
+Dependencies:
+- busted (must be in PATH)
+- luacov (must be in PATH)
+"
+usage
+}
+
+usage() {
+  echo "Usage: test.sh [FOLDER-1 [FOLDER-2 [...]]]
+
+ARGUMENTS
+  FOLDER                    Path to game folder to test.
+                            Path is relative to src. Sub-folders are supported.
+                            (optional)
+
+  -h, --help                Show this help message
+"
+}
+
+# Default parameters
+folders=()
+other_options=()
+
+# Read arguments
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
-
-if [[ ${1::5} = "utest" ]] ; then
-	MODULE=${1:5}
-else
-	MODULE=$1
-fi
-
-# shift arguments 1 position so we start reading options at $1
-shift
-
-TEST_FILTER_MODE="standard"
-
-# if second argument is not an option, it means it's the positional argument "test filter mode"
-# remember to check for "-" not "--" as the shortcut options only use a single hyphen
-if [[ "${1::1}" != "-" ]] ; then
-	TEST_FILTER_MODE=$1  # should be "all" or "solo"
-	shift
-fi
-
-RENDER=false
-
-while [[ "$1" != "" ]]; do
-    case $1 in
-        -r | --render )     shift
-                            RENDER=true
-                            ;;
-        * )                 echo "unknown option: $1"
-                            exit 1
-    esac
-    shift
+roots=()
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h | --help )
+      help
+      exit 0
+      ;;
+    -* )    # we started adding options
+            # since we don't support "--" for final positional arguments, just pass all the rest to test_scripts.sh
+      break
+      ;;
+    * )     # positional argument: folder
+      folders+=("$1")
+      shift # past argument
+      ;;
+  esac
 done
 
-if [[ $MODULE = "all" || -z $MODULE ]] ; then
-	TEST_FILE_PATTERN="utest"  # all unit tests
-	COVERAGE_OPTIONS="-c .luacov_all"  # we cannot just use default .luacov since it would also affect specific module tests
+if [[ ${#folders[@]} -ne 0 ]]; then
+  # Paths are relative to game src, so prepend it before passing to actual test script
+  for folder in "${folders[@]}"; do
+    roots+=("\"$game_src_path/$folder\"")
+  done
 else
-	# prepend "utest" again, and append ".lua" in case a module name contains another one
-	# (e.g. logger for visual_logger or tile for tile_data)
-	TEST_FILE_PATTERN="utest${MODULE}.lua"
-	# FIXME
-	# "/"" makes sure the filename starts with MODULE, but "."" is interpreted as "any char" so _data would be included
-	COVERAGE_OPTIONS="-c .luacov_current \"/${MODULE}.lua\""
+  # No folder passed, test the whole game folder
+  roots=("\"$game_src_path\"")
 fi
 
-if [[ $TEST_FILTER_MODE = "all" ]] ; then
-	FILTER=""
-	FILTER_OUT=""
-	USE_COVERAGE=true
-elif [[ $TEST_FILTER_MODE = "solo" ]]; then
-	FILTER="--filter \"#solo\""
-	FILTER_OUT=""
-	# coverage on a file is not relevant when testing one or two functions
-	USE_COVERAGE=false
-else
-	FILTER=""
-	FILTER_OUT="--filter-out \"#mute\""
-	USE_COVERAGE=true
-fi
-
-if [[ $USE_COVERAGE = true ]]; then
-	PRE_TEST="rm -f luacov.stats.out luacov.report.out &&"
-	POST_TEST="&& luacov $COVERAGE_OPTIONS && grep -C 3 -P \"(?:(?:^|[ *])\*0|\d+%)\" luacov.report.out"
-else
-	PRE_TEST=""
-	POST_TEST=""
-fi
-
-EXTRA_ARGS=""
-
-if [[ $RENDER = true ]]; then
-	EXTRA_ARGS+="--render"
-fi
-
-LUA_PATH="src/?.lua;src/engine/tests/?.lua;src/game/tests/?.lua"
-CORE_TEST="busted src/engine/tests src/game/tests --lpath=\"$LUA_PATH\" -p \"$TEST_FILE_PATTERN\" $FILTER $FILTER_OUT -c -v -- $EXTRA_ARGS"
-TEST_COMMAND="$PRE_TEST $CORE_TEST $POST_TEST"
-
-echo "Testing $1..."
-echo "> $TEST_COMMAND"
-# Generate luacov report and display all uncovered lines and cover percentages
-bash -c "$TEST_COMMAND"
+# Add extra lua root 'src' to enable require for game scripts
+"$picoboots_scripts_path/test_scripts.sh" ${roots[@]} --lua-root src -c "$game_config_path/.luacov_game" $@

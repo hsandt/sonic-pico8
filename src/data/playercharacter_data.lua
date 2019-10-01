@@ -1,3 +1,4 @@
+require("engine/render/color")
 local sprite_data = require("engine/render/sprite_data")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 
@@ -72,19 +73,19 @@ local playercharacter_data = {
 
   -- stand right
   sonic_sprite_data_table = {
-    idle  = sprite_data(sprite_id_location(0, 8),  tile_vector(2, 2), vector(11, 8)),
-    run1  = sprite_data(sprite_id_location(2, 8),  tile_vector(2, 2), vector(11, 8)),
-    run2  = sprite_data(sprite_id_location(4, 8),  tile_vector(2, 2), vector(11, 8)),
-    run3  = sprite_data(sprite_id_location(6, 8),  tile_vector(2, 2), vector(11, 8)),
-    run4  = sprite_data(sprite_id_location(8, 8),  tile_vector(2, 2), vector(11, 8)),
-    run5  = sprite_data(sprite_id_location(10, 8), tile_vector(2, 2), vector(11, 8)),
-    run6  = sprite_data(sprite_id_location(12, 8), tile_vector(2, 2), vector(11, 8)),
-    run7  = sprite_data(sprite_id_location(14, 8), tile_vector(2, 2), vector(11, 8)),
-    run8  = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(11, 8)),
-    run9  = sprite_data(sprite_id_location(2, 10), tile_vector(2, 2), vector(11, 8)),
-    run10 = sprite_data(sprite_id_location(4, 10), tile_vector(2, 2), vector(11, 8)),
-    run11 = sprite_data(sprite_id_location(6, 10), tile_vector(2, 2), vector(11, 8)),
-    spin  = sprite_data(sprite_id_location(0, 12), tile_vector(2, 2), vector(5, 5)),
+    idle  = sprite_data(sprite_id_location(0, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
+    run1  = sprite_data(sprite_id_location(2, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
+    run2  = sprite_data(sprite_id_location(4, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
+    run3  = sprite_data(sprite_id_location(6, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
+    run4  = sprite_data(sprite_id_location(8, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
+    run5  = sprite_data(sprite_id_location(10, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run6  = sprite_data(sprite_id_location(12, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run7  = sprite_data(sprite_id_location(14, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run8  = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run9  = sprite_data(sprite_id_location(2, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run10 = sprite_data(sprite_id_location(4, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
+    run11 = sprite_data(sprite_id_location(6, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
+    spin  = sprite_data(sprite_id_location(0, 12), tile_vector(2, 2), vector(5, 5),  colors.pink),
   },
 
 }

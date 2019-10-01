@@ -15,11 +15,23 @@ end)
 -- in busted tests, pass the list of gamestates to use, by name (e.g. {"titlemenu", "credits"})
 function gamestate_proxy:require_gamestates(active_gamestates)
 
+-- TEMP put hardcoded non-dummy state requires
+
+  self._state_modules.titlemenu = require("menu/titlemenu")
+  self._state_modules.credits = require("menu/credits")
+  self._state_modules.stage = require("ingame/stage")
+
 --[[#pico8
-  self._state_modules.titlemenu = require("menu/titlemenu$titlemenu_ver")
-  self._state_modules.credits = require("menu/credits$credits_ver")
-  self._state_modules.stage = require("ingame/stage$stage_ver")
+  -- self._state_modules.titlemenu = require("menu/titlemenu$titlemenu_ver")
+  -- self._state_modules.credits = require("menu/credits$credits_ver")
+  -- self._state_modules.stage = require("ingame/stage$stage_ver")
 --#pico8]]
+
+-- todo: restore preprocessing or this won't work
+
+-- TEMP commented out as preprocessing is not ready,
+-- and picotool only accepts static strings; also, some stuff just don't work in pico8
+--[[
 
 --#ifn pico8
   require("engine/test/assertions")  -- for "contains"
@@ -44,6 +56,8 @@ function gamestate_proxy:require_gamestates(active_gamestates)
     self._state_modules[gamestate] = require(""..dirs[gamestate].."/"..gamestate..version_suffix)
   end
 --#endif
+
+--]]
 
 end
 

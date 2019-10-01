@@ -1,3 +1,6 @@
+-- we must require engine/pico8/api at the top of our main.lua, so API bridges apply to all modules
+require("engine/pico8/api")
+
 local picosonic_app = require("application/picosonic_app")
 local gamestate_proxy = require("application/gamestate_proxy")
 local gamestate = require("application/gamestate")

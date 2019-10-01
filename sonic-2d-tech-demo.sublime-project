@@ -170,6 +170,38 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Postbuild: test add_metadata",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_add_metadata"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test add_require",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_add_require"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test minify",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_minify"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test preprocess",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "p8tool: build context",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -444,18 +476,18 @@
 		// it's better to use our custom main in unittest scripts to get the correct log level
 		// for filtering, it's easier to use -m unittest, but it will show all the warnings
 		{
-			"name": "python: test preprocess (TestPreprocessLines)",
+			"name": "python: test preprocess legacy (TestPreprocessLines)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["python3 -m unittest prebuild.test_preprocess.TestPreprocessLines"],
+			"cmd": ["python3 -m unittest prebuild.test_preprocess_legacy.TestPreprocessLines"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "python: test preprocess",
+			"name": "python: test preprocess legacy",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["python3 -m prebuild.test_preprocess"],
+			"cmd": ["python3 -m prebuild.test_preprocess_legacy"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -629,7 +661,7 @@
 				".git",
 				"backup",
 				// "build",
-				// "intermediate"
+				"intermediate"
 			],
 			"path": "."
 		}

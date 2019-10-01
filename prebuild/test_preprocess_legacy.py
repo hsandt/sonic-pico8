@@ -1,5 +1,5 @@
 import unittest
-from . import preprocess
+from . import preprocess_legacy as preprocess
 
 import logging
 from os import path

@@ -60,7 +60,7 @@ The most straightforward way to build and run the game on Unix platforms is:
 * `./run_game.sh`
 
 Instead of the last instruction, you can also enter directly:
-* `pico8 -run build/pico-sonic_v${BUILD_VERSION}_release.p8`
+* `pico8 -run build/picosonic_v${BUILD_VERSION}_release.p8`
 
 where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.travis.yml`.
 

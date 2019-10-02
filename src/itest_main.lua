@@ -1,33 +1,31 @@
 -- main source file for all itests, used to run itests in pico8
--- each itest should be put inside the tests/itests folder with the name itest{module}.lua
--- and its first line should be "-- gamestates: state1, state2, ..." with the list of states
--- to use for the build. other states will be replaced with dummy equivalents.
+
+-- must require at main top, to be used in any required modules from here
+require("engine/pico8/api")
 
 require("engine/test/integrationtest")
 local picosonic_app = require("application/picosonic_app")
-require("itests/itest$itest")
-local gamestate_proxy = require("application/gamestate_proxy")
+-- tag to add require for itest files here
+--[[add_require]]
 
 --#if log
 local logging = require("engine/debug/logging")
-logging.logger:register_stream(logging.console_log_stream)
-logging.logger:register_stream(logging.file_log_stream)
 --#endif
-
-local codetuner = require("engine/debug/codetuner")
 
 local current_itest_index = 0
 
 function _init()
 --#if log
+  -- register log streams to output logs to both the console and the file log
+  logging.logger:register_stream(logging.console_log_stream)
+  logging.logger:register_stream(logging.file_log_stream)
+
   -- clear log file on new itest session
   logging.file_log_stream:clear()
 --#endif
 
   itest_runner.app = picosonic_app()
-
-  -- require only gamestate modules written on first line of the required $itest (pico8-build way)
-  gamestate_proxy:require_gamestates()
+  picosonic_app.initial_gamestate = ':main_menu'
 
   -- start first itest
   init_game_and_start_next_itest()

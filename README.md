@@ -6,13 +6,17 @@ develop
 [![Build Status](https://travis-ci.org/hsandt/sonic-pico8.svg?branch=develop)](https://travis-ci.org/hsandt/sonic-pico8)
 [![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/develop/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
 
-# Sonic PICO-8
+# PICO-Sonic
 
-A partial clone of classic Sonic the Hedgehog games made with PICO-8
+A partial clone of classic Sonic the Hedgehog games made with PICO-8. It is inspired by the 16-bit games for mechanics, and by a mix of the 8-bit and 16-bit games for graphics and audio.
+
+This is a fan game distributed for free and is not endorsed by Sega Games Co., Ltd, which owns the Sonic the Hedgehog trademark and retains all copyrights on the original assets.
+
+It is currently under development.
 
 ## Features
 
-Version: 2.3
+Version: 3.0
 
 ### Physics
 
@@ -187,10 +191,6 @@ The `npm` folder has its own MIT license because I adapted a script from the `lu
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog (SEGA), especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter.
-
-SEGA owns the Sonic the Hedgehog trademark and retains all copyrights on the original assets.
-
-I only retain copyright for the manual work of adaptation (i.e. pixel art, but not music).
+Most assets are derivative works of Sonic the Hedgehog, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. I drew the sprites based on the Mega Drive and GBA games, while the BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter.
 
 Assets that are not derivative works are under CC BY 4.0.

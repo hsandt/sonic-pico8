@@ -7,7 +7,7 @@ local visual = require("resources/visual")
 --#if log
 local logging = require("engine/debug/logging")
 -- pico8 doesn't support output file path containing "-" so use "_"
-logging.file_log_stream.file_prefix = "sonic_pico8_v2.3"
+logging.file_log_stream.file_prefix = "pico-sonic_v3.0"
 --#endif
 
 --#if visual_logger

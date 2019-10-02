@@ -11,7 +11,7 @@ os:
   - linux
 
 env:
-  - LUA="lua 5.3"         BUILD_VERSION="2.3"
+  - LUA="lua 5.3"         BUILD_VERSION="3.0"
 
 cache:
   apt: true  # private repositories only

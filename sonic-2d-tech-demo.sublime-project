@@ -30,17 +30,17 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Game: build and run",
+			"name": "Game: build and reload or run",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh && ./run_game.sh"],
+			"cmd": ["./build_game.sh && (./reload.sh || ./run_game.sh)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "itests",
-					"cmd": ["./build_itest.sh && ./run_itest.sh"],
+					"cmd": ["./build_itest.sh && (./reload.sh || ./run_itest.sh)"],
 				}
 			]
 		},
@@ -49,7 +49,14 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./run_game.sh"],
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "itests",
+					"cmd": ["./run_itest.sh"],
+				}
+			]
 		},
 		{
 			"name": "Game: test",

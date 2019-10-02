@@ -12,12 +12,13 @@ build_output_path="$(dirname "$0")/build"
 # Configuration: cartridge
 author="hsandt"
 title="pico-sonic itests (all)"
-cartridge_name="pico-sonic_itest_all"
+cartridge_stem="picosonic_itest_all"
+version="3.0"
 
 # Build from itest main for all itests
 "$picoboots_scripts_path/build_game.sh"               \
   "$game_src_path" itest_main.lua itests              \
   -d "$data_path/data.p8" -M "$data_path/metadata.p8" \
   -a "$author" -t "$title"                            \
-  -o "$build_output_path/$cartridge_name.p8"          \
+  -o "$build_output_path/${cartridge_stem}_v${version}.p8" \
   --minify

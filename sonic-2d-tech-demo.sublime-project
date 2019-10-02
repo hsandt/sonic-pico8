@@ -33,14 +33,14 @@
 			"name": "Game: build and reload or run",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh && (./reload.sh || ./run_game.sh)"],
+			"cmd": ["./build_game.sh && (./pico-boots/scripts/reload.sh || ./run_game.sh)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "itests",
-					"cmd": ["./build_itest.sh && (./reload.sh || ./run_itest.sh)"],
+					"cmd": ["./build_itest.sh && (./pico-boots/scripts/reload.sh || ./run_itest.sh)"],
 				}
 			]
 		},
@@ -270,7 +270,7 @@
 			"name": "p8tool: build and run or reload context",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run_legacy.sh $file_base_name debug)"],
+			"cmd": ["./build_legacy.sh $file_base_name debug && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"env": {
@@ -280,47 +280,47 @@
 			[
 				{
 					"name": "assert",
-					"cmd": ["./build_legacy.sh $file_base_name assert && (./reload.sh || ./run_legacy.sh $file_base_name assert)"]
+					"cmd": ["./build_legacy.sh $file_base_name assert && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name assert)"]
 				},
 				{
 					"name": "debug",
-					"cmd": ["./build_legacy.sh $file_base_name debug && (./reload.sh || ./run_legacy.sh $file_base_name debug)"]
+					"cmd": ["./build_legacy.sh $file_base_name debug && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name debug)"]
 				},
 				{
 					"name": "itest",
-					"cmd": ["./build_legacy.sh $file_base_name itest && (./reload.sh || ./run_legacy.sh $file_base_name itest)"]
+					"cmd": ["./build_legacy.sh $file_base_name itest && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name itest)"]
 				},
 				{
 					"name": "itest_light",
-					"cmd": ["./build_legacy.sh $file_base_name itest_light && (./reload.sh || ./run_legacy.sh $file_base_name itest_light)"]
+					"cmd": ["./build_legacy.sh $file_base_name itest_light && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name itest_light)"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_legacy.sh $file_base_name profiler && (./reload.sh || ./run_legacy.sh $file_base_name profiler)"]
+					"cmd": ["./build_legacy.sh $file_base_name profiler && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name profiler)"]
 				},
 				{
 					"name": "visual_log",
-					"cmd": ["./build_legacy.sh $file_base_name visual_log && (./reload.sh || ./run_legacy.sh $file_base_name visual_log)"]
+					"cmd": ["./build_legacy.sh $file_base_name visual_log && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name visual_log)"]
 				},
 				{
 					"name": "pico8_utest",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest && (./reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
+					"cmd": ["./build_legacy.sh $file_base_name pico8_utest && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
 					"name": "pico8_utest (--no-minify)",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m && (./reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
+					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
 				},
 				{
 					"name": "log",
-					"cmd": ["./build_legacy.sh $file_base_name log && (./reload.sh || ./run_legacy.sh $file_base_name log)"]
+					"cmd": ["./build_legacy.sh $file_base_name log && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name log)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_legacy.sh $file_base_name cheat && (./reload.sh || ./run_legacy.sh $file_base_name cheat)"]
+					"cmd": ["./build_legacy.sh $file_base_name cheat && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name cheat)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_legacy.sh $file_base_name release && (./reload.sh || ./run_legacy.sh $file_base_name release)"]
+					"cmd": ["./build_legacy.sh $file_base_name release && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name release)"]
 				},
 			]
 		},

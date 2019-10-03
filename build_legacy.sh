@@ -66,7 +66,7 @@ rm -f "$OUTPUT_FILEPATH"
 # 3. Apply lua minification to reduce character count
 echo "Pre-build..."
 prebuild/copy_source_folder.sh src "intermediate/${config}" &&
-python3.6 prebuild/preprocess.py "intermediate/${config}" "$config" &&
+python3.6 prebuild/preprocess_legacy.py "intermediate/${config}" "$config" &&
 python3.6 prebuild/replace_strings.py "intermediate/${config}" $REPLACE_ARG_SUBSTITUTES
 
 if [[ $? -ne 0 ]]; then
@@ -107,7 +107,7 @@ fi
 echo "Post-build..."
 
 if [[ "$minify" == true ]]; then
-    python3.6 postbuild/minify.py "$OUTPUT_FILEPATH"
+    python3.6 pico-boots/scripts/minify.py "$OUTPUT_FILEPATH"
 
     if [[ $? -ne 0 ]]; then
         echo "Minification failed, STOP."
@@ -116,7 +116,7 @@ if [[ "$minify" == true ]]; then
 fi
 
 # Don't use add_label_info in add_metadata.py as we have already copied metadata.p8 to reuse its label, so pass "-"
-python3.6 postbuild/add_metadata.py "$OUTPUT_FILEPATH" "-" "sonic pico-8" "hsandt" &&
+python3.6 pico-boots/scripts/add_metadata.py "$OUTPUT_FILEPATH" "-" "sonic pico-8" "hsandt" &&
 
 if [[ $? -ne 0 ]]
 then

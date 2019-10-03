@@ -9,7 +9,7 @@ local flow = require("engine/application/flow")
 local stage = require("ingame/stage")  -- required
 local pc_data = require("data/playercharacter_data")
 local tile_data = require("data/tile_data")
---#ifn pico8
+--#if busted
 local tile_test_data = require("test_data/tile_test_data")
 --#endif
 

@@ -1,4 +1,4 @@
---#ifn pico8
+--#if busted
 
 require("engine/test/pico8api")
 local tile = require("platformer/tile")

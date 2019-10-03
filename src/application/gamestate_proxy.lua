@@ -33,7 +33,7 @@ function gamestate_proxy:require_gamestates(active_gamestates)
 -- and picotool only accepts static strings; also, some stuff just don't work in pico8
 --[[
 
---#ifn pico8
+--#if busted
   require("engine/test/assertions")  -- for "contains"
 
   -- busted runs directly on the scripts, so there is no need to preprocess

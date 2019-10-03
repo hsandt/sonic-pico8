@@ -17,15 +17,22 @@
 			"name": "Game: build game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh"],
+			"cmd": ["./build_game.sh --symbols pico8,assert,log"],  // default config is debug
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "release",
+					"cmd": ["./build_game.sh"]
+				}
+			]
 		},
 		{
 			"name": "Game: build itests",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh"],
+			"cmd": ["./build_itest.sh --symbols pico8,assert,log"],  // itests need debug symbols
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

@@ -72,9 +72,11 @@ Integration tests consists in game simulations in predetermined scenarios, and a
 * `./build_itest.sh`
 * `./run_itest.sh`
 
+### Custom build
+
 `sonic-2d-tech-demo.sublime-project` contains the most used commands for building the game. If you don't use Sublime Text, you won't be able to run the commands directly, but you can still read this project file to understand how the scripts are used, and do the same in a terminal. You can also copy-paste the commands to the project configuration of your favorite code editor instead.
 
-All the build and run commands revolve around the scripts `build_game.sh` and `run_game.sh`. `build_game.sh` relies on picotool as well as custom shell and Python scripts in the `prebuild` and `postbuild` folders.
+All the build and run commands revolve around the scripts `build_game.sh` / `build_itest.sh` and `run_game.sh` / `run_itest.sh`. Once you understand them, you can create your own build and run commands for your specific needs.
 
 ## Test
 

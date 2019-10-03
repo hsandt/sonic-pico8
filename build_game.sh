@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build a PICO-8 cartridge for the released game.
-# This is essentially a proxy script for pico-boots/scripts/build_game.sh with the right parameters.
+# This is essentially a proxy script for pico-boots/scripts/build_cartridge.sh with the right parameters.
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
@@ -16,7 +16,7 @@ cartridge_stem="picosonic"
 version="3.0"
 
 # Build from main
-"$picoboots_scripts_path/build_game.sh"                    \
+"$picoboots_scripts_path/build_cartridge.sh"               \
   "$game_src_path" main.lua                                \
   -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
   -a "$author" -t "$title"                                 \

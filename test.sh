@@ -20,7 +20,7 @@ Dependencies:
 - busted (must be in PATH)
 - luacov (must be in PATH)
 "
-usage
+  usage
 }
 
 usage() {

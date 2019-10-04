@@ -17,6 +17,7 @@ author="hsandt"
 title="pico-sonic itests (all)"
 cartridge_stem="picosonic_itest_all"
 version="3.0"
+symbols='assert,log,visual_logger,tuner,profiler'
 
 # Build from itest main for all itests
 "$picoboots_scripts_path/build_cartridge.sh"               \
@@ -24,5 +25,5 @@ version="3.0"
   -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
   -a "$author" -t "$title"                                 \
   -o "$build_output_path/${cartridge_stem}_v${version}.p8" \
-  --minify                                                 \
-  $@
+  -s "$symbols"                                            \
+  --minify

@@ -57,12 +57,20 @@ The most straightforward way to build and run the game on Unix platforms is:
 
 * `cd path/to/sonic-pico8-repo`
 * `./build_game.sh`
-* `./run_game.sh`
+* `./run_game_debug.sh`
 
 Instead of the last instruction, you can also enter directly:
-* `pico8 -run build/picosonic_v${BUILD_VERSION}_release.p8`
+* `pico8 -run build/picosonic_v${BUILD_VERSION}_debug.p8`
 
 where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.travis.yml`.
+
+Note, however, that the current debug version is bloated and is likely not to run in a vanilla PICO-8 (due to the cartridge getting over the max token limit).
+
+To play the release version (no debugging features, but more compact code and more likely to fit into a PICO-8 cartridge):
+
+* `cd path/to/sonic-pico8-repo`
+* `./build_game.sh` release
+* `./run_game_release.sh`
 
 ### Run integration tests
 

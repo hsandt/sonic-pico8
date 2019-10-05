@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Run game.p8 with PICO-8 executable
+# Run itest with PICO-8 executable (itests only work in debug config)
 # Pass any extra arguments to pico8
 
 # Configuration: cartridge
-cartridge_stem="picosonic_itest_all"
+cartridge_stem="picosonic_itest_all_debug"
 version="3.0"
 
 run_cmd="pico8 -run build/${cartridge_stem}_v${version}.p8 -screenshot_scale 4 -gif_scale 4 $@"

@@ -17,13 +17,16 @@ author="hsandt"
 title="pico-sonic itests (all)"
 cartridge_stem="picosonic_itest_all"
 version="3.0"
-symbols='assert,log,visual_logger,tuner,profiler'
+config='debug'
+symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
 
 # Build from itest main for all itests
 "$picoboots_scripts_path/build_cartridge.sh"               \
   "$game_src_path" itest_main.lua itests                   \
   -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
   -a "$author" -t "$title"                                 \
-  -o "$build_output_path/${cartridge_stem}_v${version}.p8" \
+  -p "$build_output_path"                                  \
+  -o "${cartridge_stem}_v${version}"                       \
+  -c "$config"                                             \
   -s "$symbols"                                            \
   --minify

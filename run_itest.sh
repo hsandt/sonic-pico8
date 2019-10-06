@@ -4,10 +4,10 @@
 # Pass any extra arguments to pico8
 
 # Configuration: cartridge
-cartridge_stem="picosonic_itest_all_debug"
+cartridge_stem="picosonic_itest_all"
 version="3.0"
 
-run_cmd="pico8 -run build/${cartridge_stem}_v${version}.p8 -screenshot_scale 4 -gif_scale 4 $@"
+run_cmd="pico8 -run build/${cartridge_stem}_v${version}_debug.p8 -screenshot_scale 4 -gif_scale 4 $@"
 
 # Support UNIX platforms without gnome-terminal by checking if the command exists
 # If you `reload.sh` the game, the separate terminal allows you to keep watching the program output,

@@ -1,42 +1,43 @@
-# https://github.com/mpeterv/hererocks
+os: linux
 
 language: python # Can use any language here, but if it's not 'python'
                  # it becomes necessary to pass '--user' to pip when installing hererocks.
-python:
-  - "3.6"
+python: "3.6"
 
 sudo: false      # Use container-based infrastructure.
 
-os:
-  - linux
-
 env:
-  - LUA="lua 5.3"         BUILD_VERSION="3.0"
+  - LUA_VERSION=5.3
 
 cache:
   apt: true  # private repositories only
   directories:
-    - lua5.3  # for hererocks
-    - tool    # remember to "travis cache --delete" from travis CL if p8tool needs upgrade
-    - $HOME/.cache
+    # remember to "travis cache --delete" in travis CL each time a custom cached directory needs upgrade (unlike cached packages)
+    - hererocks     # for hererocks (make a parent folder, then install lua inside, to make sure the folder will be used as cache)
+                    # just a small optimization to cache the whole lua install, since the hererocks pip wheel is cached with .cache/pip anyway
+    - tool          # for picotool
+    - $HOME/.cache  # for .cache/luarocks and .cache/pip
 
 before_install:
   # install hererocks if needed
   - |
-    if [[ ! -d lua5.3 || ! -x lua5.3/bin/activate ]]; then
+    if [[ ! -d lua$LUA_VERSION || ! -x lua$LUA_VERSION/bin/activate ]]; then
       pip install hererocks
-      hererocks lua5.3 --$LUA -rlatest
+      pushd hererocks
+      hererocks lua$LUA_VERSION --lua $LUA_VERSION -rlatest
+      popd
     fi
-  - source lua5.3/bin/activate  # Add directory with all installed binaries to PATH.
+
+  # activate Lua
+  - source hererocks/lua$LUA_VERSION/bin/activate
 
 install:
   # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
-  # install npm packages for minification
-  - pushd npm
-  - npm update
-  - popd
+
+  # delegate submodule install (for luamin from npm)
+  - pico-boots/setup.sh
 
 before_script:
   # download picotool if needed
@@ -55,17 +56,9 @@ before_script:
 
 script:
   # test
-  - ./test.sh all all
+  - ./test.sh -m all
   # coverage
   - bash <(curl -s https://codecov.io/bash)
-  # build for deploy
-  - ./build.sh main release
-
-deploy:
-  provider: releases
-  api_key: $DEPLOY_API_KEY
-  file: "build/sonic-pico8_v${BUILD_VERSION}_release.p8"
-  skip_cleanup: true
-  on:
-    branch: master
-    tags: true
+  # build game and itest to make sure everything works fine
+  - ./build_game.sh
+  - ./build_itest.sh

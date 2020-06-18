@@ -77,6 +77,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Game: build pico8 utests",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_pico8_utests.sh"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: build and reload or run",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -124,6 +132,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Game: build and reload or run pico8 utests",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_pico8_utests.sh && (./pico-boots/scripts/reload.sh || ./run_pico8_utests.sh)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: start",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -162,6 +178,10 @@
 				{
 					"name": "itests",
 					"cmd": ["./run_itest.sh"],
+				},
+				{
+					"name": "pico8 utests",
+					"cmd": ["./run_pico8_utests.sh"],
 				}
 			]
 		},

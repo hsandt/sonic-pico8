@@ -17,9 +17,9 @@ function gamestate_proxy:require_gamestates(active_gamestates)
 
 -- TEMP put hardcoded non-dummy state requires
 
-  self._state_modules.titlemenu = require("menu/titlemenu")
-  self._state_modules.credits = require("menu/credits")
-  self._state_modules.stage = require("ingame/stage")
+  -- self._state_modules.titlemenu = require("menu/titlemenu")
+  -- self._state_modules.credits = require("menu/credits")
+  -- self._state_modules.stage = require("ingame/stage")
 
 --[[#pico8
   -- self._state_modules.titlemenu = require("menu/titlemenu$titlemenu_ver")

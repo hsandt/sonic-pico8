@@ -18,7 +18,10 @@ title="pico-sonic itests (all)"
 cartridge_stem="picosonic_itest_all"
 version="3.0"
 config='debug'
-symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
+# symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
+# for now, we don't set extra symbols like cheat to make it lighter, but it's still possible
+# to test cheats in headless itests as busted preserves all (non-#pico8) code
+symbols='assert,log,itest'
 
 # Build from itest main for all itests
 "$picoboots_scripts_path/build_cartridge.sh"               \
@@ -29,4 +32,4 @@ symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
   -o "${cartridge_stem}_v${version}"                       \
   -c "$config"                                             \
   -s "$symbols"                                            \
-  --minify
+  --minify-level 2

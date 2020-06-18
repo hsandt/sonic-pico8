@@ -2,6 +2,22 @@
 	"build_systems":
 	[
 		{
+			"name": "Dev: analyze engine scripts (intermediate release)",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["pico-boots/scripts/analyze.py intermediate/release/pico-boots"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Dev: analyze game scripts (intermediate release)",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["pico-boots/scripts/analyze.py intermediate/release/src"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: edit data",
 			"shell": true,
 			"cmd": ["./edit_data.sh"],
@@ -23,6 +39,30 @@
 			"variants":
 			[
 				{
+					"name": "debug",
+					"cmd": ["./build_game.sh debug"]
+				},
+				{
+					"name": "debug-ultrafast",
+					"cmd": ["./build_game.sh debug-ultrafast"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_game.sh cheat"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./build_game.sh ultrafast"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./build_game.sh cheat-ultrafast"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./build_game.sh sandbox"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_game.sh release"]
 				}
@@ -32,7 +72,7 @@
 			"name": "Game: build itests",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh --symbols pico8,assert,log"],  // itests need debug symbols
+			"cmd": ["./build_itest.sh"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -40,36 +80,154 @@
 			"name": "Game: build and reload or run",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh debug && (./pico-boots/scripts/reload.sh || ./run_game_debug.sh)"],
+			"cmd": ["./build_game.sh debug && (./pico-boots/scripts/reload.sh || ./run_game.sh debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
-					"name": "release",
-					"cmd": ["./build_game.sh release && (./pico-boots/scripts/reload.sh || ./run_game_release.sh)"]
+					"name": "debug",
+					"cmd": ["./build_game.sh debug && (./pico-boots/scripts/reload.sh || ./run_game.sh debug)"]
 				},
 				{
-					"name": "itests",
-					"cmd": ["./build_itest.sh && (./pico-boots/scripts/reload.sh || ./run_itest.sh)"],
+					"name": "debug-ultrafast",
+					"cmd": ["./build_game.sh debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh debug-ultrafast)"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_game.sh cheat && (./pico-boots/scripts/reload.sh || ./run_game.sh cheat)"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./build_game.sh ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh ultrafast)"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./build_game.sh cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh cheat-ultrafast)"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./build_game.sh sandbox && (./pico-boots/scripts/reload.sh || ./run_game.sh sandbox)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_game.sh release && (./pico-boots/scripts/reload.sh || ./run_game.sh release)"]
 				}
 			]
 		},
 		{
-			"name": "Game: run",
+			"name": "Game: build and reload or run itests",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./run_game_debug.sh"],
+			"cmd": ["./build_itest.sh && (./pico-boots/scripts/reload.sh || ./run_itest.sh)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Game: start",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./run_game.sh debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
+					"name": "debug",
+					"cmd": ["./run_game.sh debug"]
+				},
+				{
+					"name": "debug-ultrafast",
+					"cmd": ["./run_game.sh debug-ultrafast"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./run_game.sh cheat"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./run_game.sh ultrafast"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./run_game.sh cheat-ultrafast"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./run_game.sh sandbox"]
+				},
+				{
 					"name": "release",
-					"cmd": ["./run_game_release.sh"]
+					"cmd": ["./run_game.sh release"]
 				},
 				{
 					"name": "itests",
 					"cmd": ["./run_itest.sh"],
+				}
+			]
+		},
+		{
+			"name": "Game: install cartridge (Linux)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_cartridge_linux.sh debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_cartridge_linux.sh debug"]
+				},
+				{
+					"name": "debug-ultrafast",
+					"cmd": ["./install_cartridge_linux.sh debug-ultrafast"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_cartridge_linux.sh cheat"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./install_cartridge_linux.sh ultrafast"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./install_cartridge_linux.sh cheat-ultrafast"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./install_cartridge_linux.sh sandbox"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_cartridge_linux.sh release"]
+				},
+				{
+					"name": "debug (png)",
+					"cmd": ["./install_cartridge_linux.sh debug png"]
+				},
+				{
+					"name": "debug (png)-ultrafast",
+					"cmd": ["./install_cartridge_linux.sh debug-ultrafast png"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_cartridge_linux.sh cheat png"]
+				},
+				{
+					"name": "ultrafast (png)",
+					"cmd": ["./install_cartridge_linux.sh ultrafast png"]
+				},
+				{
+					"name": "cheat (png)-ultrafast",
+					"cmd": ["./install_cartridge_linux.sh cheat-ultrafast png"]
+				},
+				{
+					"name": "sandbox (png)",
+					"cmd": ["./install_cartridge_linux.sh sandbox png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_cartridge_linux.sh release png"]
 				}
 			]
 		},
@@ -112,8 +270,8 @@
 					"cmd": ["./test.sh ingame"],
 				},
 				{
-					"name": "itests",
-					"cmd": ["./test.sh itests"],
+					"name": "itest",
+					"cmd": ["./test.sh itest"],
 				},
 				{
 					"name": "menu",
@@ -128,16 +286,15 @@
 					"cmd": ["./test.sh test_data"],
 				},
 				{
-					"name": "tests",
-					"cmd": ["./test.sh tests"],
-				},
-				{
 					"name": "headless_itests",
 					"cmd": ["./test.sh -f headless_itests"],
 				},
 				{
 					"name": "headless_itests (render)",
-					"cmd": ["./test.sh -f headless_itests -- --render"],
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ENABLE_RENDER": "1"
+					}
 				},
 				{
 					"name": "headless_itests - solo",
@@ -145,7 +302,10 @@
 				},
 				{
 					"name": "headless_itests - solo (render)",
-					"cmd": ["./test.sh -f headless_itests -m solo -- --render"],
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ENABLE_RENDER": "1"
+					}
 				}
 			]
 		},
@@ -189,7 +349,18 @@
 			"cmd": ["./test.sh && echo '' && pico-boots/test.sh"],
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					// if you aim for 100% coverage including render methods
+					"name": "(render)",
+					"cmd": ["./test.sh && echo '' && pico-boots/test.sh"],
+					"env": {
+						"ENABLE_RENDER": "1"
+					}
+				}
+			]
 		},
 		{
 			"name": "Engine: Postbuild: test add_metadata",
@@ -204,6 +375,14 @@
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_add_require"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test analyze",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_analyze"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -224,316 +403,10 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "p8tool: build context",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./build_legacy.sh $file_base_name debug"],
-			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax",
-			"env": {
-				"BUILD_VERSION": "3.0"
-			},
-			"variants":
-			[
-				{
-					"name": "debug",
-					"cmd": ["./build_legacy.sh $file_base_name debug"]
-				},
-				{
-					"name": "assert",
-					"cmd": ["./build_legacy.sh $file_base_name assert"]
-				},
-				{
-					"name": "itest",
-					"cmd": ["./build_legacy.sh $file_base_name itest"]
-				},
-				{
-					"name": "itest_light",
-					"cmd": ["./build_legacy.sh $file_base_name itest_light"]
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./build_legacy.sh $file_base_name profiler"]
-				},
-				{
-					"name": "visual_log",
-					"cmd": ["./build_legacy.sh $file_base_name visual_log"]
-				},
-				{
-					"name": "pico8_utest",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest"]
-				},
-				{
-					"name": "pico8_utest (--no-minify)",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m"]
-				},
-				{
-					"name": "log",
-					"cmd": ["./build_legacy.sh $file_base_name log"]
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./build_legacy.sh $file_base_name cheat"]
-				},
-				{
-					"name": "release",
-					"cmd": ["./build_legacy.sh $file_base_name release"]
-				},
-			]
-		},
-		{
-			"name": "p8tool: build and run or reload context",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./build_legacy.sh $file_base_name debug && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name debug)"],
-			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax",
-			"env": {
-				"BUILD_VERSION": "3.0"
-			},
-			"variants":
-			[
-				{
-					"name": "assert",
-					"cmd": ["./build_legacy.sh $file_base_name assert && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name assert)"]
-				},
-				{
-					"name": "debug",
-					"cmd": ["./build_legacy.sh $file_base_name debug && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name debug)"]
-				},
-				{
-					"name": "itest",
-					"cmd": ["./build_legacy.sh $file_base_name itest && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name itest)"]
-				},
-				{
-					"name": "itest_light",
-					"cmd": ["./build_legacy.sh $file_base_name itest_light && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name itest_light)"]
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./build_legacy.sh $file_base_name profiler && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name profiler)"]
-				},
-				{
-					"name": "visual_log",
-					"cmd": ["./build_legacy.sh $file_base_name visual_log && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name visual_log)"]
-				},
-				{
-					"name": "pico8_utest",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
-				},
-				{
-					"name": "pico8_utest (--no-minify)",
-					"cmd": ["./build_legacy.sh $file_base_name pico8_utest -m && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name pico8_utest '-x; exec bash')"]
-				},
-				{
-					"name": "log",
-					"cmd": ["./build_legacy.sh $file_base_name log && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name log)"]
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./build_legacy.sh $file_base_name cheat && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name cheat)"]
-				},
-				{
-					"name": "release",
-					"cmd": ["./build_legacy.sh $file_base_name release && (./pico-boots/scripts/reload.sh || ./run_legacy.sh $file_base_name release)"]
-				},
-			]
-		},
-		{
-			"name": "p8tool: run context",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./run_legacy.sh $file_base_name debug"],
-			"env": {
-				"BUILD_VERSION": "3.0"
-			},
-			"variants":
-			[
-				{
-					"name": "debug",
-					"cmd": ["./run_legacy.sh $file_base_name debug"]
-				},
-				{
-					"name": "assert",
-					"cmd": ["./run_legacy.sh $file_base_name assert"]
-				},
-				{
-					"name": "itest",
-					"cmd": ["./run_legacy.sh $file_base_name itest"]
-				},
-				{
-					"name": "itest_light",
-					"cmd": ["./run_legacy.sh $file_base_name itest_light"]
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./run_legacy.sh $file_base_name profiler"]
-				},
-				{
-					"name": "visual_log",
-					"cmd": ["./run_legacy.sh $file_base_name visual_log"]
-				},
-				{
-					"name": "pico8_utest",
-					"cmd": ["./run_legacy.sh $file_base_name pico8_utest"]
-				},
-				{
-					"name": "log",
-					"cmd": ["./run_legacy.sh $file_base_name log"]
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./run_legacy.sh $file_base_name cheat"]
-				},
-				{
-					"name": "release",
-					"cmd": ["./run_legacy.sh $file_base_name release"]
-				},
-			]
-		},
-		{
-			"name": "p8tool: install game",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./install.sh release"],
-			"env": {
-				"BUILD_VERSION": "3.0"
-			},
-			"variants":
-			[
-				{
-					"name": "debug",
-					"cmd": ["./install.sh debug"],
-				},
-				{
-					"name": "assert",
-					"cmd": ["./install.sh assert"],
-				},
-				{
-					"name": "itest",
-					"cmd": ["./install.sh itest"],
-				},
-				{
-					"name": "itest_light",
-					"cmd": ["./install.sh itest_light"],
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./install.sh profiler"],
-				},
-				{
-					"name": "visual_log",
-					"cmd": ["./install.sh visual_log"],
-				},
-				{
-					"name": "pico8_utest",
-					"cmd": ["./install.sh pico8_utest"],
-				},
-				{
-					"name": "log",
-					"cmd": ["./install.sh log"],
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./install.sh cheat"],
-				},
-				{
-					"name": "release",
-					"cmd": ["./install.sh release"],
-				},
-				{
-					"name": "debug (png)",
-					"cmd": ["./install.sh debug png"],
-				},
-				{
-					"name": "assert (png)",
-					"cmd": ["./install.sh assert png"],
-				},
-				{
-					"name": "itest (png)",
-					"cmd": ["./install.sh itest png"],
-				},
-				{
-					"name": "itest_light (png)",
-					"cmd": ["./install.sh itest_light png"],
-				},
-				{
-					"name": "profiler (png)",
-					"cmd": ["./install.sh profiler png"],
-				},
-				{
-					"name": "visual_log (png)",
-					"cmd": ["./install.sh visual_log png"],
-				},
-				{
-					"name": "pico8_utest (png)",
-					"cmd": ["./install.sh pico8_utest png"],
-				},
-				{
-					"name": "log (png)",
-					"cmd": ["./install.sh log png"],
-				},
-				{
-					"name": "cheat (png)",
-					"cmd": ["./install.sh cheat png"],
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install.sh release png"],
-				}
-			]
-		},
-		{
-			"name": "p8tool: edit data",
-			"shell": true,
-			"cmd": ["pico8 -run data/data.p8"],
-			"working_dir": "${project_path}"
-		},
-		{
-			"name": "p8tool: edit metadata",
-			"shell": true,
-			"cmd": ["pico8 -run data/metadata.p8"],
-			"working_dir": "${project_path}"
-		},
-		// it's better to use our custom main in unittest scripts to get the correct log level
-		// for filtering, it's easier to use -m unittest, but it will show all the warnings
-		{
-			"name": "python: test preprocess legacy (TestPreprocessLines)",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["python3 -m unittest prebuild.test_preprocess_legacy.TestPreprocessLines"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "python: test preprocess legacy",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["python3 -m prebuild.test_preprocess_legacy"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "python: test replace_strings",
+			"name": "Python (legacy): test replace_strings",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["python3 -m prebuild.test_replace_strings"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "python: test add_metadata",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["python3 -m postbuild.test_add_metadata"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "python: test minify",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["python3 -m postbuild.test_minify"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -544,127 +417,6 @@
 			"shell": true,
 			"cmd": ["luac -p $file"],
 			"file_regex": "((?:src|tests)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)"
-		},
-		{
-			"name": "busted: test",
-			"working_dir": "${project_path}",
-			"shell": true,
-			// use current file name to decide what to test
-			// works from both src module and the corresponding test
-			"cmd": ["./test.sh $file_base_name"],
-			// file regex works fine except for last \n which apparently doesn't work in build output
-			"file_regex": "((?:src|tests)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
-			"env": {
-				"SUBLIME_TEXT": "YES"
-			},
-			"syntax": "Packages/Python/Python.sublime-syntax",
-			"variants":
-			[
-				{
-					"name": "current - solo",
-					"cmd": ["./test.sh $file_base_name solo"],
-				},
-				{
-					"name": "current - all",
-					"cmd": ["./test.sh $file_base_name all"],
-				},
-				{
-					"name": "all",
-					"cmd": ["./test.sh"],
-				},
-				{
-					"name": "all - solo",
-					"cmd": ["./test.sh all solo"],
-				},
-				{
-					"name": "all - all",
-					"cmd": ["./test.sh all all"],
-				},
-				{
-					"name": "assertions",
-					"cmd": ["./test.sh assertions"],
-				},
-				{
-					"name": "codetuner",
-					"cmd": ["./test.sh codetuner"],
-				},
-				{
-					"name": "color",
-					"cmd": ["./test.sh color"],
-				},
-				{
-					"name": "coroutine",
-					"cmd": ["./test.sh coroutine"],
-				},
-				{
-					"name": "credits",
-					"cmd": ["./test.sh credits"],
-				},
-				{
-					"name": "debug",
-					"cmd": ["./test.sh debug"],
-				},
-				{
-					"name": "flow",
-					"cmd": ["./test.sh flow"],
-				},
-				{
-					"name": "helper",
-					"cmd": ["./test.sh helper"],
-				},
-				{
-					"name": "input",
-					"cmd": ["./test.sh input"],
-				},
-				{
-					"name": "integrationtest",
-					"cmd": ["./test.sh integrationtest"],
-				},
-				{
-					"name": "math",
-					"cmd": ["./test.sh math"],
-				},
-				{
-					"name": "playercharacter",
-					"cmd": ["./test.sh playercharacter"],
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./test.sh profiler"],
-				},
-				{
-					"name": "sprite",
-					"cmd": ["./test.sh sprite"],
-				},
-				{
-					"name": "stage",
-					"cmd": ["./test.sh stage"],
-				},
-				{
-					"name": "titlemenu",
-					"cmd": ["./test.sh titlemenu"],
-				},
-				{
-					"name": "ui",
-					"cmd": ["./test.sh ui"],
-				},
-				{
-					"name": "headless_itests",
-					"cmd": ["./test.sh headless_itests"],
-				},
-				{
-					"name": "headless_itests (render)",
-					"cmd": ["./test.sh headless_itests --render"],
-				},
-				{
-					"name": "headless_itests - solo",
-					"cmd": ["./test.sh headless_itests solo"],
-				},
-				{
-					"name": "headless_itests - solo (render)",
-					"cmd": ["./test.sh headless_itests solo --render"],
-				},
-			],
 		},
 	],
 	"folders":
@@ -682,7 +434,7 @@
 			[
 				".git",
 				"backup",
-				// "build",
+				"build",
 				"intermediate"
 			],
 			"path": "."
@@ -693,6 +445,10 @@
 		"\\.lua$":
 		[
 			"PICO-8/PICO-8"
+		],
+		"\\.luacov":
+		[
+			"Lua/Lua"
 		]
 	}
 }

@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if ! [[ ${#positional_args[@]} -ge 0 && ${#positional_args[@]} -le 1 ]]; then
-  echo "Wrong number of positional arguments: found ${#positional_args[@]}, expected 1."
+  echo "Wrong number of positional arguments: found ${#positional_args[@]}, expected 0 or 1."
   echo "Passed positional arguments: ${positional_args[@]}"
   usage
   exit 1
@@ -70,7 +70,19 @@ fi
 symbols=''
 
 if [[ $config == 'debug' ]]; then
-  symbols='assert,log,visual_logger,tuner,profiler,mouse,cheat'
+  # symbols='assert,log,visual_logger,tuner,profiler,mouse'
+  # lighter config (to remain under 65536 chars)
+  symbols='assert,deprecated,log,cheat,sandbox'
+elif [[ $config == 'debug-ultrafast' ]]; then
+  symbols='assert,deprecated,log,cheat,sandbox,ultrafast'
+elif [[ $config == 'cheat' ]]; then
+  symbols='assert,deprecated,cheat'
+elif [[ $config == 'ultrafast' ]]; then
+  symbols='assert,deprecated,ultrafast'
+elif [[ $config == 'cheat-ultrafast' ]]; then
+  symbols='assert,deprecated,cheat,ultrafast'
+elif [[ $config == 'sandbox' ]]; then
+  symbols='assert,deprecated,sandbox'
 fi
 
 # Build from main
@@ -82,4 +94,4 @@ fi
   -o "${cartridge_stem}_v${version}"                  \
   -c "$config"                                        \
   -s "$symbols"                                       \
-  --minify
+  --minify-level 2

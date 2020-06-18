@@ -236,6 +236,8 @@ def generate_get_substitute_from_dict(substitutes):
             # in general, we should substitute all members of a namespace, especially enums
             logging.error(f'no substitute defined for {original_symbol}, but the namespace (first part) is present in SYMBOL_SUBSTITUTE_TABLE')
             # return something easy to debug in PICO-8, in case the user missed the error message
+            # note that we should normally escape quotes in original_symbol, but we rely on the fact that
+            # symbols should not contain quotes
             return f'assert(false, "UNSUBSTITUTED {original_symbol}")'
     return get_substitute
 

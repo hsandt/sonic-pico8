@@ -36,7 +36,7 @@ class TestReplaceStrings(unittest.TestCase):
     def test_replace_all_symbols_in_string_missing_member(self):
         test_string = 'local c = colors.unknown'
         # this will trigger a warning, hide by setting logging level to ERROR in main
-        self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'local c = colors.unknown')
+        self.assertEqual(replace_strings.replace_all_symbols_in_string(test_string), 'local c = assert(false, "UNSUBSTITUTED colors.unknown")')
 
     def test_replace_all_args_in_string(self):
         test_string = 'require("itest_$itest")'

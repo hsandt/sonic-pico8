@@ -3,28 +3,25 @@ require("engine/core/coroutine")
 require("engine/core/math")
 require("engine/render/color")
 local flow = require("engine/application/flow")
+local gamestate = require("engine/application/gamestate")
 local ui = require("engine/ui/ui")
+
 local player_char = require("ingame/playercharacter")
-local gamestate = require("application/gamestate")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 
-local stage = {
+local stage_state = derived_class(gamestate)
 
-  -- enums
-  substates = {
-    play = "play",     -- playing and moving around
-    result = "result"  -- result screen
-  },
+stage_state.type = ':stage'
 
-  state = nil
+-- enums
+stage_state.substates = {
+  play = "play",     -- playing and moving around
+  result = "result"  -- result screen
 }
 
--- game state
-local state = singleton(function (self)
-  self.type = gamestate.types.stage
-
-  -- state vars
+function stage_state:_init()
+  gamestate._init(self)
 
   -- current coroutines
   self.coroutine_curries = {}
@@ -36,7 +33,7 @@ local state = singleton(function (self)
   self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
 
   -- substate
-  self.current_substate = stage.substates.play
+  self.current_substate = stage_state.substates.play
 
   -- player character
   self.player_char = nil
@@ -47,11 +44,10 @@ local state = singleton(function (self)
 
   -- title overlay
   self.title_overlay = ui.overlay(0)
-end)
-stage.state = state
+end
 
-function state:on_enter()
-  self.current_substate = stage.substates.play
+function stage_state:on_enter()
+  self.current_substate = stage_state.substates.play
   self:spawn_player_char()
   self.has_reached_goal = false
   self.camera_pos = vector.zero()
@@ -60,7 +56,7 @@ function state:on_enter()
   self:play_bgm()
 end
 
-function state:on_exit()
+function stage_state:on_exit()
   -- clear all coroutines
   clear_table(self.coroutine_curries)
 
@@ -75,10 +71,10 @@ function state:on_exit()
   self:stop_bgm()
 end
 
-function state:update()
+function stage_state:update()
   self:update_coroutines()
 
-  if self.current_substate == stage.substates.play then
+  if self.current_substate == stage_state.substates.play then
     self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
@@ -87,7 +83,7 @@ function state:update()
   end
 end
 
-function state:render()
+function stage_state:render()
   camera()
 
   self:render_background()
@@ -97,20 +93,23 @@ end
 
 
 -- coroutines
+-- TODO: replace entirely with new coroutine_runner in engine
+-- some bugs remain here, but hard to debug since they don't use the new
+-- coroutine with xpcall system... just blast everything along with the utests
 
 -- create and register coroutine with optional arguments
-function state:start_coroutine(async_function, ...)
+function stage_state:start_coroutine(async_function, ...)
  coroutine = cocreate(async_function)
  add(self.coroutine_curries, coroutine_curry(coroutine, ...))
 end
 
 -- variant for methods that apply self argument automatically
-function state:start_coroutine_method(async_function, ...)
+function stage_state:start_coroutine_method(async_function, ...)
   self:start_coroutine(async_function, self, ...)
 end
 
 -- update emit coroutine if active, remove if dead
-function state:update_coroutines()
+function stage_state:update_coroutines()
   local coroutine_curries_to_del = {}
   for i, coroutine_curry in pairs(self.coroutine_curries) do
     local status = costatus(coroutine_curry.coroutine)
@@ -126,7 +125,7 @@ function state:update_coroutines()
       -- note that this block is only entered on the frame after the last coresume
       add(coroutine_curries_to_del, coroutine_curry)
     else  -- status == "running"
-      warn("stage.state:update_coroutines: coroutine should not be running outside its body: "..coroutine_curry, "flow")
+      warn("stage_state:update_coroutines: coroutine should not be running outside its body: "..coroutine_curry, "flow")
     end
   end
   -- delete dead coroutines
@@ -139,7 +138,7 @@ end
 -- setup
 
 -- spawn the player character at the stage spawn location
-function state:spawn_player_char()
+function stage_state:spawn_player_char()
   local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
   self.player_char = player_char()
   self.player_char:spawn_at(spawn_position)
@@ -148,7 +147,7 @@ end
 
 -- gameplay events
 
-function state:check_reached_goal()
+function stage_state:check_reached_goal()
   if not self.has_reached_goal and
       self.player_char.position.x >= self.curr_stage_data.goal_x then
     self.has_reached_goal = true
@@ -156,34 +155,34 @@ function state:check_reached_goal()
   end
 end
 
-function state:on_reached_goal_async()
+function stage_state:on_reached_goal_async()
   self:feedback_reached_goal()
-  self.current_substate = stage.substates.result
+  self.current_substate = stage_state.substates.result
   self:stop_bgm(stage_data.bgm_fade_out_duration)
   yield_delay(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
 
-function state:feedback_reached_goal()
+function stage_state:feedback_reached_goal()
   sfx(audio.sfx_ids.goal_reached)
 end
 
-function state:back_to_titlemenu()
-  flow:query_gamestate_type(gamestate.types.titlemenu)
+function stage_state:back_to_titlemenu()
+  flow:query_gamestate_type(':titlemenu')
 end
 
 
 -- camera
 
 -- update camera position based on player character position
-function state:update_camera()
+function stage_state:update_camera()
   -- stiff motion
   self.camera_pos.x = self.player_char.position.x
   self.camera_pos.y = self.player_char.position.y
 end
 
 -- set the camera offset for stage elements
-function state:set_camera_offset_stage()
+function stage_state:set_camera_offset_stage()
   -- the camera position is used to render the stage. it represents the screen center
   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
   camera(self.camera_pos.x - screen_width / 2, self.camera_pos.y - screen_height / 2)
@@ -192,7 +191,7 @@ end
 
 -- ui
 
-function state:show_stage_title_async()
+function stage_state:show_stage_title_async()
   self.title_overlay:add_label("title", self.curr_stage_data.title, vector(50, 30), colors.white)
   yield_delay(stage_data.show_stage_title_delay)
   self.title_overlay:remove_label("title")
@@ -202,7 +201,7 @@ end
 -- render
 
 -- render the stage background
-function state:render_background()
+function stage_state:render_background()
   camera()
   rectfill(0, 0, 127, 127, self.curr_stage_data.background_color)
 end
@@ -210,14 +209,14 @@ end
 -- render the stage elements with the main camera:
 -- - environment
 -- - player character
-function state:render_stage_elements()
+function stage_state:render_stage_elements()
   self:set_camera_offset_stage()
   self:render_environment()
   self:render_player_char()
 end
 
 -- render the stage environment (tiles)
-function state:render_environment()
+function stage_state:render_environment()
   -- optimize: don't draw the whole stage offset by camera,
   -- instead just draw the portion of the level of interest
   -- (and either keep camera offset or offset manually and subtract from camera offset)
@@ -229,12 +228,12 @@ function state:render_environment()
 end
 
 -- render the player character at its current position
-function state:render_player_char()
+function stage_state:render_player_char()
   self.player_char:render()
 end
 
 -- render the title overlay with a fixed ui camera
-function state:render_title_overlay()
+function stage_state:render_title_overlay()
   camera(0, 0)
   self.title_overlay:draw_labels()
 end
@@ -242,11 +241,11 @@ end
 
 -- audio
 
-function state:play_bgm()
+function stage_state:play_bgm()
   music(self.curr_stage_data.bgm_id, 0)
 end
 
-function state:stop_bgm(fade_duration)
+function stage_state:stop_bgm(fade_duration)
   -- convert duration from seconds to milliseconds
   if fade_duration then
     fade_duration_ms = 1000 * fade_duration
@@ -259,4 +258,4 @@ end
 
 -- export
 
-return stage
+return stage_state

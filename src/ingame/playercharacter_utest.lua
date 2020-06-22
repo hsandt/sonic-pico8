@@ -1549,7 +1549,7 @@ describe('player_char', function ()
             assert.spy(enter_motion_state_stub).was_not_called()
           end)
 
-          it('#solo should play the run animation at playback speed = abs(ground speed), if not 0', function ()
+          it('should play the run animation at playback speed = abs(ground speed), if not 0', function ()
             -- mock is setting ground speed to -2.5
             pc:_update_platformer_motion_grounded()
 

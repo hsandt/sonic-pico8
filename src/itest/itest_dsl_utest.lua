@@ -1,7 +1,7 @@
 require("engine/test/bustedhelper")
 require("engine/core/helper")
 require("engine/core/math")
-local itest_dsl = require("itests/itest_dsl")
+local itest_dsl = require("itest/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
 local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
@@ -15,9 +15,7 @@ local itest_manager,   time_trigger,   integration_test = get_members(integratio
      "itest_manager", "time_trigger", "integration_test")
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
-local gamestate = require("application/gamestate")
-local gamestate_proxy = require("application/gamestate_proxy")
-local stage = require("ingame/stage")
+local stage_state = require("ingame/stage_state")
 local tilemap = require("engine/data/tilemap")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
@@ -184,14 +182,19 @@ describe('itest_dsl', function ()
 
   describe('execute_', function ()
 
+    local state
+
     before_each(function ()
+      state = stage_state()
       -- some executions require the player character
-      stage.state.player_char = player_char()
+      state.player_char = player_char()
+
+      flow:add_gamestate(state)
+      flow:change_gamestate_by_type(':stage')
     end)
 
     after_each(function ()
-      -- clean up dummy player character
-      stage.state:init()
+      flow:init()
     end)
 
     describe('execute_warp', function ()
@@ -208,19 +211,19 @@ describe('itest_dsl', function ()
         itest_dsl.execute_warp({vector(1, 3)})
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
-        assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(stage.state.player_char), vector(1, 3))
+        assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(state.player_char), vector(1, 3))
       end)
 
     end)
 
     describe('"execute_set', function ()
 
-      it('#solo should set pc velocity to (1, -3)', function ()
+      it('should set pc velocity to (1, -3)', function ()
         itest_dsl.execute_set({"pc_velocity", vector(1, -3)})
-        assert.are_equal(vector(1, -3), stage.state.player_char.velocity)
+        assert.are_equal(vector(1, -3), state.player_char.velocity)
       end)
 
-      it('#solo should fail with unsupported gp_value_type for setting', function ()
+      it('should fail with unsupported gp_value_type for setting', function ()
         assert.has_error(function ()
           itest_dsl.execute_set({"pc_slope", -2})
         end, "itest_dsl.set_pc_slope is not defined")
@@ -232,7 +235,7 @@ describe('itest_dsl', function ()
 
       it('should set the control mode', function ()
         itest_dsl.execute_set_control_mode({control_modes.puppet})
-        assert.are_equal(control_modes.puppet, stage.state.player_char.control_mode)
+        assert.are_equal(control_modes.puppet, state.player_char.control_mode)
       end)
 
     end)
@@ -241,7 +244,7 @@ describe('itest_dsl', function ()
 
       it('should set the motion mode', function ()
         itest_dsl.execute_set_motion_mode({motion_modes.debug})
-        assert.are_equal(motion_modes.debug, stage.state.player_char.motion_mode)
+        assert.are_equal(motion_modes.debug, state.player_char.motion_mode)
       end)
 
     end)
@@ -250,7 +253,7 @@ describe('itest_dsl', function ()
 
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
         itest_dsl.execute_move({horizontal_dirs.right})
-        assert.are_equal(vector(1, 0), stage.state.player_char.move_intention)
+        assert.are_equal(vector(1, 0), state.player_char.move_intention)
       end)
 
     end)
@@ -258,9 +261,9 @@ describe('itest_dsl', function ()
     describe('execute_stop', function ()
 
       it('should set the move intention of the current player character to vector zero', function ()
-        stage.state.player_char.move_intention = vector(99, -99)
+        state.player_char.move_intention = vector(99, -99)
         itest_dsl.execute_stop({})
-        assert.are_equal(vector.zero(), stage.state.player_char.move_intention)
+        assert.are_equal(vector.zero(), state.player_char.move_intention)
       end)
 
     end)
@@ -270,7 +273,7 @@ describe('itest_dsl', function ()
       it('should set the jump intention and hold jump intention to true', function ()
         itest_dsl.execute_jump({})
         assert.are_same({true, true},
-          {stage.state.player_char.jump_intention, stage.state.player_char.hold_jump_intention})
+          {state.player_char.jump_intention, state.player_char.hold_jump_intention})
       end)
 
     end)
@@ -278,9 +281,9 @@ describe('itest_dsl', function ()
     describe('execute_stop_jump', function ()
 
       it('should set the hold jump intention to false', function ()
-        stage.state.player_char.hold_jump_intention = true
+        state.player_char.hold_jump_intention = true
         itest_dsl.execute_stop_jump({})
-        assert.is_false(stage.state.player_char.hold_jump_intention)
+        assert.is_false(state.player_char.hold_jump_intention)
       end)
 
     end)
@@ -309,20 +312,24 @@ describe('itest_dsl', function ()
 
   describe('eval_', function ()
 
-    before_each(function ()
-      -- some evaluators require the player character
-      stage.state.player_char = player_char()
-    end)
+    local state
 
-    after_each(function ()
-      -- clean up dummy player character
-      stage.state:init()
+    before_each(function ()
+      state = stage_state()
+      -- some evaluators require the player character
+      state.player_char = player_char()
+
+      flow:add_gamestate(state)
+      flow:change_gamestate_by_type(':stage')
+
+      flow:add_gamestate(state)
+      flow:change_gamestate_by_type(':stage')
     end)
 
     describe('eval_pc_bottom_pos', function ()
 
       it('should return the bottom position of the current player character', function ()
-        stage.state.player_char:set_bottom_center(vector(12, 47))
+        state.player_char:set_bottom_center(vector(12, 47))
         assert.are_equal(vector(12, 47), eval_pc_bottom_pos())
       end)
 
@@ -331,7 +338,7 @@ describe('itest_dsl', function ()
     describe('eval_pc_velocity', function ()
 
       it('should return the velocity the current player character', function ()
-        stage.state.player_char.velocity = vector(1, -4)
+        state.player_char.velocity = vector(1, -4)
         assert.are_equal(vector(1, -4), eval_pc_velocity())
       end)
 
@@ -340,7 +347,7 @@ describe('itest_dsl', function ()
     describe('eval_pc_ground_spd', function ()
 
       it('should return the ground speed current player character', function ()
-        stage.state.player_char.ground_speed = 3.5
+        state.player_char.ground_speed = 3.5
         assert.are_equal(3.5, eval_pc_ground_spd())
       end)
 
@@ -349,7 +356,7 @@ describe('itest_dsl', function ()
     describe('eval_pc_motion_state', function ()
 
       it('should return the ground speed current player character', function ()
-        stage.state.player_char.motion_state = motion_states.airborne
+        state.player_char.motion_state = motion_states.airborne
         assert.are_equal(motion_states.airborne, eval_pc_motion_state())
       end)
 
@@ -358,7 +365,7 @@ describe('itest_dsl', function ()
     describe('eval_pc_slope', function ()
 
       it('should return the ground speed current player character', function ()
-        stage.state.player_char.slope_angle = -0.125
+        state.player_char.slope_angle = -0.125
         assert.are_equal(-0.125, eval_pc_slope())
       end)
 
@@ -369,21 +376,22 @@ describe('itest_dsl', function ()
 
   describe('set_', function ()
 
-    before_each(function ()
-      -- some setters require the player character
-      stage.state.player_char = player_char()
-    end)
+    local state
 
-    after_each(function ()
-      -- clean up dummy player character
-      stage.state:init()
+    before_each(function ()
+      state = stage_state()
+      -- some setters require the player character
+      state.player_char = player_char()
+
+      flow:add_gamestate(state)
+      flow:change_gamestate_by_type(':stage')
     end)
 
     describe('set_pc_velocity', function ()
 
       it('should return the velocity the current player character', function ()
         itest_dsl.set_pc_velocity(vector(1, -4))
-        assert.are_equal(vector(1, -4), stage.state.player_char.velocity)
+        assert.are_equal(vector(1, -4), state.player_char.velocity)
       end)
 
     end)
@@ -392,7 +400,7 @@ describe('itest_dsl', function ()
 
       it('should return the ground speed current player character', function ()
         itest_dsl.set_pc_ground_spd(3.5)
-        assert.are_equal(3.5, stage.state.player_char.ground_speed)
+        assert.are_equal(3.5, state.player_char.ground_speed)
       end)
 
     end)
@@ -438,6 +446,8 @@ describe('itest_dsl', function ()
 
   describe('itest_dsl_parser', function ()
 
+    local state
+
     setup(function ()
       -- spying should be enough, but we stub so it's easier to call these functions
       --  without calling the symmetrical one (e.g. teardown may fail with nil reference
@@ -451,10 +461,13 @@ describe('itest_dsl', function ()
       teardown_map_data:revert()
     end)
 
+    before_each(function ()
+      state = stage_state()
+    end)
+
     after_each(function ()
       itest_dsl_parser:init()
       flow:init()
-      stage.state:init()
       pico8:clear_map()
       setup_map_data:clear()
       teardown_map_data:clear()
@@ -533,7 +546,7 @@ describe('itest_dsl', function ()
       -- + spot tilemap not being set, although parse_gamestate_definition worked, so the error is in the glue code
       it('should parse the itest source written in domain-specific language into a dsl itest', function ()
         local dsli_source = [[
-stage
+@stage
 #
 64
 
@@ -547,7 +560,8 @@ expect
         assert.is_not_nil(dsli)
         assert.are_same(
           {
-            'stage',
+            -- no ':stage' here, it's still interpret as plain text at this point
+            '@stage',
             '#',
             tilemap({
               { 0, 64},
@@ -576,7 +590,7 @@ expect
         local gamestate_type, stage_name, tm, next_line_index = itest_dsl_parser.parse_gamestate_definition(dsli_lines)
         assert.are_same(
           {
-            'titlemenu',
+            ':titlemenu',
             nil,
             nil,
             3
@@ -599,7 +613,7 @@ expect
         local gamestate_type, stage_name, tm, next_line_index = itest_dsl_parser.parse_gamestate_definition(dsli_lines)
         assert.are_same(
           {
-            'stage',
+            ':stage',
             "test1",
             nil,
             3
@@ -639,7 +653,7 @@ expect
           -- interface
           assert.are_same(
             {
-              'stage',
+              ':stage',
               '#',
               tilemap({
                 {70, 64},
@@ -793,7 +807,7 @@ expect
 
       it('should create an itest with a name and a dsl itest', function ()
         local dsli = dsl_itest()
-        dsli.gamestate_type = 'stage'
+        dsli.gamestate_type = ':stage'
         dsli.stage_name = "test1"
         dsli.tilemap = nil
         dsli.commands = {
@@ -813,7 +827,7 @@ expect
         assert.are_equal(4, #test.action_sequence)
         assert.are_same({
             "test 1",
-            {'stage'},
+            {':stage'},
             time_trigger(0, true),  -- warp immediately
             scripted_action(time_trigger(10, true), nil),  -- empty action after 10 frames
             time_trigger(1, true),  -- start moving after 1 frame
@@ -836,27 +850,25 @@ expect
         -- note that most actions depend on the previous one, so we exceptionally
         --  assert multiple times in chain in a single utest
 
-        -- simulate the itest runner behavior by initializing active gamestates for this test
-        gamestate_proxy:require_gamestates(test.active_gamestates)
-
-        -- simulate picosonic_app:register_gamestates once gamestates have been registered,
-        --   so gamestates are available when starting an itest (we could also use the picosonic_app directly)
-        for state in all(test.active_gamestates) do
-          flow:add_gamestate(gamestate_proxy:get(state))
-        end
+        -- we only need stage state for stage itests
+        -- however, if character reaches goal we may go to another state
+        -- and since we removed dummies, we may have issues
+        -- if it happens, just create a dummy next state with the right type
+        -- and add it here
+        flow:add_gamestate(state)
 
         -- verify setup callback behavior
         test.setup()
-        assert.are_equal(gamestate.types.stage, flow.curr_state.type)
+        assert.are_equal(':stage', flow.curr_state.type)
 
         -- verify warp callback behavior
         test.action_sequence[1].callback()
-        assert.is_not_nil(stage.state.player_char)
-        assert.are_equal(vector(12, 45 - pc_data.center_height_standing), stage.state.player_char.position)
+        assert.is_not_nil(state.player_char)
+        assert.are_equal(vector(12, 45 - pc_data.center_height_standing), state.player_char.position)
 
         -- verify move callback behavior
         test.action_sequence[3].callback()
-        assert.are_equal(vector(-1, 0), stage.state.player_char.move_intention)
+        assert.are_equal(vector(-1, 0), state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
         -- note we are testing as busted, so we get the almost_eq messages
@@ -867,8 +879,8 @@ expect
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
         -- but if we cheat and warp him on the spot, final assertion will work
-        stage.state.player_char:set_bottom_center(vector(10, 45))
-        stage.state.player_char.velocity = vector(2, -3.5)
+        state.player_char:set_bottom_center(vector(10, 45))
+        state.player_char.velocity = vector(2, -3.5)
         assert.are_same({true, ""}, {test.final_assertion()})
 
         -- verify that parser state is cleaned up, ready for next parsing
@@ -903,26 +915,20 @@ expect
 
         it('setup should call setup_map_data and load on the tilemap if custom stage definition', function ()
           local dsli = dsl_itest()
-          dsli.gamestate_type = 'stage'
+          dsli.gamestate_type = ':stage'
           dsli.stage_name = "#"
           dsli.tilemap = tilemap({})
           dsli.commands = {}
 
           local test = itest_dsl_parser.create_itest("test 1", dsli)
 
-          -- simulate the itest runner behavior by initializing active gamestates for this test
-          gamestate_proxy:require_gamestates(test.active_gamestates)
-
-          -- simulate picosonic_app:register_gamestates once gamestates have been registered,
-          --   so gamestates are available when starting an itest (we could also use the picosonic_app directly)
-          for state in all(test.active_gamestates) do
-            flow:add_gamestate(gamestate_proxy:get(state))
-          end
+          -- see comment in previous test
+          flow:add_gamestate(state)
 
           test.setup()
 
           -- interface
-          assert.are_equal(control_modes.puppet, stage.state.player_char.control_mode)
+          assert.are_equal(control_modes.puppet, state.player_char.control_mode)
 
           -- implementation
           local s_data = assert.spy(setup_map_data)
@@ -935,14 +941,16 @@ expect
 
         it('teardown should call clear_map and teardown_map_data if custom stage definition', function ()
           local dsli = dsl_itest()
-          dsli.gamestate_type = 'stage'
+          dsli.gamestate_type = ':stage'
           dsli.stage_name = "#"
           dsli.tilemap = tilemap({})
           dsli.commands = {}
 
           local test = itest_dsl_parser.create_itest("test 1", dsli)
 
-          gamestate_proxy:require_gamestates(test.active_gamestates)
+          -- see comment in previous test
+          flow:add_gamestate(state)
+
           test.teardown()
 
           -- implementation
@@ -1026,7 +1034,7 @@ expect
         itest_dsl_parser._itest = integration_test('test', {})
       end)
 
-      it('#solo should set the final assertion as returning true, message when the gameplay value is expected', function ()
+      it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
         itest_dsl_parser._final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),
           expectation("pc_velocity", vector(-3, 2.5))
@@ -1035,7 +1043,7 @@ expect
         assert.are_same({true, ""}, {itest_dsl_parser._itest.final_assertion()})
       end)
 
-      it('#solo should set the final assertion as returning false, message when the gameplay value is not expected', function ()
+      it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
         itest_dsl_parser._final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),  -- ok
           expectation("pc_velocity", vector(-3, 7.5))    -- different from actual

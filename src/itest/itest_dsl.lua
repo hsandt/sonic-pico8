@@ -38,9 +38,21 @@ local tilemap = require("engine/data/tilemap")
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
-local stage = require("ingame/stage")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
+
+
+-- helper function to access stage_stage quickly if current state
+-- is stage, as it is not a singleton anymore
+local function get_current_state_as_stage()
+  if flow.curr_state then
+    if flow.curr_state.type == ':stage' then
+      return flow.curr_state
+    end
+    assert(false, "current state is "..flow.curr_state.type..", expected ':stage'")
+  end
+  assert(false, "current state is nil, expected stage_state")
+end
 
 
 -- module
@@ -239,7 +251,8 @@ itest_dsl.value_parsers = value_parsers
 -- so they can update its state if needed
 
 function itest_dsl.execute_warp(args)
-  stage.state.player_char:warp_bottom_to(args[1])
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char:warp_bottom_to(args[1])
 end
 
 function itest_dsl.execute_set(args)
@@ -251,28 +264,34 @@ function itest_dsl.execute_set(args)
 end
 
 function itest_dsl.execute_set_control_mode(args)
-  stage.state.player_char.control_mode = args[1]
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.control_mode = args[1]
 end
 
 function itest_dsl.execute_set_motion_mode(args)
-  stage.state.player_char.motion_mode = args[1]
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.motion_mode = args[1]
 end
 
 function itest_dsl.execute_move(args)
-      stage.state.player_char.move_intention = horizontal_dir_vectors[args[1]]
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.move_intention = horizontal_dir_vectors[args[1]]
 end
 
 function itest_dsl.execute_stop(args)
-      stage.state.player_char.move_intention = vector.zero()
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.move_intention = vector.zero()
 end
 
 function itest_dsl.execute_jump(args)
-  stage.state.player_char.jump_intention = true  -- will be consumed
-  stage.state.player_char.hold_jump_intention = true
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.jump_intention = true  -- will be consumed
+  current_stage_state.player_char.hold_jump_intention = true
 end
 
 function itest_dsl.execute_stop_jump(args)
-  stage.state.player_char.hold_jump_intention = false
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.hold_jump_intention = false
 end
 
 function itest_dsl.execute_press(args)
@@ -295,23 +314,28 @@ itest_dsl.executors = executors
 -- gameplay value evaluation functions
 
 function itest_dsl.eval_pc_bottom_pos()
-  return stage.state.player_char:get_bottom_center()
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char:get_bottom_center()
 end
 
 function itest_dsl.eval_pc_velocity()
-  return stage.state.player_char.velocity
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char.velocity
 end
 
 function itest_dsl.eval_pc_ground_spd()
-  return stage.state.player_char.ground_speed
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char.ground_speed
 end
 
 function itest_dsl.eval_pc_motion_state()
-  return stage.state.player_char.motion_state
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char.motion_state
 end
 
 function itest_dsl.eval_pc_slope()
-  return stage.state.player_char.slope_angle
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char.slope_angle
 end
 
 -- table of functions used to evaluate and returns the gameplay value in current game state
@@ -322,11 +346,13 @@ itest_dsl.evaluators = evaluators
 -- gameplay value setters (only when setting value directly makes sense)
 
 function itest_dsl.set_pc_velocity(value)
-  stage.state.player_char.velocity = value
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.velocity = value
 end
 
 function itest_dsl.set_pc_ground_spd(value)
-  stage.state.player_char.ground_speed = value
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.ground_speed = value
 end
 
 
@@ -362,8 +388,8 @@ end
 
 -- attributes
 -- gamestate_type  string         gamestate type to start test in (also the only active gamestate)
--- stage_name      string|nil     stage name to play if gamestate type is 'stage', nil else
--- tilemap        tilemap|nil     tilemap data if gamestate type is 'stage', nil else
+-- stage_name      string|nil     stage name to play if gamestate type is ':stage', nil else
+-- tilemap        tilemap|nil     tilemap data if gamestate type is ':stage', nil else
 -- commands        {command}      sequence of commands to apply
 local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
@@ -398,7 +424,7 @@ end
 --  2. action sequence and expectations
 -- ex:
 -- [[
--- @stage #                     < gamestate 'stage' with tag '#' for custom
+-- @stage #                     < gamestate ':stage' with tag '#' for custom
 -- ...                          < for custom stage, provide the tilemap in ascii
 -- ###                          < . for empty tile, # for full tile, etc.
 --                              < blank after tilemap to mark the end
@@ -424,7 +450,7 @@ end
 
 -- return gamestate type, stage_name, tilemap data and index of next line to parse so we can chain parsing
 -- the format of the gamestate definition is:
--- @[gamestate] (stage_name|#)?   < 2nd part only if gamestate == 'stage', '#' for custom tilemap
+-- @[gamestate] (stage_name|#)?   < 2nd part only if gamestate == ':stage', '#' for custom tilemap
 -- [tilemap row 1]                < only for custom tilemap
 -- ...
 -- [tilemap row n]
@@ -435,9 +461,9 @@ function itest_dsl_parser.parse_gamestate_definition(lines)
   local gamestate_header = lines[1]
   assert(sub(gamestate_header, 1, 1) == '@', "gamestate_header '"..gamestate_header.."' doesn't start with @")
   local header_parts = strspl(gamestate_header, ' ', true)
-  local gamestate_type = sub(header_parts[1], 2)
+  local gamestate_type = ':'..sub(header_parts[1], 2)
   local stage_name = nil
-  if gamestate_type == 'stage' then
+  if gamestate_type == ':stage' then
     assert(#header_parts == 2)
     stage_name = header_parts[2]
   end
@@ -531,9 +557,10 @@ function itest_dsl_parser.create_itest(name, dsli)
 
   itest_dsl_parser._itest.setup = function ()
     flow:change_gamestate_by_type(dsli.gamestate_type)
-    if dsli.gamestate_type == "stage" then
+    if dsli.gamestate_type == ':stage' then
       -- puppet control
-      stage.state.player_char.control_mode = control_modes.puppet
+      local current_stage_state = get_current_state_as_stage()
+      current_stage_state.player_char.control_mode = control_modes.puppet
       if dsli.stage_name == '#' then
         -- load tilemap data and build it from ascii
         setup_map_data()
@@ -547,7 +574,7 @@ function itest_dsl_parser.create_itest(name, dsli)
   itest_dsl_parser._itest.teardown = function ()
     -- clear map
     -- no need to "unload" the game state, the next test will reset the flow anyway
-    if dsli.gamestate_type == "stage" then
+    if dsli.gamestate_type == ':stage' then
       if dsli.stage_name == '#' then
         -- clear tilemap and unload tilemap data
         tilemap.clear_map()

@@ -5,11 +5,11 @@ local flow = require("engine/application/flow")
 local codetuner = require("engine/debug/codetuner")
 local profiler = require("engine/debug/profiler")
 local vlogger = require("engine/debug/visual_logger")
+local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
-local gamestate_proxy = require("application/gamestate_proxy")
-local titlemenu = require("menu/titlemenu_dummy")
-local credits = require("menu/credits_dummy")
-local stage = require("ingame/stage")
+local titlemenu = require("menu/titlemenu")
+local credits = require("menu/credits")
+local stage_state = require("ingame/stage_state")
 local visual = require("resources/visual")
 
 describe('picosonic_app', function ()
@@ -20,38 +20,40 @@ describe('picosonic_app', function ()
     app = picosonic_app()
   end)
 
-  describe('register_gamestates', function ()
+  describe('instantiate_gamestates', function ()
 
-    it('should add all gamestates', function ()
-      -- require the real stage (as we required "stage" not "stage_dummy" at the top
-      -- but leave the other states as dummy
-      gamestate_proxy:require_gamestates({"stage"})
-      picosonic_app:register_gamestates()
-
-      -- interface
-      assert.are_equal(titlemenu.state, flow.gamestates[titlemenu.state.type])
-      assert.are_equal(credits.state, flow.gamestates[credits.state.type])
-      assert.are_equal(stage.state, flow.gamestates[stage.state.type])
+    it('should return all gamestates', function ()
+      assert.are_same({titlemenu(), credits(), stage_state()}, picosonic_app:instantiate_gamestates())
     end)
 
   end)
 
-  describe('on_start', function ()
+  describe('on_post_start', function ()
 
     setup(function ()
+      stub(input, "toggle_mouse")
       stub(ui, "set_cursor_sprite_data")
     end)
 
     teardown(function ()
+      input.toggle_mouse:revert()
       ui.set_cursor_sprite_data:revert()
     end)
 
     after_each(function ()
+      input.toggle_mouse:clear()
       ui.set_cursor_sprite_data:clear()
     end)
 
+    it('should toggle mouse cursor', function ()
+      app:on_post_start()
+      local s = assert.spy(input.toggle_mouse)
+      s.was_called(1)
+      s.was_called_with(match.ref(input), true)
+    end)
+
     it('should set the ui cursor sprite data', function ()
-      app.on_start()
+      app:on_post_start()
       local s = assert.spy(ui.set_cursor_sprite_data)
       s.was_called(1)
       s.was_called_with(match.ref(ui), match.ref(visual.sprite_data_t.cursor))
@@ -59,7 +61,7 @@ describe('picosonic_app', function ()
 
   end)
 
-  describe('on_reset (#utest only)', function ()
+  describe('on_reset', function ()
 
     setup(function ()
       stub(ui, "set_cursor_sprite_data")

@@ -1,42 +1,24 @@
+-- main entry file for the game
+
 -- we must require engine/pico8/api at the top of our main.lua, so API bridges apply to all modules
 require("engine/pico8/api")
 
-local picosonic_app = require("application/picosonic_app")
-local gamestate_proxy = require("application/gamestate_proxy")
-local gamestate = require("application/gamestate")
-
 --#if log
 local logging = require("engine/debug/logging")
-logging.logger:register_stream(logging.console_log_stream)
-logging.logger:register_stream(logging.file_log_stream)
-logging.logger.active_categories["trace"] = false
+--#endif
 
 --#if visual_logger
 local vlogger = require("engine/debug/visual_logger")
-logging.logger:register_stream(vlogger.vlog_stream)
-vlogger.window:show()
---#endif
-
 --#endif
 
 --#if profiler
 local profiler = require("engine/debug/profiler")
-profiler.window:show()
 --#endif
 
 -- always require code tuner, since ifn tuned, `tuned` will simply use the default value
 local codetuner = require("engine/debug/codetuner")
---#if tuner
-codetuner:show()
-codetuner.active = true
---#endif
 
---#if mouse
-local input = require("engine/input/input")
-input:toggle_mouse(true)
---#endif
-
--- pico-8 functions must be placed at the end to be parsed by p8tool
+local picosonic_app = require("application/picosonic_app")
 
 local app = picosonic_app()
 
@@ -45,16 +27,45 @@ function _init()
   -- start logging before app in case we need to read logs about app start itself
   logging.logger:register_stream(logging.console_log_stream)
   logging.logger:register_stream(logging.file_log_stream)
+  logging.logger:register_stream(vlogger.vlog_stream)
+
   logging.file_log_stream.file_prefix = "picosonic"
 
   -- clear log file on new game session (or to preserve the previous log,
   -- you could add a newline and some "[SESSION START]" tag instead)
   logging.file_log_stream:clear()
+
+  logging.logger.active_categories = {
+    -- engine
+    ['default'] = true,
+    ['codetuner'] = true,
+    ['flow'] = true,
+    ['itest'] = true,
+    ['log'] = true,
+    ['ui'] = true,
+    -- ['frame'] = nil,
+
+    -- game
+    -- ['...'] = true,
+  }
 --#endif
 
-  -- require all gamestate modules, according to preprocessing step
-  gamestate_proxy:require_gamestates()
-  app.initial_gamestate = gamestate.types.titlemenu
+--#if visual_logger
+  -- uncomment to enable visual logger
+  -- vlogger.window:show()
+--#endif
+
+--#if profiler
+  -- uncomment to enable profiler
+  -- profiler.window:show(colors.orange)
+--#endif
+
+--#if tuner
+  codetuner:show()
+  codetuner.active = true
+--#endif
+
+  app.initial_gamestate = ':titlemenu'
   app:start()
 end
 

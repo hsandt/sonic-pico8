@@ -23,9 +23,6 @@ stage_state.substates = {
 function stage_state:_init()
   gamestate._init(self)
 
-  -- current coroutines
-  self.coroutine_curries = {}
-
   -- stage id
   self.curr_stage_id = 1
 
@@ -52,13 +49,14 @@ function stage_state:on_enter()
   self.has_reached_goal = false
   self.camera_pos = vector.zero()
 
-  self:start_coroutine_method(self.show_stage_title_async)
+  self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
 end
 
 function stage_state:on_exit()
-  -- clear all coroutines
-  clear_table(self.coroutine_curries)
+  -- clear all coroutines (we normally let app handle them, but in this context
+  -- we know that all coroutines belong to the stage state, so no risk clearing them from here)
+  self.app:stop_all_coroutines()
 
   -- clear object state vars
   self.player_char = nil
@@ -72,8 +70,6 @@ function stage_state:on_exit()
 end
 
 function stage_state:update()
-  self:update_coroutines()
-
   if self.current_substate == stage_state.substates.play then
     self.player_char:update()
     self:check_reached_goal()
@@ -89,49 +85,6 @@ function stage_state:render()
   self:render_background()
   self:render_stage_elements()
   self:render_title_overlay()
-end
-
-
--- coroutines
--- TODO: replace entirely with new coroutine_runner in engine
--- some bugs remain here, but hard to debug since they don't use the new
--- coroutine with xpcall system... just blast everything along with the utests
-
--- create and register coroutine with optional arguments
-function stage_state:start_coroutine(async_function, ...)
- coroutine = cocreate(async_function)
- add(self.coroutine_curries, coroutine_curry(coroutine, ...))
-end
-
--- variant for methods that apply self argument automatically
-function stage_state:start_coroutine_method(async_function, ...)
-  self:start_coroutine(async_function, self, ...)
-end
-
--- update emit coroutine if active, remove if dead
-function stage_state:update_coroutines()
-  local coroutine_curries_to_del = {}
-  for i, coroutine_curry in pairs(self.coroutine_curries) do
-    local status = costatus(coroutine_curry.coroutine)
-    if status == "suspended" then
-      -- resume the coroutine and assert if failed
-      -- (assertions don't work from inside coroutines, but will return false)
-      -- pass the curry arguments now (most of the time they are only useful
-      -- on the 1st coresume call, since other times they are just yield() return values)
-      local result = coresume(coroutine_curry.coroutine, unpack(coroutine_curry.args))
-      assert(result, "Assertion failed in coroutine update for: "..coroutine_curry)
-    elseif status == "dead" then
-      -- register the coroutine for removal from the sequence (don't delete it now since we are iterating over it)
-      -- note that this block is only entered on the frame after the last coresume
-      add(coroutine_curries_to_del, coroutine_curry)
-    else  -- status == "running"
-      warn("stage_state:update_coroutines: coroutine should not be running outside its body: "..coroutine_curry, "flow")
-    end
-  end
-  -- delete dead coroutines
-  for coroutine_curry in all(coroutine_curries_to_del) do
-    del(self.coroutine_curries, coroutine_curry)
-  end
 end
 
 
@@ -151,7 +104,7 @@ function stage_state:check_reached_goal()
   if not self.has_reached_goal and
       self.player_char.position.x >= self.curr_stage_data.goal_x then
     self.has_reached_goal = true
-    self:start_coroutine_method(self.on_reached_goal_async)
+    self.app:start_coroutine(self.on_reached_goal_async, self)
   end
 end
 

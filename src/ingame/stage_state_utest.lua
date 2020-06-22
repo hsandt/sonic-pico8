@@ -32,288 +32,12 @@ describe('stage_state', function ()
       state.app = app
     end)
 
-    describe('coroutine', function ()
-
-      describe('working coroutine function', function ()
-
-        local test_var = 0
-
-        local function set_var_after_delay_async(app, delay, value)
-          app.yield_delay_s(delay)
-          test_var = value
-        end
-
-        describe('start_coroutine', function ()
-
-          before_each(function ()
-            state:start_coroutine(set_var_after_delay_async, state.app, 1.0, 1)
-          end)
-
-          it('should start a coroutine, stopping at the first yield', function ()
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(0, test_var)
-          end)
-
-        end)
-
-        describe('(2 coroutines started with yield_delays of 1.0 and 2.0 resp.)', function ()
-
-          before_each(function ()
-            test_var = 0
-            state:start_coroutine(set_var_after_delay_async, state.app, 1.0, 1)
-            state:start_coroutine(set_var_after_delay_async, state.app, 2.0, 2)
-          end)
-
-          after_each(function ()
-            clear_table(state.coroutine_curries)
-          end)
-
-          describe('update_coroutines', function ()
-
-            it('should update all the coroutines (not enough time to finish any coroutine)', function ()
-              for t = 1, 1.0 * state.app.fps - 1 do
-                state:update_coroutines()
-              end
-              assert.are_equal(2, #state.coroutine_curries)
-              assert.are_same({"suspended", "suspended"}, {costatus(state.coroutine_curries[1].coroutine), costatus(state.coroutine_curries[2].coroutine)})
-              assert.are_equal(0, test_var)
-            end)
-
-            it('should update all the coroutines (just enough time to finish the first one but not the second one)', function ()
-              for t = 1, 1.0 * state.app.fps do
-                state:update_coroutines()
-              end
-              assert.are_equal(2, #state.coroutine_curries)
-              assert.are_same({"dead", "suspended"}, {costatus(state.coroutine_curries[1].coroutine), costatus(state.coroutine_curries[2].coroutine)})
-              assert.are_equal(1, test_var)
-            end)
-
-            it('should remove dead coroutines on the next call after finish (remove first one when dead)', function ()
-              for t = 1, 1.0 * state.app.fps + 1 do
-                state:update_coroutines()
-              end
-              -- 1st coroutine has been removed, so the only coroutine left at index 1 is now the 2nd coroutine
-              assert.are_equal(1, #state.coroutine_curries)
-              assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-              assert.are_equal(1, test_var)
-            end)
-
-            it('should update all the coroutines (just enough time to finish the second one)', function ()
-              for t = 1, 2.0 * state.app.fps do
-                state:update_coroutines()
-              end
-              assert.are_equal(1, #state.coroutine_curries)
-              assert.are_equal("dead", costatus(state.coroutine_curries[1].coroutine))
-              assert.are_equal(2, test_var)
-            end)
-
-            it('should remove dead coroutines on the next call after finish (remove second one when dead)', function ()
-              for t = 1, 2.0 * state.app.fps + 1 do
-                state:update_coroutines()
-              end
-              assert.are_equal(0, #state.coroutine_curries)
-              assert.are_equal(2, test_var)
-            end)
-
-          end)  -- update_coroutines
-
-        end)  -- (2 coroutines started with yield_delays of 1.0 and 2.0 resp.)
-
-      end)  -- working coroutine function
-
-      describe('coroutine updating coroutines', function ()
-
-        local test_var = 0
-
-        local function update_coroutine_recursively_async()
-          test_var = test_var + 1
-          state:update_coroutines()
-        end
-
-        setup(function ()
-          stub(_G, "warn")
-        end)
-
-        teardown(function ()
-          warn:revert()
-        end)
-
-        before_each(function ()
-          state:start_coroutine(update_coroutine_recursively_async)
-        end)
-
-        after_each(function ()
-          warn:clear()
-        end)
-
-        it('should resume the coroutine on 1 level only and warn that you shouldn\'t update resume already running coroutines', function ()
-          state:update_coroutines()
-          assert.are_equal(1, test_var)  -- proves we entered the coroutine function only once
-          assert.spy(warn).was_called(1)
-          assert.spy(warn).was_called_with(match.matches("stage_state:update_coroutines: coroutine should not be running outside its body: "), "flow")
-        end)
-
-      end)
-
-      describe('(failing coroutine started)', function ()
-
-        local function fail_async(app, delay)
-          app.yield_delay_s(delay)
-          error("fail_async finished")
-        end
-
-        before_each(function ()
-          state:start_coroutine(fail_async, state.app, 1.0)
-        end)
-
-        after_each(function ()
-          clear_table(state.coroutine_curries)
-        end)
-
-        describe('update_coroutines', function ()
-
-          it('should not assert when an error doesn\'t occurs inside the coroutine resume yet', function ()
-            assert.has_no_errors(function () state:update_coroutines() end)
-          end)
-
-          it('should assert when an error occurs inside the coroutine resume', function ()
-            assert.has_errors(function ()
-                for t = 1, 1.0 * state.app.fps do
-                  state:update_coroutines()
-                end
-              end,
-              "Assertion failed in coroutine update for: [coroutine_curry] (dead) (1.0)")
-          end)
-
-        end)
-
-      end)  -- (failing coroutine started)
-
-      describe('(coroutine method for custom class started with yield_delay of 1.0)', function ()
-
-        local test_class = new_class()
-        local test_instance
-
-        function test_class:_init(value)
-          self.value = value
-        end
-
-        function test_class:set_value_after_delay(new_value)
-          app.yield_delay_s(1.0)
-          self.value = new_value
-        end
-
-        before_each(function ()
-          -- create an instance and pass it to start_coroutine as the future self arg
-          -- (start_coroutine_method only works for the instance of stage_state itself)
-          test_instance = test_class(-10)
-          state:start_coroutine(test_class.set_value_after_delay, state.app, test_instance, 99)
-        end)
-
-        describe('update_coroutines', function ()
-
-          it('#solo should update all the coroutines (not enough time to finish any coroutine)', function ()
-            for t = 1, 1.0 * state.app.fps - 1 do
-              state:update_coroutines()
-            end
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(-10, test_instance.value)
-          end)
-
-          it('should update all the coroutines (just enough time to finish)', function ()
-            for t = 1, 1.0 * state.app.fps do
-              state:update_coroutines()
-            end
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("dead", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(99, test_instance.value)
-          end)
-
-          it('should remove dead coroutines on the next call after finish after finish', function ()
-            for t = 1, 1.0 * state.app.fps + 1 do
-              state:update_coroutines()
-            end
-            assert.are_equal(0, #state.coroutine_curries)
-            assert.are_equal(99, test_instance.value)
-          end)
-
-        end)
-
-      end)
-
-      describe('stage coroutine method', function ()
-
-        -- create a dummy method and add it to state before each test
-        function set_extra_value_after_delay(new_value)
-          app.yield_delay_s(1.0)
-          self.extra_value = new_value
-        end
-
-        before_each(function ()
-          state.set_extra_value_after_delay = set_extra_value_after_delay
-          state.extra_value = -10
-          state:start_coroutine_method(state.set_extra_value_after_delay, state.app, 99)
-        end)
-
-        describe('start_coroutine_method', function ()
-
-          it('should start a coroutine method, stopping at the first yield', function ()
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(-10, state.extra_value)
-          end)
-
-        end)
-
-        describe('(stage coroutine method started)', function ()
-
-          it('#solo should start a coroutine method', function ()
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(-10, state.extra_value)
-          end)
-
-          it('should not set self.extra_value to 99 only after 59 frames', function ()
-            for t = 1, 1.0 * state.app.fps - 1 do
-              state:update_coroutines()
-            end
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(-10, state.extra_value)
-          end)
-
-          it('should set state.extra_value to 99 after 1s (60 frames) with coroutine dead not removed', function ()
-            for t = 1, 1.0 * state.app.fps  do
-              state:update_coroutines()
-            end
-            assert.are_equal(1, #state.coroutine_curries)
-            assert.are_equal("dead", costatus(state.coroutine_curries[1].coroutine))
-            assert.are_equal(99, state.extra_value)
-          end)
-
-          it('should remove the now dead coroutine', function ()
-            for t = 1, 1.0 * state.app.fps + 1 do
-              state:update_coroutines()
-            end
-            assert.are_equal(0, #state.coroutine_curries)
-            assert.are_equal(99, state.extra_value)
-          end)
-
-        end)  -- (stage coroutine method started)
-
-      end)  -- 'stage coroutine method'
-
-    end)  -- coroutine
-
     describe('state', function ()
 
       -- bugfix history: .
       it('init', function ()
         assert.are_same({
             ':stage',
-            {},
             1,
             stage_state.substates.play,
             nil,
@@ -323,7 +47,6 @@ describe('stage_state', function ()
           },
           {
             state.type,
-            state.coroutine_curries,
             state.curr_stage_id,
             state.current_substate,
             state.player_char,
@@ -335,26 +58,22 @@ describe('stage_state', function ()
 
       describe('on_enter', function ()
 
-        local spawn_player_char_stub
-        local start_coroutine_method_stub
-        local play_bgm_stub
-
         setup(function ()
-          spawn_player_char_stub = stub(state, "spawn_player_char")
-          start_coroutine_method_stub = stub(state, "start_coroutine_method")
-          play_bgm_stub = stub(state, "play_bgm")
+          stub(stage_state, "spawn_player_char")
+          stub(picosonic_app, "start_coroutine")
+          stub(stage_state, "play_bgm")
         end)
 
         teardown(function ()
-          spawn_player_char_stub:revert()
-          start_coroutine_method_stub:revert()
-          play_bgm_stub:revert()
+          stage_state.spawn_player_char:revert()
+          picosonic_app.start_coroutine:revert()
+          stage_state.play_bgm:revert()
         end)
 
         after_each(function ()
-          spawn_player_char_stub:clear()
-          start_coroutine_method_stub:clear()
-          play_bgm_stub:clear()
+          stage_state.spawn_player_char:clear()
+          picosonic_app.start_coroutine:clear()
+          stage_state.play_bgm:clear()
         end)
 
         before_each(function ()
@@ -366,8 +85,9 @@ describe('stage_state', function ()
         end)
 
         it('should call spawn_player_char', function ()
-          assert.spy(spawn_player_char_stub).was_called(1)
-          assert.spy(spawn_player_char_stub).was_called_with(match.ref(state))
+          local s = assert.spy(stage_state.spawn_player_char)
+          s.was_called(1)
+          s.was_called_with(match.ref(state))
         end)
 
         it('should set has_reached_goal to false', function ()
@@ -379,39 +99,36 @@ describe('stage_state', function ()
         end)
 
         it('should call start_coroutine_method on show_stage_title_async', function ()
-          assert.spy(start_coroutine_method_stub).was_called(1)
-          assert.spy(start_coroutine_method_stub).was_called_with(match.ref(state), state.show_stage_title_async)
+          local s = assert.spy(picosonic_app.start_coroutine)
+          s.was_called(1)
+          s.was_called_with(match.ref(state.app), stage_state.show_stage_title_async, match.ref(state))
         end)
 
         it('should call start_coroutine_method on show_stage_title_async', function ()
-          assert.spy(play_bgm_stub).was_called(1)
-          assert.spy(play_bgm_stub).was_called_with(match.ref(state))
+          assert.spy(state.play_bgm).was_called(1)
+          assert.spy(state.play_bgm).was_called_with(match.ref(state))
         end)
 
       end)
 
       describe('on_exit', function ()
 
-        local title_overlay_clear_labels_stub
-        local start_coroutine_method_stub
-        local stop_bgm_stub
-
         setup(function ()
-          title_overlay_clear_labels_stub = stub(state, "spawn_player_char")
-          start_coroutine_method_stub = stub(state, "start_coroutine_method")
-          stop_bgm_stub = stub(state, "stop_bgm")
+          stub(ui.overlay, "clear_labels")
+          stub(picosonic_app, "stop_all_coroutines")
+          stub(stage_state, "stop_bgm")
         end)
 
         teardown(function ()
-          title_overlay_clear_labels_stub:revert()
-          start_coroutine_method_stub:revert()
-          stop_bgm_stub:revert()
+          ui.overlay.clear_labels:revert()
+          picosonic_app.stop_all_coroutines:revert()
+          stage_state.stop_bgm:revert()
         end)
 
         after_each(function ()
-          title_overlay_clear_labels_stub:clear()
-          start_coroutine_method_stub:clear()
-          stop_bgm_stub:clear()
+          ui.overlay.clear_labels:clear()
+          picosonic_app.stop_all_coroutines:clear()
+          stage_state.stop_bgm:clear()
         end)
 
         before_each(function ()
@@ -420,8 +137,10 @@ describe('stage_state', function ()
           state:on_exit()
         end)
 
-        it('should clear all the coroutines', function ()
-          assert.are_same({}, state.coroutine_curries)
+        it('should stop all the coroutines', function ()
+          local s = assert.spy(picosonic_app.stop_all_coroutines)
+          s.was_called(1)
+          s.was_called_with(match.ref(state.app))
         end)
 
         it('should clear the player character', function ()
@@ -429,8 +148,9 @@ describe('stage_state', function ()
         end)
 
         it('should call title_overlay:clear_labels', function ()
-          assert.spy(title_overlay_clear_labels_stub).was_called(1)
-          assert.spy(title_overlay_clear_labels_stub).was_called_with(match.ref(state))
+          local s = assert.spy(ui.overlay.clear_labels)
+          s.was_called(1)
+          s.was_called_with(match.ref(state.title_overlay))
         end)
 
         it('should reset pico8 camera', function ()
@@ -438,8 +158,8 @@ describe('stage_state', function ()
         end)
 
         it('should call stop_bgm', function ()
-          assert.spy(stop_bgm_stub).was_called(1)
-          assert.spy(stop_bgm_stub).was_called_with(match.ref(state))
+          assert.spy(stage_state.stop_bgm).was_called(1)
+          assert.spy(stage_state.stop_bgm).was_called_with(match.ref(state))
         end)
 
       end)
@@ -487,6 +207,10 @@ describe('stage_state', function ()
 
           before_each(function ()
             flow:_change_state(state)
+            -- entering stage currently starts coroutine show_stage_title_async
+            -- which will cause side effects when updating coroutines to test other
+            -- async functions, so clear that now
+            state.app:stop_all_coroutines()
           end)
 
           describe('update_camera', function ()
@@ -504,30 +228,22 @@ describe('stage_state', function ()
 
           describe('update', function ()
 
-            local update_coroutines_stub
-            local player_char_update_stub
-            local check_reached_goal_stub
-            local update_camera_stub
-
             setup(function ()
-              update_coroutines_stub = stub(state, "update_coroutines")
-              player_char_update_stub = stub(player_char, "update")
-              check_reached_goal_stub = stub(state, "check_reached_goal")
-              update_camera_stub = stub(state, "update_camera")
+              stub(player_char, "update")
+              stub(stage_state, "check_reached_goal")
+              stub(stage_state, "update_camera")
             end)
 
             teardown(function ()
-              update_coroutines_stub:revert()
-              player_char_update_stub:revert()
-              check_reached_goal_stub:revert()
-              update_camera_stub:revert()
+              player_char.update:revert()
+              stage_state.check_reached_goal:revert()
+              stage_state.update_camera:revert()
             end)
 
             after_each(function ()
-              update_coroutines_stub:clear()
-              player_char_update_stub:clear()
-              check_reached_goal_stub:clear()
-              update_camera_stub:clear()
+              player_char.update:clear()
+              stage_state.check_reached_goal:clear()
+              stage_state.update_camera:clear()
             end)
 
             describe('(current substate is play)', function ()
@@ -535,14 +251,12 @@ describe('stage_state', function ()
               it('should call player_char:update, check_reached_goal and update_camera', function ()
                 state.current_substate = stage_state.substates.play
                 state:update()
-                assert.spy(update_coroutines_stub).was_called(1)
-                assert.spy(update_coroutines_stub).was_called_with(match.ref(state))
-                assert.spy(player_char_update_stub).was_called(1)
-                assert.spy(player_char_update_stub).was_called_with(match.ref(state.player_char))
-                assert.spy(check_reached_goal_stub).was_called(1)
-                assert.spy(check_reached_goal_stub).was_called_with(match.ref(state))
-                assert.spy(update_camera_stub).was_called(1)
-                assert.spy(update_camera_stub).was_called_with(match.ref(state))      end)
+                assert.spy(player_char.update).was_called(1)
+                assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
+                assert.spy(stage_state.check_reached_goal).was_called(1)
+                assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
+                assert.spy(stage_state.update_camera).was_called(1)
+                assert.spy(stage_state.update_camera).was_called_with(match.ref(state))      end)
             end)
 
             describe('(current substate is result)', function ()
@@ -550,11 +264,9 @@ describe('stage_state', function ()
               it('should call player_char:update, check_reached_goal and update_camera', function ()
                 state.current_substate = stage_state.substates.result
                 state:update()
-                assert.spy(update_coroutines_stub).was_called(1)
-                assert.spy(update_coroutines_stub).was_called_with(match.ref(state))
-                assert.spy(player_char_update_stub).was_not_called()
-                assert.spy(check_reached_goal_stub).was_not_called()
-                assert.spy(update_camera_stub).was_not_called()
+                assert.spy(player_char.update).was_not_called()
+                assert.spy(stage_state.check_reached_goal).was_not_called()
+                assert.spy(stage_state.update_camera).was_not_called()
               end)
 
             end)
@@ -563,54 +275,52 @@ describe('stage_state', function ()
 
           describe('render', function ()
 
-            local render_background_stub
-            local render_stage_elements_stub
-            local render_title_overlay_stub
-
             setup(function ()
-              render_background_stub = stub(state, "render_background")
-              render_stage_elements_stub = stub(state, "render_stage_elements")
-              render_title_overlay_stub = stub(state, "render_title_overlay")
+              stub(stage_state, "render_background")
+              stub(stage_state, "render_stage_elements")
+              stub(stage_state, "render_title_overlay")
             end)
 
             teardown(function ()
-              render_background_stub:revert()
-              render_stage_elements_stub:revert()
-              render_title_overlay_stub:revert()
+              stage_state.render_background:revert()
+              stage_state.render_stage_elements:revert()
+              stage_state.render_title_overlay:revert()
             end)
 
             after_each(function ()
-              render_background_stub:clear()
-              render_stage_elements_stub:clear()
-              render_title_overlay_stub:clear()
+              stage_state.render_background:clear()
+              stage_state.render_stage_elements:clear()
+              stage_state.render_title_overlay:clear()
             end)
 
             it('should reset camera, call render_background, render_stage_elements, render_title_overlay', function ()
               state:render()
               assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
-              assert.spy(render_background_stub).was_called(1)
-              assert.spy(render_background_stub).was_called_with(match.ref(state))
-              assert.spy(render_stage_elements_stub).was_called(1)
-              assert.spy(render_stage_elements_stub).was_called_with(match.ref(state))
-              assert.spy(render_title_overlay_stub).was_called(1)
-              assert.spy(render_title_overlay_stub).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_background).was_called(1)
+              assert.spy(stage_state.render_background).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_stage_elements).was_called(1)
+              assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_title_overlay).was_called(1)
+              assert.spy(stage_state.render_title_overlay).was_called_with(match.ref(state))
             end)
 
           end)  -- state.render
 
-        end)  -- (enter stage state)
-
-        describe('(enter stage state each time)', function ()
-
-          before_each(function ()
-            flow:_change_state(state)
-          end)
-
-          after_each(function ()
-            flow:init()
-          end)
-
           describe('check_reached_goal', function ()
+
+            setup(function ()
+              stub(picosonic_app, "start_coroutine")
+            end)
+
+            teardown(function ()
+              picosonic_app.start_coroutine:revert()
+            end)
+
+            -- start_coroutine is also called on stage enter (with show_stage_title_async)
+            -- so we must clear call count *before* the first test
+            before_each(function ()
+              picosonic_app.start_coroutine:clear()
+            end)
 
             describe('(before the goal)', function ()
 
@@ -625,7 +335,8 @@ describe('stage_state', function ()
               end)
 
               it('should not start on_reached_goal_async', function ()
-                assert.are_equal(0, #state.coroutine_curries)
+                local s = assert.spy(picosonic_app.start_coroutine)
+                s.was_not_called()
               end)
 
             end)
@@ -642,8 +353,9 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                assert.are_equal(1, #state.coroutine_curries)
-                assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
+                local s = assert.spy(picosonic_app.start_coroutine)
+                s.was_called(1)
+                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)
@@ -660,8 +372,9 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                assert.are_equal(1, #state.coroutine_curries)
-                assert.are_equal("suspended", costatus(state.coroutine_curries[1].coroutine))
+                local s = assert.spy(picosonic_app.start_coroutine)
+                s.was_called(1)
+                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)
@@ -671,18 +384,20 @@ describe('stage_state', function ()
           describe('state.on_reached_goal_async', function ()
 
             before_each(function ()
-              state:start_coroutine_method(state.on_reached_goal_async)
+              state.app:start_coroutine(state.on_reached_goal_async, state)
             end)
 
             it('should set substate to result after 1 update', function ()
-              flow:update()
+              -- update coroutines once to advance on_reached_goal_async
+              state.app:update()
+              -- state.app.coroutine_runner:update_coroutines()
 
               assert.are_equal(stage_state.substates.result, state.current_substate)
             end)
 
             it('should change gamestate to titlemenu after 1.0s + 1 update to apply the query next state', function ()
               for i = 1, stage_data.back_to_titlemenu_delay * state.app.fps + 1 do
-                flow:update()
+                state.app:update()
               end
               assert.are_equal(':titlemenu', flow.curr_state.type)
             end)
@@ -726,14 +441,14 @@ describe('stage_state', function ()
 
             before_each(function ()
               clear_table(state.title_overlay.labels)
+              state.app:start_coroutine(state.show_stage_title_async, state)
             end)
 
             it('show_stage_title_async should add a title label and remove it after global.show_stage_title_delay', function ()
-              state:start_coroutine_method(state.show_stage_title_async)
-              state:update_coroutines()
+              state.app:update()
               assert.are_equal(ui.label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
               for i = 2, stage_data.show_stage_title_delay * state.app.fps do
-                state:update_coroutines()
+                state.app:update()
               end
               assert.is_nil(state.title_overlay.labels["title"])
             end)
@@ -886,7 +601,7 @@ describe('stage_state', function ()
 
           end)  -- on exit stage state to enter titlemenu state
 
-        end)  -- (enter stage state each time)
+        end)  -- (enter stage state)
 
       end)  -- (stage states added)
 

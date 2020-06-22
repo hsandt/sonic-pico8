@@ -3,14 +3,13 @@ local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-local gamestate = require("application/gamestate")
 
 itest_manager:register_itest('player select credits, confirm',
-    {gamestate.types.titlemenu}, function ()
+    {':titlemenu'}, function ()
 
   -- enter title menu
-  setup_callback(function ()
-    flow:change_gamestate_by_type(gamestate.types.titlemenu)
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':titlemenu')
   end)
 
   wait(1.0)
@@ -43,7 +42,7 @@ itest_manager:register_itest('player select credits, confirm',
 
   -- check that we entered the credits state
   final_assert(function ()
-    return flow.curr_state.type == gamestate.types.credits, "current game state is not '"..gamestate.types.credits.."', has instead type: "..flow.curr_state.type
+    return flow.curr_state.type == ':credits', "current game state is not ':credits', has instead type: "..flow.curr_state.type
   end)
 
 end)

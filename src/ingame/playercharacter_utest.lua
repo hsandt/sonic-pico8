@@ -1,5 +1,7 @@
 require("engine/test/bustedhelper")
 require("engine/core/math")
+local animated_sprite = require("engine/render/animated_sprite")
+
 local player_char = require("ingame/playercharacter")
 local input = require("engine/input/input")
 local motion = require("platformer/motion")
@@ -3864,7 +3866,7 @@ describe('player_char', function ()
         pc:_update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)
         assert.spy(update_velocity_debug_mock).was_called_with(match.ref(pc))
-        assert.are_equal(vector(1, 2) + vector(4, -3) * delta_time, pc.position)
+        assert.are_equal(vector(1, 2) + vector(4, -3) * delta_time60, pc.position)
       end)
 
     end)
@@ -3896,11 +3898,11 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         pc:_update_velocity_component_debug("x")
         assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel * delta_time, 0),
+          vector(- pc.debug_move_accel * delta_time60, 0),
           pc.debug_velocity))
         pc:_update_velocity_component_debug("y")
         assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel * delta_time, pc.debug_move_accel * delta_time),
+          vector(- pc.debug_move_accel * delta_time60, pc.debug_move_accel * delta_time60),
           pc.debug_velocity))
       end)
 
@@ -3920,7 +3922,7 @@ describe('player_char', function ()
       it('when move intention is (-1, 1), update 1 frame => at (3.867 -3.867)', function ()
         pc.move_intention = vector(-1, 1)
         pc:_update_velocity_debug()
-        pc:move_by(pc.debug_velocity * delta_time)
+        pc:move_by(pc.debug_velocity * delta_time60)
         assert.is_true(almost_eq_with_message(vector(3.8667, -3.8667), pc.position))
       end)
 
@@ -3928,7 +3930,7 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time)
+          pc:move_by(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector(-2.73, 2.73), pc.position))
         assert.is_true(almost_eq_with_message(vector(-60, 60), pc.debug_velocity))  -- at max speed
@@ -3938,12 +3940,12 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time)
+          pc:move_by(pc.debug_velocity * delta_time60)
         end
         pc.move_intention = vector.zero()
         for i=1,5 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time)
+          pc:move_by(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector(-20, 20), pc.debug_velocity, 0.01))
       end)
@@ -3952,12 +3954,12 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time)
+          pc:move_by(pc.debug_velocity * delta_time60)
         end
         pc.move_intention = vector.zero()
         for i=1,8 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time)
+          pc:move_by(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector.zero(), pc.debug_velocity))
       end)

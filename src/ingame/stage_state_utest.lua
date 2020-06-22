@@ -1,15 +1,15 @@
 require("engine/test/bustedhelper")
-local ui = require("engine/ui/ui")
 local stage_state = require("ingame/stage_state")
-local stage_data = require("data/stage_data")
+
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local titlemenu = require("menu/titlemenu")
-local audio = require("resources/audio")
+local ui = require("engine/ui/ui")
 
 local picosonic_app = require("application/picosonic_app")
--- only to stub class method in setup without needing instance (created in before_each)
+local stage_data = require("data/stage_data")
 local player_char = require("ingame/playercharacter")
+local titlemenu = require("menu/titlemenu")
+local audio = require("resources/audio")
 
 describe('stage_state', function ()
 
@@ -383,23 +383,56 @@ describe('stage_state', function ()
 
           describe('state.on_reached_goal_async', function ()
 
+            local on_reached_goal_async_coroutine
+
+            setup(function ()
+              stub(stage_state, "back_to_titlemenu")
+            end)
+
+            teardown(function ()
+              stage_state.back_to_titlemenu:revert()
+            end)
+
+            after_each(function ()
+              stage_state.back_to_titlemenu:clear()
+            end)
+
             before_each(function ()
-              state.app:start_coroutine(state.on_reached_goal_async, state)
+              on_reached_goal_async_coroutine = cocreate(state.on_reached_goal_async)
             end)
 
             it('should set substate to result after 1 update', function ()
               -- update coroutines once to advance on_reached_goal_async
-              state.app:update()
-              -- state.app.coroutine_runner:update_coroutines()
-
+              coresume(on_reached_goal_async_coroutine, state)
               assert.are_equal(stage_state.substates.result, state.current_substate)
             end)
 
-            it('should change gamestate to titlemenu after 1.0s + 1 update to apply the query next state', function ()
-              for i = 1, stage_data.back_to_titlemenu_delay * state.app.fps + 1 do
-                state.app:update()
+            -- this test is a bit extra, as it checks yield_delay_s's own validity
+            -- however, it's useful to check that yield is done correctly (e.g. pass frames vs sec)
+            -- and luassert spies are not good are identifying exact call order, so checking
+            -- yield call itself is not too useful
+            it('should query gamestate ":titlemenu" not earlier than after 1.0s', function ()
+              for i = 1, stage_data.back_to_titlemenu_delay * state.app.fps - 1 do
+                coresume(on_reached_goal_async_coroutine, state)
               end
-              assert.are_equal(':titlemenu', flow.curr_state.type)
+
+              assert.spy(stage_state.back_to_titlemenu).was_not_called()
+            end)
+
+            it('should query gamestate ":titlemenu" after 1.0s', function ()
+              -- hold back 1 frame to make sure function will be called exactly next frame
+              for i = 1, stage_data.back_to_titlemenu_delay * state.app.fps - 1 do
+                coresume(on_reached_goal_async_coroutine, state)
+              end
+
+              -- not called yet
+              assert.spy(stage_state.back_to_titlemenu).was_not_called()
+
+              coresume(on_reached_goal_async_coroutine, state)
+
+              -- just called
+              assert.spy(stage_state.back_to_titlemenu).was_called(1)
+              assert.spy(stage_state.back_to_titlemenu).was_called_with(match.ref(state))
             end)
 
           end)
@@ -439,17 +472,27 @@ describe('stage_state', function ()
 
           describe('(no overlay labels)', function ()
 
+            local on_show_stage_title_async
+
             before_each(function ()
-              clear_table(state.title_overlay.labels)
-              state.app:start_coroutine(state.show_stage_title_async, state)
+              on_show_stage_title_async = cocreate(state.show_stage_title_async)
             end)
 
-            it('show_stage_title_async should add a title label and remove it after global.show_stage_title_delay', function ()
-              state.app:update()
-              assert.are_equal(ui.label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
-              for i = 2, stage_data.show_stage_title_delay * state.app.fps do
-                state.app:update()
+            after_each(function ()
+              -- we don't stub overlay.add_label here, so we must clear any side effects
+              clear_table(state.title_overlay.labels)
+            end)
+
+            it('show_stage_title_async should add a title label and remove it after stage_data.show_stage_title_delay seconds', function ()
+              -- hold back last frame to check that label was added and didn't disappear yet
+              for i = 1, stage_data.show_stage_title_delay * state.app.fps - 1 do
+                coresume(on_show_stage_title_async, state)
               end
+              assert.are_equal(ui.label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
+
+              -- reach last frame now to check if label just disappeared
+              coresume(on_show_stage_title_async, state)
+
               assert.is_nil(state.title_overlay.labels["title"])
             end)
 

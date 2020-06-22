@@ -112,7 +112,7 @@ function stage_state:on_reached_goal_async()
   self:feedback_reached_goal()
   self.current_substate = stage_state.substates.result
   self:stop_bgm(stage_data.bgm_fade_out_duration)
-  yield_delay(stage_data.back_to_titlemenu_delay)
+  self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
 
@@ -146,7 +146,7 @@ end
 
 function stage_state:show_stage_title_async()
   self.title_overlay:add_label("title", self.curr_stage_data.title, vector(50, 30), colors.white)
-  yield_delay(stage_data.show_stage_title_delay)
+  self.app:yield_delay_s(stage_data.show_stage_title_delay)
   self.title_overlay:remove_label("title")
 end
 

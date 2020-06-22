@@ -1,5 +1,4 @@
 local tile = require("platformer/tile")
--- engine > game reference to clean
 local collision_data = require("data/collision_data")
 
 local world = {}

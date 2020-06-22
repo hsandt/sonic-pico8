@@ -1,4 +1,6 @@
+require("engine/test/bustedhelper")
 local world = require("platformer/world")
+
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('world (with mock tiles data setup)', function ()
@@ -189,6 +191,7 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
     end)
-      end)
 
-    end)
+  end)
+
+end)

@@ -6,7 +6,6 @@ local itest_manager,   integration_test,   time_trigger = get_members(integratio
      "itest_manager", "integration_test", "time_trigger")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-local stage = require("ingame/stage")  -- required
 local pc_data = require("data/playercharacter_data")
 local tile_data = require("data/tile_data")
 --#if busted

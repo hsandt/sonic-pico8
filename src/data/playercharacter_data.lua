@@ -93,9 +93,9 @@ local playercharacter_data = {
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
 playercharacter_data.sonic_animated_sprite_data_table = {
   idle = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle"}, 10, true),
-  run = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
+  ["run"] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
     {"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"}, 5, true),
-  spin = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"spin"}, 10, true),
+  ["spin"] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"spin"}, 10, true),
 }
 
 return playercharacter_data

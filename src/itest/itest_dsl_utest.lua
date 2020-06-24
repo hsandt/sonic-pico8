@@ -1,6 +1,13 @@
 require("engine/test/bustedhelper")
 require("engine/core/helper")
 require("engine/core/math")
+local flow = require("engine/application/flow")
+local tilemap = require("engine/data/tilemap")
+local input = require("engine/input/input")
+local integrationtest = require("engine/test/integrationtest")
+local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
+     "itest_manager", "time_trigger", "integration_test")
+
 local itest_dsl = require("itest/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
@@ -10,18 +17,25 @@ local command,   expectation = get_members(itest_dsl,
      "command", "expectation")
 local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
      "dsl_itest", "itest_dsl_parser")
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
-     "itest_manager", "time_trigger", "integration_test")
-local flow = require("engine/application/flow")
-local input = require("engine/input/input")
 local stage_state = require("ingame/stage_state")
-local tilemap = require("engine/data/tilemap")
+
+local picosonic_app = require("application/picosonic_app")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 
 
 describe('itest_dsl', function ()
+
+  local state
+
+  before_each(function ()
+    local app = picosonic_app()
+    state = stage_state()
+    state.app = app
+
+    -- some executions require the player character
+    state.player_char = player_char()
+  end)
 
   describe('gameplay_value_data', function ()
 
@@ -182,13 +196,7 @@ describe('itest_dsl', function ()
 
   describe('execute_', function ()
 
-    local state
-
     before_each(function ()
-      state = stage_state()
-      -- some executions require the player character
-      state.player_char = player_char()
-
       flow:add_gamestate(state)
       flow:change_gamestate_by_type(':stage')
     end)
@@ -312,16 +320,7 @@ describe('itest_dsl', function ()
 
   describe('eval_', function ()
 
-    local state
-
     before_each(function ()
-      state = stage_state()
-      -- some evaluators require the player character
-      state.player_char = player_char()
-
-      flow:add_gamestate(state)
-      flow:change_gamestate_by_type(':stage')
-
       flow:add_gamestate(state)
       flow:change_gamestate_by_type(':stage')
     end)
@@ -376,13 +375,7 @@ describe('itest_dsl', function ()
 
   describe('set_', function ()
 
-    local state
-
     before_each(function ()
-      state = stage_state()
-      -- some setters require the player character
-      state.player_char = player_char()
-
       flow:add_gamestate(state)
       flow:change_gamestate_by_type(':stage')
     end)
@@ -446,8 +439,6 @@ describe('itest_dsl', function ()
 
   describe('itest_dsl_parser', function ()
 
-    local state
-
     setup(function ()
       -- spying should be enough, but we stub so it's easier to call these functions
       --  without calling the symmetrical one (e.g. teardown may fail with nil reference
@@ -459,10 +450,6 @@ describe('itest_dsl', function ()
     teardown(function ()
       setup_map_data:revert()
       teardown_map_data:revert()
-    end)
-
-    before_each(function ()
-      state = stage_state()
     end)
 
     after_each(function ()

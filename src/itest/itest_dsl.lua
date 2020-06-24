@@ -555,7 +555,7 @@ end
 function itest_dsl_parser.create_itest(name, dsli)
   itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
 
-  itest_dsl_parser._itest.setup = function ()
+  itest_dsl_parser._itest.setup = function (app)
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == ':stage' then
       -- puppet control

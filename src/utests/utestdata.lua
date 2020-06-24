@@ -1,9 +1,12 @@
 require("engine/test/unittest")
 require("engine/core/math")
 local tile = require("platformer/tile")
-local collision_data = require("data/collision_data")
 local height_array = tile.height_array
 local tile_data = tile.tile_data
+
+-- data to test
+local collision_data = require("data/collision_data")
+local playercharacter_data = require("data/playercharacter_data")
 
 check('sprite_id_location(0, 4) should have collision flag set', function ()
   local sprite_id = sprite_id_location(0, 4):to_sprite_id()

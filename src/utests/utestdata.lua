@@ -9,7 +9,7 @@ local collision_data = require("data/collision_data")
 -- this one is not checked although we could verify that sprites are not empty or something
 -- but it's useful to check definition sanity (e.g. animation with 0 sprites, in particular
 -- after minification if keys are not protected with ["key"] syntax)
-local _playercharacter_data = require("data/playercharacter_data")
+local playercharacter_data = require("data/playercharacter_data")
 
 check('sprite_id_location(0, 4) should have collision flag set', function ()
   local sprite_id = sprite_id_location(0, 4):to_sprite_id()
@@ -32,4 +32,12 @@ check('= height_array._fill_array on sprite_id_location(0, 5) the array with til
   local array = {}
   height_array._fill_array(array, sprite_id_location(1, 5))
   assert(are_same_with_message({1, 2, 3, 4, 5, 6, 7, 8}, array))
+end)
+
+check('sonic_sprite_data_table preserved key "idle"', function ()
+  assert(playercharacter_data.sonic_sprite_data_table["idle"] ~= nil)
+end)
+
+check('sonic_animated_sprite_data_table preserved key "idle"', function ()
+  assert(playercharacter_data.sonic_animated_sprite_data_table["idle"] ~= nil)
 end)

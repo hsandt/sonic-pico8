@@ -6,7 +6,10 @@ local tile_data = tile.tile_data
 
 -- data to test
 local collision_data = require("data/collision_data")
-local playercharacter_data = require("data/playercharacter_data")
+-- this one is not checked although we could verify that sprites are not empty or something
+-- but it's useful to check definition sanity (e.g. animation with 0 sprites, in particular
+-- after minification if keys are not protected with ["key"] syntax)
+local _playercharacter_data = require("data/playercharacter_data")
 
 check('sprite_id_location(0, 4) should have collision flag set', function ()
   local sprite_id = sprite_id_location(0, 4):to_sprite_id()

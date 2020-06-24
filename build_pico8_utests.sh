@@ -21,6 +21,9 @@ config='debug'
 symbols='assert,log'
 
 # Build from itest main for all pico8 utests
+# Note that a pico8 utest_main build is much smaller than a normal build,
+# so minification is not required in general; however it is useful to spot
+# issues in the real build like unprotected sprite animation keys being minified
 "$picoboots_scripts_path/build_cartridge.sh"               \
   "$game_src_path" utest_main.lua utests                   \
   -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \

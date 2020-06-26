@@ -2,7 +2,9 @@ require("engine/application/constants")
 require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
+--#if log
 local _logging = require("engine/debug/logging")
+--#endif
 local input = require("engine/input/input")
 local world = require("platformer/world")
 local animated_sprite = require("engine/render/animated_sprite")

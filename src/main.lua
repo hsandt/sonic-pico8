@@ -2,6 +2,9 @@
 
 -- we must require engine/pico8/api at the top of our main.lua, so API bridges apply to all modules
 require("engine/pico8/api")
+-- we also require codetuner so any file can used tuned()
+-- if tuner symbol is defined, then we also initialize it in _init
+local codetuner = require("engine/debug/codetuner")
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -14,9 +17,6 @@ local vlogger = require("engine/debug/visual_logger")
 --#if profiler
 local profiler = require("engine/debug/profiler")
 --#endif
-
--- always require code tuner, since ifn tuned, `tuned` will simply use the default value
-local codetuner = require("engine/debug/codetuner")
 
 local picosonic_app = require("application/picosonic_app")
 

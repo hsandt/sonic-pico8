@@ -18,6 +18,13 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: setup",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["./setup.sh"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
 			"name": "Game: edit data",
 			"shell": true,
 			"cmd": ["./edit_data.sh"],

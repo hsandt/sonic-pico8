@@ -7,10 +7,9 @@ python: "3.6"
 sudo: false      # Use container-based infrastructure.
 
 env:
-  - LUA_VERSION=5.3
+  - LUA_VERSION=5.3 ENABLE_RENDER=1
 
 cache:
-  apt: true  # private repositories only
   directories:
     # remember to "travis cache --delete" in travis CL each time a custom cached directory needs upgrade (unlike cached packages)
     - hererocks     # for hererocks (make a parent folder, then install lua inside, to make sure the folder will be used as cache)
@@ -55,7 +54,7 @@ before_script:
   - ln -s "$(pwd)/tool/picotool-master/p8tool" "$HOME/.local/bin/p8tool"
 
 script:
-  # test
+  # test (including rendered headless itests thanks to ENABLE_RENDER=1)
   - ./test.sh -m all
   # coverage
   - bash <(curl -s https://codecov.io/bash)

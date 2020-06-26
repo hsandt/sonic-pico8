@@ -88,7 +88,8 @@ local function generate_function_table(module, enum_types, prefix)
   end
   return t
 end
---#if utest
+--#if busted
+-- allow access to function for utest
 itest_dsl.generate_function_table = generate_function_table
 --#endif
 
@@ -674,7 +675,7 @@ function itest_dsl_parser:_define_final_assertion()
       --  so I may end up using the same approx as with busted below
       local value_success, value_eq_message = eq_with_message(exp.expected_value, gp_value)
 --#pico8]]
---#if utest
+--#if busted
       -- with busted, we use float point precision, which gives us slightly different values
       -- unfortunately, the error accumulates over time, and position integrates from speed from accel,
       --  so depending on the simulation time and the gameplay value type, the error threshold will vary

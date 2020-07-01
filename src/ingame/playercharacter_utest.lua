@@ -3454,7 +3454,7 @@ describe('player_char', function ()
 
         -- bugfix history:
         -- = the itest 'platformer air wall block' showed that the subpixel check
-        --   was using the integer max_pixel_distance instead of the float velocity[coord]
+        --   was using the integer max_pixel_distance instead of the float velocity:get()
         --   and this revealed a bug of no motion on x at all when velocity.x is < 1 and x starts integer
         it('(vector(0, 10) at speed 0.5 along x) should move to vector(0.7, 10) without being blocked', function ()
           local motion_result = motion.air_motion_result(

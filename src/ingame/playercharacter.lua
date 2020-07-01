@@ -564,7 +564,7 @@ function player_char:_compute_ground_motion_result()
         --   as it depends on the shape of the ground)
         -- do not apply other changes (like slope) since technically we have not reached
         --   the next tile yet, only advanced of some subpixels
-        -- note that this calculation equivalent to adding to ref_motion_result.position[coord]
+        -- note that this calculation equivalent to adding to ref_motion_result.position:get(coord)
         --   sign(signed_distance_x) * (max_distance_x - distance_to_floored_x)
         motion_result.position.x = self.position.x + signed_distance_x
       end
@@ -870,21 +870,21 @@ end
 
 -- TODO: factorize with _compute_ground_motion_result
 -- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
---  over velocity[coord] px, where coord is "x" or "y"
+--  over velocity:get(coord) px, where coord is "x" or "y"
 function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   log("_advance_in_air_along: "..joinstr(", ", ref_motion_result, velocity, coord), "trace")
 
-  if velocity[coord] == 0 then return end
+  if velocity:get(coord) == 0 then return end
 
   -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local initial_position_coord = ref_motion_result.position[coord]
-  local max_pixel_distance = player_char._compute_max_pixel_distance(initial_position_coord, velocity[coord])
+  local initial_position_coord = ref_motion_result.position:get(coord)
+  local max_pixel_distance = player_char._compute_max_pixel_distance(initial_position_coord, velocity:get(coord))
 
   -- floor coordinate to simplify step by step pixel detection (mostly useful along x to avoid
   --  flooring every time we query column heights)
   -- since initial_position_coord is storing the original position with subpixels, we are losing information
-  ref_motion_result.position[coord] = flr(ref_motion_result.position[coord])
+  ref_motion_result.position:set(coord, flr(ref_motion_result.position:get(coord)))
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -896,7 +896,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   else
     direction = directions.down
   end
-  if velocity[coord] < 0 then
+  if velocity:get(coord) < 0 then
     direction = oppose_dir(direction)
   end
 
@@ -911,8 +911,8 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   if not ref_motion_result:is_blocked_along(direction) then
     -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
     --   but this is correct, we will simply move backward a bit when moving left
-    local are_subpixels_left = initial_position_coord + velocity[coord] > ref_motion_result.position[coord]
-    -- local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position[coord]
+    local are_subpixels_left = initial_position_coord + velocity:get(coord) > ref_motion_result.position:get(coord)
+    -- local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position:get(coord)
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
       --  *only* when moving in the positive sense (right/up),
@@ -923,7 +923,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
       --  to the positive sense and should
       --  never hit a wall back
       local is_blocked_by_extra_step = false
-      if velocity[coord] > 0 then
+      if velocity:get(coord) > 0 then
         local extra_step_motion_result = ref_motion_result:copy()
         self:_next_air_step(direction, extra_step_motion_result)
         log("  => "..ref_motion_result, "trace")
@@ -943,9 +943,9 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
         --  as it depends on the shape of the ground)
         -- do not apply other changes (like slope) since technically we have not reached
         --  the next tile yet, only advanced of some subpixels
-        -- note that this calculation equivalent to adding to ref_motion_result.position[coord]
-        --  sign(velocity[coord]) * (max_distance - distance_to_floored_coord)
-        ref_motion_result.position[coord] = initial_position_coord + velocity[coord]
+        -- note that this calculation equivalent to adding to ref_motion_result.position:get(coord)
+        --  sign(velocity:get(coord)) * (max_distance - distance_to_floored_coord)
+        ref_motion_result.position:set(coord, initial_position_coord + velocity:get(coord))
       end
     end
   end
@@ -1060,15 +1060,15 @@ end
 -- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"
 function player_char:_update_velocity_component_debug(coord)
-  if self.move_intention[coord] ~= 0 then
+  if self.move_intention:get(coord) ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
-    local clamped_move_intention_comp = mid(-1, self.move_intention[coord], 1)
-    self.debug_velocity[coord] = self.debug_velocity[coord] + self.debug_move_accel * delta_time60 * clamped_move_intention_comp
-    self.debug_velocity[coord] = mid(-self.debug_move_max_speed, self.debug_velocity[coord], self.debug_move_max_speed)
+    local clamped_move_intention_comp = mid(-1, self.move_intention:get(coord), 1)
+    self.debug_velocity:set(coord, self.debug_velocity:get(coord) + self.debug_move_accel * delta_time60 * clamped_move_intention_comp)
+    self.debug_velocity:set(coord, mid(-self.debug_move_max_speed, self.debug_velocity:get(coord), self.debug_move_max_speed))
   else
     -- no input => decelerate
-    if self.debug_velocity[coord] ~= 0 then
-      self.debug_velocity[coord] = sgn(self.debug_velocity[coord]) * max(abs(self.debug_velocity[coord]) - self.debug_move_decel * delta_time60, 0)
+    if self.debug_velocity:get(coord) ~= 0 then
+      self.debug_velocity:set(coord, sgn(self.debug_velocity:get(coord)) * max(abs(self.debug_velocity:get(coord)) - self.debug_move_decel * delta_time60, 0))
     end
   end
 end

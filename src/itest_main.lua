@@ -13,7 +13,7 @@ local picosonic_app = require("application/picosonic_app")
 
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
-local app = wit_fighter_app()
+local app = picosonic_app()
 itest_runner.app = app
 
 -- tag to add require for itest files here

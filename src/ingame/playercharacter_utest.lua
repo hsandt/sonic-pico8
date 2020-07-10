@@ -1283,8 +1283,7 @@ describe('player_char', function ()
               pc.ground_speed,
               pc.should_jump
             })
-          assert.spy(animated_sprite.play).was_called(1)
-          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+          assert.spy(animated_sprite.play).was_not_called()
         end)
 
         it('should enter passed state: air_spin and reset ground-specific state vars', function ()

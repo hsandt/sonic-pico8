@@ -357,7 +357,6 @@ function player_char:_enter_motion_state(next_motion_state)
     self.ground_speed = 0
     self.slope_angle = nil
     self.should_jump = false
-    self.anim_spr:play("idle")
   elseif next_motion_state == motion_states.air_spin then
     -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity

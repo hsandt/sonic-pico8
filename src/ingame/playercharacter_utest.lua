@@ -201,6 +201,50 @@ describe('player_char', function ()
 
     end)
 
+    describe('is_compact', function ()
+
+      it('should return false when character is grounded', function ()
+        assert.is_false(pc:is_compact())
+      end)
+
+      it('should return false when character is falling', function ()
+        pc.motion_state = motion_states.falling
+        assert.is_false(pc:is_compact())
+      end)
+
+      it('should return true when character is in air spin', function ()
+        pc.motion_state = motion_states.air_spin
+        assert.is_true(pc:is_compact())
+      end)
+
+    end)
+
+    describe('get_center_height', function ()
+
+      it('should return center height standing when standing', function ()
+        assert.are_equal(pc_data.center_height_standing, pc:get_center_height())
+      end)
+
+      it('should return center height compact when compact', function ()
+        pc.motion_state = motion_states.air_spin
+        assert.are_equal(pc_data.center_height_compact, pc:get_center_height())
+      end)
+
+    end)
+
+    describe('get_full_height', function ()
+
+      it('should return full height standing when standing', function ()
+        assert.are_equal(pc_data.full_height_standing, pc:get_full_height())
+      end)
+
+      it('should return full height compact when compact', function ()
+        pc.motion_state = motion_states.air_spin
+        assert.are_equal(pc_data.full_height_compact, pc:get_full_height())
+      end)
+
+    end)
+
     describe('spawn_at', function ()
 
       setup(function ()

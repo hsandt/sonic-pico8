@@ -112,7 +112,19 @@ function player_char:is_grounded()
   return self.motion_state == motion_states.grounded
 end
 
--- spawn character at given position,
+function player_char:is_compact()
+  return self.motion_state == motion_states.air_spin
+end
+
+function player_char:get_center_height()
+  return self:is_compact() and pc_data.center_height_compact or pc_data.center_height_standing
+end
+
+function player_char:get_full_height()
+  return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing 
+end
+
+-- spawn character at given position, detecting ground/air on arrival
 function player_char:spawn_at(position)
   self:_setup()
   self:warp_to(position)
@@ -239,7 +251,7 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
   local min_signed_distance = 1 / 0  -- max (32768 in pico-8, but never enter it manually as it would be negative)
   local highest_ground_slope_angle = nil
 
-  -- check both ground sensors for ground. if any finds ground, return true
+  -- check both ground sensors for ground
   for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
     -- check that ground sensor #i is on top of or below the mask column

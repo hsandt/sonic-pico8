@@ -42,11 +42,19 @@ local playercharacter_data = {
   -- see comment in player_char:_next_ground_step on last block
   ground_sensor_extent_x = 2.5,
 
-  -- height between the character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
+  -- height between the standing character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
   center_height_standing = 8,
 
-  -- height between the ground sensors and the top of the character's collider (used to detect ceiling)
+  -- height between the ground sensors and the top of the standing character's collider (used to detect ceiling)
+  -- should be 2 * center_height_standing, but left as separate data for customization (e.g. you can add 1 as in the SPG)
   full_height_standing = 16,
+
+  -- same as center_height_standing but when character is crouching, rolling or jumping
+  center_height_compact = 4,
+
+  -- same as full_height_standing but when character is crouching, rolling or jumping
+  -- should be 2 * center_height_compact, but left as separate data for customization (e.g. you can add 1 as in the SPG)
+  full_height_compact = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)

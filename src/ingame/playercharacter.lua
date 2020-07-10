@@ -995,7 +995,15 @@ function player_char:_next_air_step(direction, ref_motion_result)
     if signed_distance_to_closest_ground < 0 then
       -- we do not activate step up during air motion, so any pixel above the character's bottom
       --  is considered a hard obstacle
-      -- depending on the direction, we consider we were blocked by either a ceiling or a wall
+      -- however, if we want to allow jump from an ascending sheer angle directly onto a platform,
+      --  as suggested by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
+      --  where ground detection from the air is done when moving downward or when moving upward, but faster horizontally
+      --  than vertically, then we would not only need to add the x vs y spd check but also enable *snap* to ground
+      --  from the last step position, since we may miss a few pixels from here to reach the ground
+      --  (otherwise, the obstacle may was well be considered as a wall, as we're doing now)
+      -- Then we would have a check more symmetrical to below, with
+      --  `if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y)`
+      -- Depending on the direction, we consider we were blocked by either a ceiling or a wall
       if direction == directions.down then
         -- landing: the character has just set foot on ground, flag it and initialize slope angle
         -- note that we only consider the character to touch ground when it is about to enter it
@@ -1032,6 +1040,8 @@ function player_char:_next_air_step(direction, ref_motion_result)
   -- Since it's just for this extra test, we check self.velocity directly instead of passing it as argument
   -- Note that we don't check the exact step direction, if we happen to hit the ceiling during
   --  the X motion, that's fine.
+  -- In practice, when approaching a ceiling from a descending direction with a sheer horizontal angle,
+  --  we will hit the block as a wall first; but that's because we consider blocks as wall and ceilings at the same time.
   if not ref_motion_result.is_blocked_by_wall and
       (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
     local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
@@ -1042,7 +1052,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
       else
         -- we would be blocked by ceiling on the next position, but since we can't even go there,
         --  we are actually blocked by the wall preventing the horizontal move
-        -- 4-quadrant note: when 4-quadrant is implemented, this will actually correspond to the SPG case
+        -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
         --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
         -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
         ref_motion_result.is_blocked_by_wall = true

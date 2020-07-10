@@ -153,25 +153,6 @@ expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
 -- at frame 15: bpos (6.519668501758, 15), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
 
 
--- calculation notes
-
--- wait 2 frame (1 to register jump, 1 to confirm and leave ground) then move to the right
--- this is just to avoid starting moving on the ground, as we only want to test air control here,
---  not how ground speed is transferred to air velocity
-
--- wait for the apogee (frame 31) and stop
--- at frame 1: pos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: pos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump, no air accel yet)
--- at frame 3: pos (4 + 0.046875, 8 - 49.84375), velocity (0.046875, -3.140625), airborne -> accel forward
--- at frame 30: pos (4 + 19.03125, 8 - 49.84375), velocity (1.3125, -0.1875), airborne -> before apogee
--- at frame 31: pos (4 + 20.390625, 8 - 49.921875), velocity (1.359375, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
--- at frame 32: pos (4 + 21.796875, 8 - 49.890625), velocity (1.40625, 0.03125), airborne -> starts going down
--- at frame 61: pos (4 + 82.96875, 8 - 1.40625), velocity (2.765625, 3.203125), airborne -> about to land
--- at frame 62: pos (4 + 85.78125, 8), velocity (2.8125, 0), grounded -> has landed, preserve x speed
-
--- check for apogee
-
-
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
 itest_dsl_parser.register(
@@ -284,7 +265,7 @@ stop
 wait 24
 
 expect pc_bottom_pos 39.859375 40.8125
-expect pc_motion_state airborne
+expect pc_motion_state falling
 expect pc_ground_spd 0
 expect pc_velocity 0.84375 2.625
 ]])
@@ -293,10 +274,11 @@ expect pc_velocity 0.84375 2.625
 -- at frame 1: pos (17.9453125, 8), velocity (0.796875, 0), grounded
 -- at frame 34: pos (17.9453125, 8), velocity (0.796875, 0), grounded
 -- at frame 35: pos (18.765625, 8), velocity (0.8203125, 0), grounded (do not apply ground sensor extent: -2.5 directly, floor to full px first)
--- at frame 36: pos (19.609375, 8), velocity (0.84375, 0), airborne (flr_x=19) -> stop accel
+-- at frame 36: pos (19.609375, 8), velocity (0.84375, 0), falling (flr_x=19) -> stop accel
 -- wait 24 frames and stop
 -- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
--- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), airborne
+-- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), falling
+
 
 itest_dsl_parser.register(
   'platformer hop flat', [[
@@ -310,7 +292,7 @@ stop_jump
 wait 20
 
 expect pc_bottom_pos 4 -11.296875
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -0.03125
 ]])
@@ -319,12 +301,12 @@ expect pc_velocity 0 -0.03125
 
 -- wait for apogee (frame 20) and stop
 -- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), airborne (hop confirmed, no gravity applied this frame)
--- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), airborne
--- at frame 19: pos (4, 8 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 20: pos (4, 8 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 21: pos (4, 8 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 38: pos (4, 8 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), air_spin (hop confirmed, no gravity applied this frame)
+-- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), air_spin
+-- at frame 19: pos (4, 8 - 19.265625), velocity (0, -0.140625), air_spin -> before apogee
+-- at frame 20: pos (4, 8 - 19.296875), velocity (0, -0.03125), air_spin -> reached apogee
+-- at frame 21: pos (4, 8 - 19.21875), velocity (0, 0.078125), air_spin -> starts going down
+-- at frame 38: pos (4, 8 - 1.15625), velocity (0, 1.9375), air_spin ->  about to land
 -- at frame 39: pos (4, 8), velocity (0, 0), grounded -> has landed
 
 -- => apogee at y = 8 - 19.296875 = -11.296875
@@ -341,7 +323,7 @@ jump
 wait 2
 
 expect pc_bottom_pos 4 4.75
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -3.25
 ]])
@@ -360,7 +342,7 @@ stop_jump
 wait 1
 
 expect pc_bottom_pos 4 -3.421875
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -2
 ]])
@@ -369,10 +351,10 @@ expect pc_velocity 0 -2
 
 -- interrupt variable jump at the end of frame 2
 -- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), airborne (jump confirmed)
--- at frame 3: bpos (4, 8 - 6.390625), velocity (0, -3.140625), airborne
--- at frame 4: bpos (4, 8 - 9.421875), velocity (0, -3.03125), airborne
--- at frame 5: bpos (4, 8 - 11.421875), velocity (0, -2), airborne (interrupt jump, no extra gravity)
+-- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), air_spin (jump confirmed)
+-- at frame 3: bpos (4, 8 - 6.390625), velocity (0, -3.140625), air_spin
+-- at frame 4: bpos (4, 8 - 9.421875), velocity (0, -3.03125), air_spin
+-- at frame 5: bpos (4, 8 - 11.421875), velocity (0, -2), air_spin (interrupt jump, no extra gravity)
 
 
 itest_dsl_parser.register(
@@ -388,7 +370,7 @@ stop_jump
 wait 6
 
 expect pc_bottom_pos 4 -11.78125
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -1.453125
 ]])
@@ -398,11 +380,11 @@ expect pc_velocity 0 -1.453125
 -- frames 1-5 is same as 'platformer jump interrupt flat'
 
 -- wait 5 frames and stop
--- at frame 6:  bpos (4, 8 - 13.3125), velocity (0, -1.890625), airborne
--- at frame 7:  bpos (4, 8 - 15.09375), velocity (0, -1.78125), airborne
--- at frame 8:  bpos (4, 8 - 16.765625), velocity (0, -1.671875), airborne
--- at frame 9:  bpos (4, 8 - 18.328125), velocity (0, -1.5625), airborne
--- at frame 10: bpos (4, 8 - 19.78125), velocity (0, -1.453125), airborne
+-- at frame 6:  bpos (4, 8 - 13.3125), velocity (0, -1.890625), air_spin
+-- at frame 7:  bpos (4, 8 - 15.09375), velocity (0, -1.78125), air_spin
+-- at frame 8:  bpos (4, 8 - 16.765625), velocity (0, -1.671875), air_spin
+-- at frame 9:  bpos (4, 8 - 18.328125), velocity (0, -1.5625), air_spin
+-- at frame 10: bpos (4, 8 - 19.78125), velocity (0, -1.453125), air_spin
 
 
 itest_dsl_parser.register(
@@ -416,7 +398,7 @@ jump
 wait 31
 
 expect pc_bottom_pos 4 -41.921875
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -0.078125
 ]])
@@ -425,11 +407,11 @@ expect pc_velocity 0 -0.078125
 
 -- wait for the apogee (frame 31) and stop
 -- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), airborne (do not apply gravity on first frame of jump since we were grounded)
--- at frame 30: bpos (4, 8 - 49.84375), velocity (0, -0.1875), airborne -> before apogee
--- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), airborne -> reached apogee (100px in 16-bit, matches SPG on Jumping)
--- at frame 32: bpos (4, 8 - 49.890625), velocity (0, 0.03125), airborne -> starts going down
--- at frame 61: bpos (4, 8 - 1.40625), velocity (0, 3.203125), airborne -> about to land
+-- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), air_spin (do not apply gravity on first frame of jump since we were grounded)
+-- at frame 30: bpos (4, 8 - 49.84375), velocity (0, -0.1875), air_spin -> before apogee
+-- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+-- at frame 32: bpos (4, 8 - 49.890625), velocity (0, 0.03125), air_spin -> starts going down
+-- at frame 61: bpos (4, 8 - 1.40625), velocity (0, 3.203125), air_spin -> about to land
 -- at frame 62: bpos (4, 8), velocity (0, 0), grounded -> has landed
 
 
@@ -467,12 +449,12 @@ expect pc_velocity 0 0
 -- calculation notes:
 -- wait for apogee (frame 20) and stop
 -- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), airborne (hop confirmed)
--- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), airborne (hop confirmed)
--- at frame 19: bpos (4, 8 - 19.265625), velocity (0, -0.140625), airborne -> before apogee
--- at frame 20: bpos (4, 8 - 19.296875), velocity (0, -0.03125), airborne -> reached apogee
--- at frame 21: bpos (4, 8 - 19.21875), velocity (0, 0.078125), airborne -> starts going down
--- at frame 38: bpos (4, 8 - 1.15625), velocity (0, 1.9375), airborne ->  about to land
+-- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), air_spin (hop confirmed)
+-- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), air_spin (hop confirmed)
+-- at frame 19: bpos (4, 8 - 19.265625), velocity (0, -0.140625), air_spin -> before apogee
+-- at frame 20: bpos (4, 8 - 19.296875), velocity (0, -0.03125), air_spin -> reached apogee
+-- at frame 21: bpos (4, 8 - 19.21875), velocity (0, 0.078125), air_spin -> starts going down
+-- at frame 38: bpos (4, 8 - 1.15625), velocity (0, 1.9375), air_spin ->  about to land
 -- at frame 39: bpos (4, 8), velocity (0, 0), grounded -> has landed
 
 -- and wait an extra frame to see if Sonic will jump due to holding jump input,
@@ -492,7 +474,7 @@ move right
 wait 29
 
 expect pc_bottom_pos 24.390625 -41.921875
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 1.359375 -0.078125
 ]])
@@ -513,7 +495,7 @@ move right
 wait 9
 
 expect pc_bottom_pos 5 1.9375
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -1.125
 ]])
@@ -522,17 +504,17 @@ expect pc_velocity 0 -1.125
 -- start jump input
 -- at frame 1:  bpos (4, 16), velocity (0, 0), grounded
 -- wait 1 frame to confirm hop, and start moving right, then wait 9 frames
--- at frame 2:  bpos (4 + .046875, 16 - 2), velocity (3/64, -2), airborne (hop)
--- at frame 3:  bpos (4.140625, 16 - 3.890625), velocity (6/64, -1 - 57/64), airborne
--- at frame 4:  bpos (4.28125, 16 - 5.671875), velocity (9/64, -1 - 50/64), airborne
--- at frame 5:  bpos (4.46875, 16 - 7.34375), velocity (12/64, -1 - 43/64), airborne
--- at frame 6:  bpos (4.703125, 16 - 8.90625), velocity (15/64, -1 - 36/64), airborne
--- at frame 7:  bpos (4.984375, 16 - 10.359375), velocity (18/64, -1 - 29/64), airborne
+-- at frame 2:  bpos (4 + .046875, 16 - 2), velocity (3/64, -2), air_spin (hop)
+-- at frame 3:  bpos (4.140625, 16 - 3.890625), velocity (6/64, -1 - 57/64), air_spin
+-- at frame 4:  bpos (4.28125, 16 - 5.671875), velocity (9/64, -1 - 50/64), air_spin
+-- at frame 5:  bpos (4.46875, 16 - 7.34375), velocity (12/64, -1 - 43/64), air_spin
+-- at frame 6:  bpos (4.703125, 16 - 8.90625), velocity (15/64, -1 - 36/64), air_spin
+-- at frame 7:  bpos (4.984375, 16 - 10.359375), velocity (18/64, -1 - 29/64), air_spin
 -- after 7 frames, we are almost touching the wall above
--- at frame 8:  bpos (5, 16 - 11.703125), velocity (18/64, -1 - 22/64), airborne (hit wall)
+-- at frame 8:  bpos (5, 16 - 11.703125), velocity (18/64, -1 - 22/64), air_spin (hit wall)
 -- after 8 frames, we have hit the wall
--- at frame 9:  bpos (5, 16 - 12.9375), velocity (0, -1 - 15/64), airborne (hit wall)
--- at frame 10: bpos (5, 16 - 14.0625), velocity (0, -1 - 8/64), airborne (hit wall)
+-- at frame 9:  bpos (5, 16 - 12.9375), velocity (0, -1 - 15/64), air_spin (hit wall)
+-- at frame 10: bpos (5, 16 - 14.0625), velocity (0, -1 - 8/64), air_spin (hit wall)
 
 -- /64 format is nice, but I need to make a helper
 -- that converts floats to this format if I want a meaningful
@@ -554,7 +536,7 @@ move left
 wait 9
 
 expect pc_bottom_pos 11 1.9375
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -1.125
 ]])
@@ -573,7 +555,7 @@ jump
 wait 4
 
 expect pc_bottom_pos 4 24
-expect pc_motion_state airborne
+expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -586,15 +568,15 @@ expect pc_velocity 0 0
 -- wait for the apogee (frame 31) and stop
 -- frame  bottom pos            velocity         state     event
 -- 1      (4, 32)               (0, 0)           grounded
--- 2      (4, 32 - 3  - 16/64)  (0, -3 - 16/64)  airborne  confirm jump (no gravity on first frame)
--- 3      (4, 32 - 6  - 25/64)  (0, -3 -  9/64)  airborne
--- 4      (4, 32 - 8)           (0, 0)           airborne  hit ceiling
+-- 2      (4, 32 - 3  - 16/64)  (0, -3 - 16/64)  air_spin  confirm jump (no gravity on first frame)
+-- 3      (4, 32 - 6  - 25/64)  (0, -3 -  9/64)  air_spin
+-- 4      (4, 32 - 8)           (0, 0)           air_spin  hit ceiling
 
 -- keep calculation below for later, when sonic will have half height during spin
--- 4      (4, 32 - 9  - 27/64)  (0, -3 -  2/64)  airborne
--- 5      (4, 32 - 12 - 22/64)  (0, -2 - 59/64)  airborne
--- 6      (4, 32 - 15 - 10/64)  (0, -2 - 52/64)  airborne
--- 7      (4, 32 - 16)          (0, 0)           airborne  hit ceiling
+-- 4      (4, 32 - 9  - 27/64)  (0, -3 -  2/64)  air_spin
+-- 5      (4, 32 - 12 - 22/64)  (0, -2 - 59/64)  air_spin
+-- 6      (4, 32 - 15 - 10/64)  (0, -2 - 52/64)  air_spin
+-- 7      (4, 32 - 16)          (0, 0)           air_spin  hit ceiling
 
 
 -- human tests: let human check rendering (until I find a way to automate this)

@@ -182,8 +182,8 @@ describe('stage_state', function ()
 
           -- interface
           assert.are_equal(spawn_position, player_char.position)
-          -- we haven't initialized any map in busted, so the character is in the air and spawn_at detected this
-          assert.are_equal(motion_states.airborne, player_char.motion_state)
+          -- we haven't initialized any map in busted, so the character is falling in the air and spawn_at detected this
+          assert.are_equal(motion_states.falling, player_char.motion_state)
 
           -- implementation
           assert.spy(player_char.spawn_at).was_called(1)

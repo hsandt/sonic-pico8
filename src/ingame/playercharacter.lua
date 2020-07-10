@@ -33,8 +33,9 @@ motion_modes = {
 
 -- enum for character motion state in platformer mode
 motion_states = {
-  grounded = 1,       -- character is on the ground
-  airborne = 2        -- character is in the air
+  grounded = 1,  -- character is idle or running on the ground
+  falling  = 2,  -- character is falling in the air, but not spinning
+  air_spin = 3   -- character is in the air after a jump
 }
 
 
@@ -107,7 +108,11 @@ function player_char:_setup()
   self.anim_spr:play("idle")
 end
 
--- spawn character at given position, and escape from ground / enter airborne state if needed
+function player_char:is_grounded()
+  return self.motion_state == motion_states.grounded
+end
+
+-- spawn character at given position,
 function player_char:spawn_at(position)
   self:_setup()
   self:warp_to(position)
@@ -118,16 +123,17 @@ function player_char:spawn_bottom_at(bottom_position)
   self:spawn_at(bottom_position - vector(0, pc_data.center_height_standing))
 end
 
--- warp character to specific position, and update motion state
+-- warp character to specific position, and update motion state (grounded/falling)
+-- while escaping from ground if needed
 --  use this when you don't want to reset the character state as spawn_at does
 function player_char:warp_to(position)
   self.position = position
 
   -- character is initialized grounded, but let him fall if he is spawned in the air
-  local is_grounded = self:_check_escape_from_ground()
+  local new_is_grounded = self:_check_escape_from_ground()
   -- always enter new state depending on whether ground is detected,
   --  forcing state vars reset even if we haven't changed state
-  local new_state = is_grounded and motion_states.grounded or motion_states.airborne
+  local new_state = new_is_grounded and motion_states.grounded or motion_states.falling
   self:_enter_motion_state(new_state)
 end
 
@@ -261,7 +267,7 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
 end
 
 function player_char:_get_prioritized_dir()
-  if self.motion_state == motion_states.grounded then
+  if self:is_grounded() then
     if self.ground_speed ~= 0 then
       return signed_speed_to_dir(self.ground_speed)
     end
@@ -345,8 +351,15 @@ end
 -- enter motion state, reset state vars appropriately
 function player_char:_enter_motion_state(next_motion_state)
   self.motion_state = next_motion_state
-  if next_motion_state == motion_states.airborne then
-    -- we have just left the ground, enter airborne state
+  if next_motion_state == motion_states.falling then
+    -- we have just left the ground without jumping, enter falling state
+    --  and since ground speed is now unused, reset it for clarity
+    self.ground_speed = 0
+    self.slope_angle = nil
+    self.should_jump = false
+    self.anim_spr:play("idle")
+  elseif next_motion_state == motion_states.air_spin then
+    -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity
     self.ground_speed = 0
     self.slope_angle = nil
@@ -368,12 +381,12 @@ function player_char:_update_platformer_motion()
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
   if self.motion_state == motion_states.grounded then
-    self:_check_jump()  -- this may change the motion state to airborne
+    self:_check_jump()  -- this may change the motion state to air_spin
   end
 
-  if self.motion_state == motion_states.grounded then
+  if self:is_grounded() then
     self:_update_platformer_motion_grounded()
-  else  -- self.motion_state == motion_states.airborne
+  else
     self:_update_platformer_motion_airborne()
   end
 end
@@ -402,7 +415,7 @@ function player_char:_update_platformer_motion_grounded()
   -- (does not happen because of negative jump speed interrupt threshold, but could happen
   --  once inertia is added by running off an ascending cliff)
   if ground_motion_result.is_falling then
-    self:_enter_motion_state(motion_states.airborne)
+    self:_enter_motion_state(motion_states.falling)
   else
     -- we are still grounded, so:
 
@@ -745,7 +758,7 @@ function player_char:_check_jump_intention()
 end
 
 -- if character intends to jump, apply jump velocity from current ground
---  and enter the airborne state
+--  and enter the air_spin state
 -- return true iff jump was applied
 function player_char:_check_jump()
   if self.should_jump then
@@ -758,7 +771,7 @@ function player_char:_check_jump()
     --  don't apply gravity during such a frame)
     -- limitation: only support flat ground for now
     self.velocity.y = self.velocity.y - pc_data.initial_var_jump_speed_frame
-    self:_enter_motion_state(motion_states.airborne)
+    self:_enter_motion_state(motion_states.air_spin)
     self.has_jumped_this_frame = true
     return true
   end

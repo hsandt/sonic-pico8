@@ -172,7 +172,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should return the single argument as motion state', function ()
-        assert.are_equal(motion_states.airborne, itest_dsl.parse_motion_state({"airborne"}))
+        assert.are_equal(motion_states.falling, itest_dsl.parse_motion_state({"falling"}))
       end)
 
     end)
@@ -336,7 +336,7 @@ describe('itest_dsl', function ()
 
     describe('eval_pc_velocity', function ()
 
-      it('should return the velocity the current player character', function ()
+      it('should return the velocity of the current player character', function ()
         state.player_char.velocity = vector(1, -4)
         assert.are_equal(vector(1, -4), eval_pc_velocity())
       end)
@@ -345,7 +345,7 @@ describe('itest_dsl', function ()
 
     describe('eval_pc_ground_spd', function ()
 
-      it('should return the ground speed current player character', function ()
+      it('should return the ground speed of the current player character', function ()
         state.player_char.ground_speed = 3.5
         assert.are_equal(3.5, eval_pc_ground_spd())
       end)
@@ -354,16 +354,16 @@ describe('itest_dsl', function ()
 
     describe('eval_pc_motion_state', function ()
 
-      it('should return the ground speed current player character', function ()
-        state.player_char.motion_state = motion_states.airborne
-        assert.are_equal(motion_states.airborne, eval_pc_motion_state())
+      it('should return the motion state of the current player character', function ()
+        state.player_char.motion_state = motion_states.air_spin
+        assert.are_equal(motion_states.air_spin, eval_pc_motion_state())
       end)
 
     end)
 
     describe('eval_pc_slope', function ()
 
-      it('should return the ground speed current player character', function ()
+      it('should return the slope angle of the current player character', function ()
         state.player_char.slope_angle = -0.125
         assert.are_equal(-0.125, eval_pc_slope())
       end)

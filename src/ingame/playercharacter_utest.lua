@@ -3728,10 +3728,15 @@ describe('player_char', function ()
         describe('(with flat ground)', function ()
 
           before_each(function ()
+            -- X
             mock_mset(0, 0, 64)  -- full tile
           end)
 
           it('direction up into ceiling should not move, and flag is_blocked_by_ceiling', function ()
+            -- we need an upward velocity for ceiling check if not faster on x than y
+            pc.velocity.x = 0
+            pc.velocity.y = -3
+
             local motion_result = motion.air_motion_result(
               vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
               false,
@@ -3754,6 +3759,9 @@ describe('player_char', function ()
           end)
 
           it('direction down into ground should not move, and flag is_landing with slope_angle', function ()
+            pc.velocity.x = 0
+            pc.velocity.y = 3
+
             local motion_result = motion.air_motion_result(
               vector(4, 0 - pc_data.center_height_standing),
               false,
@@ -3797,7 +3805,85 @@ describe('player_char', function ()
             )
           end)
 
-          it('direction right into wall via ceiling should not move, and flag is_blocked_by_wall', function ()
+          it('direction right into wall via ground should not move, and flag is_blocked_by_wall', function ()
+            local motion_result = motion.air_motion_result(
+              vector(-3, 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-3, 1 - pc_data.center_height_standing),
+                true,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction left into wall via ceiling downward and faster on x than y should not move, and flag is_blocked_by_wall', function ()
+            -- important
+            pc.velocity.x = -3
+            pc.velocity.y = 2
+
+            local motion_result = motion.air_motion_result(
+              vector(11, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(11, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+                true,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction left into wall via ceiling downward and slower on x than y should 1px left without being blocked', function ()
+            -- important
+            pc.velocity.x = -2
+            pc.velocity.y = 3
+
+            local motion_result = motion.air_motion_result(
+              vector(11, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(10, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+                false,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction right into wall via ceiling downward and faster on x than y should not move, and flag is_blocked_by_wall', function ()
+            -- important
+            pc.velocity.x = 3
+            pc.velocity.y = 2
+
             local motion_result = motion.air_motion_result(
               vector(-3, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
               false,
@@ -3819,7 +3905,36 @@ describe('player_char', function ()
             )
           end)
 
+          it('direction right into wall via ceiling downward and slower on x than y should 1px right without being blocked', function ()
+            -- important
+            pc.velocity.x = 2
+            pc.velocity.y = 3
+
+            local motion_result = motion.air_motion_result(
+              vector(-3, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-2, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
+                false,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
           it('(after landing in previous step) direction right onto new ground should move and update slope_angle', function ()
+            pc.velocity.x = 1
+            pc.velocity.y = 0
+
             local motion_result = motion.air_motion_result(
               vector(-3, 0 - pc_data.center_height_standing),
               false,
@@ -3842,6 +3957,9 @@ describe('player_char', function ()
           end)
 
           it('(after landing in previous step) direction left into the air should move and unset is_landing', function ()
+            pc.velocity.x = -1
+            pc.velocity.y = 0
+
             local motion_result = motion.air_motion_result(
               vector(-2, 0 - pc_data.center_height_standing),
               false,

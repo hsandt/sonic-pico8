@@ -649,11 +649,13 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
     ref_motion_result.is_falling = false
   end
 
-  -- character is not blocked by a steep step up/wall, but we need to check if it is
-  --  blocked by a ceiling too low; in the extreme case, a diagonal tile pattern
-  --  ->X
-  --   X
   if not ref_motion_result.is_blocked then
+    -- character is not blocked by a steep step up/wall, but we need to check if it is
+    --  blocked by a ceiling too low; in the extreme case, a diagonal tile pattern
+    --  ->X
+    --   X
+    -- (unlike Classic Sonic, we do check for ceilings even when Sonic is grounded;
+    -- this case rarely happens in normally constructed levels though)
     ref_motion_result.is_blocked = self:_is_blocked_by_ceiling_at(next_position_candidate)
 
     -- only advance if character is still not blocked (else, preserve previous position,
@@ -846,6 +848,7 @@ end
 --  - is_landing is true iff the character touches a ground from above during this motion
 function player_char:_compute_air_motion_result()
   -- if character is not moving, he is not blocked nor landing (we assume the environment is static)
+  -- this is pretty rare in the air, but could happen when being pushed upward by fans
   if self.velocity == vector.zero() then
     return motion.air_motion_result(
       self.position,
@@ -1018,13 +1021,19 @@ function player_char:_next_air_step(direction, ref_motion_result)
     end
   end
 
-  -- we can only hit ceiling when moving left, right or up
-  -- note that the ceiling check is necessary during horizontal motion to complement
+  -- Ceiling check
+  -- It is necessary during horizontal motion to complement
   --  ground sensors, the edge case being when the bottom of the character matches
   --  the bottom of a collision tile, ground sensors could only detect the tile below
   -- if we have already found a blocker above (only possible for left and right),
   --  then there is no need to check further, though
-  if direction ~= directions.down and not ref_motion_result.is_blocked_by_wall then
+  -- The SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
+  --  remarks that ceiling detection is done when moving upward or when moving faster horizontally than vertically
+  -- Since it's just for this extra test, we check self.velocity directly instead of passing it as argument
+  -- Note that we don't check the exact step direction, if we happen to hit the ceiling during
+  --  the X motion, that's fine.
+  if not ref_motion_result.is_blocked_by_wall and
+      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
     local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then
@@ -1033,6 +1042,9 @@ function player_char:_next_air_step(direction, ref_motion_result)
       else
         -- we would be blocked by ceiling on the next position, but since we can't even go there,
         --  we are actually blocked by the wall preventing the horizontal move
+        -- 4-quadrant note: when 4-quadrant is implemented, this will actually correspond to the SPG case
+        --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
+        -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
         ref_motion_result.is_blocked_by_wall = true
       end
     end

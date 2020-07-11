@@ -32,5 +32,7 @@ if [[ ! -f "${cartridge_filepath}" ]]; then
 fi
 
 echo "Installing ${cartridge_filepath} in ${install_dirpath} ..."
-cp "${cartridge_filepath}" "${install_dirpath}"
+mkdir -p "${install_dirpath}"
+# trailing slash just to make sure we copy to a directory
+cp "${cartridge_filepath}" "${install_dirpath}/"
 echo "Done."

@@ -11,4 +11,7 @@ __lua__
 
 cd("picosonic")
 load("picosonic_v3.0_release.p8")
-export("picosonic_v3.0_release.bin")
+-- icon is a 16x16 square => -s 2 tiles wide
+-- with top-left at sprite 2 => -i 2
+-- on pink (color 14) background => -c 14
+export("picosonic_v3.0_release.bin -i 2 -s 2 -c 14")

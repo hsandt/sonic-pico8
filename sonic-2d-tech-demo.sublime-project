@@ -259,6 +259,20 @@
 			]
 		},
 		{
+			"name": "Game: export cartridge release",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./export_cartridge_release.sh"],
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Game: install and export cartridge release (Linux)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_cartridge_linux.sh release && ./export_cartridge_release.sh"],
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: test",
 			"working_dir": "${project_path}",
 			"shell": true,

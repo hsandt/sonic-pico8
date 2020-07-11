@@ -121,7 +121,7 @@ function player_char:get_center_height()
 end
 
 function player_char:get_full_height()
-  return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing 
+  return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing
 end
 
 -- spawn character at given position, detecting ground/air on arrival
@@ -132,7 +132,7 @@ end
 
 -- spawn character at given bottom position, with same post-process as spawn_at
 function player_char:spawn_bottom_at(bottom_position)
-  self:spawn_at(bottom_position - vector(0, pc_data.center_height_standing))
+  self:spawn_at(bottom_position - vector(0, self:get_center_height()))
 end
 
 -- warp character to specific position, and update motion state (grounded/falling)
@@ -151,17 +151,17 @@ end
 
 -- same as warp_to, but with bottom position
 function player_char:warp_bottom_to(bottom_position)
-  self:warp_to(bottom_position - vector(0, pc_data.center_height_standing))
+  self:warp_to(bottom_position - vector(0, self:get_center_height()))
 end
 
 -- move the player character so that the bottom center is at the given position
 function player_char:get_bottom_center()
-  return self.position + vector(0, pc_data.center_height_standing)
+  return self.position + vector(0, self:get_center_height())
 end
 
 -- move the player character so that the bottom center is at the given position
 function player_char:set_bottom_center(bottom_center_position)
-  self.position = bottom_center_position - vector(0, pc_data.center_height_standing)
+  self.position = bottom_center_position - vector(0, self:get_center_height())
 end
 
 -- move the player character from delta_vector in px
@@ -297,7 +297,7 @@ function player_char:_get_ground_sensor_position_from(center_position, horizonta
 
   -- ignore subpixels from center position in x
   local x_floored_center_position = vector(flr(center_position.x), center_position.y)
-  local x_floored_bottom_center = x_floored_center_position + vector(0, pc_data.center_height_standing)
+  local x_floored_bottom_center = x_floored_center_position + vector(0, self:get_center_height())
 
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
   local offset_x = flr(horizontal_dir_signs[horizontal_dir] * pc_data.ground_sensor_extent_x)
@@ -362,7 +362,6 @@ end
 
 -- enter motion state, reset state vars appropriately
 function player_char:_enter_motion_state(next_motion_state)
-  self.motion_state = next_motion_state
   if next_motion_state == motion_states.falling then
     -- we have just left the ground without jumping, enter falling state
     --  and since ground speed is now unused, reset it for clarity
@@ -383,6 +382,20 @@ function player_char:_enter_motion_state(next_motion_state)
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
     self.anim_spr:play("idle")
+  end
+
+  local was_compact = self:is_compact()
+
+  self.motion_state = next_motion_state
+
+  if not was_compact and self:is_compact() then
+    -- character became compact (e.g. crouching or start jumping),
+    -- move it slightly down to keep center position continuity
+    self.position:add_inplace(vector(0, pc_data.center_height_standing - pc_data.center_height_compact))
+  elseif was_compact and not self:is_compact() then
+    -- character is now standing (e.g. landing after air spin),
+    -- move it slightly up to keep center position continuity
+    self.position:add_inplace(vector(0, - pc_data.center_height_standing + pc_data.center_height_compact))
   end
 end
 
@@ -696,7 +709,7 @@ function player_char:_is_blocked_by_ceiling_at(center_position)
 
     -- check if ground sensor #i has ceiling closer than a character's height
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)
-    if player_char._is_column_blocked_by_ceiling_at(sensor_position) then
+    if self:_is_column_blocked_by_ceiling_at(sensor_position) then
       return true
     end
 
@@ -711,7 +724,7 @@ end
 --  because we assume that if the character could step this up, it would have and the passed
 --  sensor_position would be the resulting position, so only higher tiles will be considered
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
-function player_char._is_column_blocked_by_ceiling_at(sensor_position)
+function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
   assert(flr(sensor_position.x) == sensor_position.x, "player_char:_is_column_blocked_by_ceiling_at: sensor_position.x must be floored")
 
@@ -738,7 +751,7 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
     -- if the bottom of next ceiling to check is already higher than, or equal to
     --  one character height, if cannot block him, so return false
     local height_distance = sensor_position.y - current_tile_bottom
-    if height_distance >= pc_data.full_height_standing then
+    if height_distance >= self:get_full_height() then
       return false
     end
 
@@ -752,7 +765,7 @@ function player_char._is_column_blocked_by_ceiling_at(sensor_position)
       --  hits the head or not. if it doesn't stop here, return false,
       --  the head is below the ceiling:
       -- local height_distance = sensor_position.y - current_tile_bottom
-      -- return height_distance < pc_data.full_height_standing
+      -- return height_distance < self:get_full_height()
     end
 
   end

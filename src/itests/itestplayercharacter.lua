@@ -552,9 +552,9 @@ itest_dsl_parser.register(
 
 warp 4 32
 jump
-wait 4
+wait 7
 
-expect pc_bottom_pos 4 24
+expect pc_bottom_pos 4 16
 expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 0
@@ -562,17 +562,16 @@ expect pc_velocity 0 0
 
 -- calculation notes
 
--- we are still using sonic standing height during jump
---   so he will hit ceiling at bottom pos = 24 = 32 - 8
+-- we are now using sonic compact height = 8 during jump
+--   so he will hit ceiling at bottom pos = (1 tile '#') * 8 + 8 = 16 = 32 - 16
+--   where 32 is the initial bottom pos, so we need to jump over 16px
 
 -- wait for the apogee (frame 31) and stop
 -- frame  bottom pos            velocity         state     event
 -- 1      (4, 32)               (0, 0)           grounded
 -- 2      (4, 32 - 3  - 16/64)  (0, -3 - 16/64)  air_spin  confirm jump (no gravity on first frame)
 -- 3      (4, 32 - 6  - 25/64)  (0, -3 -  9/64)  air_spin
--- 4      (4, 32 - 8)           (0, 0)           air_spin  hit ceiling
-
--- keep calculation below for later, when sonic will have half height during spin
+-- 4      (4, 32 - 8)           (0, 0)           air_spin
 -- 4      (4, 32 - 9  - 27/64)  (0, -3 -  2/64)  air_spin
 -- 5      (4, 32 - 12 - 22/64)  (0, -2 - 59/64)  air_spin
 -- 6      (4, 32 - 15 - 10/64)  (0, -2 - 52/64)  air_spin

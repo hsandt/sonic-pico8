@@ -279,16 +279,20 @@ describe('player_char', function ()
 
       setup(function ()
         spy.on(player_char, "spawn_at")
+        stub(player_char, "get_center_height", function ()
+          return 11
+        end)
       end)
 
       teardown(function ()
         player_char.spawn_at:revert()
+        player_char.get_center_height:revert()
       end)
 
       it('should call spawn_at with the position offset by -(character center height)', function ()
         pc:spawn_bottom_at(vector(56, 12))
         assert.spy(player_char.spawn_at).was_called(1)
-        assert.spy(player_char.spawn_at).was_called_with(match.ref(pc), vector(56, 12 - pc_data.center_height_standing))
+        assert.spy(player_char.spawn_at).was_called_with(match.ref(pc), vector(56, 12 - 11))
       end)
 
     end)
@@ -372,32 +376,60 @@ describe('player_char', function ()
 
       setup(function ()
         spy.on(player_char, "warp_to")
+        stub(player_char, "get_center_height", function ()
+          return 11
+        end)
       end)
 
       teardown(function ()
         player_char.warp_to:revert()
+        player_char.get_center_height:revert()
       end)
 
       it('should call warp_to with the position offset by -(character center height)', function ()
         pc:warp_bottom_to(vector(56, 12))
         assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(56, 12 - pc_data.center_height_standing))
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(56, 12 - 11))
       end)
 
     end)
 
     describe('get_bottom_center', function ()
+
+      setup(function ()
+        stub(player_char, "get_center_height", function ()
+          return 11
+        end)
+      end)
+
+      teardown(function ()
+        player_char.get_center_height:revert()
+      end)
+
       it('(10 0 3) => at (10 6)', function ()
         pc.position = vector(10, 0)
-        assert.are_equal(vector(10, 0 + pc_data.center_height_standing), pc:get_bottom_center())
+        assert.are_equal(vector(10, 0 + 11), pc:get_bottom_center())
       end)
+
     end)
 
-    describe('+ set_bottom_center', function ()
+    describe('set_bottom_center', function ()
+
+      setup(function ()
+        stub(player_char, "get_center_height", function ()
+          return 11
+        end)
+      end)
+
+      teardown(function ()
+        player_char.get_center_height:revert()
+      end)
+
       it('set_bottom_center (10 6) => at (10 0)', function ()
-        pc:set_bottom_center(vector(10, 0 + pc_data.center_height_standing))
+        pc:set_bottom_center(vector(10, 0 + 11))
         assert.are_equal(vector(10, 0), pc.position)
       end)
+
     end)
 
     describe('move_by', function ()
@@ -814,20 +846,30 @@ describe('player_char', function ()
 
       describe('_get_ground_sensor_position_from', function ()
 
-        it('* should return the position down-left of the character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7, 10 + pc_data.center_height_standing), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.left))
+        setup(function ()
+          stub(player_char, "get_center_height", function ()
+            return 11
+          end)
+        end)
+
+        teardown(function ()
+          player_char.get_center_height:revert()
+        end)
+
+        it('should return the position down-left of the character center when horizontal dir is left', function ()
+          assert.are_equal(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.left))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7, 10 + pc_data.center_height_standing), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
+          assert.are_equal(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
         end)
 
-        it('* should return the position down-left of the character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12, 10 + pc_data.center_height_standing), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.right))
+        it('should return the position down-left of the character center when horizontal dir is right', function ()
+          assert.are_equal(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.right))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12, 10 + pc_data.center_height_standing), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
+          assert.are_equal(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
         end)
 
       end)
@@ -1368,6 +1410,25 @@ describe('player_char', function ()
             })
           assert.spy(animated_sprite.play).was_called(1)
           assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+        end)
+
+        it('should adjust center position down when becoming compact', function ()
+          pc.position = vector(10, 20)
+
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.air_spin)
+
+          assert.are_equal(20 + pc_data.center_height_standing - pc_data.center_height_compact, pc.position.y)
+        end)
+
+        it('should adjust center position up when standing up', function ()
+          pc.motion_state = motion_states.air_spin
+          pc.position = vector(10, 20)
+
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_equal(20 - pc_data.center_height_standing + pc_data.center_height_compact, pc.position.y)
         end)
 
       end)
@@ -2574,6 +2635,10 @@ describe('player_char', function ()
             mock_mset(0, 1, 64)  -- full tile
           end)
 
+          -- in the tests below, we can use pc_data.center_height_standing directly instead
+          --  of pc:get_center_height()
+          --  because the character is not compact (e.g. no air spin)
+
           it('when stepping left with the right sensor still on the ground, decrement x', function ()
             local motion_result = motion.ground_motion_result(
               vector(-1, 8 - pc_data.center_height_standing),
@@ -2949,7 +3014,7 @@ describe('player_char', function ()
             return i == horizontal_dirs.left and vector(-1, center_position.y) or vector(1, center_position.y)
           end)
 
-          is_column_blocked_by_ceiling_at_mock = stub(player_char, "_is_column_blocked_by_ceiling_at", function (sensor_position)
+          is_column_blocked_by_ceiling_at_mock = stub(player_char, "_is_column_blocked_by_ceiling_at", function (self, sensor_position)
             -- simulate ceiling detection by encoding information in x and y
             if sensor_position.y == 1 then
               return sensor_position.x < 0 and false or false
@@ -2988,10 +3053,20 @@ describe('player_char', function ()
 
       describe('_is_column_blocked_by_ceiling_at', function ()
 
+        setup(function ()
+          stub(player_char, "get_full_height", function ()
+            return 11
+          end)
+        end)
+
+        teardown(function ()
+          player_char.get_full_height:revert()
+        end)
+
         describe('(no tiles)', function ()
 
           it('should return false anywhere', function ()
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(4, 5)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 5)))
           end)
 
         end)
@@ -3005,11 +3080,11 @@ describe('player_char', function ()
 
           it('should return false for sensor position just above the bottom of the tile', function ()
             -- here, the current tile is the full tile, and we only check tiles above, so we detect nothing
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(8, 7.9)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(8, 7.9)))
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(7, 8)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(7, 8)))
           end)
 
           -- bugfix history:
@@ -3018,19 +3093,19 @@ describe('player_char', function ()
           --    it *must* be blocked. when character has a foot on the lower tile, it is considered to be
           --    in this lower tile
           it('should return true for sensor position at the bottom-left of the tile', function ()
-            assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(8, 8)))
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(8, 8)))
           end)
 
           it('should return true for sensor position on the bottom-right of the tile', function ()
-            assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(15, 8)))
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(15, 8)))
           end)
 
           it('should return false for sensor position on the right of the tile', function ()
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(16, 8)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(16, 8)))
           end)
 
           it('should return true for sensor position below the tile, at character height - 1px', function ()
-            assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(12, 8 + pc_data.full_height_standing - 1)))
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 11 - 1)))
           end)
 
           -- bugfix history:
@@ -3039,7 +3114,7 @@ describe('player_char', function ()
           --    the ground_array_height check (computing height_distance from tile bottom instead of top)
           --    to pass it in this case too
           it('should return false for sensor position below the tile, at character height', function ()
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(12, 8 + pc_data.full_height_standing)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 11)))
           end)
 
         end)
@@ -3054,14 +3129,14 @@ describe('player_char', function ()
           it('should return false for sensor position on the left of the tile', function ()
             -- normally the character should step up and pass this position during the next-step pass
             --  and this returns false so the character won't be blocked
-            assert.is_false(pc._is_column_blocked_by_ceiling_at(vector(0, 7)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(0, 7)))
           end)
 
           it('should return true for sensor position at the bottom-left of the tile', function ()
             -- technically this is still a step up, but we consider it is the next-step method's fault
             --  if it didn't step up correctly so we afford to return true and block the character,
             --  as it makes more simple code
-            assert.is_true(pc._is_column_blocked_by_ceiling_at(vector(0, 8)))
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(0, 8)))
           end)
 
         end)
@@ -3775,6 +3850,10 @@ describe('player_char', function ()
             -- X
             mock_mset(0, 0, 64)  -- full tile
           end)
+
+          -- in the tests below, we can use pc_data.full/center_height_standing directly instead
+          --  of pc:get_full/center_height()
+          --  because the character is not compact (e.g. no air spin)
 
           it('direction up into ceiling should not move, and flag is_blocked_by_ceiling', function ()
             -- we need an upward velocity for ceiling check if not faster on x than y

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# LEGACY: use test_preprocess.py to test preprocess.py in pico-boots now
+
 import unittest
 from . import replace_strings
 
@@ -94,5 +96,5 @@ class TestReplaceStringsInDir(unittest.TestCase):
             self.assertEqual(f.read(), 'require("itest_character")\n⬅️ or ➡️\nand 🅾️\nprint("press 🅾️")')
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.ERROR)
+    logging.basicConfig(level=logging.CRITICAL)
     unittest.main()

@@ -14,6 +14,10 @@ This is a fan game distributed for free and is not endorsed by Sega Games Co., L
 
 It is currently under development.
 
+## Compatibility
+
+Works with PICO-8 0.2.0i and 0.2.1b.
+
 ## Features
 
 Version: 3.0

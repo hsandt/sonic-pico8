@@ -59,7 +59,7 @@ local player_char = new_class()
 -- control_mode           control_modes   control mode: human (default) or ai
 -- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states   motion state (platformer mode only)
--- horizontal_dir         horizontal_dirs direction faced by character
+-- orientation            horizontal_dirs direction faced by character
 -- position               vector          current position (character center "between" pixels)
 -- ground_speed           float           current speed along the ground (~px/frame)
 -- velocity               vector          current velocity in platformer mode (px/frame)
@@ -89,7 +89,7 @@ function player_char:_setup()
   self.motion_mode = motion_modes.platformer
 --#endif
   self.motion_state = motion_states.grounded
-  self.horizontal_dir = horizontal_dirs.right
+  self.orientation = horizontal_dirs.right
 
   self.position = vector.zero()
   self.ground_speed = 0.
@@ -288,7 +288,7 @@ function player_char:_get_prioritized_dir()
       return signed_speed_to_dir(self.velocity.x)
     end
   end
-  return self.horizontal_dir
+  return self.orientation
 end
 
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
@@ -492,22 +492,23 @@ function player_char:_update_ground_speed_by_intention()
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
+      -- face move direction if not already
+      self.orientation = signed_speed_to_dir(self.move_intention.x)
     else
       -- decelerate
       self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_decel_frame2
-      -- if speed must switch sign this frame, clamp it by ground accel in absolute value to prevent exploit of
-      --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
+      -- check if speed has switched sign this frame, i.e. character has turned around
       local has_changed_sign = self.ground_speed ~= 0 and sgn(self.ground_speed) == sgn(self.move_intention.x)
-      if has_changed_sign and abs(self.ground_speed) > pc_data.ground_accel_frame2 then
-        self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
-      end
-    end
 
-    if self.ground_speed ~= 0 then
-      -- always update direction when player tries to move and the character is moving after update
-      -- this is useful even when move intention x has same sign as ground speed,
-      -- as the character may be running backward after failing to run a steep slope up
-      self.horizontal_dir = signed_speed_to_dir(self.ground_speed)
+      if has_changed_sign then
+        -- clamp speed after turn around by ground accel in absolute value to prevent exploit of
+        --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
+        if abs(self.ground_speed) > pc_data.ground_accel_frame2 then
+          self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
+        end
+        -- turn around
+        self.orientation = signed_speed_to_dir(self.move_intention.x)
+      end
     end
 
   elseif self.ground_speed ~= 0 then
@@ -823,7 +824,7 @@ function player_char:_update_platformer_motion_airborne()
     self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
 
     -- in the air, apply intended motion to direction immediately
-    self.horizontal_dir = signed_speed_to_dir(self.move_intention.x)
+    self.orientation = signed_speed_to_dir(self.move_intention.x)
   end
 
   -- apply air motion
@@ -1134,7 +1135,7 @@ end
 
 -- render the player character sprite at its current position
 function player_char:render()
-  local flip_x = self.horizontal_dir == horizontal_dirs.left
+  local flip_x = self.orientation == horizontal_dirs.left
   self.anim_spr:render(self.position, flip_x)
 end
 

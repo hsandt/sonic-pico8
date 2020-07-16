@@ -488,7 +488,7 @@ function player_char:_update_ground_speed_by_slope(previous_ground_speed)
   local is_ascending_slope = false
 
   if self.slope_angle ~= 0 then
-    -- Original feature (not in SPG): Progressive Ascending Slope Factor
+    -- Original feature (not in SPG): Progressive Ascending Steep Slope Factor
     --  If character is ascending a slope, do not apply the full slope factor immediately.
     --  Instead, linearly increase the applied slope factor from 0 to full over a given duration.
     --  We use the ground speed before applying intention to avoid exploid of spamming
@@ -498,7 +498,7 @@ function player_char:_update_ground_speed_by_slope(previous_ground_speed)
     -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
     --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
     local ascending_slope_factor = 1
-    if previous_ground_speed ~= 0 and sgn(previous_ground_speed) ~= sgn(self.slope_angle) then
+    if previous_ground_speed ~= 0 and abs(self.slope_angle) >= pc_data.steep_slope_min_angle and sgn(previous_ground_speed) ~= sgn(self.slope_angle) then
       is_ascending_slope = true
       local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
       local progressive_ascending_slope_factor = 1
@@ -526,13 +526,13 @@ function player_char:_update_ground_speed_by_intention()
       -- face move direction if not already
       self.orientation = signed_speed_to_dir(self.move_intention.x)
     else
-      -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
+      -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
       --  Apply a fixed factor
       -- Effect: a character descending a steep slope will take more time to brake than if
       --  considering slope factor alone
       -- Resolves: character descending a steep slope was braking and turning back too suddenly
       local ground_decel_factor = 1
-      if self.slope_angle ~= 0 and sgn(self.ground_speed) == sgn(self.slope_angle) then
+      if abs(self.slope_angle) >= pc_data.steep_slope_min_angle and sgn(self.ground_speed) == sgn(self.slope_angle) then
         -- character is trying to brake on a descending slope
         ground_decel_factor = pc_data.ground_decel_descending_slope_factor
       end
@@ -562,7 +562,7 @@ function player_char:_update_ground_speed_by_intention()
     -- Effect: the character will automatically run down a steep slope and accumulate acceleration downward
     --  without friction
     -- Resolves: the character was moving down a steep slope very slowly because of friction
-    if abs(self.slope_angle) <= pc_data.ground_friction_max_slope_angle or sgn(self.ground_speed) ~= sgn(self.slope_angle) then
+    if abs(self.slope_angle) <= pc_data.steep_slope_min_angle or sgn(self.ground_speed) ~= sgn(self.slope_angle) then
       self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
     end
   end

@@ -19,15 +19,18 @@ local playercharacter_data = {
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
 
-  -- Original feature (not in SPG): No Friction on Steep Descending Slope
-  -- max slope angle on which friction is applied ([0-0.25], but we recommend more than 22.5 degrees i.e. 0.0625)
-  ground_friction_max_slope_angle = 0.075,  -- 27/360
-
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,  -- 7/64
 
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
+
+  -- Used by 3 original features (not in SPG):
+  --  - Reduced Deceleration on Steep Descending Slope
+  --  - No Friction on Steep Descending Slope
+  --  - Progressive Ascending Steep Slope Factor
+  -- max slope angle on which friction is applied (]0-0.25[, but we recommend more than 22.5 degrees i.e. 0.0625)
+  steep_slope_min_angle = 0.075,  -- 27/360
 
   -- derived data: the slope angle for which ground friction is exactly opposed to slope factor
   -- is 22.02 degrees ~ 0.061 angle/360 ratio (PICO-8 unit)

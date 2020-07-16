@@ -1955,7 +1955,7 @@ describe('player_char', function ()
             })
         end)
 
-        it('should accelerate toward left on an ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
+        it('should accelerate toward left on a steep ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
           pc.ground_speed = 2
           pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
           pc.ascending_slope_time = 0
@@ -1972,7 +1972,7 @@ describe('player_char', function ()
             })
         end)
 
-        it('should accelerate toward left on an ascending slope, with full slope factor after ascending slope duration, and clamp time to that duration', function ()
+        it('should accelerate toward left on a steep ascending slope, with full slope factor after ascending slope duration, and clamp time to that duration', function ()
           pc.ground_speed = 2
           pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
           pc.ascending_slope_time = pc_data.progressive_ascending_slope_duration
@@ -1989,9 +1989,26 @@ describe('player_char', function ()
             })
         end)
 
+        it('should accelerate toward right on a non-steep ascending slope, and reset any ascending slope time', function ()
+          pc.ground_speed = 2
+          pc.slope_angle = -0.0625
+          pc.ascending_slope_time = 77
+
+          pc:_update_ground_speed_by_slope(1.8)
+
+          assert.are_same({
+              2 - pc_data.slope_accel_factor_frame2 * sin(-0.0625),  -- note that the sin is positive
+              0
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
+        end)
+
         it('should accelerate toward right on an descending slope, with full slope factor, and reset any ascending slope time', function ()
           pc.ground_speed = 2
-          pc.slope_angle = 0.125  -- sin(0.125) = sqrt(2)/2
+          pc.slope_angle = 0.125  -- sin(0.125) = - sqrt(2)/2
           pc.ascending_slope_time = 77
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2046,13 +2063,23 @@ describe('player_char', function ()
             {pc.orientation, pc.ground_speed})
         end)
 
-        it('should decelerate with decel descending slope factor, keeping same sign and direction when character is on descending slope facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
+        it('should decelerate with decel descending slope factor, keeping same sign and direction when character is on steep descending slope facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
           pc.slope_angle = 0.125
           pc:_update_ground_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_descending_slope_factor * pc_data.ground_decel_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should decelerate without decel descending slope factor, keeping same sign and direction when character is on non-steep descending slope facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.move_intention.x = -1
+          pc.slope_angle = 0.0625
+          pc:_update_ground_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
 

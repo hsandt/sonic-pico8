@@ -65,6 +65,7 @@ local player_char = new_class()
 -- velocity               vector          current velocity in platformer mode (px/frame)
 -- debug_velocity         vector          current velocity in debug mode (m/s)
 -- slope_angle            float           slope angle of the current ground (clockwise turn ratio)
+-- ascending_slope_time   float           time before applying full slope factor, when ascending a slope (s)
 -- move_intention         vector          current move intention (normalized)
 -- jump_intention         bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention    bool            current intention to hold jump (always true when jump_intention is true)
@@ -97,6 +98,7 @@ function player_char:_setup()
   self.debug_velocity = vector.zero()
   -- slope_angle starts at 0 instead of nil to match grounded state above (first spawn will set this anyway)
   self.slope_angle = 0.
+  self.ascending_slope_time = 0.
 
   self.move_intention = vector.zero()
   self.jump_intention = false
@@ -450,7 +452,10 @@ function player_char:_update_platformer_motion_grounded()
     if self.ground_speed == 0 then
       self.anim_spr:play("idle")
     else
-      self.anim_spr:play("run", false, abs(self.ground_speed))
+      -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
+      -- instead, we prefer the more organic approach of continuous playback speed
+      -- however, to simulat the max duration clamping, we use min playback speed clamping
+      self.anim_spr:play("run", false, max(pc_data.run_anim_min_play_speed, abs(self.ground_speed)))
     end
   end
 
@@ -465,23 +470,49 @@ end
 
 -- update ground speed
 function player_char:_update_ground_speed()
-  -- we need to update ground speed by intention first so accel/decel is handled correctly
-  --  otherwise, when starting at speed 0 on an ascending slope, gravity changes speed to < 0
-  --  and a right move intention would be handled as a decel, which is fast enough to climb up
-  --  even the highest slopes
-  -- FIXME: but that broke low slopes since we apply friction for nothing,
-  --  then the slope factor...
-  -- Instead, we need to synthetize by applying the slope factor in the background,
-  --  then the move intention but not based on the intermediate speed but the old speed (or better, the horizontal dir)
+  -- In order to process move intention and slope effect as independently as possible,
+  --  we process intention first, then compute slope contribution based on the ground speed
+  --  *before* intention was processed.
+  -- We could do the opposite, but since _update_ground_speed_by_intention relies on clamping,
+  --  it would be a bit harder (we'd need both previous_ground_speed and some
+  --  fictive_future_ground_speed = previous_ground_speed + ground_speed_delta, then compute
+  --  some clamped_ground_speed_delta and reapply it to the actual self.ground_speed)
+  local previous_ground_speed = self.ground_speed
   self:_update_ground_speed_by_intention()
-  self:_update_ground_speed_by_slope()
+  self:_update_ground_speed_by_slope(previous_ground_speed)
   self:_clamp_ground_speed()
 end
 
 -- update ground speed based on current slope
-function player_char:_update_ground_speed_by_slope()
+function player_char:_update_ground_speed_by_slope(previous_ground_speed)
+  local is_ascending_slope = false
+
   if self.slope_angle ~= 0 then
-    self.ground_speed = self.ground_speed - pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+    -- Original feature (not in SPG): Progressive Ascending Slope Factor
+    --  If character is ascending a slope, do not apply the full slope factor immediately.
+    --  Instead, linearly increase the applied slope factor from 0 to full over a given duration.
+    --  We use the ground speed before applying intention to avoid exploid of spamming
+    --  the left/right (ascending) input to restart the timer thanks to the ground speed
+    --  being slightly increased by the intention, but actually countered by slope accel in the same frame.
+    -- Effect: the character can completely cross steep but short slopes
+    -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
+    --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
+    local ascending_slope_factor = 1
+    if previous_ground_speed ~= 0 and sgn(previous_ground_speed) ~= sgn(self.slope_angle) then
+      is_ascending_slope = true
+      local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
+      local progressive_ascending_slope_factor = 1
+      -- increase tracking time every frame
+      self.ascending_slope_time = min(self.ascending_slope_time + delta_time60, ascending_slope_duration)
+      ascending_slope_factor = self.ascending_slope_time / ascending_slope_duration
+    end
+
+    self.ground_speed = self.ground_speed - ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+  end
+
+  if not is_ascending_slope then
+    -- reset ascending slope time
+    self.ascending_slope_time = 0
   end
 end
 
@@ -495,8 +526,19 @@ function player_char:_update_ground_speed_by_intention()
       -- face move direction if not already
       self.orientation = signed_speed_to_dir(self.move_intention.x)
     else
+      -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
+      --  Apply a fixed factor
+      -- Effect: a character descending a steep slope will take more time to brake than if
+      --  considering slope factor alone
+      -- Resolves: character descending a steep slope was braking and turning back too suddenly
+      local ground_decel_factor = 1
+      if self.slope_angle ~= 0 and sgn(self.ground_speed) == sgn(self.slope_angle) then
+        -- character is trying to brake on a descending slope
+        ground_decel_factor = pc_data.ground_decel_descending_slope_factor
+      end
+
       -- decelerate
-      self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_decel_frame2
+      self.ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
       -- check if speed has switched sign this frame, i.e. character has turned around
       local has_changed_sign = self.ground_speed ~= 0 and sgn(self.ground_speed) == sgn(self.move_intention.x)
 
@@ -512,9 +554,19 @@ function player_char:_update_ground_speed_by_intention()
     end
 
   elseif self.ground_speed ~= 0 then
-    -- friction
-    self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+    -- no move intention, character is passive
+
+    -- Original feature (not in SPG): No Friction on Steep Descending Slope
+    --  Do not apply friction when character is descending a steep slope passively;
+    --  In other words, apply it only on flat ground, low slope and only steep slopes if ascending
+    -- Effect: the character will automatically run down a steep slope and accumulate acceleration downward
+    --  without friction
+    -- Resolves: the character was moving down a steep slope very slowly because of friction
+    if abs(self.slope_angle) <= pc_data.ground_friction_max_slope_angle or sgn(self.ground_speed) ~= sgn(self.slope_angle) then
+      self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+    end
   end
+
 end
 
 -- clamp ground speed to max

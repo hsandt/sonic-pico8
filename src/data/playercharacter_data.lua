@@ -12,14 +12,29 @@ local playercharacter_data = {
   -- ground active deceleration (brake) (px/frame^2)
   ground_decel_frame2 = 0.25,  -- 16/64
 
+  -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
+  -- ground active deceleration factor on descending slope ([0-1])
+  ground_decel_descending_slope_factor = 0.5,
+
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
+
+  -- Original feature (not in SPG): No Friction on Steep Descending Slope
+  -- max slope angle on which friction is applied ([0-0.25], but we recommend more than 22.5 degrees i.e. 0.0625)
+  ground_friction_max_slope_angle = 0.075,  -- 27/360
 
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,  -- 7/64
 
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
+
+  -- derived data: the slope angle for which ground friction is exactly opposed to slope factor
+  -- is 22.02 degrees ~ 0.061 angle/360 ratio (PICO-8 unit)
+
+  -- Original feature (not in SPG): Progressive Ascending Slope Factor
+  -- time needed when ascending a slope before full slope factor is applied (s)
+  progressive_ascending_slope_duration = 0.5,
 
   -- air acceleration on x axis (px/frames^2)
   air_accel_x_frame2 = 0.046875,  -- 3/64
@@ -95,6 +110,11 @@ local playercharacter_data = {
     ["run11"] = sprite_data(sprite_id_location(6, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
     ["spin"]  = sprite_data(sprite_id_location(0, 12), tile_vector(2, 2), vector(5, 5),  colors.pink),
   },
+
+  -- minimum playback speed for "run" animation, to avoid very slow animation
+  -- 5/16: the 5 counters the 5 duration frames of ["run"] below, 1/8 to represent max duration 8 in SPG:Animations
+  -- and an extra 1/2 because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
+  run_anim_min_play_speed = 0.3125
 
 }
 

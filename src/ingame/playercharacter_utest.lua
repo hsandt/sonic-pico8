@@ -134,11 +134,14 @@ describe('player_char', function ()
           motion_modes.platformer,
           motion_states.grounded,
           horizontal_dirs.right,
+
           vector.zero(),
           0,
           vector.zero(),
           vector.zero(),
           0,
+          0,
+
           vector.zero(),
           false,
           false,
@@ -157,6 +160,7 @@ describe('player_char', function ()
           pc.velocity,
           pc.debug_velocity,
           pc.slope_angle,
+          pc.ascending_slope_time,
 
           pc.move_intention,
           pc.jump_intention,
@@ -1586,11 +1590,14 @@ describe('player_char', function ()
         local check_jump_intention_stub
         local compute_ground_motion_result_mock
 
+        -- allows to modify the mock _update_ground_speed without restubbing it for every test section
+        local new_ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
+
         setup(function ()
           spy.on(animated_sprite, "play")
 
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
-            self.ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
+            self.ground_speed = new_ground_speed
           end)
           enter_motion_state_stub = stub(player_char, "_enter_motion_state")
           check_jump_intention_stub = stub(player_char, "_check_jump_intention")
@@ -1685,6 +1692,28 @@ describe('player_char', function ()
             -- implementation
             assert.spy(animated_sprite.play).was_called(1)
             assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+          end)
+
+          describe('(_update_ground_speed sets ground speed to -pc_data.run_anim_min_play_speed / 2)', function ()
+
+            setup(function ()
+              -- something lower than pc_data.run_anim_min_play_speed in abs value to test max
+              new_ground_speed = -pc_data.run_anim_min_play_speed / 2
+            end)
+
+            teardown(function ()
+              -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
+              new_ground_speed = -2.5
+            end)
+
+            it('should play the run animation at playback speed = run_anim_min_play_speed, if not 0 but lower than run_anim_min_play_speed', function ()
+              pc:_update_platformer_motion_grounded()
+
+              -- implementation
+              assert.spy(animated_sprite.play).was_called(1)
+              assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, pc_data.run_anim_min_play_speed)
+            end)
+
           end)
 
         end)
@@ -1860,6 +1889,7 @@ describe('player_char', function ()
       describe('_update_ground_speed', function ()
 
         setup(function ()
+          -- the only reason we spy and not stub is to test the interface in the first test below
           spy.on(player_char, "_update_ground_speed_by_slope")
           spy.on(player_char, "_update_ground_speed_by_intention")
           spy.on(player_char, "_clamp_ground_speed")
@@ -1880,7 +1910,7 @@ describe('player_char', function ()
         it('should counter the ground speed in the opposite direction of motion when moving upward a 45-degree slope', function ()
           pc:_update_ground_speed()
 
-          -- interface
+          -- interface: check overall behavior (mini integration test)
           pc.ground_speed = 0
           pc.slope_angle = -1/8  -- 45 deg ascending
           pc.move_intention.x = 1
@@ -1889,11 +1919,13 @@ describe('player_char', function ()
         end)
 
         it('should update ground speed based on slope, then intention', function ()
+          pc.ground_speed = 2.5
+
           pc:_update_ground_speed()
 
           -- implementation
           assert.spy(player_char._update_ground_speed_by_slope).was_called(1)
-          assert.spy(player_char._update_ground_speed_by_slope).was_called_with(match.ref(pc))
+          assert.spy(player_char._update_ground_speed_by_slope).was_called_with(match.ref(pc), 2.5)
           assert.spy(player_char._update_ground_speed_by_intention).was_called(1)
           assert.spy(player_char._update_ground_speed_by_intention).was_called_with(match.ref(pc))
           assert.spy(player_char._clamp_ground_speed).was_called(1)
@@ -1907,22 +1939,71 @@ describe('player_char', function ()
         it('should preserve ground speed on flat ground', function ()
           pc.ground_speed = 2
           pc.slope_angle = 0
-          pc:_update_ground_speed_by_slope()
+          pc.ascending_slope_time = 77
+
+          pc:_update_ground_speed_by_slope(1.8)
+
           assert.are_equal(2, pc.ground_speed)
+
+          assert.are_same({
+              2,
+              0
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
         end)
 
-        it('should accelerate toward left on an ascending slope', function ()
+        it('should accelerate toward left on an ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
           pc.ground_speed = 2
           pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
-          pc:_update_ground_speed_by_slope()
-          assert.are_equal(2 - pc_data.slope_accel_factor_frame2 * sqrt(2)/2, pc.ground_speed)
+          pc.ascending_slope_time = 0
+
+          pc:_update_ground_speed_by_slope(1.8)
+
+          assert.are_same({
+              2 - delta_time60 / pc_data.progressive_ascending_slope_duration * pc_data.slope_accel_factor_frame2 * sqrt(2)/2,
+              delta_time60
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
         end)
 
-        it('should accelerate toward right on an descending slope', function ()
+        it('should accelerate toward left on an ascending slope, with full slope factor after ascending slope duration, and clamp time to that duration', function ()
+          pc.ground_speed = 2
+          pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          pc.ascending_slope_time = pc_data.progressive_ascending_slope_duration
+
+          pc:_update_ground_speed_by_slope(1.8)
+
+          assert.are_same({
+              2 - pc_data.slope_accel_factor_frame2 * sqrt(2)/2,
+              pc_data.progressive_ascending_slope_duration
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
+        end)
+
+        it('should accelerate toward right on an descending slope, with full slope factor, and reset any ascending slope time', function ()
           pc.ground_speed = 2
           pc.slope_angle = 0.125  -- sin(0.125) = sqrt(2)/2
-          pc:_update_ground_speed_by_slope()
-          assert.are_equal(2 + pc_data.slope_accel_factor_frame2 * sqrt(2)/2, pc.ground_speed)
+          pc.ascending_slope_time = 77
+
+          pc:_update_ground_speed_by_slope(1.8)
+
+          assert.are_same({
+              2 + pc_data.slope_accel_factor_frame2 * sqrt(2)/2,
+              0
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
         end)
 
       end)  -- _update_ground_speed_by_slope
@@ -1962,6 +2043,16 @@ describe('player_char', function ()
           pc:_update_ground_speed_by_intention()
           -- ground_decel_frame2 = 0.25, subtract it from ground_speed
           assert.are_same({horizontal_dirs.right, 1.25},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should decelerate with decel descending slope factor, keeping same sign and direction when character is on descending slope facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.move_intention.x = -1
+          pc.slope_angle = 0.125
+          pc:_update_ground_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_descending_slope_factor * pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
 
@@ -2042,6 +2133,33 @@ describe('player_char', function ()
             {pc.orientation, pc.ground_speed})
         end)
 
+        it('should apply friction when character has ground speed > 0, move intention x is 0 and character is descending a low slope', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.slope_angle = 0.0625
+          pc:_update_ground_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should apply friction when character has ground speed > 0, move intention x is 0 and character is ascending a steep slope', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.slope_angle = -0.125
+          pc:_update_ground_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should not apply friction when character has ground speed > 0, move intention x is 0 and character is descending a steep slope', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.slope_angle = 0.125
+          pc:_update_ground_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5},
+            {pc.orientation, pc.ground_speed})
+        end)
+
         -- bugfix history: missing tests that check the change of sign of ground speed
         it('_ should apply friction and preserve direction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
@@ -2054,7 +2172,7 @@ describe('player_char', function ()
 
         -- tests below seem symmetrical, but the character is actually running backward
 
-        it('should apply friction and preserive direction when character has ground speed < 0 and move intention x is 0', function ()
+        it('should apply friction and preserve direction when character has ground speed < 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = -1.5
           pc:_update_ground_speed_by_intention()

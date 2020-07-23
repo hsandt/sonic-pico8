@@ -103,12 +103,15 @@ expect pc_velocity 0 0
 -- expected position: vector(4 + 2 * 10.8984375 - 0.703125, 80.) = vector(25.09375, 80)
 -- otherwise, character has stopped so expected speed is 0
 
-
 -- bugfix history:
 -- . forgot to add a solid ground below the slope to confirm ground
 -- ! identified bug in _compute_ground_motion_result where slope angle was set on extra step,
 --   despite being only a subpixel extra move
 -- . was expecting positive speed but slope was ascending
+-- note that I reduced frame count from 15 tp 14 as I didn't want to check slope factor reduction too much
+-- eventually it's more a utest than an itest, but fine
+-- I will stop doing those super-precise checks anyway, since I may add for Original Features not matching
+-- Sonic behavior exactly
 itest_dsl_parser.register(
   'platformer ascending slope right', [[
 @stage #
@@ -118,14 +121,26 @@ itest_dsl_parser.register(
 
 warp 4 16
 move right
-wait 15
+wait 14
 
-expect pc_bottom_pos 0x0006.8509 15
+expect pc_bottom_pos 6.36378532203461338585 15
 expect pc_motion_state grounded
 expect pc_slope -0.125
-expect pc_ground_spd 0.26318359375
-expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
+expect pc_ground_spd 0.3266448974609375
+expect pc_velocity 0.23097282203461338585 -0.23097282203461338585
 ]])
+
+-- expect pc_bottom_pos 0x0006.8509 15
+-- expect pc_motion_state grounded
+-- expect pc_slope -0.125
+-- expect pc_ground_spd 0.26318359375
+-- expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
+-- ]])
+
+--[[
+Frame       Ground Speed     Velocity     Bottom Pos
+    1
+--]]
 
 -- precision note on expected pc_bottom_pos:
 -- 6.5196685791015625, 15 (0x0006.8509, 0x000f.0000) in PICO-8 fixed point precision
@@ -149,8 +164,13 @@ expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
 -- at frame 11: bpos (5.546875, 16), velocity (0.2578125, 0), ground_speed(0.2578125)
 -- at frame 12: bpos (5.828125, 16), velocity (0.28125, 0), ground_speed(0.28125)
 -- at frame 13: bpos (6.1328125, 15), velocity (0.3046875, 0), ground_speed(0.3046875), first step on slope and at higher level than flat ground, acknowledge slope as current ground
--- at frame 14: bpos (6.333572387695, 15), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
--- at frame 15: bpos (6.519668501758, 15), velocity (0.1860961140625, -0.1860961140625), ground_speed(0.26318359375), still under slope factor effect and velocity following slope tangent
+
+-- from here, we apply Original feature (not in SPG): Progressive Ascending Steep Slope Factor
+-- without Original Feature: at frame 14: bpos (6.333572387695, 15), velocity (0.2007598876953125, -0.2007598876953125), ground_speed(0.283935546875), because slope was current ground at frame start, slope factor was applied with 0.0625*sin(45) = -0.044189453125 (in PICO-8 16.16 fixed point precision)
+-- with Original Feature: at frame 14: bpos (6.333572387695, 15), velocity (0.23097282203461338585, -0.23097282203461338585), ground_speed(0.32665186087253), because slope was current ground at frame start, slope factor was applied with 1/60/0.5*0.0625*sin(45) = -0.001472982 ~ 0xffff.ffd0 (in PICO-8 16.16 fixed point precision)
+-- but still applying normal accel 0.0234375
+-- on this slope, divide ground speed in *sqrt(2) on x and y, hence velocity
+-- y snaps to integer floor so it's just deduced from x as 15
 
 
 -- bugfix history:

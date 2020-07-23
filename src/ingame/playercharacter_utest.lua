@@ -1955,7 +1955,9 @@ describe('player_char', function ()
             })
         end)
 
-        it('should accelerate toward left on a steep ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
+        -- Original feature (not in SPG): Progressive Ascending Steep Slope Factor
+
+        it('should accelerate toward left on a steep ascending slope, with very reduced slope factor at the beginning of the climb, and increase ascending slope time', function ()
           pc.ground_speed = 2
           pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
           pc.ascending_slope_time = 0
@@ -1965,6 +1967,23 @@ describe('player_char', function ()
           assert.are_same({
               2 - delta_time60 / pc_data.progressive_ascending_slope_duration * pc_data.slope_accel_factor_frame2 * sqrt(2)/2,
               delta_time60
+            },
+            {
+              pc.ground_speed,
+              pc.ascending_slope_time
+            })
+        end)
+
+        it('should accelerate toward left on a steep ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
+          pc.ground_speed = 2
+          pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          pc.ascending_slope_time = 0.1
+
+          pc:_update_ground_speed_by_slope(1.8)
+
+          assert.are_same({
+              2 - (0.1 + delta_time60) / pc_data.progressive_ascending_slope_duration * pc_data.slope_accel_factor_frame2 * sqrt(2)/2,
+              0.1 + delta_time60
             },
             {
               pc.ground_speed,
@@ -2062,6 +2081,8 @@ describe('player_char', function ()
           assert.are_same({horizontal_dirs.right, 1.25},
             {pc.orientation, pc.ground_speed})
         end)
+
+        -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
 
         it('should decelerate with decel descending slope factor, keeping same sign and direction when character is on steep descending slope facing right, has high ground speed > ground accel * 1 frame and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
@@ -2177,6 +2198,8 @@ describe('player_char', function ()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
         end)
+
+        -- Original feature (not in SPG): No Friction on Steep Descending Slope
 
         it('should not apply friction when character has ground speed > 0, move intention x is 0 and character is descending a steep slope', function ()
           pc.orientation = horizontal_dirs.right

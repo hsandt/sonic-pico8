@@ -478,8 +478,9 @@ function player_char:_update_ground_speed()
   --  fictive_future_ground_speed = previous_ground_speed + ground_speed_delta, then compute
   --  some clamped_ground_speed_delta and reapply it to the actual self.ground_speed)
   local previous_ground_speed = self.ground_speed
-  self:_update_ground_speed_by_intention()
+  -- testing different order so friction applies and stops low slope
   self:_update_ground_speed_by_slope(previous_ground_speed)
+  self:_update_ground_speed_by_intention(previous_ground_speed)
   self:_clamp_ground_speed()
 end
 
@@ -517,7 +518,7 @@ function player_char:_update_ground_speed_by_slope(previous_ground_speed)
 end
 
 -- update ground speed based on current move intention
-function player_char:_update_ground_speed_by_intention()
+function player_char:_update_ground_speed_by_intention(previous_ground_speed)
   if self.move_intention.x ~= 0 then
 
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then

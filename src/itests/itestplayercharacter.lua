@@ -6,10 +6,6 @@ local itest_dsl_parser = itest_dsl.itest_dsl_parser
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local pc_data = require("data/playercharacter_data")
-local tile_data = require("data/tile_data")
---#if busted
-local tile_test_data = require("test_data/tile_test_data")
---#endif
 
 local itest
 

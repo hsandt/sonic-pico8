@@ -11,8 +11,9 @@ local itest_manager,   time_trigger,   integration_test = get_members(integratio
 local itest_dsl = require("itest/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
+-- get_members is convenient to hide underscores with proxy refs
 local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
-     "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_ground_spd", "eval_pc_motion_state", "eval_pc_slope")
+     "_eval_pc_bottom_pos", "_eval_pc_velocity", "_eval_pc_ground_spd", "_eval_pc_motion_state", "_eval_pc_slope")
 local command,   expectation = get_members(itest_dsl,
      "command", "expectation")
 local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
@@ -22,7 +23,7 @@ local stage_state = require("ingame/stage_state")
 local picosonic_app = require("application/picosonic_app")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
-
+local tile_test_data = require("test_data/tile_test_data")
 
 describe('itest_dsl', function ()
 
@@ -216,7 +217,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should call warp_bottom_to on the current player character', function ()
-        itest_dsl.execute_warp({vector(1, 3)})
+        itest_dsl._execute_warp({vector(1, 3)})
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
         assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(state.player_char), vector(1, 3))
@@ -227,13 +228,13 @@ describe('itest_dsl', function ()
     describe('"execute_set', function ()
 
       it('should set pc velocity to (1, -3)', function ()
-        itest_dsl.execute_set({"pc_velocity", vector(1, -3)})
+        itest_dsl._execute_set({"pc_velocity", vector(1, -3)})
         assert.are_equal(vector(1, -3), state.player_char.velocity)
       end)
 
       it('should fail with unsupported gp_value_type for setting', function ()
         assert.has_error(function ()
-          itest_dsl.execute_set({"pc_slope", -2})
+          itest_dsl._execute_set({"pc_slope", -2})
         end, "itest_dsl.set_pc_slope is not defined")
       end)
 
@@ -242,7 +243,7 @@ describe('itest_dsl', function ()
     describe('execute_set_control_mode', function ()
 
       it('should set the control mode', function ()
-        itest_dsl.execute_set_control_mode({control_modes.puppet})
+        itest_dsl._execute_set_control_mode({control_modes.puppet})
         assert.are_equal(control_modes.puppet, state.player_char.control_mode)
       end)
 
@@ -251,7 +252,7 @@ describe('itest_dsl', function ()
     describe('execute_set_motion_mode', function ()
 
       it('should set the motion mode', function ()
-        itest_dsl.execute_set_motion_mode({motion_modes.debug})
+        itest_dsl._execute_set_motion_mode({motion_modes.debug})
         assert.are_equal(motion_modes.debug, state.player_char.motion_mode)
       end)
 
@@ -260,7 +261,7 @@ describe('itest_dsl', function ()
     describe('execute_move', function ()
 
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
-        itest_dsl.execute_move({horizontal_dirs.right})
+        itest_dsl._execute_move({horizontal_dirs.right})
         assert.are_equal(vector(1, 0), state.player_char.move_intention)
       end)
 
@@ -270,7 +271,7 @@ describe('itest_dsl', function ()
 
       it('should set the move intention of the current player character to vector zero', function ()
         state.player_char.move_intention = vector(99, -99)
-        itest_dsl.execute_stop({})
+        itest_dsl._execute_stop({})
         assert.are_equal(vector.zero(), state.player_char.move_intention)
       end)
 
@@ -279,7 +280,7 @@ describe('itest_dsl', function ()
     describe('execute_jump', function ()
 
       it('should set the jump intention and hold jump intention to true', function ()
-        itest_dsl.execute_jump({})
+        itest_dsl._execute_jump({})
         assert.are_same({true, true},
           {state.player_char.jump_intention, state.player_char.hold_jump_intention})
       end)
@@ -290,7 +291,7 @@ describe('itest_dsl', function ()
 
       it('should set the hold jump intention to false', function ()
         state.player_char.hold_jump_intention = true
-        itest_dsl.execute_stop_jump({})
+        itest_dsl._execute_stop_jump({})
         assert.is_false(state.player_char.hold_jump_intention)
       end)
 
@@ -300,7 +301,7 @@ describe('itest_dsl', function ()
 
       it('should set the simulated button down state to true', function ()
         input.simulated_buttons_down[0][button_ids.x] = false
-        itest_dsl.execute_press({button_ids.x})
+        itest_dsl._execute_press({button_ids.x})
         assert.is_true(input.simulated_buttons_down[0][button_ids.x])
       end)
 
@@ -310,7 +311,7 @@ describe('itest_dsl', function ()
 
       it('should set the simulated button down state to true', function ()
         input.simulated_buttons_down[0][button_ids.up] = true
-        itest_dsl.execute_release({button_ids.up})
+        itest_dsl._execute_release({button_ids.up})
         assert.is_false(input.simulated_buttons_down[0][button_ids.up])
       end)
 
@@ -443,21 +444,21 @@ describe('itest_dsl', function ()
       -- spying should be enough, but we stub so it's easier to call these functions
       --  without calling the symmetrical one (e.g. teardown may fail with nil reference
       --  if setup is not called first)
-      stub(_G, "setup_map_data")
-      stub(_G, "teardown_map_data")
+      stub(tile_test_data, "setup")
+      stub(tile_test_data, "teardown")
     end)
 
     teardown(function ()
-      setup_map_data:revert()
-      teardown_map_data:revert()
+      tile_test_data.setup:revert()
+      tile_test_data.teardown:revert()
     end)
 
     after_each(function ()
       itest_dsl_parser:init()
       flow:init()
       pico8:clear_map()
-      setup_map_data:clear()
-      teardown_map_data:clear()
+      tile_test_data.setup:clear()
+      tile_test_data.teardown:clear()
     end)
 
     describe('init', function ()
@@ -900,7 +901,7 @@ expect
           tilemap.clear_map:clear()
         end)
 
-        it('setup should call setup_map_data and load on the tilemap if custom stage definition', function ()
+        it('setup should call tile_test_data.setup and load on the tilemap if custom stage definition', function ()
           local dsli = dsl_itest()
           dsli.gamestate_type = ':stage'
           dsli.stage_name = "#"
@@ -918,7 +919,7 @@ expect
           assert.are_equal(control_modes.puppet, state.player_char.control_mode)
 
           -- implementation
-          local s_data = assert.spy(setup_map_data)
+          local s_data = assert.spy(tile_test_data.setup)
           s_data.was_called(1)
           s_data.was_called_with()
           local s_load = assert.spy(tilemap.load)
@@ -926,7 +927,7 @@ expect
           s_load.was_called_with(match.ref(dsli.tilemap))
         end)
 
-        it('teardown should call clear_map and teardown_map_data if custom stage definition', function ()
+        it('teardown should call clear_map and tile_test_data.teardown if custom stage definition', function ()
           local dsli = dsl_itest()
           dsli.gamestate_type = ':stage'
           dsli.stage_name = "#"
@@ -944,7 +945,7 @@ expect
           local s_clear = assert.spy(tilemap.clear_map)
           s_clear.was_called(1)
           s_clear.was_called_with()
-          local s_teardown = assert.spy(teardown_map_data)
+          local s_teardown = assert.spy(tile_test_data.teardown)
           s_teardown.was_called(1)
           s_teardown.was_called_with()
         end)

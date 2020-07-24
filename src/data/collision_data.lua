@@ -56,6 +56,18 @@ return {
     [108]= tile_data(sprite_id_location(0, 2), 0),                  -- 108 @ (12, 6)
     [109]= tile_data(sprite_id_location(0, 2), 0),                  -- 109 @ (13, 6)
     [110]= tile_data(sprite_id_location(0, 2), 0),                  -- 110 @ (14, 6)
+    -- proto (black and white tiles being their own collision masks)
+    -- must match tile_data.lua
+    -- if too heavy, surround with #itest and create a separate spritesheet for itests with only polygonal tiles
+    -- stored in some proto_data.p8 or test_data.p8
+    -- this will allow us to reuse the extra space left by removing proto tiles for release (adding FX, etc.)
+    [32] = tile_data(sprite_id_location(0, 2), 0),                  -- 32  @ (0, 2) FULL TILE #
+    [80] = tile_data(sprite_id_location(0, 5), 0),                  -- 80  @ (0, 5) HALF TILE (4px high) =
+    [96] = tile_data(sprite_id_location(0, 6), 0),                  -- 96  @ (0, 6) FLAT LOW TILE (2px high) _
+    [64] = tile_data(sprite_id_location(0, 4), 0),                  -- 64  @ (0, 4) BOTTOM-RIGHT QUARTER TILE (4px high) r
+    [112]= tile_data(sprite_id_location(1, 7), -0.125),             -- 112 @ (1, 7) ASCENDING 45 /
+    [113]= tile_data(sprite_id_location(0, 7), -0.0625),            -- 113 @ (0, 7) ASCENDING 22.5 <
+    [116]= tile_data(sprite_id_location(4, 7), 0.125),              -- 116 @ (4, 7) DESCENDING 45 \
   }
 
 }

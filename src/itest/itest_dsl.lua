@@ -31,15 +31,18 @@ require("engine/test/assertions")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
 
-local tile_data = require("data/tile_data")
 local tilemap = require("engine/data/tilemap")
 
 -- dsl interpretation requirements
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
+
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 
+--#if busted
+local tile_test_data = require("test_data/tile_test_data")
+--#endif
 
 -- helper function to access stage_stage quickly if current state
 -- is stage, as it is not a singleton anymore
@@ -84,8 +87,6 @@ local function generate_function_table(module, enum_types, prefix)
   local t = {}
   for type_name, enum_type in pairs(enum_types) do
     t[enum_type] = module[prefix..type_name]
-    printh("t[enum_type] = module[prefix..type_name] => t["..enum_type.."] = module["..prefix..".."..type_name.."]")
-    printh("t[enum_type]: "..dump(t[enum_type]))
   end
   return t
 end
@@ -610,7 +611,9 @@ function itest_dsl_parser.create_itest(name, dsli)
       current_stage_state.player_char.control_mode = control_modes.puppet
       if dsli.stage_name == '#' then
         -- load tilemap data and build it from ascii
-        setup_map_data()
+--#if busted
+        tile_test_data.setup()
+--#endif
         dsli.tilemap:load()
       else
         -- load stage by name when api is ready
@@ -625,7 +628,9 @@ function itest_dsl_parser.create_itest(name, dsli)
       if dsli.stage_name == '#' then
         -- clear tilemap and unload tilemap data
         tilemap.clear_map()
-        teardown_map_data()
+--#if busted
+        tile_test_data.teardown()
+--#endif
       end
     end
   end

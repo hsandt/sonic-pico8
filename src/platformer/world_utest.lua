@@ -47,7 +47,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-        mock_mset(1, 1, 67)
+        mock_mset(1, 1, asc_slope_22_id)
       end)
 
       it('should return 3 on column 3', function ()
@@ -64,7 +64,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-        mock_mset(1, 1, 64)
+        mock_mset(1, 1, full_tile_id)
       end)
 
       it('should return {false, nil} on (7, 7)', function ()
@@ -143,7 +143,7 @@ describe('world (with mock tiles data setup)', function ()
 
       before_each(function ()
         -- create an ascending slope at (1, 1), i.e. (8, 15) to (15, 8) px
-        mock_mset(1, 1, 65)
+        mock_mset(1, 1, asc_slope_45_id)
       end)
 
       it('should return {false, nil} on (8, 14)', function ()

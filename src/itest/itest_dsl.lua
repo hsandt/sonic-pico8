@@ -84,6 +84,8 @@ local function generate_function_table(module, enum_types, prefix)
   local t = {}
   for type_name, enum_type in pairs(enum_types) do
     t[enum_type] = module[prefix..type_name]
+    printh("t[enum_type] = module[prefix..type_name] => t["..enum_type.."] = module["..prefix..".."..type_name.."]")
+    printh("t[enum_type]: "..dump(t[enum_type]))
   end
   return t
 end
@@ -145,6 +147,13 @@ button_ids_protected = {
 parsable_type_strings = invert_table(parsable_types)
 --#endif
 
+
+-- Note: enums below have protected string keys to support aggressive minification
+-- When done everywhere though, it makes more sense to just use strings
+-- Keeping the enums around allows to track the list of supported values,
+-- but consider using direct strings and listing possible values in comment.
+-- The only benefit is to index other tables with enum values (so integers) rather than strings,
+-- but if we have a table with string keys we do some hashing at some point anyway.
 
 -- type of commands available
 -- those names are parsed at runtime for DSL, so we don't want to minify them
@@ -288,12 +297,12 @@ itest_dsl.value_parsers = value_parsers
 -- functions to execute dsl commands. they take the dsl parser as 1st parameter
 -- so they can update its state if needed
 
-function itest_dsl.execute_warp(args)
+function itest_dsl._execute_warp(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char:warp_bottom_to(args[1])
 end
 
-function itest_dsl.execute_set(args)
+function itest_dsl._execute_set(args)
   local gp_value_type_str, new_gp_value = unpack(args)
 
   local setter = itest_dsl["set_"..gp_value_type_str]
@@ -301,43 +310,43 @@ function itest_dsl.execute_set(args)
   setter(new_gp_value)
 end
 
-function itest_dsl.execute_set_control_mode(args)
+function itest_dsl._execute_set_control_mode(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.control_mode = args[1]
 end
 
-function itest_dsl.execute_set_motion_mode(args)
+function itest_dsl._execute_set_motion_mode(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.motion_mode = args[1]
 end
 
-function itest_dsl.execute_move(args)
+function itest_dsl._execute_move(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.move_intention = horizontal_dir_vectors[args[1]]
 end
 
-function itest_dsl.execute_stop(args)
+function itest_dsl._execute_stop(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.move_intention = vector.zero()
 end
 
-function itest_dsl.execute_jump(args)
+function itest_dsl._execute_jump(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.jump_intention = true  -- will be consumed
   current_stage_state.player_char.hold_jump_intention = true
 end
 
-function itest_dsl.execute_stop_jump(args)
+function itest_dsl._execute_stop_jump(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.hold_jump_intention = false
 end
 
-function itest_dsl.execute_press(args)
+function itest_dsl._execute_press(args)
   -- simulate sticky press for player 0
   input.simulated_buttons_down[0][args[1]] = true
 end
 
-function itest_dsl.execute_release(args)
+function itest_dsl._execute_release(args)
   -- simulate release for player 0
   input.simulated_buttons_down[0][args[1]] = false
 end
@@ -345,39 +354,39 @@ end
 -- wait and expect are not timed actions and will be handled as special cases
 
 -- table of functions to call when applying a command with args, indexed by command type
-executors = generate_function_table(itest_dsl, command_types, "execute_")
+executors = generate_function_table(itest_dsl, command_types, "_execute_")
 itest_dsl.executors = executors
 
 
 -- gameplay value evaluation functions
 
-function itest_dsl.eval_pc_bottom_pos()
+function itest_dsl._eval_pc_bottom_pos()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char:get_bottom_center()
 end
 
-function itest_dsl.eval_pc_velocity()
+function itest_dsl._eval_pc_velocity()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.velocity
 end
 
-function itest_dsl.eval_pc_ground_spd()
+function itest_dsl._eval_pc_ground_spd()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.ground_speed
 end
 
-function itest_dsl.eval_pc_motion_state()
+function itest_dsl._eval_pc_motion_state()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.motion_state
 end
 
-function itest_dsl.eval_pc_slope()
+function itest_dsl._eval_pc_slope()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.slope_angle
 end
 
 -- table of functions used to evaluate and returns the gameplay value in current game state
-evaluators = generate_function_table(itest_dsl, gp_value_types, "eval_")
+evaluators = generate_function_table(itest_dsl, gp_value_types, "_eval_")
 itest_dsl.evaluators = evaluators
 
 
@@ -622,10 +631,10 @@ function itest_dsl_parser.create_itest(name, dsli)
   end
 
   for cmd in all(dsli.commands) do
-    if cmd.type == command_types.wait then
+    if cmd.type == command_types["wait"] then
       itest_dsl_parser:_wait(cmd.args[1])
 
-    elseif cmd.type == command_types.expect then
+    elseif cmd.type == command_types["expect"] then
       -- we currently don't support live assertions, but we support multiple
       -- final expectations
       add(itest_dsl_parser._final_expectations, expectation(cmd.args[1], cmd.args[2]))
@@ -633,7 +642,9 @@ function itest_dsl_parser.create_itest(name, dsli)
     else
       -- common action, store callback for execution during
       itest_dsl_parser:_act(function ()
-        executors[cmd.type](cmd.args)
+        local executor = executors[cmd.type]
+        assert(executor, "executors["..cmd.type.."] (for '"..command_type_strings[cmd.type].."') is not defined")
+        executor(cmd.args)
       end)
     end
   end

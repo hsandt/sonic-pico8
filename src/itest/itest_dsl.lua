@@ -97,17 +97,50 @@ itest_dsl.generate_function_table = generate_function_table
 -- those names are *not* parsed at runtime for DSL, so we can minify them
 -- to allow this, we do *not* use enum {} and define the table manually
 -- it also allows us to access the types without the ["key"] syntax
-parsable_types = {
-  none = 1,
-  number = 2,
-  vector = 3,
-  horizontal_dir = 4,
-  control_mode = 5,
-  motion_mode = 6,
-  motion_state = 7,
-  button_id = 8,
-  gp_value = 9,  -- meta-type compounded of [gp_value_type, gp_value_args...] where gp_value_args depend on gp_value_type
+parsable_types = enum {
+  "none",
+  "number",
+  "vector",
+  "horizontal_dir",
+  "control_mode",
+  "motion_mode",
+  "motion_state",
+  "button_id",
+  "gp_value",  -- meta-type compounded of [gp_value_type, gp_value_args...] where gp_value_args depend on gp_value_type
 }
+
+-- Protected enums: map hardcoded strings to members, to support runtime parsing even when member names are minified on the original enums
+horizontal_dirs_protected = {
+  ["left"] = 1,
+  ["right"] = 2
+}
+
+control_modes_protected = {
+  ["human"] = 1,      -- player controls character
+  ["ai"] = 2,         -- ai controls character
+  ["puppet"] = 3      -- itest script controls character
+}
+
+motion_modes_protected = {
+  ["platformer"] = 1, -- normal in-game
+  ["debug"] = 2       -- debug "fly" mode
+}
+
+motion_states_protected = {
+  ["grounded"] = 1,  -- character is idle or running on the ground
+  ["falling"]  = 2,  -- character is falling in the air, but not spinning
+  ["air_spin"] = 3   -- character is in the air after a jump
+}
+
+button_ids_protected = {
+  ["left"] = 0,
+  ["right"] = 1,
+  ["up"] = 2,
+  ["down"] = 3,
+  ["o"] = 4,
+  ["x"] = 5
+}
+
 
 --#if assert
 parsable_type_strings = invert_table(parsable_types)
@@ -139,18 +172,18 @@ command_type_strings = invert_table(command_types)
 
 -- argument types expected after those commands
 command_arg_types = {
-  [command_types["warp"]]             = parsable_types.vector,
-  [command_types["set"]]              = parsable_types.gp_value,
-  [command_types["set_control_mode"]] = parsable_types.control_mode,
-  [command_types["set_motion_mode"]]  = parsable_types.motion_mode,
-  [command_types["move"]]             = parsable_types.horizontal_dir,
-  [command_types["stop"]]             = parsable_types.none,
-  [command_types["jump"]]             = parsable_types.none,
-  [command_types["stop_jump"]]        = parsable_types.none,
-  [command_types["press"]]            = parsable_types.button_id,
-  [command_types["release"]]          = parsable_types.button_id,
-  [command_types["wait"]]             = parsable_types.number,
-  [command_types["expect"]]           = parsable_types.gp_value,
+  [command_types["warp"]]             = parsable_types["vector"],
+  [command_types["set"]]              = parsable_types["gp_value"],
+  [command_types["set_control_mode"]] = parsable_types["control_mode"],
+  [command_types["set_motion_mode"]]  = parsable_types["motion_mode"],
+  [command_types["move"]]             = parsable_types["horizontal_dir"],
+  [command_types["stop"]]             = parsable_types["none"],
+  [command_types["jump"]]             = parsable_types["none"],
+  [command_types["stop_jump"]]        = parsable_types["none"],
+  [command_types["press"]]            = parsable_types["button_id"],
+  [command_types["release"]]          = parsable_types["button_id"],
+  [command_types["wait"]]             = parsable_types["number"],
+  [command_types["expect"]]           = parsable_types["gp_value"],
 }
 
 
@@ -166,68 +199,68 @@ gp_value_types = enum {
 
 -- data for each gameplay value type
 local gp_value_data_t = {
-  [gp_value_types["pc_bottom_pos"]]   = gameplay_value_data("player character bottom position", parsable_types.vector),
-  [gp_value_types["pc_velocity"]]     = gameplay_value_data("player character velocity",        parsable_types.vector),
-  [gp_value_types["pc_ground_spd"]]   = gameplay_value_data("player character ground speed",    parsable_types.number),
-  [gp_value_types["pc_motion_state"]] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
-  [gp_value_types["pc_slope"]]        = gameplay_value_data("player character slope",           parsable_types.number),
+  [gp_value_types["pc_bottom_pos"]]   = gameplay_value_data("player character bottom position", parsable_types["vector"]),
+  [gp_value_types["pc_velocity"]]     = gameplay_value_data("player character velocity",        parsable_types["vector"]),
+  [gp_value_types["pc_ground_spd"]]   = gameplay_value_data("player character ground speed",    parsable_types["number"]),
+  [gp_value_types["pc_motion_state"]] = gameplay_value_data("player character motion state",    parsable_types["motion_state"]),
+  [gp_value_types["pc_slope"]]        = gameplay_value_data("player character slope",           parsable_types["number"]),
 }
 
 
--- parsing functions
+-- parsing functions (start with _ to protect against member name minification)
 
-function itest_dsl.parse_none(arg_strings)
-  assert(#arg_strings == 0, "parse_none: got "..#arg_strings.." args, expected 0")
+function itest_dsl._parse_none(arg_strings)
+  assert(#arg_strings == 0, "_parse_none: got "..#arg_strings.." args, expected 0")
   return nil
 end
 
-function itest_dsl.parse_number(arg_strings)
-  assert(#arg_strings == 1, "parse_number: got "..#arg_strings.." args, expected 1")
+function itest_dsl._parse_number(arg_strings)
+  assert(#arg_strings == 1, "_parse_number: got "..#arg_strings.." args, expected 1")
   return string_tonum(arg_strings[1])
 end
 
-function itest_dsl.parse_vector(arg_strings)
-  assert(#arg_strings == 2, "parse_vector: got "..#arg_strings.." args, expected 2")
+function itest_dsl._parse_vector(arg_strings)
+  assert(#arg_strings == 2, "_parse_vector: got "..#arg_strings.." args, expected 2")
   return vector(string_tonum(arg_strings[1]), string_tonum(arg_strings[2]))
 end
 
-function itest_dsl.parse_horizontal_dir(arg_strings)
-  assert(#arg_strings == 1, "parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
-  local horizontal_dir = horizontal_dirs[arg_strings[1]]
-  assert(horizontal_dir, "horizontal_dirs["..arg_strings[1].."] is not defined")
+function itest_dsl._parse_horizontal_dir(arg_strings)
+  assert(#arg_strings == 1, "_parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
+  local horizontal_dir = horizontal_dirs_protected[arg_strings[1]]
+  assert(horizontal_dir, "horizontal_dirs_protected["..arg_strings[1].."] is not defined")
   return horizontal_dir
 end
 
-function itest_dsl.parse_control_mode(arg_strings)
-  assert(#arg_strings == 1, "parse_control_mode: got "..#arg_strings.." args, expected 1")
-  local control_mode = control_modes[arg_strings[1]]
-  assert(control_mode, "control_modes["..arg_strings[1].."] is not defined")
+function itest_dsl._parse_control_mode(arg_strings)
+  assert(#arg_strings == 1, "_parse_control_mode: got "..#arg_strings.." args, expected 1")
+  local control_mode = control_modes_protected[arg_strings[1]]
+  assert(control_mode, "control_modes_protected["..arg_strings[1].."] is not defined")
   return control_mode
 end
 
-function itest_dsl.parse_motion_mode(arg_strings)
-  assert(#arg_strings == 1, "parse_motion_mode: got "..#arg_strings.." args, expected 1")
-  local motion_mode = motion_modes[arg_strings[1]]
-  assert(motion_mode, "motion_modes["..arg_strings[1].."] is not defined")
+function itest_dsl._parse_motion_mode(arg_strings)
+  assert(#arg_strings == 1, "_parse_motion_mode: got "..#arg_strings.." args, expected 1")
+  local motion_mode = motion_modes_protected[arg_strings[1]]
+  assert(motion_mode, "motion_modes_protected["..arg_strings[1].."] is not defined")
   return motion_mode
 end
 
-function itest_dsl.parse_motion_state(arg_strings)
-  assert(#arg_strings == 1, "parse_motion_state: got "..#arg_strings.." args, expected 1")
-  local motion_state = motion_states[arg_strings[1]]
-  assert(motion_state, "motion_states["..arg_strings[1].."] is not defined")
+function itest_dsl._parse_motion_state(arg_strings)
+  assert(#arg_strings == 1, "_parse_motion_state: got "..#arg_strings.." args, expected 1")
+  local motion_state = motion_states_protected[arg_strings[1]]
+  assert(motion_state, "motion_states_protected["..arg_strings[1].."] is not defined")
   return motion_states[arg_strings[1]]
 end
 
-function itest_dsl.parse_button_id(arg_strings)
-  assert(#arg_strings == 1, "parse_button_id: got "..#arg_strings.." args, expected 1")
-  local button_id = button_ids[arg_strings[1]]
-  assert(button_id, "button_ids["..arg_strings[1].."] is not defined")
+function itest_dsl._parse_button_id(arg_strings)
+  assert(#arg_strings == 1, "_parse_button_id: got "..#arg_strings.." args, expected 1")
+  local button_id = button_ids_protected[arg_strings[1]]
+  assert(button_id, "button_ids_protected["..arg_strings[1].."] is not defined")
   return button_ids[arg_strings[1]]
 end
 
-function itest_dsl.parse_gp_value(arg_strings)
-  assert(#arg_strings > 1, "parse_gp_value: got "..#arg_strings.." args, expected at least 2")
+function itest_dsl._parse_gp_value(arg_strings)
+  assert(#arg_strings > 1, "_parse_gp_value: got "..#arg_strings.." args, expected at least 2")
   -- same principle as itest_dsl_parser.parse, the type of the first arg
   --  determines how we parse the rest of the args, named "value components"
   local gp_value_type_str = arg_strings[1]
@@ -249,7 +282,7 @@ function itest_dsl.parse_gp_value(arg_strings)
 end
 
 -- table of parsers for command args and gameplay values, indexed by parsed type
-value_parsers = generate_function_table(itest_dsl, parsable_types, "parse_")
+value_parsers = generate_function_table(itest_dsl, parsable_types, "_parse_")
 itest_dsl.value_parsers = value_parsers
 
 

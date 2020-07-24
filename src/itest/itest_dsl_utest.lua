@@ -63,131 +63,131 @@ describe('itest_dsl', function ()
 
   end)
 
-  describe('parse_', function ()
+  describe('_parse_', function ()
 
-    describe('parse_none', function ()
+    describe('_parse_none', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_none({"too many"})
-        end, "parse_none: got 1 args, expected 0")
+          itest_dsl._parse_none({"too many"})
+        end, "_parse_none: got 1 args, expected 0")
       end)
 
       it('should return nil', function ()
-        assert.is_nil(itest_dsl.parse_none({}))
+        assert.is_nil(itest_dsl._parse_none({}))
       end)
 
     end)
 
-    describe('parse_number', function ()
+    describe('_parse_number', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_number({"too", "many"})
-        end, "parse_number: got 2 args, expected 1")
+          itest_dsl._parse_number({"too", "many"})
+        end, "_parse_number: got 2 args, expected 1")
       end)
 
       it('should return the single string argument as number', function ()
-        assert.are_equal(5, itest_dsl.parse_number({"5"}))
+        assert.are_equal(5, itest_dsl._parse_number({"5"}))
       end)
 
     end)
 
-    describe('parse_vector', function ()
+    describe('_parse_vector', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_vector({"too few"})
-        end, "parse_vector: got 1 args, expected 2")
+          itest_dsl._parse_vector({"too few"})
+        end, "_parse_vector: got 1 args, expected 2")
       end)
 
       it('should return the 2 coordinate string arguments as vector', function ()
-        assert.are_equal(vector(2, -3.5), itest_dsl.parse_vector({"2", "-3.5"}))
+        assert.are_equal(vector(2, -3.5), itest_dsl._parse_vector({"2", "-3.5"}))
       end)
 
     end)
 
-    describe('parse_horizontal_dir', function ()
+    describe('_parse_horizontal_dir', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_horizontal_dir({"too", "many"})
-        end, "parse_horizontal_dir: got 2 args, expected 1")
+          itest_dsl._parse_horizontal_dir({"too", "many"})
+        end, "_parse_horizontal_dir: got 2 args, expected 1")
       end)
 
       it('should return the single argument as horizontal direction', function ()
-        assert.are_equal(horizontal_dirs.right, itest_dsl.parse_horizontal_dir({"right"}))
+        assert.are_equal(horizontal_dirs.right, itest_dsl._parse_horizontal_dir({"right"}))
       end)
 
     end)
 
-    describe('parse_control_mode', function ()
+    describe('_parse_control_mode', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_control_mode({"too", "many"})
-        end, "parse_control_mode: got 2 args, expected 1")
+          itest_dsl._parse_control_mode({"too", "many"})
+        end, "_parse_control_mode: got 2 args, expected 1")
       end)
 
       it('should return the single argument as control mode', function ()
-        assert.are_equal(control_modes.ai, itest_dsl.parse_control_mode({"ai"}))
+        assert.are_equal(control_modes.ai, itest_dsl._parse_control_mode({"ai"}))
       end)
 
     end)
 
-    describe('parse_motion_mode', function ()
+    describe('_parse_motion_mode', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_motion_mode({"too", "many"})
-        end, "parse_motion_mode: got 2 args, expected 1")
+          itest_dsl._parse_motion_mode({"too", "many"})
+        end, "_parse_motion_mode: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion mode', function ()
-        assert.are_equal(motion_modes.debug, itest_dsl.parse_motion_mode({"debug"}))
+        assert.are_equal(motion_modes.debug, itest_dsl._parse_motion_mode({"debug"}))
       end)
 
     end)
 
-    describe('parse_button_id', function ()
+    describe('_parse_button_id', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_button_id({"too", "many"})
-        end, "parse_button_id: got 2 args, expected 1")
+          itest_dsl._parse_button_id({"too", "many"})
+        end, "_parse_button_id: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion mode', function ()
-        assert.are_equal(button_ids.o, itest_dsl.parse_button_id({"o"}))
+        assert.are_equal(button_ids.o, itest_dsl._parse_button_id({"o"}))
       end)
 
     end)
 
-    describe('parse_motion_state', function ()
+    describe('_parse_motion_state', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_motion_state({"too", "many"})
-        end, "parse_motion_state: got 2 args, expected 1")
+          itest_dsl._parse_motion_state({"too", "many"})
+        end, "_parse_motion_state: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion state', function ()
-        assert.are_equal(motion_states.falling, itest_dsl.parse_motion_state({"falling"}))
+        assert.are_equal(motion_states.falling, itest_dsl._parse_motion_state({"falling"}))
       end)
 
     end)
 
-    describe('parse_gp_value', function ()
+    describe('_parse_gp_value', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl.parse_gp_value({"too few"})
-        end, "parse_gp_value: got 1 args, expected at least 2")
+          itest_dsl._parse_gp_value({"too few"})
+        end, "_parse_gp_value: got 1 args, expected at least 2")
       end)
 
       it('should return the gameplay value type string and the expected value, itself recursively parsed', function ()
         assert.are_same({"pc_bottom_pos", vector(1, 3)},
-          {itest_dsl.parse_gp_value({"pc_bottom_pos", "1", "3"})})
+          {itest_dsl._parse_gp_value({"pc_bottom_pos", "1", "3"})})
       end)
 
     end)
@@ -535,7 +535,7 @@ describe('itest_dsl', function ()
         local dsli_source = [[
 @stage
 #
-64
+32
 
 warp
 expect
@@ -551,8 +551,8 @@ expect
             '@stage',
             '#',
             tilemap({
-              { 0, 64},
-              {64,  0}
+              { 0, 32},
+              {32,  0}
             }),
             {
               command(command_types.warp,   { vector(1, 2) }                                       ),
@@ -618,8 +618,8 @@ expect
         setup(function ()
           stub(itest_dsl_parser, "parse_tilemap", function ()
             return tilemap({
-              {70, 64},
-              {64, 70}
+              {70, 32},
+              {32, 70}
             }), 5
           end)
         end)
@@ -643,8 +643,8 @@ expect
               ':stage',
               '#',
               tilemap({
-                {70, 64},
-                {64, 70}
+                {70, 32},
+                {32, 70}
               }),
               5
             },
@@ -696,8 +696,8 @@ expect
           {
             tilemap({
               { 0,  0,  0,  0},
-              {64, 64,  0,  0},
-              { 0,  0, 64, 64}
+              {32, 32,  0,  0},
+              { 0,  0, 32, 32}
             }),
             6
           },

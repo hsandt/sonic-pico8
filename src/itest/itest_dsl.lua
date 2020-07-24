@@ -29,8 +29,7 @@ expect gp_value_type  expect a gameplay value to be equal to (...)
 require("engine/core/helper")
 require("engine/test/assertions")
 local integrationtest = require("engine/test/integrationtest")
-local itest_manager,   integration_test = get_members(integrationtest,
-     "itest_manager", "integration_test")
+local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
 
 local tile_data = require("data/tile_data")
 local tilemap = require("engine/data/tilemap")

@@ -1,9 +1,8 @@
 -- gamestates: stage
 local integrationtest = require("engine/test/integrationtest")
+local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local itest_dsl = require("itest/itest_dsl")
 local itest_dsl_parser = itest_dsl.itest_dsl_parser
-local itest_manager,   integration_test,   time_trigger = get_members(integrationtest,
-     "itest_manager", "integration_test", "time_trigger")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local pc_data = require("data/playercharacter_data")
@@ -94,6 +93,7 @@ expect pc_motion_state grounded
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+--[=[
 
 -- calculation notes:
 -- to compute position, use the fact that friction == accel, so our speed describes a pyramid over where each value is mirrored
@@ -653,3 +653,5 @@ warp 4 8
 move right
 wait 60
 ]])
+
+--]=]

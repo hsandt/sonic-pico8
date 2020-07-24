@@ -94,16 +94,19 @@ itest_dsl.generate_function_table = generate_function_table
 --#endif
 
 -- type of variables that can be parsed
-parsable_types = enum {
-  "none",
-  "number",
-  "vector",
-  "horizontal_dir",
-  "control_mode",
-  "motion_mode",
-  "motion_state",
-  "button_id",
-  "gp_value",  -- meta-type compounded of [gp_value_type, gp_value_args...] where gp_value_args depend on gp_value_type
+-- those names are *not* parsed at runtime for DSL, so we can minify them
+-- to allow this, we do *not* use enum {} and define the table manually
+-- it also allows us to access the types without the ["key"] syntax
+parsable_types = {
+  none = 1,
+  number = 2,
+  vector = 3,
+  horizontal_dir = 4,
+  control_mode = 5,
+  motion_mode = 6,
+  motion_state = 7,
+  button_id = 8,
+  gp_value = 9,  -- meta-type compounded of [gp_value_type, gp_value_args...] where gp_value_args depend on gp_value_type
 }
 
 --#if assert
@@ -112,6 +115,8 @@ parsable_type_strings = invert_table(parsable_types)
 
 
 -- type of commands available
+-- those names are parsed at runtime for DSL, so we don't want to minify them
+--  and using enum {} is fine
 command_types = enum {
   "warp",             -- warp player character bottom  args: {bottom_position: vector}
   "set",              -- set gameplay value            args: {gp_value_type_str: string, new_value_args...: matching gp value parsable type}
@@ -134,18 +139,18 @@ command_type_strings = invert_table(command_types)
 
 -- argument types expected after those commands
 command_arg_types = {
-  [command_types.warp]             = parsable_types.vector,
-  [command_types.set]              = parsable_types.gp_value,
-  [command_types.set_control_mode] = parsable_types.control_mode,
-  [command_types.set_motion_mode]  = parsable_types.motion_mode,
-  [command_types.move]             = parsable_types.horizontal_dir,
-  [command_types.stop]             = parsable_types.none,
-  [command_types.jump]             = parsable_types.none,
-  [command_types.stop_jump]        = parsable_types.none,
-  [command_types.press]            = parsable_types.button_id,
-  [command_types.release]          = parsable_types.button_id,
-  [command_types.wait]             = parsable_types.number,
-  [command_types.expect]           = parsable_types.gp_value,
+  [command_types["warp"]]             = parsable_types.vector,
+  [command_types["set"]]              = parsable_types.gp_value,
+  [command_types["set_control_mode"]] = parsable_types.control_mode,
+  [command_types["set_motion_mode"]]  = parsable_types.motion_mode,
+  [command_types["move"]]             = parsable_types.horizontal_dir,
+  [command_types["stop"]]             = parsable_types.none,
+  [command_types["jump"]]             = parsable_types.none,
+  [command_types["stop_jump"]]        = parsable_types.none,
+  [command_types["press"]]            = parsable_types.button_id,
+  [command_types["release"]]          = parsable_types.button_id,
+  [command_types["wait"]]             = parsable_types.number,
+  [command_types["expect"]]           = parsable_types.gp_value,
 }
 
 
@@ -161,11 +166,11 @@ gp_value_types = enum {
 
 -- data for each gameplay value type
 local gp_value_data_t = {
-  [gp_value_types.pc_bottom_pos]   = gameplay_value_data("player character bottom position", parsable_types.vector),
-  [gp_value_types.pc_velocity]     = gameplay_value_data("player character velocity",        parsable_types.vector),
-  [gp_value_types.pc_ground_spd]   = gameplay_value_data("player character ground speed",    parsable_types.number),
-  [gp_value_types.pc_motion_state] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
-  [gp_value_types.pc_slope]        = gameplay_value_data("player character slope",           parsable_types.number),
+  [gp_value_types["pc_bottom_pos"]]   = gameplay_value_data("player character bottom position", parsable_types.vector),
+  [gp_value_types["pc_velocity"]]     = gameplay_value_data("player character velocity",        parsable_types.vector),
+  [gp_value_types["pc_ground_spd"]]   = gameplay_value_data("player character ground speed",    parsable_types.number),
+  [gp_value_types["pc_motion_state"]] = gameplay_value_data("player character motion state",    parsable_types.motion_state),
+  [gp_value_types["pc_slope"]]        = gameplay_value_data("player character slope",           parsable_types.number),
 }
 
 

@@ -2,7 +2,7 @@ require("engine/application/constants")
 require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
--- require("engine/core/vector_ext")
+require("engine/core/vector_ext")
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif
@@ -383,10 +383,11 @@ function player_char:_enter_motion_state(next_motion_state)
     self.should_jump = false
     self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
-    -- we have just reached the ground (and possibly escaped),
-    --  reset values airborne vars
+    -- transfer part of velocity tangential to slope to ground speed
     self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
     self:_clamp_ground_speed()
+    -- we have just reached the ground (and possibly escaped),
+    --  reset values airborne vars
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
     self.anim_spr:play("idle")

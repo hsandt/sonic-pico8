@@ -3,7 +3,7 @@ require("engine/render/color")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+-- local ui = require("engine/ui/ui")
 
 local titlemenu = derived_class(gamestate)
 

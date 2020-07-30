@@ -1359,7 +1359,7 @@ describe('player_char', function ()
           animated_sprite.play:clear()
         end)
 
-        it('should enter passed state: falling and reset ground-specific state vars', function ()
+        it('should enter passed state: falling, reset ground-specific state vars, no animation change', function ()
           -- character starts grounded
           pc:_enter_motion_state(motion_states.falling)
 
@@ -1376,7 +1376,7 @@ describe('player_char', function ()
           assert.spy(animated_sprite.play).was_not_called()
         end)
 
-        it('should enter passed state: air_spin and reset ground-specific state vars', function ()
+        it('should enter passed state: air_spin, reset ground-specific state vars, play spin animation', function ()
           -- character starts grounded
           pc:_enter_motion_state(motion_states.air_spin)
 
@@ -1395,25 +1395,84 @@ describe('player_char', function ()
         end)
 
         -- bugfix history: .
-        it('should enter passed state: grounded and reset speed y and has_interrupted_jump', function ()
+        it('should enter passed state: grounded, reset has_jumped_this_frame/has_interrupted_jump', function ()
           pc.motion_state = motion_states.falling
 
           pc:_enter_motion_state(motion_states.grounded)
 
           assert.are_same({
               motion_states.grounded,
-              0,
               false,
               false
             },
             {
               pc.motion_state,
-              pc.velocity.y,
               pc.has_jumped_this_frame,
               pc.has_interrupted_jump
             })
-          assert.spy(animated_sprite.play).was_called(1)
-          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+        end)
+
+        it('(falling -> grounded, velocity X = 0 on flat ground) should set ground speed to 0', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = 0
+          pc.velocity.y = 5
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        it('(falling -> grounded, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = 2
+          pc.velocity.y = 5
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_equal(2, pc.ground_speed)
+        end)
+
+        it('(falling -> grounded, velocity X = 5 (over max) on flat ground) should transfer velocity X clamped to ground speed', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = pc_data.max_ground_speed + 2
+          pc.velocity.y = 5
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_equal(pc_data.max_ground_speed, pc.ground_speed)
+        end)
+
+        it('(falling -> grounded, velocity (sqrt(3)/2, 0.5) tangent to slope 30 deg desc) should transfer velocity norm (1) completely to ground speed', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = sqrt(3)/2
+          pc.velocity.y = 0.5
+          pc.slope_angle = 1/12  -- 30 deg/360 deg
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_equal(1, pc.ground_speed)
+        end)
+
+        it('(falling -> grounded, velocity (-4, 4) orthogonally to slope 45 deg desc) should set ground speed to 0', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = -4
+          pc.velocity.y = 4
+          pc.slope_angle = 0.125  -- 45 deg/360 deg
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.is_true(almost_eq_with_message(0, pc.ground_speed))
+        end)
+
+        it('(falling -> grounded, velocity (-4, 5) on slope 45 deg desc) should transfer just the tangent velocity (1/sqrt(2)) to ground speed', function ()
+          pc.motion_state = motion_states.falling
+          pc.velocity.x = -4
+          pc.velocity.y = 5
+          pc.slope_angle = 0.125  -- 45 deg/360 deg
+
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.is_true(almost_eq_with_message(1/sqrt(2), pc.ground_speed))
         end)
 
         it('should adjust center position down when becoming compact', function ()

@@ -2,6 +2,7 @@ require("engine/application/constants")
 require("engine/core/class")
 require("engine/core/helper")
 require("engine/core/math")
+-- require("engine/core/vector_ext")
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif
@@ -363,6 +364,10 @@ function player_char:_check_escape_from_ground()
 end
 
 -- enter motion state, reset state vars appropriately
+-- refactor: consider separate methods go_airborne or land
+--  so you can pass more specific arguments
+-- current, self.slope_angle must have been previously set when
+--  entering ground state
 function player_char:_enter_motion_state(next_motion_state)
   if next_motion_state == motion_states.falling then
     -- we have just left the ground without jumping, enter falling state
@@ -380,16 +385,20 @@ function player_char:_enter_motion_state(next_motion_state)
   elseif next_motion_state == motion_states.grounded then
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
-    self.velocity.y = 0  -- no velocity retain yet on y
+    self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
+    self:_clamp_ground_speed()
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
     self.anim_spr:play("idle")
   end
 
+  -- store previous compact state before changing motion state
   local was_compact = self:is_compact()
 
+  -- update motion state
   self.motion_state = next_motion_state
 
+  -- adjust center when switching compact mode
   if not was_compact and self:is_compact() then
     -- character became compact (e.g. crouching or start jumping),
     -- move it slightly down to keep center position continuity
@@ -407,7 +416,7 @@ function player_char:_update_platformer_motion()
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
   if self.motion_state == motion_states.grounded then
-    self:_check_jump()  -- this may change the motion state to air_spin
+    self:_check_jump()  -- this may change the motion state to air_spin and affect branching below
   end
 
   if self:is_grounded() then
@@ -431,7 +440,7 @@ function player_char:_update_platformer_motion_grounded()
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
-  self.velocity = self.ground_speed * vector(cos(self.slope_angle), -sin(self.slope_angle))
+  self.velocity = self.ground_speed * vector.unit_from_angle(self.slope_angle)
 
   -- we can now update position and slope
   self.position = ground_motion_result.position

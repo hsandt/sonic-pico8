@@ -52,14 +52,17 @@ before_script:
   - ln -s "$(pwd)/tool/picotool-master/p8tool" "$HOME/.local/bin/p8tool"
 
 script:
+  # build game and itest to make sure everything works fine
+  # (do it before tests although busted tests can be run independently,
+  # because sometimes a few minor tests fail but we still want to know
+  # if we can build, and we are under the token limit)
+  - ./build_game.sh debug
+  - ./build_game.sh release
+  - ./build_itest.sh
   # test (including rendered headless itests thanks to ENABLE_RENDER=1)
   - ./test.sh -m all
   # coverage
   - bash <(curl -s https://codecov.io/bash)
-  # build game and itest to make sure everything works fine
-  - ./build_game.sh debug
-  - ./build_game.sh release
-  - ./build_itest.sh
 
 deploy:
   provider: releases

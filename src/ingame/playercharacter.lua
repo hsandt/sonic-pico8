@@ -1099,8 +1099,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
         --  it is still technically considered in the air
         -- if this step is blocked by landing, there is no extra motion,
         --  but character will enter grounded state
-        ref_motion_result.is_landing = true
-        ref_motion_result.slope_angle = next_slope_angle
+        ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
       else
         ref_motion_result.is_blocked_by_wall = true
         log("is blocked by wall", "trace")
@@ -1108,8 +1107,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     elseif signed_distance_to_closest_ground > 0 then
       -- in the air: the most common case, in general requires nothing to do
       -- in rare cases, the character has landed on a previous step, and we must cancel that now
-      ref_motion_result.is_landing = false
-      ref_motion_result.slope_angle = nil
+      ref_motion_result.is_landing, ref_motion_result.slope_angle = false--, nil
     elseif ref_motion_result.is_landing then
       -- if we enter this, direction must be horizontal, so update slope angle with new ground
       ref_motion_result.slope_angle = next_slope_angle
@@ -1173,8 +1171,8 @@ end
 function player_char:_update_velocity_debug()
   -- update velocity from input
   -- in debug mode, cardinal speeds are independent and max speed applies to each
-  self:_update_velocity_component_debug("x")
-  self:_update_velocity_component_debug("y")
+  self:_update_velocity_component_debug "x"
+  self:_update_velocity_component_debug "y"
 end
 
 --#endif

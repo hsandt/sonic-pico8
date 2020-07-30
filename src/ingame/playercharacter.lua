@@ -1,4 +1,3 @@
-require("engine/common")
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif

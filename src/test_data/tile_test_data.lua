@@ -1,6 +1,8 @@
 --#if busted
 
-require("engine/test/pico8api")
+-- pico8api should have been required in an including script,
+-- since we are used busted, hence bustedhelper
+
 local tile = require("platformer/tile")
 local collision_data = require("data/collision_data")
 local stub = require("luassert.stub")

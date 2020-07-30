@@ -2,6 +2,7 @@
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
+require("engine/common")
 
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager = integrationtest.itest_manager

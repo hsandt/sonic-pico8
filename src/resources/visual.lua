@@ -1,4 +1,3 @@
-require("engine/render/color")
 local sprite_data = require("engine/render/sprite_data")
 
 local visual = {}

@@ -3,7 +3,8 @@ local stage_state = require("ingame/stage_state")
 
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+local overlay = require("engine/ui/overlay")
+local label = require("engine/ui/label")
 
 local picosonic_app = require("application/picosonic_app")
 local stage_data = require("data/stage_data")
@@ -43,7 +44,7 @@ describe('stage_state', function ()
             nil,
             false,
             vector.zero(),
-            ui.overlay(0)
+            overlay(0)
           },
           {
             state.type,
@@ -114,19 +115,19 @@ describe('stage_state', function ()
       describe('on_exit', function ()
 
         setup(function ()
-          stub(ui.overlay, "clear_labels")
+          stub(overlay, "clear_labels")
           stub(picosonic_app, "stop_all_coroutines")
           stub(stage_state, "stop_bgm")
         end)
 
         teardown(function ()
-          ui.overlay.clear_labels:revert()
+          overlay.clear_labels:revert()
           picosonic_app.stop_all_coroutines:revert()
           stage_state.stop_bgm:revert()
         end)
 
         after_each(function ()
-          ui.overlay.clear_labels:clear()
+          overlay.clear_labels:clear()
           picosonic_app.stop_all_coroutines:clear()
           stage_state.stop_bgm:clear()
         end)
@@ -148,7 +149,7 @@ describe('stage_state', function ()
         end)
 
         it('should call title_overlay:clear_labels', function ()
-          local s = assert.spy(ui.overlay.clear_labels)
+          local s = assert.spy(overlay.clear_labels)
           s.was_called(1)
           s.was_called_with(match.ref(state.title_overlay))
         end)
@@ -488,7 +489,7 @@ describe('stage_state', function ()
               for i = 1, stage_data.show_stage_title_delay * state.app.fps - 1 do
                 coresume(on_show_stage_title_async, state)
               end
-              assert.are_equal(ui.label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
+              assert.are_equal(label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
 
               -- reach last frame now to check if label just disappeared
               coresume(on_show_stage_title_async, state)
@@ -508,7 +509,7 @@ describe('stage_state', function ()
               map_stub = stub(_G, "map")
               spy.on(stage_state, "render_environment")
               player_char_render_stub = stub(player_char, "render")
-              title_overlay_draw_labels_stub = stub(ui.overlay, "draw_labels")
+              title_overlay_draw_labels_stub = stub(overlay, "draw_labels")
             end)
 
             teardown(function ()

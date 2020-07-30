@@ -4,7 +4,7 @@ require("engine/core/math")
 require("engine/render/color")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+local overlay = require("engine/ui/overlay")
 
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
@@ -40,7 +40,7 @@ function stage_state:_init()
   self.camera_pos = vector.zero()
 
   -- title overlay
-  self.title_overlay = ui.overlay(0)
+  self.title_overlay = overlay(0)
 end
 
 function stage_state:on_enter()

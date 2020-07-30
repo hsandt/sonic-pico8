@@ -1,4 +1,3 @@
-require("engine/core/class")
 require("engine/render/color")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")

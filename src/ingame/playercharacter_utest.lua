@@ -1,5 +1,4 @@
 require("engine/test/bustedhelper")
-require("engine/core/math")
 local animated_sprite = require("engine/render/animated_sprite")
 
 local player_char = require("ingame/playercharacter")

@@ -1,4 +1,3 @@
-require("engine/core/math")
 local tile = require("platformer/tile")
 local tile_data = tile.tile_data
 

@@ -1,6 +1,4 @@
 require("engine/test/bustedhelper")
-require("engine/core/helper")
-require("engine/core/math")
 local flow = require("engine/application/flow")
 local tilemap = require("engine/data/tilemap")
 local input = require("engine/input/input")

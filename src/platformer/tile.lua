@@ -1,5 +1,3 @@
-require("engine/core/class")
-
 local tile = {}
 
 local tile_data = new_struct()

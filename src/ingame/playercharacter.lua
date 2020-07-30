@@ -1,8 +1,4 @@
-require("engine/application/constants")
-require("engine/core/class")
-require("engine/core/helper")
-require("engine/core/math")
-require("engine/core/vector_ext")
+require("engine/common")
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif

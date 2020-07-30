@@ -1886,7 +1886,7 @@ describe('player_char', function ()
 
       end)  -- _update_platformer_motion_grounded
 
-      describe('_update_ground_speed', function ()
+      describe('update_ground_speed', function ()
 
         setup(function ()
           -- the only reason we spy and not stub is to test the interface in the first test below
@@ -1907,17 +1907,22 @@ describe('player_char', function ()
           player_char._clamp_ground_speed:clear()
         end)
 
-        -- WIP since change of call order
+        -- usually we'd only test the interface (calls)
+        -- but since we cannot easily test the call order with spies,
+        --  we do a mini itest to check the resulting velocity,
+        --  which will prove that slope factor is applied before intention
 
-        it('should counter the ground speed in the opposite direction of motion when moving upward a 45-degree slope', function ()
-          pc:_update_ground_speed()
-
+        it('should apply descending slope factor, then oppose it with strong decel when moving in the ascending direction of 45-degree slope from ground speed 0', function ()
           -- interface: check overall behavior (mini integration test)
           pc.ground_speed = 0
           pc.slope_angle = -1/8  -- 45 deg ascending
+
           pc.move_intention.x = 1
           pc:_update_ground_speed()
-          assert.are_equal(pc_data.ground_accel_frame2 - pc_data.slope_accel_factor_frame2 * sin(-1/8), pc.ground_speed)
+          -- Note that we have fixed the classic Sonic exploit of decelerating faster when accelerating backward from ground speed 0,
+          --  so the speed will still be clamped to ground accel on this frame, and not become
+          --  - pc_data.slope_accel_factor_frame2 * sin(-1/8) + pc_data.ground_decel_frame2
+          assert.are_equal(pc_data.ground_accel_frame2, pc.ground_speed)
         end)
 
         it('should update ground speed based on slope, then intention', function ()
@@ -1927,7 +1932,7 @@ describe('player_char', function ()
 
           -- implementation
           assert.spy(player_char._update_ground_speed_by_slope).was_called(1)
-          assert.spy(player_char._update_ground_speed_by_slope).was_called_with(match.ref(pc), 2.5)
+          assert.spy(player_char._update_ground_speed_by_slope).was_called_with(match.ref(pc))
           assert.spy(player_char._update_ground_speed_by_intention).was_called(1)
           assert.spy(player_char._update_ground_speed_by_intention).was_called_with(match.ref(pc))
           assert.spy(player_char._clamp_ground_speed).was_called(1)

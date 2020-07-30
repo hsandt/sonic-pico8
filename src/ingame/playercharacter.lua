@@ -470,22 +470,21 @@ end
 
 -- update ground speed
 function player_char:_update_ground_speed()
-  -- In order to process move intention and slope effect as independently as possible,
-  --  we process intention first, then compute slope contribution based on the ground speed
-  --  *before* intention was processed.
-  -- We could do the opposite, but since _update_ground_speed_by_intention relies on clamping,
-  --  it would be a bit harder (we'd need both previous_ground_speed and some
-  --  fictive_future_ground_speed = previous_ground_speed + ground_speed_delta, then compute
-  --  some clamped_ground_speed_delta and reapply it to the actual self.ground_speed)
-  local previous_ground_speed = self.ground_speed
-  -- testing different order so friction applies and stops low slope
-  self:_update_ground_speed_by_slope(previous_ground_speed)
-  self:_update_ground_speed_by_intention(previous_ground_speed)
+  -- We apply slope factor *before* move intention because it gives
+  --  better results when not moving on a low slope (friction will stop you completely).
+  -- Another side effect is that the ground speed *after* slope factor application
+  --  will be considered for the move intention effect, such as decelerating
+  --  when moving forward on an ascending slope if it started make you move down.
+  -- Also, if ground speed is 0 and we start trying to ascend slope,
+  --  Progressive Ascending Steep Slope Factor feature won't be applied the first frame.
+  -- But it should be OK overall.
+  self:_update_ground_speed_by_slope()
+  self:_update_ground_speed_by_intention()
   self:_clamp_ground_speed()
 end
 
 -- update ground speed based on current slope
-function player_char:_update_ground_speed_by_slope(previous_ground_speed)
+function player_char:_update_ground_speed_by_slope()
   local is_ascending_slope = false
 
   if self.slope_angle ~= 0 then
@@ -499,7 +498,7 @@ function player_char:_update_ground_speed_by_slope(previous_ground_speed)
     -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
     --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
     local ascending_slope_factor = 1
-    if previous_ground_speed ~= 0 and abs(self.slope_angle) >= pc_data.steep_slope_min_angle and sgn(previous_ground_speed) ~= sgn(self.slope_angle) then
+    if self.ground_speed ~= 0 and abs(self.slope_angle) >= pc_data.steep_slope_min_angle and sgn(self.ground_speed) ~= sgn(self.slope_angle) then
       is_ascending_slope = true
       local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
       local progressive_ascending_slope_factor = 1
@@ -518,7 +517,7 @@ function player_char:_update_ground_speed_by_slope(previous_ground_speed)
 end
 
 -- update ground speed based on current move intention
-function player_char:_update_ground_speed_by_intention(previous_ground_speed)
+function player_char:_update_ground_speed_by_intention()
   if self.move_intention.x ~= 0 then
 
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then

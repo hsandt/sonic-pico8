@@ -1,3 +1,6 @@
+# Do not trigger Travis if commit message contains "(WIP)" or "#no_travis" (case-insensitive)
+if: commit_message !~ /(\(WIP\)|#no_travis)/
+
 os: linux
 
 language: python # Can use any language here, but if it's not 'python'
@@ -53,9 +56,7 @@ before_script:
 
 script:
   # build game and itest to make sure everything works fine
-  # (do it before tests although busted tests can be run independently,
-  # because sometimes a few minor tests fail but we still want to know
-  # if we can build, and we are under the token limit)
+  # (even if build fails, tests will be run independently thanks to busted)
   - ./build_game.sh debug
   - ./build_game.sh release
   - ./build_itest.sh

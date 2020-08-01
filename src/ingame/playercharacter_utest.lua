@@ -602,13 +602,41 @@ describe('player_char', function ()
         pc:_handle_input()
 
         -- implementation
-        assert.spy(pc._toggle_debug_motion).was_called(1)
-        assert.spy(pc._toggle_debug_motion).was_called_with(match.ref(pc))
+        assert.spy(player_char._toggle_debug_motion).was_called(1)
+        assert.spy(player_char._toggle_debug_motion).was_called_with(match.ref(pc))
       end)
 
     end)
 
     describe('_toggle_debug_motion', function ()
+
+      setup(function ()
+        stub(player_char, "set_motion_mode")
+      end)
+
+      teardown(function ()
+        player_char.set_motion_mode:revert()
+      end)
+
+      after_each(function ()
+        input:init()
+
+        player_char.set_motion_mode:clear()
+      end)
+
+      it('(motion mode is debug) it should toggle motion mode to platformer', function ()
+        pc.motion_mode = motion_modes.platformer
+
+        pc:_toggle_debug_motion()
+
+        -- implementation
+        assert.spy(player_char.set_motion_mode).was_called(1)
+        assert.spy(player_char.set_motion_mode).was_called_with(match.ref(pc), 2)
+      end)
+
+    end)
+
+     describe('set_motion_mode', function ()
 
       setup(function ()
         -- don't stub, we need to check if the motion mode actually changed after toggle > spawn_at
@@ -625,23 +653,24 @@ describe('player_char', function ()
         player_char.spawn_at:clear()
       end)
 
-      it('(motion mode is platformer) it should toggle motion mode to debug', function ()
+      it('(to debug) should set motion mode to debug a and reset debug velocity', function ()
         pc.motion_mode = motion_modes.platformer
+        pc.debug_velocity = vector(1, 2)
+
         pc:_toggle_debug_motion()
+
         assert.are_equal(motion_modes.debug, pc.motion_mode)
         assert.are_equal(vector.zero(), pc.debug_velocity)
       end)
 
-      it('(motion mode is debug) it should toggle motion mode to platformer', function ()
+      it('(to platformer) should set motion mode to platformer and respawn as current position', function ()
         local previous_position = pc.position  -- in case we change it during the spawn
         pc.motion_mode = motion_modes.debug
 
         pc:_toggle_debug_motion()
 
-        -- interface (partial)
         assert.are_equal(motion_modes.platformer, pc.motion_mode)
 
-        -- implementation
         assert.spy(pc.spawn_at).was_called(1)
         assert.spy(pc.spawn_at).was_called_with(match.ref(pc), previous_position)
       end)

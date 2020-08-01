@@ -3766,9 +3766,9 @@ describe('player_char', function ()
               local motion = vector(velocity.x, 0)
               ref_motion_result.position = ref_motion_result.position + motion
             else  -- coord == "y"
-              -- to make sure we are calling _advance_in_air_along on y before x, we add a check here:
-              --  if we have already moved from initial pos.x = 4.5 (see test below), block any motion along y
-              if ref_motion_result.position.x == 4.5 then
+              -- to make sure we are calling _advance_in_air_along on x before y, we add a check here:
+              --  if we have already moved from initial pos.y = 8 (see test below), block any motion along y
+              if ref_motion_result.position.y == 8 then
                 local motion = vector(0, velocity.y / 2)
                 ref_motion_result.position = ref_motion_result.position + motion
               end

@@ -957,12 +957,21 @@ function player_char:_compute_air_motion_result()
   -- a. describe a Bresenham's line, stepping on x and y, for the best precision
   -- b. step on x until you reach the max distance x, then step on y (may hit wall you wouldn't have with a. or c.)
   -- c. step on y until you reach the max distance y, then step on x (may hit ceiling you wouldn't have with a. or b.)
+  -- and 1 way without iteration:
+  -- d. compute final position of air motion at the end of the frame, and escape from x and y if needed
 
-  -- we focus on landing/ceiling first, and prefer simplicity to precision as long as motion seems ok,
-  --  so we choose c.
-  self:_advance_in_air_along(motion_result, self.velocity, "y")
-  log("=> "..motion_result, "trace")
+  -- We choose b. which is precise enough while always finishing with a potential landing
+  -- Initially we used c., but Sonic tended to fly above descending slopes as the X motion was applied
+  --  after Y motion, including snapping, causing a ladder-shaped motion above the slope where the final position
+  --  was always above the ground.
+  -- Note, however, that this is a temporary fix: where we add quadrants, X and Y will have more symmetrical roles
+  --  and we can expect similar issues when trying to land with high speed adherence on a 90-deg wall.
+  -- Ultimately, I think it will work better with either d. or an Unreal-style multi-mode step approach
+  --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as grounded,
+  --  following the ground as usual).
   self:_advance_in_air_along(motion_result, self.velocity, "x")
+  log("=> "..motion_result, "trace")
+  self:_advance_in_air_along(motion_result, self.velocity, "y")
   log("=> "..motion_result, "trace")
 
   return motion_result

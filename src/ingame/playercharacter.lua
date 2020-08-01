@@ -482,6 +482,7 @@ function player_char:_update_ground_speed()
   -- Also, if ground speed is 0 and we start trying to ascend slope,
   --  Progressive Ascending Steep Slope Factor feature won't be applied the first frame.
   -- But it should be OK overall.
+  -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
   self:_update_ground_speed_by_slope()
   self:_update_ground_speed_by_intention()
   self:_clamp_ground_speed()
@@ -886,6 +887,8 @@ function player_char:_update_platformer_motion_airborne()
     self.orientation = signed_speed_to_dir(self.move_intention.x)
   end
 
+  self:apply_air_drag()
+
   -- apply air motion
 
   local air_motion_result = self:_compute_air_motion_result()
@@ -923,6 +926,14 @@ function player_char:_check_hold_jump()
       log("interrupt jump "..self.velocity.y.." -> "..signed_jump_interrupt_speed_frame, "trace")
       self.velocity.y = signed_jump_interrupt_speed_frame
     end
+  end
+end
+
+function player_char:apply_air_drag()
+  local vel = self.velocity  -- ref
+  if vel.y < 0 and vel.y > - pc_data.air_drag_max_abs_velocity_y and
+      abs(vel.x) >= pc_data.air_drag_min_velocity_x then
+    vel.x = vel.x * pc_data.air_drag_factor_per_frame
   end
 end
 

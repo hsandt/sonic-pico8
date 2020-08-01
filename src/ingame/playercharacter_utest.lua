@@ -3576,10 +3576,11 @@ describe('player_char', function ()
 
         end)  -- compute_air_motion_result_mock (vector(2, 8), false, false, false)
 
-        describe('(when _compute_air_motion_result returns a motion result with is_blocked_by_wall: false, is_blocked_by_ceiling: true)', function ()
+        describe('(when _compute_air_motion_result returns a motion result with is_blocked_by_wall: false, is_blocked_by_ceiling: true) '..
+            '(when apply_air_drag multiplies velocity x by 0.9 no matter what)', function ()
 
           setup(function ()
-            compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
+            stub(player_char, "_compute_air_motion_result", function (self)
               return motion.air_motion_result(
                 vector(2, 8),
                 false, -- not the focus, but verified
@@ -3588,14 +3589,19 @@ describe('player_char', function ()
                 nil
               )
             end)
+            stub(player_char, "apply_air_drag", function (self)
+              self.velocity.x = 0.9 * self.velocity.x
+            end)
           end)
 
           teardown(function ()
-            compute_air_motion_result_mock:revert()
+            player_char._compute_air_motion_result:revert()
+            player_char.apply_air_drag:revert()
           end)
 
           after_each(function ()
-            compute_air_motion_result_mock:clear()
+            player_char._compute_air_motion_result:clear()
+            player_char.apply_air_drag:clear()
           end)
 
           it('should set velocity.y to 0', function ()
@@ -3610,12 +3616,17 @@ describe('player_char', function ()
             assert.are_equal(0, pc.velocity.y)
           end)
 
-          it('should preserve velocity.x', function ()
+          it('should apply air drag, then preserve velocity.x on hit ceiling', function ()
             pc.velocity = vector(10, -10)
 
             pc:_update_platformer_motion_airborne()
 
-            assert.are_equal(10, pc.velocity.x)
+            -- spy test (should always be called anyway, but only this test really demonstrates X velocity)
+            assert.spy(player_char.apply_air_drag).was_called(1)
+            assert.spy(player_char.apply_air_drag).was_called_with(match.ref(pc))
+
+            -- value test
+            assert.are_equal(9, pc.velocity.x)
           end)
 
         end)  -- compute_air_motion_result_mock (is_blocked_by_ceiling: true)
@@ -3741,6 +3752,56 @@ describe('player_char', function ()
         pc:_check_hold_jump()
 
         assert.are_same({false, -3}, {pc.has_interrupted_jump, pc.velocity.y})
+      end)
+
+    end)
+
+    describe('apply_air_drag', function ()
+
+      it('(when velocity is 0.25 0) should do nothing', function ()
+        -- abs(vel.x) >= pc_data.air_drag_min_velocity_x but vel.y >= 0
+        pc.velocity = vector(0.25, 0)
+
+        pc:apply_air_drag()
+
+        assert.are_equal(vector(0.25, 0), pc.velocity)
+      end)
+
+      it('(when velocity is 0.25 7) should do nothing', function ()
+        -- abs(vel.x) >= pc_data.air_drag_min_velocity_x but vel.y >= 0
+        pc.velocity = vector(0.25, 7)
+
+        pc:apply_air_drag()
+
+        assert.are_equal(vector(0.25, 7), pc.velocity)
+      end)
+
+      it('(when velocity is 0.1 -7) should do nothing', function ()
+        -- vel.y is OK but abs(vel.x) < pc_data.air_drag_min_velocity_x
+        pc.velocity = vector(0.1, -7)
+
+        pc:apply_air_drag()
+
+        assert.are_equal(vector(0.1, -7), pc.velocity)
+      end)
+
+      it('(when velocity is 0.25 -7) should do nothing', function ()
+        -- both velocity coords match the conditions, apply drag factor
+        pc.velocity = vector(0.25, -7)
+
+        pc:apply_air_drag()
+
+        -- velocity x should be = 0.2421875
+        assert.are_equal(vector(0.25 * pc_data.air_drag_factor_per_frame, -7), pc.velocity)
+      end)
+
+      it('(when velocity is 0.25 -8) should do nothing', function ()
+        -- abs(vel.x) >= pc_data.air_drag_min_velocity_x but vel.y <= - pc_data.air_drag_max_abs_velocity_y
+        pc.velocity = vector(0.25, -8)
+
+        pc:apply_air_drag()
+
+        assert.are_equal(vector(0.25, -8), pc.velocity)
       end)
 
     end)

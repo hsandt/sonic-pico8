@@ -4,6 +4,10 @@ local animated_sprite_data = require("engine/render/animated_sprite_data")
 local playercharacter_data = {
 
   -- platformer motion
+  -- values in px, px/frame, px/frame^2 are *2 compared to SPG since we work with 8px tiles
+  -- for values in px, px/frame, px/frame^2, I added /64
+  -- for degrees, /360 form
+  -- (for readability)
 
   -- ground acceleration (px/frame^2)
   ground_accel_frame2 = 0.0234375,  -- 1.5/64
@@ -40,6 +44,16 @@ local playercharacter_data = {
 
   -- air acceleration on x axis (px/frames^2)
   air_accel_x_frame2 = 0.046875,  -- 3/64
+
+  -- air drag factor applied every frame, at 60 FPS
+  air_drag_factor_per_frame = 0.96875,
+
+  -- min absolute velocity x for which air drag is applied
+  air_drag_min_velocity_x = 0.25,  -- 16/64
+
+  -- maximum absolute velocity y for which air drag is applied
+  -- the actual range is ] -air_drag_max_abs_velocity_y, 0 [
+  air_drag_max_abs_velocity_y = 8,  -- 512/64
 
   -- ground acceleration (px/frame)
   max_ground_speed = 3,

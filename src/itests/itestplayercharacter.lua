@@ -89,6 +89,14 @@ expect pc_motion_state grounded
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+
+-- commented out to fit in 65536 chars
+-- but you can run them anytime as headless itests with busted
+-- however, note that airborne tests are broken due to the new air drag feature
+-- so either set air_drag_factor_per_frame to 0 for the itests,
+-- or update all the airborne itests
+-- or use broader expectations such as Sonic being in a certain area or reaching a large trigger
+
 --[=[
 
 -- calculation notes:

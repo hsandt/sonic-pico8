@@ -318,7 +318,7 @@ end
 
 function itest_dsl._execute_set_motion_mode(args)
   local current_stage_state = get_current_state_as_stage()
-  current_stage_state.player_char.motion_mode = args[1]
+  current_stage_state.player_char:set_motion_mode(args[1])
 end
 
 function itest_dsl._execute_move(args)

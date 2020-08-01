@@ -249,9 +249,18 @@ describe('itest_dsl', function ()
 
     describe('execute_set_motion_mode', function ()
 
+      setup(function ()
+        stub(player_char, "set_motion_mode")
+      end)
+
+      teardown(function ()
+        player_char.set_motion_mode:revert()
+      end)
+
       it('should set the motion mode', function ()
         itest_dsl._execute_set_motion_mode({motion_modes.debug})
-        assert.are_equal(motion_modes.debug, state.player_char.motion_mode)
+        assert.spy(player_char.set_motion_mode).was_called(1)
+        assert.spy(player_char.set_motion_mode).was_called_with(match.ref(state.player_char), motion_modes.debug)
       end)
 
     end)

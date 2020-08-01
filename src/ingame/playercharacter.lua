@@ -875,9 +875,13 @@ function player_char:_update_platformer_motion_airborne()
     self.velocity.y = self.velocity.y + pc_data.gravity_frame2
   end
 
-  -- check if player is continuing or interrupting jump *after* applying gravity
-  -- this means gravity will *not* be applied during the hop/interrupt jump frame
-  self:_check_hold_jump()
+  -- only allow jump interrupt if character has jumped on its own (no fall)
+  -- there is no has_jumped flag so the closest is to check for air_spin
+  if self.motion_state == motion_states.air_spin then
+    -- check if player is continuing or interrupting jump *after* applying gravity
+    -- this means gravity will *not* be applied during the hop/interrupt jump frame
+    self:_check_hold_jump()
+  end
 
   if self.move_intention.x ~= 0 then
     -- apply x acceleration via intention (if not 0)

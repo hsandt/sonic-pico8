@@ -47,7 +47,7 @@ function _init()
     ['itest'] = true,
     ['log'] = true,
     ['ui'] = true,
-    ['trace'] = true,
+    -- ['trace'] = true,
     -- ['frame'] = true,
 
     -- game

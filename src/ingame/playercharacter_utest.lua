@@ -3419,10 +3419,12 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(player_char, "_enter_motion_state")
+          spy.on(player_char, "_check_hold_jump")
         end)
 
         teardown(function ()
           player_char._enter_motion_state:revert()
+          player_char._check_hold_jump:revert()
         end)
 
         before_each(function ()
@@ -3430,6 +3432,7 @@ describe('player_char', function ()
           pc:_enter_motion_state(motion_states.falling)
           -- clear spy just after this instead of after_each to avoid messing the call count
           player_char._enter_motion_state:clear()
+          player_char._check_hold_jump:clear()
         end)
 
         describe('(when _compute_air_motion_result returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
@@ -3455,71 +3458,100 @@ describe('player_char', function ()
           end)
 
           it('should set velocity y to -jump_interrupt_speed_frame on first frame of hop if velocity.y is not already greater, and clear has_jumped_this_frame flag', function ()
+            pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = true
             pc.hold_jump_intention = false
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- call check
+            assert.spy(player_char._check_hold_jump).was_called(1)
+            assert.spy(player_char._check_hold_jump).was_called_with(match.ref(pc))
+
+            -- result check
             assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
           it('should preserve velocity y completely on first frame of hop if velocity.y is already greater, and clear has_jumped_this_frame flag', function ()
             -- this can happen when character is running down a steep slope, and hops with a normal close to horizontal
+            pc.motion_state = motion_states.air_spin
             pc.velocity.y = -1  -- must be >= -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = true
             pc.hold_jump_intention = false
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- call check (but will do nothing)
+            assert.spy(player_char._check_hold_jump).was_called(1)
+            assert.spy(player_char._check_hold_jump).was_called_with(match.ref(pc))
+
+            -- result check
             assert.are_same({-1, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
           it('should preserve (supposedly initial jump) velocity y on first frame of jump (not hop) and clear has_jumped_this_frame flag', function ()
+            pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3
             pc.has_jumped_this_frame = true
             pc.hold_jump_intention = true
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- call check (but will do nothing)
+            assert.spy(player_char._check_hold_jump).was_called(1)
+            assert.spy(player_char._check_hold_jump).was_called_with(match.ref(pc))
+
+            -- result check
             assert.are_same({-3, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
           it('should apply gravity to velocity y when not on first frame of jump and not interrupting jump', function ()
+            pc.motion_state = motion_states.air_spin
             pc.velocity.y = -1
             pc.has_jumped_this_frame = false
             pc.hold_jump_intention = true
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- call check (but will do nothing)
+            assert.spy(player_char._check_hold_jump).was_called(1)
+            assert.spy(player_char._check_hold_jump).was_called_with(match.ref(pc))
+
+            -- result check
             assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
           it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
+            pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = false
             pc.hold_jump_intention = false
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
+            -- call check
+            assert.spy(player_char._check_hold_jump).was_called(1)
+            assert.spy(player_char._check_hold_jump).was_called_with(match.ref(pc))
+
+            -- result check
             -- note that gravity is applied *before* interrupt jump, so we don't see it in the final velocity.y
             assert.are_same({-pc_data.jump_interrupt_speed_frame, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
-          it('should set to speed y to interrupt speed (no gravity added) when interrupting actual jump', function ()
-            pc.velocity.y = -1  -- must be >= -pc_data.jump_interrupt_speed_frame (-2)
+          it('should NOT check for speed interrupt at all when running falling (not air_spin)', function ()
+            pc.motion_state = motion_states.falling
+            pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = false
             pc.hold_jump_intention = false
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
-            assert.are_same({-1 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
+            -- call check
+            assert.spy(player_char._check_hold_jump).was_not_called()
+
+            -- result check
+            assert.are_same({-3 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
           it('should apply air accel x', function ()
@@ -3528,7 +3560,6 @@ describe('player_char', function ()
 
             pc:_update_platformer_motion_airborne()
 
-            -- interface: we are assessing the effect of _check_hold_jump directly
             assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
           end)
 

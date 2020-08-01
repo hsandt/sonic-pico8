@@ -1275,6 +1275,7 @@ describe('player_char', function ()
 
           it('should do nothing when character is just on top of the ground, update slope to 0 and return true', function ()
             pc:set_bottom_center(vector(12, 8))
+            pc.slope_angle = 0.25  -- just to verify that slope angle is updated
             local result = pc:_check_escape_from_ground()
 
             -- interface
@@ -2865,6 +2866,8 @@ describe('player_char', function ()
         describe('(with flat ground)', function ()
 
           before_each(function ()
+            -- .
+            -- #
             mock_mset(0, 1, full_tile_id)  -- full tile
           end)
 
@@ -2982,8 +2985,8 @@ describe('player_char', function ()
         describe('(with walls)', function ()
 
           before_each(function ()
-            -- X X
-            -- XXX
+            -- # #
+            -- ###
             mock_mset(0, 0, full_tile_id)  -- full tile (left wall)
             mock_mset(0, 1, full_tile_id)  -- full tile
             mock_mset(1, 1, full_tile_id)  -- full tile
@@ -3038,8 +3041,8 @@ describe('player_char', function ()
         describe('(with wall without ground below)', function ()
 
           before_each(function ()
-            --  X
-            -- X
+            --  #
+            -- #
             mock_mset(0, 1, full_tile_id)  -- full tile (ground)
             mock_mset(1, 0, full_tile_id)  -- full tile (wall without ground below)
           end)
@@ -3072,7 +3075,7 @@ describe('player_char', function ()
         describe('(with head wall)', function ()
 
           before_each(function ()
-            --  X
+            --  #
             -- =
             mock_mset(0, 1, half_tile_id)  -- bottom half-tile
             mock_mset(1, 0, full_tile_id)  -- full tile (head wall)
@@ -3110,7 +3113,7 @@ describe('player_char', function ()
 
           before_each(function ()
             --  /
-            -- X
+            -- #
             mock_mset(0, 1, full_tile_id)  -- full tile (ground)
             mock_mset(1, 0, asc_slope_45_id)  -- ascending slope 45
           end)
@@ -3141,8 +3144,8 @@ describe('player_char', function ()
         describe('(with ascending slope and wall)', function ()
 
           before_each(function ()
-            -- X X
-            -- X/X
+            -- # #
+            -- #/#
             mock_mset(0, 0, full_tile_id)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
             mock_mset(0, 1, full_tile_id)  -- full tile (wall)
             mock_mset(1, 1, asc_slope_45_id)  -- ascending slope 45
@@ -3307,7 +3310,7 @@ describe('player_char', function ()
         describe('(1 full tile)', function ()
 
           before_each(function ()
-            -- .X
+            -- .#
             mock_mset(1, 0, full_tile_id)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
@@ -4080,7 +4083,7 @@ describe('player_char', function ()
         describe('(with flat ground)', function ()
 
           before_each(function ()
-            -- X
+            -- #
             mock_mset(0, 0, full_tile_id)  -- full tile
           end)
 
@@ -4114,7 +4117,7 @@ describe('player_char', function ()
             )
           end)
 
-          it('direction down into ground should not move, and flag is_landing with slope_angle', function ()
+          it('direction down into ground should not move, and flag is_landing with slope_angle 0', function ()
             pc.velocity.x = 0
             pc.velocity.y = 3
 
@@ -4139,7 +4142,60 @@ describe('player_char', function ()
             )
           end)
 
-          it('direction left into wall via ground should not move, and flag is_blocked_by_wall', function ()
+          it('direction left exactly onto ground should step left, and flag is_landing with slop_angle 0', function ()
+            pc.velocity.x = -3
+            pc.velocity.y = 0
+
+            local motion_result = motion.air_motion_result(
+              vector(11, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(10, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction right exactly onto ground should step right, and flag is_landing with slop_angle 0', function ()
+            pc.velocity.x = 3
+            pc.velocity.y = 0
+
+            local motion_result = motion.air_motion_result(
+              vector(-3, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-2, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction left into ground not deeper than max_ground_escape_height should step left and up, and flag is_landing with slop_angle 0', function ()
+            pc.velocity.x = -3
+            pc.velocity.y = 0
+
             local motion_result = motion.air_motion_result(
               vector(11, 1 - pc_data.center_height_standing),
               false,
@@ -4151,17 +4207,20 @@ describe('player_char', function ()
             pc:_next_air_step(directions.left, motion_result)
 
             assert.are_equal(motion.air_motion_result(
-                vector(11, 1 - pc_data.center_height_standing),
+                vector(10, 0 - pc_data.center_height_standing),
+                false,
+                false,
                 true,
-                false,
-                false,
-                nil
+                0
               ),
               motion_result
             )
           end)
 
-          it('direction right into wall via ground should not move, and flag is_blocked_by_wall', function ()
+          it('direction right into ground not deeper than max_ground_escape_height should step right and up, and flag is_landing with slop_angle 0', function ()
+            pc.velocity.x = 3
+            pc.velocity.y = 0
+
             local motion_result = motion.air_motion_result(
               vector(-3, 1 - pc_data.center_height_standing),
               false,
@@ -4173,7 +4232,84 @@ describe('player_char', function ()
             pc:_next_air_step(directions.right, motion_result)
 
             assert.are_equal(motion.air_motion_result(
-                vector(-3, 1 - pc_data.center_height_standing),
+                vector(-2, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          -- extra tests for sheer horizontally velocity check
+
+          it('(at upward velocity, sheer angle) direction right into ground not deeper than max_ground_escape_height should step right and up, and flag is_landing with slop_angle 0', function ()
+            pc.velocity.x = 3
+            pc.velocity.y = -1
+
+            local motion_result = motion.air_motion_result(
+              vector(-3, 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-2, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                0
+              ),
+              motion_result
+            )
+          end)
+
+          it('(at upward velocity, high angle) direction right into ground not deeper than max_ground_escape_height should ignore the floor completely (even during right step)', function ()
+            pc.velocity.x = 3
+            pc.velocity.y = -3
+
+            local motion_result = motion.air_motion_result(
+              vector(-3, 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-2, 1 - pc_data.center_height_standing),
+                false,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          it('direction left into wall deeper than max_ground_escape_height should not move, and flag is_blocked_by_wall', function ()
+            pc.velocity.x = -3
+            pc.velocity.y = 0
+
+            local motion_result = motion.air_motion_result(
+              vector(11, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.left, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(11, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
                 true,
                 false,
                 false,
@@ -4182,6 +4318,33 @@ describe('player_char', function ()
               motion_result
             )
           end)
+
+          it('direction right into wall deeper than max_ground_escape_height should not move, and flag is_blocked_by_wall', function ()
+            pc.velocity.x = 3
+            pc.velocity.y = 0
+
+            local motion_result = motion.air_motion_result(
+              vector(-3, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:_next_air_step(directions.right, motion_result)
+
+            assert.are_equal(motion.air_motion_result(
+                vector(-3, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
+                true,
+                false,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
+          -- ceiling tests below also try sheer vs high angle (but no separate test with velocity.y 0 and not 0)
 
           it('direction left into wall via ceiling downward and faster on x than y should not move, and flag is_blocked_by_wall', function ()
             -- important

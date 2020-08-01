@@ -346,13 +346,12 @@ end
 function player_char:_check_escape_from_ground()
   local query_info = self:_compute_ground_sensors_signed_distance(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  local should_escape = signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= pc_data.max_ground_escape_height
-  if should_escape then
+  if signed_distance_to_closest_ground <= 0 and - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+    -- character is either just touching ground (signed_distance_to_closest_ground == 0)
+    --  or inside ground:
+    -- - snap character up to ground top (it does nothing if already touching ground)
+    -- - set slope angle to new ground
     self.position.y = self.position.y + signed_distance_to_closest_ground
-  end
-  if signed_distance_to_closest_ground == 0 or should_escape then
-    -- character was either touching ground, or inside it and escaped
-    --  so update his slope angle
     self.slope_angle = next_slope_angle
   end
   return signed_distance_to_closest_ground <= 0
@@ -378,7 +377,7 @@ function player_char:_enter_motion_state(next_motion_state)
     self.should_jump = false
     self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
-    -- transfer part of velocity tangential to slope to ground speed
+    -- Momentum: transfer part of velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
     self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
     self:_clamp_ground_speed()
     -- we have just reached the ground (and possibly escaped),
@@ -694,13 +693,17 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
   -- check if next position is inside/above ground
   local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  if signed_distance_to_closest_ground < 0 then
+
+  -- merge < 0 and == 0 cases together to spare tokens
+  -- when 0, next_position_candidate.y will simpy not change
+  if signed_distance_to_closest_ground <= 0 then
     -- position is inside ground, check if we can step up during this step
-    local penetration_height = - signed_distance_to_closest_ground
-    if penetration_height <= pc_data.max_ground_escape_height then
+    -- refactor: code is similar to _check_escape_from_ground and above all _next_air_step
+    if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up
-      next_position_candidate.y = next_position_candidate.y - penetration_height
-      -- if we left the ground during a previous step, cancel that (step up land, very rare)
+      next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+      -- if we left the ground during a previous step, cancel that
+      --  (fall, then touch ground or step up to land, very rare)
       ref_motion_result.is_falling = false
     else
       -- step blocked: step up is too high, character is blocked
@@ -710,6 +713,7 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
     end
   elseif signed_distance_to_closest_ground > 0 then
     -- position is above ground, check if we can step down during this step
+    -- (step down is during ground motion only)
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
@@ -726,10 +730,6 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
       --  and applying it this frame
       ref_motion_result.is_falling = true
     end
-  else
-    -- step flat
-    -- if character left the ground during a previous step, cancel that (very rare)
-    ref_motion_result.is_falling = false
   end
 
   if not ref_motion_result.is_blocked then
@@ -747,6 +747,8 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
     --  than the ground sensors; if there were even farther, we'd even need to
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
     --  when ref_motion_result.is_blocked (and adapt y)
+    -- in addition, because a step is no more than 1px, if we were blocked this step
+    --  we have not moved at all and therefore there is no need to update slope angle
     if not ref_motion_result.is_blocked then
       ref_motion_result.position = next_position_candidate
       if ref_motion_result.is_falling then
@@ -1064,7 +1066,8 @@ function player_char:_next_air_step(direction, ref_motion_result)
   log("step_vec: "..step_vec, "trace")
   log("next_position_candidate: "..next_position_candidate, "trace")
 
-  -- we can only hit walls or the ground when moving left, right or down
+  -- we can only hit walls or the ground when stepping left, right or down
+  -- (horizontal step of diagonal upward motion is OK)
   if direction ~= directions.up then
     -- query ground to check for obstacles (we only care about distance, not slope angle)
     -- note that we reuse the ground sensors for air motion, because they are good at finding
@@ -1074,39 +1077,42 @@ function player_char:_next_air_step(direction, ref_motion_result)
 
     log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace")
 
-    -- check if the character has hit a ground or a wall
-    if signed_distance_to_closest_ground < 0 then
-      -- we do not activate step up during air motion, so any pixel above the character's bottom
-      --  is considered a hard obstacle
-      -- however, if we want to allow jump from an ascending sheer angle directly onto a platform,
-      --  as suggested by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
-      --  where ground detection from the air is done when moving downward or when moving upward, but faster horizontally
-      --  than vertically, then we would not only need to add the x vs y spd check but also enable *snap* to ground
-      --  from the last step position, since we may miss a few pixels from here to reach the ground
-      --  (otherwise, the obstacle may was well be considered as a wall, as we're doing now)
-      -- Then we would have a check more symmetrical to below, with
-      --  `if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y)`
-      -- Depending on the direction, we consider we were blocked by either a ceiling or a wall
-      if direction == directions.down then
-        -- landing: the character has just set foot on ground, flag it and initialize slope angle
-        -- note that we only consider the character to touch ground when it is about to enter it
-        -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
-        --  it is still technically considered in the air
-        -- if this step is blocked by landing, there is no extra motion,
-        --  but character will enter grounded state
-        ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
-      else
-        ref_motion_result.is_blocked_by_wall = true
-        log("is blocked by wall", "trace")
+    -- Check if the character has hit a ground or a wall
+    -- First, following SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29),
+    --  allow jump from an ascending sheer angle directly onto a platform. This includes moving horizontally.
+    -- This must be combined with a step up (snap to ground top, but directly from the air) to really work
+    if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y) then
+      -- check if we are touching or entering ground
+      if signed_distance_to_closest_ground <= 0 then
+        -- Just like during ground step, check the step height: if too high, we hit a wall and stay airborne
+        --  else, we land
+        -- This step up check is really important, even for low slopes:
+        --  if not done, when Sonic lands on an ascending slope, it will consider the few pixels up
+        --  to be a wall!
+        -- I used to check direction == directions.down only, and indeed if you step 1px down,
+        --  the penetration distance will be no more than 1 and you will always snap to ground.
+        -- But this didn't work when direction left/right hit the slope.
+        -- refactor: code is similar to _check_escape_from_ground and above all _next_ground_step
+        if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+          next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+          -- landing: the character has just set foot on ground, flag it and initialize slope angle
+          -- note that we only consider the character to touch ground when it is about to enter it
+          -- below deprecated if we <= 0 check
+          -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
+          --  it is still technically considered in the air
+          -- if this step is blocked by landing, there is no extra motion,
+          --  but character will enter grounded state
+          ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
+          log("is landing, setting slope angle to "..next_slope_angle, "trace")
+        else
+          ref_motion_result.is_blocked_by_wall = true
+          log("is blocked by wall", "trace")
+        end
+      elseif signed_distance_to_closest_ground > 0 then
+        -- in the air: the most common case, in general requires nothing to do
+        -- in rare cases, the character has landed on a previous step, and we must cancel that now
+        ref_motion_result.is_landing, ref_motion_result.slope_angle = false--, nil
       end
-    elseif signed_distance_to_closest_ground > 0 then
-      -- in the air: the most common case, in general requires nothing to do
-      -- in rare cases, the character has landed on a previous step, and we must cancel that now
-      ref_motion_result.is_landing, ref_motion_result.slope_angle = false--, nil
-    elseif ref_motion_result.is_landing then
-      -- if we enter this, direction must be horizontal, so update slope angle with new ground
-      ref_motion_result.slope_angle = next_slope_angle
-      log("is landing, setting slope angle to "..next_slope_angle, "trace")
     end
   end
 
@@ -1118,13 +1124,18 @@ function player_char:_next_air_step(direction, ref_motion_result)
   --  then there is no need to check further, though
   -- The SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
   --  remarks that ceiling detection is done when moving upward or when moving faster horizontally than vertically
+  --  (this includes moving horizontally)
   -- Since it's just for this extra test, we check self.velocity directly instead of passing it as argument
   -- Note that we don't check the exact step direction, if we happen to hit the ceiling during
   --  the X motion, that's fine.
   -- In practice, when approaching a ceiling from a descending direction with a sheer horizontal angle,
   --  we will hit the block as a wall first; but that's because we consider blocks as wall and ceilings at the same time.
-  if not ref_motion_result.is_blocked_by_wall and
-      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
+  -- If we wanted to be symmetrical with floor check above, we would need to call some check_escape_from_ceiling
+  --  to snap Sonic slightly down when only hitting the wall by a few pixels, so character can continue moving horizontally
+  --  under the ceiling, touching it at the beginning. But it doesn't seem to happen in Classic Sonic so we don't implement
+  --  it unless our stage has ceilings where this often happens and it annoys the player.
+  if not ref_motion_result.is_blocked_by_wall --[[and
+      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y))--]] then
     local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then

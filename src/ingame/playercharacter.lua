@@ -898,6 +898,10 @@ function player_char:_update_platformer_motion_airborne()
 
   self:apply_air_drag()
 
+  if self.velocity.y > pc_data.max_air_velocity_y then
+    self.velocity.y = pc_data.max_air_velocity_y
+  end
+
   -- apply air motion
 
   local air_motion_result = self:_compute_air_motion_result()

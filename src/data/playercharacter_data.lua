@@ -58,6 +58,9 @@ local playercharacter_data = {
   -- ground acceleration (px/frame)
   max_ground_speed = 3,
 
+  -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
+  max_air_velocity_y = 32,  -- 2048/64
+
   -- initial variable jump speed (Sonic) (px/frame)
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 

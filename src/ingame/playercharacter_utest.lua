@@ -3612,6 +3612,14 @@ describe('player_char', function ()
             assert.are_equal(horizontal_dirs.right, pc.orientation)
           end)
 
+          it('should clamp velocity Y if beyond limit (positive)', function ()
+            pc.velocity.y = 1000
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(pc_data.max_air_velocity_y, pc.velocity.y)
+          end)
+
           -- bugfix history:
           -- .
           it('should update position with air motion result position', function ()

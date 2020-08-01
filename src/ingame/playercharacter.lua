@@ -1143,8 +1143,8 @@ function player_char:_next_air_step(direction, ref_motion_result)
   --  to snap Sonic slightly down when only hitting the wall by a few pixels, so character can continue moving horizontally
   --  under the ceiling, touching it at the beginning. But it doesn't seem to happen in Classic Sonic so we don't implement
   --  it unless our stage has ceilings where this often happens and it annoys the player.
-  if not ref_motion_result.is_blocked_by_wall --[[and
-      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y))--]] then
+  if not ref_motion_result.is_blocked_by_wall and
+      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
     local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then
@@ -1156,7 +1156,9 @@ function player_char:_next_air_step(direction, ref_motion_result)
         -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
         --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
         -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
+        -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
         ref_motion_result.is_blocked_by_wall = true
+        log("is blocked by ceiling as wall", "trace")
       end
     end
   end

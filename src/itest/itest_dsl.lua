@@ -39,6 +39,7 @@ local input = require("engine/input/input")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 
+require("test_data/tile_representation")
 --#if busted
 local tile_test_data = require("test_data/tile_test_data")
 --#endif
@@ -257,14 +258,14 @@ function itest_dsl._parse_motion_state(arg_strings)
   assert(#arg_strings == 1, "_parse_motion_state: got "..#arg_strings.." args, expected 1")
   local motion_state = motion_states_protected[arg_strings[1]]
   assert(motion_state, "motion_states_protected["..arg_strings[1].."] is not defined")
-  return motion_states[arg_strings[1]]
+  return motion_state
 end
 
 function itest_dsl._parse_button_id(arg_strings)
   assert(#arg_strings == 1, "_parse_button_id: got "..#arg_strings.." args, expected 1")
   local button_id = button_ids_protected[arg_strings[1]]
   assert(button_id, "button_ids_protected["..arg_strings[1].."] is not defined")
-  return button_ids[arg_strings[1]]
+  return button_id
 end
 
 function itest_dsl._parse_gp_value(arg_strings)

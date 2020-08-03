@@ -1092,58 +1092,58 @@ describe('player_char', function ()
             mock_mset(1, 1, asc_slope_45_id)
           end)
 
-          it('should return 0.0625, -45/360 if just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625)))
+          it('should return 0.0625, 45/360 if just above slope column 0', function ()
+            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625)))
           end)
 
-          it('should return 0, -45/360 if at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15)))
+          it('should return 0, 45/360 if at the top of column 0', function ()
+            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15)))
           end)
 
-          it('. should return 0.0625, -45/360 if just above slope column 4', function ()
-            assert.are_equal(ground_query_info(0.0625, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625)))
+          it('. should return 0.0625, 45/360 if just above slope column 4', function ()
+            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625)))
           end)
 
-          it('. should return 0, -45/360 if at the top of column 4', function ()
-            assert.are_equal(ground_query_info(0, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11)))
+          it('. should return 0, 45/360 if at the top of column 4', function ()
+            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11)))
           end)
 
-          it('should return -2, -45/360 if 2px below column 4', function ()
-            assert.are_equal(ground_query_info(-2, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 13)))
+          it('should return -2, 45/360 if 2px below column 4', function ()
+            assert.are_equal(ground_query_info(-2, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 13)))
           end)
 
-          it('should return 0.0625, -45/360 if right sensor is just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625)))
+          it('should return 0.0625, 45/360 if right sensor is just above slope column 0', function ()
+            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625)))
           end)
 
-          it('should return 0, -45/360 if right sensor is at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
+          it('should return 0, 45/360 if right sensor is at the top of column 0', function ()
+            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
-          it('should return -3, -45/360 if 3px below column 0', function ()
-            assert.are_equal(ground_query_info(-3, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 11)))
+          it('should return -3, 45/360 if 3px below column 0', function ()
+            assert.are_equal(ground_query_info(-3, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 11)))
           end)
 
-          it('. should return 0.0625, -45/360 if just above slope column 3', function ()
-            assert.are_equal(ground_query_info(0.0625, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625)))
+          it('. should return 0.0625, 45/360 if just above slope column 3', function ()
+            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625)))
           end)
 
-          it('. should return 0, -45/360 if at the top of column 3', function ()
-            assert.are_equal(ground_query_info(0, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12)))
+          it('. should return 0, 45/360 if at the top of column 3', function ()
+            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
-          it('should return ground_query_info(-4, -45/360) if 4 (<= max_ground_escape_height) below the 2nd column top', function ()
-            assert.are_equal(ground_query_info(-4, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
+          it('should return ground_query_info(-4, 45/360) if 4 (<= max_ground_escape_height) below the 2nd column top', function ()
+            assert.are_equal(ground_query_info(-4, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, -45/360) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+          it('should return ground_query_info(-max_ground_escape_height - 1, 45/360) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, -45/360) if max_ground_escape_height below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, -45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(-max_ground_escape_height - 1, 45/360) if max_ground_escape_height below the bottom', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
@@ -1161,60 +1161,60 @@ describe('player_char', function ()
             mock_mset(1, 1, desc_slope_45_id)
           end)
 
-          it('. should return 0.0625, 45/360 if right sensors are just a little above column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
+          it('. should return 0.0625, 1-45/360 if right sensors are just a little above column 0', function ()
+            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
-          it('should return 0, 45/360 if right sensors is at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+          it('should return 0, 1-45/360 if right sensors is at the top of column 0', function ()
+            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
-          it('should return -1, 45/360 if right sensors is below column 0 by 1px', function ()
-            assert.are_equal(ground_query_info(-1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 9)))
+          it('should return -1, 1-45/360 if right sensors is below column 0 by 1px', function ()
+            assert.are_equal(ground_query_info(-1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 9)))
           end)
 
-          it('should return 1, 45/360 if 1px above slope column 1', function ()
-            assert.are_equal(ground_query_info(1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 8)))
+          it('should return 1, 1-45/360 if 1px above slope column 1', function ()
+            assert.are_equal(ground_query_info(1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 8)))
           end)
 
-          it('should return 0, 45/360 if at the top of column 1', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 9)))
+          it('should return 0, 1-45/360 if at the top of column 1', function ()
+            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 9)))
           end)
 
-          it('should return -2, 45/360 if 2px below column 1', function ()
-            assert.are_equal(ground_query_info(-2, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 11)))
+          it('should return -2, 1-45/360 if 2px below column 1', function ()
+            assert.are_equal(ground_query_info(-2, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 11)))
           end)
 
-          it('should return 0.0625, 45/360 if just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
+          it('should return 0.0625, 1-45/360 if just above slope column 0', function ()
+            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
-          it('should return 0, 45/360 if at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+          it('should return 0, 1-45/360 if at the top of column 0', function ()
+            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
-          it('should return -3, 45/360 if 3px below column 0', function ()
-            assert.are_equal(ground_query_info(-3, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 11)))
+          it('should return -3, 1-45/360 if 3px below column 0', function ()
+            assert.are_equal(ground_query_info(-3, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 11)))
           end)
 
-          it('. should return 0.0625, 45/360 if just above slope column 3', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625)))
+          it('. should return 0.0625, 1-45/360 if just above slope column 3', function ()
+            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625)))
           end)
 
-          it('. should return 0, 45/360 if at the top of column 3', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11)))
+          it('. should return 0, 1-45/360 if at the top of column 3', function ()
+            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11)))
           end)
 
-          it('should return -4, 45/360 if 4px below column 3', function ()
-            assert.are_equal(ground_query_info(-4, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 15)))
+          it('should return -4, 1-45/360 if 4px below column 3', function ()
+            assert.are_equal(ground_query_info(-4, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 15)))
           end)
 
-          it('should return 0.0625, 45/360 if just above slope column 7', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625)))
+          it('should return 0.0625, 1-45/360 if just above slope column 7', function ()
+            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625)))
           end)
 
-          it('should return 0 if, 45/360 at the top of column 7', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15)))
+          it('should return 0 if, 1-45/360 at the top of column 7', function ()
+            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15)))
           end)
 
         end)
@@ -1226,8 +1226,8 @@ describe('player_char', function ()
             mock_mset(1, 1, asc_slope_22_id)
           end)
 
-          it('should return -4, -22.5/360 if below column 7 by 4px)', function ()
-            assert.are_equal(ground_query_info(-4, -22.5/360), pc:_compute_signed_distance_to_closest_ground(vector(14, 15)))
+          it('should return -4, 22.5/360 if below column 7 by 4px)', function ()
+            assert.are_equal(ground_query_info(-4, 22.5/360), pc:_compute_signed_distance_to_closest_ground(vector(14, 15)))
           end)
 
         end)
@@ -1344,20 +1344,20 @@ describe('player_char', function ()
             assert.are_same({vector(15, 10), 0, false}, {pc:get_bottom_center(), pc.slope_angle, result})
           end)
 
-          it('should do nothing when character is just on top of the ground, update slope to 45/360 and return true', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 1-45/360 and return true', function ()
             pc:set_bottom_center(vector(15, 12))
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), 45/360, true}, {pc:get_bottom_center(), pc.slope_angle, result})
+            assert.are_same({vector(15, 12), 1-45/360, true}, {pc:get_bottom_center(), pc.slope_angle, result})
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 45/360 and return true', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 1-45/360 and return true', function ()
             pc:set_bottom_center(vector(15, 13))
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), 45/360, true}, {pc:get_bottom_center(), pc.slope_angle, result})
+            assert.are_same({vector(15, 12), 1-45/360, true}, {pc:get_bottom_center(), pc.slope_angle, result})
           end)
 
           it('should do nothing when character is too deep inside the ground, and return true', function ()
@@ -2003,7 +2003,7 @@ describe('player_char', function ()
         it('should apply descending slope factor, then oppose it with strong decel when moving in the ascending direction of 45-degree slope from ground speed 0', function ()
           -- interface: check overall behavior (mini integration test)
           pc.ground_speed = 0
-          pc.slope_angle = -1/8  -- 45 deg ascending
+          pc.slope_angle = 1/8  -- 45 deg ascending
 
           pc.move_intention.x = 1
           pc:_update_ground_speed()
@@ -2054,7 +2054,7 @@ describe('player_char', function ()
 
         it('should accelerate toward left on a steep ascending slope, with very reduced slope factor at the beginning of the climb, and increase ascending slope time', function ()
           pc.ground_speed = 2
-          pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          pc.slope_angle = 0.125  -- sin(0.125) = -sqrt(2)/2
           pc.ascending_slope_time = 0
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2071,7 +2071,7 @@ describe('player_char', function ()
 
         it('should accelerate toward left on a steep ascending slope, with reduced slope factor before ascending slope duration, and increase ascending slope time', function ()
           pc.ground_speed = 2
-          pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          pc.slope_angle = 0.125  -- sin(0.125) = -sqrt(2)/2
           pc.ascending_slope_time = 0.1
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2088,7 +2088,7 @@ describe('player_char', function ()
 
         it('should accelerate toward left on a steep ascending slope, with full slope factor after ascending slope duration, and clamp time to that duration', function ()
           pc.ground_speed = 2
-          pc.slope_angle = -0.125  -- sin(0.125) = sqrt(2)/2
+          pc.slope_angle = 0.125  -- sin(0.125) = -sqrt(2)/2
           pc.ascending_slope_time = pc_data.progressive_ascending_slope_duration
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2105,7 +2105,7 @@ describe('player_char', function ()
 
         it('should accelerate toward right on a non-steep ascending slope, and reset any ascending slope time', function ()
           pc.ground_speed = 2
-          pc.slope_angle = -0.0625
+          pc.slope_angle = 0.0625
           pc.ascending_slope_time = 77
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2122,7 +2122,7 @@ describe('player_char', function ()
 
         it('should accelerate toward right on an descending slope, with full slope factor, and reset any ascending slope time', function ()
           pc.ground_speed = 2
-          pc.slope_angle = 0.125  -- sin(0.125) = - sqrt(2)/2
+          pc.slope_angle = 1-0.125  -- sin(-0.125) = sqrt(2)/2
           pc.ascending_slope_time = 77
 
           pc:_update_ground_speed_by_slope(1.8)
@@ -2183,7 +2183,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
-          pc.slope_angle = 0.125
+          pc.slope_angle = 1-0.125
           pc:_update_ground_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_descending_slope_factor * pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
@@ -2193,7 +2193,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
-          pc.slope_angle = 0.0625
+          pc.slope_angle = 1-0.0625
           pc:_update_ground_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
@@ -2288,7 +2288,7 @@ describe('player_char', function ()
         it('should apply friction when character has ground speed > 0, move intention x is 0 and character is ascending a steep slope', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
-          pc.slope_angle = -0.125
+          pc.slope_angle = 0.125
           pc:_update_ground_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
@@ -2299,7 +2299,7 @@ describe('player_char', function ()
         it('should not apply friction when character has ground speed > 0, move intention x is 0 and character is descending a steep slope', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
-          pc.slope_angle = 0.125
+          pc.slope_angle = 1-0.125
           pc:_update_ground_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5},
             {pc.orientation, pc.ground_speed})
@@ -3160,7 +3160,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(6, 7 - pc_data.center_height_standing),
-                -45/360,
+                45/360,
                 false,
                 false
               ),
@@ -3184,7 +3184,7 @@ describe('player_char', function ()
           it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
             local motion_result = motion.ground_motion_result(
               vector(12, 9 - pc_data.center_height_standing),
-              -45/360,
+              45/360,
               false,
               false
             )
@@ -3194,7 +3194,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(11, 10 - pc_data.center_height_standing),
-                -45/360,
+                45/360,
                 false,
                 false
               ),
@@ -3205,7 +3205,7 @@ describe('player_char', function ()
           it('when stepping right on the ascending slope without leaving the ground, decrement x and adjust y', function ()
             local motion_result = motion.ground_motion_result(
               vector(12, 9 - pc_data.center_height_standing),
-              -45/360,
+              45/360,
               false,
               false
             )
@@ -3215,7 +3215,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(13, 8 - pc_data.center_height_standing),
-                -45/360,
+                45/360,
                 false,
                 false
               ),

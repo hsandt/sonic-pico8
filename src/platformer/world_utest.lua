@@ -51,7 +51,7 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
       it('should return 3 on column 3', function ()
-        assert.are_same({3, -22.5 / 360}, {world._compute_column_height_at(location(1, 1), 3)})
+        assert.are_same({3, 22.5 / 360}, {world._compute_column_height_at(location(1, 1), 3)})
       end)
 
     end)
@@ -151,7 +151,7 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
       it('should return true on (8, 15)', function ()
-        assert.are_same({true, -45/360}, {world.get_pixel_collision_info(8, 15)})
+        assert.are_same({true, 45/360}, {world.get_pixel_collision_info(8, 15)})
       end)
 
       it('should return {false, nil} on (8, 16)', function ()
@@ -163,11 +163,11 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
       it('should return true on (9, 14)', function ()
-        assert.are_same({true, -45/360}, {world.get_pixel_collision_info(9, 14)})
+        assert.are_same({true, 45/360}, {world.get_pixel_collision_info(9, 14)})
       end)
 
       it('should return true on (9, 15)', function ()
-        assert.are_same({true, -45/360}, {world.get_pixel_collision_info(9, 15)})
+        assert.are_same({true, 45/360}, {world.get_pixel_collision_info(9, 15)})
       end)
 
       it('should return {false, nil} on (9, 16)', function ()
@@ -179,11 +179,11 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
       it('should return true on (15, 8)', function ()
-        assert.are_same({true, -45/360}, {world.get_pixel_collision_info(15, 8)})
+        assert.are_same({true, 45/360}, {world.get_pixel_collision_info(15, 8)})
       end)
 
       it('should return true on (15, 15)', function ()
-        assert.are_same({true, -45/360}, {world.get_pixel_collision_info(15, 15)})
+        assert.are_same({true, 45/360}, {world.get_pixel_collision_info(15, 15)})
       end)
 
       it('should return {false, nil} on (15, 16)', function ()

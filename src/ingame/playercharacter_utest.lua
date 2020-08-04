@@ -1475,18 +1475,20 @@ describe('player_char', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = sqrt(3)/2
           pc.velocity.y = 0.5
-          pc.slope_angle = 1/12  -- 30 deg/360 deg
+          pc.slope_angle = 1-1/12  -- 30 deg/360 deg
 
           pc:_enter_motion_state(motion_states.grounded)
 
-          assert.are_equal(1, pc.ground_speed)
+          -- should be OK in PICO-8, but with floating precision we need almost
+          -- (angle of -1/12 was fine, but 1-1/12 offsets a little)
+          assert.is_true(almost_eq_with_message(1, pc.ground_speed))
         end)
 
         it('(falling -> grounded, velocity (-4, 4) orthogonally to slope 45 deg desc) should set ground speed to 0', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = -4
           pc.velocity.y = 4
-          pc.slope_angle = 0.125  -- 45 deg/360 deg
+          pc.slope_angle = 1-0.125  -- 45 deg/360 deg
 
           pc:_enter_motion_state(motion_states.grounded)
 
@@ -1497,7 +1499,7 @@ describe('player_char', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = -4
           pc.velocity.y = 5
-          pc.slope_angle = 0.125  -- 45 deg/360 deg
+          pc.slope_angle = 1-0.125  -- -45 deg/360 deg
 
           pc:_enter_motion_state(motion_states.grounded)
 
@@ -1747,7 +1749,7 @@ describe('player_char', function ()
           end)
 
           it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
-            pc.slope_angle = -1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
+            pc.slope_angle = 1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
             pc:_update_platformer_motion_grounded()
             -- interface: relying on _update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
@@ -1759,7 +1761,7 @@ describe('player_char', function ()
           end)
 
           it('should set the slope angle to 0.25', function ()
-            pc.slope_angle = -0.25
+            pc.slope_angle = 1-0.25
             pc:_update_platformer_motion_grounded()
             assert.are_equal(0.25, pc.slope_angle)
           end)
@@ -1849,7 +1851,7 @@ describe('player_char', function ()
           end)
 
           it('should set the slope angle to 0.5', function ()
-            pc.slope_angle = -0.25
+            pc.slope_angle = 1-0.25
             pc:_update_platformer_motion_grounded()
             assert.are_equal(0.5, pc.slope_angle)
           end)
@@ -1894,7 +1896,7 @@ describe('player_char', function ()
           end)
 
           it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
-            pc.slope_angle = -1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
+            pc.slope_angle = 1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
             pc:_update_platformer_motion_grounded()
             -- interface: relying on _update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
@@ -2402,7 +2404,7 @@ describe('player_char', function ()
             next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, horizontal_dir, motion_result)
               local step_vec = horizontal_dir_vectors[horizontal_dir]
               motion_result.position = motion_result.position + step_vec
-              motion_result.slope_angle = -0.125
+              motion_result.slope_angle = 1-0.125
             end)
           end)
 
@@ -2433,12 +2435,12 @@ describe('player_char', function ()
           -- ?? same reason as test above
           it('(vector(3, 4) at speed 1 on slope cos 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
             pc.position = vector(3, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 1  -- * slope cos = 0.5
 
             assert.are_equal(motion.ground_motion_result(
                 vector(3.5, 4),
-                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
+                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),
@@ -2453,7 +2455,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(4, 4),
-                -0.125,
+                1-0.125,
                 false,
                 false
               ),
@@ -2467,7 +2469,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(0.5, 4),
-                -0.125,
+                1-0.125,
                 false,
                 false
               ),
@@ -2568,7 +2570,7 @@ describe('player_char', function ()
             -- this is the same as the test above (we just reach the wall edge without being blocked),
             -- but we make sure that are_subpixels_left check takes the slope factor into account
             pc.position = vector(4.5, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 1    -- * slope cos = -0.5
 
             assert.are_equal(motion.ground_motion_result(
@@ -2585,7 +2587,7 @@ describe('player_char', function ()
           -- in particular, to update the slope angle, we need to change of full pixel
           it('(vector(-4, 4) at speed -2 on slope cos 0.5) should return vector(-5, 4), is_blocked: false, is_falling: false', function ()
             pc.position = vector(-4, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -2   -- * slope cos = -1
 
             assert.are_equal(motion.ground_motion_result(
@@ -2638,13 +2640,13 @@ describe('player_char', function ()
           -- ?? same reason as test far above where "character has not moved by a full pixel" so slope should not change
           it('(vector(4, 4) at speed 1.5 on slope cos 0.5) should return vector(4.75, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             pc.position = vector(4, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 1.5  -- * slope cos = 0.75
             -- this time, due to the slope cos, charaacter doesn't reach the wall and is not blocked
 
             assert.are_equal(motion.ground_motion_result(
                 vector(4.75, 4),
-                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
+                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),
@@ -2655,12 +2657,12 @@ describe('player_char', function ()
           it('(vector(-4.1, 4) at speed -1.5 on slope cos 0.5) should return vector(-4.85, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
             -- start under -4 so we don't change full pixel and preserve slope angle
             pc.position = vector(-4.1, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -1.5  -- * slope cos = -0.75
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-4.85, 4),
-                -1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
+                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
                 false
               ),
@@ -2670,7 +2672,7 @@ describe('player_char', function ()
 
           it('(vector(4, 4) at speed 3 on slope cos 0.5) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
             pc.position = vector(4, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 3  -- * slope cos = 1.5
             -- but here, even with the slope cos, charaacter will hit wall
 
@@ -2686,7 +2688,7 @@ describe('player_char', function ()
 
           it('(vector(-4, 4) at speed 3 on slope cos 0.5) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
             pc.position = vector(-4, 4)
-            pc.slope_angle = -1/6  -- cos(-pi/3) = 1/2
+            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -3  -- * slope cos = -1.5
 
             assert.are_equal(motion.ground_motion_result(

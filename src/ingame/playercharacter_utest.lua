@@ -132,6 +132,7 @@ describe('player_char', function ()
           control_modes.human,
           motion_modes.platformer,
           motion_states.grounded,
+          directions.down,
           horizontal_dirs.right,
 
           vector.zero(),
@@ -152,6 +153,7 @@ describe('player_char', function ()
           pc.control_mode,
           pc.motion_mode,
           pc.motion_state,
+          pc.quadrant,
           pc.orientation,
 
           pc.position,
@@ -441,6 +443,76 @@ describe('player_char', function ()
         pc:move_by(vector(-5, 4))
         assert.are_equal(vector(-1, 0), pc.position)
       end)
+    end)
+
+    describe('set_slope_angle_with_quadrant', function ()
+
+      it('should set slope_angle to passed angle', function ()
+        pc.slope_angle = 0.5
+        pc:set_slope_angle_with_quadrant(0.25)
+        assert.are_equal(0.25, pc.slope_angle)
+      end)
+
+      it('should set quadrant to down for slope_angle: nil', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(nil)
+        assert.are_equal(directions.down, pc.quadrant)
+      end)
+
+      it('should set quadrant to down for slope_angle: 1-0.124', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(1-0.124)
+        assert.are_equal(directions.down, pc.quadrant)
+      end)
+
+      it('should set quadrant to down for slope_angle: 0', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0)
+        assert.are_equal(directions.down, pc.quadrant)
+      end)
+
+      it('should set quadrant to down for slope_angle: 0.124', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.124)
+        assert.are_equal(directions.down, pc.quadrant)
+      end)
+
+      it('should set quadrant to right for slope_angle: 0.25-0.125', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.25-0.125)
+        assert.are_equal(directions.right, pc.quadrant)
+      end)
+
+      it('should set quadrant to right for slope_angle: 0.25+0.125', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.25+0.125)
+        assert.are_equal(directions.right, pc.quadrant)
+      end)
+
+      it('should set quadrant to up for slope_angle: 0.5-0.124', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.5-0.124)
+        assert.are_equal(directions.up, pc.quadrant)
+      end)
+
+      it('should set quadrant to up for slope_angle: 0.5+0.124', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.5+0.124)
+        assert.are_equal(directions.up, pc.quadrant)
+      end)
+
+      it('should set quadrant to left for slope_angle: 0.75-0.125', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.75-0.125)
+        assert.are_equal(directions.left, pc.quadrant)
+      end)
+
+      it('should set quadrant to left for slope_angle: 0.75+0.125', function ()
+        pc.quadrant = nil
+        pc:set_slope_angle_with_quadrant(0.75+0.125)
+        assert.are_equal(directions.left, pc.quadrant)
+      end)
+
     end)
 
     describe('update', function ()
@@ -1685,6 +1757,7 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(animated_sprite, "play")
+          spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
 
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
             self.ground_speed = new_ground_speed
@@ -1695,6 +1768,7 @@ describe('player_char', function ()
 
         teardown(function ()
           animated_sprite.play:revert()
+          player_char.set_slope_angle_with_quadrant:revert()
 
           update_ground_speed_mock:revert()
           enter_motion_state_stub:revert()
@@ -1708,6 +1782,8 @@ describe('player_char', function ()
         end)
 
         after_each(function ()
+          player_char.set_slope_angle_with_quadrant:clear()
+
           update_ground_speed_mock:clear()
           enter_motion_state_stub:clear()
           check_jump_intention_stub:clear()
@@ -1760,10 +1836,11 @@ describe('player_char', function ()
             assert.are_equal(vector(3, 4), pc.position)
           end)
 
-          it('should set the slope angle to 0.25', function ()
+          it('should call set_slope_angle_with_quadrant with 0.25', function ()
             pc.slope_angle = 1-0.25
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(0.25, pc.slope_angle)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
           end)
 
           it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
@@ -1850,10 +1927,11 @@ describe('player_char', function ()
             assert.are_equal(vector(3, 4), pc.position)
           end)
 
-          it('should set the slope angle to 0.5', function ()
+          it('should call set_slope_angle_with_quadrant with 0.5', function ()
             pc.slope_angle = 1-0.25
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(0.5, pc.slope_angle)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
           end)
 
           it('should play the idle animation (ground speed ~= 0)', function ()
@@ -1917,9 +1995,11 @@ describe('player_char', function ()
             assert.are_equal(vector(3, 4), pc.position)
           end)
 
-          it('should set the slope angle to nil', function ()
+          it('should call set_slope_angle_with_quadrant to nil', function ()
+            pc.slope_angle = 0
             pc:_update_platformer_motion_grounded()
-            assert.is_nil(pc.slope_angle)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
           end)
 
         end)
@@ -1967,9 +2047,11 @@ describe('player_char', function ()
             assert.are_equal(vector(3, 4), pc.position)
           end)
 
-          it('should set the slope angle to nil', function ()
+          it('should call set_slope_angle_with_quadrant to nil', function ()
+            pc.slope_angle = 0
             pc:_update_platformer_motion_grounded()
-            assert.is_nil(pc.slope_angle)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
           end)
 
         end)
@@ -3451,11 +3533,13 @@ describe('player_char', function ()
         setup(function ()
           spy.on(player_char, "_enter_motion_state")
           spy.on(player_char, "_check_hold_jump")
+          spy.on(player_char, "set_slope_angle_with_quadrant")
         end)
 
         teardown(function ()
           player_char._enter_motion_state:revert()
           player_char._check_hold_jump:revert()
+          player_char.set_slope_angle_with_quadrant:revert()
         end)
 
         before_each(function ()
@@ -3464,6 +3548,7 @@ describe('player_char', function ()
           -- clear spy just after this instead of after_each to avoid messing the call count
           player_char._enter_motion_state:clear()
           player_char._check_hold_jump:clear()
+          player_char.set_slope_angle_with_quadrant:clear()
         end)
 
         describe('(when _compute_air_motion_result returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
@@ -3767,14 +3852,17 @@ describe('player_char', function ()
             compute_air_motion_result_mock:clear()
           end)
 
-          it('should enter grounded state with slope_angle: 0.5', function ()
+          it('should enter grounded state and set_slope_angle_with_quadrant: 0.5', function ()
+            pc.slope_angle = 0
+
             pc:_update_platformer_motion_airborne()
 
             -- implementation
             assert.spy(pc._enter_motion_state).was_called(1)
             assert.spy(pc._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
 
-            assert.are_equal(0.5, pc.slope_angle)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
           end)
 
         end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)

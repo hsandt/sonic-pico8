@@ -55,6 +55,7 @@ local player_char = new_class()
 -- control_mode           control_modes   control mode: human (default) or ai
 -- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states   motion state (platformer mode only)
+-- quadrant               directions      cardinal direction of character's own down vector (to walk on wall and ceiling)
 -- orientation            horizontal_dirs direction faced by character
 -- position               vector          current position (character center "between" pixels)
 -- ground_speed           float           current speed along the ground (~px/frame)
@@ -86,13 +87,15 @@ function player_char:_setup()
   self.motion_mode = motion_modes.platformer
 --#endif
   self.motion_state = motion_states.grounded
+  self.quadrant = directions.down
   self.orientation = horizontal_dirs.right
 
   self.position = vector.zero()
   self.ground_speed = 0.
   self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
-  -- slope_angle starts at 0 instead of nil to match grounded state above (first spawn will set this anyway)
+  -- slope_angle starts at 0 instead of nil to match grounded state above
+  -- (if spawning in the air, fine, next update will reset angle to nil)
   self.slope_angle = 0.
   self.ascending_slope_time = 0.
 
@@ -165,6 +168,29 @@ end
 -- move the player character from delta_vector in px
 function player_char:move_by(delta_vector)
   self.position = self.position + delta_vector
+end
+
+-- set slope angle and update quadrant
+function player_char:set_slope_angle_with_quadrant(angle)
+  assert(angle == nil or 0. <= angle and angle <= 1., "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
+
+  self.slope_angle = angle
+
+  -- priority to horizontal quadrants at the boundaries
+  -- (just so 45-deg slope is recognized as left/right and character can get control-locked
+  --  to mimic hysteresis motion when trying to walk up slide in Hydrocity Zone)
+  -- nil angle (airborne) defaults to down so Sonic will try to "stand up" in the air
+  if not angle or angle > 0.875 or angle < 0.125 then
+    self.quadrant = directions.down
+  elseif angle <= 0.375 then
+    self.quadrant = directions.right
+  elseif angle < 0.625 then
+    self.quadrant = directions.up
+  else  -- angle <= 0.875
+    self.quadrant = directions.left
+  end
+
+  printh("self.quadrant: "..dump(self.quadrant))
 end
 
 function player_char:update()
@@ -357,7 +383,7 @@ function player_char:_check_escape_from_ground()
     -- - snap character up to ground top (it does nothing if already touching ground)
     -- - set slope angle to new ground
     self.position.y = self.position.y + signed_distance_to_closest_ground
-    self.slope_angle = next_slope_angle
+    self:set_slope_angle_with_quadrant(next_slope_angle)
   end
   return signed_distance_to_closest_ground <= 0
 end
@@ -444,7 +470,7 @@ function player_char:_update_platformer_motion_grounded()
 
   -- we can now update position and slope
   self.position = ground_motion_result.position
-  self.slope_angle = ground_motion_result.slope_angle
+  self:set_slope_angle_with_quadrant(ground_motion_result.slope_angle)
 
   -- todo: reset jump intention on fall... we don't want character to cancel a natural fall by releasing jump button
   -- (does not happen because of negative jump speed interrupt threshold, but could happen
@@ -925,7 +951,7 @@ function player_char:_update_platformer_motion_airborne()
   end
 
   if air_motion_result.is_landing then
-    self.slope_angle = air_motion_result.slope_angle
+    self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
     self:_enter_motion_state(motion_states.grounded)
   end
 

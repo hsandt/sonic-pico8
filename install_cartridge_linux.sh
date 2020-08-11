@@ -12,7 +12,7 @@ fi
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="3.0"
+version="3.1"
 config="$1"; shift
 
 # option "png" will export the png cartridge

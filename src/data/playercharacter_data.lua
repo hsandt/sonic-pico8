@@ -1,16 +1,24 @@
-require("engine/render/color")
+local serialization = require("engine/data/serialization")
 local sprite_data = require("engine/render/sprite_data")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 
 local playercharacter_data = {
 
   -- platformer motion
+  -- values in px, px/frame, px/frame^2 are *2 compared to SPG since we work with 8px tiles
+  -- for values in px, px/frame, px/frame^2, I added /64
+  -- for degrees, /360 form
+  -- (for readability)
 
   -- ground acceleration (px/frame^2)
   ground_accel_frame2 = 0.0234375,  -- 1.5/64
 
   -- ground active deceleration (brake) (px/frame^2)
   ground_decel_frame2 = 0.25,  -- 16/64
+
+  -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
+  -- ground active deceleration factor on descending slope ([0-1])
+  ground_decel_descending_slope_factor = 0.5,
 
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
@@ -21,11 +29,38 @@ local playercharacter_data = {
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
 
+  -- Used by 3 original features (not in SPG):
+  --  - Reduced Deceleration on Steep Descending Slope
+  --  - No Friction on Steep Descending Slope
+  --  - Progressive Ascending Steep Slope Factor
+  -- max slope angle on which friction is applied (]0-0.25[, but we recommend more than 22.5 degrees i.e. 0.0625)
+  steep_slope_min_angle = 0.075,  -- 27/360
+
+  -- derived data: the slope angle for which ground friction is exactly opposed to slope factor
+  -- is 22.02 degrees ~ 0.061 angle/360 ratio (PICO-8 unit)
+
+  -- Original feature (not in SPG): Progressive Ascending Slope Factor
+  -- time needed when ascending a slope before full slope factor is applied (s)
+  progressive_ascending_slope_duration = 0.5,
+
   -- air acceleration on x axis (px/frames^2)
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
+  -- air drag factor applied every frame, at 60 FPS
+  air_drag_factor_per_frame = 0.96875,
+
+  -- min absolute velocity x for which air drag is applied
+  air_drag_min_velocity_x = 0.25,  -- 16/64
+
+  -- maximum absolute velocity y for which air drag is applied
+  -- the actual range is ] -air_drag_max_abs_velocity_y, 0 [
+  air_drag_max_abs_velocity_y = 8,  -- 512/64
+
   -- ground acceleration (px/frame)
   max_ground_speed = 3,
+
+  -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
+  max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
@@ -80,30 +115,51 @@ local playercharacter_data = {
   -- sprite
 
   -- stand right
-  sonic_sprite_data_table = {
-    ["idle"]  = sprite_data(sprite_id_location(0, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run1"]  = sprite_data(sprite_id_location(2, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run2"]  = sprite_data(sprite_id_location(4, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run3"]  = sprite_data(sprite_id_location(6, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run4"]  = sprite_data(sprite_id_location(8, 8),  tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run5"]  = sprite_data(sprite_id_location(10, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run6"]  = sprite_data(sprite_id_location(12, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run7"]  = sprite_data(sprite_id_location(14, 8), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run8"]  = sprite_data(sprite_id_location(0, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run9"]  = sprite_data(sprite_id_location(2, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run10"] = sprite_data(sprite_id_location(4, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["run11"] = sprite_data(sprite_id_location(6, 10), tile_vector(2, 2), vector(11, 8), colors.pink),
-    ["spin"]  = sprite_data(sprite_id_location(0, 12), tile_vector(2, 2), vector(5, 5),  colors.pink),
-  },
+  -- colors.pink: 14
+  sonic_sprite_data_table = serialization.parse_expression(
+    --anim_name = sprite_data(
+    --          id_loc,  span,   pivot,   transparent_color (14: pink))
+    [[{
+      idle  = {{0, 8},  {2, 2}, {11, 8}, 14},
+      run1  = {{2, 8},  {2, 2}, {11, 8}, 14},
+      run2  = {{4, 8},  {2, 2}, {11, 8}, 14},
+      run3  = {{6, 8},  {2, 2}, {11, 8}, 14},
+      run4  = {{8, 8},  {2, 2}, {11, 8}, 14},
+      run5  = {{10, 8}, {2, 2}, {11, 8}, 14},
+      run6  = {{12, 8}, {2, 2}, {11, 8}, 14},
+      run7  = {{14, 8}, {2, 2}, {11, 8}, 14},
+      run8  = {{0, 10}, {2, 2}, {11, 8}, 14},
+      run9  = {{2, 10}, {2, 2}, {11, 8}, 14},
+      run10 = {{4, 10}, {2, 2}, {11, 8}, 14},
+      run11 = {{6, 10}, {2, 2}, {11, 8}, 14},
+      spin  = {{0, 12}, {2, 2}, {5, 5},  14},
+    }]], function (t)
+      return sprite_data(
+        sprite_id_location(t[1][1], t[1][2]),  -- id_loc
+        tile_vector(t[2][1], t[2][2]),         -- span
+        vector(t[3][1], t[3][2]),              -- pivot
+        t[4]                                   -- transparent_color
+      )
+  end),
+
+  -- minimum playback speed for "run" animation, to avoid very slow animation
+  -- 5/16: the 5 counters the 5 duration frames of ["run"] below, 1/8 to represent max duration 8 in SPG:Animations
+  -- and an extra 1/2 because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
+  run_anim_min_play_speed = 0.3125
 
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
-playercharacter_data.sonic_animated_sprite_data_table = {
-  ["idle"] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"idle"}, 10, true),
-  ["run"] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
-    {"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"}, 5, true),
-  ["spin"] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, {"spin"}, 10, true),
-}
+playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expression(
+  --[anim_name] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
+  --        sprite_keys,  step_frames, loop_mode)
+  [[{
+    idle = {{"idle"},     10,          true},
+    run  = {{"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"},
+                           5,          true},
+    spin = {{"spin"},     10,          true},
+}]], function (t)
+  return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])
+end)
 
 return playercharacter_data

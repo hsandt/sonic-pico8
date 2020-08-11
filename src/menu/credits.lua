@@ -1,6 +1,4 @@
 require("engine/application/flow")
-require("engine/core/class")
-require("engine/render/color")
 local gamestate = require("engine/application/gamestate")
 
 

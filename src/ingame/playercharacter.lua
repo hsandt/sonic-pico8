@@ -1,7 +1,3 @@
-require("engine/application/constants")
-require("engine/core/class")
-require("engine/core/helper")
-require("engine/core/math")
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif
@@ -59,12 +55,13 @@ local player_char = new_class()
 -- control_mode           control_modes   control mode: human (default) or ai
 -- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states   motion state (platformer mode only)
--- horizontal_dir         horizontal_dirs direction faced by character
+-- orientation            horizontal_dirs direction faced by character
 -- position               vector          current position (character center "between" pixels)
 -- ground_speed           float           current speed along the ground (~px/frame)
 -- velocity               vector          current velocity in platformer mode (px/frame)
 -- debug_velocity         vector          current velocity in debug mode (m/s)
 -- slope_angle            float           slope angle of the current ground (clockwise turn ratio)
+-- ascending_slope_time   float           time before applying full slope factor, when ascending a slope (s)
 -- move_intention         vector          current move intention (normalized)
 -- jump_intention         bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention    bool            current intention to hold jump (always true when jump_intention is true)
@@ -89,7 +86,7 @@ function player_char:_setup()
   self.motion_mode = motion_modes.platformer
 --#endif
   self.motion_state = motion_states.grounded
-  self.horizontal_dir = horizontal_dirs.right
+  self.orientation = horizontal_dirs.right
 
   self.position = vector.zero()
   self.ground_speed = 0.
@@ -97,6 +94,7 @@ function player_char:_setup()
   self.debug_velocity = vector.zero()
   -- slope_angle starts at 0 instead of nil to match grounded state above (first spawn will set this anyway)
   self.slope_angle = 0.
+  self.ascending_slope_time = 0.
 
   self.move_intention = vector.zero()
   self.jump_intention = false
@@ -212,13 +210,18 @@ end
 
 --#if cheat
 function player_char:_toggle_debug_motion()
-  if self.motion_mode == motion_modes.debug then
-    -- respawn character at current position. this will in particular:
-    --   - set the motion mode back to platformer
-    --   - detect ground and update the motion state correctly
+  -- 1 -> 2 (debug)
+  -- 2 -> 1 (platformer)
+  self:set_motion_mode(self.motion_mode % 2 + 1)
+end
+
+function player_char:set_motion_mode(val)
+  self.motion_mode = val
+  if val == motion_modes.platformer then
+    -- respawn character at current position
+    -- this will detect ground and update the motion state correctly
     self:spawn_at(self.position)
-  else  -- self.motion_mode == motion_modes.platformer
-    self.motion_mode = motion_modes.debug
+  else  -- self.motion_mode == motion_modes.debug
     self.debug_velocity = vector.zero()
   end
 end
@@ -288,7 +291,7 @@ function player_char:_get_prioritized_dir()
       return signed_speed_to_dir(self.velocity.x)
     end
   end
-  return self.horizontal_dir
+  return self.orientation
 end
 
 -- return the position of the ground sensor in horizontal_dir when the character center is at center_position
@@ -348,19 +351,22 @@ end
 function player_char:_check_escape_from_ground()
   local query_info = self:_compute_ground_sensors_signed_distance(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  local should_escape = signed_distance_to_closest_ground < 0 and abs(signed_distance_to_closest_ground) <= pc_data.max_ground_escape_height
-  if should_escape then
+  if signed_distance_to_closest_ground <= 0 and - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+    -- character is either just touching ground (signed_distance_to_closest_ground == 0)
+    --  or inside ground:
+    -- - snap character up to ground top (it does nothing if already touching ground)
+    -- - set slope angle to new ground
     self.position.y = self.position.y + signed_distance_to_closest_ground
-  end
-  if signed_distance_to_closest_ground == 0 or should_escape then
-    -- character was either touching ground, or inside it and escaped
-    --  so update his slope angle
     self.slope_angle = next_slope_angle
   end
   return signed_distance_to_closest_ground <= 0
 end
 
 -- enter motion state, reset state vars appropriately
+-- refactor: consider separate methods go_airborne or land
+--  so you can pass more specific arguments
+-- current, self.slope_angle must have been previously set when
+--  entering ground state
 function player_char:_enter_motion_state(next_motion_state)
   if next_motion_state == motion_states.falling then
     -- we have just left the ground without jumping, enter falling state
@@ -376,18 +382,23 @@ function player_char:_enter_motion_state(next_motion_state)
     self.should_jump = false
     self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
+    -- Momentum: transfer part of velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
+    self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
+    self:_clamp_ground_speed()
     -- we have just reached the ground (and possibly escaped),
     --  reset values airborne vars
-    self.velocity.y = 0  -- no velocity retain yet on y
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
     self.anim_spr:play("idle")
   end
 
+  -- store previous compact state before changing motion state
   local was_compact = self:is_compact()
 
+  -- update motion state
   self.motion_state = next_motion_state
 
+  -- adjust center when switching compact mode
   if not was_compact and self:is_compact() then
     -- character became compact (e.g. crouching or start jumping),
     -- move it slightly down to keep center position continuity
@@ -405,7 +416,7 @@ function player_char:_update_platformer_motion()
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
   if self.motion_state == motion_states.grounded then
-    self:_check_jump()  -- this may change the motion state to air_spin
+    self:_check_jump()  -- this may change the motion state to air_spin and affect branching below
   end
 
   if self:is_grounded() then
@@ -429,7 +440,7 @@ function player_char:_update_platformer_motion_grounded()
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
-  self.velocity = self.ground_speed * vector(cos(self.slope_angle), -sin(self.slope_angle))
+  self.velocity = self.ground_speed * vector.unit_from_angle(self.slope_angle)
 
   -- we can now update position and slope
   self.position = ground_motion_result.position
@@ -450,7 +461,10 @@ function player_char:_update_platformer_motion_grounded()
     if self.ground_speed == 0 then
       self.anim_spr:play("idle")
     else
-      self.anim_spr:play("run", false, abs(self.ground_speed))
+      -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
+      -- instead, we prefer the more organic approach of continuous playback speed
+      -- however, to simulat the max duration clamping, we use min playback speed clamping
+      self.anim_spr:play("run", false, max(pc_data.run_anim_min_play_speed, abs(self.ground_speed)))
     end
   end
 
@@ -465,23 +479,54 @@ end
 
 -- update ground speed
 function player_char:_update_ground_speed()
-  -- we need to update ground speed by intention first so accel/decel is handled correctly
-  --  otherwise, when starting at speed 0 on an ascending slope, gravity changes speed to < 0
-  --  and a right move intention would be handled as a decel, which is fast enough to climb up
-  --  even the highest slopes
-  -- FIXME: but that broke low slopes since we apply friction for nothing,
-  --  then the slope factor...
-  -- Instead, we need to synthetize by applying the slope factor in the background,
-  --  then the move intention but not based on the intermediate speed but the old speed (or better, the horizontal dir)
-  self:_update_ground_speed_by_intention()
+  -- We apply slope factor *before* move intention because it gives
+  --  better results when not moving on a low slope (friction will stop you completely).
+  -- Another side effect is that the ground speed *after* slope factor application
+  --  will be considered for the move intention effect, such as decelerating
+  --  when moving forward on an ascending slope if it started make you move down.
+  -- Also, if ground speed is 0 and we start trying to ascend slope,
+  --  Progressive Ascending Steep Slope Factor feature won't be applied the first frame.
+  -- But it should be OK overall.
+  -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
   self:_update_ground_speed_by_slope()
+  self:_update_ground_speed_by_intention()
   self:_clamp_ground_speed()
 end
 
 -- update ground speed based on current slope
 function player_char:_update_ground_speed_by_slope()
+  local is_ascending_slope = false
+
   if self.slope_angle ~= 0 then
-    self.ground_speed = self.ground_speed - pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+    -- Original feature (not in SPG): Progressive Ascending Steep Slope Factor
+    --  If character is ascending a slope, do not apply the full slope factor immediately.
+    --  Instead, linearly increase the applied slope factor from 0 to full over a given duration.
+    --  We use the ground speed before applying intention to avoid exploid of spamming
+    --  the left/right (ascending) input to restart the timer thanks to the ground speed
+    --  being slightly increased by the intention, but actually countered by slope accel in the same frame.
+    -- Effect: the character can completely cross steep but short slopes
+    -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
+    --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
+    local ascending_slope_factor = 1
+    -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
+    --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
+    if self.ground_speed ~= 0 and abs(sin(self.slope_angle)) >= sin(-pc_data.steep_slope_min_angle) and sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
+      is_ascending_slope = true
+      local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
+      local progressive_ascending_slope_factor = 1
+      -- increase tracking time every frame
+      self.ascending_slope_time = min(self.ascending_slope_time + delta_time60, ascending_slope_duration)
+      ascending_slope_factor = self.ascending_slope_time / ascending_slope_duration
+    end
+
+    -- slope angle is mostly defined with atan2(dx, dy) which follows top-left origin BUT counter-clockwise angle convention
+    -- sin also follows this convention, so ultimately + is OK
+    self.ground_speed = self.ground_speed + ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+  end
+
+  if not is_ascending_slope then
+    -- reset ascending slope time
+    self.ascending_slope_time = 0
   end
 end
 
@@ -492,28 +537,54 @@ function player_char:_update_ground_speed_by_intention()
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
+      -- face move direction if not already
+      self.orientation = signed_speed_to_dir(self.move_intention.x)
     else
+      -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
+      --  Apply a fixed factor
+      -- Effect: a character descending a steep slope will take more time to brake than if
+      --  considering slope factor alone
+      -- Resolves: character descending a steep slope was braking and turning back too suddenly
+      local ground_decel_factor = 1
+      -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
+      --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
+      if abs(sin(self.slope_angle)) >= sin(-pc_data.steep_slope_min_angle) and sgn(self.ground_speed) == sgn(sin(self.slope_angle)) then
+        -- character is trying to brake on a descending slope
+        ground_decel_factor = pc_data.ground_decel_descending_slope_factor
+      end
+
       -- decelerate
-      self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_decel_frame2
-      -- if speed must switch sign this frame, clamp it by ground accel in absolute value to prevent exploit of
-      --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
+      self.ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
+      -- check if speed has switched sign this frame, i.e. character has turned around
       local has_changed_sign = self.ground_speed ~= 0 and sgn(self.ground_speed) == sgn(self.move_intention.x)
-      if has_changed_sign and abs(self.ground_speed) > pc_data.ground_accel_frame2 then
-        self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
+
+      if has_changed_sign then
+        -- clamp speed after turn around by ground accel in absolute value to prevent exploit of
+        --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
+        if abs(self.ground_speed) > pc_data.ground_accel_frame2 then
+          self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
+        end
+        -- turn around
+        self.orientation = signed_speed_to_dir(self.move_intention.x)
       end
     end
 
-    if self.ground_speed ~= 0 then
-      -- always update direction when player tries to move and the character is moving after update
-      -- this is useful even when move intention x has same sign as ground speed,
-      -- as the character may be running backward after failing to run a steep slope up
-      self.horizontal_dir = signed_speed_to_dir(self.ground_speed)
-    end
-
   elseif self.ground_speed ~= 0 then
-    -- friction
-    self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+    -- no move intention, character is passive
+
+    -- Original feature (not in SPG): No Friction on Steep Descending Slope
+    --  Do not apply friction when character is descending a steep slope passively;
+    --  In other words, apply it only on flat ground, low slope and only steep slopes if ascending
+    -- Effect: the character will automatically run down a steep slope and accumulate acceleration downward
+    --  without friction
+    -- Resolves: the character was moving down a steep slope very slowly because of friction
+    -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
+    --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
+    if abs(sin(self.slope_angle)) <= sin(-pc_data.steep_slope_min_angle) or sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
+      self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+    end
   end
+
 end
 
 -- clamp ground speed to max
@@ -636,13 +707,17 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
   -- check if next position is inside/above ground
   local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  if signed_distance_to_closest_ground < 0 then
+
+  -- merge < 0 and == 0 cases together to spare tokens
+  -- when 0, next_position_candidate.y will simpy not change
+  if signed_distance_to_closest_ground <= 0 then
     -- position is inside ground, check if we can step up during this step
-    local penetration_height = - signed_distance_to_closest_ground
-    if penetration_height <= pc_data.max_ground_escape_height then
+    -- refactor: code is similar to _check_escape_from_ground and above all _next_air_step
+    if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up
-      next_position_candidate.y = next_position_candidate.y - penetration_height
-      -- if we left the ground during a previous step, cancel that (step up land, very rare)
+      next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+      -- if we left the ground during a previous step, cancel that
+      --  (fall, then touch ground or step up to land, very rare)
       ref_motion_result.is_falling = false
     else
       -- step blocked: step up is too high, character is blocked
@@ -652,6 +727,7 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
     end
   elseif signed_distance_to_closest_ground > 0 then
     -- position is above ground, check if we can step down during this step
+    -- (step down is during ground motion only)
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
       -- step down
       next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
@@ -668,10 +744,6 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
       --  and applying it this frame
       ref_motion_result.is_falling = true
     end
-  else
-    -- step flat
-    -- if character left the ground during a previous step, cancel that (very rare)
-    ref_motion_result.is_falling = false
   end
 
   if not ref_motion_result.is_blocked then
@@ -689,6 +761,8 @@ function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
     --  than the ground sensors; if there were even farther, we'd even need to
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
     --  when ref_motion_result.is_blocked (and adapt y)
+    -- in addition, because a step is no more than 1px, if we were blocked this step
+    --  we have not moved at all and therefore there is no need to update slope angle
     if not ref_motion_result.is_blocked then
       ref_motion_result.position = next_position_candidate
       if ref_motion_result.is_falling then
@@ -814,16 +888,26 @@ function player_char:_update_platformer_motion_airborne()
     self.velocity.y = self.velocity.y + pc_data.gravity_frame2
   end
 
-  -- check if player is continuing or interrupting jump *after* applying gravity
-  -- this means gravity will *not* be applied during the hop/interrupt jump frame
-  self:_check_hold_jump()
+  -- only allow jump interrupt if character has jumped on its own (no fall)
+  -- there is no has_jumped flag so the closest is to check for air_spin
+  if self.motion_state == motion_states.air_spin then
+    -- check if player is continuing or interrupting jump *after* applying gravity
+    -- this means gravity will *not* be applied during the hop/interrupt jump frame
+    self:_check_hold_jump()
+  end
 
   if self.move_intention.x ~= 0 then
     -- apply x acceleration via intention (if not 0)
     self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
 
     -- in the air, apply intended motion to direction immediately
-    self.horizontal_dir = signed_speed_to_dir(self.move_intention.x)
+    self.orientation = signed_speed_to_dir(self.move_intention.x)
+  end
+
+  self:apply_air_drag()
+
+  if self.velocity.y > pc_data.max_air_velocity_y then
+    self.velocity.y = pc_data.max_air_velocity_y
   end
 
   -- apply air motion
@@ -866,6 +950,14 @@ function player_char:_check_hold_jump()
   end
 end
 
+function player_char:apply_air_drag()
+  local vel = self.velocity  -- ref
+  if vel.y < 0 and vel.y > - pc_data.air_drag_max_abs_velocity_y and
+      abs(vel.x) >= pc_data.air_drag_min_velocity_x then
+    vel.x = vel.x * pc_data.air_drag_factor_per_frame
+  end
+end
+
 -- return {next_position: vector, is_blocked_by_ceiling: bool, is_blocked_by_wall: bool, is_landing: bool} where
 --  - next_position is the position of the character next frame considering his current (air) velocity
 --  - is_blocked_by_ceiling is true iff the character encounters a ceiling during this motion
@@ -897,12 +989,21 @@ function player_char:_compute_air_motion_result()
   -- a. describe a Bresenham's line, stepping on x and y, for the best precision
   -- b. step on x until you reach the max distance x, then step on y (may hit wall you wouldn't have with a. or c.)
   -- c. step on y until you reach the max distance y, then step on x (may hit ceiling you wouldn't have with a. or b.)
+  -- and 1 way without iteration:
+  -- d. compute final position of air motion at the end of the frame, and escape from x and y if needed
 
-  -- we focus on landing/ceiling first, and prefer simplicity to precision as long as motion seems ok,
-  --  so we choose c.
-  self:_advance_in_air_along(motion_result, self.velocity, "y")
-  log("=> "..motion_result, "trace")
+  -- We choose b. which is precise enough while always finishing with a potential landing
+  -- Initially we used c., but Sonic tended to fly above descending slopes as the X motion was applied
+  --  after Y motion, including snapping, causing a ladder-shaped motion above the slope where the final position
+  --  was always above the ground.
+  -- Note, however, that this is a temporary fix: where we add quadrants, X and Y will have more symmetrical roles
+  --  and we can expect similar issues when trying to land with high speed adherence on a 90-deg wall.
+  -- Ultimately, I think it will work better with either d. or an Unreal-style multi-mode step approach
+  --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as grounded,
+  --  following the ground as usual).
   self:_advance_in_air_along(motion_result, self.velocity, "x")
+  log("=> "..motion_result, "trace")
+  self:_advance_in_air_along(motion_result, self.velocity, "y")
   log("=> "..motion_result, "trace")
 
   return motion_result
@@ -1006,7 +1107,8 @@ function player_char:_next_air_step(direction, ref_motion_result)
   log("step_vec: "..step_vec, "trace")
   log("next_position_candidate: "..next_position_candidate, "trace")
 
-  -- we can only hit walls or the ground when moving left, right or down
+  -- we can only hit walls or the ground when stepping left, right or down
+  -- (horizontal step of diagonal upward motion is OK)
   if direction ~= directions.up then
     -- query ground to check for obstacles (we only care about distance, not slope angle)
     -- note that we reuse the ground sensors for air motion, because they are good at finding
@@ -1016,41 +1118,42 @@ function player_char:_next_air_step(direction, ref_motion_result)
 
     log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace")
 
-    -- check if the character has hit a ground or a wall
-    if signed_distance_to_closest_ground < 0 then
-      -- we do not activate step up during air motion, so any pixel above the character's bottom
-      --  is considered a hard obstacle
-      -- however, if we want to allow jump from an ascending sheer angle directly onto a platform,
-      --  as suggested by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
-      --  where ground detection from the air is done when moving downward or when moving upward, but faster horizontally
-      --  than vertically, then we would not only need to add the x vs y spd check but also enable *snap* to ground
-      --  from the last step position, since we may miss a few pixels from here to reach the ground
-      --  (otherwise, the obstacle may was well be considered as a wall, as we're doing now)
-      -- Then we would have a check more symmetrical to below, with
-      --  `if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y)`
-      -- Depending on the direction, we consider we were blocked by either a ceiling or a wall
-      if direction == directions.down then
-        -- landing: the character has just set foot on ground, flag it and initialize slope angle
-        -- note that we only consider the character to touch ground when it is about to enter it
-        -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
-        --  it is still technically considered in the air
-        -- if this step is blocked by landing, there is no extra motion,
-        --  but character will enter grounded state
-        ref_motion_result.is_landing = true
-        ref_motion_result.slope_angle = next_slope_angle
-      else
-        ref_motion_result.is_blocked_by_wall = true
-        log("is blocked by wall", "trace")
+    -- Check if the character has hit a ground or a wall
+    -- First, following SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29),
+    --  allow jump from an ascending sheer angle directly onto a platform. This includes moving horizontally.
+    -- This must be combined with a step up (snap to ground top, but directly from the air) to really work
+    if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y) then
+      -- check if we are touching or entering ground
+      if signed_distance_to_closest_ground <= 0 then
+        -- Just like during ground step, check the step height: if too high, we hit a wall and stay airborne
+        --  else, we land
+        -- This step up check is really important, even for low slopes:
+        --  if not done, when Sonic lands on an ascending slope, it will consider the few pixels up
+        --  to be a wall!
+        -- I used to check direction == directions.down only, and indeed if you step 1px down,
+        --  the penetration distance will be no more than 1 and you will always snap to ground.
+        -- But this didn't work when direction left/right hit the slope.
+        -- refactor: code is similar to _check_escape_from_ground and above all _next_ground_step
+        if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+          next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+          -- landing: the character has just set foot on ground, flag it and initialize slope angle
+          -- note that we only consider the character to touch ground when it is about to enter it
+          -- below deprecated if we <= 0 check
+          -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
+          --  it is still technically considered in the air
+          -- if this step is blocked by landing, there is no extra motion,
+          --  but character will enter grounded state
+          ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
+          log("is landing, setting slope angle to "..next_slope_angle, "trace")
+        else
+          ref_motion_result.is_blocked_by_wall = true
+          log("is blocked by wall", "trace")
+        end
+      elseif signed_distance_to_closest_ground > 0 then
+        -- in the air: the most common case, in general requires nothing to do
+        -- in rare cases, the character has landed on a previous step, and we must cancel that now
+        ref_motion_result.is_landing, ref_motion_result.slope_angle = false--, nil
       end
-    elseif signed_distance_to_closest_ground > 0 then
-      -- in the air: the most common case, in general requires nothing to do
-      -- in rare cases, the character has landed on a previous step, and we must cancel that now
-      ref_motion_result.is_landing = false
-      ref_motion_result.slope_angle = nil
-    elseif ref_motion_result.is_landing then
-      -- if we enter this, direction must be horizontal, so update slope angle with new ground
-      ref_motion_result.slope_angle = next_slope_angle
-      log("is landing, setting slope angle to "..next_slope_angle, "trace")
     end
   end
 
@@ -1062,11 +1165,16 @@ function player_char:_next_air_step(direction, ref_motion_result)
   --  then there is no need to check further, though
   -- The SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
   --  remarks that ceiling detection is done when moving upward or when moving faster horizontally than vertically
+  --  (this includes moving horizontally)
   -- Since it's just for this extra test, we check self.velocity directly instead of passing it as argument
   -- Note that we don't check the exact step direction, if we happen to hit the ceiling during
   --  the X motion, that's fine.
   -- In practice, when approaching a ceiling from a descending direction with a sheer horizontal angle,
   --  we will hit the block as a wall first; but that's because we consider blocks as wall and ceilings at the same time.
+  -- If we wanted to be symmetrical with floor check above, we would need to call some check_escape_from_ceiling
+  --  to snap Sonic slightly down when only hitting the wall by a few pixels, so character can continue moving horizontally
+  --  under the ceiling, touching it at the beginning. But it doesn't seem to happen in Classic Sonic so we don't implement
+  --  it unless our stage has ceilings where this often happens and it annoys the player.
   if not ref_motion_result.is_blocked_by_wall and
       (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
     local is_blocked_by_ceiling_at_next = self:_is_blocked_by_ceiling_at(next_position_candidate)
@@ -1080,7 +1188,9 @@ function player_char:_next_air_step(direction, ref_motion_result)
         -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
         --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
         -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
+        -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
         ref_motion_result.is_blocked_by_wall = true
+        log("is blocked by ceiling as wall", "trace")
       end
     end
   end
@@ -1110,8 +1220,8 @@ end
 function player_char:_update_velocity_debug()
   -- update velocity from input
   -- in debug mode, cardinal speeds are independent and max speed applies to each
-  self:_update_velocity_component_debug("x")
-  self:_update_velocity_component_debug("y")
+  self:_update_velocity_component_debug "x"
+  self:_update_velocity_component_debug "y"
 end
 
 --#endif
@@ -1134,7 +1244,7 @@ end
 
 -- render the player character sprite at its current position
 function player_char:render()
-  local flip_x = self.horizontal_dir == horizontal_dirs.left
+  local flip_x = self.orientation == horizontal_dirs.left
   self.anim_spr:render(self.position, flip_x)
 end
 

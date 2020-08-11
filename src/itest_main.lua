@@ -2,8 +2,10 @@
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
+require("engine/common")
 
-require("engine/test/integrationtest")
+local integrationtest = require("engine/test/integrationtest")
+local itest_manager = integrationtest.itest_manager
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -47,7 +49,7 @@ function _init()
   picosonic_app.initial_gamestate = ':titlemenu'
 
   -- start first itest
-  init_game_and_start_next_itest()
+  itest_manager:init_game_and_start_next_itest()
 end
 
 function _update60()
@@ -69,7 +71,7 @@ function handle_input()
     return
   elseif btnp(button_ids.right) then
     -- skip current itest
-    init_game_and_start_next_itest()
+    itest_manager:init_game_and_start_next_itest()
     return
   elseif btnp(button_ids.up) then
     -- go back 10 itests
@@ -86,7 +88,7 @@ function handle_input()
     itest_runner.current_state == test_states.timeout then
     -- previous itest has finished, wait for x press to continue to next itest
     if btnp(button_ids.x) then
-      init_game_and_start_next_itest()
+      itest_manager:init_game_and_start_next_itest()
     end
   end
 end

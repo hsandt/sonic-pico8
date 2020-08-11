@@ -1,5 +1,4 @@
 require("engine/test/bustedhelper")
-require("engine/core/math")
 local tile = require("platformer/tile")
 local tile_data = tile.tile_data
 local height_array = tile.height_array

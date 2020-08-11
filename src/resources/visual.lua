@@ -4,7 +4,7 @@ local visual = {}
 
 local sprite_data_t = {
 --#if mouse
-  cursor = sprite_data(sprite_id_location(1, 0))
+  cursor = sprite_data(sprite_id_location(1, 0), nil, nil, colors.pink)
 --#endif
 }
 

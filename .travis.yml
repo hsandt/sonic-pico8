@@ -59,7 +59,10 @@ script:
   # (even if build fails, tests will be run independently thanks to busted)
   - ./build_game.sh debug
   - ./build_game.sh release
-  - ./build_itest.sh
+  # disabled build_itest.sh in Travis until strings are compressed
+  # because character count is over 65536 and that systematically failed the build
+  # while build release works fine
+  # - ./build_itest.sh
   # test (including rendered headless itests thanks to ENABLE_RENDER=1)
   - ./test.sh -m all
   # coverage

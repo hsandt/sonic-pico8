@@ -13,7 +13,7 @@ build_output_path="$(dirname "$0")/build"
 author="hsandt"
 title="pico-sonic"
 cartridge_stem="picosonic"
-version="3.0"
+version="3.1"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1] - 2020-08-11
+### Added
+- Angel Island tiles
+- Serialization module (represent data as string)
+
+### Changed
+- Original feature: Reduced Deceleration on Descending Slope
+- Original feature: No Friction on Steep Descending Slope
+- Original feature: Progressive Ascending Slope Factor
+- Set minimum playback speed for Running animation
+- Reduced tokens heavily by extracting code in modules and using data serialization
+
 ## [3.0] - 2020-07-11
 ### Added
 - Game: split airborne state into falling and air_spin to only play Spin animation on jump
@@ -84,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test: all busted unit tests in separator folder tests
 
 [Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v3.0...HEAD
+[3.1]: https://github.com/hsandt/sonic-pico8/compare/v3.0-sprite-anim...v3.1
 [3.0]: https://github.com/hsandt/sonic-pico8/compare/v2.3-sprite-anim...v3.0
 [2.3-sprite-anim]: https://github.com/hsandt/sonic-pico8/compare/v2.2...v2.3-sprite-anim
 [2.2]: https://github.com/hsandt/sonic-pico8/compare/v2.1...v2.2

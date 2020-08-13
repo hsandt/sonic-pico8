@@ -189,8 +189,6 @@ function player_char:set_slope_angle_with_quadrant(angle)
   else  -- angle <= 0.875
     self.quadrant = directions.left
   end
-
-  printh("self.quadrant: "..dump(self.quadrant))
 end
 
 function player_char:update()
@@ -1271,7 +1269,9 @@ end
 -- render the player character sprite at its current position
 function player_char:render()
   local flip_x = self.orientation == horizontal_dirs.left
-  self.anim_spr:render(self.position, flip_x)
+  -- for now, no snapping, follow slope a la Freedom Planet
+  local sprite_angle = self.slope_angle
+  self.anim_spr:render(self.position, flip_x, false, sprite_angle)
 end
 
 return player_char

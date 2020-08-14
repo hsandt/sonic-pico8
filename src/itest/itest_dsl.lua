@@ -225,12 +225,12 @@ end
 
 function itest_dsl._parse_number(arg_strings)
   assert(#arg_strings == 1, "_parse_number: got "..#arg_strings.." args, expected 1")
-  return string_tonum(arg_strings[1])
+  return tonum(arg_strings[1])
 end
 
 function itest_dsl._parse_vector(arg_strings)
   assert(#arg_strings == 2, "_parse_vector: got "..#arg_strings.." args, expected 2")
-  return vector(string_tonum(arg_strings[1]), string_tonum(arg_strings[2]))
+  return vector(tonum(arg_strings[1]), tonum(arg_strings[2]))
 end
 
 function itest_dsl._parse_horizontal_dir(arg_strings)

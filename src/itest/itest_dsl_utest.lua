@@ -515,7 +515,7 @@ describe('itest_dsl', function ()
 
       setup(function ()
         stub(itest_dsl_parser, "parse_gamestate_definition", function (lines)
-          local tile_id = string_tonum(lines[3])
+          local tile_id = tonum(lines[3])
           return lines[1],
             lines[2],
             tilemap({

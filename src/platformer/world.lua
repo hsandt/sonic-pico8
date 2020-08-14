@@ -1,4 +1,4 @@
-local tile = require("platformer/tile")
+local tile_collision_data = require("data/tile_collision_data")
 local collision_data = require("data/collision_data")
 
 local world = {}
@@ -18,14 +18,13 @@ function world._compute_column_height_at(tile_location, column_index0)
     if current_tile_collision_flag then
 
       -- get the tile collision mask
-      local tile_data_value = collision_data.tiles_data[current_tile_id]
-      assert(tile_data_value, "collision_data.tiles_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
+      local tcd = collision_data.get_tile_collision_data(current_tile_id)
+      assert(tcd, "collision_data.tiles_collision_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
 
-      if tile_data_value then
+      if tcd then
         -- optimize: cache collision height array on game start (otherwise, we get all the data every time,
         --  including the unused slope angle)
-        local h_array = tile.height_array(tile_data_value)
-        return h_array:get_height(column_index0), h_array.slope_angle
+        return tcd:get_height(column_index0), tcd.slope_angle
       end
 
     end

@@ -38,7 +38,7 @@ describe('world (with mock tiles data setup)', function ()
         assert.has_error(function ()
           world._compute_column_height_at(location(1, 1), 0)
         end,
-        "collision_data.tiles_data does not contain entry for sprite id: 1, yet it has the collision flag set")
+        "collision_data.tiles_collision_data does not contain entry for sprite id: 1, yet it has the collision flag set")
       end)
 
     end)
@@ -50,7 +50,7 @@ describe('world (with mock tiles data setup)', function ()
         mock_mset(1, 1, asc_slope_22_id)
       end)
 
-      it('should return 3 on column 3', function ()
+      it('#solo should return 3 on column 3', function ()
         assert.are_same({3, 22.5 / 360}, {world._compute_column_height_at(location(1, 1), 3)})
       end)
 

@@ -11,6 +11,7 @@ bottom_right_quarter_tile_id = 64
 asc_slope_45_id = 112
 desc_slope_45_id = 116
 asc_slope_22_id = 113
+asc_slope_22_upper_level_id = 117
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap
@@ -24,4 +25,5 @@ tile_symbol_to_ids = {
   ['/']  = asc_slope_45_id,  -- ascending slope 45
   ['\\'] = desc_slope_45_id,  -- descending slope 45
   ['<']  = asc_slope_22_id,  -- ascending slope 22.5
+  ['y']  = asc_slope_22_upper_level_id,  -- ascending slope upper level 22.5
 }

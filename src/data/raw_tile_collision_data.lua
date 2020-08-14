@@ -8,16 +8,16 @@
 --  will be injected, giving a fully-fledged tile_data.
 local raw_tile_collision_data = new_struct()
 
--- id_loc         sprite_id_location    sprite location on the spritesheet
--- slope_angle    float                 slope angle in turn ratio (0.0 to 1.0, positive clockwise)
-function raw_tile_collision_data:_init(id_loc, slope_angle)
-  self.id_loc = id_loc
+-- mask_tile_id_loc  sprite_id_location    sprite location of the collision mask for this tile on the spritesheet
+-- slope_angle       float                 slope angle in turn ratio (0.0 to 1.0, positive clockwise)
+function raw_tile_collision_data:_init(mask_tile_id_loc, slope_angle)
+  self.mask_tile_id_loc = mask_tile_id_loc
   self.slope_angle = slope_angle
 end
 
 --#if log
 function raw_tile_collision_data:_tostring()
-  return "raw_tile_collision_data("..joinstr(", ", self.id_loc:_tostring(), self.slope_angle)..")"
+  return "raw_tile_collision_data("..joinstr(", ", self.mask_tile_id_loc:_tostring(), self.slope_angle)..")"
 end
 --#endif
 

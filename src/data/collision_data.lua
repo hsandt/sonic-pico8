@@ -7,7 +7,7 @@ sprite_flags = {
   collision = 0
 }
 
--- table mapping tile sprite id to tile data (collision mask + slope)
+-- table mapping visual tile sprite id to tile collision data (collision mask sprite id location + slope)
 -- the mask is generally placed just below the visual tile in pico8 sprite editor,
 --  hence the location @ (i, j) but the sprite_id_location(i, j + 1)
 -- this will be completed as tiles are added, adding extra information
@@ -105,7 +105,7 @@ sprite_flags = {
  --]]
 local raw_tiles_data = serialization.parse_expression(
    --[tile_id] = tile_data(
-   --        id_loc,  slope_angle=atan2(x, y) or angle (proto only))
+   --       mask_tile_id_loc, slope_angle=atan2(x, y) or angle (proto only))
   [[{
     [49] = {{1, 2}, {8, -2}},
     [50] = {{0, 2}, {8, 0}},

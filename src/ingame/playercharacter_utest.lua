@@ -4863,24 +4863,26 @@ describe('player_char', function ()
         anim_spr_render_stub:clear()
       end)
 
-      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x', function ()
+      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x, current slope angle', function ()
         pc.position = vector(12, 8)
         pc.orientation = horizontal_dirs.left
+        pc.slope_angle = 0.125
 
         pc:render()
 
         assert.spy(anim_spr_render_stub).was_called(1)
-        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true)
+        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.125)
       end)
 
-      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x', function ()
+      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x, current slope angle', function ()
         pc.position = vector(12, 8)
         pc.orientation = horizontal_dirs.right
+        pc.slope_angle = 1-0.125
 
         pc:render()
 
         assert.spy(anim_spr_render_stub).was_called(1)
-        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false)
+        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 1-0.125)
       end)
 
     end)

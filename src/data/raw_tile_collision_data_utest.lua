@@ -7,7 +7,7 @@ describe('raw_tile_collision_data', function ()
 
     it('should create a raw tile data setting the sprite id location and the slope angle', function ()
       local td = raw_tile_collision_data(sprite_id_location(1, 2), 0.125)
-      assert.are_same({sprite_id_location(1, 2), 0.125}, {td.id_loc, td.slope_angle})
+      assert.are_same({sprite_id_location(1, 2), 0.125}, {td.mask_tile_id_loc, td.slope_angle})
     end)
 
   end)

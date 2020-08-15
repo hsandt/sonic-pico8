@@ -61,7 +61,6 @@ describe('tile_collision_data', function ()
 
     setup(function ()
       stub(tile_collision_data, "read_height_array", function (tile_mask_id_location, slope_angle)
-        printh("tile_mask_id_location: "..dump(tile_mask_id_location))
         if tile_mask_id_location == 1 then
           return {1, 1, 2, 2, 3, 3, 4, 4}
         else

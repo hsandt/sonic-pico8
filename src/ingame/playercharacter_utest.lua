@@ -250,6 +250,46 @@ describe('player_char', function ()
 
     end)
 
+    describe('get_relative_slope_angle', function ()
+
+      it('should return 0 when vertically relative to the quadrant (down)', function ()
+        pc.quadrant = directions.down
+        pc.slope_angle = 0
+        assert.are_equal(0, pc:get_relative_slope_angle())
+      end)
+
+      it('should return 0 when vertically relative to the quadrant (right)', function ()
+        pc.quadrant = directions.right
+        pc.slope_angle = 0.25
+        assert.are_equal(0, pc:get_relative_slope_angle())
+      end)
+
+      it('should return 0 when vertically relative to the quadrant (up)', function ()
+        pc.quadrant = directions.up
+        pc.slope_angle = 0.5
+        assert.are_equal(0, pc:get_relative_slope_angle())
+      end)
+
+      it('should return 0 when vertically relative to the quadrant (left)', function ()
+        pc.quadrant = directions.left
+        pc.slope_angle = 0.75
+        assert.are_equal(0, pc:get_relative_slope_angle())
+      end)
+
+      it('should return 0.1 when tilted by 0.1 from quadrant (right) vertical', function ()
+        pc.quadrant = directions.right
+        pc.slope_angle = 0.35
+        assert.is_true(almost_eq_with_message(0.1, pc:get_relative_slope_angle()))
+      end)
+
+      it('should return -0.1 when tilted by -0.1 from quadrant (left) vertical', function ()
+        pc.quadrant = directions.left
+        pc.slope_angle = 0.65
+        assert.is_true(almost_eq_with_message(-0.1, pc:get_relative_slope_angle()))
+      end)
+
+    end)
+
     describe('spawn_at', function ()
 
       setup(function ()

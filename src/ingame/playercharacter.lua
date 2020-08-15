@@ -55,7 +55,7 @@ local player_char = new_class()
 -- control_mode           control_modes   control mode: human (default) or ai
 -- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state           motion_states   motion state (platformer mode only)
--- quadrant               directions      cardinal direction of character's own down vector (to walk on wall and ceiling)
+-- quadrant               directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
 -- orientation            horizontal_dirs direction faced by character
 -- position               vector          current position (character center "between" pixels)
 -- ground_speed           float           current speed along the ground (~px/frame)
@@ -123,6 +123,14 @@ end
 
 function player_char:get_full_height()
   return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing
+end
+
+function player_char:get_relative_slope_angle()
+  -- a math trick to transform direction enum value to angle
+  --  (down being 0, up 0.25, etc.)
+  -- make sure not to change directions enum values order!
+  local quadrant_angle = 0.25 * (3-self.quadrant) % 4
+  return self.slope_angle - quadrant_angle
 end
 
 -- spawn character at given position, detecting ground/air on arrival
@@ -633,22 +641,42 @@ function player_char:_compute_ground_motion_result()
     )
   end
 
-  local horizontal_dir = signed_speed_to_dir(self.ground_speed)
+  -- from here we will be talking about "relative horizontal direction"
+  --  since all ground motion will be relative to Sonic and its current ground/quadrant
+  --  e.g. on a left wall, left is up and right is down
+  --       on the ceiling, left is right and right is left
+  -- similarly, Sonic is moving along the "relative horizontal axis"
+  --  and bumps/slopes in the ground will cause "relative vertical motion"
+  --  on the "relative up" and "relative down"
+  --  e.g. on a left wall, relative up is right and relative down is left
+  -- finally, we work with a "relative slope angle" which is just the slope angle
+  --  subtracted by the quadrant angle
+  -- we will prefix values with "r" for "relative", e.g. "rx" and "ry"
+  local relative_horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
-  -- initialise result with floored x (we will reinject subpixels if character didn't touch a wall)
-  -- note that left and right are not completely symmetrical since floor is asymmetrical
+  -- initialise result with floored coords, it's not to easily visualize
+  --  pixel by pixel motion at integer coordinates (we will reinject subpixels
+  --  if character didn't touch a wall)
+  -- we do this on both coordinates to simplify, but note that Sonic always snaps
+  --  to the ground relative height, so the relative vertical coordinate is already integer
+  -- note that relative left and right motion is not completely symmetrical
+  --  since flr is asymmetrical so there may be up to a 1px difference in how we hit stuff on
+  --  the left or right (Classic Sonic has a collider with odd width, it may be actually symmetrical
+  --  on collision checks)
   local floored_x = flr(self.position.x)
+  local floored_y = flr(self.position.y)
   local motion_result = motion.ground_motion_result(
-    vector(floored_x, self.position.y),
+    vector(floored_x, floored_y),
     self.slope_angle,
     false,
     false
   )
 
-  -- only full pixels matter for collisions, but subpixels may sum up to a full pixel
+  -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
+  --  may sum up to a full pixel,
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local signed_distance_x = self.ground_speed * cos(self.slope_angle)
-  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, signed_distance_x)
+  local signed_distance_rx = self.ground_speed * cos(self:get_relative_slope_angle())
+  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, signed_distance_rx)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -656,19 +684,19 @@ function player_char:_compute_ground_motion_result()
   --  touch the ground again some pixels farther)
   local column_distance_before_step = 0
   while column_distance_before_step < max_column_distance and not motion_result.is_blocked do
-    self:_next_ground_step(horizontal_dir, motion_result)
+    self:_next_ground_step(relative_horizontal_dir, motion_result)
     column_distance_before_step = column_distance_before_step + 1
   end
 
   -- check if we need to add or cut subpixels
   if not motion_result.is_blocked then
-    -- local max_distance_x = abs(signed_distance_x)
+    -- local max_distance_x = abs(signed_distance_rx)
     -- local distance_to_floored_x = abs(motion_result.position.x - floored_x)
     -- since character was not blocked, we know that we have reached a column distance of max_column_distance
     -- local are_subpixels_left = max_distance_x > distance_to_floored_x
     -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
     --   but this is correct, we will simply move backward a bit when moving left
-    local are_subpixels_left = self.position.x + signed_distance_x > motion_result.position.x
+    local are_subpixels_left = self.position.x + signed_distance_rx > motion_result.position.x
 
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
@@ -679,9 +707,9 @@ function player_char:_compute_ground_motion_result()
       -- when moving left, the subpixels are a small "backward" motion to the right and should
       --  never hit a wall back
       local is_blocked_by_extra_step = false
-      if signed_distance_x > 0 then
+      if signed_distance_rx > 0 then
         local extra_step_motion_result = motion_result:copy()
-        self:_next_ground_step(horizontal_dir, extra_step_motion_result)
+        self:_next_ground_step(relative_horizontal_dir, extra_step_motion_result)
         if extra_step_motion_result.is_blocked then
           motion_result = extra_step_motion_result
           is_blocked_by_extra_step = true
@@ -697,8 +725,8 @@ function player_char:_compute_ground_motion_result()
         -- do not apply other changes (like slope) since technically we have not reached
         --   the next tile yet, only advanced of some subpixels
         -- note that this calculation equivalent to adding to ref_motion_result.position:get(coord)
-        --   sign(signed_distance_x) * (max_distance_x - distance_to_floored_x)
-        motion_result.position.x = self.position.x + signed_distance_x
+        --   sign(signed_distance_rx) * (max_distance_x - distance_to_floored_x)
+        motion_result.position.x = self.position.x + signed_distance_rx
       end
     end
   end
@@ -718,14 +746,14 @@ function player_char._compute_max_pixel_distance(initial_position_coord, velocit
 end
 
 -- update ref_motion_result: motion.ground_motion_result for a character trying to move
---  by 1 pixel step in horizontal_dir, taking obstacles into account
+--  by 1 pixel step in relative_horizontal_dir, taking obstacles into account
 -- if character is blocked, it doesn't update the position and flag is_blocked
 -- if character is falling, it updates the position and flag is_falling
 -- ground_motion_result.position.x should be floored for these steps
 --  (some functions assert when giving subpixel coordinates)
-function player_char:_next_ground_step(horizontal_dir, ref_motion_result)
+function player_char:_next_ground_step(relative_horizontal_dir, ref_motion_result)
   -- compute candidate position on next step. only flat slopes supported
-  local step_vec = horizontal_dir_vectors[horizontal_dir]
+  local step_vec = relative_horizontal_dir_vectors[relative_horizontal_dir]
   local next_position_candidate = ref_motion_result.position + step_vec
 
   -- check if next position is inside/above ground

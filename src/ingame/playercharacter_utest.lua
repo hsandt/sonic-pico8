@@ -250,6 +250,30 @@ describe('player_char', function ()
 
     end)
 
+    describe('get_quadrant_right_angle', function ()
+
+      it('should return 0 when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(0, pc:get_quadrant_right_angle())
+      end)
+
+      it('should return 0.25 when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(0.25, pc:get_quadrant_right_angle())
+      end)
+
+      it('should return 0.5 when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(0.5, pc:get_quadrant_right_angle())
+      end)
+
+      it('should return 0.75 when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(0.75, pc:get_quadrant_right_angle())
+      end)
+
+    end)
+
     describe('get_quadrant_slope_angle', function ()
 
       it('should return 0 when vertically relative to the quadrant (down)', function ()
@@ -286,6 +310,30 @@ describe('player_char', function ()
         pc.quadrant = directions.left
         pc.slope_angle = 0.65
         assert.is_true(almost_eq_with_message(-0.1, pc:get_quadrant_slope_angle()))
+      end)
+
+    end)
+
+    describe('quadrant_rotated', function ()
+
+      it('should return same vector content when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_same(vector(1, -2), pc:quadrant_rotated(vector(1, -2)))
+      end)
+
+      it('should return vector rotated by 0.25 when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.is_true(almost_eq_with_message(vector(-2, -1), pc:quadrant_rotated(vector(1, -2))))
+      end)
+
+      it('should return vector rotated by 0.5 when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.is_true(almost_eq_with_message(vector(-1, 2), pc:quadrant_rotated(vector(1, -2))))
+      end)
+
+      it('should return vector rotated by 0.75 when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.is_true(almost_eq_with_message(vector(2, 1), pc:quadrant_rotated(vector(1, -2))))
       end)
 
     end)
@@ -3102,7 +3150,7 @@ describe('player_char', function ()
 
       end)  -- _compute_ground_motion_result
 
-      describe('_next_ground_step', function ()
+      describe('#solo _next_ground_step', function ()
 
         -- for these utests, we assume that _compute_ground_sensors_signed_distance and
         --  _is_blocked_by_ceiling are correct,

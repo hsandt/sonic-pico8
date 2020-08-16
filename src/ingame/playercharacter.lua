@@ -125,18 +125,30 @@ function player_char:get_full_height()
   return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing
 end
 
-function player_char:get_quadrant_slope_angle()
+-- return quadrant tangent right angle (not quadrant interior direction angle!)
+-- convenient to use since it is 0 when quadrant is down
+function player_char:get_quadrant_right_angle()
   -- a math trick to transform direction enum value to angle
   --  (down being 0, up 0.25, etc.)
   -- make sure not to change directions enum values order!
-  local quadrant_angle = 0.25 * (3-self.quadrant) % 4
-  return self.slope_angle - quadrant_angle
+  return 0.25 * (3-self.quadrant) % 4
+end
+
+-- return slope angle, relative to quadrant tangent right
+function player_char:get_quadrant_slope_angle()
+  return self.slope_angle - self:get_quadrant_right_angle()
+end
+
+-- return copy of vector rotated by quadrant right angle
+--  this is a forward transformation, and therefore useful for intention (ground motion)
+function player_char:quadrant_rotated(v)
+  return v:rotated(self:get_quadrant_right_angle())
 end
 
 -- return the horizontal coordinate of a position vector in current quadrant
 --  (x if down/up, y if right/left)
 -- we insist on position because quadrant meaning differs for directional vectors
---  (sign of x and y would matter)
+--  (where sign of x and y would matter with rotation, as in quadrant_rotated)
 function player_char:get_position_quadrant_x(pos)
   -- directions value-dependent trick: left and right are 0 and 2 (even)
   --  whereas up and down are 1 and 3 (odd), so check for parity
@@ -788,11 +800,11 @@ end
 --  by 1 pixel step in quadrant_horizontal_dir, taking obstacles into account
 -- if character is blocked, it doesn't update the position and flag is_blocked
 -- if character is falling, it updates the position and flag is_falling
--- ground_motion_result.position.x should be floored for these steps
+-- ground_motion_result.position's qx should be floored for these steps
 --  (some functions assert when giving subpixel coordinates)
 function player_char:_next_ground_step(quadrant_horizontal_dir, ref_motion_result)
   -- compute candidate position on next step. only flat slopes supported
-  local step_vec = horizontal_dir_vectors[quadrant_horizontal_dir]
+  local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
   local next_position_candidate = ref_motion_result.position + step_vec
 
   -- check if next position is inside/above ground

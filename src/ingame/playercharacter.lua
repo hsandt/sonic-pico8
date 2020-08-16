@@ -139,17 +139,27 @@ function player_char:get_quadrant_slope_angle()
   return self.slope_angle - self:get_quadrant_right_angle()
 end
 
+-- return quadrant tangent right (forward) unit vector
+function player_char:get_quadrant_right()
+  return dir_vectors[rotate_dir_90_ccw(self.quadrant)]
+end
+
+-- return quadrant normal down (interior) unit vector
+function player_char:get_quadrant_down()
+  return dir_vectors[self.quadrant]
+end
+
 -- return copy of vector rotated by quadrant right angle
 --  this is a forward transformation, and therefore useful for intention (ground motion)
 function player_char:quadrant_rotated(v)
   return v:rotated(self:get_quadrant_right_angle())
 end
 
--- return the horizontal coordinate of a position vector in current quadrant
+-- return the horizontal coordinate of a vector in current quadrant
 --  (x if down/up, y if right/left)
--- we insist on position because quadrant meaning differs for directional vectors
---  (where sign of x and y would matter with rotation, as in quadrant_rotated)
-function player_char:get_position_quadrant_x(pos)
+-- make sure to always extract quadrant coordinates after doing operations
+--  with quadrant-rotated vectors, to always have matching contribution signs
+function player_char:get_quadrant_x_coord(pos)
   -- directions value-dependent trick: left and right are 0 and 2 (even)
   --  whereas up and down are 1 and 3 (odd), so check for parity
   return self.quadrant % 2 == 0 and pos.y or pos.x
@@ -158,7 +168,7 @@ end
 -- return the "x" coordinate in current quadrant, i.e. the coordinate
 --  on the quadrant horizontal axis
 function player_char:get_quadrant_x()
-  return self:get_position_quadrant_x(self.position)
+  return self:get_quadrant_x_coord(self.position)
 end
 
 -- set the horizontal coordinate of a position vector in current quadrant
@@ -334,7 +344,8 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
     local query_info = self:_compute_signed_distance_to_closest_ground(sensor_position)
     local signed_distance, slope_angle = query_info.signed_distance, query_info.slope_angle
 
-    -- apply ground priority rule: highest ground, then velocity x sign breaks tie, then horizontal direction breaks tie
+    -- apply ground priority rule: highest ground, then ground speed (velocity X in the air) sign breaks tie,
+    --  then q-horizontal direction breaks tie
 
     -- store the biggest penetration height among sensors
     if signed_distance < min_signed_distance then
@@ -355,29 +366,41 @@ end
 
 function player_char:_get_prioritized_dir()
   if self:is_grounded() then
+    -- on the ground, ground speed decides priority
     if self.ground_speed ~= 0 then
       return signed_speed_to_dir(self.ground_speed)
     end
   else
+    -- in the air, no quadrant, just use velocity X
     if self.velocity.x ~= 0 then
       return signed_speed_to_dir(self.velocity.x)
     end
   end
+  -- if not moving, orientation decides priority
   return self.orientation
 end
 
--- return the position of the ground sensor in horizontal_dir when the character center is at center_position
+-- return the position of the ground sensor in quadrant_horizontal_dir when the character center is at center_position
 -- subpixels are ignored
-function player_char:_get_ground_sensor_position_from(center_position, horizontal_dir)
+function player_char:_get_ground_sensor_position_from(center_position, quadrant_horizontal_dir)
 
-  -- ignore subpixels from center position in x
-  local x_floored_center_position = vector(flr(center_position.x), center_position.y)
-  local x_floored_bottom_center = x_floored_center_position + vector(0, self:get_center_height())
+  -- ignore subpixels from center position in qx (collision checks use Sonic's integer position,
+  -- but we keep exact qy coordinate to get the exact ground sensor qy, and thus exact distance to ground)
+  local x = center_position.x
+  local y = center_position.y
+  if contains({directions.up, directions.down}, self.quadrant) then
+    x = flr(x)
+  else
+    y = flr(y)
+  end
+  -- from character center, move down by center height to get the character bottom center
+  local qx_floored_bottom_center = vector(x, y) + self:get_center_height() * self:get_quadrant_down()
 
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
-  local offset_x = flr(horizontal_dir_signs[horizontal_dir] * pc_data.ground_sensor_extent_x)
+  -- rotate proper vector (initially horizontal) for quadrant compatibility
+  local offset_qx_vector = self:quadrant_rotated(vector(flr(horizontal_dir_signs[quadrant_horizontal_dir] * pc_data.ground_sensor_extent_x), 0))
 
-  return x_floored_bottom_center + vector(offset_x, 0)
+  return qx_floored_bottom_center + offset_qx_vector
 end
 
 -- return (signed_distance, slope_angle) where:
@@ -387,9 +410,9 @@ end
 --     if no closest ground is detected, this defaults to max_ground_snap_height+1 (character in the air)
 --  - slope_angle is the slope angle of the detected ground (whether character is touching it, above or below)
 --  the closest ground is detected in the range [-max_ground_escape_height-1, max_ground_snap_height+1]
---   around the sensor_position.y, so it's easy to know if the character can step up/down,
+--   around the sensor_position's qy, so it's easy to know if the character can q-step up/down,
 --   and so that it's meaningful to check for ceiling obstacles after the character did his best to step
---  the test should be tile-insensitive so it is possible to detect step up/down in vertical-neighboring tiles
+--  the test should be tile-insensitive so it is possible to detect q-step up/down in vertical-neighboring tiles
 function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
   assert(flr(sensor_position.x) == sensor_position.x, "player_char:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
@@ -688,6 +711,13 @@ function player_char:_compute_ground_motion_result()
   --   ("intention" matters because we apply a forward rotation as Sonic will try to run on walls and ceilings
   --    this is different from transposing an *existing* vector to another frame, which would have the backward (reverse)
   --    transformation such as +x -> +y)
+  --   because the sign of x/y changes, the way we add values also matter, so in some cases
+  --    x + dx would become y - dy and a simple transposition is not enough
+  --   therefore, it is more reliable to add rotated vectors, even if only one component is non-zero,
+  --    and then extract x/y from this vector
+  --   we then call these coordinates "quadrant x" and "quadrant y", but note that they still
+  --    follow the positive axis sense of PICO-8 (only ground_speed and ground_based_signed_distance_qx are
+  --    based on ground orientation, CCW positive)
   -- - existing slope angle -> slope angle - 0.25
   -- when quadrant is rotated by 0.5 (e.g. floor to ceiling), x <-> -x and y <-> -y
   --   and slope angle -> slope angle - 0.5 (these ops are reflective so we don't need to care about reverse transformation as above)
@@ -703,6 +733,7 @@ function player_char:_compute_ground_motion_result()
   -- - quadrant height: the collision mask column height, in the quadrant's own frame
   --   (when quadrant is left or right, this is effectively a row width, where the row extends from left/right resp.)
   -- - quadrant slope angle: the slope angle subtracted by the quadrant's angle (quadrant down having angle 0, then steps of 0.25 counter-clockwise)
+  -- - quadrant columns are rows on walls
   -- we prefix values with "q" or "q-" for "quadrant", e.g. "qx" and "qy"
   -- we even name floors, walls and ceilings "q-wall" to express the fact they are blocking Sonic's motion
   --  relatively to his current quadrant, acting as walls, but may be any solid tile
@@ -712,7 +743,8 @@ function player_char:_compute_ground_motion_result()
   --  pixel by pixel motion at integer coordinates (we will reinject subpixels
   --  if character didn't touch a wall)
   -- we do this on both coordinates to simplify, but note that Sonic always snaps
-  --  to the ground quadrant height, so the quadrant vertical coordinate is already integer
+  --  to the ground quadrant height, so the quadrant vertical coordinate (qy) is already integer,
+  --  so it really matters for qx (but to reduce tokens we don't add a condition based on quadrant)
   -- note that quadrant left and right motion is not completely symmetrical
   --  since flr is asymmetrical so there may be up to a 1px difference in how we hit stuff on
   --  the left or right (Classic Sonic has a collider with odd width, it may be actually symmetrical
@@ -731,9 +763,18 @@ function player_char:_compute_ground_motion_result()
   -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
   --  may sum up to a full pixel,
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local signed_distance_qx = self.ground_speed * cos(self:get_quadrant_slope_angle())
+  local ground_based_signed_distance_qx = self.ground_speed * cos(self:get_quadrant_slope_angle())
+  -- but ground_based_signed_distance_qx is positive when walking a right wall up or ceiling left,
+  --  which is opposite of the x/y sign convention; project on quadrant right unit vector to get vector
+  --  with x/y with the correct sign for addition to x/y position later
+  local ground_velocity_projected_on_quadrant_right = ground_based_signed_distance_qx * self:get_quadrant_right()
+  -- tokens: if get_quadrant_right_angle is not used elsewhere, consider the version below
+  -- which is more lengthy but doesn't require get_quadrant_right_angle definition so ultimately more compact
+  -- local ground_velocity_projected_on_quadrant_right = quadrant_right:dot(self.ground_speed * vector.unit_from_angle(self.slope_angle)) * quadrant_right
+  local projected_velocity_qx = self:get_quadrant_x_coord(ground_velocity_projected_on_quadrant_right)
+
   -- max_distance_qx is always integer
-  local max_distance_qx = player_char._compute_max_pixel_distance(qx, signed_distance_qx)
+  local max_distance_qx = player_char._compute_max_pixel_distance(qx, projected_velocity_qx)
 
   -- iterate pixel by pixel on the qx direction until max possible distance is reached
   --  only stopping if the character is blocked by a q-wall (not if falling, since we want
@@ -749,7 +790,7 @@ function player_char:_compute_ground_motion_result()
   if not motion_result.is_blocked then
     -- since subpixels are always counted to the right/down, the subpixel test below is asymmetrical
     --   but this is correct, we will simply move backward a bit when moving left/up
-    local are_subpixels_left = qx + signed_distance_qx > self:get_position_quadrant_x(motion_result.position)
+    local are_subpixels_left = qx + projected_velocity_qx > self:get_quadrant_x_coord(motion_result.position)
 
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
@@ -760,7 +801,7 @@ function player_char:_compute_ground_motion_result()
       -- when moving left/up, the subpixels are a small "backward" motion to the right/down and should
       --  never hit a wall back
       local is_blocked_by_extra_step = false
-      if signed_distance_qx > 0 then
+      if projected_velocity_qx > 0 then
         local extra_step_motion_result = motion_result:copy()
         self:_next_ground_step(quadrant_horizontal_dir, extra_step_motion_result)
         if extra_step_motion_result.is_blocked then
@@ -773,11 +814,12 @@ function player_char:_compute_ground_motion_result()
       --   as they cannot affect collision anymore. when moving left/up, they go a little backward
       if not is_blocked_by_extra_step then
         -- character has not touched a q-wall at all, so add the remaining subpixels
-        --   (it's simpler to just recompute the full motion in qx; don't touch qy tough,
-        --   as it depends on the shape of the ground)
+        --   (it's simpler to just recompute the full motion in qx; don't touch qy though,
+        --   as it depends on the shape of the ground - we floored it earlier but it should
+        --   have been integer from the start so it shouldn't have changed anything)
         -- do not apply other changes (like slope) since technically we have not reached
         --   the next tile yet, only advanced of some subpixels
-        self:set_position_quadrant_x(motion_result.position, qx + signed_distance_qx)
+        self:set_position_quadrant_x(motion_result.position, qx + projected_velocity_qx)
       end
     end
   end
@@ -785,7 +827,7 @@ function player_char:_compute_ground_motion_result()
   return motion_result
 end
 
--- return the number of new pixel columns explored when moving from initial_position_coord (x or y)
+-- return the number of new pixel q-columns explored when moving from initial_position_coord (x or y)
 --  over velocity_coord (x or y) * 1 frame. consider full pixel motion starting at floored coord,
 --  even when moving in the negative direction
 -- this is either flr(velocity_coord)
@@ -811,14 +853,22 @@ function player_char:_next_ground_step(quadrant_horizontal_dir, ref_motion_resul
   local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
 
+  -- signed distance is useful, but for quadrant vector ops we need actual vectors
+  --  to get the right signs (e.g. on floor, signed distance > 0 <=> offset dy < 0 from ground,
+  --  but on left wall, signed distance > 0 <=> offset dx > 0)
+  -- signed distance is from character to ground, so get unit vector for quadrant down
+  local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
+
   -- merge < 0 and == 0 cases together to spare tokens
-  -- when 0, next_position_candidate.y will simpy not change
+  -- when 0, next_position_candidate.y will simply not change
   if signed_distance_to_closest_ground <= 0 then
     -- position is inside ground, check if we can step up during this step
+    -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
+    --  the escape is done on the X axis so technically we escape row width)
     -- refactor: code is similar to _check_escape_from_ground and above all _next_air_step
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up
-      next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+      next_position_candidate:add_inplace(vector_to_closest_ground)
       -- if we left the ground during a previous step, cancel that
       --  (fall, then touch ground or step up to land, very rare)
       ref_motion_result.is_falling = false
@@ -833,34 +883,36 @@ function player_char:_next_ground_step(quadrant_horizontal_dir, ref_motion_resul
     -- (step down is during ground motion only)
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
       -- step down
-      next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
+      next_position_candidate:add_inplace(vector_to_closest_ground)
       -- if character left the ground during a previous step, cancel that (step down land, very rare)
       ref_motion_result.is_falling = false
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
-      -- caution: we are not updating y at all, which means the character starts
+      -- caution: we are not updating qy at all, which means the character starts
       --  "walking horizontally in the air". in sonic games, we would expect
-      --  momentum to take over and send the character upward/downward, preserving
-      --  velocity y from last frame
-      -- so when adding momentum, consider reusing the last delta y (e.g. signed_distance_to_closest_ground)
+      --  momentum to take over and send the character along qy, preserving
+      --  velocity qvy from last frame
+      -- so when adding momentum, consider reusing the last delta qy (e.g. vector_to_closest_ground.y)
       --  and applying it this frame
       ref_motion_result.is_falling = true
     end
   end
 
   if not ref_motion_result.is_blocked then
-    -- character is not blocked by a steep step up/wall, but we need to check if it is
-    --  blocked by a ceiling too low; in the extreme case, a diagonal tile pattern
+    -- character is not blocked by a steep q-step up/q-wall, but we need to check if it is
+    --  blocked by a q-ceiling too low; in the extreme case, a diagonal tile pattern
     --  ->X
     --   X
+    --  is also considered a ceiling and ignoring it will let Sonic go through and fall
     -- (unlike Classic Sonic, we do check for ceilings even when Sonic is grounded;
-    -- this case rarely happens in normally constructed levels though)
+    --  this case rarely happens in normally constructed levels though; and q-ceilings
+    --  even more rare)
     ref_motion_result.is_blocked = self:_is_blocked_by_ceiling_at(next_position_candidate)
 
     -- only advance if character is still not blocked (else, preserve previous position,
     --  which should be floored)
-    -- this only works because the wall sensors are 1px farther from the character center
+    -- this only works because the q-wall sensors are 1px farther from the character center
     --  than the ground sensors; if there were even farther, we'd even need to
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
     --  when ref_motion_result.is_blocked (and adapt y)

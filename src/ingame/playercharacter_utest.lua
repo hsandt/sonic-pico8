@@ -314,6 +314,54 @@ describe('player_char', function ()
 
     end)
 
+    describe('get_quadrant_right', function ()
+
+      it('should return vector(1, 0) when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(vector(1, 0), pc:get_quadrant_right())
+      end)
+
+      it('should return vector(-1, 0) when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(vector(-1, 0), pc:get_quadrant_right())
+      end)
+
+      it('should return vector(0, -1) when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(vector(0, -1), pc:get_quadrant_right())
+      end)
+
+      it('should return vector(0, 1) when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(vector(0, 1), pc:get_quadrant_right())
+      end)
+
+    end)
+
+    describe('get_quadrant_down', function ()
+
+      it('should return vector(0, 1) when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(vector(0, 1), pc:get_quadrant_down())
+      end)
+
+      it('should return vector(0, -1) when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(vector(0, -1), pc:get_quadrant_down())
+      end)
+
+      it('should return vector(1, 0) when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(vector(1, 0), pc:get_quadrant_down())
+      end)
+
+      it('should return vector(-1, 0) when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(vector(-1, 0), pc:get_quadrant_down())
+      end)
+
+    end)
+
     describe('quadrant_rotated', function ()
 
       it('should return same vector content when quadrant is down', function ()
@@ -338,34 +386,34 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_position_quadrant_x', function ()
+    describe('get_quadrant_x_coord', function ()
 
       it('should return pos.x when quadrant is down', function ()
         pc.quadrant = directions.down
-        assert.are_equal(10, pc:get_position_quadrant_x(vector(10, 20)))
+        assert.are_equal(10, pc:get_quadrant_x_coord(vector(10, 20)))
       end)
 
       it('should return pos.x when quadrant is up', function ()
         pc.quadrant = directions.up
-        assert.are_equal(10, pc:get_position_quadrant_x(vector(10, 20)))
+        assert.are_equal(10, pc:get_quadrant_x_coord(vector(10, 20)))
       end)
 
       it('should return pos.y when quadrant is right', function ()
         pc.quadrant = directions.right
-        assert.are_equal(20, pc:get_position_quadrant_x(vector(10, 20)))
+        assert.are_equal(20, pc:get_quadrant_x_coord(vector(10, 20)))
       end)
 
       it('should return pos.y when quadrant is left', function ()
         pc.quadrant = directions.left
-        assert.are_equal(20, pc:get_position_quadrant_x(vector(10, 20)))
+        assert.are_equal(20, pc:get_quadrant_x_coord(vector(10, 20)))
       end)
 
     end)
 
     describe('get_quadrant_x', function ()
 
-      -- we already wrote tests for this method before extracting get_position_quadrant_x,
-      --  so we decided not to rewrite them with stub for get_position_quadrant_x and keep checking
+      -- we already wrote tests for this method before extracting get_quadrant_x_coord,
+      --  so we decided not to rewrite them with stub for get_quadrant_x_coord and keep checking
       --  final result
 
       it('should return self.position.x when quadrant is down', function ()
@@ -3150,7 +3198,7 @@ describe('player_char', function ()
 
       end)  -- _compute_ground_motion_result
 
-      describe('#solo _next_ground_step', function ()
+      describe('_next_ground_step', function ()
 
         -- for these utests, we assume that _compute_ground_sensors_signed_distance and
         --  _is_blocked_by_ceiling are correct,

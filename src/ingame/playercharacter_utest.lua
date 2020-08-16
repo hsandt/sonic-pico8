@@ -290,34 +290,94 @@ describe('player_char', function ()
 
     end)
 
+    describe('get_position_quadrant_x', function ()
+
+      it('should return pos.x when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(10, pc:get_position_quadrant_x(vector(10, 20)))
+      end)
+
+      it('should return pos.x when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(10, pc:get_position_quadrant_x(vector(10, 20)))
+      end)
+
+      it('should return pos.y when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(20, pc:get_position_quadrant_x(vector(10, 20)))
+      end)
+
+      it('should return pos.y when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(20, pc:get_position_quadrant_x(vector(10, 20)))
+      end)
+
+    end)
+
     describe('get_quadrant_x', function ()
 
-      it('should return position.x when quadrant is down', function ()
+      -- we already wrote tests for this method before extracting get_position_quadrant_x,
+      --  so we decided not to rewrite them with stub for get_position_quadrant_x and keep checking
+      --  final result
+
+      it('should return self.position.x when quadrant is down', function ()
         pc.quadrant = directions.down
         pc.position.x = 10
         pc.position.y = 20
         assert.are_equal(10, pc:get_quadrant_x())
       end)
 
-      it('should return position.x when quadrant is up', function ()
+      it('should return self.position.x when quadrant is up', function ()
         pc.quadrant = directions.up
         pc.position.x = 10
         pc.position.y = 20
         assert.are_equal(10, pc:get_quadrant_x())
       end)
 
-      it('should return position.y when quadrant is right', function ()
+      it('should return self.position.y when quadrant is right', function ()
         pc.quadrant = directions.right
         pc.position.x = 10
         pc.position.y = 20
         assert.are_equal(20, pc:get_quadrant_x())
       end)
 
-      it('should return position.y when quadrant is left', function ()
+      it('should return self.position.y when quadrant is left', function ()
         pc.quadrant = directions.left
         pc.position.x = 10
         pc.position.y = 20
         assert.are_equal(20, pc:get_quadrant_x())
+      end)
+
+    end)
+
+    describe('set_position_quadrant_x', function ()
+
+      it('should set pos.x when quadrant is down', function ()
+        pc.quadrant = directions.down
+        local p = vector(10, 20)
+        pc:set_position_quadrant_x(p, 30)
+        assert.are_same(vector(30, 20), p)
+      end)
+
+      it('should set pos.x when quadrant is up', function ()
+        pc.quadrant = directions.up
+        local p = vector(10, 20)
+        pc:set_position_quadrant_x(p, 30)
+        assert.are_same(vector(30, 20), p)
+      end)
+
+      it('should set pos.y when quadrant is right', function ()
+        pc.quadrant = directions.right
+        local p = vector(10, 20)
+        pc:set_position_quadrant_x(p, 30)
+        assert.are_same(vector(10, 30), p)
+      end)
+
+      it('should set pos.y when quadrant is left', function ()
+        pc.quadrant = directions.left
+        local p = vector(10, 20)
+        pc:set_position_quadrant_x(p, 30)
+        assert.are_same(vector(10, 30), p)
       end)
 
     end)

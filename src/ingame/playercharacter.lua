@@ -133,12 +133,32 @@ function player_char:get_quadrant_slope_angle()
   return self.slope_angle - quadrant_angle
 end
 
+-- return the horizontal coordinate of a position vector in current quadrant
+--  (x if down/up, y if right/left)
+-- we insist on position because quadrant meaning differs for directional vectors
+--  (sign of x and y would matter)
+function player_char:get_position_quadrant_x(pos)
+  -- directions value-dependent trick: left and right are 0 and 2 (even)
+  --  whereas up and down are 1 and 3 (odd), so check for parity
+  return self.quadrant % 2 == 0 and pos.y or pos.x
+end
+
 -- return the "x" coordinate in current quadrant, i.e. the coordinate
 --  on the quadrant horizontal axis
 function player_char:get_quadrant_x()
+  return self:get_position_quadrant_x(self.position)
+end
+
+-- set the horizontal coordinate of a position vector in current quadrant
+--  (x if down/up, y if right/left) to value
+function player_char:set_position_quadrant_x(pos, value)
   -- directions value-dependent trick: left and right are 0 and 2 (even)
   --  whereas up and down are 1 and 3 (odd), so check for parity
-  return self.quadrant % 2 == 0 and self.position.y or self.position.x
+  if self.quadrant % 2 == 0 then
+    pos.y = value
+  else
+    pos.x = value
+  end
 end
 
 -- spawn character at given position, detecting ground/air on arrival
@@ -671,7 +691,9 @@ function player_char:_compute_ground_motion_result()
   -- - quadrant height: the collision mask column height, in the quadrant's own frame
   --   (when quadrant is left or right, this is effectively a row width, where the row extends from left/right resp.)
   -- - quadrant slope angle: the slope angle subtracted by the quadrant's angle (quadrant down having angle 0, then steps of 0.25 counter-clockwise)
-  -- we prefix values with "q" for "quadrant", e.g. "qx" and "qy"
+  -- we prefix values with "q" or "q-" for "quadrant", e.g. "qx" and "qy"
+  -- we even name floors, walls and ceilings "q-wall" to express the fact they are blocking Sonic's motion
+  --  relatively to his current quadrant, acting as walls, but may be any solid tile
   local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
   -- initialise result with floored coords, it's not to easily visualize
@@ -692,42 +714,41 @@ function player_char:_compute_ground_motion_result()
     false
   )
 
+  local qx = self:get_quadrant_x()
+
   -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
   --  may sum up to a full pixel,
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local signed_distance_rx = self.ground_speed * cos(self:get_quadrant_slope_angle())
-  local max_column_distance = player_char._compute_max_pixel_distance(self:get_quadrant_x(), signed_distance_rx)
+  local signed_distance_qx = self.ground_speed * cos(self:get_quadrant_slope_angle())
+  -- max_distance_qx is always integer
+  local max_distance_qx = player_char._compute_max_pixel_distance(qx, signed_distance_qx)
 
-  -- iterate pixel by pixel on the x direction until max possible distance is reached
-  --  only stopping if the character is blocked by a wall (not if falling, since we want
+  -- iterate pixel by pixel on the qx direction until max possible distance is reached
+  --  only stopping if the character is blocked by a q-wall (not if falling, since we want
   --  him to continue moving in the air as far as possible; in edge cases, he may even
   --  touch the ground again some pixels farther)
-  local column_distance_before_step = 0
-  while column_distance_before_step < max_column_distance and not motion_result.is_blocked do
+  local qhorizontal_distance_before_step = 0
+  while qhorizontal_distance_before_step < max_distance_qx and not motion_result.is_blocked do
     self:_next_ground_step(quadrant_horizontal_dir, motion_result)
-    column_distance_before_step = column_distance_before_step + 1
+    qhorizontal_distance_before_step = qhorizontal_distance_before_step + 1
   end
 
   -- check if we need to add or cut subpixels
   if not motion_result.is_blocked then
-    -- local max_distance_x = abs(signed_distance_rx)
-    -- local distance_to_floored_x = abs(motion_result.position.x - floored_x)
-    -- since character was not blocked, we know that we have reached a column distance of max_column_distance
-    -- local are_subpixels_left = max_distance_x > distance_to_floored_x
-    -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
-    --   but this is correct, we will simply move backward a bit when moving left
-    local are_subpixels_left = self.position.x + signed_distance_rx > motion_result.position.x
+    -- since subpixels are always counted to the right/down, the subpixel test below is asymmetrical
+    --   but this is correct, we will simply move backward a bit when moving left/up
+    local are_subpixels_left = qx + signed_distance_qx > self:get_position_quadrant_x(motion_result.position)
 
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
-      -- unlike Classic Sonic, and *only* when moving right, we decide to check if those
-      --   subpixels would leak to hitting a wall on the right, and cut them if so,
+      -- unlike Classic Sonic, and *only* when moving right/down, we decide to check if those
+      --   subpixels would leak to hitting a q-wall on the right/down, and cut them if so,
       --   blocking the character on the spot (we just reuse the result of the extra step,
       --   since is_falling doesn't change if is_blocked is true)
-      -- when moving left, the subpixels are a small "backward" motion to the right and should
+      -- when moving left/up, the subpixels are a small "backward" motion to the right/down and should
       --  never hit a wall back
       local is_blocked_by_extra_step = false
-      if signed_distance_rx > 0 then
+      if signed_distance_qx > 0 then
         local extra_step_motion_result = motion_result:copy()
         self:_next_ground_step(quadrant_horizontal_dir, extra_step_motion_result)
         if extra_step_motion_result.is_blocked then
@@ -736,17 +757,15 @@ function player_char:_compute_ground_motion_result()
         end
       end
 
-      -- unless moving right and hitting a wall due to subpixels, apply the remaining subpixels
-      --   as they cannot affect collision anymore. when moving left, they go a little backward
+      -- unless moving right/down and hitting a q-wall due to subpixels, apply the remaining subpixels
+      --   as they cannot affect collision anymore. when moving left/up, they go a little backward
       if not is_blocked_by_extra_step then
-        -- character has not touched a wall at all, so add the remaining subpixels
-        --   (it's simpler to just recompute the full motion in x; don't touch y tough,
+        -- character has not touched a q-wall at all, so add the remaining subpixels
+        --   (it's simpler to just recompute the full motion in qx; don't touch qy tough,
         --   as it depends on the shape of the ground)
         -- do not apply other changes (like slope) since technically we have not reached
         --   the next tile yet, only advanced of some subpixels
-        -- note that this calculation equivalent to adding to ref_motion_result.position:get(coord)
-        --   sign(signed_distance_rx) * (max_distance_x - distance_to_floored_x)
-        motion_result.position.x = self.position.x + signed_distance_rx
+        self:set_position_quadrant_x(motion_result.position, qx + signed_distance_qx)
       end
     end
   end

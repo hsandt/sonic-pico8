@@ -250,42 +250,74 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_relative_slope_angle', function ()
+    describe('get_quadrant_slope_angle', function ()
 
       it('should return 0 when vertically relative to the quadrant (down)', function ()
         pc.quadrant = directions.down
         pc.slope_angle = 0
-        assert.are_equal(0, pc:get_relative_slope_angle())
+        assert.are_equal(0, pc:get_quadrant_slope_angle())
       end)
 
       it('should return 0 when vertically relative to the quadrant (right)', function ()
         pc.quadrant = directions.right
         pc.slope_angle = 0.25
-        assert.are_equal(0, pc:get_relative_slope_angle())
+        assert.are_equal(0, pc:get_quadrant_slope_angle())
       end)
 
       it('should return 0 when vertically relative to the quadrant (up)', function ()
         pc.quadrant = directions.up
         pc.slope_angle = 0.5
-        assert.are_equal(0, pc:get_relative_slope_angle())
+        assert.are_equal(0, pc:get_quadrant_slope_angle())
       end)
 
       it('should return 0 when vertically relative to the quadrant (left)', function ()
         pc.quadrant = directions.left
         pc.slope_angle = 0.75
-        assert.are_equal(0, pc:get_relative_slope_angle())
+        assert.are_equal(0, pc:get_quadrant_slope_angle())
       end)
 
       it('should return 0.1 when tilted by 0.1 from quadrant (right) vertical', function ()
         pc.quadrant = directions.right
         pc.slope_angle = 0.35
-        assert.is_true(almost_eq_with_message(0.1, pc:get_relative_slope_angle()))
+        assert.is_true(almost_eq_with_message(0.1, pc:get_quadrant_slope_angle()))
       end)
 
       it('should return -0.1 when tilted by -0.1 from quadrant (left) vertical', function ()
         pc.quadrant = directions.left
         pc.slope_angle = 0.65
-        assert.is_true(almost_eq_with_message(-0.1, pc:get_relative_slope_angle()))
+        assert.is_true(almost_eq_with_message(-0.1, pc:get_quadrant_slope_angle()))
+      end)
+
+    end)
+
+    describe('get_quadrant_x', function ()
+
+      it('should return position.x when quadrant is down', function ()
+        pc.quadrant = directions.down
+        pc.position.x = 10
+        pc.position.y = 20
+        assert.are_equal(10, pc:get_quadrant_x())
+      end)
+
+      it('should return position.x when quadrant is up', function ()
+        pc.quadrant = directions.up
+        pc.position.x = 10
+        pc.position.y = 20
+        assert.are_equal(10, pc:get_quadrant_x())
+      end)
+
+      it('should return position.y when quadrant is right', function ()
+        pc.quadrant = directions.right
+        pc.position.x = 10
+        pc.position.y = 20
+        assert.are_equal(20, pc:get_quadrant_x())
+      end)
+
+      it('should return position.y when quadrant is left', function ()
+        pc.quadrant = directions.left
+        pc.position.x = 10
+        pc.position.y = 20
+        assert.are_equal(20, pc:get_quadrant_x())
       end)
 
     end)

@@ -125,12 +125,20 @@ function player_char:get_full_height()
   return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing
 end
 
-function player_char:get_relative_slope_angle()
+function player_char:get_quadrant_slope_angle()
   -- a math trick to transform direction enum value to angle
   --  (down being 0, up 0.25, etc.)
   -- make sure not to change directions enum values order!
   local quadrant_angle = 0.25 * (3-self.quadrant) % 4
   return self.slope_angle - quadrant_angle
+end
+
+-- return the "x" coordinate in current quadrant, i.e. the coordinate
+--  on the quadrant horizontal axis
+function player_char:get_quadrant_x()
+  -- directions value-dependent trick: left and right are 0 and 2 (even)
+  --  whereas up and down are 1 and 3 (odd), so check for parity
+  return self.quadrant % 2 == 0 and self.position.y or self.position.x
 end
 
 -- spawn character at given position, detecting ground/air on arrival
@@ -641,25 +649,37 @@ function player_char:_compute_ground_motion_result()
     )
   end
 
-  -- from here we will be talking about "relative horizontal direction"
-  --  since all ground motion will be relative to Sonic and its current ground/quadrant
-  --  e.g. on a left wall, left is up and right is down
-  --       on the ceiling, left is right and right is left
-  -- similarly, Sonic is moving along the "relative horizontal axis"
-  --  and bumps/slopes in the ground will cause "relative vertical motion"
-  --  on the "relative up" and "relative down"
-  --  e.g. on a left wall, relative up is right and relative down is left
-  -- finally, we work with a "relative slope angle" which is just the slope angle
-  --  subtracted by the quadrant angle
-  -- we will prefix values with "r" for "relative", e.g. "rx" and "ry"
-  local relative_horizontal_dir = signed_speed_to_dir(self.ground_speed)
+  -- from here we will be considering positions, velocities, angles relatively
+  --  to the current quadrant to allow Sonic to walk on walls and ceilings
+  -- when quadrant is rotated by 0.25 (90 degrees CCW), the following transformations occur:
+  -- - ground move intention x <-> y (+x -> -y, -x -> +y, +y -> +x, -y -> -x)
+  --   ("intention" matters because we apply a forward rotation as Sonic will try to run on walls and ceilings
+  --    this is different from transposing an *existing* vector to another frame, which would have the backward (reverse)
+  --    transformation such as +x -> +y)
+  -- - existing slope angle -> slope angle - 0.25
+  -- when quadrant is rotated by 0.5 (e.g. floor to ceiling), x <-> -x and y <-> -y
+  --   and slope angle -> slope angle - 0.5 (these ops are reflective so we don't need to care about reverse transformation as above)
+  -- a few examples of quadrant variables:
+  -- - quadrant horizontal direction: is it left or right from Sonic's point of view?
+  --   (on a left wall, moving up is "left" and moving down is "right"
+  --    on the ceiling, moving left is "right" and moving right is "left")
+  -- - quadrant horizontal axis: horizontal for quadrants up and down, vertical for quadrants left and right
+  --   (we also define the forward as the counter-clockwise direction in any case, e.g. right on quadrant down
+  --    and down on quadrant left)
+  -- - quadrant vertical axis: orthogonal to quadrant horizontal axis
+  --   (we also define "up" as the direction pointing outside the quadrant interior)
+  -- - quadrant height: the collision mask column height, in the quadrant's own frame
+  --   (when quadrant is left or right, this is effectively a row width, where the row extends from left/right resp.)
+  -- - quadrant slope angle: the slope angle subtracted by the quadrant's angle (quadrant down having angle 0, then steps of 0.25 counter-clockwise)
+  -- we prefix values with "q" for "quadrant", e.g. "qx" and "qy"
+  local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
   -- initialise result with floored coords, it's not to easily visualize
   --  pixel by pixel motion at integer coordinates (we will reinject subpixels
   --  if character didn't touch a wall)
   -- we do this on both coordinates to simplify, but note that Sonic always snaps
-  --  to the ground relative height, so the relative vertical coordinate is already integer
-  -- note that relative left and right motion is not completely symmetrical
+  --  to the ground quadrant height, so the quadrant vertical coordinate is already integer
+  -- note that quadrant left and right motion is not completely symmetrical
   --  since flr is asymmetrical so there may be up to a 1px difference in how we hit stuff on
   --  the left or right (Classic Sonic has a collider with odd width, it may be actually symmetrical
   --  on collision checks)
@@ -675,8 +695,8 @@ function player_char:_compute_ground_motion_result()
   -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
   --  may sum up to a full pixel,
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local signed_distance_rx = self.ground_speed * cos(self:get_relative_slope_angle())
-  local max_column_distance = player_char._compute_max_pixel_distance(self.position.x, signed_distance_rx)
+  local signed_distance_rx = self.ground_speed * cos(self:get_quadrant_slope_angle())
+  local max_column_distance = player_char._compute_max_pixel_distance(self:get_quadrant_x(), signed_distance_rx)
 
   -- iterate pixel by pixel on the x direction until max possible distance is reached
   --  only stopping if the character is blocked by a wall (not if falling, since we want
@@ -684,7 +704,7 @@ function player_char:_compute_ground_motion_result()
   --  touch the ground again some pixels farther)
   local column_distance_before_step = 0
   while column_distance_before_step < max_column_distance and not motion_result.is_blocked do
-    self:_next_ground_step(relative_horizontal_dir, motion_result)
+    self:_next_ground_step(quadrant_horizontal_dir, motion_result)
     column_distance_before_step = column_distance_before_step + 1
   end
 
@@ -709,7 +729,7 @@ function player_char:_compute_ground_motion_result()
       local is_blocked_by_extra_step = false
       if signed_distance_rx > 0 then
         local extra_step_motion_result = motion_result:copy()
-        self:_next_ground_step(relative_horizontal_dir, extra_step_motion_result)
+        self:_next_ground_step(quadrant_horizontal_dir, extra_step_motion_result)
         if extra_step_motion_result.is_blocked then
           motion_result = extra_step_motion_result
           is_blocked_by_extra_step = true
@@ -746,14 +766,14 @@ function player_char._compute_max_pixel_distance(initial_position_coord, velocit
 end
 
 -- update ref_motion_result: motion.ground_motion_result for a character trying to move
---  by 1 pixel step in relative_horizontal_dir, taking obstacles into account
+--  by 1 pixel step in quadrant_horizontal_dir, taking obstacles into account
 -- if character is blocked, it doesn't update the position and flag is_blocked
 -- if character is falling, it updates the position and flag is_falling
 -- ground_motion_result.position.x should be floored for these steps
 --  (some functions assert when giving subpixel coordinates)
-function player_char:_next_ground_step(relative_horizontal_dir, ref_motion_result)
+function player_char:_next_ground_step(quadrant_horizontal_dir, ref_motion_result)
   -- compute candidate position on next step. only flat slopes supported
-  local step_vec = relative_horizontal_dir_vectors[relative_horizontal_dir]
+  local step_vec = horizontal_dir_vectors[quadrant_horizontal_dir]
   local next_position_candidate = ref_motion_result.position + step_vec
 
   -- check if next position is inside/above ground

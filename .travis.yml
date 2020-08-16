@@ -57,7 +57,10 @@ before_script:
 script:
   # build game and itest to make sure everything works fine
   # (even if build fails, tests will be run independently thanks to busted)
-  - ./build_game.sh debug
+  # disabled build_game.sh debug because character count may get over 65536
+  # easily when working at the limit, and build release is what really counts
+  # (although it's bad sign for us if we cannot debug the game)
+  # - ./build_game.sh debug
   - ./build_game.sh release
   # disabled build_itest.sh in Travis until strings are compressed
   # because character count is over 65536 and that systematically failed the build

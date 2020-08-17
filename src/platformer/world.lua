@@ -22,8 +22,6 @@ function world._compute_column_height_at(tile_location, column_index0)
       assert(tcd, "collision_data.tiles_collision_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
 
       if tcd then
-        -- optimize: cache collision height array on game start (otherwise, we get all the data every time,
-        --  including the unused slope angle)
         return tcd:get_height(column_index0), tcd.slope_angle
       end
 
@@ -31,8 +29,7 @@ function world._compute_column_height_at(tile_location, column_index0)
 
   end
 
-  -- returning nil is optional in Lua but it makes it clearer than we expect 2 values
-  return 0, nil
+  return 0--, nil
 
 end
 

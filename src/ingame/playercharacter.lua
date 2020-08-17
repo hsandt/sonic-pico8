@@ -416,25 +416,74 @@ end
 function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
   assert(flr(sensor_position.x) == sensor_position.x, "player_char:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
-  initial_y = flr(sensor_position.y)
 
-  -- check the presence of a collider pixel from top to bottom, from max step up - 1 to min step up (we don't go until + 1
-  --  because if we found nothing until min step down, signed distance will be max step down + 1 anyway)
-  local query_info = motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
-  for offset_y = -pc_data.max_ground_escape_height - 1, pc_data.max_ground_snap_height do
-    local does_collide, slope_angle = world.get_pixel_collision_info(sensor_position.x, initial_y + offset_y)
-    if does_collide then
-      -- signed_distance is just the current offset, minus the initial subpixel fraction that we ignored for the pixel test iteration
-      local fraction_y = sensor_position.y - initial_y
-      query_info = motion.ground_query_info(offset_y - fraction_y, slope_angle)  -- slope_angle may still be nil if we are inside ground
-      break
-    else
-      -- optimization: use extra info from is_collision_pixel to skip pixels that we know are empty already thx to the column system
+  -- we used to flr sensor_position.y at this point,
+  -- but actually collision checks don't mind the fractions
+  -- in addition, we will automatically get the correct signed distance to ground with fractional part!
+
+
+  -- check the presence of a colliding column from top to bottom, with offset from -(max step up) to +(min step down)
+  -- because we work by columns and not pixels, we iterate over tiles directly, so deduce tile locations
+  --  from sensor + offset position (in qy)
+  -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
+  --  where the character can snap up (escape) and snap down
+  local snap_zone_top = sensor_position + vector(0, - pc_data.max_ground_escape_height)
+  local snap_zone_bottom = sensor_position + vector(0, pc_data.max_ground_snap_height)
+
+  -- start at the top, remember the bottom to end the iteration
+  local curr_tile_loc = snap_zone_top:to_location()
+  local snap_zone_bottom_loc = snap_zone_bottom:to_location()
+  local sensor_location_topleft = curr_tile_loc:to_topleft_position()
+  local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
+
+  -- keep looping until we find ground to snap up/down, or ground too far for that,
+  --  or we've reached the last tile (too low to snap down)
+  while true do
+
+    local current_tile_top = curr_tile_loc:to_topleft_position().y
+    local current_tile_bottom = current_tile_top + tile_size
+
+    -- check for ground (by column) in currently checked tile, sensor X
+    local ground_array_height, slope_angle = world._compute_column_height_at(curr_tile_loc, column_index0)
+
+    -- a column height of 0 doesn't mean that there is ground just below relative offset y = 0,
+    --  but that the column is empty and we don't know what is more below
+    -- so don't do anything yet but check for the tile one level lower
+    --  (unless we've reached end of iteration with the last tile, in which case
+    --  the next tile would be too far to snap down anyway)
+    if ground_array_height > 0 then
+      -- signed distance to closest ground is positive when above ground
+      -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
+      --  in the current tile, you need the opposite of sensor_position.y - current_tile_bottom
+      -- then subtract ground_array_height and you get the signed distance to the current ground column
+      local signed_distance_to_closest_ground = current_tile_bottom - sensor_position.y - ground_array_height
+      if signed_distance_to_closest_ground < -pc_data.max_ground_escape_height then
+        -- ground found, but character is too deep inside to snap up
+        -- return edge case (-pc_data.max_ground_escape_height - 1, 0)
+        -- the slope angle 0 allows to still have character stand straight up visually,
+        --  but he's probably stuck inside the ground...
+        return motion.ground_query_info(-pc_data.max_ground_escape_height - 1, 0)
+      elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
+        -- ground found, and close enough to snap up/down, return ground query info
+        --  to allow snapping + set slope angle
+        return motion.ground_query_info(signed_distance_to_closest_ground, slope_angle)
+      end
+      -- else: ground has been found, but it is too far below character's feet
+      --  to snap down. This can only happen on the last tile we iterate on
+      --  (since it was computed to be at the snap down limit),
+      --  which means we will enter the "end of iteration" block below
+      assert(curr_tile_loc.j == snap_zone_bottom_loc.j)
     end
-  end
 
-  -- return signed distance and slope angle (the latter may be nil)
-  return query_info
+    if curr_tile_loc.j == snap_zone_bottom_loc.j then
+      -- end of iteration, and no ground found or too far below to snap down
+      -- return edge case for ground considered too far below
+      --  (pc_data.max_ground_snap_height + 1, nil)
+      return motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
+    end
+
+    curr_tile_loc.j = curr_tile_loc.j + 1
+  end
 
 end
 
@@ -964,6 +1013,7 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
   while true do
 
+    -- TODO QUADRANT
     -- move 1 tile up from the start, as we can only hit ceiling from a tile above with non-rotated tiles
     -- note: when we add rotated tiles, we will need to handle ceiling tiles (tiles rotated by 180)
     --  starting from the current tile, because unlike ground tiles, they may actually block

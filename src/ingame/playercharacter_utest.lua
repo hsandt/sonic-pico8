@@ -1217,7 +1217,7 @@ describe('player_char', function ()
 
           -- on the sides
 
-          it('+ should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the left', function ()
+          it('should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the left', function ()
             assert.are_equal(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 8)))
           end)
 
@@ -1279,12 +1279,16 @@ describe('player_char', function ()
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
             assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
+            -- this used to be (-pc_data.max_ground_escape_height - 1, 0) but when I switched the algo to a tile-based iteration
+            --  instead of pixel-based iteration for performance, I noticed there was no need to check for the pixel/tile at sensor_position.y - pc_data.max_ground_escape_height - 1,
+            --  just sensor_position.y - pc_data.max_ground_escape_height is enough (if there's really something as close at 5px from Sonic's bottom,
+            --  his head will hit ceiling anyway)
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
@@ -1373,8 +1377,9 @@ describe('player_char', function ()
             assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
+            -- same remark as in equivalent test with full tile, used to give same result as test above, now give same result as test below
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
@@ -1398,6 +1403,18 @@ describe('player_char', function ()
 
           it('should return 0, 45/360 if at the top of column 0', function ()
             assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15)))
+          end)
+
+          it('should return 5 (max_ground_snap_height+1 clamping), nil if 7px above column 0, i.e. at top-most pixel of the ascending slope tile', function ()
+            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+          end)
+
+          it('should return 5 (max_ground_snap_height+1), nil if 8px above column 0, i.e. at bottom-most pixel of tile just above the ascending slope tile', function ()
+            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 7)))
+          end)
+
+          it('should return 5 (max_ground_snap_height+1), nil if 15px above column 0, i.e. at top-most pixel of tile just above the ascending slope tile', function ()
+            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 0)))
           end)
 
           it('. should return 0.0625, 45/360 if just above slope column 4', function ()
@@ -1438,18 +1455,18 @@ describe('player_char', function ()
             assert.are_equal(ground_query_info(-4, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 45/360) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+          it('should return ground_query_info(-(max_ground_escape_height - 1), 45/360) if max_ground_escape_height - 1 below the top of column 0', function ()
+            assert.are_equal(ground_query_info(-(pc_data.max_ground_escape_height - 1), 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 45/360) if max_ground_escape_height below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(-max_ground_escape_height, 45/360) if max_ground_escape_height below the top of column 0', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the top of column 0', function ()
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)

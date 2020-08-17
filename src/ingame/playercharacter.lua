@@ -165,6 +165,16 @@ function player_char:get_quadrant_x_coord(pos)
   return self.quadrant % 2 == 0 and pos.y or pos.x
 end
 
+-- same, but for qy
+function player_char:get_quadrant_y_coord(pos)
+  return self.quadrant % 2 == 1 and pos.y or pos.x
+end
+
+-- same, but for qj (tilemap location)
+function player_char:get_quadrant_j_coord(pos)
+  return self.quadrant % 2 == 1 and pos.j or pos.i
+end
+
 -- return the "x" coordinate in current quadrant, i.e. the coordinate
 --  on the quadrant horizontal axis
 function player_char:get_quadrant_x()
@@ -180,6 +190,32 @@ function player_char:set_position_quadrant_x(pos, value)
     pos.y = value
   else
     pos.x = value
+  end
+end
+
+-- return the qy of the q-bottom edge of a tile
+-- e.g. left edge x if quadrant is left, bottom edge y if quadrant is down
+function player_char:get_tile_qbottom(tile_loc)
+  -- to avoid if/elseif and handle everything in one formula:
+  -- - start from tile center
+  -- - move in quadrant (down) direction by a half-tile
+  -- - get qy
+  -- tile_size / 2 = 4
+  return self:get_quadrant_y_coord(tile_loc:to_center_position() + 4 * self:get_quadrant_down())
+end
+
+-- return the difference from qy1 to qy2,
+--  but apply sign change to respect q-up,
+--  i.e. if qy1 represents a value higher in quadrant frame than qy2,
+--  result should be positive
+function player_char:sub_qy(qy1, qy2)
+  -- directions value-dependent trick: up and left are 0 and 1 (< 2)
+  --  and only those have a reversed qy
+  -- quadrant down has the normal operation, as usual
+  if self.quadrant < 2 then
+    return qy2 - qy1
+  else
+    return qy1 - qy2
   end
 end
 
@@ -388,7 +424,9 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
   -- but we keep exact qy coordinate to get the exact ground sensor qy, and thus exact distance to ground)
   local x = center_position.x
   local y = center_position.y
-  if contains({directions.up, directions.down}, self.quadrant) then
+
+  -- vertical: up (1) and down (3)
+  if self.quadrant % 2 == 1 then
     x = flr(x)
   else
     y = flr(y)
@@ -404,63 +442,78 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
 end
 
 -- return (signed_distance, slope_angle) where:
---  - signed distance to closest ground from floored sensor_position,
+--  - signed distance to closest ground from sensor_position,
 --     either negative when (in abs, penetration height, clamped to max_ground_escape_height+1)
 --      or positive (actual distance to ground, clamped to max_ground_snap_height+1)
 --     if no closest ground is detected, this defaults to max_ground_snap_height+1 (character in the air)
 --  - slope_angle is the slope angle of the detected ground (whether character is touching it, above or below)
 --  the closest ground is detected in the range [-max_ground_escape_height-1, max_ground_snap_height+1]
 --   around the sensor_position's qy, so it's easy to know if the character can q-step up/down,
---   and so that it's meaningful to check for ceiling obstacles after the character did his best to step
+--   and so that it's meaningful to check for q-ceiling obstacles after the character did his best to step
 --  the test should be tile-insensitive so it is possible to detect q-step up/down in vertical-neighboring tiles
 function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
-  assert(flr(sensor_position.x) == sensor_position.x, "player_char:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
+  assert(self:get_quadrant_x_coord(sensor_position) % 1 == 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_position.x must be floored")
 
-  -- we used to flr sensor_position.y at this point,
+  -- we used to flr sensor_position.y (would now be qy) at this point,
   -- but actually collision checks don't mind the fractions
   -- in addition, we will automatically get the correct signed distance to ground with fractional part!
 
-
-  -- check the presence of a colliding column from top to bottom, with offset from -(max step up) to +(min step down)
-  -- because we work by columns and not pixels, we iterate over tiles directly, so deduce tile locations
+  -- check the presence of a colliding q-column from q-top to q-bottom, with offset from -(max step up) to +(min step down)
+  -- because we work by q-columns and not pixels, we iterate over tiles directly, so deduce tile locations
   --  from sensor + offset position (in qy)
   -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
   --  where the character can snap up (escape) and snap down
-  local snap_zone_top = sensor_position + vector(0, - pc_data.max_ground_escape_height)
-  local snap_zone_bottom = sensor_position + vector(0, pc_data.max_ground_snap_height)
+  local snap_zone_qtop = sensor_position + self:quadrant_rotated(vector(0, - pc_data.max_ground_escape_height))
+  local snap_zone_qbottom = sensor_position + self:quadrant_rotated(vector(0, pc_data.max_ground_snap_height))
 
   -- start at the top, remember the bottom to end the iteration
-  local curr_tile_loc = snap_zone_top:to_location()
-  local snap_zone_bottom_loc = snap_zone_bottom:to_location()
+  local curr_tile_loc = snap_zone_qtop:to_location()
+  -- for last tile we only care about qj so just store that
+  local last_tile_qj = self:get_quadrant_j_coord(snap_zone_qbottom:to_location())
+
   local sensor_location_topleft = curr_tile_loc:to_topleft_position()
-  local column_index0 = sensor_position.x - sensor_location_topleft.x  -- from 0 to tile_size - 1
+  -- we *always* iterate on columns from left to right, rows from top to bottom,
+  --  and columns/rows are stored exactly like that in collision data (not CCW or anything)
+  --  so unlike other operations, the subtraction from topleft (combined with qx coord) is correct
+  --  to get column index for qcolumn height later, without the need to quadrant-rotate vectors first
+  local qcolumn_index0 = self:get_quadrant_x_coord(sensor_position - sensor_location_topleft)  -- from 0 to tile_size - 1
+
+  -- we iterate on tiles along quadrant down, so just convert it to tile_vector
+  --  to allow step addition
+  local quadrant_down = self:get_quadrant_down()
+  local tile_loc_step = tile_vector(quadrant_down.x, quadrant_down.y)
 
   -- keep looping until we find ground to snap up/down, or ground too far for that,
   --  or we've reached the last tile (too low to snap down)
   while true do
 
-    local current_tile_top = curr_tile_loc:to_topleft_position().y
-    local current_tile_bottom = current_tile_top + tile_size
+    local curr_tile_j = self:get_quadrant_j_coord(curr_tile_loc)
+
+    -- get q-bottom of tile to compare heights easily later
+    local current_tile_qbottom = self:get_tile_qbottom(curr_tile_loc)
 
     -- check for ground (by column) in currently checked tile, sensor X
-    local ground_array_height, slope_angle = world._compute_column_height_at(curr_tile_loc, column_index0)
+    local qcolumn_height, slope_angle = world._compute_column_height_at(curr_tile_loc, qcolumn_index0)
+    -- TODO: retrocompatible on floor, but need method below to truly enable
+    --  loop motion
+    -- local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0)
 
-    -- a column height of 0 doesn't mean that there is ground just below relative offset y = 0,
-    --  but that the column is empty and we don't know what is more below
+    -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
+    --  but that the q-column is empty and we don't know what is more below
     -- so don't do anything yet but check for the tile one level lower
     --  (unless we've reached end of iteration with the last tile, in which case
     --  the next tile would be too far to snap down anyway)
-    if ground_array_height > 0 then
+    if qcolumn_height > 0 then
       -- signed distance to closest ground is positive when above ground
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
-      --  in the current tile, you need the opposite of sensor_position.y - current_tile_bottom
-      -- then subtract ground_array_height and you get the signed distance to the current ground column
-      local signed_distance_to_closest_ground = current_tile_bottom - sensor_position.y - ground_array_height
+      --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
+      -- then subtract qcolumn_height and you get the signed distance to the current ground column
+      local signed_distance_to_closest_ground = self:sub_qy(current_tile_qbottom, sensor_position.y) - qcolumn_height
       if signed_distance_to_closest_ground < -pc_data.max_ground_escape_height then
-        -- ground found, but character is too deep inside to snap up
+        -- ground found, but character is too deep inside to snap q-up
         -- return edge case (-pc_data.max_ground_escape_height - 1, 0)
-        -- the slope angle 0 allows to still have character stand straight up visually,
+        -- the slope angle 0 allows to still have character stand straight (world) up visually,
         --  but he's probably stuck inside the ground...
         return motion.ground_query_info(-pc_data.max_ground_escape_height - 1, 0)
       elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
@@ -468,21 +521,21 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
         --  to allow snapping + set slope angle
         return motion.ground_query_info(signed_distance_to_closest_ground, slope_angle)
       end
-      -- else: ground has been found, but it is too far below character's feet
-      --  to snap down. This can only happen on the last tile we iterate on
-      --  (since it was computed to be at the snap down limit),
+      -- else: ground has been found, but it is too far below character's q-feet
+      --  to snap q-down. This can only happen on the last tile we iterate on
+      --  (since it was computed to be at the snap q-down limit),
       --  which means we will enter the "end of iteration" block below
-      assert(curr_tile_loc.j == snap_zone_bottom_loc.j)
+      assert(curr_tile_j == last_tile_qj)
     end
 
-    if curr_tile_loc.j == snap_zone_bottom_loc.j then
-      -- end of iteration, and no ground found or too far below to snap down
+    if curr_tile_j == last_tile_qj then
+      -- end of iteration, and no ground found or too far below to snap q-down
       -- return edge case for ground considered too far below
       --  (pc_data.max_ground_snap_height + 1, nil)
       return motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
     end
 
-    curr_tile_loc.j = curr_tile_loc.j + 1
+    curr_tile_loc = curr_tile_loc + tile_loc_step
   end
 
 end

@@ -410,6 +410,54 @@ describe('player_char', function ()
 
     end)
 
+    describe('get_quadrant_y_coord', function ()
+
+      it('should return pos.y when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(20, pc:get_quadrant_y_coord(vector(10, 20)))
+      end)
+
+      it('should return pos.y when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(20, pc:get_quadrant_y_coord(vector(10, 20)))
+      end)
+
+      it('should return pos.y when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(10, pc:get_quadrant_y_coord(vector(10, 20)))
+      end)
+
+      it('should return pos.y when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(10, pc:get_quadrant_y_coord(vector(10, 20)))
+      end)
+
+    end)
+
+    describe('get_quadrant_j_coord', function ()
+
+      it('should return loc.j when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(2, pc:get_quadrant_j_coord(location(1, 2)))
+      end)
+
+      it('should return loc.j when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(2, pc:get_quadrant_j_coord(location(1, 2)))
+      end)
+
+      it('should return loc.j when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(1, pc:get_quadrant_j_coord(location(1, 2)))
+      end)
+
+      it('should return loc.j when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(1, pc:get_quadrant_j_coord(location(1, 2)))
+      end)
+
+    end)
+
     describe('get_quadrant_x', function ()
 
       -- we already wrote tests for this method before extracting get_quadrant_x_coord,
@@ -474,6 +522,54 @@ describe('player_char', function ()
         local p = vector(10, 20)
         pc:set_position_quadrant_x(p, 30)
         assert.are_same(vector(10, 30), p)
+      end)
+
+    end)
+
+    describe('get_tile_qbottom', function ()
+
+      it('should return tile world bottom when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(24, pc:get_tile_qbottom(location(1, 2)))
+      end)
+
+      it('should return tile world top when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(16, pc:get_tile_qbottom(location(1, 2)))
+      end)
+
+      it('should return world right when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(16, pc:get_tile_qbottom(location(1, 2)))
+      end)
+
+      it('should return world left when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(8, pc:get_tile_qbottom(location(1, 2)))
+      end)
+
+    end)
+
+    describe('sub_qy', function ()
+
+      it('should return qy1 - qy2 when quadrant is down', function ()
+        pc.quadrant = directions.down
+        assert.are_equal(7, pc:sub_qy(10, 3))
+      end)
+
+      it('should return qy2 - qy1 when quadrant is up', function ()
+        pc.quadrant = directions.up
+        assert.are_equal(7, pc:sub_qy(3, 10))
+      end)
+
+      it('should return qy1 - qy2 when quadrant is right', function ()
+        pc.quadrant = directions.right
+        assert.are_equal(7, pc:sub_qy(10, 3))
+      end)
+
+      it('should return qy2 - qy1 when quadrant is left', function ()
+        pc.quadrant = directions.left
+        assert.are_equal(7, pc:sub_qy(3, 10))
       end)
 
     end)

@@ -18,6 +18,7 @@ local mock_tile_collision_data = {
   [asc_slope_22_id] = tile_collision_data({2, 2, 3, 3, 4, 4, 5, 5}, {0, 0, 0, 2, 4, 6, 8, 8}, 0.0625),
   [desc_slope_45_id] = tile_collision_data({8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)),
   [asc_slope_22_upper_level_id] = tile_collision_data({5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)),
+  [loop_topleft] = tile_collision_data({8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4)),
 }
 
 local tile_test_data = {}
@@ -26,12 +27,13 @@ function tile_test_data.setup()
   -- mock sprite flags
   fset(1, sprite_flags.collision, true)   -- invalid tile (missing collision mask id location below)
   fset(full_tile_id, sprite_flags.collision, true)  -- full tile
-  fset(asc_slope_45_id, sprite_flags.collision, true)  -- ascending slope 45
-  fset(desc_slope_45_id, sprite_flags.collision, true)  -- descending slope 45
-  fset(asc_slope_22_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2
   fset(half_tile_id, sprite_flags.collision, true)  -- half-tile (bottom half)
-  fset(bottom_right_quarter_tile_id, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
   fset(flat_low_tile_id, sprite_flags.collision, true)  -- low-tile (bottom quarter)
+  fset(bottom_right_quarter_tile_id, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
+  fset(asc_slope_45_id, sprite_flags.collision, true)  -- ascending slope 45
+  fset(asc_slope_22_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2
+  fset(desc_slope_45_id, sprite_flags.collision, true)  -- descending slope 45
+  fset(loop_topleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

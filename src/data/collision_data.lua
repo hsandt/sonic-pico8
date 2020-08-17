@@ -102,6 +102,7 @@ sprite_flags = {
    113 @ (0, 7) ASCENDING 22.5 < slope_angle: 0.0625 ~= atan2(8, -4) (actually 0.0738) but kept for historical utest/itest reasons
    116 @ (4, 7) DESCENDING 45 \  slope_angle: 1-0.125 = atan2(1, 1)
    117 @ (5, 7) higher 2:1 ascending slope (completes 58 from loop)
+   12  @ (12, 0) LOOP TOP-LEFT: reusing mask of loop top-left with itself
  --]]
 local raw_tiles_data = serialization.parse_expression(
    --[tile_id] = tile_data(
@@ -172,6 +173,7 @@ local raw_tiles_data = serialization.parse_expression(
     [113]= {{0, 7}, 0.0625},
     [116]= {{4, 7}, {8, 8}},
     [117]= {{5, 7}, {8, -4}},
+    [12]= {{12, 0}, {-4, 4}}
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
     -- this is only for [113], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of

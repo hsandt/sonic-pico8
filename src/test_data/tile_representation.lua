@@ -12,6 +12,7 @@ asc_slope_45_id = 112
 desc_slope_45_id = 116
 asc_slope_22_id = 113
 asc_slope_22_upper_level_id = 117
+loop_topleft = 12
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap

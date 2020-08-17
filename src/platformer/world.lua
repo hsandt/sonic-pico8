@@ -3,10 +3,11 @@ local collision_data = require("data/collision_data")
 
 local world = {}
 
--- return (column_height, slope_angle) where:
---  - column_height is the column height at tile_location on column_index0, or 0 if there is no colliding tile
+-- return (qcolumn_height, slope_angle) where:
+--  - qcolumn_height is the qcolumn height at tile_location on qcolumn_index0, or 0 if there is no colliding tile
+--    (if quadrant is horizontal, qcolum = row, but indices are always top to bottom, left to right)
 --  - slope_angle is the slope angle of the corresponding tile, or nil if there is no colliding tile
-function world._compute_column_height_at(tile_location, column_index0)
+function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadrant)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
   if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 64 then
@@ -22,7 +23,12 @@ function world._compute_column_height_at(tile_location, column_index0)
       assert(tcd, "collision_data.tiles_collision_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
 
       if tcd then
-        return tcd:get_height(column_index0), tcd.slope_angle
+        -- up (1) and down (3) are odd
+        if quadrant % 2 == 1 then
+          return tcd:get_height(qcolumn_index0), tcd.slope_angle
+        else
+          return tcd:get_width(qcolumn_index0), tcd.slope_angle
+        end
       end
 
     end
@@ -33,6 +39,7 @@ function world._compute_column_height_at(tile_location, column_index0)
 
 end
 
+-- DEPRECATED, remove to spare tokens
 -- return (true, slope_angle) if there is a collision pixel at (x, y),
 --  where slope_angle is the slope angle in this tile (even if (x, y) is inside ground),
 --  and (false, nil) if there is no collision
@@ -47,7 +54,7 @@ function world.get_pixel_collision_info(x, y)
 
   -- environment
   local column_index0 = x - left  -- from 0 to tile_size - 1
-  local ground_array_height, slope_angle = world._compute_column_height_at(location, column_index0)
+  local ground_array_height, slope_angle = world._compute_qcolumn_height_at(location, column_index0, directions.down)
 
   -- if column is empty, there cannot be any pixel collision
   if ground_array_height > 0 then

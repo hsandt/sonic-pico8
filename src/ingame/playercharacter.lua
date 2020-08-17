@@ -494,10 +494,7 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
     local current_tile_qbottom = self:get_tile_qbottom(curr_tile_loc)
 
     -- check for ground (by column) in currently checked tile, sensor X
-    local qcolumn_height, slope_angle = world._compute_column_height_at(curr_tile_loc, qcolumn_index0)
-    -- TODO: retrocompatible on floor, but need method below to truly enable
-    --  loop motion
-    -- local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0)
+    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, self.quadrant)
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
     --  but that the q-column is empty and we don't know what is more below
@@ -1087,7 +1084,8 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
       return false
     end
 
-    local ground_array_height, _ = world._compute_column_height_at(curr_tile_loc, column_index0)
+    -- TODO: pass self.quadrant and adapt coordinates around for quadrant
+    local ground_array_height, _ = world._compute_qcolumn_height_at(curr_tile_loc, column_index0, directions.down)
     if ground_array_height ~= nil and ground_array_height > 0 then
       -- with non-rotated tiles, we are sure to hit the ceiling at this point
       --  because ceiling is always at a tile bottom, and we return false

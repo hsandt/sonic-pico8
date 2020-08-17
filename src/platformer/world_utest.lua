@@ -17,14 +17,14 @@ describe('world (with mock tiles data setup)', function ()
     pico8:clear_map()
   end)
 
-  describe('_compute_column_height_at', function ()
+  describe('_compute_qcolumn_height_at', function ()
 
-    it('should return (0, nil) if tile location is outside map area', function ()
-      assert.are_same({0, nil}, {world._compute_column_height_at(location(-1, 2), 0)})
+    it('should return (0, nil) if tile location is outside map area (any quadrant)', function ()
+      assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(-1, 2), 0, directions.down)})
     end)
 
-    it('should return (0, nil) if tile has collision flag unset', function ()
-      assert.are_same({0, nil}, {world._compute_column_height_at(location(1, 1), 0)})
+    it('should return (0, nil) if tile has collision flag unset (any quadrant)', function ()
+      assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 0, directions.right)})
     end)
 
     describe('with invalid tile', function ()
@@ -34,9 +34,9 @@ describe('world (with mock tiles data setup)', function ()
         mock_mset(1, 1, 1)
       end)
 
-      it('should assert if tile has collision flag set but no collision mask id associated', function ()
+      it('should assert if tile has collision flag set but no collision mask id associated (any quadrant)', function ()
         assert.has_error(function ()
-          world._compute_column_height_at(location(1, 1), 0)
+          world._compute_qcolumn_height_at(location(1, 1), 0, directions.up)
         end,
         "collision_data.tiles_collision_data does not contain entry for sprite id: 1, yet it has the collision flag set")
       end)
@@ -50,8 +50,44 @@ describe('world (with mock tiles data setup)', function ()
         mock_mset(1, 1, asc_slope_22_id)
       end)
 
-      it('#solo should return 3 on column 3', function ()
-        assert.are_same({3, 22.5 / 360}, {world._compute_column_height_at(location(1, 1), 3)})
+      it('should return 3 on column 3 (quadrant down)', function ()
+        assert.are_same({3, 22.5 / 360}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
+      end)
+
+      it('should return 3 on column 3 (quadrant up)', function ()
+        assert.are_same({3, 22.5 / 360}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
+      end)
+
+      it('should return 3 on column 3 (quadrant right)', function ()
+        assert.are_same({2, 22.5 / 360}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
+      end)
+
+      it('should return 3 on column 3 (quadrant left)', function ()
+        assert.are_same({2, 22.5 / 360}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
+      end)
+
+    end)
+
+    describe('with loop top-left tile', function ()
+
+      before_each(function ()
+        mock_mset(1, 1, loop_topleft)
+      end)
+
+      it('should return 5 on column 6 (quadrant down)', function ()
+        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
+      end)
+
+      it('should return 5 on column 6 (quadrant up)', function ()
+        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
+      end)
+
+      it('should return 5 on column 6 (quadrant right)', function ()
+        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.right)})
+      end)
+
+      it('should return 5 on column 6 (quadrant left)', function ()
+        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
       end)
 
     end)

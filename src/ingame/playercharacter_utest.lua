@@ -2817,17 +2817,63 @@ describe('player_char', function ()
               pc:_compute_ground_motion_result()
             )
           end)
+
+          it('(wall right) should return the current position and slope, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4.5)
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 4.5),
+                0.25,
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(ceiling) should return the current position and slope, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4.5)
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.5
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 4.5),
+                0.5,
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(wall left) should return the current position and slope, is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4.5)
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 4.5),
+                0.75,
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
         end)
 
-        describe('(when _next_ground_step moves motion_result.position.x by 1px in the horizontal_dir without blocking nor falling)', function ()
+        describe('(when _next_ground_step moves motion_result.position by 1px in the quadrant_horizontal_dir without blocking nor falling)', function ()
 
           local next_ground_step_mock
 
           setup(function ()
-            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, horizontal_dir, motion_result)
-              local step_vec = horizontal_dir_vectors[horizontal_dir]
+            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
+              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
               motion_result.position = motion_result.position + step_vec
-              motion_result.slope_angle = 1-0.125
+              motion_result.slope_angle = (self:get_quadrant_right_angle() - 0.01) % 1
             end)
           end)
 
@@ -2878,7 +2924,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(4, 4),
-                1-0.125,
+                1-0.01,
                 false,
                 false
               ),
@@ -2892,7 +2938,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(0.5, 4),
-                1-0.125,
+                1-0.01,
                 false,
                 false
               ),
@@ -2900,23 +2946,89 @@ describe('player_char', function ()
             )
           end)
 
+          it('(right wall, vector(3, 4) at speed 2 (going up) on slope cos 0.5) should return vector(3, 3), is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4)
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25-1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = 2  -- * slope cos = 1
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 3),
+                0.25-0.01,               -- character has not moved by a full pixel, so visible position and slope remains the same
+                false,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(ceiling, vector(3, 4) at speed 2 (going up) on slope cos 0.5) should return vector(2, 4), is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4)
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.5-1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = 2  -- * slope cos = 1
+
+            -- unfortunately native Lua has small calculation errors
+            -- so we must check for almost equal on result position x
+            local result = pc:_compute_ground_motion_result()
+            assert.is_true(almost_eq_with_message(2, result.position.x))
+
+            -- then set that position to expected value and check the rest
+            -- with an are_equal to cover all members
+            result.position.x = 2
+            assert.are_equal(motion.ground_motion_result(
+                vector(2, 4),
+                0.5-0.01,
+                false,
+                false
+              ),
+              result
+            )
+          end)
+
+          it('(left wall, vector(3, 4) at speed 2 (going down) on slope cos 0.5) should return vector(3, 5), is_blocked: false, is_falling: false', function ()
+            pc.position = vector(3, 4)
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75-1/6  -- cos(-pi/3) = 1/2
+            pc.ground_speed = 2  -- * slope cos = 1
+
+            -- unfortunately native Lua has small calculation errors
+            -- so we must check for almost equal on result position y
+            local result = pc:_compute_ground_motion_result()
+            assert.is_true(almost_eq_with_message(5, result.position.y))
+
+            -- then set that position to expected value and check the rest
+            -- with an are_equal to cover all members
+            result.position.y = 5
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 5),
+                0.75-0.01,
+                false,
+                false
+              ),
+              result
+            )
+          end)
+
         end)
 
-        describe('(when _next_ground_step moves motion_result.position.x by 1px in the horizontal_dir, but blocks when motion_result.position.x <= -5 or x >= 5)', function ()
+        describe('(when _next_ground_step moves motion_result.position by 1px in the quadrant_quadrant_horizontal_dir, but blocks when motion_result.position.x < -4 (moving left) or x >= 5 (moving right) or y < -4 (moving up) or y >= 5 (moving down))', function ()
 
           local next_ground_step_mock
 
           setup(function ()
-            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, horizontal_dir, motion_result)
-              local step_vec = horizontal_dir_vectors[horizontal_dir]
-              -- x < -4 <=> x <= -5 for an integer as passed to step functions,
+            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
+
+              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
+              -- x/y < -4 <=> x/y <= -5 for an integer as passed to step functions,
               --   but we want to make clear that flooring is asymmetrical
               --   and that for floating coordinates, -4.01 is already hitting the left wall
-              if motion_result.position.x < -4 and step_vec.x < 0 or motion_result.position.x >= 5 and step_vec.x > 0 then
+              if motion_result.position.x < -4 and step_vec.x < 0 or motion_result.position.x >= 5 and step_vec.x > 0 or
+                  motion_result.position.y < -4 and step_vec.y < 0 or motion_result.position.y >= 5 and step_vec.y > 0 then
                 motion_result.is_blocked = true
               else
                 motion_result.position = motion_result.position + step_vec
-                motion_result.slope_angle = 0.125
+                motion_result.slope_angle = (self:get_quadrant_right_angle() + 0.01) % 1
               end
             end)
           end)
@@ -2932,7 +3044,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,
+                0.01,
                 false,
                 false
               ),
@@ -2947,7 +3059,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,
+                0.01,
                 false,
                 false
               ),
@@ -2964,7 +3076,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,
+                0.01,
                 false,
                 false
               ),
@@ -2980,7 +3092,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,
+                0.01,
                 false,
                 false
               ),
@@ -2998,7 +3110,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,  -- new slope angle, no relation with initial one
+                0.01,  -- new slope angle, no relation with initial one
                 false,
                 false
               ),
@@ -3015,7 +3127,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,  -- new slope angle, no relation with initial one
+                0.01,  -- new slope angle, no relation with initial one
                 false,
                 false
               ),
@@ -3033,7 +3145,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,
+                0.01,
                 true,
                 false
               ),
@@ -3051,7 +3163,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,
+                0.01,
                 true,
                 false
               ),
@@ -3101,7 +3213,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,
+                0.01,
                 true,
                 false
               ),
@@ -3116,7 +3228,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,
+                0.01,
                 true,
                 false
               ),
@@ -3213,7 +3325,7 @@ describe('player_char', function ()
             )
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 3) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 3.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
@@ -3221,7 +3333,7 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(5, 4),
-                0.125,
+                0.01,
                 true,
                 false
               ),
@@ -3229,15 +3341,72 @@ describe('player_char', function ()
             )
           end)
 
-          it('(vector(-3, 4) at speed -3) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
+          it('(vector(-3, 4) at speed -3) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
             pc.position = vector(-3, 4)
             pc.ground_speed = -3.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at x=5 instead of 6.5
+            -- but because of the blocking, we stop at x=-5 instead of -6.5
 
             assert.are_equal(motion.ground_motion_result(
                 vector(-5, 4),
-                0.125,
+                0.01,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(right wall, vector(3, -3) at speed 3 (moving up)) should return vector(3, -5), slope before blocked, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(3, -3)
+            pc.ground_speed = 3.5
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- but because of the blocking, we stop at y=-5 instead of -6.5
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, -5),
+                0.25 + 0.01,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(ceiling, vector(-3, 3) at speed 3 (moving left)) should return vector(-5, 3), slope before blocked, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(-3, 3)
+            pc.ground_speed = 3.5
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.5
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- but because of the blocking, we stop at x=-5 instead of -6.5
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(-5, 3),
+                0.5 + 0.01,
+                true,
+                false
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(left wall, vector(3, 3) at speed 3 (moving down)) should return vector(3, 5), slope before blocked, is_blocked: true, is_falling: false', function ()
+            pc.position = vector(3, 3)
+            pc.ground_speed = 3.5
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- but because of the blocking, we stop at y=5 instead of 6.5
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 5),
+                0.75 + 0.01,
                 true,
                 false
               ),
@@ -3248,24 +3417,46 @@ describe('player_char', function ()
         end)
 
         -- bugfix history: the mock was wrong (was using updated position instead of original_position)
-        describe('. (when _next_ground_step moves motion_result.position.x by 1px in the horizontal_dir on x < 7, falls on 5 <= x < 7 and blocks on x >= 7)', function ()
+        describe('. (when _next_ground_step moves motion_result.position by 1px in the quadrant_horizontal_dir on x/y < 7, falls on 5 <= x/y < 7 and blocks on x/y >= 7 with x/y matching step direction)', function ()
 
           local next_ground_step_mock
 
           setup(function ()
-            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, horizontal_dir, motion_result)
-              local step_vec = horizontal_dir_vectors[horizontal_dir]
-              local original_position = motion_result.position
-              if original_position.x < 7 then
-                motion_result.position = original_position + step_vec
-                motion_result.slope_angle = 0.25
+            next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
+              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
+              -- in native Lua, precision errors on cos/sin cause inexact step_vec, fix them now to allow ~= 0 check
+              if almost_eq(step_vec.x, 0, 1e-15) then
+                step_vec.x = 0
               end
-              if original_position.x >= 5 then
+              local original_position = motion_result.position
+              printh("step_vec: "..dump(step_vec))
+              if step_vec.x ~= 0 then
                 if original_position.x < 7 then
-                  motion_result.is_falling = true
-                  motion_result.slope_angle = nil  -- mimic actual implementation
-                else
-                  motion_result.is_blocked = true
+                  motion_result.position = original_position + step_vec
+                  motion_result.slope_angle = 0.25
+                end
+                if original_position.x >= 5 then
+                  if original_position.x < 7 then
+                    printh("falling!")
+                    motion_result.is_falling = true
+                    motion_result.slope_angle = nil  -- mimic actual implementation
+                  else
+                    motion_result.is_blocked = true
+                  end
+                end
+              else  -- moving on y (quadrant is left or right)
+                if original_position.y < 7 then
+                  motion_result.position = original_position + step_vec
+                  printh("motion_result: "..dump(motion_result))
+                  motion_result.slope_angle = 0.25
+                end
+                if original_position.y >= 5 then
+                  if original_position.y < 7 then
+                    motion_result.is_falling = true
+                    motion_result.slope_angle = nil  -- mimic actual implementation
+                  else
+                    motion_result.is_blocked = true
+                  end
                 end
               end
             end)
@@ -3275,7 +3466,7 @@ describe('player_char', function ()
             next_ground_step_mock:revert()
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(6, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 3) should return vector(6, 4), slope_angle: nil, is_blocked: false, is_falling: true', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 3
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
@@ -3291,7 +3482,7 @@ describe('player_char', function ()
             )
           end)
 
-          it('(vector(3, 4) at speed 3) should return vector(7, 4), slope_angle: nil, is_blocked: false, is_falling: false', function ()
+          it('(vector(3, 4) at speed 5) should return vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = 5
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
@@ -3299,6 +3490,120 @@ describe('player_char', function ()
 
             assert.are_equal(motion.ground_motion_result(
                 vector(7, 4),
+                nil,
+                true,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(right wall, vector(4, 3) at speed -3 (moving down)) should return vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
+            pc.position = vector(4, 3)
+            pc.ground_speed = -3
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling but not blocked, so we continue running in the air until y=6
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(4, 6),
+                nil,
+                false,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(right wall, vector(4, 3) at speed -5 (moving down)) should return vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
+            pc.position = vector(4, 3)
+            pc.ground_speed = -5
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling then blocked on 7
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(4, 7),
+                nil,
+                true,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(ceiling, vector(3, 4) at speed -3 (moving right)) should return vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
+            pc.position = vector(3, 4)
+            pc.ground_speed = -3
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.5
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling but not blocked, so we continue running in the air until x=6
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 6),
+                nil,
+                false,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(ceiling, vector(3, 4) at speed -5 (moving right)) should return vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
+            pc.position = vector(3, 4)
+            pc.ground_speed = -5
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.5
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling then blocked on 7
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(3, 7),
+                nil,
+                true,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(left wall, vector(4, 3) at speed 3 (moving down)) should return vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
+            pc.position = vector(4, 3)
+            pc.ground_speed = 3
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling but not blocked, so we continue running in the air until y=6
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(4, 6),
+                nil,
+                false,
+                true
+              ),
+              pc:_compute_ground_motion_result()
+            )
+          end)
+
+          it('(left wall, vector(4, 3) at speed 5 (moving down)) should return vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
+            pc.position = vector(4, 3)
+            pc.ground_speed = 5
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            -- we assume _compute_max_pixel_distance is correct, so it should return 3
+            -- we are falling then blocked on 7
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(4, 7),
                 nil,
                 true,
                 true

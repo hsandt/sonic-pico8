@@ -392,6 +392,7 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_position qx must be floored")
 
   local quadrant_down = self:get_quadrant_down()
+  local quadrant = self.quadrant
 
   -- we used to flr sensor_position.y (would now be qy) at this point,
   -- but actually collision checks don't mind the fractions
@@ -416,7 +417,7 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   --  and columns/rows are stored exactly like that in collision data (not CCW or anything)
   --  so unlike other operations, the subtraction from topleft (combined with qx coord) is correct
   --  to get column index for qcolumn height later, without the need to quadrant-rotate vectors first
-  local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - sensor_location_topleft, self.quadrant)  -- from 0 to tile_size - 1
+  local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - sensor_location_topleft, quadrant)  -- from 0 to tile_size - 1
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
@@ -426,13 +427,13 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   --  or we've reached the last tile (too low to snap down)
   while true do
 
-    local curr_tile_j = world.get_quadrant_j_coord(curr_tile_loc, self.quadrant)
+    local curr_tile_j = world.get_quadrant_j_coord(curr_tile_loc, quadrant)
 
     -- get q-bottom of tile to compare heights easily later
-    local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, self.quadrant)
+    local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, quadrant)
 
     -- check for ground (by q-column) in currently checked tile, sensor qX
-    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, self.quadrant)
+    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, quadrant)
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
     --  but that the q-column is empty and we don't know what is more below
@@ -444,7 +445,7 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
       --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
       -- then subtract qcolumn_height and you get the signed distance to the current ground column
-      local signed_distance_to_closest_ground = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, self.quadrant), self.quadrant) - qcolumn_height
+      local signed_distance_to_closest_ground = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, quadrant), self.quadrant) - qcolumn_height
       if signed_distance_to_closest_ground < -pc_data.max_ground_escape_height then
         -- ground found, but character is too deep inside to snap q-up
         -- return edge case (-pc_data.max_ground_escape_height - 1, 0)

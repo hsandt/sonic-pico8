@@ -166,7 +166,7 @@ function player_char:quadrant_rotated(v)
   else  -- self.quadrant == directions.left
     return v:rotated_90_cw()
   end
---#end
+--#endif
 end
 
 -- spawn character at given position, detecting ground/air on arrival

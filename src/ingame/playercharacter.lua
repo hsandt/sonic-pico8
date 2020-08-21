@@ -305,7 +305,9 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
   local highest_ground_slope_angle = nil
 
   -- check both ground sensors for ground
-  for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
+  for i=1,2 do
+  -- equivalent to:
+  -- for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
     -- check that ground sensor #i is on top of or below the mask column
     local sensor_position = self:_get_ground_sensor_position_from(center_position, i)

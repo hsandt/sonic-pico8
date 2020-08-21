@@ -8,7 +8,7 @@ cartridge_stem="picosonic"
 version="3.1"
 config="$1"; shift
 
-run_cmd="pico8 -run build/${cartridge_stem}_v${version}_${config}.p8 -screenshot_scale 4 -gif_scale 4 $@"
+run_cmd="pico8 -run build/${cartridge_stem}_v${version}_${config}.p8 -screenshot_scale 4 -gif_scale 4 -gif_len 60 $@"
 
 # Support UNIX platforms without gnome-terminal by checking if the command exists
 # If you `reload.sh` the game, the separate terminal allows you to keep watching the program output,

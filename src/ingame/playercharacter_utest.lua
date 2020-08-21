@@ -1733,16 +1733,20 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(animated_sprite, "play")
+          spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
         end)
 
         teardown(function ()
           animated_sprite.play:revert()
+          player_char.set_slope_angle_with_quadrant:revert()
         end)
 
         -- since pc is _init in before_each and _init calls _setup
         --   which calls pc.anim_spr:play, we must clear call count just after that
+        -- for set_slope_angle_with_quadrant, after_each would be fine too
         before_each(function ()
           animated_sprite.play:clear()
+          player_char.set_slope_angle_with_quadrant:clear()
         end)
 
         it('should enter passed state: falling, reset ground-specific state vars, no animation change', function ()
@@ -1762,6 +1766,14 @@ describe('player_char', function ()
           assert.spy(animated_sprite.play).was_not_called()
         end)
 
+        it('(grounded -> falling) should call set_slope_angle_with_quadrant(nil)', function ()
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.falling)
+
+          assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+          assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+        end)
+
         it('should enter passed state: air_spin, reset ground-specific state vars, play spin animation', function ()
           -- character starts grounded
           pc:_enter_motion_state(motion_states.air_spin)
@@ -1778,6 +1790,14 @@ describe('player_char', function ()
             })
           assert.spy(animated_sprite.play).was_called(1)
           assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
+        end)
+
+        it('(grounded -> air_spin) should call set_slope_angle_with_quadrant(nil)', function ()
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.air_spin)
+
+          assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+          assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
         end)
 
         -- bugfix history: .
@@ -4295,6 +4315,17 @@ describe('player_char', function ()
 
           -- interface
           assert.are_same({true, vector(4.1, -4.25), motion_states.air_spin, true}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame})
+        end)
+
+        it('should add impulse along ground normal when slope_angle is not 0 (and we should jump)', function ()
+          pc.velocity = vector(2, -2)
+          pc.should_jump = true
+          pc.slope_angle = 0.125
+
+          pc:_check_jump()
+
+          assert.is_true(almost_eq_with_message(2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.x))
+          assert.is_true(almost_eq_with_message(-2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.y))
         end)
 
       end)

@@ -508,14 +508,14 @@ function player_char:_enter_motion_state(next_motion_state)
   if next_motion_state == motion_states.falling then
     -- we have just left the ground without jumping, enter falling state
     --  and since ground speed is now unused, reset it for clarity
+    self:set_slope_angle_with_quadrant(nil)
     self.ground_speed = 0
-    self.slope_angle = nil
     self.should_jump = false
   elseif next_motion_state == motion_states.air_spin then
     -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity
+    self:set_slope_angle_with_quadrant(nil)
     self.ground_speed = 0
-    self.slope_angle = nil
     self.should_jump = false
     self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
@@ -1107,8 +1107,11 @@ function player_char:_check_jump()
     --  to the interrupt speed during the same frame in _update_platformer_motion_airborne
     --  via _check_hold_jump (we don't do it here so we centralize the check and
     --  don't apply gravity during such a frame)
-    -- limitation: only support flat ground for now
-    self.velocity.y = self.velocity.y - pc_data.initial_var_jump_speed_frame
+    -- to support slopes, we use the ground normal (rotate right tangent ccw)
+    -- we don't have double jumps yet so we assume we are grounded here and
+    --  self.slope_angle is not nil
+    local jump_impulse = pc_data.initial_var_jump_speed_frame * vector.unit_from_angle(self.slope_angle):rotated_90_ccw()
+    self.velocity:add_inplace(jump_impulse)
     self:_enter_motion_state(motion_states.air_spin)
     self.has_jumped_this_frame = true
     return true

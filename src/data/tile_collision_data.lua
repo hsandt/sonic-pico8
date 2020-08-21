@@ -45,12 +45,49 @@ function tile_collision_data:get_width(row_index0)
   return self.width_array[row_index0 + 1]  -- adapt 0-index to 1-index
 end
 
+-- helper function: return true iff array only contains 0 or 8
+local function is_full_or_empty(array)
+  -- check if all values in array are 8 / any value is not 8
+  --  (there are no any/all helper functions yet, only contains with is any + ==)
+
+  -- check columns first
+  for v in all(array) do
+    if v ~= 0 and v ~= 8 then
+      return false
+    end
+  end
+
+  return true
+end
+
+-- return true iff tile is made of empty/full columns only
+--  (height array only contains 0 or 8)
+--  in practice, those columns should be contiguous (else the row widths cannot be defined)
+--  and the tile is a rectangle of height 8
+function tile_collision_data:is_full_vertical_rectangle()
+  return is_full_or_empty(self.height_array)
+end
+
+-- return true iff tile is made of empty/full columns only
+--  (height array only contains 0 or 8)
+--  in practice, those columns should be contiguous (else the row widths cannot be defined)
+--  and the tile is a rectangle of height 8
+function tile_collision_data:is_full_horizontal_rectangle()
+  return is_full_or_empty(self.width_array)
+end
+
+-- return tuple (interior_v, interior_h) for a slope angle
+function tile_collision_data.slope_angle_to_interiors(slope_angle)
+  local interior_v = (slope_angle < 0.25 or slope_angle > 0.75) and vertical_dirs.down or vertical_dirs.up
+  local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
+  return interior_v, interior_h
+end
+
 function tile_collision_data.from_raw_tile_collision_data(raw_data)
   assert(raw_data.slope_angle >= 0 and raw_data.slope_angle < 1, "tile_collision_data.from_raw_tile_collision_data: raw_data.slope_angle is "..raw_data.slope_angle..", apply `% 1` before passing")
   -- we don't mind edge cases (slope angle at 0, 0.25, 0.5 or 0.75 exactly)
   --  and assume the code will handle any arbitrary decision on interior_h/v
-  local interior_v = raw_data.slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
-  local interior_h = (raw_data.slope_angle < 0.25 or raw_data.slope_angle > 0.75) and vertical_dirs.down or vertical_dirs.up
+  local interior_v, interior_h = tile_collision_data.slope_angle_to_interiors(raw_data.slope_angle)
 
   return tile_collision_data(
     tile_collision_data.read_height_array(raw_data.mask_tile_id_loc, interior_v),

@@ -252,6 +252,9 @@ describe('player_char', function ()
 
     describe('get_quadrant_right_angle', function ()
 
+      -- we had already written utests before extracting world.quadrant_to_right_angle
+      -- so we kept the tests checking final result instead of spy call
+
       it('should return 0 when quadrant is down', function ()
         pc.quadrant = directions.down
         assert.are_equal(0, pc:get_quadrant_right_angle())
@@ -369,6 +372,9 @@ describe('player_char', function ()
         assert.are_same(vector(1, -2), pc:quadrant_rotated(vector(1, -2)))
       end)
 
+      -- busted implementation is exact and should pass without almost_eq,
+      --  but they are useful when testing the pico8 implementation
+
       it('should return vector rotated by 0.25 when quadrant is right', function ()
         pc.quadrant = directions.right
         assert.is_true(almost_eq_with_message(vector(-2, -1), pc:quadrant_rotated(vector(1, -2))))
@@ -382,194 +388,6 @@ describe('player_char', function ()
       it('should return vector rotated by 0.75 when quadrant is left', function ()
         pc.quadrant = directions.left
         assert.is_true(almost_eq_with_message(vector(2, 1), pc:quadrant_rotated(vector(1, -2))))
-      end)
-
-    end)
-
-    describe('get_quadrant_x_coord', function ()
-
-      it('should return pos.x when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(10, pc:get_quadrant_x_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.x when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(10, pc:get_quadrant_x_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.y when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(20, pc:get_quadrant_x_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.y when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(20, pc:get_quadrant_x_coord(vector(10, 20)))
-      end)
-
-    end)
-
-    describe('get_quadrant_y_coord', function ()
-
-      it('should return pos.y when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(20, pc:get_quadrant_y_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.y when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(20, pc:get_quadrant_y_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.y when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(10, pc:get_quadrant_y_coord(vector(10, 20)))
-      end)
-
-      it('should return pos.y when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(10, pc:get_quadrant_y_coord(vector(10, 20)))
-      end)
-
-    end)
-
-    describe('get_quadrant_j_coord', function ()
-
-      it('should return loc.j when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(2, pc:get_quadrant_j_coord(location(1, 2)))
-      end)
-
-      it('should return loc.j when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(2, pc:get_quadrant_j_coord(location(1, 2)))
-      end)
-
-      it('should return loc.j when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(1, pc:get_quadrant_j_coord(location(1, 2)))
-      end)
-
-      it('should return loc.j when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(1, pc:get_quadrant_j_coord(location(1, 2)))
-      end)
-
-    end)
-
-    describe('get_quadrant_x', function ()
-
-      -- we already wrote tests for this method before extracting get_quadrant_x_coord,
-      --  so we decided not to rewrite them with stub for get_quadrant_x_coord and keep checking
-      --  final result
-
-      it('should return self.position.x when quadrant is down', function ()
-        pc.quadrant = directions.down
-        pc.position.x = 10
-        pc.position.y = 20
-        assert.are_equal(10, pc:get_quadrant_x())
-      end)
-
-      it('should return self.position.x when quadrant is up', function ()
-        pc.quadrant = directions.up
-        pc.position.x = 10
-        pc.position.y = 20
-        assert.are_equal(10, pc:get_quadrant_x())
-      end)
-
-      it('should return self.position.y when quadrant is right', function ()
-        pc.quadrant = directions.right
-        pc.position.x = 10
-        pc.position.y = 20
-        assert.are_equal(20, pc:get_quadrant_x())
-      end)
-
-      it('should return self.position.y when quadrant is left', function ()
-        pc.quadrant = directions.left
-        pc.position.x = 10
-        pc.position.y = 20
-        assert.are_equal(20, pc:get_quadrant_x())
-      end)
-
-    end)
-
-    describe('set_position_quadrant_x', function ()
-
-      it('should set pos.x when quadrant is down', function ()
-        pc.quadrant = directions.down
-        local p = vector(10, 20)
-        pc:set_position_quadrant_x(p, 30)
-        assert.are_same(vector(30, 20), p)
-      end)
-
-      it('should set pos.x when quadrant is up', function ()
-        pc.quadrant = directions.up
-        local p = vector(10, 20)
-        pc:set_position_quadrant_x(p, 30)
-        assert.are_same(vector(30, 20), p)
-      end)
-
-      it('should set pos.y when quadrant is right', function ()
-        pc.quadrant = directions.right
-        local p = vector(10, 20)
-        pc:set_position_quadrant_x(p, 30)
-        assert.are_same(vector(10, 30), p)
-      end)
-
-      it('should set pos.y when quadrant is left', function ()
-        pc.quadrant = directions.left
-        local p = vector(10, 20)
-        pc:set_position_quadrant_x(p, 30)
-        assert.are_same(vector(10, 30), p)
-      end)
-
-    end)
-
-    describe('get_tile_qbottom', function ()
-
-      it('should return tile world bottom when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(24, pc:get_tile_qbottom(location(1, 2)))
-      end)
-
-      it('should return tile world top when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(16, pc:get_tile_qbottom(location(1, 2)))
-      end)
-
-      it('should return world right when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(16, pc:get_tile_qbottom(location(1, 2)))
-      end)
-
-      it('should return world left when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(8, pc:get_tile_qbottom(location(1, 2)))
-      end)
-
-    end)
-
-    describe('sub_qy', function ()
-
-      it('should return qy1 - qy2 when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(7, pc:sub_qy(10, 3))
-      end)
-
-      it('should return qy2 - qy1 when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(7, pc:sub_qy(3, 10))
-      end)
-
-      it('should return qy1 - qy2 when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(7, pc:sub_qy(10, 3))
-      end)
-
-      it('should return qy2 - qy1 when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(7, pc:sub_qy(3, 10))
       end)
 
     end)
@@ -1300,6 +1118,38 @@ describe('player_char', function ()
           assert.are_equal(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
         end)
 
+        -- for other quadrants, just check the more complex case of coords with fractions
+
+        it('(right wall) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
+          pc.quadrant = directions.right
+          assert.are_equal(vector(10 + 11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
+        end)
+
+        it('(right wall) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
+          pc.quadrant = directions.right
+          assert.are_equal(vector(10 + 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
+        end)
+
+        it('(ceiling) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
+          pc.quadrant = directions.up
+          assert.are_equal(vector(12, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
+        end)
+
+        it('(ceiling) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
+          pc.quadrant = directions.up
+          assert.are_equal(vector(7, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
+        end)
+
+        it('(left wall) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
+          pc.quadrant = directions.left
+          assert.are_equal(vector(10 - 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
+        end)
+
+        it('(left wall) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
+          pc.quadrant = directions.left
+          assert.are_equal(vector(10 -11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
+        end)
+
       end)
 
       describe('_compute_signed_distance_to_closest_ground', function ()
@@ -1375,22 +1225,117 @@ describe('player_char', function ()
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
-          it('should return ground_query_info(-max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+          it('should return ground_query_info(- max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+            -- we really check 1 extra px above max_ground_escape_height, so even that far from the ground above we still see it as a step too high, not ceiling
+            assert.are_equal(ground_query_info(- pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
-          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
-            -- this used to be (-pc_data.max_ground_escape_height - 1, 0) but when I switched the algo to a tile-based iteration
-            --  instead of pixel-based iteration for performance, I noticed there was no need to check for the pixel/tile at sensor_position.y - pc_data.max_ground_escape_height - 1,
-            --  just sensor_position.y - pc_data.max_ground_escape_height is enough (if there's really something as close at 5px from Sonic's bottom,
-            --  his head will hit ceiling anyway)
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
           -- step up distance reached, character considered in the air
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
             assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+          end)
+
+          -- other quadrants (only the trickiest cases)
+
+          -- right wall
+
+          it('(right wall) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
+            pc.quadrant = directions.right
+
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(0, 12)))
+          end)
+
+          it('(right wall) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
+            pc.quadrant = directions.right
+
+            assert.are_equal(ground_query_info(2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(6, 12)))
+          end)
+
+          it('(right wall) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
+            pc.quadrant = directions.right
+
+            assert.are_equal(ground_query_info(-2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
+          end)
+
+          it('(right wall) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+            pc.quadrant = directions.right
+
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
+          end)
+
+          -- ceiling
+
+          it('(ceiling) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
+            pc.quadrant = directions.up
+
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(12, 24)))
+          end)
+
+          it('(ceiling) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
+            pc.quadrant = directions.up
+
+            assert.are_equal(ground_query_info(2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 18)))
+          end)
+
+          it('(ceiling) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
+            pc.quadrant = directions.up
+
+            assert.are_equal(ground_query_info(-2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 14)))
+          end)
+
+          it('(ceiling) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+            pc.quadrant = directions.up
+
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8)))
+          end)
+
+          -- left wall
+
+          it('(left wall) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
+            pc.quadrant = directions.left
+
+            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(24, 12)))
+          end)
+
+          it('(left wall) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
+            pc.quadrant = directions.left
+
+            assert.are_equal(ground_query_info(2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(18, 12)))
+          end)
+
+          it('(left wall) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
+            pc.quadrant = directions.left
+
+            assert.are_equal(ground_query_info(-2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
+          end)
+
+          it('(left wall) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+            pc.quadrant = directions.left
+
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
+          end)
+
+        end)
+
+        describe('with 2 full flat tiles', function ()
+
+          before_each(function ()
+            mock_mset(0, 0, full_tile_id)
+            mock_mset(0, 1, full_tile_id)
+          end)
+
+          -- test below verifies that I check 1 extra px above max_ground_escape_height (see snap_zone_qtop definition)
+          --  even if it reaches another tile, so I don't think it's over and escape
+          --  the current tile because current column is just at max_ground_escape_height,
+          --  only to land inside the tile above
+
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(4, 8 + pc_data.max_ground_escape_height)))
           end)
 
         end)
@@ -1473,15 +1418,14 @@ describe('player_char', function ()
             assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
-            -- same remark as in equivalent test with full tile, used to give same result as test above, now give same result as test below
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_snap_height + 1 below the bottom', function ()
+            assert.are_equal(ground_query_info(pc_data.max_ground_escape_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -1561,8 +1505,8 @@ describe('player_char', function ()
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the top of column 0', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
+          it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
+            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -1574,7 +1518,7 @@ describe('player_char', function ()
             mock_mset(1, 1, desc_slope_45_id)
           end)
 
-          it('. should return 0.0625, 1-45/360 if right sensors are just a little above column 0', function ()
+          it('should return 0.0625, 1-45/360 if right sensors are just a little above column 0', function ()
             assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
@@ -3424,12 +3368,8 @@ describe('player_char', function ()
           setup(function ()
             next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
               local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
-              -- in native Lua, precision errors on cos/sin cause inexact step_vec, fix them now to allow ~= 0 check
-              if almost_eq(step_vec.x, 0, 1e-15) then
-                step_vec.x = 0
-              end
               local original_position = motion_result.position
-              printh("step_vec: "..dump(step_vec))
+              -- quadrant_rotated busted implementation has perfect precision, so don't worry about checking ~= 0
               if step_vec.x ~= 0 then
                 if original_position.x < 7 then
                   motion_result.position = original_position + step_vec
@@ -3437,7 +3377,6 @@ describe('player_char', function ()
                 end
                 if original_position.x >= 5 then
                   if original_position.x < 7 then
-                    printh("falling!")
                     motion_result.is_falling = true
                     motion_result.slope_angle = nil  -- mimic actual implementation
                   else
@@ -3447,7 +3386,6 @@ describe('player_char', function ()
               else  -- moving on y (quadrant is left or right)
                 if original_position.y < 7 then
                   motion_result.position = original_position + step_vec
-                  printh("motion_result: "..dump(motion_result))
                   motion_result.slope_angle = 0.25
                 end
                 if original_position.y >= 5 then
@@ -3546,7 +3484,7 @@ describe('player_char', function ()
             -- we are falling but not blocked, so we continue running in the air until x=6
 
             assert.are_equal(motion.ground_motion_result(
-                vector(3, 6),
+                vector(6, 4),
                 nil,
                 false,
                 true
@@ -3565,7 +3503,7 @@ describe('player_char', function ()
             -- we are falling then blocked on 7
 
             assert.are_equal(motion.ground_motion_result(
-                vector(3, 7),
+                vector(7, 4),
                 nil,
                 true,
                 true
@@ -3738,6 +3676,168 @@ describe('player_char', function ()
               motion_result
             )
           end)
+
+          -- for other quadrants we only test the most common cases
+
+          it('(right wall) when stepping q-right (up) with the q-left sensor still on the ground, DEcrement y', function ()
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(0 - pc_data.center_height_standing, 12),
+              0,
+              false,
+              false
+            )
+
+            -- step flat
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(0 - pc_data.center_height_standing, 11),
+                0.25,
+                false,
+                false
+              ),
+              motion_result
+            )
+          end)
+
+          it('(right wall) when stepping q-right (up) with the q-left sensor leaving the ground, DEcrement y and fall', function ()
+            pc.quadrant = directions.right
+            pc.slope_angle = 0.25
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(0 - pc_data.center_height_standing, 6),
+              0,
+              false,
+              false
+            )
+
+            -- step fall
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(0 - pc_data.center_height_standing, 5),
+                nil,
+                false,
+                true
+              ),
+              motion_result
+            )
+          end)
+
+          -- FIXME
+
+          it('(ceiling) when stepping q-right (left) with the q-left sensor still on the ground, DEcrement x', function ()
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.25
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(-1, 16 + pc_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            -- step flat
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(-2, 16 + pc_data.center_height_standing),
+                0.5,
+                false,
+                false
+              ),
+              motion_result
+            )
+          end)
+
+          it('(ceiling) when stepping q-right (left) with the q-left sensor leaving the ground, DEcrement x and fall', function ()
+            pc.quadrant = directions.up
+            pc.slope_angle = 0.25
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(-2, 16 + pc_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            -- step fall
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(-3, 16 + pc_data.center_height_standing),
+                nil,
+                false,
+                true
+              ),
+              motion_result
+            )
+          end)
+
+          it('(left wall) when stepping q-right (down) with the q-left sensor still on the ground, INcrement y', function ()
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(8 + pc_data.center_height_standing, 15),
+              0,
+              false,
+              false
+            )
+
+            -- step flat
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(8 + pc_data.center_height_standing, 16),
+                0.75,
+                false,
+                false
+              ),
+              motion_result
+            )
+          end)
+
+          it('(left wall) when stepping q-right (down) with the q-left sensor leaving the ground, INcrement y and fall', function ()
+            pc.quadrant = directions.left
+            pc.slope_angle = 0.75
+
+            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
+            -- this means the center offset should be subtracted from X this time
+            local motion_result = motion.ground_motion_result(
+              vector(0 - pc_data.center_height_standing, 16),
+              0,
+              false,
+              false
+            )
+
+            -- step fall
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_equal(motion.ground_motion_result(
+                vector(0 - pc_data.center_height_standing, 17),
+                nil,
+                false,
+                true
+              ),
+              motion_result
+            )
+          end)
+
+          -- TODO: more tests, but test lower-level _compute_ground_sensors_signed_distance first
 
         end)
 
@@ -4050,7 +4150,7 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "get_full_height", function ()
-            return 11
+            return 16
           end)
         end)
 
@@ -4073,9 +4173,9 @@ describe('player_char', function ()
             mock_mset(1, 0, full_tile_id)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
-          it('should return false for sensor position just above the bottom of the tile', function ()
-            -- here, the current tile is the full tile, and we only check tiles above, so we detect nothing
-            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(8, 7.9)))
+          it('should return true for sensor position just above the bottom of the tile', function ()
+            -- with new implementation, we check tile even at foot level
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(8, 7.9)))
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
@@ -4100,7 +4200,7 @@ describe('player_char', function ()
           end)
 
           it('should return true for sensor position below the tile, at character height - 1px', function ()
-            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 11 - 1)))
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 16 - 1)))
           end)
 
           -- bugfix history:
@@ -4109,7 +4209,36 @@ describe('player_char', function ()
           --    the ground_array_height check (computing height_distance from tile bottom instead of top)
           --    to pass it in this case too
           it('should return false for sensor position below the tile, at character height', function ()
-            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 11)))
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(12, 8 + 16)))
+          end)
+
+        end)
+
+        describe('(1 half-tile)', function ()
+
+          before_each(function ()
+            -- =
+            mock_mset(0, 0, half_tile_id)
+          end)
+
+          it('should return false for sensor position in the middle of the tile', function ()
+            -- we now start checking ceiling a few pixels q-above character feet
+            --  and ignore reverse full height on same tile as sensor, so slope not detected as ceiling
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 6)))
+          end)
+
+          it('should return true for sensor position at the bottom of the tile', function ()
+            -- here we don't detect a ceiling because y = 8 is considered belonging to
+            --  tile j = 1, but we define ignore_reverse = start_tile_loc == curr_tile_loc
+            --  not ignore_reverse = curr_tile_loc == curr_tile_loc
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 8)))
+          end)
+
+          it('should return true for sensor position 2 px below tile (so that 4px above is inside tile)', function ()
+            -- this test makes sure that we ignore reverse full height for start tile
+            --  *not* sensor tile, which is different when sensor is less than 4px of the neighboring tile
+            --  in iteration direction
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 10)))
           end)
 
         end)
@@ -4122,16 +4251,12 @@ describe('player_char', function ()
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
-            -- normally the character should step up and pass this position during the next-step pass
-            --  and this returns false so the character won't be blocked
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(0, 7)))
           end)
 
           it('should return true for sensor position at the bottom-left of the tile', function ()
-            -- technically this is still a step up, but we consider it is the next-step method's fault
-            --  if it didn't step up correctly so we afford to return true and block the character,
-            --  as it makes more simple code
-            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(0, 8)))
+            -- we now start checking ceiling a few pixels q-above character feet, so slope not detected as ceiling
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(0, 8)))
           end)
 
         end)

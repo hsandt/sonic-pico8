@@ -4,6 +4,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 local player_char = require("ingame/playercharacter")
 local input = require("engine/input/input")
 local motion = require("platformer/motion")
+local world = require("platformer/world")
 local ground_query_info = motion.ground_query_info
 local pc_data = require("data/playercharacter_data")
 local tile_test_data = require("test_data/tile_test_data")
@@ -246,33 +247,6 @@ describe('player_char', function ()
       it('should return full height compact when compact', function ()
         pc.motion_state = motion_states.air_spin
         assert.are_equal(pc_data.full_height_compact, pc:get_full_height())
-      end)
-
-    end)
-
-    describe('get_quadrant_right_angle', function ()
-
-      -- we had already written utests before extracting world.quadrant_to_right_angle
-      -- so we kept the tests checking final result instead of spy call
-
-      it('should return 0 when quadrant is down', function ()
-        pc.quadrant = directions.down
-        assert.are_equal(0, pc:get_quadrant_right_angle())
-      end)
-
-      it('should return 0.25 when quadrant is right', function ()
-        pc.quadrant = directions.right
-        assert.are_equal(0.25, pc:get_quadrant_right_angle())
-      end)
-
-      it('should return 0.5 when quadrant is up', function ()
-        pc.quadrant = directions.up
-        assert.are_equal(0.5, pc:get_quadrant_right_angle())
-      end)
-
-      it('should return 0.75 when quadrant is left', function ()
-        pc.quadrant = directions.left
-        assert.are_equal(0.75, pc:get_quadrant_right_angle())
       end)
 
     end)
@@ -2805,7 +2779,7 @@ describe('player_char', function ()
             next_ground_step_mock = stub(player_char, "_next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
               local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
               motion_result.position = motion_result.position + step_vec
-              motion_result.slope_angle = (self:get_quadrant_right_angle() - 0.01) % 1
+              motion_result.slope_angle = (world.quadrant_to_right_angle(self.quadrant) - 0.01) % 1
             end)
           end)
 
@@ -2960,7 +2934,7 @@ describe('player_char', function ()
                 motion_result.is_blocked = true
               else
                 motion_result.position = motion_result.position + step_vec
-                motion_result.slope_angle = (self:get_quadrant_right_angle() + 0.01) % 1
+                motion_result.slope_angle = (world.quadrant_to_right_angle(self.quadrant) + 0.01) % 1
               end
             end)
           end)
@@ -3542,7 +3516,7 @@ describe('player_char', function ()
 
       end)  -- _compute_ground_motion_result
 
-      describe('_next_ground_step', function ()
+      describe('#solo _next_ground_step', function ()
 
         -- for these utests, we assume that _compute_ground_sensors_signed_distance and
         --  _is_blocked_by_ceiling are correct,

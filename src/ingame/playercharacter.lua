@@ -206,15 +206,12 @@ function player_char:get_bottom_center()
 end
 --#endif
 
+--#if busted
 -- move the player character so that the bottom center is at the given position
 function player_char:set_bottom_center(bottom_center_position)
   self.position = bottom_center_position - vector(0, self:get_center_height())
 end
-
--- move the player character from delta_vector in px
-function player_char:move_by(delta_vector)
-  self.position = self.position + delta_vector
-end
+--#endif
 
 -- set slope angle and update quadrant
 function player_char:set_slope_angle_with_quadrant(angle)
@@ -1464,7 +1461,7 @@ function player_char:_update_debug()
   -- it's much more complicated to access app from here (e.g. via flow.curr_state)
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS
   -- otherwise we'd have to change utests to init app+flow each time
-  self:move_by(self.debug_velocity * delta_time60)
+  self.position = self.position + self.debug_velocity * delta_time60
 end
 
 function player_char:_update_velocity_debug()

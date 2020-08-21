@@ -131,11 +131,6 @@ function player_char:get_quadrant_right_angle()
   return world.quadrant_to_right_angle(self.quadrant)
 end
 
--- return slope angle, relative to quadrant tangent right
-function player_char:get_quadrant_slope_angle()
-  return self.slope_angle - self:get_quadrant_right_angle()
-end
-
 -- return quadrant tangent right (forward) unit vector
 function player_char:get_quadrant_right()
   return dir_vectors[rotate_dir_90_ccw(self.quadrant)]
@@ -209,7 +204,7 @@ end
 --#if busted
 -- move the player character so that the bottom center is at the given position
 function player_char:set_bottom_center(bottom_center_position)
-  self.position = bottom_center_position - vector(0, self:get_center_height())
+  self.position = bottom_center_position - self:get_center_height() * self:get_quadrant_down()
 end
 --#endif
 
@@ -804,7 +799,7 @@ function player_char:_compute_ground_motion_result()
   -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
   --  may sum up to a full pixel,
   --  so first estimate how many full pixel columns the character may actually explore this frame
-  local ground_based_signed_distance_qx = self.ground_speed * cos(self:get_quadrant_slope_angle())
+  local ground_based_signed_distance_qx = self.ground_speed * cos(self.slope_angle - self:get_quadrant_right_angle())
   -- but ground_based_signed_distance_qx is positive when walking a right wall up or ceiling left,
   --  which is opposite of the x/y sign convention; project on quadrant right unit vector to get vector
   --  with x/y with the correct sign for addition to x/y position later

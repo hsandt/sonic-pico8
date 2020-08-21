@@ -277,46 +277,6 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_quadrant_slope_angle', function ()
-
-      it('should return 0 when vertically relative to the quadrant (down)', function ()
-        pc.quadrant = directions.down
-        pc.slope_angle = 0
-        assert.are_equal(0, pc:get_quadrant_slope_angle())
-      end)
-
-      it('should return 0 when vertically relative to the quadrant (right)', function ()
-        pc.quadrant = directions.right
-        pc.slope_angle = 0.25
-        assert.are_equal(0, pc:get_quadrant_slope_angle())
-      end)
-
-      it('should return 0 when vertically relative to the quadrant (up)', function ()
-        pc.quadrant = directions.up
-        pc.slope_angle = 0.5
-        assert.are_equal(0, pc:get_quadrant_slope_angle())
-      end)
-
-      it('should return 0 when vertically relative to the quadrant (left)', function ()
-        pc.quadrant = directions.left
-        pc.slope_angle = 0.75
-        assert.are_equal(0, pc:get_quadrant_slope_angle())
-      end)
-
-      it('should return 0.1 when tilted by 0.1 from quadrant (right) vertical', function ()
-        pc.quadrant = directions.right
-        pc.slope_angle = 0.35
-        assert.is_true(almost_eq_with_message(0.1, pc:get_quadrant_slope_angle()))
-      end)
-
-      it('should return -0.1 when tilted by -0.1 from quadrant (left) vertical', function ()
-        pc.quadrant = directions.left
-        pc.slope_angle = 0.65
-        assert.is_true(almost_eq_with_message(-0.1, pc:get_quadrant_slope_angle()))
-      end)
-
-    end)
-
     describe('get_quadrant_right', function ()
 
       it('should return vector(1, 0) when quadrant is down', function ()
@@ -579,18 +539,16 @@ describe('player_char', function ()
       end)
 
       it('set_bottom_center (10, center_height) => (10, 0)', function ()
-        pc:set_bottom_center(vector(10, 0 + 11))
+        pc:set_bottom_center(vector(10, 11))
         assert.are_equal(vector(10, 0), pc.position)
       end)
 
-    end)
-
-    describe('move_by', function ()
-      it('at (4 -4) move_by (-5 4) => at (-1 0)', function ()
-        pc.position = vector(4, -4)
-        pc:move_by(vector(-5, 4))
-        assert.are_equal(vector(-1, 0), pc.position)
+      it('set_bottom_center (10 + center_height, 0) quadrant right => (10, 0)', function ()
+        pc.quadrant = directions.right
+        pc:set_bottom_center(vector(10 + 11, 0))
+        assert.are_equal(vector(10, 0), pc.position)
       end)
+
     end)
 
     describe('set_slope_angle_with_quadrant', function ()
@@ -607,9 +565,9 @@ describe('player_char', function ()
         assert.are_equal(directions.down, pc.quadrant)
       end)
 
-      it('should set quadrant to down for slope_angle: 1-0.124', function ()
+      it('should set quadrant to down for slope_angle: 1-0.125', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(1-0.124)
+        pc:set_slope_angle_with_quadrant(1-0.125)
         assert.are_equal(directions.down, pc.quadrant)
       end)
 
@@ -619,45 +577,45 @@ describe('player_char', function ()
         assert.are_equal(directions.down, pc.quadrant)
       end)
 
-      it('should set quadrant to down for slope_angle: 0.124', function ()
+      it('should set quadrant to down for slope_angle: 0.125', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.124)
+        pc:set_slope_angle_with_quadrant(0.125)
         assert.are_equal(directions.down, pc.quadrant)
       end)
 
-      it('should set quadrant to right for slope_angle: 0.25-0.125', function ()
+      it('should set quadrant to right for slope_angle: 0.25-0.124', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.25-0.125)
+        pc:set_slope_angle_with_quadrant(0.25-0.124)
         assert.are_equal(directions.right, pc.quadrant)
       end)
 
-      it('should set quadrant to right for slope_angle: 0.25+0.125', function ()
+      it('should set quadrant to right for slope_angle: 0.25+0.124', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.25+0.125)
+        pc:set_slope_angle_with_quadrant(0.25+0.124)
         assert.are_equal(directions.right, pc.quadrant)
       end)
 
-      it('should set quadrant to up for slope_angle: 0.5-0.124', function ()
+      it('should set quadrant to up for slope_angle: 0.5-0.125', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.5-0.124)
+        pc:set_slope_angle_with_quadrant(0.5-0.125)
         assert.are_equal(directions.up, pc.quadrant)
       end)
 
-      it('should set quadrant to up for slope_angle: 0.5+0.124', function ()
+      it('should set quadrant to up for slope_angle: 0.5+0.125', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.5+0.124)
+        pc:set_slope_angle_with_quadrant(0.5+0.125)
         assert.are_equal(directions.up, pc.quadrant)
       end)
 
-      it('should set quadrant to left for slope_angle: 0.75-0.125', function ()
+      it('should set quadrant to left for slope_angle: 0.75-0.124', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.75-0.125)
+        pc:set_slope_angle_with_quadrant(0.75-0.124)
         assert.are_equal(directions.left, pc.quadrant)
       end)
 
-      it('should set quadrant to left for slope_angle: 0.75+0.125', function ()
+      it('should set quadrant to left for slope_angle: 0.75+0.124', function ()
         pc.quadrant = nil
-        pc:set_slope_angle_with_quadrant(0.75+0.125)
+        pc:set_slope_angle_with_quadrant(0.75+0.124)
         assert.are_equal(directions.left, pc.quadrant)
       end)
 
@@ -1691,6 +1649,10 @@ describe('player_char', function ()
           end)
 
         end)
+
+        -- note that 45 deg slope is considered quadrant down by world.angle_to_quadrant
+        --  therefore our tests will work as on flat ground
+        -- otherwise we'd need to adjust the expected get_bottom_center which is affected by quadrant
 
         describe('with descending slope 45', function ()
 
@@ -5610,7 +5572,7 @@ describe('player_char', function ()
       it('when move intention is (-1, 1), update 1 frame => at (3.867 -3.867)', function ()
         pc.move_intention = vector(-1, 1)
         pc:_update_velocity_debug()
-        pc:move_by(pc.debug_velocity * delta_time60)
+        pc.position:add_inplace(pc.debug_velocity * delta_time60)
         assert.is_true(almost_eq_with_message(vector(3.8667, -3.8667), pc.position))
       end)
 
@@ -5618,7 +5580,7 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time60)
+          pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector(-2.73, 2.73), pc.position))
         assert.is_true(almost_eq_with_message(vector(-60, 60), pc.debug_velocity))  -- at max speed
@@ -5628,12 +5590,12 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time60)
+          pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         pc.move_intention = vector.zero()
         for i=1,5 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time60)
+          pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector(-20, 20), pc.debug_velocity, 0.01))
       end)
@@ -5642,12 +5604,12 @@ describe('player_char', function ()
         pc.move_intention = vector(-1, 1)
         for i=1,10 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time60)
+          pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         pc.move_intention = vector.zero()
         for i=1,8 do
           pc:_update_velocity_debug()
-          pc:move_by(pc.debug_velocity * delta_time60)
+          pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector.zero(), pc.debug_velocity))
       end)

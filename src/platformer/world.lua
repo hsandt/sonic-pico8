@@ -5,21 +5,18 @@ local world = {}
 
 -- return quadrant in which angle is contained (non-injective)
 function world.angle_to_quadrant(angle)
-  -- priority to horizontal quadrants at the boundaries
-  -- (just so 45-deg slope is recognized as left/right and character can get control-locked
-  --  to mimic hysteresis motion when trying to walk up slide in Hydrocity Zone)
-  -- looks like Classic Sonic gives priority to vertical quadrants (down, up) though, so
-  --  consider changing edge cases and use angle directly for lock calculation
+  -- priority to vertical quadrants at the boundaries like Classic Sonic
+  -- (so 45-deg slope is recognized as up/down)
   -- note that in those edge cases, the tiles should always be a rectangle to avoid confusion
   --  of which side the columns/rows are defined from
   -- nil angle (airborne) defaults to down so Sonic will try to "stand up" in the air
-  if not angle or angle > 0.875 or angle < 0.125 then
+  if not angle or angle >= 0.875 or angle <= 0.125 then
     return directions.down
-  elseif angle <= 0.375 then
+  elseif angle < 0.375 then
     return directions.right
-  elseif angle < 0.625 then
+  elseif angle <= 0.625 then
     return directions.up
-  else  -- angle <= 0.875
+  else  -- angle < 0.875
     return directions.left
   end
 end

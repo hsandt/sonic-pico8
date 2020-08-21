@@ -318,13 +318,12 @@ function player_char:_compute_ground_sensors_signed_distance(center_position)
     --  then q-horizontal direction breaks tie
 
     -- store the biggest penetration height among sensors
-    if signed_distance < min_signed_distance then
-      -- this ground is higher than the previous one, store new height and slope angle
-      min_signed_distance = signed_distance
-      highest_ground_slope_angle = slope_angle
-    elseif signed_distance == min_signed_distance and self:_get_prioritized_dir() == i then
-      -- this ground has the same height as the previous one, but character orientation
-      --  makes him stand on that one rather than the previous one, so we use its slope
+    -- case a: this ground is higher than the previous one, store new height and slope angle
+    -- case b: this ground has the same height as the previous one, but character orientation
+    --  makes him stand on that one rather than the previous one, so we use its slope
+    -- check both cases in condition below
+    if signed_distance < min_signed_distance or signed_distance == min_signed_distance and self:_get_prioritized_dir() == i then
+      min_signed_distance = signed_distance  -- does nothing in case b
       highest_ground_slope_angle = slope_angle
     end
 

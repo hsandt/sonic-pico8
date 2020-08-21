@@ -365,10 +365,10 @@ by analyze_script
 playercharacter.lua (playercharacter.p8)
 by analyze_script
 - version: 16
-- lines: 1399
-- chars: 72546
-- tokens: 2886
-- compressed chars: 26910
+- lines: 1396
+- chars: 72440
+- tokens: 2871
+- compressed chars: 26903
 
 stage_state.lua (stage_state.p8)
 by analyze_script

@@ -200,9 +200,11 @@ function player_char:warp_bottom_to(bottom_position)
 end
 
 -- move the player character so that the bottom center is at the given position
+--#if itest
 function player_char:get_bottom_center()
-  return self.position + vector(0, self:get_center_height())
+  return self.position + self:get_center_height() * self:get_quadrant_down()
 end
+--#endif
 
 -- move the player character so that the bottom center is at the given position
 function player_char:set_bottom_center(bottom_center_position)

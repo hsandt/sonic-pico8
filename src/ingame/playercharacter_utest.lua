@@ -541,7 +541,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_bottom_center', function ()
+    describe('#solo get_bottom_center', function ()
 
       setup(function ()
         stub(player_char, "get_center_height", function ()
@@ -553,9 +553,15 @@ describe('player_char', function ()
         player_char.get_center_height:revert()
       end)
 
-      it('(10 0 3) => at (10 6)', function ()
+      it('(10, 0) => (10, center_height)', function ()
         pc.position = vector(10, 0)
-        assert.are_equal(vector(10, 0 + 11), pc:get_bottom_center())
+        assert.are_equal(vector(10, 11), pc:get_bottom_center())
+      end)
+
+      it('(10, 0) quadrant left => (10 - center_height, 0)', function ()
+        pc.position = vector(10, 0)
+        pc.quadrant = directions.left
+        assert.are_equal(vector(-1, 0), pc:get_bottom_center())
       end)
 
     end)
@@ -572,7 +578,7 @@ describe('player_char', function ()
         player_char.get_center_height:revert()
       end)
 
-      it('set_bottom_center (10 6) => at (10 0)', function ()
+      it('set_bottom_center (10, center_height) => (10, 0)', function ()
         pc:set_bottom_center(vector(10, 0 + 11))
         assert.are_equal(vector(10, 0), pc.position)
       end)

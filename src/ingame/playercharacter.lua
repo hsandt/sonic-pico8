@@ -367,7 +367,6 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
   -- from character center, move down by center height to get the character bottom center
   local qx_floored_bottom_center = vector(x, y) + self:get_center_height() * self:get_quadrant_down()
 
-
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
   --  rotate proper vector (initially horizontal) for quadrant compatibility, but make sure to apply coord flooring
   --  *afterward* so it applies to the final coord and we don't rotate a +2.5 -> +2 into a -2 instead of having -3
@@ -392,6 +391,8 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
   assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_position qx must be floored")
 
+  local quadrant_down = self:get_quadrant_down()
+
   -- we used to flr sensor_position.y (would now be qy) at this point,
   -- but actually collision checks don't mind the fractions
   -- in addition, we will automatically get the correct signed distance to ground with fractional part!
@@ -401,8 +402,8 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   --  from sensor + offset position (in qy)
   -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
   --  where the character can snap up (escape) and snap down
-  local snap_zone_qtop = sensor_position + self:quadrant_rotated(vector(0, - pc_data.max_ground_escape_height - 1))
-  local snap_zone_qbottom = sensor_position + self:quadrant_rotated(vector(0, pc_data.max_ground_snap_height))
+  local snap_zone_qtop = sensor_position - (pc_data.max_ground_escape_height + 1) * quadrant_down
+  local snap_zone_qbottom = sensor_position + pc_data.max_ground_snap_height * quadrant_down
 
   -- start at the top, remember the bottom to end the iteration
   local curr_tile_loc = snap_zone_qtop:to_location()
@@ -419,7 +420,6 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
-  local quadrant_down = self:get_quadrant_down()
   local tile_loc_step = tile_vector(quadrant_down.x, quadrant_down.y)
 
   -- keep looping until we find ground to snap up/down, or ground too far for that,
@@ -1006,15 +1006,18 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
   assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_is_column_blocked_by_ceiling_at: sensor_position qx must be floored")
 
+  local quadrant_opp = oppose_dir(self.quadrant)
+  local quadrant_up = dir_vectors[quadrant_opp]
+
   -- top must be q-above bottom or we will get stuck in infinite loop
   -- (because to reduce tokens we compare locations directly instead of sub_qy(curr_tile_qj, last_tile_qy, quadrant_opp) >= 0
   --  which would ensure loop end)
-  local ceiling_detection_zone_qtop = sensor_position + self:quadrant_rotated(vector(0, - self:get_full_height()))
+  local ceiling_detection_zone_qtop = sensor_position + self:get_full_height() * quadrant_up
   -- we must at least start checking ceiling 1 px above foot sensor (because when foot is just on top of tile,
   --  the current sensor tile is actually the tile *below* the character, which is often a full tile and will bypass
   --  ignore_reverse (see world._compute_qcolumn_height_at); in practice +4/+8 is a good offset, we pick max_ground_escape_height + 1 = 5
   --  because it allows us to effectively check the q-higher pixels not already checked in _compute_signed_distance_to_closest_ground)
-  local ceiling_detection_zone_qbottom = sensor_position + self:quadrant_rotated(vector(0, - pc_data.max_ground_escape_height - 1))
+  local ceiling_detection_zone_qbottom = sensor_position + (pc_data.max_ground_escape_height + 1) * quadrant_up
 
   -- define sensor tile location and tile iteration bounds
   local sensor_tile_loc = sensor_position:to_location()
@@ -1029,10 +1032,6 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
   -- we iterate on tiles along quadrant up, so just convert it to tile_vector
   --  to allow step addition
-  local quadrant_opp = oppose_dir(self.quadrant)
-  local quadrant_up = dir_vectors[quadrant_opp]
-  -- since we got quadrant down, we must oppose;
-  -- if you don't like the 2 extra tokens, just iterate from top to bottom instead
   local tile_loc_step = tile_vector(quadrant_up.x, quadrant_up.y)
 
   -- iterate from bottom (Sonic feet) to top (Sonic head)

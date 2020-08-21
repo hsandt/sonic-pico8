@@ -501,7 +501,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('#solo get_bottom_center', function ()
+    describe('get_bottom_center', function ()
 
       setup(function ()
         stub(player_char, "get_center_height", function ()

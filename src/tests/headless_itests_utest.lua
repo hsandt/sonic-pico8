@@ -1,5 +1,5 @@
 -- todo: use busted --helper=.../bustedhelper instead of all the bustedhelper requires!
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 require("engine/test/headless_itest")
 require("engine/test/integrationtest")
 local logging = require("engine/debug/logging")

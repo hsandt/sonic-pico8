@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 local flow = require("engine/application/flow")
 local tilemap = require("engine/data/tilemap")
 local input = require("engine/input/input")
@@ -417,6 +417,16 @@ describe('itest_dsl', function ()
         assert.is_not_nil(cmd)
         assert.are_same({command_types.move, {horizontal_dirs.left}}, {cmd.type, cmd.args})
       end)
+    end)
+
+  end)
+
+  describe('__eq (busted only)', function ()
+
+    it('should compare POD members and array contents', function ()
+      local cmd1 = command(command_types.move, {horizontal_dirs.left})
+      local cmd2 = command(command_types.move, {horizontal_dirs.left})
+      assert.are_equal(cmd1, cmd2)
     end)
 
   end)

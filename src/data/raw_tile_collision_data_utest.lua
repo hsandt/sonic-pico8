@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 local raw_tile_collision_data = require("data/raw_tile_collision_data")
 
 describe('raw_tile_collision_data', function ()

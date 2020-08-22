@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 local world = require("platformer/world")
 
 local tile_test_data = require("test_data/tile_test_data")

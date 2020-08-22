@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 local stage_state = require("ingame/stage_state")
 
 local flow = require("engine/application/flow")

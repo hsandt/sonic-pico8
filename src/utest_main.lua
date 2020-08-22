@@ -6,9 +6,9 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
+require("common")
 
-local unittest = require("engine/test/unittest")
-local utest_manager, unit_test = unittest.utest_manager, unittest.unit_test
+local p8utest = require("engine/test/p8utest")
 -- tag to add require for pico8 utests files (should be in utests/)
 --[[add_require]]
 
@@ -18,5 +18,5 @@ logging.logger:register_stream(logging.console_log_stream)
 --#endif
 
 function _init()
-  utest_manager:run_all_tests()
+  p8utest.utest_manager:run_all_tests()
 end

@@ -371,6 +371,114 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
   return qx_floored_bottom_center + offset_qx_vector
 end
 
+-- helper method for _compute_signed_distance_to_closest_ground and _is_blocked_by_ceiling_at
+-- it iterates over tiles from start to last, providing distance from sensor_position (foot or head)
+--  to q-column q-top (with reverse support) to a custom callback
+-- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
+local function iterate_over_collision_tiles(collision_check_quadrant, start_tile_loc, last_tile_loc, sensor_position, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
+  assert(world.get_quadrant_x_coord(sensor_position, collision_check_quadrant) % 1 == 0, "iterate_over_collision_tiles: sensor_position qx must be floored")
+
+  local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
+
+  -- we iterate on tiles along quadrant down, so just convert it to tile_vector
+  --  to allow step addition
+  local tile_loc_step = tile_vector(collision_check_quadrant_down.x, collision_check_quadrant_down.y)
+  local start_tile_topleft = start_tile_loc:to_topleft_position()
+
+  -- start iteration from start_tile_loc
+  local curr_tile_loc = start_tile_loc:copy()
+
+  -- we *always* iterate on columns from left to right, rows from top to bottom,
+  --  and columns/rows are stored exactly like that in collision data (not CCW or anything)
+  --  so unlike other operations, the subtraction from topleft (combined with qx coord) is correct
+  --  to get column index for qcolumn height later, without the need to quadrant-rotate vectors first
+  -- note that we use start_tile_topleft instead of the sensor_position:to_location():to_topleft_position()
+  --  they may differ on qy (ceiling iteration starts a little higher than sensor position)
+  --  but they have the same qx, so the operation is valid, and equivalent to using sensor location topleft,
+  --  but with fewer tokens as we don't need the extra conversion
+  local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - start_tile_topleft, collision_check_quadrant)  -- from 0 to tile_size - 1
+
+  -- keep looping until callback is satisfied (in general we found a collision or neary ground)
+  --  or we've reached the last tile
+  while true do
+    -- Ceiling ignore reverse full tiles on first tile. Comment from _is_column_blocked_by_ceiling_at
+    --  before extracting iterate_over_collision_tiles
+    -- on the first tile, we don't cannot really be blocked by a ground
+    --  with the same interior direction as quadrant <=> opposite to quadrant_opp
+    --  (imagine Sonic standing on a half-tile; this definitely cannot be ceiling)
+    --  so we do not consider the reverse collision with full tile_size q-height with them
+    -- if you're unsure, try to force-set this to false and you'll see utests like
+    --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
+    --  failing
+    local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
+
+    -- get q-bottom of tile to compare heights easily later
+    -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
+    local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, collision_check_quadrant)
+
+    -- check for ground (by q-column) in currently checked tile, at sensor qX
+    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+
+    -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
+    --  but that the q-column is empty and we don't know what is more below
+    -- so don't do anything yet but check for the tile one level lower
+    --  (unless we've reached end of iteration with the last tile, in which case
+    --  the next tile would be too far to snap down anyway)
+    if qcolumn_height > 0 then
+      -- signed distance to closest ground/ceiling is positive when q-above ground/q-below ceiling
+      -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
+      --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
+      -- then subtract qcolumn_height and you get the signed distance to the current ground q-column
+      local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
+      -- let caller decide how to handle the presence of collider
+      local result = collider_distance_callback(signed_distance_to_closest_collider, slope_angle)
+
+      -- we cannot 2x return from a called function directly, so instead, we check if a result was returned
+      --  if so, we return from the caller
+      if result then
+        return result
+      end
+
+      -- else (can only happen in _compute_signed_distance_to_closest_ground): ground has been found, but it is too far below character's q-feet
+      --  to snap q-down. This can only happen on the last tile we iterate on
+      --  (since it was computed to be at the snap q-down limit),
+      --  which means we will enter the "end of iteration" block below
+      assert(curr_tile_loc == last_tile_loc)
+    end
+
+    if curr_tile_loc == last_tile_loc then
+      -- let caller decide how to handle the end of iteration without finding any collider
+      return no_collider_callback()
+    end
+
+    curr_tile_loc = curr_tile_loc + tile_loc_step
+  end
+end
+
+-- actual body of _compute_signed_distance_to_closest_ground passed to iterate_over_collision_tiles
+-- return nil if no clear result and we must continue to iterate (until the last tile)
+local function ground_check_collider_distance_callback(signed_distance_to_closest_ground, slope_angle)
+  if signed_distance_to_closest_ground < -pc_data.max_ground_escape_height then
+    -- ground found, but character is too deep inside to snap q-up
+    -- return edge case (-pc_data.max_ground_escape_height - 1, 0)
+    -- the slope angle 0 allows to still have character stand straight (world) up visually,
+    --  but he's probably stuck inside the ground...
+    return motion.ground_query_info(-pc_data.max_ground_escape_height - 1, 0)
+  elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
+    -- ground found, and close enough to snap up/down, return ground query info
+    --  to allow snapping + set slope angle
+    return motion.ground_query_info(signed_distance_to_closest_ground, slope_angle)
+  end
+end
+
+-- actual body of _compute_signed_distance_to_closest_ground passed to iterate_over_collision_tiles
+local function ground_check_no_collider_callback()
+  -- end of iteration, and no ground found or too far below to snap q-down
+  -- return edge case for ground considered too far below
+  --  (pc_data.max_ground_snap_height + 1, nil)
+  return motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
+end
+
 -- return (signed_distance, slope_angle) where:
 --  - signed distance to closest ground from sensor_position,
 --     either negative when (in abs, penetration height, clamped to max_ground_escape_height+1)
@@ -403,73 +511,17 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   local snap_zone_qbottom = sensor_position + pc_data.max_ground_snap_height * quadrant_down
 
   -- start at the top, remember the bottom to end the iteration
-  local curr_tile_loc = snap_zone_qtop:to_location()
-  local sensor_location_topleft = curr_tile_loc:to_topleft_position()
+  local start_tile_loc = snap_zone_qtop:to_location()
+  local sensor_location_topleft = start_tile_loc:to_topleft_position()
 
   -- last tile to iterate on (at q-bottom)
   local last_tile_loc = snap_zone_qbottom:to_location()
-
-  -- we *always* iterate on columns from left to right, rows from top to bottom,
-  --  and columns/rows are stored exactly like that in collision data (not CCW or anything)
-  --  so unlike other operations, the subtraction from topleft (combined with qx coord) is correct
-  --  to get column index for qcolumn height later, without the need to quadrant-rotate vectors first
-  local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - sensor_location_topleft, quadrant)  -- from 0 to tile_size - 1
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
   local tile_loc_step = tile_vector(quadrant_down.x, quadrant_down.y)
 
-  -- keep looping until we find ground to snap up/down, or ground too far for that,
-  --  or we've reached the last tile (too low to snap down)
-  while true do
-
-    local curr_tile_j = world.get_quadrant_j_coord(curr_tile_loc, quadrant)
-
-    -- get q-bottom of tile to compare heights easily later
-    local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, quadrant)
-
-    -- check for ground (by q-column) in currently checked tile, sensor qX
-    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, quadrant)
-
-    -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
-    --  but that the q-column is empty and we don't know what is more below
-    -- so don't do anything yet but check for the tile one level lower
-    --  (unless we've reached end of iteration with the last tile, in which case
-    --  the next tile would be too far to snap down anyway)
-    if qcolumn_height > 0 then
-      -- signed distance to closest ground is positive when above ground
-      -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
-      --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
-      -- then subtract qcolumn_height and you get the signed distance to the current ground column
-      local signed_distance_to_closest_ground = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, quadrant), quadrant) - qcolumn_height
-      if signed_distance_to_closest_ground < -pc_data.max_ground_escape_height then
-        -- ground found, but character is too deep inside to snap q-up
-        -- return edge case (-pc_data.max_ground_escape_height - 1, 0)
-        -- the slope angle 0 allows to still have character stand straight (world) up visually,
-        --  but he's probably stuck inside the ground...
-        return motion.ground_query_info(-pc_data.max_ground_escape_height - 1, 0)
-      elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
-        -- ground found, and close enough to snap up/down, return ground query info
-        --  to allow snapping + set slope angle
-        return motion.ground_query_info(signed_distance_to_closest_ground, slope_angle)
-      end
-      -- else: ground has been found, but it is too far below character's q-feet
-      --  to snap q-down. This can only happen on the last tile we iterate on
-      --  (since it was computed to be at the snap q-down limit),
-      --  which means we will enter the "end of iteration" block below
-      assert(curr_tile_loc == last_tile_loc)
-    end
-
-    if curr_tile_loc == last_tile_loc then
-      -- end of iteration, and no ground found or too far below to snap q-down
-      -- return edge case for ground considered too far below
-      --  (pc_data.max_ground_snap_height + 1, nil)
-      return motion.ground_query_info(pc_data.max_ground_snap_height + 1, nil)
-    end
-
-    curr_tile_loc = curr_tile_loc + tile_loc_step
-  end
-
+  return iterate_over_collision_tiles(quadrant, start_tile_loc, last_tile_loc, sensor_position, ground_check_collider_distance_callback, ground_check_no_collider_callback)
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
@@ -989,6 +1041,26 @@ function player_char:_is_blocked_by_ceiling_at(center_position)
   return false
 end
 
+
+-- actual body of _is_column_blocked_by_ceiling_at passed to iterate_over_collision_tiles
+-- return nil if no clear result and we must continue to iterate (until the last tile)
+-- slope_angle is not used, so we aggressively remove it to gain 1 token
+local function ceiling_check_collider_distance_callback(signed_distance_to_closest_ceiling) --, slope_angle)
+  if signed_distance_to_closest_ceiling < 0 then
+    -- head (or feet) inside ceiling
+    return true
+  else
+    -- head far touching ceiling or has some gap from ceiling
+    return false
+  end
+end
+
+-- actual body of _compute_signed_distance_to_closest_ceiling passed to iterate_over_collision_tiles
+local function ceiling_check_no_collider_callback()
+  -- end of iteration, and no ceiling found
+  return false
+end
+
 -- return true iff there is a ceiling above in the column of sensor_position, in a tile above
 --  sensor_position's tile, within a height lower than a character's height
 -- note that we return true even if the detected obstacle is lower than one step up's height,
@@ -997,15 +1069,9 @@ end
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
 function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
-  -- a good part of the code is similar to _compute_signed_distance_to_closest_ground
-  -- maybe not enough to factorize, but check its comments to understand better how we
-  --  iterate over tiles
+  assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_is_column_blocked_by_ceiling_at: sensor_position qx must be floored")
 
-  local quadrant = self.quadrant
-
-  assert(world.get_quadrant_x_coord(sensor_position, quadrant) % 1 == 0, "player_char:_is_column_blocked_by_ceiling_at: sensor_position qx must be floored")
-
-  local quadrant_opp = oppose_dir(quadrant)
+  local quadrant_opp = oppose_dir(self.quadrant)
   local quadrant_up = dir_vectors[quadrant_opp]
 
   -- top must be q-above bottom or we will get stuck in infinite loop
@@ -1022,61 +1088,14 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
 
   -- define sensor tile location and tile iteration bounds
   local sensor_tile_loc = sensor_position:to_location()
-  local curr_tile_loc = ceiling_detection_zone_qbottom:to_location()
-  local start_tile_loc = curr_tile_loc:copy()
-  local sensor_location_topleft = curr_tile_loc:to_topleft_position()
+  local start_tile_loc = ceiling_detection_zone_qbottom:to_location()
 
   -- last tile to iterate on (at q-top)
   local last_tile_loc = ceiling_detection_zone_qtop:to_location()
 
-  local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - sensor_location_topleft, quadrant)  -- from 0 to tile_size - 1
+  local head_top_position = sensor_position + self:get_full_height() * quadrant_up
 
-  -- we iterate on tiles along quadrant up, so just convert it to tile_vector
-  --  to allow step addition
-  local tile_loc_step = tile_vector(quadrant_up.x, quadrant_up.y)
-
-  -- iterate from bottom (Sonic feet) to top (Sonic head)
-  while true do
-
-    -- on the first tile, we don't cannot really be blocked by a ground
-    --  with the same interior direction as quadrant <=> opposite to quadrant_opp
-    --  (imagine Sonic standing on a half-tile; this definitely cannot be ceiling)
-    --  so we do not consider the reverse collision with full tile_size q-height with them
-    -- if you're unsure, try to force-set this to false and you'll see utests like
-    --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
-    --  failing
-    local ignore_reverse = start_tile_loc == curr_tile_loc
-
-    -- get q-top of tile to compare heights easily later
-    -- there is no get_tile_qtop, so use quadrant_opp with get_tile_qbottom
-    local current_tile_qtop = world.get_tile_qbottom(curr_tile_loc, quadrant_opp)
-
-    -- check for ceiling (by q-column) in currently checked tile, sensor qX
-    -- make sure to mirror Y of quadrant to get q-column height seen from q-above
-    -- we don't need slope_angle, commented out for token reduction
-    local qcolumn_height--[[, _slope_angle]] = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, quadrant_opp, ignore_reverse)
-
-    if qcolumn_height > 0 then
-      local head_top_position = sensor_position + vector(0, -self:get_full_height())
-      local signed_distance_to_closest_ceiling = world.sub_qy(current_tile_qtop, world.get_quadrant_y_coord(head_top_position, quadrant), quadrant_opp) - qcolumn_height
-      if signed_distance_to_closest_ceiling < 0 then
-        -- head (or feet) inside ceiling
-        return true
-      else
-        -- head far touching ceiling or has some gap from ceiling
-        return false
-      end
-    end
-
-    if curr_tile_loc == last_tile_loc then
-      -- end of iteration, and no ceiling found
-      return false
-    end
-
-    curr_tile_loc = curr_tile_loc + tile_loc_step
-
-  end
-
+  return iterate_over_collision_tiles(quadrant_opp, start_tile_loc, last_tile_loc, head_top_position, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 
 -- if character intends to jump, prepare jump for next frame

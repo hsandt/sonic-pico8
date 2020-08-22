@@ -3516,7 +3516,7 @@ describe('player_char', function ()
 
       end)  -- _compute_ground_motion_result
 
-      describe('#solo _next_ground_step', function ()
+      describe('_next_ground_step', function ()
 
         -- for these utests, we assume that _compute_ground_sensors_signed_distance and
         --  _is_blocked_by_ceiling are correct,
@@ -4189,18 +4189,48 @@ describe('player_char', function ()
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 6)))
           end)
 
-          it('should return true for sensor position at the bottom of the tile', function ()
+          it('should return false for sensor position at the bottom of the tile', function ()
             -- here we don't detect a ceiling because y = 8 is considered belonging to
             --  tile j = 1, but we define ignore_reverse = start_tile_loc == curr_tile_loc
             --  not ignore_reverse = curr_tile_loc == curr_tile_loc
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 8)))
           end)
 
-          it('should return true for sensor position 2 px below tile (so that 4px above is inside tile)', function ()
+          it('should return false for sensor position 2 px below tile (so that 4px above is inside tile)', function ()
             -- this test makes sure that we ignore reverse full height for start tile
             --  *not* sensor tile, which is different when sensor is less than 4px of the neighboring tile
             --  in iteration direction
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 10)))
+          end)
+
+          it('should return false for quadrant left, sensor position 5 px q-inside tile', function ()
+            pc.quadrant = directions.left
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(3, 4)))
+          end)
+
+          it('should return true for quadrant left, sensor position 6 px q-inside tile', function ()
+            pc.quadrant = directions.left
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(2, 4)))
+          end)
+
+          it('should return false for quadrant right, sensor position 5 px q-inside tile', function ()
+            pc.quadrant = directions.right
+            assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 4)))
+          end)
+
+          it('should return true for quadrant right, sensor position 6 px q-inside tile', function ()
+            -- this test makes sure that we do *not* ignore reverse full height for initial tile if
+            --  that are full horizontal rectangle (see world._compute_qcolumn_height_at)
+            --  since slope_angle_to_interiors has a bias 0 -> right so onceiling check,
+            --  we check on left which is reverse of tile interior_h
+            --  (if bias was for left, then the test above would check this instead)
+            pc.quadrant = directions.right
+            -- note that we also detect ceiling on (5, 4) although it is symmetrical to the (3, 4)
+            --  test for quadrant left, due to the fact that pixel x = 0 is considered still in tile i = 0
+            -- we can fix the disymmetry with some .5 pixel extent in qy in both ground distance and ceiling check
+            --  (as in the qx direction with ground sensor extent) but we don't mind since Classic Sonic itself
+            --  has an odd size collider in reality
+            assert.is_true(pc:_is_column_blocked_by_ceiling_at(vector(6, 4)))
           end)
 
         end)

@@ -114,6 +114,26 @@ describe('tile_collision_data', function ()
 
   describe('slope_angle_to_interiors', function ()
 
+    -- cardinals
+
+    it('should return down, right (edge case) for 0', function ()
+      assert.are_same({vertical_dirs.down, horizontal_dirs.right}, {tile_collision_data.slope_angle_to_interiors(0)})
+    end)
+
+    it('should return up (edge case), right for 0.25', function ()
+      assert.are_same({vertical_dirs.up, horizontal_dirs.right}, {tile_collision_data.slope_angle_to_interiors(0.25)})
+    end)
+
+    it('should return up, left (edge case) for 0.5', function ()
+      assert.are_same({vertical_dirs.up, horizontal_dirs.left}, {tile_collision_data.slope_angle_to_interiors(0.5)})
+    end)
+
+    it('should return down (edge case), left for 0.75', function ()
+      assert.are_same({vertical_dirs.down, horizontal_dirs.left}, {tile_collision_data.slope_angle_to_interiors(0.75)})
+    end)
+
+    -- diagonals
+
     it('should return a down, right for bottom-right tile', function ()
       assert.are_same({vertical_dirs.down, horizontal_dirs.right}, {tile_collision_data.slope_angle_to_interiors(atan2(8, -4))})
     end)

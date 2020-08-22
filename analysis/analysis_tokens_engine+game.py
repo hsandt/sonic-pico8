@@ -365,10 +365,10 @@ by analyze_script
 playercharacter.lua (playercharacter.p8)
 by analyze_script
 - version: 16
-- lines: 1396
-- chars: 72440
-- tokens: 2871
-- compressed chars: 26903
+- lines: 1401
+- chars: 73541
+- tokens: 2805
+- compressed chars: 27471
 
 stage_state.lua (stage_state.p8)
 by analyze_script
@@ -413,10 +413,10 @@ by analyze_script
 world.lua (world.p8)
 by analyze_script
 - version: 16
-- lines: 242
-- chars: 10480
+- lines: 240
+- chars: 10206
 - tokens: 488
-- compressed chars: 3993
+- compressed chars: 3839
 
 motion.lua (motion.p8)
 by analyze_script
@@ -461,10 +461,10 @@ by analyze_script
 tile_collision_data.lua (tile_collision_data.p8)
 by analyze_script
 - version: 16
-- lines: 224
-- chars: 10589
+- lines: 225
+- chars: 10658
 - tokens: 525
-- compressed chars: 3715
+- compressed chars: 3732
 
 playercharacter_data.lua (playercharacter_data.p8)
 by analyze_script

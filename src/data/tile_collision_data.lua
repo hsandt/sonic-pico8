@@ -78,7 +78,9 @@ end
 
 -- return tuple (interior_v, interior_h) for a slope angle
 function tile_collision_data.slope_angle_to_interiors(slope_angle)
-  local interior_v = (slope_angle < 0.25 or slope_angle > 0.75) and vertical_dirs.down or vertical_dirs.up
+  assert(slope_angle % 1 == slope_angle)
+  -- in edge cases (square angles), interior direction is arbitrary
+  local interior_v = (slope_angle < 0.25 or slope_angle >= 0.75) and vertical_dirs.down or vertical_dirs.up
   local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
   return interior_v, interior_h
 end

@@ -97,6 +97,8 @@ end
 -- this is useful for ceiling check on character's current tile and actually matches Classic Sonic behavior better
 function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadrant, ignore_reverse)
 
+  assert(0 <= qcolumn_index0 and qcolumn_index0 < 8, "world._compute_qcolumn_height_at: invalid qcolumn_index0 "..qcolumn_index0)
+
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
   if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 64 then
 

@@ -372,21 +372,30 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
 end
 
 -- helper method for _compute_signed_distance_to_closest_ground and _is_blocked_by_ceiling_at
--- it iterates over tiles from start to last, providing distance from sensor_position (foot or head)
---  to q-column q-top (with reverse support) to a custom callback
+-- it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
+--  to q-column q-top (with reverse tile support) to a custom callback
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
-local function iterate_over_collision_tiles(collision_check_quadrant, start_tile_loc, last_tile_loc, sensor_position, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
-  assert(world.get_quadrant_x_coord(sensor_position, collision_check_quadrant) % 1 == 0, "iterate_over_collision_tiles: sensor_position qx must be floored")
-
+local function iterate_over_collision_tiles(collision_check_quadrant, start_tile_offset_qy, last_tile_offset_qy, sensor_position_base, sensor_offset_qy, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
+  -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
   local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
+
+  -- apply sensor offset along check quadrant down (only used for ceiling, so actually upward to get head top position)
+  local sensor_position = sensor_position_base + sensor_offset_qy * collision_check_quadrant_down
+
+  assert(world.get_quadrant_x_coord(sensor_position, collision_check_quadrant) % 1 == 0, "iterate_over_collision_tiles: sensor_position qx must be floored, found "..sensor_position)
+
+  -- deduce start and last tile from offset from the sensor position
+  --  always oriented with check quadrant (by convention we check from q-top to q-bottom)
+  local start_tile_loc = (sensor_position + start_tile_offset_qy * collision_check_quadrant_down):to_location()
+  local last_tile_loc = (sensor_position + last_tile_offset_qy * collision_check_quadrant_down):to_location()
+
+  -- precompute start tile topleft (we're actually only interested in sensor location topleft,
+  --  and both have the same qx)
+  local start_tile_topleft = start_tile_loc:to_topleft_position()
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
   local tile_loc_step = tile_vector(collision_check_quadrant_down.x, collision_check_quadrant_down.y)
-  local start_tile_topleft = start_tile_loc:to_topleft_position()
-
-  -- start iteration from start_tile_loc
-  local curr_tile_loc = start_tile_loc:copy()
 
   -- we *always* iterate on columns from left to right, rows from top to bottom,
   --  and columns/rows are stored exactly like that in collision data (not CCW or anything)
@@ -397,6 +406,9 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
   --  but they have the same qx, so the operation is valid, and equivalent to using sensor location topleft,
   --  but with fewer tokens as we don't need the extra conversion
   local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - start_tile_topleft, collision_check_quadrant)  -- from 0 to tile_size - 1
+
+  -- start iteration from start_tile_loc
+  local curr_tile_loc = start_tile_loc:copy()
 
   -- keep looping until callback is satisfied (in general we found a collision or neary ground)
   --  or we've reached the last tile
@@ -491,12 +503,7 @@ end
 --  the test should be tile-insensitive so it is possible to detect q-step up/down in vertical-neighboring tiles
 
 function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
-
-  local quadrant = self.quadrant
-
-  assert(world.get_quadrant_x_coord(sensor_position, quadrant) % 1 == 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_position qx must be floored")
-
-  local quadrant_down = self:get_quadrant_down()
+  assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_compute_signed_distance_to_closest_ground: sensor_position qx must be floored")
 
   -- we used to flr sensor_position.y (would now be qy) at this point,
   -- but actually collision checks don't mind the fractions
@@ -507,21 +514,7 @@ function player_char:_compute_signed_distance_to_closest_ground(sensor_position)
   --  from sensor + offset position (in qy)
   -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
   --  where the character can snap up (escape) and snap down
-  local snap_zone_qtop = sensor_position - (pc_data.max_ground_escape_height + 1) * quadrant_down
-  local snap_zone_qbottom = sensor_position + pc_data.max_ground_snap_height * quadrant_down
-
-  -- start at the top, remember the bottom to end the iteration
-  local start_tile_loc = snap_zone_qtop:to_location()
-  local sensor_location_topleft = start_tile_loc:to_topleft_position()
-
-  -- last tile to iterate on (at q-bottom)
-  local last_tile_loc = snap_zone_qbottom:to_location()
-
-  -- we iterate on tiles along quadrant down, so just convert it to tile_vector
-  --  to allow step addition
-  local tile_loc_step = tile_vector(quadrant_down.x, quadrant_down.y)
-
-  return iterate_over_collision_tiles(quadrant, start_tile_loc, last_tile_loc, sensor_position, ground_check_collider_distance_callback, ground_check_no_collider_callback)
+  return iterate_over_collision_tiles(self.quadrant, - (pc_data.max_ground_escape_height + 1), pc_data.max_ground_snap_height, sensor_position, 0, ground_check_collider_distance_callback, ground_check_no_collider_callback)
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
@@ -1068,34 +1061,28 @@ end
 --  sensor_position would be the resulting position, so only higher tiles will be considered
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
 function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
-
   assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:_is_column_blocked_by_ceiling_at: sensor_position qx must be floored")
 
-  local quadrant_opp = oppose_dir(self.quadrant)
-  local quadrant_up = dir_vectors[quadrant_opp]
+  -- oppose_dir since we check ceiling by detecting tiles q-above, and their q-column height matters
+  --  when measured from the q-top (e.g. if there's a top half-tile maybe character head is not hitting it
+  --  depending on the exact distance; if q-bottom based, it's considered reverse so full q-height and character
+  --  head will hit it as soon as it enters the tile)
 
   -- top must be q-above bottom or we will get stuck in infinite loop
   -- (because to reduce tokens we compare locations directly instead of sub_qy(curr_tile_qj, last_tile_qy, quadrant_opp) >= 0
   --  which would ensure loop end)
-  local ceiling_detection_zone_qtop = sensor_position + self:get_full_height() * quadrant_up
+
   -- we must at least start checking ceiling 1 px above foot sensor (because when foot is just on top of tile,
   --  the current sensor tile is actually the tile *below* the character, which is often a full tile and will bypass
   --  ignore_reverse (see world._compute_qcolumn_height_at); in practice +4/+8 is a good offset, we pick max_ground_escape_height + 1 = 5
   --  because it allows us to effectively check the q-higher pixels not already checked in _compute_signed_distance_to_closest_ground)
-  -- ridiculous intermediate variable to work around luamin bug a + (b + c) * d => a + b + c * d
-  local max_ground_escape_height_plus1 = pc_data.max_ground_escape_height + 1
-  local ceiling_detection_zone_qbottom = sensor_position + max_ground_escape_height_plus1 * quadrant_up
 
-  -- define sensor tile location and tile iteration bounds
-  local sensor_tile_loc = sensor_position:to_location()
-  local start_tile_loc = ceiling_detection_zone_qbottom:to_location()
-
-  -- last tile to iterate on (at q-top)
-  local last_tile_loc = ceiling_detection_zone_qtop:to_location()
-
-  local head_top_position = sensor_position + self:get_full_height() * quadrant_up
-
-  return iterate_over_collision_tiles(quadrant_opp, start_tile_loc, last_tile_loc, head_top_position, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
+  -- finally, we check actual collision at head top position, so we pass an offset of self:get_full_height() (argument 5)
+  --  from here, we need:
+  --  - (max_ground_escape_height + 1 - full_height) offset for first tile according to explanation above + the fact that we consider this offset from sensor_position base + offset (full_height)
+  --  - no offset for last tile since we end checking at head top exactly, so argument 3 is 0
+  local full_height = self:get_full_height()
+  return iterate_over_collision_tiles(oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 
 -- if character intends to jump, prepare jump for next frame

@@ -877,8 +877,10 @@ expect
 
         -- we have not passed time so the character cannot have reached expected position
         -- note we are testing as busted, so we get the almost_eq messages
+        -- since we added quadrants, even integer coordinates receive float transformation,
+        --  hence the .0 on passed position
         local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
-          "Passed in:\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
+          "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
           "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
           "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})

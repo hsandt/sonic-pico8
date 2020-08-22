@@ -386,8 +386,12 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
 
   -- deduce start and last tile from offset from the sensor position
   --  always oriented with check quadrant (by convention we check from q-top to q-bottom)
-  local start_tile_loc = (sensor_position + start_tile_offset_qy * collision_check_quadrant_down):to_location()
-  local last_tile_loc = (sensor_position + last_tile_offset_qy * collision_check_quadrant_down):to_location()
+  -- p8tool has a bug that prevents support of (complex expression):method() syntax (although PICO-8 does support it)
+  --  so add an intermediate var (we lose 6 tokens total because of this)
+  local start_tile_repr_pos = sensor_position + start_tile_offset_qy * collision_check_quadrant_down
+  local start_tile_loc = start_tile_repr_pos:to_location()
+  local last_tile_repr_pos = sensor_position + last_tile_offset_qy * collision_check_quadrant_down
+  local last_tile_loc = last_tile_repr_pos:to_location()
 
   -- precompute start tile topleft (we're actually only interested in sensor location topleft,
   --  and both have the same qx)

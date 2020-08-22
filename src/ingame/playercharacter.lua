@@ -1477,8 +1477,6 @@ function player_char:_update_velocity_debug()
   self:_update_velocity_component_debug "y"
 end
 
---#endif
-
 -- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"
 function player_char:_update_velocity_component_debug(coord)
@@ -1494,6 +1492,8 @@ function player_char:_update_velocity_component_debug(coord)
     end
   end
 end
+
+--#endif
 
 -- render the player character sprite at its current position
 function player_char:render()

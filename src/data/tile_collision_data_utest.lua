@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 local tile_collision_data = require("data/tile_collision_data")
 
 local raw_tile_collision_data = require("data/raw_tile_collision_data")
@@ -47,6 +47,16 @@ describe('tile_collision_data', function ()
     it('should create a tile_collision_data with reciprocal arrays and slope angle', function ()
       local tcd = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
       assert.are_same({{0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4)}, {tcd.height_array, tcd.width_array, tcd.slope_angle})
+    end)
+
+  end)
+
+  describe('__eq (p8utest only)', function ()
+
+    it('should compare POD members and array contents', function ()
+      local tcd1 = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
+      local tcd2 = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
+      assert.are_equal(tcd1, tcd2)
     end)
 
   end)

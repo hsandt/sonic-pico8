@@ -35,6 +35,13 @@ function tile_collision_data:_init(height_array, width_array, slope_angle, inter
   self.interior_h = interior_h
 end
 
+--#if p8utest
+function tile_collision_data.__eq(lhs, rhs)
+  return are_same_shallow(lhs.height_array, rhs.height_array) and are_same_shallow(lhs.width_array, rhs.width_array) and
+    are_same_shallow({lhs.slope_angle, lhs.interior_v, lhs.interior_h}, {rhs.slope_angle, rhs.interior_v, rhs.interior_h})
+end
+--#endif
+
 -- return the height for a column index starting at 0, from left to right
 function tile_collision_data:get_height(column_index0)
   return self.height_array[column_index0 + 1]  -- adapt 0-index to 1-index

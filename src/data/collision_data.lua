@@ -98,8 +98,8 @@ sprite_flags = {
    80  @ (0, 5) HALF TILE (4px high) =
    96  @ (0, 6) FLAT LOW TILE (2px high) _
    64  @ (0, 4) BOTTOM-RIGHT QUARTER TILE (4px high) r
-   112 @ (1, 7) ASCENDING 45 /   slope_angle: 0.125 = atan2(1, -1)
-   113 @ (0, 7) ASCENDING 22.5 < slope_angle: 0.0625 ~= atan2(8, -4) (actually 0.0738) but kept for historical utest/itest reasons
+   112 @ (0, 7) ASCENDING 22.5 < slope_angle: 0.0625 ~= atan2(8, -4) (actually 0.0738) but kept for historical utest/itest reasons
+   113 @ (1, 7) ASCENDING 45 /   slope_angle: 0.125 = atan2(1, -1)
    116 @ (4, 7) DESCENDING 45 \  slope_angle: 1-0.125 = atan2(1, 1)
    117 @ (5, 7) higher 2:1 ascending slope (completes 58 from loop)
    12  @ (12, 0) LOOP TOP-LEFT: reusing mask of loop top-left with itself
@@ -169,14 +169,14 @@ local raw_tiles_data = serialization.parse_expression(
     [80] = {{0, 5}, {8, 0}},
     [96] = {{0, 6}, {8, 0}},
     [64] = {{0, 4}, {8, 0}},
-    [112]= {{1, 7}, {8, -8}},
-    [113]= {{0, 7}, 0.0625},
+    [112]= {{0, 7}, 0.0625},
+    [113]= {{1, 7}, {8, -8}},
     [116]= {{4, 7}, {8, 8}},
     [117]= {{5, 7}, {8, -4}},
     [12]= {{12, 0}, {-4, 4}}
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
-    -- this is only for [113], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of
+    -- this is only for [112], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of
     --  that ternary check
     return raw_tile_collision_data(sprite_id_location(t[1][1], t[1][2]), type(t[2]) == 'table' and atan2(t[2][1], t[2][2]) or t[2])
   end

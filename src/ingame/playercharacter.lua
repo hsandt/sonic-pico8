@@ -457,12 +457,12 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
       --  which means we will enter the "end of iteration" block below
-      assert(curr_tile_loc.i == last_tile_loc.i and curr_tile_loc.j == last_tile_loc.j)
+      assert(curr_tile_loc == last_tile_loc)
     end
 
     -- since we only iterate on qj, we really only care about qj (which is i when quadrant is horizontal)
     --  but it costed more token to define get_quadrant_j_coord than to just compare both coords
-    if curr_tile_loc.i == last_tile_loc.i and curr_tile_loc.j == last_tile_loc.j then
+    if curr_tile_loc == last_tile_loc then
       -- let caller decide how to handle the end of iteration without finding any collider
       return no_collider_callback()
     end
@@ -1212,7 +1212,7 @@ end
 function player_char:_compute_air_motion_result()
   -- if character is not moving, he is not blocked nor landing (we assume the environment is static)
   -- this is pretty rare in the air, but could happen when being pushed upward by fans
-  if self.velocity == vector.zero() then
+  if self.velocity:is_zero() then
     return motion.air_motion_result(
       self.position,
       false,

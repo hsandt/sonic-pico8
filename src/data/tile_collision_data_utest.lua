@@ -51,16 +51,6 @@ describe('tile_collision_data', function ()
 
   end)
 
-  describe('__eq (p8utest only)', function ()
-
-    it('should compare POD members and array contents', function ()
-      local tcd1 = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
-      local tcd2 = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
-      assert.are_equal(tcd1, tcd2)
-    end)
-
-  end)
-
   describe('get_height', function ()
 
     it('should return the height at the given column index', function ()

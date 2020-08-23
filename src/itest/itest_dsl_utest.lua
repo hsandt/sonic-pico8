@@ -421,16 +421,6 @@ describe('itest_dsl', function ()
 
   end)
 
-  describe('__eq (busted only)', function ()
-
-    it('should compare POD members and array contents', function ()
-      local cmd1 = command(command_types.move, {horizontal_dirs.left})
-      local cmd2 = command(command_types.move, {horizontal_dirs.left})
-      assert.are_equal(cmd1, cmd2)
-    end)
-
-  end)
-
   describe('expectation', function ()
 
     describe('_init', function ()
@@ -563,7 +553,7 @@ expect
 
         -- interface
         assert.is_not_nil(dsli)
-        assert.are_same(
+        assert.is_true(are_same_with_message(
           {
             -- no ':stage' here, it's still interpret as plain text at this point
             '@stage',
@@ -582,7 +572,7 @@ expect
             dsli.stage_name,
             dsli.tilemap,
             dsli.commands
-          })
+          }))
       end)
 
     end)
@@ -656,7 +646,7 @@ expect
           local gamestate_type, stage_name, tm, next_line_index = itest_dsl_parser.parse_gamestate_definition(dsli_lines)
 
           -- interface
-          assert.are_same(
+          assert.is_true(are_same_with_message(
             {
               ':stage',
               '#',
@@ -671,7 +661,7 @@ expect
               stage_name,
               tm,
               next_line_index
-            })
+            }))
         end)
 
       end)
@@ -691,12 +681,12 @@ expect
           ".... (ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
-        assert.are_same(
+        assert.is_true(are_same_with_message(
           {
             tilemap({}),
             3
           },
-          {tm, next_line_index})
+          {tm, next_line_index}))
       end)
 
        it('should return a tilemap data with tiles corresponding to the tile symbols in the string', function ()
@@ -710,7 +700,7 @@ expect
           "(ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
-        assert.are_same(
+        assert.is_true(are_same_with_message(
           {
             tilemap({
               { 0,  0,  0,  0},
@@ -719,7 +709,7 @@ expect
             }),
             6
           },
-          {tm, next_line_index})
+          {tm, next_line_index}))
       end)
 
       it('should assert if there as fewer than 2 lines', function ()
@@ -766,7 +756,7 @@ expect
 
     describe('parse_action_sequence', function ()
 
-      it('should return a sequence of commands read in lines, starting at next_line_index', function ()
+      it('#solo should return a sequence of commands read in lines, starting at next_line_index', function ()
         local dsli_lines = {
           "???",
           "???",
@@ -780,7 +770,7 @@ expect
           "expect pc_velocity 2 -3.5"
         }
         local commands = itest_dsl_parser.parse_action_sequence(dsli_lines, 5)
-        assert.are_same(
+        assert.is_true(are_same_with_message(
             {
               command(command_types.warp,   { vector(12, 45) }             ),
               command(command_types.wait,   { 1 }                          ),
@@ -789,7 +779,7 @@ expect
               command(command_types.expect, {"pc_bottom_pos", vector(10, 45)}),
               command(command_types.expect, {"pc_velocity", vector(2, -3.5)}),
             },
-            commands)
+            commands))
       end)
 
       it('should assert if an unknown command is found', function ()

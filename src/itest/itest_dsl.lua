@@ -418,13 +418,6 @@ function command:_init(cmd_type, args)
   self.args = args
 end
 
---#if busted
--- this custom equality is defined for utests only, see comment on tilemap.__eq
-function command.__eq(lhs, rhs)
-  return lhs.type == rhs.type and are_same_shallow(lhs.args, rhs.args)
-end
---#endif
-
 
 -- expectation struct
 

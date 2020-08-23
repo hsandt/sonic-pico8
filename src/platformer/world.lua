@@ -45,12 +45,6 @@ function world.get_quadrant_y_coord(pos, quadrant)
   return quadrant % 2 == 1 and pos.y or pos.x
 end
 
--- same, but for qj (tilemap location)
-function world.get_quadrant_j_coord(pos, quadrant)
-  return quadrant % 2 == 1 and pos.j or pos.i
-end
-
-
 -- set the horizontal coordinate of a position vector in current quadrant
 --  (x if down/up, y if right/left) to value
 function world.set_position_quadrant_x(pos, value, quadrant)

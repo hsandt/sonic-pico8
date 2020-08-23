@@ -101,7 +101,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should return the 2 coordinate string arguments as vector', function ()
-        assert.are_equal(vector(2, -3.5), itest_dsl._parse_vector({"2", "-3.5"}))
+        assert.are_same(vector(2, -3.5), itest_dsl._parse_vector({"2", "-3.5"}))
       end)
 
     end)
@@ -227,7 +227,7 @@ describe('itest_dsl', function ()
 
       it('should set pc velocity to (1, -3)', function ()
         itest_dsl._execute_set({"pc_velocity", vector(1, -3)})
-        assert.are_equal(vector(1, -3), state.player_char.velocity)
+        assert.are_same(vector(1, -3), state.player_char.velocity)
       end)
 
       it('should fail with unsupported gp_value_type for setting', function ()
@@ -269,7 +269,7 @@ describe('itest_dsl', function ()
 
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
         itest_dsl._execute_move({horizontal_dirs.right})
-        assert.are_equal(vector(1, 0), state.player_char.move_intention)
+        assert.are_same(vector(1, 0), state.player_char.move_intention)
       end)
 
     end)
@@ -279,7 +279,7 @@ describe('itest_dsl', function ()
       it('should set the move intention of the current player character to vector zero', function ()
         state.player_char.move_intention = vector(99, -99)
         itest_dsl._execute_stop({})
-        assert.are_equal(vector.zero(), state.player_char.move_intention)
+        assert.are_same(vector.zero(), state.player_char.move_intention)
       end)
 
     end)
@@ -337,7 +337,7 @@ describe('itest_dsl', function ()
 
       it('should return the bottom position of the current player character', function ()
         state.player_char:set_bottom_center(vector(12, 47))
-        assert.are_equal(vector(12, 47), eval_pc_bottom_pos())
+        assert.are_same(vector(12, 47), eval_pc_bottom_pos())
       end)
 
     end)
@@ -346,7 +346,7 @@ describe('itest_dsl', function ()
 
       it('should return the velocity of the current player character', function ()
         state.player_char.velocity = vector(1, -4)
-        assert.are_equal(vector(1, -4), eval_pc_velocity())
+        assert.are_same(vector(1, -4), eval_pc_velocity())
       end)
 
     end)
@@ -392,7 +392,7 @@ describe('itest_dsl', function ()
 
       it('should return the velocity the current player character', function ()
         itest_dsl.set_pc_velocity(vector(1, -4))
-        assert.are_equal(vector(1, -4), state.player_char.velocity)
+        assert.are_same(vector(1, -4), state.player_char.velocity)
       end)
 
     end)
@@ -859,11 +859,11 @@ expect
         -- verify warp callback behavior
         test.action_sequence[1].callback()
         assert.is_not_nil(state.player_char)
-        assert.are_equal(vector(12, 45 - pc_data.center_height_standing), state.player_char.position)
+        assert.are_same(vector(12, 45 - pc_data.center_height_standing), state.player_char.position)
 
         -- verify move callback behavior
         test.action_sequence[3].callback()
-        assert.are_equal(vector(-1, 0), state.player_char.move_intention)
+        assert.are_same(vector(-1, 0), state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
         -- note we are testing as busted, so we get the almost_eq messages
@@ -996,7 +996,7 @@ expect
 
       it('should set the current time_trigger of the parser to one with the passed interval, in frames', function ()
         itest_dsl_parser:_wait(12)
-        assert.are_equal(time_trigger(12, true), itest_dsl_parser._last_time_trigger)
+        assert.are_same(time_trigger(12, true), itest_dsl_parser._last_time_trigger)
       end)
 
       it('should add a dummy action with any previous time trigger, then set the last time trigger to the new one', function ()
@@ -1005,7 +1005,7 @@ expect
         assert.are_equal(1, #itest_dsl_parser._itest.action_sequence)
         local action = itest_dsl_parser._itest.action_sequence[1]
         assert.are_same({time_trigger(4, true), nil}, {action.trigger, action.callback})
-        assert.are_equal(time_trigger(8, true), itest_dsl_parser._last_time_trigger)
+        assert.are_same(time_trigger(8, true), itest_dsl_parser._last_time_trigger)
       end)
 
     end)

@@ -255,22 +255,22 @@ describe('player_char', function ()
 
       it('should return vector(1, 0) when quadrant is down', function ()
         pc.quadrant = directions.down
-        assert.are_equal(vector(1, 0), pc:get_quadrant_right())
+        assert.are_same(vector(1, 0), pc:get_quadrant_right())
       end)
 
       it('should return vector(-1, 0) when quadrant is up', function ()
         pc.quadrant = directions.up
-        assert.are_equal(vector(-1, 0), pc:get_quadrant_right())
+        assert.are_same(vector(-1, 0), pc:get_quadrant_right())
       end)
 
       it('should return vector(0, -1) when quadrant is right', function ()
         pc.quadrant = directions.right
-        assert.are_equal(vector(0, -1), pc:get_quadrant_right())
+        assert.are_same(vector(0, -1), pc:get_quadrant_right())
       end)
 
       it('should return vector(0, 1) when quadrant is left', function ()
         pc.quadrant = directions.left
-        assert.are_equal(vector(0, 1), pc:get_quadrant_right())
+        assert.are_same(vector(0, 1), pc:get_quadrant_right())
       end)
 
     end)
@@ -279,22 +279,22 @@ describe('player_char', function ()
 
       it('should return vector(0, 1) when quadrant is down', function ()
         pc.quadrant = directions.down
-        assert.are_equal(vector(0, 1), pc:get_quadrant_down())
+        assert.are_same(vector(0, 1), pc:get_quadrant_down())
       end)
 
       it('should return vector(0, -1) when quadrant is up', function ()
         pc.quadrant = directions.up
-        assert.are_equal(vector(0, -1), pc:get_quadrant_down())
+        assert.are_same(vector(0, -1), pc:get_quadrant_down())
       end)
 
       it('should return vector(1, 0) when quadrant is right', function ()
         pc.quadrant = directions.right
-        assert.are_equal(vector(1, 0), pc:get_quadrant_down())
+        assert.are_same(vector(1, 0), pc:get_quadrant_down())
       end)
 
       it('should return vector(-1, 0) when quadrant is left', function ()
         pc.quadrant = directions.left
-        assert.are_equal(vector(-1, 0), pc:get_quadrant_down())
+        assert.are_same(vector(-1, 0), pc:get_quadrant_down())
       end)
 
     end)
@@ -396,7 +396,7 @@ describe('player_char', function ()
 
       it('should set the character\'s position', function ()
         pc:warp_to(vector(56, 12))
-        assert.are_equal(vector(56, 12), pc.position)
+        assert.are_same(vector(56, 12), pc.position)
       end)
 
       describe('(_check_escape_from_ground returns false)', function ()
@@ -489,13 +489,13 @@ describe('player_char', function ()
 
       it('(10, 0) => (10, center_height)', function ()
         pc.position = vector(10, 0)
-        assert.are_equal(vector(10, 11), pc:get_bottom_center())
+        assert.are_same(vector(10, 11), pc:get_bottom_center())
       end)
 
       it('(10, 0) quadrant left => (10 - center_height, 0)', function ()
         pc.position = vector(10, 0)
         pc.quadrant = directions.left
-        assert.are_equal(vector(-1, 0), pc:get_bottom_center())
+        assert.are_same(vector(-1, 0), pc:get_bottom_center())
       end)
 
     end)
@@ -514,13 +514,13 @@ describe('player_char', function ()
 
       it('set_bottom_center (10, center_height) => (10, 0)', function ()
         pc:set_bottom_center(vector(10, 11))
-        assert.are_equal(vector(10, 0), pc.position)
+        assert.are_same(vector(10, 0), pc.position)
       end)
 
       it('set_bottom_center (10 + center_height, 0) quadrant right => (10, 0)', function ()
         pc.quadrant = directions.right
         pc:set_bottom_center(vector(10 + 11, 0))
-        assert.are_equal(vector(10, 0), pc.position)
+        assert.are_same(vector(10, 0), pc.position)
       end)
 
     end)
@@ -655,10 +655,10 @@ describe('player_char', function ()
         it('should do nothing', function ()
           input.players_btn_states[0][button_ids.left] = btn_states.pressed
           pc:_handle_input()
-          assert.are_equal(vector:zero(), pc.move_intention)
+          assert.are_same(vector:zero(), pc.move_intention)
           input.players_btn_states[0][button_ids.up] = btn_states.pressed
           pc:_handle_input()
-          assert.are_equal(vector:zero(), pc.move_intention)
+          assert.are_same(vector:zero(), pc.move_intention)
         end)
 
       end)
@@ -668,67 +668,67 @@ describe('player_char', function ()
       it('(when input left in down) it should update the player character\'s move intention by (-1, 0)', function ()
         input.players_btn_states[0][button_ids.left] = btn_states.pressed
         pc:_handle_input()
-        assert.are_equal(vector(-1, 0), pc.move_intention)
+        assert.are_same(vector(-1, 0), pc.move_intention)
       end)
 
       it('(when input right in down) it should update the player character\'s move intention by (1, 0)', function ()
         input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(1, 0), pc.move_intention)
+        assert.are_same(vector(1, 0), pc.move_intention)
       end)
 
       it('(when input left and right are down) it should update the player character\'s move intention by (-1, 0)', function ()
         input.players_btn_states[0][button_ids.left] = btn_states.pressed
         input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(-1, 0), pc.move_intention)
+        assert.are_same(vector(-1, 0), pc.move_intention)
       end)
 
        it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
         input.players_btn_states[0][button_ids.up] = btn_states.pressed
         pc:_handle_input()
-        assert.are_equal(vector(0, -1), pc.move_intention)
+        assert.are_same(vector(0, -1), pc.move_intention)
       end)
 
       it('(when input down in down) it should update the player character\'s move intention by (0, 1)', function ()
         input.players_btn_states[0][button_ids.down] = btn_states.pressed
         pc:_handle_input()
-        assert.are_equal(vector(0, 1), pc.move_intention)
+        assert.are_same(vector(0, 1), pc.move_intention)
       end)
 
       it('(when input up and down are down) it should update the player character\'s move intention by (0, -1)', function ()
         input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
         input.players_btn_states[0][button_ids.down] = btn_states.pressed
         pc:_handle_input()
-        assert.are_equal(vector(0, -1), pc.move_intention)
+        assert.are_same(vector(0, -1), pc.move_intention)
       end)
 
       it('(when input left and up are down) it should update the player character\'s move intention by (-1, -1)', function ()
         input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
         input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(-1, -1), pc.move_intention)
+        assert.are_same(vector(-1, -1), pc.move_intention)
       end)
 
       it('(when input left and down are down) it should update the player character\'s move intention by (-1, 1)', function ()
         input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
         input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(-1, 1), pc.move_intention)
+        assert.are_same(vector(-1, 1), pc.move_intention)
       end)
 
       it('(when input right and up are down) it should update the player character\'s move intention by (1, -1)', function ()
         input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
         input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(1, -1), pc.move_intention)
+        assert.are_same(vector(1, -1), pc.move_intention)
       end)
 
       it('(when input right and down are down) it should update the player character\'s move intention by (1, 1)', function ()
         input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
         input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
         pc:_handle_input()
-        assert.are_equal(vector(1, 1), pc.move_intention)
+        assert.are_same(vector(1, 1), pc.move_intention)
       end)
 
       it('(when input o is released) it should update the player character\'s jump intention to false, hold jump intention to false', function ()
@@ -812,7 +812,7 @@ describe('player_char', function ()
         pc:_toggle_debug_motion()
 
         assert.are_equal(motion_modes.debug, pc.motion_mode)
-        assert.are_equal(vector.zero(), pc.debug_velocity)
+        assert.are_same(vector.zero(), pc.debug_velocity)
       end)
 
       it('(to platformer) should set motion mode to platformer and respawn as current position', function ()
@@ -1041,51 +1041,51 @@ describe('player_char', function ()
         end)
 
         it('should return the position down-left of the character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.left))
+          assert.are_same(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.left))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is left', function ()
-          assert.are_equal(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
+          assert.are_same(vector(7, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
         end)
 
         it('should return the position down-left of the character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.right))
+          assert.are_same(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10, 10), horizontal_dirs.right))
         end)
 
         it('should return the position down-left of the x-floored character center when horizontal dir is right', function ()
-          assert.are_equal(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
+          assert.are_same(vector(12, 10 + 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
         end)
 
         -- for other quadrants, just check the more complex case of coords with fractions
 
         it('(right wall) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
           pc.quadrant = directions.right
-          assert.are_equal(vector(10 + 11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(10 + 11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
         end)
 
         it('(right wall) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
           pc.quadrant = directions.right
-          assert.are_equal(vector(10 + 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
+          assert.are_same(vector(10 + 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
         end)
 
         it('(ceiling) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
           pc.quadrant = directions.up
-          assert.are_equal(vector(12, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
+          assert.are_same(vector(12, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.left))
         end)
 
         it('(ceiling) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
           pc.quadrant = directions.up
-          assert.are_equal(vector(7, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
+          assert.are_same(vector(7, 10 - 11), pc:_get_ground_sensor_position_from(vector(10.9, 10), horizontal_dirs.right))
         end)
 
         it('(left wall) should return the position q-down-left of the x-floored character center when horizontal dir is left', function ()
           pc.quadrant = directions.left
-          assert.are_equal(vector(10 - 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(10 - 11, 7), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.left))
         end)
 
         it('(left wall) should return the position q-down-left of the x-floored character center when horizontal dir is right', function ()
           pc.quadrant = directions.left
-          assert.are_equal(vector(10 -11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
+          assert.are_same(vector(10 -11, 12), pc:_get_ground_sensor_position_from(vector(10, 10.9), horizontal_dirs.right))
         end)
 
       end)
@@ -1102,80 +1102,80 @@ describe('player_char', function ()
           -- on the sides
 
           it('should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the left', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 8)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 8)))
           end)
 
           it('should return ground_query_info(max_ground_snap_height+1, nil) if just at ground height but slightly on the right', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 8)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 8)))
           end)
 
           -- above
 
           it('should return ground_query_info(max_ground_snap_height+1, nil) if above the tile by 8 max_ground_snap_height+2)', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - (pc_data.max_ground_snap_height + 2))))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height+1, nil), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - (pc_data.max_ground_snap_height + 2))))
           end)
 
           it('should return ground_query_info(max_ground_snap_height, 0) if above the tile by max_ground_snap_height', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - pc_data.max_ground_snap_height)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - pc_data.max_ground_snap_height)))
           end)
 
           it('should return ground_query_info(0.0625, 0) if just a above the tile by 0.0625 (<= max_ground_snap_height)', function ()
-            assert.are_equal(ground_query_info(0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 - 0.0625)))
           end)
 
           -- on top
 
           it('should return ground_query_info(0, 0) if just at the top of the topleft-most pixel of the tile', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return ground_query_info(0, 0) if just at the top of tile, in the middle', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8)))
           end)
 
           it('should return ground_query_info(0, 0) if just at the top of the right-most pixel', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
           -- just below the top
 
           it('should return ground_query_info(-0.0625, 0) if 0.0625 inside the top-left pixel', function ()
-            assert.are_equal(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 + 0.0625)))
+            assert.are_same(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 + 0.0625)))
           end)
 
           it('should return ground_query_info(-0.0625, 0) if 0.0625 inside the top-right pixel', function ()
-            assert.are_equal(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + 0.0625)))
+            assert.are_same(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + 0.0625)))
           end)
 
           -- going deeper
 
           it('should return ground_query_info(-1.5, 0) if 1.5 (<= max_ground_escape_height) inside vertically', function ()
-            assert.are_equal(ground_query_info(-1.5, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 + 1.5)))
+            assert.are_same(ground_query_info(-1.5, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8 + 1.5)))
           end)
 
           it('should return ground_query_info(-max_ground_escape_height, 0) if max_ground_escape_height inside', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + pc_data.max_ground_escape_height)))
           end)
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 2 inside', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + pc_data.max_ground_escape_height + 2)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 + pc_data.max_ground_escape_height + 2)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
           it('should return ground_query_info(- max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
             -- we really check 1 extra px above max_ground_escape_height, so even that far from the ground above we still see it as a step too high, not ceiling
-            assert.are_equal(ground_query_info(- pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(- pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
           -- step up distance reached, character considered in the air
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
           end)
 
           -- other quadrants (only the trickiest cases)
@@ -1185,25 +1185,25 @@ describe('player_char', function ()
           it('(right wall) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(0, 12)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(0, 12)))
           end)
 
           it('(right wall) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_equal(ground_query_info(2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(6, 12)))
+            assert.are_same(ground_query_info(2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(6, 12)))
           end)
 
           it('(right wall) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_equal(ground_query_info(-2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
+            assert.are_same(ground_query_info(-2, 0.25), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
           end)
 
           it('(right wall) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
           end)
 
           -- ceiling
@@ -1211,25 +1211,25 @@ describe('player_char', function ()
           it('(ceiling) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(12, 24)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(12, 24)))
           end)
 
           it('(ceiling) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_equal(ground_query_info(2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 18)))
+            assert.are_same(ground_query_info(2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 18)))
           end)
 
           it('(ceiling) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_equal(ground_query_info(-2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 14)))
+            assert.are_same(ground_query_info(-2, 0.5), pc:_compute_signed_distance_to_closest_ground(vector(12, 14)))
           end)
 
           it('(ceiling) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 8)))
           end)
 
           -- left wall
@@ -1237,25 +1237,25 @@ describe('player_char', function ()
           it('(left wall) should return ground_query_info(max_ground_snap_height + 1, nil) if too far from the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(24, 12)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(24, 12)))
           end)
 
           it('(left wall) should return ground_query_info(2, 0) if 2 pixels from the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_equal(ground_query_info(2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(18, 12)))
+            assert.are_same(ground_query_info(2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(18, 12)))
           end)
 
           it('(left wall) should return ground_query_info(-2, 0) if 2 pixels inside the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_equal(ground_query_info(-2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
+            assert.are_same(ground_query_info(-2, 0.75), pc:_compute_signed_distance_to_closest_ground(vector(14, 12)))
           end)
 
           it('(left wall) should return ground_query_info(-max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(10, 12)))
           end)
 
         end)
@@ -1273,7 +1273,7 @@ describe('player_char', function ()
           --  only to land inside the tile above
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(4, 8 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(4, 8 + pc_data.max_ground_escape_height)))
           end)
 
         end)
@@ -1288,82 +1288,82 @@ describe('player_char', function ()
           -- just above
 
           it('should return 0.0625, 0 if just a little above the tile', function ()
-            assert.are_equal(ground_query_info(0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 12 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 12 - 0.0625)))
           end)
 
           -- on top
 
           it('+ should return ground_query_info(max_ground_snap_height + 1, nil) if just touching the left of the tile at the ground\'s height', function ()
             -- right ground sensor @ (7.5, 12)
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 12)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 12)))
           end)
 
           it('should return 0, 0 if just at the top of the topleft-most pixel of the tile', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 12)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 12)))
           end)
 
           it('should return 0, 0 if just at the top of tile, in the middle', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 12)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 12)))
           end)
 
           it('should return 0, 0 if just at the top of the right-most pixel', function ()
-            assert.are_equal(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 12)))
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 12)))
           end)
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if in the air on the right of the tile', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 12)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 12)))
           end)
 
           -- just inside the top
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the left of the topleft pixel, y at 0.0625 below the top', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 12 + 0.0625)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 12 + 0.0625)))
           end)
 
           it('should return -0.0625, 0 if 0.0625 inside the topleft pixel', function ()
-            assert.are_equal(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 12 + 0.0625)))
+            assert.are_same(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 12 + 0.0625)))
           end)
 
           it('should return -0.0625, 0 if 0.0625 inside the topright pixel', function ()
-            assert.are_equal(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 12 + 0.0625)))
+            assert.are_same(ground_query_info(-0.0625, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 12 + 0.0625)))
           end)
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the right of the topright pixel, y at 0.0625 below the top', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 12 + 0.0625)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 12 + 0.0625)))
           end)
 
           -- just inside the bottom
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the left of the topleft pixel, y at 0.0625 above the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(7, 16 - 0.0625)))
           end)
 
           it('should return -(4 - 0.0625), 0 if 0.0625 inside the topleft pixel', function ()
-            assert.are_equal(ground_query_info(-(4 - 0.0625), 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 16 - 0.0625)))
+            assert.are_same(ground_query_info(-(4 - 0.0625), 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 16 - 0.0625)))
           end)
 
           it('should return -(4 - 0.0625), 0 if 0.0625 inside the topright pixel', function ()
-            assert.are_equal(ground_query_info(-(4 - 0.0625), 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 - 0.0625)))
+            assert.are_same(ground_query_info(-(4 - 0.0625), 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 - 0.0625)))
           end)
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just on the right of the topright pixel, y at 0.0625 above the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 16 - 0.0625)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(16, 16 - 0.0625)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if max_ground_snap_height + 1 below the bottom', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_escape_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+            assert.are_same(ground_query_info(pc_data.max_ground_escape_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -1376,75 +1376,75 @@ describe('player_char', function ()
           end)
 
           it('should return 0.0625, 45/360 if just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 - 0.0625)))
           end)
 
           it('should return 0, 45/360 if at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15)))
+            assert.are_same(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15)))
           end)
 
           it('should return 5 (max_ground_snap_height+1 clamping), nil if 7px above column 0, i.e. at top-most pixel of the ascending slope tile', function ()
-            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+            assert.are_same(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return 5 (max_ground_snap_height+1), nil if 8px above column 0, i.e. at bottom-most pixel of tile just above the ascending slope tile', function ()
-            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 7)))
+            assert.are_same(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 7)))
           end)
 
           it('should return 5 (max_ground_snap_height+1), nil if 15px above column 0, i.e. at top-most pixel of tile just above the ascending slope tile', function ()
-            assert.are_equal(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 0)))
+            assert.are_same(ground_query_info(5, nil), pc:_compute_signed_distance_to_closest_ground(vector(8, 0)))
           end)
 
           it('. should return 0.0625, 45/360 if just above slope column 4', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11 - 0.0625)))
           end)
 
           it('. should return 0, 45/360 if at the top of column 4', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11)))
+            assert.are_same(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 11)))
           end)
 
           it('should return -2, 45/360 if 2px below column 4', function ()
-            assert.are_equal(ground_query_info(-2, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 13)))
+            assert.are_same(ground_query_info(-2, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(12, 13)))
           end)
 
           it('should return 0.0625, 45/360 if right sensor is just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8 - 0.0625)))
           end)
 
           it('should return 0, 45/360 if right sensor is at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
+            assert.are_same(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 8)))
           end)
 
           it('should return -3, 45/360 if 3px below column 0', function ()
-            assert.are_equal(ground_query_info(-3, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 11)))
+            assert.are_same(ground_query_info(-3, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 11)))
           end)
 
           it('. should return 0.0625, 45/360 if just above slope column 3', function ()
-            assert.are_equal(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12 - 0.0625)))
           end)
 
           it('. should return 0, 45/360 if at the top of column 3', function ()
-            assert.are_equal(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12)))
+            assert.are_same(ground_query_info(0, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 12)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
           it('should return ground_query_info(-4, 45/360) if 4 (<= max_ground_escape_height) below the 2nd column top', function ()
-            assert.are_equal(ground_query_info(-4, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
+            assert.are_same(ground_query_info(-4, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 16 + 2)))
           end)
 
           it('should return ground_query_info(-(max_ground_escape_height - 1), 45/360) if max_ground_escape_height - 1 below the top of column 0', function ()
-            assert.are_equal(ground_query_info(-(pc_data.max_ground_escape_height - 1), 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height - 1)))
+            assert.are_same(ground_query_info(-(pc_data.max_ground_escape_height - 1), 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height - 1)))
           end)
 
           it('should return ground_query_info(-max_ground_escape_height, 45/360) if max_ground_escape_height below the top of column 0', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height, 45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
 
           it('should return ground_query_info(-max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
-            assert.are_equal(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
+            assert.are_same(ground_query_info(-pc_data.max_ground_escape_height - 1, 0), pc:_compute_signed_distance_to_closest_ground(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -1457,59 +1457,59 @@ describe('player_char', function ()
           end)
 
           it('should return 0.0625, 1-45/360 if right sensors are just a little above column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
           it('should return 0, 1-45/360 if right sensors is at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+            assert.are_same(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return -1, 1-45/360 if right sensors is below column 0 by 1px', function ()
-            assert.are_equal(ground_query_info(-1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 9)))
+            assert.are_same(ground_query_info(-1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 9)))
           end)
 
           it('should return 1, 1-45/360 if 1px above slope column 1', function ()
-            assert.are_equal(ground_query_info(1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 8)))
+            assert.are_same(ground_query_info(1, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 8)))
           end)
 
           it('should return 0, 1-45/360 if at the top of column 1', function ()
-            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 9)))
+            assert.are_same(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 9)))
           end)
 
           it('should return -2, 1-45/360 if 2px below column 1', function ()
-            assert.are_equal(ground_query_info(-2, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 11)))
+            assert.are_same(ground_query_info(-2, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(9, 11)))
           end)
 
           it('should return 0.0625, 1-45/360 if just above slope column 0', function ()
-            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8 - 0.0625)))
           end)
 
           it('should return 0, 1-45/360 if at the top of column 0', function ()
-            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
+            assert.are_same(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 8)))
           end)
 
           it('should return -3, 1-45/360 if 3px below column 0', function ()
-            assert.are_equal(ground_query_info(-3, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 11)))
+            assert.are_same(ground_query_info(-3, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(8, 11)))
           end)
 
           it('. should return 0.0625, 1-45/360 if just above slope column 3', function ()
-            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11 - 0.0625)))
           end)
 
           it('. should return 0, 1-45/360 if at the top of column 3', function ()
-            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11)))
+            assert.are_same(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 11)))
           end)
 
           it('should return -4, 1-45/360 if 4px below column 3', function ()
-            assert.are_equal(ground_query_info(-4, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 15)))
+            assert.are_same(ground_query_info(-4, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(11, 15)))
           end)
 
           it('should return 0.0625, 1-45/360 if just above slope column 7', function ()
-            assert.are_equal(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625)))
+            assert.are_same(ground_query_info(0.0625, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15 - 0.0625)))
           end)
 
           it('should return 0 if, 1-45/360 at the top of column 7', function ()
-            assert.are_equal(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15)))
+            assert.are_same(ground_query_info(0, 1-45/360), pc:_compute_signed_distance_to_closest_ground(vector(15, 15)))
           end)
 
         end)
@@ -1522,7 +1522,7 @@ describe('player_char', function ()
           end)
 
           it('should return -4, 22.5/360 if below column 7 by 4px)', function ()
-            assert.are_equal(ground_query_info(-4, 22.5/360), pc:_compute_signed_distance_to_closest_ground(vector(14, 15)))
+            assert.are_same(ground_query_info(-4, 22.5/360), pc:_compute_signed_distance_to_closest_ground(vector(14, 15)))
           end)
 
         end)
@@ -1536,11 +1536,11 @@ describe('player_char', function ()
           end)
 
           it('should return ground_query_info(max_ground_snap_height + 1, nil) if just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
-            assert.are_equal(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(11, 16)))
+            assert.are_same(ground_query_info(pc_data.max_ground_snap_height + 1, nil), pc:_compute_signed_distance_to_closest_ground(vector(11, 16)))
           end)
 
           it('should return -2, 0 if below tile by 2px', function ()
-            assert.are_equal(ground_query_info(-2, 0), pc:_compute_signed_distance_to_closest_ground(vector(14, 14)))
+            assert.are_same(ground_query_info(-2, 0), pc:_compute_signed_distance_to_closest_ground(vector(14, 14)))
           end)
 
         end)
@@ -1573,7 +1573,7 @@ describe('player_char', function ()
 
           it('should return -4, 0 if below top by 4px, with character crossing 2 tiles', function ()
             -- interface
-            assert.are_equal(ground_query_info(-4, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 18)))
+            assert.are_same(ground_query_info(-4, 0), pc:_compute_signed_distance_to_closest_ground(vector(12, 18)))
           end)
 
         end)
@@ -2080,7 +2080,7 @@ describe('player_char', function ()
 
           it('should set the position to vector(3, 4)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
+            assert.are_same(vector(3, 4), pc.position)
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.25', function ()
@@ -2171,7 +2171,7 @@ describe('player_char', function ()
 
           it('should set the position to vector(3, 4)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
+            assert.are_same(vector(3, 4), pc.position)
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.5', function ()
@@ -2239,7 +2239,7 @@ describe('player_char', function ()
 
           it('should set the position to vector(3, 4)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
+            assert.are_same(vector(3, 4), pc.position)
           end)
 
           it('should call set_slope_angle_with_quadrant to nil', function ()
@@ -2291,7 +2291,7 @@ describe('player_char', function ()
 
           it('should set the position to vector(3, 4)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_equal(vector(3, 4), pc.position)
+            assert.are_same(vector(3, 4), pc.position)
           end)
 
           it('should call set_slope_angle_with_quadrant to nil', function ()
@@ -2700,7 +2700,7 @@ describe('player_char', function ()
             pc.position = vector(3, 4)
             pc.slope_angle = 0.125
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 4),
                 0.125,
                 false,
@@ -2714,7 +2714,7 @@ describe('player_char', function ()
             pc.position = vector(3.5, 4)
             pc.slope_angle = 0.125
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3.5, 4),
                 0.125,
                 false,
@@ -2729,7 +2729,7 @@ describe('player_char', function ()
             pc.quadrant = directions.right
             pc.slope_angle = 0.25
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 4.5),
                 0.25,
                 false,
@@ -2744,7 +2744,7 @@ describe('player_char', function ()
             pc.quadrant = directions.up
             pc.slope_angle = 0.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 4.5),
                 0.5,
                 false,
@@ -2759,7 +2759,7 @@ describe('player_char', function ()
             pc.quadrant = directions.left
             pc.slope_angle = 0.75
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 4.5),
                 0.75,
                 false,
@@ -2796,7 +2796,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 0
             -- but as there is no blocking, the remaining subpixels will still be added
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3.5, 4),
                 0,                  -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
@@ -2813,7 +2813,7 @@ describe('player_char', function ()
             pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 1  -- * slope cos = 0.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3.5, 4),
                 1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
@@ -2828,7 +2828,7 @@ describe('player_char', function ()
             pc.ground_speed = 0.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4, 4),
                 1-0.01,
                 false,
@@ -2842,7 +2842,7 @@ describe('player_char', function ()
             pc.position = vector(3, 4)
             pc.ground_speed = -2.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(0.5, 4),
                 1-0.01,
                 false,
@@ -2858,7 +2858,7 @@ describe('player_char', function ()
             pc.slope_angle = 0.25-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 2  -- * slope cos = 1
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 3),
                 0.25-0.01,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
@@ -2882,7 +2882,7 @@ describe('player_char', function ()
             -- then set that position to expected value and check the rest
             -- with an are_equal to cover all members
             result.position.x = 2
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(2, 4),
                 0.5-0.01,
                 false,
@@ -2906,7 +2906,7 @@ describe('player_char', function ()
             -- then set that position to expected value and check the rest
             -- with an are_equal to cover all members
             result.position.y = 5
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 5),
                 0.75-0.01,
                 false,
@@ -2948,7 +2948,7 @@ describe('player_char', function ()
             pc.ground_speed = 1.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 2
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,
                 false,
@@ -2963,7 +2963,7 @@ describe('player_char', function ()
             pc.ground_speed = -1.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 2
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,
                 false,
@@ -2980,7 +2980,7 @@ describe('player_char', function ()
             pc.ground_speed = 0.5
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,
                 false,
@@ -2996,7 +2996,7 @@ describe('player_char', function ()
             pc.ground_speed = -1
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,
                 false,
@@ -3014,7 +3014,7 @@ describe('player_char', function ()
             pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = 1    -- * slope cos = -0.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,  -- new slope angle, no relation with initial one
                 false,
@@ -3031,7 +3031,7 @@ describe('player_char', function ()
             pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -2   -- * slope cos = -1
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,  -- new slope angle, no relation with initial one
                 false,
@@ -3049,7 +3049,7 @@ describe('player_char', function ()
             --  going "into" the wall, we floor them and consider character as blocked
             --  (unlike Classic Sonic that would simply ignore subpixels)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,
                 true,
@@ -3067,7 +3067,7 @@ describe('player_char', function ()
             --  going "into" the wall, we floor them and consider character as blocked
             --  (unlike Classic Sonic that would simply ignore subpixels)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,
                 true,
@@ -3085,7 +3085,7 @@ describe('player_char', function ()
             pc.ground_speed = 1.5  -- * slope cos = 0.75
             -- this time, due to the slope cos, charaacter doesn't reach the wall and is not blocked
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4.75, 4),
                 1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
@@ -3101,7 +3101,7 @@ describe('player_char', function ()
             pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -1.5  -- * slope cos = -0.75
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-4.85, 4),
                 1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
                 false,
@@ -3117,7 +3117,7 @@ describe('player_char', function ()
             pc.ground_speed = 3  -- * slope cos = 1.5
             -- but here, even with the slope cos, charaacter will hit wall
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,
                 true,
@@ -3132,7 +3132,7 @@ describe('player_char', function ()
             pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
             pc.ground_speed = -3  -- * slope cos = -1.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,
                 true,
@@ -3152,7 +3152,7 @@ describe('player_char', function ()
             -- the character is already touching the wall, so any motion, even of just a few subpixels,
             --  is considered blocked
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0,  -- character couldn't move at all, so we preserved the initial slope angle
                 true,
@@ -3169,7 +3169,7 @@ describe('player_char', function ()
             -- the character is already touching the wall, so any motion, even of just a few subpixels,
             --  is considered blocked
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0,  -- character couldn't move at all, so we preserved the initial slope angle
                 true,
@@ -3189,7 +3189,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
             -- but we will be blocked by the wall anyway
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),  -- this works on the *right* thanks to subpixel cut working "inside" a wall
                 0,  -- character couldn't move and went back, so we preserved the initial slope angle
                 true,
@@ -3205,7 +3205,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
             -- but we will be blocked by the wall anyway
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-6, 4),  -- we are already inside the wall, floored to -6
                 0,  -- character only snap to floored x, so we preserved the slope angle
                 false,  -- no wall detected from inside!
@@ -3221,7 +3221,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 1
             -- but we will be blocked by the wall anyway
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-6, 4),  -- we are already inside the wall, floored to -6
                 0,  -- character only snap to floored x, so we preserved the slope angle
                 true,  -- wall detected from inside if moving 1 full pixel toward the next column on the left
@@ -3237,7 +3237,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at x=5 instead of 6.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 4),
                 0.01,
                 true,
@@ -3253,7 +3253,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at x=-5 instead of -6.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 4),
                 0.01,
                 true,
@@ -3272,7 +3272,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at y=-5 instead of -6.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, -5),
                 0.25 + 0.01,
                 true,
@@ -3291,7 +3291,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at x=-5 instead of -6.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-5, 3),
                 0.5 + 0.01,
                 true,
@@ -3310,7 +3310,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- but because of the blocking, we stop at y=5 instead of 6.5
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 5),
                 0.75 + 0.01,
                 true,
@@ -3372,7 +3372,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling but not blocked, so we continue running in the air until x=6
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(6, 4),
                 nil,
                 false,
@@ -3388,7 +3388,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling then blocked on 7
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(7, 4),
                 nil,
                 true,
@@ -3407,7 +3407,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling but not blocked, so we continue running in the air until y=6
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4, 6),
                 nil,
                 false,
@@ -3426,7 +3426,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling then blocked on 7
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4, 7),
                 nil,
                 true,
@@ -3445,7 +3445,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling but not blocked, so we continue running in the air until x=6
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(6, 4),
                 nil,
                 false,
@@ -3464,7 +3464,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling then blocked on 7
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(7, 4),
                 nil,
                 true,
@@ -3483,7 +3483,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling but not blocked, so we continue running in the air until y=6
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4, 6),
                 nil,
                 false,
@@ -3502,7 +3502,7 @@ describe('player_char', function ()
             -- we assume _compute_max_pixel_distance is correct, so it should return 3
             -- we are falling then blocked on 7
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(4, 7),
                 nil,
                 true,
@@ -3545,7 +3545,7 @@ describe('player_char', function ()
             -- step flat
             pc:_next_ground_step(horizontal_dirs.left, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-2, 8 - pc_data.center_height_standing),
                 0,
                 false,
@@ -3566,7 +3566,7 @@ describe('player_char', function ()
             -- step flat
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(10, 8 - pc_data.center_height_standing),
                 0,
                 false,
@@ -3587,7 +3587,7 @@ describe('player_char', function ()
             -- step fall
             pc:_next_ground_step(horizontal_dirs.left, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-3, 8 - pc_data.center_height_standing),
                 nil,
                 false,
@@ -3608,7 +3608,7 @@ describe('player_char', function ()
             -- step fall
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(11, 8 - pc_data.center_height_standing),
                 nil,
                 false,
@@ -3629,7 +3629,7 @@ describe('player_char', function ()
             -- step land (very rare)
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-2, 8 - pc_data.center_height_standing),
                 0,
                 false,
@@ -3657,7 +3657,7 @@ describe('player_char', function ()
             -- step flat
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(0 - pc_data.center_height_standing, 11),
                 0.25,
                 false,
@@ -3683,7 +3683,7 @@ describe('player_char', function ()
             -- step fall
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(0 - pc_data.center_height_standing, 5),
                 nil,
                 false,
@@ -3711,7 +3711,7 @@ describe('player_char', function ()
             -- step flat
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-2, 16 + pc_data.center_height_standing),
                 0.5,
                 false,
@@ -3737,7 +3737,7 @@ describe('player_char', function ()
             -- step fall
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(-3, 16 + pc_data.center_height_standing),
                 nil,
                 false,
@@ -3763,7 +3763,7 @@ describe('player_char', function ()
             -- step flat
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(8 + pc_data.center_height_standing, 16),
                 0.75,
                 false,
@@ -3789,7 +3789,7 @@ describe('player_char', function ()
             -- step fall
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(0 - pc_data.center_height_standing, 17),
                 nil,
                 false,
@@ -3826,7 +3826,7 @@ describe('player_char', function ()
             -- step block
             pc:_next_ground_step(horizontal_dirs.left, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(3, 8 - pc_data.center_height_standing),
                 0,
                 true,
@@ -3847,7 +3847,7 @@ describe('player_char', function ()
             -- step block
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 8 - pc_data.center_height_standing),
                 0,
                 true,
@@ -3881,7 +3881,7 @@ describe('player_char', function ()
             -- step block
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 8 - pc_data.center_height_standing),
                 0,
                 true,
@@ -3915,7 +3915,7 @@ describe('player_char', function ()
             -- step block
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(5, 12 - pc_data.center_height_standing),
                 0,
                 true,
@@ -3950,7 +3950,7 @@ describe('player_char', function ()
             -- step down
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(6, 7 - pc_data.center_height_standing),
                 45/360,
                 false,
@@ -3984,7 +3984,7 @@ describe('player_char', function ()
             -- step down
             pc:_next_ground_step(horizontal_dirs.left, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(11, 10 - pc_data.center_height_standing),
                 45/360,
                 false,
@@ -4005,7 +4005,7 @@ describe('player_char', function ()
             -- step up
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(13, 8 - pc_data.center_height_standing),
                 45/360,
                 false,
@@ -4026,7 +4026,7 @@ describe('player_char', function ()
             -- step up blocked
             pc:_next_ground_step(horizontal_dirs.right, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(13, 10 - pc_data.center_height_standing),
                 -45/360,
                 true,
@@ -4047,7 +4047,7 @@ describe('player_char', function ()
             -- step down blocked
             pc:_next_ground_step(horizontal_dirs.left, motion_result)
 
-            assert.are_equal(motion.ground_motion_result(
+            assert.are_same(motion.ground_motion_result(
                 vector(11, 10 - pc_data.center_height_standing),
                 -45/360,
                 true,
@@ -4183,7 +4183,7 @@ describe('player_char', function ()
             mock_mset(0, 0, half_tile_id)
           end)
 
-          it('should return false for sensor position in the middle of the tile', function ()
+          it('#solo should return false for sensor position in the middle of the tile', function ()
             -- we now start checking ceiling a few pixels q-above character feet
             --  and ignore reverse full height on same tile as sensor, so slope not detected as ceiling
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 6)))
@@ -4488,7 +4488,7 @@ describe('player_char', function ()
 
             pc:_update_platformer_motion_airborne()
 
-            assert.are_equal(vector(2, 8), pc.position)
+            assert.are_same(vector(2, 8), pc.position)
           end)
 
           it('should preserve velocity.y', function ()
@@ -4696,7 +4696,7 @@ describe('player_char', function ()
 
         pc:apply_air_drag()
 
-        assert.are_equal(vector(0.25, 0), pc.velocity)
+        assert.are_same(vector(0.25, 0), pc.velocity)
       end)
 
       it('(when velocity is 0.25 7) should do nothing', function ()
@@ -4705,7 +4705,7 @@ describe('player_char', function ()
 
         pc:apply_air_drag()
 
-        assert.are_equal(vector(0.25, 7), pc.velocity)
+        assert.are_same(vector(0.25, 7), pc.velocity)
       end)
 
       it('(when velocity is 0.1 -7) should do nothing', function ()
@@ -4714,7 +4714,7 @@ describe('player_char', function ()
 
         pc:apply_air_drag()
 
-        assert.are_equal(vector(0.1, -7), pc.velocity)
+        assert.are_same(vector(0.1, -7), pc.velocity)
       end)
 
       it('(when velocity is 0.25 -7) should do nothing', function ()
@@ -4724,7 +4724,7 @@ describe('player_char', function ()
         pc:apply_air_drag()
 
         -- velocity x should be = 0.2421875
-        assert.are_equal(vector(0.25 * pc_data.air_drag_factor_per_frame, -7), pc.velocity)
+        assert.are_same(vector(0.25 * pc_data.air_drag_factor_per_frame, -7), pc.velocity)
       end)
 
       it('(when velocity is 0.25 -8) should do nothing', function ()
@@ -4733,7 +4733,7 @@ describe('player_char', function ()
 
         pc:apply_air_drag()
 
-        assert.are_equal(vector(0.25, -8), pc.velocity)
+        assert.are_same(vector(0.25, -8), pc.velocity)
       end)
 
     end)
@@ -4742,7 +4742,7 @@ describe('player_char', function ()
 
       it('(when velocity is zero) should return air_motion_result with initial position and no hits', function ()
         pc.position = vector(4, 8)
-        assert.are_equal(motion.air_motion_result(
+        assert.are_same(motion.air_motion_result(
             vector(4, 8),
             false,
             false,
@@ -4785,7 +4785,7 @@ describe('player_char', function ()
           -- character should advance of (5, -6) resulting in pos (9.5, 2)
 
           -- interface: check that the final result is correct
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(9.5, 2),
               false,
               true,  -- hit ceiling
@@ -4840,7 +4840,7 @@ describe('player_char', function ()
           -- we assume _compute_max_pixel_distance is correct
           pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
 
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(0.5, 10),
               false,
               false,
@@ -4862,7 +4862,7 @@ describe('player_char', function ()
           -- we assume _compute_max_pixel_distance is correct
           pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
 
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(0.7, 10),
               false,
               false,
@@ -4884,7 +4884,7 @@ describe('player_char', function ()
           -- we assume _compute_max_pixel_distance is correct
           pc:_advance_in_air_along(motion_result, vector(0.5, 99), "x")
 
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(1, 10),
               false,
               false,
@@ -4906,7 +4906,7 @@ describe('player_char', function ()
           -- we assume _compute_max_pixel_distance is correct
           pc:_advance_in_air_along(motion_result, vector(2.7, 99), "x")
 
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(3.1, 10),
               false,
               false,
@@ -4928,7 +4928,7 @@ describe('player_char', function ()
           -- we assume _compute_max_pixel_distance is correct
           pc:_advance_in_air_along(motion_result, vector(2.7, 99), "x")
 
-          assert.are_equal(motion.air_motion_result(
+          assert.are_same(motion.air_motion_result(
               vector(5, 10),
               true,
               false,
@@ -4978,7 +4978,7 @@ describe('player_char', function ()
 
         pc:_next_air_step(directions.up, motion_result)
 
-        assert.are_equal(motion.air_motion_result(
+        assert.are_same(motion.air_motion_result(
             vector(2, 6),
             false,
             false,
@@ -5000,7 +5000,7 @@ describe('player_char', function ()
 
         pc:_next_air_step(directions.down, motion_result)
 
-        assert.are_equal(motion.air_motion_result(
+        assert.are_same(motion.air_motion_result(
             vector(2, 8),
             false,
             false,
@@ -5022,7 +5022,7 @@ describe('player_char', function ()
 
         pc:_next_air_step(directions.left, motion_result)
 
-        assert.are_equal(motion.air_motion_result(
+        assert.are_same(motion.air_motion_result(
             vector(1, 7),
             false,
             false,
@@ -5044,7 +5044,7 @@ describe('player_char', function ()
 
         pc:_next_air_step(directions.right, motion_result)
 
-        assert.are_equal(motion.air_motion_result(
+        assert.are_same(motion.air_motion_result(
             vector(3, 7),
             false,
             false,
@@ -5099,7 +5099,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.up, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
                 false,
                 true,
@@ -5124,7 +5124,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.down, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(4, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5149,7 +5149,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(10, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5174,7 +5174,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5199,7 +5199,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(10, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5224,7 +5224,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5251,7 +5251,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5276,7 +5276,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 1 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5301,7 +5301,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(11, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
                 true,
                 false,
@@ -5326,7 +5326,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-3, pc_data.max_ground_escape_height + 1 - pc_data.center_height_standing),
                 true,
                 false,
@@ -5354,7 +5354,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(11, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
                 true,
                 false,
@@ -5380,7 +5380,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(10, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
                 false,
                 false,
@@ -5406,7 +5406,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-3, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
                 true,
                 false,
@@ -5432,7 +5432,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 7 + pc_data.full_height_standing - pc_data.center_height_standing),
                 false,
                 false,
@@ -5457,7 +5457,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.right, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5482,7 +5482,7 @@ describe('player_char', function ()
 
             pc:_next_air_step(directions.left, motion_result)
 
-            assert.are_equal(motion.air_motion_result(
+            assert.are_same(motion.air_motion_result(
                 vector(-3, 0 - pc_data.center_height_standing),
                 false,
                 false,
@@ -5520,7 +5520,7 @@ describe('player_char', function ()
         pc:_update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)
         assert.spy(update_velocity_debug_mock).was_called_with(match.ref(pc))
-        assert.are_equal(vector(1, 2) + vector(4, -3) * delta_time60, pc.position)
+        assert.are_same(vector(1, 2) + vector(4, -3) * delta_time60, pc.position)
       end)
 
     end)

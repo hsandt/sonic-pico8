@@ -1,9 +1,7 @@
 -- custom game application
 -- used by main and itest_main
 
-require("engine/application/constants")
 local gameapp = require("engine/application/gameapp")
-require("engine/core/class")
 local input = require("engine/input/input")
 
 --#if tuner

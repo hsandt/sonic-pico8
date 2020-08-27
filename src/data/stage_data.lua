@@ -23,10 +23,10 @@ return {
       height = 32,
 
       -- where the player character spawns on stage start
-      spawn_location = location(2, 10),
+      spawn_location = location(5, 20),
 
       -- the x to reach to finish the stage
-      goal_x = 100 * 8,
+      goal_x = 800,  -- 100 tiles
 
       -- background color
       background_color = colors.dark_blue,

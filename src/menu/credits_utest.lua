@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper")
 
 local picosonic_app = require("application/picosonic_app")
 local credits = require("menu/credits")

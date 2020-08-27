@@ -1,7 +1,10 @@
 -- main entry file for the game
 
--- we must require engine/pico8/api at the top of our main.lua, so API bridges apply to all modules
+-- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
+require("engine/common")
+require("common")
+
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in _init
 local codetuner = require("engine/debug/codetuner")
@@ -45,7 +48,8 @@ function _init()
     ['itest'] = true,
     ['log'] = true,
     ['ui'] = true,
-    -- ['frame'] = nil,
+    -- ['trace'] = true,
+    -- ['frame'] = true,
 
     -- game
     -- ['...'] = true,

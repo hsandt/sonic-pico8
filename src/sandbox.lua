@@ -1,6 +1,3 @@
-require("engine/core/math")
-require("engine/core/helper")
-
 -- caveats
 
 -- syntax error: malformed number near 27..d

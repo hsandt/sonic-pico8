@@ -1,62 +1,65 @@
 --#if busted
 
-require("engine/test/pico8api")
-local tile = require("platformer/tile")
+-- pico8api should have been required in an including script,
+-- since we are used busted, hence bustedhelper
+
 local collision_data = require("data/collision_data")
+local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
+require("test_data/tile_representation")
+
+local mock_raw_tile_collision_data = {
+  -- collision_data values + PICO-8 spritesheet must match our mockup data
+  [full_tile_id] = {{8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
+  [half_tile_id] = {{4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
+  [flat_low_tile_id] = {{2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
+  [bottom_right_quarter_tile_id] = {{0, 0, 0, 0, 4, 4, 4, 4}, {0, 0, 0, 0, 4, 4, 4, 4}, atan2(8, 0)},
+  [asc_slope_45_id] = {{1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
+  [desc_slope_45_id] = {{8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
+  [asc_slope_22_id] = {{2, 2, 3, 3, 4, 4, 5, 5}, {0, 0, 0, 2, 4, 6, 8, 8}, 0.0625},
+  [asc_slope_22_upper_level_id] = {{5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
+  [loop_topleft] = {{8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4)},
+}
+
+-- process data above to generate interior_v/h automatically, so we don't have to add them manually
+--  for each tile (and it's actually what PICO-8 build does in collision_data to define tiles_collision_data)
+local mock_tile_collision_data = transform(mock_raw_tile_collision_data, function(raw_data)
+  local slope_angle = raw_data[3]
+  local interior_v, interior_h = tile_collision_data.slope_angle_to_interiors(slope_angle)
+
+  return tile_collision_data(
+    raw_data[1],
+    raw_data[2],
+    slope_angle,
+    interior_v,
+    interior_h
+  )
+end)
 
 local tile_test_data = {}
-
-local height_array_init_mock
 
 function tile_test_data.setup()
   -- mock sprite flags
   fset(1, sprite_flags.collision, true)   -- invalid tile (missing collision mask id location below)
-  fset(64, sprite_flags.collision, true)  -- full tile
-  fset(65, sprite_flags.collision, true)  -- ascending slope 45
-  fset(66, sprite_flags.collision, true)  -- descending slope 45
-  fset(67, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2
-  fset(68, sprite_flags.collision, true)  -- wavy horizontal almost full tile
-  fset(70, sprite_flags.collision, true)  -- half-tile (bottom half)
-  fset(71, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
-  fset(72, sprite_flags.collision, true)  -- low-tile (bottom quarter)
-  fset(73, sprite_flags.collision, true)  -- high-tile (3/4 filled)
+  fset(full_tile_id, sprite_flags.collision, true)  -- full tile
+  fset(half_tile_id, sprite_flags.collision, true)  -- half-tile (bottom half)
+  fset(flat_low_tile_id, sprite_flags.collision, true)  -- low-tile (bottom quarter)
+  fset(bottom_right_quarter_tile_id, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
+  fset(asc_slope_45_id, sprite_flags.collision, true)  -- ascending slope 45
+  fset(asc_slope_22_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2
+  fset(desc_slope_45_id, sprite_flags.collision, true)  -- descending slope 45
+  fset(loop_topleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
-  height_array_init_mock = stub(tile.height_array, "_init", function (self, tile_data)
-    local tile_mask_id_location = tile_data.id_loc
-    if tile_mask_id_location == collision_data.tiles_data[64].id_loc then
-      self._array = {8, 8, 8, 8, 8, 8, 8, 8}  -- full tile
-    elseif tile_mask_id_location == collision_data.tiles_data[65].id_loc then
-      self._array = {1, 2, 3, 4, 5, 6, 7, 8}  -- ascending slope 45
-    elseif tile_mask_id_location == collision_data.tiles_data[66].id_loc then
-      self._array = {8, 7, 6, 5, 4, 3, 2, 1}  -- descending slope 45
-    elseif tile_mask_id_location == collision_data.tiles_data[67].id_loc then
-      self._array = {2, 2, 3, 3, 4, 4, 5, 5}  -- ascending slope 22.5
-    elseif tile_mask_id_location == collision_data.tiles_data[68].id_loc then
-      self._array = {8, 8, 7, 6, 6, 7, 6, 7}  -- wavy horizontal almost full tile
-    elseif tile_mask_id_location == collision_data.tiles_data[70].id_loc then
-      self._array = {4, 4, 4, 4, 4, 4, 4, 4}  -- half-tile (bottom half)
-    elseif tile_mask_id_location == collision_data.tiles_data[71].id_loc then
-      self._array = {0, 0, 0, 0, 4, 4, 4, 4}  -- quarter-tile (bottom-right quarter)
-    elseif tile_mask_id_location == collision_data.tiles_data[72].id_loc then
-      self._array = {2, 2, 2, 2, 2, 2, 2, 2}  -- low-tile (bottom quarter)
-    elseif tile_mask_id_location == collision_data.tiles_data[73].id_loc then
-      self._array = {6, 6, 6, 6, 6, 6, 6, 6}  -- high-tile (3/4 filled)
-    else
-      self._array = "invalid"
-    end
-    -- we trust the collision_data value to match our mockups
-    -- if they don't, we need to override that value in the cases above
-    self.slope_angle = tile_data.slope_angle
+  stub(collision_data, "get_tile_collision_data", function (current_tile_id)
+    return mock_tile_collision_data[current_tile_id]
   end)
-
 end
 
 function tile_test_data.teardown()
   pico8:clear_spriteflags()
 
-  height_array_init_mock:revert()
+  collision_data.get_tile_collision_data:revert()
 end
 
 -- helper safety function that verifies that mock tile data is active when creating mock maps for utests
@@ -64,10 +67,21 @@ end
 function mock_mset(x, y, v)
   -- verify that tile_test_data.setup has been called since the last tile_test_data.teardown
   -- just check if the mock of height_array exists and is active
-  assert(height_array_init_mock and not height_array_init_mock.reverted, "mock_mset: tile_test_data.setup has not been called since the last tile_test_data.teardown")
+  assert(collision_data.get_tile_collision_data and not collision_data.get_tile_collision_data.reverted, "mock_mset: tile_test_data.setup has not been called since the last tile_test_data.teardown")
   mset(x, y, v)
 end
 
-return tile_test_data
-
 --#endif
+
+-- prevent busted from parsing both versions of tile_test_data
+--[[#pico8
+
+-- fallback implementation if busted symbol is not defined
+-- (picotool fails on empty file due to empty self._tokens)
+--#ifn busted
+local tile_test_data = {"symbol tile_test_data is undefined"}
+--#endif
+
+--#pico8]]
+
+return tile_test_data

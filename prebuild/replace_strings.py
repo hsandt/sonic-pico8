@@ -1,5 +1,8 @@
 #!/usr/bin/env python3.6
 # -*- coding: utf-8 -*-
+
+# LEGACY: use preprocess.py in pico-boots now
+
 import argparse
 import logging
 import os

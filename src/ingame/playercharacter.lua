@@ -622,7 +622,6 @@ function player_char:_update_platformer_motion_grounded()
 
   -- we can now update position and slope
   self.position = ground_motion_result.position
-  self:set_slope_angle_with_quadrant(ground_motion_result.slope_angle)
 
   -- todo: reset jump intention on fall... we don't want character to cancel a natural fall by releasing jump button
   -- (does not happen because of negative jump speed interrupt threshold, but could happen
@@ -631,6 +630,9 @@ function player_char:_update_platformer_motion_grounded()
     self:_enter_motion_state(motion_states.falling)
   else
     -- we are still grounded, so:
+
+    -- update slope angle (if needed)
+    self:set_slope_angle_with_quadrant(ground_motion_result.slope_angle)
 
     -- only allow jump preparation for next frame if not already falling
     self:_check_jump_intention()

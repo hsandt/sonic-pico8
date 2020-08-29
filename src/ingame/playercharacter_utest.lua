@@ -2242,11 +2242,12 @@ describe('player_char', function ()
             assert.are_same(vector(3, 4), pc.position)
           end)
 
-          it('should call set_slope_angle_with_quadrant to nil', function ()
+          it('should not call set_slope_angle_with_quadrant (actually called inside _enter_motion_state)', function ()
             pc.slope_angle = 0
             pc:_update_platformer_motion_grounded()
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+            -- this only works because _enter_motion_state is stubbed
+            -- if it was spied, it would still call set_slope_angle_with_quadrant inside
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
 
         end)
@@ -2294,11 +2295,12 @@ describe('player_char', function ()
             assert.are_same(vector(3, 4), pc.position)
           end)
 
-          it('should call set_slope_angle_with_quadrant to nil', function ()
+          it('should not call set_slope_angle_with_quadrant (actually called inside _enter_motion_state)', function ()
             pc.slope_angle = 0
             pc:_update_platformer_motion_grounded()
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+            -- this only works because _enter_motion_state is stubbed
+            -- if it was spied, it would still call set_slope_angle_with_quadrant inside
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
 
         end)

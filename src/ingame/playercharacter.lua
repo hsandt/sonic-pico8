@@ -623,10 +623,12 @@ function player_char:_update_platformer_motion_grounded()
   -- we can now update position and slope
   self.position = ground_motion_result.position
 
-  -- todo: reset jump intention on fall... we don't want character to cancel a natural fall by releasing jump button
-  -- (does not happen because of negative jump speed interrupt threshold, but could happen
-  --  once inertia is added by running off an ascending cliff)
-  if ground_motion_result.is_falling then
+  -- SPG: Falling and Sliding Off Of Walls And Ceilings adds the second condition clause
+  -- Edge cases are not clear, but it makes more sense to actually *fall* when on a ceiling
+  --  and just lock control when on a wall at exactly 0.25 or 0.75, hence the strict comparison
+  -- Note that at this point, we haven't set slope angle and we were grounded so it should not be nil
+  if ground_motion_result.is_falling or
+      (self.slope_angle > 0.25 and self.slope_angle < 0.75) and abs(self.ground_speed) < pc_data.ceiling_adherence_min_ground_speed then
     self:_enter_motion_state(motion_states.falling)
   else
     -- we are still grounded, so:

@@ -5,7 +5,7 @@ local animated_sprite_data = require("engine/render/animated_sprite_data")
 local playercharacter_data = {
 
   -- platformer motion
-  -- values in px, px/frame, px/frame^2 are *2 compared to SPG since we work with 8px tiles
+  -- values in px, px/frame, px/frame^2 are /2 compared to SPG since we work with 8px tiles
   -- for values in px, px/frame, px/frame^2, I added /64
   -- for degrees, /360 form
   -- (for readability)
@@ -57,7 +57,11 @@ local playercharacter_data = {
   air_drag_max_abs_velocity_y = 8,  -- 512/64
 
   -- ground acceleration (px/frame)
-  max_ground_speed = 3,
+  max_ground_speed = 3,  -- 192/64
+
+  -- ground speed threshold under which character will fall/slide off when walking at more
+  --  than 90 degrees, or lock control when walking on wall under 90 degrees
+  ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
 
   -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
   max_air_velocity_y = 32,  -- 2048/64

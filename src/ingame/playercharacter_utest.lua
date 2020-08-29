@@ -2130,6 +2130,59 @@ describe('player_char', function ()
 
           end)
 
+          describe('(walking on ceiling or wall-ceiling)', function ()
+
+            before_each(function ()
+              -- must be > 0.25 and < 0.75
+              -- for full testing we should test 0.25, 0.75 and 0.74 too,
+              --  but that will be enough
+              -- the normal tests being done on ground where slope angle is 0 or very low (1-1/6)
+              pc.slope_angle = 0.26
+            end)
+
+            describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed / 2)', function ()
+
+              setup(function ()
+                -- something lower than pc_data.ceiling_adherence_min_ground_speed in abs value
+                new_ground_speed = -pc_data.ceiling_adherence_min_ground_speed / 2
+              end)
+
+              teardown(function ()
+                -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
+                new_ground_speed = -2.5
+              end)
+
+              it('should enter falling state thanks to Falling and Sliding Off condition', function ()
+                pc:_update_platformer_motion_grounded()
+
+                assert.spy(enter_motion_state_stub).was_called(1)
+                assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
+              end)
+
+            end)
+
+            describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
+
+              setup(function ()
+                -- exactly pc_data.ceiling_adherence_min_ground_speed in abs value to test exact comparison
+                new_ground_speed = -pc_data.ceiling_adherence_min_ground_speed
+              end)
+
+              teardown(function ()
+                -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
+                new_ground_speed = -2.5
+              end)
+
+              it('should not enter falling state, escaping Falling and Sliding Off condition', function ()
+                pc:_update_platformer_motion_grounded()
+
+                assert.spy(enter_motion_state_stub).was_not_called()
+              end)
+
+            end)
+
+          end)
+
         end)
 
         describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.5, is_blocked: true, is_falling: false)', function ()
@@ -2175,6 +2228,10 @@ describe('player_char', function ()
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.5', function ()
+            -- note that this angle being 0.75 exactly, and the ground speed reset to 0
+            --  being below ceiling adherence threshold, we are also testing
+            --  that an exact wall at 0.75 does *not* uses adherence threshold
+            --  to make character fall (however, it will lock control)
             pc.slope_angle = 1-0.25
             pc:_update_platformer_motion_grounded()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
@@ -2187,6 +2244,15 @@ describe('player_char', function ()
             -- implementation
             assert.spy(animated_sprite.play).was_called(1)
             assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+          end)
+
+          it('(on ceiling/wall-ceiling) should enter falling state thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
+            pc.slope_angle = 0.26
+
+            pc:_update_platformer_motion_grounded()
+
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
           end)
 
         end)
@@ -4185,7 +4251,7 @@ describe('player_char', function ()
             mock_mset(0, 0, half_tile_id)
           end)
 
-          it('#solo should return false for sensor position in the middle of the tile', function ()
+          it('should return false for sensor position in the middle of the tile', function ()
             -- we now start checking ceiling a few pixels q-above character feet
             --  and ignore reverse full height on same tile as sensor, so slope not detected as ceiling
             assert.is_false(pc:_is_column_blocked_by_ceiling_at(vector(4, 6)))

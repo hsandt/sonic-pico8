@@ -16,7 +16,7 @@ function world.angle_to_quadrant(angle)
     return directions.right
   elseif angle <= 0.625 then
     return directions.up
-  else  -- angle < 0.875
+  else  -- 0.625 < angle < 0.875
     return directions.left
   end
 end

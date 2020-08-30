@@ -69,7 +69,8 @@ local player_char = new_class()
 -- should_jump            bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame  bool            has the character started a jump/hop this frame?
 -- has_interrupted_jump   bool            has the character already interrupted his jump once?
--- current_sprite         string          current sprite key in the spr_data
+-- anim_spr               animated_sprite animated sprite component
+-- anim_run_speed         float           reflects ground_speed, but preserves value even when falling
 function player_char:_init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -107,6 +108,7 @@ function player_char:_setup()
   self.has_interrupted_jump = false
 
   self.anim_spr:play("idle")
+  self.anim_run_speed = 0.
 end
 
 function player_char:is_grounded()
@@ -214,6 +216,7 @@ end
 function player_char:update()
   self:_handle_input()
   self:_update_motion()
+  self:_update_anim()
   self.anim_spr:update()
 end
 
@@ -558,7 +561,6 @@ function player_char:_enter_motion_state(next_motion_state)
     self:set_slope_angle_with_quadrant(nil)
     self.ground_speed = 0
     self.should_jump = false
-    self.anim_spr:play("spin")
   elseif next_motion_state == motion_states.grounded then
     -- Momentum: transfer part of velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
     self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
@@ -567,7 +569,6 @@ function player_char:_enter_motion_state(next_motion_state)
     --  reset values airborne vars
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
-    self.anim_spr:play("idle")
   end
 
   -- store previous compact state before changing motion state
@@ -639,14 +640,17 @@ function player_char:_update_platformer_motion_grounded()
     -- only allow jump preparation for next frame if not already falling
     self:_check_jump_intention()
 
-    -- update ground animation based on speed
-    if self.ground_speed == 0 then
-      self.anim_spr:play("idle")
-    else
+    if self.ground_speed ~= 0 then
+      -- set animation speed for run now, since it can be used during actual run on ground
+      --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
       -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
-      -- instead, we prefer the more organic approach of continuous playback speed
-      -- however, to simulat the max duration clamping, we use min playback speed clamping
-      self.anim_spr:play("run", false, max(pc_data.run_anim_min_play_speed, abs(self.ground_speed)))
+      --  instead, we prefer the more organic approach of continuous playback speed
+      -- however, to simulate the max duration clamping, we use min playback speed clamping
+      --  (this prevents Sonic sprite from running super slow, bad visually)
+      self.anim_run_speed = max(pc_data.run_anim_min_play_speed, abs(self.ground_speed))
+    else
+      -- character is really idle, we don't want a minimal playback speed
+      self.anim_run_speed = 0
     end
   end
 
@@ -1498,6 +1502,25 @@ function player_char:_update_velocity_component_debug(coord)
 end
 
 --#endif
+
+-- update sprite animation state
+function player_char:_update_anim()
+  if self.motion_state == motion_states.grounded then
+    -- update ground animation based on speed
+    if self.ground_speed == 0 then
+      self.anim_spr:play("idle")
+    else
+      self.anim_spr:play("run", false, self.anim_run_speed)
+    end
+  elseif self.motion_state == motion_states.falling then
+    -- do not play another animation, preserve previous one so character
+    --  can run in the air when falling off a cliff or ceiling
+    -- TODO: however, do gradually rotate the sprite toward upward if needed
+    --  so character does not keep running upward, etc.
+  else -- self.motion_state == motion_states.air_spin
+    self.anim_spr:play("spin")
+  end
+end
 
 -- render the player character sprite at its current position
 function player_char:render()

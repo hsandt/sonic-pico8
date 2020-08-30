@@ -148,7 +148,9 @@ describe('player_char', function ()
           false,
           false,
           false,
-          false
+          false,
+
+          0
         },
         {
           pc.control_mode,
@@ -169,7 +171,9 @@ describe('player_char', function ()
           pc.hold_jump_intention,
           pc.should_jump,
           pc.has_jumped_this_frame,
-          pc.has_interrupted_jump
+          pc.has_interrupted_jump,
+
+          pc.anim_run_speed
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -600,22 +604,25 @@ describe('player_char', function ()
       setup(function ()
         stub(player_char, "_handle_input")
         stub(player_char, "_update_motion")
+        stub(player_char, "_update_anim")
         stub(animated_sprite, "update")
       end)
 
       teardown(function ()
         player_char._handle_input:revert()
         player_char._update_motion:revert()
+        player_char._update_anim:revert()
         animated_sprite.update:revert()
       end)
 
       after_each(function ()
         player_char._handle_input:clear()
         player_char._update_motion:clear()
+        player_char._update_anim:clear()
         animated_sprite.update:clear()
       end)
 
-      it('should call _handle_input and _update_motion', function ()
+      it('should call _handle_input, _update_motion, _update_anim and update animated sprite', function ()
         pc:update()
 
         -- implementation
@@ -623,6 +630,8 @@ describe('player_char', function ()
         assert.spy(pc._handle_input).was_called_with(match.ref(pc))
         assert.spy(pc._update_motion).was_called(1)
         assert.spy(pc._update_motion).was_called_with(match.ref(pc))
+        assert.spy(pc._update_anim).was_called(1)
+        assert.spy(pc._update_anim).was_called_with(match.ref(pc))
         assert.spy(animated_sprite.update).was_called(1)
         assert.spy(animated_sprite.update).was_called_with(match.ref(pc.anim_spr))
       end)
@@ -1674,12 +1683,10 @@ describe('player_char', function ()
       describe('_enter_motion_state', function ()
 
         setup(function ()
-          spy.on(animated_sprite, "play")
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
         end)
 
         teardown(function ()
-          animated_sprite.play:revert()
           player_char.set_slope_angle_with_quadrant:revert()
         end)
 
@@ -1687,7 +1694,6 @@ describe('player_char', function ()
         --   which calls pc.anim_spr:play, we must clear call count just after that
         -- for set_slope_angle_with_quadrant, after_each would be fine too
         before_each(function ()
-          animated_sprite.play:clear()
           player_char.set_slope_angle_with_quadrant:clear()
         end)
 
@@ -1705,7 +1711,6 @@ describe('player_char', function ()
               pc.ground_speed,
               pc.should_jump
             })
-          assert.spy(animated_sprite.play).was_not_called()
         end)
 
         it('(grounded -> falling) should call set_slope_angle_with_quadrant(nil)', function ()
@@ -1730,8 +1735,6 @@ describe('player_char', function ()
               pc.ground_speed,
               pc.should_jump
             })
-          assert.spy(animated_sprite.play).was_called(1)
-          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
         end)
 
         it('(grounded -> air_spin) should call set_slope_angle_with_quadrant(nil)', function ()
@@ -2003,7 +2006,6 @@ describe('player_char', function ()
         local new_ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
 
         setup(function ()
-          spy.on(animated_sprite, "play")
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
 
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
@@ -2014,18 +2016,11 @@ describe('player_char', function ()
         end)
 
         teardown(function ()
-          animated_sprite.play:revert()
           player_char.set_slope_angle_with_quadrant:revert()
 
           update_ground_speed_mock:revert()
           enter_motion_state_stub:revert()
           check_jump_intention_stub:revert()
-        end)
-
-        -- since pc is _init in before_each and _init calls _setup
-        --   which calls pc.anim_spr:play, we must clear call count just after that
-        before_each(function ()
-          animated_sprite.play:clear()
         end)
 
         after_each(function ()
@@ -2099,13 +2094,11 @@ describe('player_char', function ()
             assert.spy(enter_motion_state_stub).was_not_called()
           end)
 
-          it('should play the run animation at playback speed = abs(ground speed), if not 0', function ()
+          it('should set the run animation playback speed to abs(ground speed) (non-zero)', function ()
             -- mock is setting ground speed to -2.5
             pc:_update_platformer_motion_grounded()
 
-            -- implementation
-            assert.spy(animated_sprite.play).was_called(1)
-            assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+            assert.are_equal(2.5, pc.anim_run_speed)
           end)
 
           describe('(_update_ground_speed sets ground speed to -pc_data.run_anim_min_play_speed / 2)', function ()
@@ -2120,12 +2113,10 @@ describe('player_char', function ()
               new_ground_speed = -2.5
             end)
 
-            it('should play the run animation at playback speed = run_anim_min_play_speed, if not 0 but lower than run_anim_min_play_speed', function ()
+            it('should set the run animation playback speed to run_anim_min_play_speed when ground speed is non-zero, lower than run_anim_min_play_speed in abs)', function ()
               pc:_update_platformer_motion_grounded()
 
-              -- implementation
-              assert.spy(animated_sprite.play).was_called(1)
-              assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, pc_data.run_anim_min_play_speed)
+              assert.are_equal(pc_data.run_anim_min_play_speed, pc.anim_run_speed)
             end)
 
           end)
@@ -2238,12 +2229,10 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
           end)
 
-          it('should play the idle animation (ground speed ~= 0)', function ()
+          it('should set the run animation playback speed to abs(ground speed) = 0', function ()
             pc:_update_platformer_motion_grounded()
 
-            -- implementation
-            assert.spy(animated_sprite.play).was_called(1)
-            assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+            assert.are_equal(0, pc.anim_run_speed)
           end)
 
           it('(on ceiling/wall-ceiling) should enter falling state thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
@@ -2293,14 +2282,13 @@ describe('player_char', function ()
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call _check_jump_intention nor anim_spr:play (falling)', function ()
+          it('should call _enter_motion_state with falling state, not call _check_jump_intention (falling)', function ()
             pc:_update_platformer_motion_grounded()
 
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
             assert.spy(check_jump_intention_stub).was_not_called()
-            assert.spy(animated_sprite.play).was_not_called()
           end)
 
           it('should set the position to vector(3, 4)', function ()
@@ -2346,14 +2334,13 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call _check_jump_intention nor anim_spr:play (falling)', function ()
+          it('should call _enter_motion_state with falling state, not call _check_jump_intention (falling)', function ()
             pc:_update_platformer_motion_grounded()
 
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
             assert.spy(check_jump_intention_stub).was_not_called()
-            assert.spy(animated_sprite.play).was_not_called()
           end)
 
           it('should set the position to vector(3, 4)', function ()
@@ -5684,6 +5671,62 @@ describe('player_char', function ()
           pc.position:add_inplace(pc.debug_velocity * delta_time60)
         end
         assert.is_true(almost_eq_with_message(vector.zero(), pc.debug_velocity))
+      end)
+
+    end)
+
+    describe('_update_anim', function ()
+
+      setup(function ()
+        spy.on(animated_sprite, "play")
+      end)
+
+      teardown(function ()
+        animated_sprite.play:revert()
+      end)
+
+      -- since pc is _init in before_each and _init calls _setup
+      --   which calls pc.anim_spr:play, we must clear call count just after that
+      before_each(function ()
+        animated_sprite.play:clear()
+      end)
+
+      it('should play idle anim when grounded and ground speed is 0', function ()
+        pc.motion_state = motion_states.grounded
+        pc.ground_speed = 0
+
+        pc:_update_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+      end)
+
+      it('should play run anim when grounded and ground speed is not 0', function ()
+        pc.motion_state = motion_states.grounded
+        pc.ground_speed = -0.1
+        pc.anim_run_speed = 2.5
+
+        pc:_update_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+      end)
+
+      it('should not play new anim at all when falling', function ()
+        pc.motion_state = motion_states.falling
+
+        pc:_update_anim()
+
+        assert.spy(animated_sprite.play).was_not_called()
+      end)
+
+      it('should play spin anim when air spinning', function ()
+        pc.motion_state = motion_states.air_spin
+
+        pc:_update_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
       end)
 
     end)

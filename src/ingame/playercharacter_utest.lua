@@ -533,6 +533,8 @@ describe('player_char', function ()
 
     describe('set_slope_angle_with_quadrant', function ()
 
+      -- slope angle
+
       it('should set slope_angle to passed angle even if nil', function ()
         pc.slope_angle = 0.5
         pc:set_slope_angle_with_quadrant(nil)
@@ -545,6 +547,8 @@ describe('player_char', function ()
         assert.are_equal(0.25, pc.slope_angle)
       end)
 
+      -- sprite angle
+
       it('should not set sprite_angle if passed angle is nil', function ()
         pc.sprite_angle = 0.25
         pc:set_slope_angle_with_quadrant(nil)
@@ -555,6 +559,12 @@ describe('player_char', function ()
         pc.sprite_angle = 0.25
         pc:set_slope_angle_with_quadrant(0.75)
         assert.are_equal(0.75, pc.sprite_angle)
+      end)
+
+      it('should set sprite_angle to 0 when passing force_upward_sprite: true', function ()
+        pc.sprite_angle = 0.25
+        pc:set_slope_angle_with_quadrant(0.75, true)
+        assert.are_equal(0, pc.sprite_angle)
       end)
 
       -- below also tests world.angle_to_quadrant implementation,
@@ -1765,7 +1775,7 @@ describe('player_char', function ()
           pc:_enter_motion_state(motion_states.air_spin)
 
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-          assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+          assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil, true)
         end)
 
         -- bugfix history: .

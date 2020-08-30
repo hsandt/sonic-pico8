@@ -207,7 +207,9 @@ end
 --#endif
 
 -- set slope angle and update quadrant
-function player_char:set_slope_angle_with_quadrant(angle)
+-- if force_upward_sprite is true, set sprite angle to 0
+-- else, set sprite angle to angle (if not nil)
+function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
   assert(angle == nil or 0. <= angle and angle <= 1., "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
 
   self.slope_angle = angle
@@ -215,7 +217,9 @@ function player_char:set_slope_angle_with_quadrant(angle)
   -- only set sprite angle with true grounded angle, do not set it to 0 when nil
   -- this is to prevent character sprite from switching straight upward immediately
   --  on fall
-  if angle then
+  if force_upward_sprite then
+    self.sprite_angle = 0
+  elseif angle then
     self.sprite_angle = angle
   end
 
@@ -567,7 +571,7 @@ function player_char:_enter_motion_state(next_motion_state)
   elseif next_motion_state == motion_states.air_spin then
     -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity
-    self:set_slope_angle_with_quadrant(nil)
+    self:set_slope_angle_with_quadrant(nil, --[[force_upward_sprite:]] true)
     self.ground_speed = 0
     self.should_jump = false
   elseif next_motion_state == motion_states.grounded then
@@ -1552,7 +1556,6 @@ function player_char:_check_update_sprite_angle()
       self.sprite_angle = min(1, abs(angle) + pc_data.sprite_angle_airborne_reset_speed_frame) % 1
     end
   end
-  printh("self.sprite_angle: "..self.sprite_angle)
 end
 
 -- render the player character sprite at its current position

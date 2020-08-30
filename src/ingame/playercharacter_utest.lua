@@ -150,7 +150,8 @@ describe('player_char', function ()
           false,
           false,
 
-          0
+          0,
+          0,
         },
         {
           pc.control_mode,
@@ -173,7 +174,8 @@ describe('player_char', function ()
           pc.has_jumped_this_frame,
           pc.has_interrupted_jump,
 
-          pc.anim_run_speed
+          pc.anim_run_speed,
+          pc.sprite_angle,
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -531,11 +533,32 @@ describe('player_char', function ()
 
     describe('set_slope_angle_with_quadrant', function ()
 
-      it('should set slope_angle to passed angle', function ()
+      it('should set slope_angle to passed angle even if nil', function ()
+        pc.slope_angle = 0.5
+        pc:set_slope_angle_with_quadrant(nil)
+        assert.is_nil(pc.slope_angle)
+      end)
+
+      it('should set slope_angle to passed angle (not nil)', function ()
         pc.slope_angle = 0.5
         pc:set_slope_angle_with_quadrant(0.25)
         assert.are_equal(0.25, pc.slope_angle)
       end)
+
+      it('should not set sprite_angle if passed angle is nil', function ()
+        pc.sprite_angle = 0.25
+        pc:set_slope_angle_with_quadrant(nil)
+        assert.are_equal(0.25, pc.sprite_angle)
+      end)
+
+      it('should set sprite_angle to angle if not nil', function ()
+        pc.sprite_angle = 0.25
+        pc:set_slope_angle_with_quadrant(0.75)
+        assert.are_equal(0.75, pc.sprite_angle)
+      end)
+
+      -- below also tests world.angle_to_quadrant implementation,
+      --  because tests were written before function extraction
 
       it('should set quadrant to down for slope_angle: nil', function ()
         pc.quadrant = nil
@@ -5678,6 +5701,29 @@ describe('player_char', function ()
     describe('_update_anim', function ()
 
       setup(function ()
+        spy.on(player_char, "_check_play_anim")
+        spy.on(player_char, "_check_update_sprite_angle")
+      end)
+
+      teardown(function ()
+        player_char._check_play_anim:revert()
+        player_char._check_update_sprite_angle:revert()
+      end)
+
+      it('should call _check_play_anim and _check_update_sprite_angle', function ()
+        pc:_update_anim()
+
+        assert.spy(player_char._check_play_anim).was_called(1)
+        assert.spy(player_char._check_play_anim).was_called_with(match.ref(pc))
+        assert.spy(player_char._check_update_sprite_angle).was_called(1)
+        assert.spy(player_char._check_update_sprite_angle).was_called_with(match.ref(pc))
+      end)
+
+    end)
+
+    describe('_check_play_anim', function ()
+
+      setup(function ()
         spy.on(animated_sprite, "play")
       end)
 
@@ -5695,7 +5741,7 @@ describe('player_char', function ()
         pc.motion_state = motion_states.grounded
         pc.ground_speed = 0
 
-        pc:_update_anim()
+        pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
@@ -5706,7 +5752,7 @@ describe('player_char', function ()
         pc.ground_speed = -0.1
         pc.anim_run_speed = 2.5
 
-        pc:_update_anim()
+        pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
@@ -5715,7 +5761,7 @@ describe('player_char', function ()
       it('should not play new anim at all when falling', function ()
         pc.motion_state = motion_states.falling
 
-        pc:_update_anim()
+        pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_not_called()
       end)
@@ -5723,10 +5769,79 @@ describe('player_char', function ()
       it('should play spin anim when air spinning', function ()
         pc.motion_state = motion_states.air_spin
 
-        pc:_update_anim()
+        pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
+      end)
+
+    end)
+
+    describe('_check_update_sprite_angle', function ()
+
+      it('should preserve sprite angle when motion state is not falling', function ()
+        pc.motion_state = motion_states.grounded
+        pc.sprite_angle = 0.5
+
+        pc:_check_update_sprite_angle()
+
+        assert.are_equal(0.5, pc.sprite_angle)
+      end)
+
+      it('should preserve sprite angle when sprite angle is 0', function ()
+        pc.motion_state = motion_states.falling
+        pc.sprite_angle = 0
+
+        pc:_check_update_sprite_angle()
+
+        assert.are_equal(0, pc.sprite_angle)
+      end)
+
+      -- sprite angle should always move toward 0 via shortest path
+      -- angle = 0.5 is an edge case and we don't mind either choice, so we don't test it
+
+      it('should move sprite angle toward 0 (via the right arc) by pc_data.sprite_angle_airborne_reset_speed_frame when sprite angle is not 0', function ()
+        pc.motion_state = motion_states.falling
+        pc.sprite_angle = 0.25
+
+        pc:_check_update_sprite_angle()
+
+        assert(pc_data.sprite_angle_airborne_reset_speed_frame < 0.25, "pc_data.sprite_angle_airborne_reset_speed_frame >= 0.25, we are testing another case where we are going to clamp")
+        -- moving clockwise, so - angle
+        assert.are_equal(0.25 - pc_data.sprite_angle_airborne_reset_speed_frame, pc.sprite_angle)
+      end)
+
+      it('should move sprite angle toward 0 (via the left arc) by pc_data.sprite_angle_airborne_reset_speed_frame when sprite angle is not 0', function ()
+        pc.motion_state = motion_states.falling
+        pc.sprite_angle = 0.75
+
+        pc:_check_update_sprite_angle()
+
+        assert(pc_data.sprite_angle_airborne_reset_speed_frame < 0.25, "pc_data.sprite_angle_airborne_reset_speed_frame >= 0.25, we are testing another case where we are going to clamp")
+        -- moving counter-clockwise, so + angle
+        assert.are_equal(0.75 + pc_data.sprite_angle_airborne_reset_speed_frame, pc.sprite_angle)
+      end)
+
+      it('should set sprite angle to 0 due to clamping when sprite angle is a bit counter-clockwise of 0, lower than pc_data.sprite_angle_airborne_reset_speed_frame', function ()
+        pc.motion_state = motion_states.falling
+        pc.sprite_angle = pc_data.sprite_angle_airborne_reset_speed_frame / 2
+
+        pc:_check_update_sprite_angle()
+
+        assert(pc_data.sprite_angle_airborne_reset_speed_frame < 0.25, "pc_data.sprite_angle_airborne_reset_speed_frame >= 0.25, we are testing another case where we are going to clamp")
+        -- moving clockwise, but it doesn't matter as we reach 0
+        assert.are_equal(0, pc.sprite_angle)
+      end)
+
+      it('should set sprite angle to 0 due to clamping when sprite angle is a bit clockwise of 0, lower than pc_data.sprite_angle_airborne_reset_speed_frame', function ()
+        pc.motion_state = motion_states.falling
+        pc.sprite_angle = 1 - pc_data.sprite_angle_airborne_reset_speed_frame / 2
+
+        pc:_check_update_sprite_angle()
+
+        assert(pc_data.sprite_angle_airborne_reset_speed_frame < 0.25, "pc_data.sprite_angle_airborne_reset_speed_frame >= 0.25, we are testing another case where we are going to clamp")
+        -- moving counter-clockwise, but it doesn't matter as we reach 0
+        assert.are_equal(0, pc.sprite_angle)
       end)
 
     end)
@@ -5751,7 +5866,7 @@ describe('player_char', function ()
       it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x, current slope angle', function ()
         pc.position = vector(12, 8)
         pc.orientation = horizontal_dirs.left
-        pc.slope_angle = 0.125
+        pc.sprite_angle = 0.125
 
         pc:render()
 
@@ -5762,7 +5877,7 @@ describe('player_char', function ()
       it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x, current slope angle', function ()
         pc.position = vector(12, 8)
         pc.orientation = horizontal_dirs.right
-        pc.slope_angle = 1-0.125
+        pc.sprite_angle = 1-0.125
 
         pc:render()
 

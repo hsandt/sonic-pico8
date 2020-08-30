@@ -118,6 +118,10 @@ local playercharacter_data = {
 
   -- sprite
 
+  -- speed at which the character sprite angle falls back toward 0 (upward)
+  --  when character is airborne (typically after falling from ceiling)
+  sprite_angle_airborne_reset_speed_frame = 0.0095,  -- 0.5/(7/8×60) ie character moves from upside down to upward in 7/8 s
+
   -- stand right
   -- colors.pink: 14
   sonic_sprite_data_table = serialization.parse_expression(

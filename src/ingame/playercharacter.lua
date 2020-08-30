@@ -70,7 +70,8 @@ local player_char = new_class()
 -- has_jumped_this_frame  bool            has the character started a jump/hop this frame?
 -- has_interrupted_jump   bool            has the character already interrupted his jump once?
 -- anim_spr               animated_sprite animated sprite component
--- anim_run_speed         float           reflects ground_speed, but preserves value even when falling
+-- anim_run_speed         float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
+-- sprite_angle           float           Sprite angle. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
 function player_char:_init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -109,6 +110,7 @@ function player_char:_setup()
 
   self.anim_spr:play("idle")
   self.anim_run_speed = 0.
+  self.sprite_angle = 0.
 end
 
 function player_char:is_grounded()
@@ -209,6 +211,13 @@ function player_char:set_slope_angle_with_quadrant(angle)
   assert(angle == nil or 0. <= angle and angle <= 1., "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
 
   self.slope_angle = angle
+
+  -- only set sprite angle with true grounded angle, do not set it to 0 when nil
+  -- this is to prevent character sprite from switching straight upward immediately
+  --  on fall
+  if angle then
+    self.sprite_angle = angle
+  end
 
   self.quadrant = world.angle_to_quadrant(angle)
 end
@@ -1505,6 +1514,12 @@ end
 
 -- update sprite animation state
 function player_char:_update_anim()
+  self:_check_play_anim()
+  self:_check_update_sprite_angle()
+end
+
+-- play appropriate sprite animation based on current state
+function player_char:_check_play_anim()
   if self.motion_state == motion_states.grounded then
     -- update ground animation based on speed
     if self.ground_speed == 0 then
@@ -1522,11 +1537,29 @@ function player_char:_update_anim()
   end
 end
 
+-- update sprite angle (falling only)
+function player_char:_check_update_sprite_angle()
+  local angle = self.sprite_angle
+  assert(0 <= angle and angle < 1, "player_char:_update_sprite_angle: expecting modulo angle, got: "..angle)
+
+  if self.motion_state == motion_states.falling and angle ~= 0 then
+    if angle < 0.5 then
+      -- just apply friction calculation as usual
+      self.sprite_angle = max(0, abs(angle) - pc_data.sprite_angle_airborne_reset_speed_frame)
+    else
+      -- problem is we must rotate counter-clockwise toward 1 which is actually 0 modulo 1
+      --  so we increase angle, clamp to 1 and % 1 so if we reached 1, we now have 0 instead
+      self.sprite_angle = min(1, abs(angle) + pc_data.sprite_angle_airborne_reset_speed_frame) % 1
+    end
+  end
+  printh("self.sprite_angle: "..self.sprite_angle)
+end
+
 -- render the player character sprite at its current position
 function player_char:render()
   local flip_x = self.orientation == horizontal_dirs.left
   -- for now, no snapping, follow slope a la Freedom Planet / Sonic Mania
-  local sprite_angle = self.slope_angle
+  local sprite_angle = self.sprite_angle
   self.anim_spr:render(self.position, flip_x, false, sprite_angle)
 end
 

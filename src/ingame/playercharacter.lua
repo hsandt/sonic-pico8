@@ -59,6 +59,7 @@ local player_char = new_class()
 -- orientation            horizontal_dirs direction faced by character
 -- position               vector          current position (character center "between" pixels)
 -- ground_speed           float           current speed along the ground (~px/frame)
+-- horizontal_control_lock_timer  float   time left before regaining horizontal control after fall/slide off
 -- velocity               vector          current velocity in platformer mode (px/frame)
 -- debug_velocity         vector          current velocity in debug mode (m/s)
 -- slope_angle            float           slope angle of the current ground (clockwise turn ratio)
@@ -94,6 +95,7 @@ function player_char:_setup()
 
   self.position = vector.zero()
   self.ground_speed = 0.
+  self.horizontal_control_lock_timer = 0.
   self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
   -- slope_angle starts at 0 instead of nil to match grounded state above
@@ -239,10 +241,32 @@ function player_char:_handle_input()
     -- move
     local player_move_intention = vector.zero()
 
-    if input:is_down(button_ids.left) then
-      player_move_intention:add_inplace(vector(-1, 0))
-    elseif input:is_down(button_ids.right) then
-      player_move_intention:add_inplace(vector(1, 0))
+    -- ignore horizontal input when *grounded* with control lock timer is active
+    -- checking == 0 is enough, <= 0 is just for safety
+    if self.motion_state ~= motion_states.grounded or self.horizontal_control_lock_timer <= 0 then
+
+      if input:is_down(button_ids.left) then
+        player_move_intention:add_inplace(vector(-1, 0))
+      elseif input:is_down(button_ids.right) then
+        player_move_intention:add_inplace(vector(1, 0))
+      end
+
+    end
+
+    -- in original game, horizontal control lock timer is only decremented when *grounded*
+    --  this caused delayed lock such as jumping out of lock situation to escape but still being locked for
+    --  a moment on ground, or falling off a ceiling and still not being able to move freely for a moment
+    -- this contributes to the feel of lack of control after falling off and may be desirable,
+    --  but in pico-sonic we prefer decrementing timer when airborne, so after a long fall or jump you
+    --  can immediately get control back
+    -- to restore original game behavior, uncomment the line below and comment out the 2nd line below
+    -- if self.horizontal_control_lock_timer > 0 and self.motion_state == motion_states.grounded then
+    if self.horizontal_control_lock_timer > 0 then
+      -- decrement control lock frame timer
+      -- normally it's better to update non-intention state vars
+      --  in a normal update method not _handle_input, but since we know
+      --  that both are updated at 60FPS, it shouldn't be a problem here
+      self.horizontal_control_lock_timer = self.horizontal_control_lock_timer - 1
     end
 
     if input:is_down(button_ids.up) then
@@ -637,12 +661,20 @@ function player_char:_update_platformer_motion_grounded()
   -- we can now update position and slope
   self.position = ground_motion_result.position
 
-  -- SPG: Falling and Sliding Off Of Walls And Ceilings adds the second condition clause
-  -- Edge cases are not clear, but it makes more sense to actually *fall* when on a ceiling
-  --  and just lock control when on a wall at exactly 0.25 or 0.75, hence the strict comparison
-  -- Note that at this point, we haven't set slope angle and we were grounded so it should not be nil
-  if ground_motion_result.is_falling or
-      (self.slope_angle > 0.25 and self.slope_angle < 0.75) and abs(self.ground_speed) < pc_data.ceiling_adherence_min_ground_speed then
+  -- character falls by default if finds no ground to stick to
+  local should_fall = ground_motion_result.is_falling
+
+  -- SPG: Falling and Sliding Off Of Walls And Ceilings
+  if self.quadrant ~= directions.down and abs(self.ground_speed) < pc_data.ceiling_adherence_min_ground_speed then
+    -- Only falling when on straight wall, wall-ceiling or ceiling
+    -- Note that at this point, we haven't set slope angle and we were grounded so it should not be nil
+    if self.slope_angle >= 0.25 and self.slope_angle <= 0.75 then
+      should_fall = true
+    end
+    self.horizontal_control_lock_timer = pc_data.horizontal_control_lock_duration
+  end
+
+  if should_fall then
     self:_enter_motion_state(motion_states.falling)
   else
     -- we are still grounded, so:

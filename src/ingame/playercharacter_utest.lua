@@ -138,6 +138,7 @@ describe('player_char', function ()
 
           vector.zero(),
           0,
+          0,
           vector.zero(),
           vector.zero(),
           0,
@@ -162,6 +163,7 @@ describe('player_char', function ()
 
           pc.position,
           pc.ground_speed,
+          pc.horizontal_control_lock_timer,
           pc.velocity,
           pc.debug_velocity,
           pc.slope_angle,
@@ -724,6 +726,29 @@ describe('player_char', function ()
         input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
         pc:_handle_input()
         assert.are_same(vector(-1, 0), pc.move_intention)
+      end)
+
+      it('(when input left is down but horizontal control lock is active) it should not update the player character\'s move intention, and decrement the timer', function ()
+        pc.horizontal_control_lock_timer = 3
+        input.players_btn_states[0][button_ids.left] = btn_states.pressed
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+
+        pc:_handle_input()
+
+        assert.are_same(vector(0, 0), pc.move_intention)
+        assert.are_equal(2, pc.horizontal_control_lock_timer)
+      end)
+
+      it('(when input left is down with horizontal control lock active, but airborne) it should still update the player character\'s move intention, and also decrement the timer (unlike original game)', function ()
+        pc.motion_state = motion_states.air_spin
+        pc.horizontal_control_lock_timer = 3
+        input.players_btn_states[0][button_ids.left] = btn_states.pressed
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+
+        pc:_handle_input()
+
+        assert.are_same(vector(-1, 0), pc.move_intention)
+        assert.are_equal(2, pc.horizontal_control_lock_timer)
       end)
 
        it('(when input up in down) it should update the player character\'s move intention by (-1, 0)', function ()
@@ -2252,11 +2277,8 @@ describe('player_char', function ()
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.5', function ()
-            -- note that this angle being 0.75 exactly, and the ground speed reset to 0
-            --  being below ceiling adherence threshold, we are also testing
-            --  that an exact wall at 0.75 does *not* uses adherence threshold
-            --  to make character fall (however, it will lock control)
-            pc.slope_angle = 1-0.25
+            pc.slope_angle = 1-0.24
+            pc.quadrant = directions.left
             pc:_update_platformer_motion_grounded()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
@@ -2268,13 +2290,27 @@ describe('player_char', function ()
             assert.are_equal(0, pc.anim_run_speed)
           end)
 
-          it('(on ceiling/wall-ceiling) should enter falling state thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
-            pc.slope_angle = 0.26
+          it('(on ceiling/wall-ceiling) should enter falling state and set horizontal control lock timer thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
+            pc.slope_angle = 0.25
+            pc.quadrant = directions.right
 
             pc:_update_platformer_motion_grounded()
 
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
+
+            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
+          end)
+
+          it('(on slope less than 90 degrees) should not enter falling state but still set horizontal control lock timer', function ()
+            pc.slope_angle = 1-0.24
+            pc.quadrant = directions.right
+
+            pc:_update_platformer_motion_grounded()
+
+            assert.spy(enter_motion_state_stub).was_not_called()
+
+            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
           end)
 
         end)

@@ -60,8 +60,11 @@ local playercharacter_data = {
   max_ground_speed = 3,  -- 192/64
 
   -- ground speed threshold under which character will fall/slide off when walking at more
-  --  than 90 degrees, or lock control when walking on wall under 90 degrees
+  --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
+
+  -- duration of horizontal control lock after fall/slide off (frames)
+  horizontal_control_lock_duration = 30,  -- 0.5s
 
   -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
   max_air_velocity_y = 32,  -- 2048/64

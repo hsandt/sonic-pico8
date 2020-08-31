@@ -1905,6 +1905,26 @@ describe('player_char', function ()
           assert.are_equal(20 - pc_data.center_height_standing + pc_data.center_height_compact, pc.position.y)
         end)
 
+        it('should adjust center position qdown = left when becoming compact on left wall', function ()
+          pc.position = vector(10, 20)
+          pc.quadrant = directions.left
+
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.air_spin)
+
+          assert.are_same(vector(10 - pc_data.center_height_standing + pc_data.center_height_compact, 20), pc.position)
+        end)
+
+        it('should adjust center position qup = up when landing and standing up on floor', function ()
+          pc.motion_state = motion_states.air_spin
+          pc.position = vector(10, 20)
+
+          -- character starts grounded
+          pc:_enter_motion_state(motion_states.grounded)
+
+          assert.are_same(vector(10, 20 - pc_data.center_height_standing + pc_data.center_height_compact), pc.position)
+        end)
+
       end)
 
       describe('_update_platformer_motion', function ()

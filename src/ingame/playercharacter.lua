@@ -587,6 +587,31 @@ end
 -- current, self.slope_angle must have been previously set when
 --  entering ground state
 function player_char:_enter_motion_state(next_motion_state)
+  -- store previous compact state before changing motion state
+  local was_compact = self:is_compact()
+
+  -- update motion state
+  self.motion_state = next_motion_state
+
+  -- adjust center when switching compact mode
+  if was_compact ~= self:is_compact() then
+    -- character switched compact mode, prepare center adjustment vector
+    local become_compact_qdown_vector = self:quadrant_rotated(vector(0, pc_data.center_height_standing - pc_data.center_height_compact))
+    -- if character became compact (e.g. crouching or start jumping),
+    --  move it slightly down to keep center position continuity
+    --  => multiplier = 1, use qdown vector directly
+    -- if character is now standing (e.g. landing after air spin),
+    --  move it slightly up to keep center position continuity
+    --  => multiplier = -1, oppose qdown vector to get qup vector
+    local multiplier = was_compact and -1 or 1
+    self.position:add_inplace(multiplier * become_compact_qdown_vector)
+  end
+
+  -- update state vars like slope, etc. *after* adjusting center
+  --  because center adjustment on fall relies on quadrant *before* falling
+  --  (it's is always down after fall anyway)
+  -- when landing, we set the slope angle *before* calling this method,
+  --  so quadrant is also correct when quadrant_rotated is called
   if next_motion_state == motion_states.falling then
     -- we have just left the ground without jumping, enter falling state
     --  and since ground speed is now unused, reset it for clarity
@@ -608,27 +633,6 @@ function player_char:_enter_motion_state(next_motion_state)
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
   end
-
-  -- store previous compact state before changing motion state
-  local was_compact = self:is_compact()
-
-  -- update motion state
-  self.motion_state = next_motion_state
-
-  -- adjust center when switching compact mode
-  if was_compact ~= self:is_compact() then
-    -- character switched compact mode, prepare center adjustment vector
-    local become_compact_qdown_vector = vector(0, pc_data.center_height_standing - pc_data.center_height_compact)
-    -- if character became compact (e.g. crouching or start jumping),
-    --  move it slightly down to keep center position continuity
-    --  => multiplier = 1, use qdown vector directly
-    -- if character is now standing (e.g. landing after air spin),
-    --  move it slightly up to keep center position continuity
-    --  => multiplier = -1, oppose qdown vector to get qup vector
-    local multiplier = was_compact and -1 or 1
-    self.position:add_inplace(multiplier * become_compact_qdown_vector)
-  end
-
 end
 
 -- update velocity, position and state based on current motion state

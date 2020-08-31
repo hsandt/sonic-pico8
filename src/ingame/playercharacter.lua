@@ -616,15 +616,19 @@ function player_char:_enter_motion_state(next_motion_state)
   self.motion_state = next_motion_state
 
   -- adjust center when switching compact mode
-  if not was_compact and self:is_compact() then
-    -- character became compact (e.g. crouching or start jumping),
-    -- move it slightly down to keep center position continuity
-    self.position:add_inplace(vector(0, pc_data.center_height_standing - pc_data.center_height_compact))
-  elseif was_compact and not self:is_compact() then
-    -- character is now standing (e.g. landing after air spin),
-    -- move it slightly up to keep center position continuity
-    self.position:add_inplace(vector(0, - pc_data.center_height_standing + pc_data.center_height_compact))
+  if was_compact ~= self:is_compact() then
+    -- character switched compact mode, prepare center adjustment vector
+    local become_compact_qdown_vector = vector(0, pc_data.center_height_standing - pc_data.center_height_compact)
+    -- if character became compact (e.g. crouching or start jumping),
+    --  move it slightly down to keep center position continuity
+    --  => multiplier = 1, use qdown vector directly
+    -- if character is now standing (e.g. landing after air spin),
+    --  move it slightly up to keep center position continuity
+    --  => multiplier = -1, oppose qdown vector to get qup vector
+    local multiplier = was_compact and -1 or 1
+    self.position:add_inplace(multiplier * become_compact_qdown_vector)
   end
+
 end
 
 -- update velocity, position and state based on current motion state

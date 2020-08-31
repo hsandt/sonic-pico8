@@ -5910,8 +5910,8 @@ describe('player_char', function ()
         anim_spr_render_stub:clear()
       end)
 
-      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position, flipped x, current slope angle rounded to closest 45-degree step', function ()
-        pc.position = vector(12, 8)
+      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
+        pc.position = vector(12.5, 8.2)
         pc.orientation = horizontal_dirs.left
         pc.continuous_sprite_angle = 0.063
 
@@ -5921,8 +5921,8 @@ describe('player_char', function ()
         assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.125)
       end)
 
-      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position, not flipped x, current slope angle rounded to closest 45-degree step', function ()
-        pc.position = vector(12, 8)
+      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
+        pc.position = vector(12.5, 8.2)
         pc.orientation = horizontal_dirs.right
         pc.continuous_sprite_angle = 1-0.063
 

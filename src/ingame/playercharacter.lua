@@ -1599,7 +1599,10 @@ function player_char:render()
   -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
   --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
   local sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
-  self.anim_spr:render(self.position, flip_x, false, sprite_angle)
+  -- floor position to avoid jittering when running on ceiling due to
+  --  partial pixel position being sometimes one more pixel on the right due after 180-deg rotation
+  local floored_position = vector(flr(self.position.x), flr(self.position.y))
+  self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
 end
 
 return player_char

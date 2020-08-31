@@ -2187,6 +2187,7 @@ describe('player_char', function ()
               --  but that will be enough
               -- the normal tests being done on ground where slope angle is 0 or very low (1-1/6)
               pc.slope_angle = 0.26
+              pc.quadrant = directions.right
             end)
 
             describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed / 2)', function ()

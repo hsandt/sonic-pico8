@@ -70,6 +70,10 @@
 					"cmd": ["./build_game.sh sandbox"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_game.sh assert"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_game.sh release"]
 				}
@@ -123,6 +127,10 @@
 				{
 					"name": "sandbox",
 					"cmd": ["./build_game.sh sandbox && (./pico-boots/scripts/reload.sh || ./run_game.sh sandbox)"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_game.sh assert && (./pico-boots/scripts/reload.sh || ./run_game.sh assert)"]
 				},
 				{
 					"name": "release",
@@ -179,6 +187,10 @@
 					"cmd": ["./run_game.sh sandbox"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./run_game.sh assert"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./run_game.sh release"]
 				},
@@ -225,6 +237,10 @@
 					"cmd": ["./install_cartridge_linux.sh sandbox"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./install_cartridge_linux.sh assert"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./install_cartridge_linux.sh release"]
 				},
@@ -251,6 +267,10 @@
 				{
 					"name": "sandbox (png)",
 					"cmd": ["./install_cartridge_linux.sh sandbox png"]
+				},
+				{
+					"name": "assert (png)",
+					"cmd": ["./install_cartridge_linux.sh assert png"]
 				},
 				{
 					"name": "release (png)",

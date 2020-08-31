@@ -83,6 +83,8 @@ elif [[ $config == 'cheat-ultrafast' ]]; then
   symbols='assert,deprecated,cheat,ultrafast'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
+elif [[ $config == 'assert' ]]; then
+  symbols='assert'
 fi
 
 # Build from main

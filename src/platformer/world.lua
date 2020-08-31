@@ -94,7 +94,7 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
   assert(0 <= qcolumn_index0 and qcolumn_index0 < 8, "world._compute_qcolumn_height_at: invalid qcolumn_index0 "..qcolumn_index0)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
-  if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 64 then
+  if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 32 then
 
     -- check if that tile at tile_location has a collider (mget will return 0 if there is no tile,
     --  so we must make the "empty" sprite 0 has no flags set)

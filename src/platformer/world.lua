@@ -202,34 +202,4 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
 
 end
 
--- DEPRECATED, remove to spare tokens
--- return (true, slope_angle) if there is a collision pixel at (x, y),
---  where slope_angle is the slope angle in this tile (even if (x, y) is inside ground),
---  and (false, nil) if there is no collision
-function world.get_pixel_collision_info(x, y)
-  assert(flr(x) == x, "world.get_pixel_collision_info: x must be floored")
-
-  -- queried position
-  local location = vector(x, y):to_location()
-  local location_topleft = location:to_topleft_position()
-  local left, top = location_topleft.x, location_topleft.y
-  local bottom = top + tile_size
-
-  -- environment
-  local column_index0 = x - left  -- from 0 to tile_size - 1
-  local ground_array_height, slope_angle = world._compute_qcolumn_height_at(location, column_index0, directions.down)
-
-  -- if column is empty, there cannot be any pixel collision
-  if ground_array_height > 0 then
-    local column_top = bottom - ground_array_height
-
-    -- there is a collision pixel at (x, y) if the column at x rises at least until y
-    if y >= column_top then
-      return true, slope_angle
-    end
-  end
-
-  return false, nil
-end
-
 return world

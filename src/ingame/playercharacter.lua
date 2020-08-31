@@ -52,27 +52,28 @@ local player_char = new_class()
 
 -- state vars
 
--- control_mode           control_modes   control mode: human (default) or ai
--- motion_mode (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
--- motion_state           motion_states   motion state (platformer mode only)
--- quadrant               directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
--- orientation            horizontal_dirs direction faced by character
--- position               vector          current position (character center "between" pixels)
--- ground_speed           float           current speed along the ground (~px/frame)
--- horizontal_control_lock_timer  float   time left before regaining horizontal control after fall/slide off
--- velocity               vector          current velocity in platformer mode (px/frame)
--- debug_velocity         vector          current velocity in debug mode (m/s)
--- slope_angle            float           slope angle of the current ground (clockwise turn ratio)
--- ascending_slope_time   float           time before applying full slope factor, when ascending a slope (s)
--- move_intention         vector          current move intention (normalized)
--- jump_intention         bool            current intention to start jump (consumed on jump)
--- hold_jump_intention    bool            current intention to hold jump (always true when jump_intention is true)
--- should_jump            bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
--- has_jumped_this_frame  bool            has the character started a jump/hop this frame?
--- has_interrupted_jump   bool            has the character already interrupted his jump once?
--- anim_spr               animated_sprite animated sprite component
--- anim_run_speed         float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
--- sprite_angle           float           Sprite angle. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
+-- control_mode             control_modes   control mode: human (default) or ai
+-- motion_mode   (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
+-- motion_state             motion_states   motion state (platformer mode only)
+-- quadrant                 directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
+-- orientation              horizontal_dirs direction faced by character
+-- position                 vector          current position (character center "between" pixels)
+-- ground_speed             float           current speed along the ground (~px/frame)
+-- horizontal_control_lock_timer    float   time left before regaining horizontal control after fall/slide off
+-- velocity                 vector          current velocity in platformer mode (px/frame)
+-- debug_velocity           vector          current velocity in debug mode (m/s)
+-- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
+-- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
+-- move_intention           vector          current move intention (normalized)
+-- jump_intention           bool            current intention to start jump (consumed on jump)
+-- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
+-- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
+-- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
+-- has_interrupted_jump     bool            has the character already interrupted his jump once?
+-- anim_spr                 animated_sprite animated sprite component
+-- anim_run_speed           float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
+-- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
+--                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 function player_char:_init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -112,7 +113,7 @@ function player_char:_setup()
 
   self.anim_spr:play("idle")
   self.anim_run_speed = 0.
-  self.sprite_angle = 0.
+  self.continuous_sprite_angle = 0.
 end
 
 function player_char:is_grounded()
@@ -220,9 +221,9 @@ function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
   -- this is to prevent character sprite from switching straight upward immediately
   --  on fall
   if force_upward_sprite then
-    self.sprite_angle = 0
+    self.continuous_sprite_angle = 0
   elseif angle then
-    self.sprite_angle = angle
+    self.continuous_sprite_angle = angle
   end
 
   self.quadrant = world.angle_to_quadrant(angle)
@@ -1575,17 +1576,17 @@ end
 
 -- update sprite angle (falling only)
 function player_char:_check_update_sprite_angle()
-  local angle = self.sprite_angle
+  local angle = self.continuous_sprite_angle
   assert(0 <= angle and angle < 1, "player_char:_update_sprite_angle: expecting modulo angle, got: "..angle)
 
   if self.motion_state == motion_states.falling and angle ~= 0 then
     if angle < 0.5 then
       -- just apply friction calculation as usual
-      self.sprite_angle = max(0, abs(angle) - pc_data.sprite_angle_airborne_reset_speed_frame)
+      self.continuous_sprite_angle = max(0, abs(angle) - pc_data.sprite_angle_airborne_reset_speed_frame)
     else
       -- problem is we must rotate counter-clockwise toward 1 which is actually 0 modulo 1
       --  so we increase angle, clamp to 1 and % 1 so if we reached 1, we now have 0 instead
-      self.sprite_angle = min(1, abs(angle) + pc_data.sprite_angle_airborne_reset_speed_frame) % 1
+      self.continuous_sprite_angle = min(1, abs(angle) + pc_data.sprite_angle_airborne_reset_speed_frame) % 1
     end
   end
 end
@@ -1593,8 +1594,11 @@ end
 -- render the player character sprite at its current position
 function player_char:render()
   local flip_x = self.orientation == horizontal_dirs.left
-  -- for now, no snapping, follow slope a la Freedom Planet / Sonic Mania
-  local sprite_angle = self.sprite_angle
+  -- snap render angle to a few set of values (45 degrees steps), classic style
+  --  (unlike Freedom Planet and Sonic Mania)
+  -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
+  --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
+  local sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
   self.anim_spr:render(self.position, flip_x, false, sprite_angle)
 end
 

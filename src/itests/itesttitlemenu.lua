@@ -4,6 +4,8 @@ local itest_manager, integration_test, time_trigger = integrationtest.itest_mana
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 
+--[=[
+
 itest_manager:register_itest('player select credits, confirm',
     {':titlemenu'}, function ()
 
@@ -46,3 +48,5 @@ itest_manager:register_itest('player select credits, confirm',
   end)
 
 end)
+
+--]=]

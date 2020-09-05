@@ -991,20 +991,20 @@ end
 -- ground_motion_result.position's qx should be floored for these steps
 --  (some functions assert when giving subpixel coordinates)
 function player_char:_next_ground_step(quadrant_horizontal_dir, ref_motion_result)
-  log("  _next_ground_step: "..joinstr(", ", quadrant_horizontal_dir, ref_motion_result), "trace")
+  log("  _next_ground_step: "..joinstr(", ", quadrant_horizontal_dir, ref_motion_result), "trace2")
 
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
   local next_position_candidate = ref_motion_result.position + step_vec
 
-  log("step_vec: "..step_vec, "trace")
-  log("next_position_candidate: "..next_position_candidate, "trace")
+  log("step_vec: "..step_vec, "trace2")
+  log("next_position_candidate: "..next_position_candidate, "trace2")
 
   -- check if next position is inside/above ground
   local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
 
-  log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace")
+  log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace2")
 
   -- signed distance is useful, but for quadrant vector ops we need actual vectors
   --  to get the right signs (e.g. on floor, signed distance > 0 <=> offset dy < 0 from ground,
@@ -1106,7 +1106,7 @@ end
 -- slope_angle is not used, so we aggressively remove it to gain 1 token
 local function ceiling_check_collider_distance_callback(signed_distance_to_closest_ceiling) --, slope_angle)
   if signed_distance_to_closest_ceiling < 0 then
-    -- head (or feet) inside ceiling
+    -- head (or body) inside ceiling
     return true
   else
     -- head far touching ceiling or has some gap from ceiling
@@ -1224,6 +1224,9 @@ function player_char:_update_platformer_motion_airborne()
 
   self.position = air_motion_result.position
 
+  -- FIX to top-left corner enter during jump lies here, or when is_blocked_by_wall is set...
+  -- since motion is not considered up, we are only blocked by wall...
+
   if air_motion_result.is_blocked_by_wall then
     self.velocity.x = 0
   end
@@ -1263,6 +1266,11 @@ function player_char:apply_air_drag()
   if vel.y < 0 and vel.y > - pc_data.air_drag_max_abs_velocity_y and
       abs(vel.x) >= pc_data.air_drag_min_velocity_x then
     vel.x = vel.x * pc_data.air_drag_factor_per_frame
+--#if busted
+    -- unlike acceleration, drag is multiplicative and can easily give numbers much more precise
+    --  than PICO-8, messing up with tests (in particular itests as they accumulate over frames)
+    vel.x = to_fixed_point(vel.x)
+--#endif
   end
 end
 
@@ -1310,9 +1318,9 @@ function player_char:_compute_air_motion_result()
   --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as grounded,
   --  following the ground as usual).
   self:_advance_in_air_along(motion_result, self.velocity, "x")
-  log("=> "..motion_result, "trace")
+  log("=> "..motion_result, "trace2")
   self:_advance_in_air_along(motion_result, self.velocity, "y")
-  log("=> "..motion_result, "trace")
+  log("=> "..motion_result, "trace2")
 
   return motion_result
 end
@@ -1321,7 +1329,7 @@ end
 -- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
 --  over velocity:get(coord) px, where coord is "x" or "y"
 function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
-  log("_advance_in_air_along: "..joinstr(", ", ref_motion_result, velocity, coord), "trace")
+  log("_advance_in_air_along: "..joinstr(", ", ref_motion_result, velocity, coord), "trace2")
 
   if velocity:get(coord) == 0 then return end
 
@@ -1352,7 +1360,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
   local pixel_distance_before_step = 0
   while pixel_distance_before_step < max_pixel_distance and not ref_motion_result:is_blocked_along(direction) do
     self:_next_air_step(direction, ref_motion_result)
-    log("  => "..ref_motion_result, "trace")
+    log("  => "..ref_motion_result, "trace2")
     pixel_distance_before_step = pixel_distance_before_step + 1
   end
 
@@ -1375,7 +1383,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
       if velocity:get(coord) > 0 then
         local extra_step_motion_result = ref_motion_result:copy()
         self:_next_air_step(direction, extra_step_motion_result)
-        log("  => "..ref_motion_result, "trace")
+        log("  => "..ref_motion_result, "trace2")
         if extra_step_motion_result:is_blocked_along(direction) then
           -- character has just reached a wall, plus a few subpixels
           -- unlike classic sonic, we decide to cut the subpixels and block the character
@@ -1406,14 +1414,14 @@ end
 --  it doesn't update the position and the corresponding flag is set
 -- air_motion_result.position.x/y should be floored for these steps
 function player_char:_next_air_step(direction, ref_motion_result)
-  log("  _next_air_step: "..joinstr(", ", direction, ref_motion_result), "trace")
+  log("  _next_air_step: "..joinstr(", ", direction, ref_motion_result), "trace2")
 
   local step_vec = dir_vectors[direction]
   local next_position_candidate = ref_motion_result.position + step_vec
 
-  log("direction: "..direction, "trace")
-  log("step_vec: "..step_vec, "trace")
-  log("next_position_candidate: "..next_position_candidate, "trace")
+  log("direction: "..direction, "trace2")
+  log("step_vec: "..step_vec, "trace2")
+  log("next_position_candidate: "..next_position_candidate, "trace2")
 
   -- we can only hit walls or the ground when stepping left, right or down
   -- (horizontal step of diagonal upward motion is OK)
@@ -1424,7 +1432,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     local query_info = self:_compute_ground_sensors_signed_distance(next_position_candidate)
     local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
 
-    log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace")
+    log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace2")
 
     -- Check if the character has hit a ground or a wall
     -- First, following SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29),
@@ -1452,10 +1460,10 @@ function player_char:_next_air_step(direction, ref_motion_result)
           -- if this step is blocked by landing, there is no extra motion,
           --  but character will enter grounded state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
-          log("is landing, setting slope angle to "..next_slope_angle, "trace")
+          log("is landing, setting slope angle to "..next_slope_angle, "trace2")
         else
           ref_motion_result.is_blocked_by_wall = true
-          log("is blocked by wall", "trace")
+          log("is blocked by wall", "trace2")
         end
       elseif signed_distance_to_closest_ground > 0 then
         -- in the air: the most common case, in general requires nothing to do
@@ -1496,7 +1504,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then
         ref_motion_result.is_blocked_by_ceiling = true
-        log("is blocked by ceiling", "trace")
+        log("is blocked by ceiling", "trace2")
       else
         -- we would be blocked by ceiling on the next position, but since we can't even go there,
         --  we are actually blocked by the wall preventing the horizontal move
@@ -1505,7 +1513,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
         -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
         -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
         ref_motion_result.is_blocked_by_wall = true
-        log("is blocked by ceiling as wall", "trace")
+        log("is blocked by ceiling as wall", "trace2")
       end
     end
   end

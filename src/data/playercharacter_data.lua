@@ -47,7 +47,10 @@ local playercharacter_data = {
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
   -- air drag factor applied every frame, at 60 FPS
-  air_drag_factor_per_frame = 0.96875,
+  -- note that combined with air_accel_x_frame2, we can deduce the actual
+  --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
+  --  = 1.453125 px/frames
+  air_drag_factor_per_frame = 0.96875,  -- 62/64
 
   -- min absolute velocity x for which air drag is applied
   air_drag_min_velocity_x = 0.25,  -- 16/64

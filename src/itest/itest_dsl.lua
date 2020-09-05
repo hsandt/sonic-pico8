@@ -741,6 +741,8 @@ function itest_dsl_parser:_define_final_assertion()
       -- unfortunately, the error accumulates over time, and position integrates from speed from accel,
       --  so depending on the simulation time and the gameplay value type, the error threshold will vary
       -- to be safe, we use 1/64 (0.015) although 1/256 is often enough)
+      -- with the new to_fixed_point() function however, try to use it when busted may differ from PICO-8
+      --  so ultimately we don't even need almost_eq and just use eq_with_message
       local value_success, value_eq_message = almost_eq_with_message(exp.expected_value, gp_value, 1/64)
 --#endif
       if not value_success then

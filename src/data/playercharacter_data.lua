@@ -73,6 +73,7 @@ local playercharacter_data = {
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
+  -- from this and gravity we can deduce the max jump height: 49.921875
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)

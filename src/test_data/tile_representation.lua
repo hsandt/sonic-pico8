@@ -8,11 +8,12 @@ full_tile_id = 32
 half_tile_id = 80
 flat_low_tile_id = 96
 bottom_right_quarter_tile_id = 64
-asc_slope_45_id = 113
-desc_slope_45_id = 116
 asc_slope_22_id = 112
 asc_slope_22_upper_level_id = 117
+asc_slope_45_id = 113
+desc_slope_45_id = 116
 loop_topleft = 12
+loop_toptopleft = 13
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap
@@ -23,8 +24,10 @@ tile_symbol_to_ids = {
   ['=']  = half_tile_id,  -- half tile (4px high)
   ['_']  = flat_low_tile_id,  -- flat low tile (2px high)
   ['r']  = bottom_right_quarter_tile_id,  -- bottom-right quarter tile (4px high)
+  ['<']  = asc_slope_22_id,  -- ascending slope 22.5 (legacy)
+  ['y']  = asc_slope_22_upper_level_id,  -- ascending slope upper level 22.5 (actually 1:2)
   ['/']  = asc_slope_45_id,  -- ascending slope 45
   ['\\'] = desc_slope_45_id,  -- descending slope 45
-  ['<']  = asc_slope_22_id,  -- ascending slope 22.5
-  ['y']  = asc_slope_22_upper_level_id,  -- ascending slope upper level 22.5
+  ['Y'] = loop_topleft,  -- loop top-left corner
+  ['Z'] = loop_toptopleft,  -- loop top-top-left corner (between flat top and top-left)
 }

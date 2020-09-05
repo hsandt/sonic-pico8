@@ -99,9 +99,9 @@ sprite_flags = {
    96  @ (0, 6) FLAT LOW TILE (2px high) _
    64  @ (0, 4) BOTTOM-RIGHT QUARTER TILE (4px high) r
    112 @ (0, 7) ASCENDING 22.5 < slope_angle: 0.0625 ~= atan2(8, -4) (actually 0.0738) but kept for historical utest/itest reasons
+   117 @ (5, 7) ASCENDING 1-2 UPPER-LEVEL SLOPE y (8, 4) higher 1:2 ascending slope (completes 58 from loop)
    113 @ (1, 7) ASCENDING 45 /   slope_angle: 0.125 = atan2(1, -1)
    116 @ (4, 7) DESCENDING 45 \  slope_angle: 1-0.125 = atan2(1, 1)
-   117 @ (5, 7) higher 2:1 ascending slope (completes 58 from loop)
    12  @ (12, 0) LOOP TOP-LEFT: reusing mask of loop top-left with itself
  --]]
 local raw_tiles_data = serialization.parse_expression(

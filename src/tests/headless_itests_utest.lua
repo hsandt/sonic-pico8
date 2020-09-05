@@ -27,6 +27,7 @@ logging.logger.active_categories = {
   -- ['ui'] = nil,
   ['frame'] = true,
   ['trace'] = true,
+  ['trace2'] = true,
 
   -- game
   -- ['...'] = true,

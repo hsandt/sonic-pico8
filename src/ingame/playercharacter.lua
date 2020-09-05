@@ -1403,6 +1403,7 @@ function player_char:_advance_in_air_along(ref_motion_result, velocity, coord)
         -- note that this calculation equivalent to adding to ref_motion_result.position:get(coord)
         --  sign(velocity:get(coord)) * (max_distance - distance_to_floored_coord)
         ref_motion_result.position:set(coord, initial_position_coord + velocity:get(coord))
+        log("  => (after adding remaining subpx) "..ref_motion_result, "trace2")
       end
     end
   end
@@ -1440,7 +1441,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     -- This must be combined with a step up (snap to ground top, but directly from the air) to really work
     if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y) then
       -- check if we are touching or entering ground
-      if signed_distance_to_closest_ground <= 0 then
+      if signed_distance_to_closest_ground < 0 then
         -- Just like during ground step, check the step height: if too high, we hit a wall and stay airborne
         --  else, we land
         -- This step up check is really important, even for low slopes:
@@ -1460,12 +1461,12 @@ function player_char:_next_air_step(direction, ref_motion_result)
           -- if this step is blocked by landing, there is no extra motion,
           --  but character will enter grounded state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, next_slope_angle
-          log("is landing, setting slope angle to "..next_slope_angle, "trace2")
+          log("is landing at adjusted y: "..next_position_candidate.y..", setting slope angle to "..next_slope_angle, "trace2")
         else
           ref_motion_result.is_blocked_by_wall = true
           log("is blocked by wall", "trace2")
         end
-      elseif signed_distance_to_closest_ground > 0 then
+      elseif signed_distance_to_closest_ground >= 0 then
         -- in the air: the most common case, in general requires nothing to do
         -- in rare cases, the character has landed on a previous step, and we must cancel that now
         ref_motion_result.is_landing, ref_motion_result.slope_angle = false--, nil
@@ -1526,6 +1527,7 @@ function player_char:_next_air_step(direction, ref_motion_result)
     --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
     --  when ref_motion_result:is_blocked_along() (and adapt y)
     ref_motion_result.position = next_position_candidate
+    log("not blocked, setting motion result position to next candidate: "..next_position_candidate, "trace2")
   end
 end
 

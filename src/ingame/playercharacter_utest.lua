@@ -5303,7 +5303,9 @@ describe('player_char', function ()
             )
           end)
 
-          it('direction left exactly onto ground should step left, and flag is_landing with slop_angle 0', function ()
+          it('direction left exactly onto ground should step left, but flag NOT is_landing with slop_angle nil', function ()
+            -- we wait next frame to actually land, else character will stay 1 px above ground
+
             pc.velocity.x = -3
             pc.velocity.y = 0
 
@@ -5321,14 +5323,16 @@ describe('player_char', function ()
                 vector(10, 0 - pc_data.center_height_standing),
                 false,
                 false,
-                true,
-                0
+                false,
+                nil
               ),
               motion_result
             )
           end)
 
-          it('direction right exactly onto ground should step right, and flag is_landing with slop_angle 0', function ()
+          it('direction right exactly onto ground should step right, and flag NOT is_landing with slop_angle nil', function ()
+            -- we wait next frame to actually land, else character will stay 1 px above ground
+
             pc.velocity.x = 3
             pc.velocity.y = 0
 
@@ -5346,8 +5350,8 @@ describe('player_char', function ()
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
-                true,
-                0
+                false,
+                nil
               ),
               motion_result
             )
@@ -5611,7 +5615,13 @@ describe('player_char', function ()
             )
           end)
 
-          it('(after landing in previous step) direction right onto new ground should move and update slope_angle', function ()
+          it('(after landing in previous step) direction right onto new ground should move, set flag to NOT landing and update slope_angle to nil', function ()
+            -- we wait next frame to actually land, else character will stay 1 px above ground
+            -- this test specifically, however, is to check that is_landing: true and slope_angle: 0.5
+            --  are reset when arrive just above ground, as it's not considered landing
+            -- (if you change signed_distance_to_closest_ground >= 0 to ... > 0)
+            --  in _next_air_step it won't pass
+
             pc.velocity.x = 1
             pc.velocity.y = 0
 
@@ -5629,8 +5639,8 @@ describe('player_char', function ()
                 vector(-2, 0 - pc_data.center_height_standing),
                 false,
                 false,
-                true,
-                0
+                false,
+                nil
               ),
               motion_result
             )

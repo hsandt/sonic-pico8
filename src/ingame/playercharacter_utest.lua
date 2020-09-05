@@ -1594,6 +1594,29 @@ describe('player_char', function ()
 
         end)
 
+        -- this test case was added because we noticed that all slopes behaved like full tiles in PICO-8
+        -- so we created the half-tile itest which demonstrated the issue, and even in busted
+        --  where character fell 1 px above ground instead of 4 px, but still
+        -- fixing this should solve the itest for busted, even if not necessarily for PICO-8
+
+        describe('with half-tile', function ()
+
+          before_each(function ()
+            -- .
+            -- =
+            mock_mset(0, 1, half_tile_id)
+          end)
+
+          it('should return 1, 0 when 1px above the half-tile', function ()
+            assert.are_same(ground_query_info(1, 0), pc:_compute_signed_distance_to_closest_ground(vector(4, 11)))
+          end)
+
+          it('should return 0, 0 when just on top of half-tile', function ()
+            assert.are_same(ground_query_info(0, 0), pc:_compute_signed_distance_to_closest_ground(vector(4, 12)))
+          end)
+
+        end)
+
         describe('with quarter-tile', function ()
 
           before_each(function ()

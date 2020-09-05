@@ -80,7 +80,10 @@ end
 function tile_collision_data.slope_angle_to_interiors(slope_angle)
   assert(slope_angle % 1 == slope_angle)
   -- in edge cases (square angles), interior direction is arbitrary
-  local interior_v = (slope_angle < 0.25 or slope_angle >= 0.75) and vertical_dirs.down or vertical_dirs.up
+  -- due to https://github.com/mathiasbynens/luamin/issues/50 we need intermediate variable
+  --  to avoid wrong bracket stripping on minification
+  local is_slope_angle_down = slope_angle < 0.25 or slope_angle >= 0.75
+  local interior_v = is_slope_angle_down and vertical_dirs.down or vertical_dirs.up
   local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
   return interior_v, interior_h
 end

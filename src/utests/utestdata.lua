@@ -32,6 +32,11 @@ check('tile_collision_data.read_height_array on sprite_id_location(1, 7) return 
   assert_log(utest_name, are_same_with_message({1, 2, 3, 4, 5, 6, 7, 8}, array))
 end)
 
+check('tile_collision_data.read_height_array on sprite_id_location(0, 5) return an array with tile mask data: half-tile', function (utest_name)
+  local array = tile_collision_data.read_height_array(sprite_id_location(0, 5), vertical_dirs.down)
+  assert_log(utest_name, are_same_with_message({4, 4, 4, 4, 4, 4, 4, 4}, array))
+end)
+
 check('sonic_sprite_data_table preserved key "idle"', function (utest_name)
   assert_log(utest_name, playercharacter_data.sonic_sprite_data_table["idle"] ~= nil, 'Expected playercharacter_data.sonic_sprite_data_table["idle"] to not be nil')
 end)

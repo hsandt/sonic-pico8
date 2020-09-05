@@ -201,6 +201,7 @@ command_arg_types = {
 gp_value_types = enum {
   "pc_bottom_pos",   -- bottom position of player character
   "pc_velocity",     -- velocity of player character
+  "pc_velocity_y",   -- y component of velocity of player character
   "pc_ground_spd",   -- ground speed of player character
   "pc_motion_state", -- motion state of player character
   "pc_slope",        -- current slope on which player character is grounded
@@ -211,6 +212,7 @@ gp_value_types = enum {
 local gp_value_data_t = {
   [gp_value_types["pc_bottom_pos"]]   = gameplay_value_data("player character bottom position", parsable_types["vector"]),
   [gp_value_types["pc_velocity"]]     = gameplay_value_data("player character velocity",        parsable_types["vector"]),
+  [gp_value_types["pc_velocity_y"]]   = gameplay_value_data("player character velocity y",      parsable_types["number"]),
   [gp_value_types["pc_ground_spd"]]   = gameplay_value_data("player character ground speed",    parsable_types["number"]),
   [gp_value_types["pc_motion_state"]] = gameplay_value_data("player character motion state",    parsable_types["motion_state"]),
   [gp_value_types["pc_slope"]]        = gameplay_value_data("player character slope",           parsable_types["number"]),
@@ -372,6 +374,11 @@ function itest_dsl._eval_pc_velocity()
   return current_stage_state.player_char.velocity
 end
 
+function itest_dsl._eval_pc_velocity_y()
+  local current_stage_state = get_current_state_as_stage()
+  return current_stage_state.player_char.velocity.y
+end
+
 function itest_dsl._eval_pc_ground_spd()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.ground_speed
@@ -392,7 +399,7 @@ evaluators = generate_function_table(itest_dsl, gp_value_types, "_eval_")
 itest_dsl.evaluators = evaluators
 
 
--- gameplay value setters (only when setting value directly makes sense)
+-- gameplay value setters (only when setting value directly makes sense and is used by some itests)
 
 function itest_dsl.set_pc_velocity(value)
   local current_stage_state = get_current_state_as_stage()

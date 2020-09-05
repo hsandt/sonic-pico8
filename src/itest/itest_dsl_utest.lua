@@ -10,8 +10,8 @@ local itest_dsl = require("itest/itest_dsl")
 local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
      "gameplay_value_data", "generate_function_table")
 -- get_members is convenient to hide underscores with proxy refs
-local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
-     "_eval_pc_bottom_pos", "_eval_pc_velocity", "_eval_pc_ground_spd", "_eval_pc_motion_state", "_eval_pc_slope")
+local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_velocity_y, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
+     "_eval_pc_bottom_pos", "_eval_pc_velocity", "_eval_pc_velocity_y", "_eval_pc_ground_spd", "_eval_pc_motion_state", "_eval_pc_slope")
 local command,   expectation = get_members(itest_dsl,
      "command", "expectation")
 local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
@@ -347,6 +347,15 @@ describe('itest_dsl', function ()
       it('should return the velocity of the current player character', function ()
         state.player_char.velocity = vector(1, -4)
         assert.are_same(vector(1, -4), eval_pc_velocity())
+      end)
+
+    end)
+
+    describe('eval_pc_velocity_y', function ()
+
+      it('should return the velocity y of the current player character', function ()
+        state.player_char.velocity = vector(1, -4)
+        assert.are_equal(-4, eval_pc_velocity_y())
       end)
 
     end)
@@ -756,7 +765,7 @@ expect
 
     describe('parse_action_sequence', function ()
 
-      it('#solo should return a sequence of commands read in lines, starting at next_line_index', function ()
+      it('should return a sequence of commands read in lines, starting at next_line_index', function ()
         local dsli_lines = {
           "???",
           "???",

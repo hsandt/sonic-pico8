@@ -74,6 +74,10 @@
 					"cmd": ["./build_game.sh assert"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./build_game.sh profiler"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_game.sh release"]
 				}
@@ -131,6 +135,10 @@
 				{
 					"name": "assert",
 					"cmd": ["./build_game.sh assert && (./pico-boots/scripts/reload.sh || ./run_game.sh assert)"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_game.sh profiler && (./pico-boots/scripts/reload.sh || ./run_game.sh profiler)"]
 				},
 				{
 					"name": "release",
@@ -191,6 +199,10 @@
 					"cmd": ["./run_game.sh assert"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./run_game.sh profiler"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./run_game.sh release"]
 				},
@@ -241,36 +253,16 @@
 					"cmd": ["./install_cartridge_linux.sh assert"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./install_cartridge_linux.sh profiler"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./install_cartridge_linux.sh release"]
 				},
 				{
-					"name": "debug (png)",
-					"cmd": ["./install_cartridge_linux.sh debug png"]
-				},
-				{
-					"name": "debug (png)-ultrafast",
-					"cmd": ["./install_cartridge_linux.sh debug-ultrafast png"]
-				},
-				{
 					"name": "cheat (png)",
 					"cmd": ["./install_cartridge_linux.sh cheat png"]
-				},
-				{
-					"name": "ultrafast (png)",
-					"cmd": ["./install_cartridge_linux.sh ultrafast png"]
-				},
-				{
-					"name": "cheat (png)-ultrafast",
-					"cmd": ["./install_cartridge_linux.sh cheat-ultrafast png"]
-				},
-				{
-					"name": "sandbox (png)",
-					"cmd": ["./install_cartridge_linux.sh sandbox png"]
-				},
-				{
-					"name": "assert (png)",
-					"cmd": ["./install_cartridge_linux.sh assert png"]
 				},
 				{
 					"name": "release (png)",

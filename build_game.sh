@@ -85,6 +85,8 @@ elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
   symbols='assert'
+elif [[ $config == 'profiler' ]]; then
+  symbols='profiler'
 fi
 
 # Build from main

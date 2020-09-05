@@ -102,7 +102,30 @@ sprite_flags = {
    117 @ (5, 7) ASCENDING 1-2 UPPER-LEVEL SLOPE y (8, 4) higher 1:2 ascending slope (completes 58 from loop)
    113 @ (1, 7) ASCENDING 45 /   slope_angle: 0.125 = atan2(1, -1)
    116 @ (4, 7) DESCENDING 45 \  slope_angle: 1-0.125 = atan2(1, 1)
-   12  @ (12, 0) LOOP TOP-LEFT: reusing mask of loop top-left with itself
+   33  @ (1, 2) LOW ASC SLOPE (no DSL representation)
+   37  @ (5, 2) LOW DESC SLOPE (no DSL representation)
+   38  @ (6, 2) 3/4 FULL FLAT GROUND (no DSL representation)
+   12  @ (12, 0) LOOP TOP-LEFT (no DSL representation)
+   13  @ (13, 0) LOOP TOP-TOP-LEFT (no DSL representation)
+   14  @ (14, 0) LOOP TOP-TOP-RIGHT (no DSL representation)
+   15  @ (15, 0) LOOP TOP-RIGHT (no DSL representation)
+   31  @ (15, 1) LOOP TOP-RIGHT-RIGHT (no DSL representation)
+   47  @ (15, 2) LOOP BOTTOM-RIGHT-RIGHT (no DSL representation)
+   63  @ (15, 3) LOOP BOTTOM-RIGHT (no DSL representation)
+   62  @ (14, 2) LOOP BOTTOM-BOTTOM-RIGHT (no DSL representation)
+   61  @ (13, 1) LOOP BOTTOM-BOTTOM-LEFT (no DSL representation)
+   60  @ (12, 0) LOOP BOTTOM-LEFT (no DSL representation)
+   44  @ (12, 0) LOOP BOTTOM-LEFT-LEFT (no DSL representation)
+   28  @ (12, 0) LOOP TOP-LEFT-LEFT (no DSL representation)
+
+   103 @ (7, 4) MID SLOPE ASC 1
+   104 @ (8, 4) MID SLOPE ASC 2
+   105 @ (9, 4) MID SLOPE ASC 3
+   106 @ (10, 4) MID SLOPE ASC 4
+   107 @ (11, 4) MID SLOPE DESC 1
+   108 @ (12, 4) MID SLOPE DESC 2
+   109 @ (13, 4) MID SLOPE DESC 3
+   110 @ (14, 4) MID SLOPE DESC 4
  --]]
 local raw_tiles_data = serialization.parse_expression(
    --[tile_id] = tile_data(
@@ -147,18 +170,18 @@ local raw_tiles_data = serialization.parse_expression(
     [125]= {{0, 2}, {8, 0}},
     [126]= {{0, 2}, {8, 0}},
 
-    [8]= {{12, 0}, {-4, 4}},
-    [9]= {{13, 0}, {-8, 4}},
+    [8] = {{12, 0}, {-4,  4}},
+    [9] = {{13, 0}, {-8,  4}},
     [10]= {{14, 0}, {-8, -4}},
     [11]= {{15, 0}, {-4, -4}},
     [27]= {{15, 1}, {-4, -8}},
-    [43]= {{15, 2}, {4, -8}},
-    [59]= {{15, 3}, {4, -4}},
-    [58]= {{14, 3}, {8, -4}},
-    [57]= {{13, 3}, {8, 4}},
-    [56]= {{12, 3}, {4, 4}},
-    [40]= {{12, 2}, {4, 8}},
-    [24]= {{12, 1}, {-4, 8}},
+    [43]= {{15, 2}, { 4, -8}},
+    [59]= {{15, 3}, { 4, -4}},
+    [58]= {{14, 3}, { 8, -4}},
+    [57]= {{13, 3}, { 8,  4}},
+    [56]= {{12, 3}, { 4,  4}},
+    [40]= {{12, 2}, { 4,  8}},
+    [24]= {{12, 1}, {-4,  8}},
 
     [72]= {{12, 4}, {8, 0}},
     [73]= {{13, 4}, {8, 0}},
@@ -173,7 +196,32 @@ local raw_tiles_data = serialization.parse_expression(
     [113]= {{1, 7}, {8, -8}},
     [116]= {{4, 7}, {8, 8}},
     [117]= {{5, 7}, {8, -4}},
-    [12]= {{12, 0}, {-4, 4}}
+
+    [33] = {{1, 2}, {8, -2}},
+    [37] = {{5, 2}, {8, 2}},
+    [38] = {{6, 2}, {8, 0}},
+
+    [12] = {{12, 0}, {-4,  4}},
+    [13] = {{13, 0}, {-8,  4}},
+    [14] = {{14, 0}, {-8, -4}},
+    [15] = {{15, 0}, {-4, -4}},
+    [31] = {{15, 1}, {-4, -8}},
+    [47] = {{15, 2}, { 4, -8}},
+    [63] = {{15, 3}, { 4, -4}},
+    [62] = {{14, 2}, { 8, -4}},
+    [61] = {{13, 1}, { 8,  4}},
+    [60] = {{12, 0}, { 4,  4}},
+    [44] = {{12, 0}, { 4,  8}},
+    [28] = {{12, 0}, {-4,  8}},
+
+    [87] = {{7, 4},  {8, -2}},
+    [88] = {{8, 4},  {8, -1}},
+    [89] = {{9, 4},  {8, -2}},
+    [90] = {{10, 4}, {8, -2}},
+    [91] = {{11, 4}, {8, 2}},
+    [92] = {{12, 4}, {8, 2}},
+    [93] = {{13, 4}, {8, 1}},
+    [94] = {{14, 4}, {8, 2}},
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
     -- this is only for [112], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of

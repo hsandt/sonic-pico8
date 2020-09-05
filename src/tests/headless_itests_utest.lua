@@ -11,6 +11,7 @@ app.initial_gamestate = ':titlemenu'
 
 logging.logger:register_stream(logging.console_log_stream)
 logging.logger:register_stream(logging.file_log_stream)
+-- with busted, logs are always in log/
 logging.file_log_stream.file_prefix = "picosonic_headless_itests"
 
 -- clear log file on new itest session
@@ -24,7 +25,8 @@ logging.logger.active_categories = {
   ['itest'] = true,
   -- ['log'] = nil,
   -- ['ui'] = nil,
-  -- ['frame'] = nil,
+  ['frame'] = true,
+  ['trace'] = true,
 
   -- game
   -- ['...'] = true,

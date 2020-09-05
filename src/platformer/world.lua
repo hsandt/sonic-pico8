@@ -196,6 +196,13 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
 
     end
 
+  elseif tile_location.i < 0 then
+    -- prevent player from going to the left of the level with an invisible wall
+    --  made of full tiles
+    -- we could just use slope_angle 0 but with match the quadrant to be a bit more correct
+    --  (imagine that there is a loop bottom-left slope at the left of the level, at least
+    --  the player could run up the left edge of the screen)
+    return tile_size, world.quadrant_to_right_angle(quadrant)
   end
 
   return 0--, nil

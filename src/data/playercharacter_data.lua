@@ -113,14 +113,14 @@ local playercharacter_data = {
 
   -- debug motion
 
-  -- motion speed in debug mode, in px/s
-  debug_move_max_speed = 60.,
+  -- motion speed in debug mode (px/frame)
+  debug_move_max_speed = 6,
 
-  -- acceleration speed in debug mode, in px/s^2 (480. to reach max speed of 60. in 0.5s)
-  debug_move_accel = 480.,
+  -- acceleration speed in debug mode (px/frame^2)
+  debug_move_accel = 0.1,
 
-  -- deceleration speed in debug mode, in px/s^2 (480. to stop from a speed of 60. in 0.5s)
-  debug_move_decel = 480.,
+  -- deceleration speed in debug mode (px/frame^2)
+  debug_move_decel = 1,
 
 
   -- sprite

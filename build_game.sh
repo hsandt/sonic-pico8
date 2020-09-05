@@ -76,7 +76,7 @@ if [[ $config == 'debug' ]]; then
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,deprecated,log,cheat,sandbox,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  symbols='assert,deprecated,cheat'
+  symbols='assert,cheat,mouse,tuner'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then

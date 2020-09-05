@@ -1539,7 +1539,7 @@ function player_char:_update_debug()
   -- it's much more complicated to access app from here (e.g. via flow.curr_state)
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS
   -- otherwise we'd have to change utests to init app+flow each time
-  self.position = self.position + self.debug_velocity * delta_time60
+  self.position = self.position + self.debug_velocity
 end
 
 function player_char:_update_velocity_debug()
@@ -1555,12 +1555,12 @@ function player_char:_update_velocity_component_debug(coord)
   if self.move_intention:get(coord) ~= 0 then
     -- some input => accelerate (direction may still change or be opposed)
     local clamped_move_intention_comp = mid(-1, self.move_intention:get(coord), 1)
-    self.debug_velocity:set(coord, self.debug_velocity:get(coord) + self.debug_move_accel * delta_time60 * clamped_move_intention_comp)
+    self.debug_velocity:set(coord, self.debug_velocity:get(coord) + self.debug_move_accel * clamped_move_intention_comp)
     self.debug_velocity:set(coord, mid(-self.debug_move_max_speed, self.debug_velocity:get(coord), self.debug_move_max_speed))
   else
     -- no input => decelerate
     if self.debug_velocity:get(coord) ~= 0 then
-      self.debug_velocity:set(coord, sgn(self.debug_velocity:get(coord)) * max(abs(self.debug_velocity:get(coord)) - self.debug_move_decel * delta_time60, 0))
+      self.debug_velocity:set(coord, sgn(self.debug_velocity:get(coord)) * max(abs(self.debug_velocity:get(coord)) - self.debug_move_decel, 0))
     end
   end
 end

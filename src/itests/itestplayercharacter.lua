@@ -37,6 +37,25 @@ expect pc_bottom_pos 0x0038.b7f1 8
 -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
 -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
 
+--]=]
+
+-- currently fails on busted with 4, 11 and PICO-8 with 4, 8!
+itest_dsl_parser.register(
+  '#solo platformer stand half tile', [[
+@stage #
+.
+=
+
+warp 4 8
+wait 10
+
+expect pc_bottom_pos 4 12
+expect pc_motion_state grounded
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+--[=[
 
 -- bugfix history:
 -- . test was wrong, initialize in setup, not at time trigger 0
@@ -665,7 +684,7 @@ expect pc_velocity 0 0
 --  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
 
 itest_dsl_parser.register(
-  '#solo platformer air ceiling corner block', [[
+  'platformer air ceiling corner block', [[
 @stage #
 YZ.
 ...

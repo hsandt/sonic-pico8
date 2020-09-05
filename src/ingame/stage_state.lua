@@ -127,8 +127,9 @@ end
 -- update camera position based on player character position
 function stage_state:update_camera()
   -- stiff motion
-  self.camera_pos.x = self.player_char.position.x
-  self.camera_pos.y = self.player_char.position.y
+  -- clamp on level edges (we are handling the center so need offset by screen_width/height)
+  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.width * tile_size - screen_width / 2)
+  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.height * tile_size - screen_height / 2)
 end
 
 -- set the camera offset for stage elements

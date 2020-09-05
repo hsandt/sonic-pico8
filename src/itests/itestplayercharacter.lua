@@ -507,8 +507,6 @@ expect pc_ground_spd 0
 expect pc_velocity 1.359375 -0.078125
 ]])
 
---]=]
-
 itest_dsl_parser.register(
   'platformer air right wall block', [[
 @stage #
@@ -657,6 +655,91 @@ expect pc_velocity 0 0
 -- 5      (4, 32 - 12 - 22/64)  (0, -2 - 59/64)  air_spin
 -- 6      (4, 32 - 15 - 10/64)  (0, -2 - 52/64)  air_spin
 -- 7      (4, 32 - 16)          (0, 0)           air_spin  hit ceiling
+
+--]=]
+
+-- TODO: advance this test until actual collision with ceiling
+-- around frame 19, so we can prove that character is going through ceiling
+--  and this must be fixed
+-- for some reason, busted and pico-8 results also slightly differ
+--  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
+
+itest_dsl_parser.register(
+  '#solo platformer air ceiling corner block', [[
+@stage #
+YZ.
+...
+...
+...
+...
+...
+...
+###
+
+warp 20 56
+jump
+move left
+wait 17
+
+expect pc_bottom_pos 14.17681884765625 17.125
+expect pc_motion_state air_spin
+expect pc_ground_spd 0
+expect pc_velocity -0x000.9aba -1.609375
+]])
+
+-- itest
+
+-- [frame] frame #20
+-- [trace] self.position: vector(12.2065, 8.9531)
+-- [trace] self.velocity: vector(-0.6816, -1.2812)
+-- [frame] frame #21
+-- [trace] self.position: vector(11.5008, 7.7812)
+-- [trace] self.velocity: vector(-0.7057, -1.1719)
+-- [frame] frame #22
+-- [trace] self.position: vector(11, 6.7188)
+-- [trace] self.velocity: vector(0, -1.0625)
+
+
+-- vs
+
+-- [frame] frame #20
+-- [trace] self.position: vector(12.207809448242, 8.953125)
+-- [trace] self.velocity: vector(-0.68148803710938, -1.28125)
+-- [frame] frame #21
+-- [trace] self.position: vector(11.502212524414, 8)
+-- [trace] self.velocity: vector(-0.70559692382812, 0)
+-- [frame] frame #22
+-- [trace] self.position: vector(11, 8.109375)
+-- [trace] self.velocity: vector(0, 0.109375)
+
+-- calculation notes
+
+-- wait ceiling hit (frame 31) and stop
+-- at frame 1: bpos (19.9765625, 56), velocity (-0.0234375, 0), grounded (apply ground accel, waits 1 frame before confirming jump)
+-- at frame 2: bpos (19.90625, 56 - 3.25), velocity (-0.0703125, -3.25), air_spin (apply air accel, do not apply gravity on first frame of jump since we were grounded)
+-- at frame 3: bpos (19.7890625, 56 - 6.390625), velocity (-0.1171875, -3.140625), air_spin (start applying gravity)
+-- ...
+-- unfortunately vx is affected by air drag which is hard to sum
+-- but we really care about y and vy in this test, moving in x is only to reproduce the "jump through ceiling" when moving diagonally" bug
+-- so we cheat and copy-paste retroactively the itest result passed values into expectations there
+-- which gives expected velocity = 0.604400634765625 - -0x000.9aba
+-- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 56 - 3.25 - 3.25*n + 0.109375*n*(n+1)/2), velocity (-0.0703125-0.046875*n REDUCED BY DRAG, -3.25+0.109375*n), air_spin
+
+-- we approach ceiling when 56 - 3.25*n + 0.109375*n*(n+1)/2 = 16 <=> 40 + (-3.25+0.109375/2)*n + 0.109375/2*n*n = 0
+-- a = 0.0546875
+-- b = -3.1953125
+-- c = 40
+-- DELTA = b*b - 4ac = 1.46002197265625 (should be small since we aim for position close to ceiling which is also close to apogee so both solutions are close to it)
+-- just to check:
+-- -b/2a = 29.21428571428571428571 (apogee, at 30 frames as we know)
+-- We are interested in the first time we reach the ceiling of course, so:
+-- s1 = (-b - sqrt(DELTA)) / (2*a) = 18.16684626582767176288
+-- so let's explore around 18
+
+-- at frame 17: bpos (4, 17.125), velocity (-0.7734375, -1.609375), air_spin -> before apogee
+-- at frame 18: bpos (4, 15.625), velocity (0, -1.5), air_spin -> before apogee
+-- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
+-- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
 
 --[=[
 

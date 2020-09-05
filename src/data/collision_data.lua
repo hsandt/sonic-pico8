@@ -4,7 +4,11 @@ local raw_tile_collision_data = require("data/raw_tile_collision_data")
 local tile_collision_data = require("data/tile_collision_data")
 
 sprite_flags = {
-  collision = 0
+  collision = 0,
+  loop_entrance = 1,          -- loop bottom-right part
+  loop_exit = 2,              -- loop bottom-left part
+  loop_exit_trigger = 3,      -- loop top-top-right part (enables exit)
+  loop_entrance_trigger = 4,  -- loop top-top-left part (enables entrance)
 }
 
 -- table mapping visual tile sprite id to tile collision data (collision mask sprite id location + slope)
@@ -88,6 +92,9 @@ sprite_flags = {
   73 @ (9, 4)
   74 @ (10, 4)
   75 @ (11, 4)
+  # loop sides
+  6  @ (6, 0) => (7, 0)
+  22 @ (6, 1) => (7, 1)
 
   # proto (black and white tiles being their own collision masks)
   # must match tile_data.lua
@@ -117,6 +124,8 @@ sprite_flags = {
    60  @ (12, 0) LOOP BOTTOM-LEFT (no DSL representation)
    44  @ (12, 0) LOOP BOTTOM-LEFT-LEFT (no DSL representation)
    28  @ (12, 0) LOOP TOP-LEFT-LEFT (no DSL representation)
+   7   @ (7, 0)
+   23  @ (7, 1)
 
    103 @ (7, 4) MID SLOPE ASC 1
    104 @ (8, 4) MID SLOPE ASC 2
@@ -188,6 +197,9 @@ local raw_tiles_data = serialization.parse_expression(
     [74]= {{14, 4}, {8, 0}},
     [75]= {{15, 4}, {8, 0}},
 
+    [6]  = {{7, 0}, {0, -8}},
+    [22] = {{7, 1}, {0,  8}},
+
     [32] = {{0, 2}, {8, 0}},
     [80] = {{0, 5}, {8, 0}},
     [96] = {{0, 6}, {8, 0}},
@@ -222,6 +234,9 @@ local raw_tiles_data = serialization.parse_expression(
     [92] = {{12, 5}, {8, 2}},
     [93] = {{13, 5}, {8, 1}},
     [94] = {{14, 5}, {8, 2}},
+
+    [7]  = {{7, 0}, {0, -8}},
+    [23] = {{7, 1}, {0,  8}},
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
     -- this is only for [112], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of

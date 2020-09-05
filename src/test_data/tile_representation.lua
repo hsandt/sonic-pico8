@@ -14,6 +14,10 @@ asc_slope_45_id = 113
 desc_slope_45_id = 116
 loop_topleft = 12
 loop_toptopleft = 13
+-- below have no representation as not used in DSL itests
+-- but useful for utests which directly mset with ID constants
+loop_bottomleft = 56
+loop_bottomright = 59
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap

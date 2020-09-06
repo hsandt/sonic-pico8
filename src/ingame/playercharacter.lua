@@ -4,6 +4,7 @@ local _logging = require("engine/debug/logging")
 local input = require("engine/input/input")
 local world = require("platformer/world")
 local animated_sprite = require("engine/render/animated_sprite")
+local collision_data = require("data/collision_data")
 local pc_data = require("data/playercharacter_data")
 local motion = require("platformer/motion")
 
@@ -222,6 +223,23 @@ end
 function player_char:set_ground_tile_location(tile_loc)
   if self.ground_tile_location ~= tile_loc then
     self.ground_tile_location = tile_loc
+
+    -- retrive tile at location
+    local tile_id = mget(tile_loc.i, tile_loc.j)
+    -- get the tile collision mask
+    local tcd = collision_data.get_tile_collision_data(tile_id)
+    assert(tcd, "player_char:set_ground_tile_location: tile "..tile_id.." is registered as ground tile but it has no collision data")
+
+    if tcd then
+      local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
+      -- when touching loop entrance trigger, enable entrance (and disable exit) layer
+      --  and reversely
+      if fget(mask_tile_id, sprite_flags.loop_entrance_trigger) then
+        self.active_loop_layer = 1
+      elseif fget(mask_tile_id, sprite_flags.loop_exit_trigger) then
+        self.active_loop_layer = 2
+      end
+    end
   end
 end
 

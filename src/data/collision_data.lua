@@ -4,11 +4,11 @@ local raw_tile_collision_data = require("data/raw_tile_collision_data")
 local tile_collision_data = require("data/tile_collision_data")
 
 sprite_flags = {
-  collision = 0,
+  collision = 0,              -- collision flag set on VISIBLE sprite (and MASK sprite for testing with proto tiles)
   loop_entrance = 1,          -- loop bottom-right part
   loop_exit = 2,              -- loop bottom-left part
-  loop_exit_trigger = 3,      -- loop top-top-right part (enables exit)
-  loop_entrance_trigger = 4,  -- loop top-top-left part (enables entrance)
+  loop_entrance_trigger = 3,  -- loop top-top-right part (enables entrance late as in original game)
+  loop_exit_trigger = 4,      -- loop top-top-left part (enables exit late as in original game)
 }
 
 -- table mapping visual tile sprite id to tile collision data (collision mask sprite id location + slope)

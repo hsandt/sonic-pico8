@@ -14,6 +14,7 @@ asc_slope_45_id = 113
 desc_slope_45_id = 116
 loop_topleft = 12
 loop_toptopleft = 13
+loop_toptopright = 14
 -- below have no representation as not used in DSL itests
 -- but useful for utests which directly mset with ID constants
 loop_bottomleft = 56
@@ -33,5 +34,6 @@ tile_symbol_to_ids = {
   ['/']  = asc_slope_45_id,  -- ascending slope 45
   ['\\'] = desc_slope_45_id,  -- descending slope 45
   ['Y'] = loop_topleft,  -- loop top-left corner
-  ['Z'] = loop_toptopleft,  -- loop top-top-left corner (between flat top and top-left)
+  ['Z'] = loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
+  ['R'] = loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
 }

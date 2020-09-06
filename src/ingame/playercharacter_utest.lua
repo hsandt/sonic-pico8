@@ -535,22 +535,6 @@ describe('player_char', function ()
 
     end)
 
-    describe('set_ground_tile_location', function ()
-
-      it('should preserve ground tile location if current value is passed', function ()
-        pc.ground_tile_location = location(0, 0)
-        pc:set_ground_tile_location(location(0, 0))
-        assert.are_same(location(0, 0), pc.ground_tile_location)
-      end)
-
-      it('should set ground tile location if different value is passed', function ()
-        pc.ground_tile_location = location(0, 0)
-        pc:set_ground_tile_location(location(1, 0))
-        assert.are_same(location(1, 0), pc.ground_tile_location)
-      end)
-
-    end)
-
     describe('set_slope_angle_with_quadrant', function ()
 
       -- slope angle
@@ -977,6 +961,56 @@ describe('player_char', function ()
 
       after_each(function ()
         pico8:clear_map()
+      end)
+
+      describe('set_ground_tile_location', function ()
+
+        before_each(function ()
+          -- add trigger tiles to test trigger flag detection
+          -- ZR
+          mock_mset(0, 0, loop_toptopleft)
+          mock_mset(1, 0, loop_toptopright)
+        end)
+
+        it('should preserve ground tile location if current value is passed', function ()
+          pc.ground_tile_location = location(0, 0)
+          pc:set_ground_tile_location(location(0, 0))
+          assert.are_same(location(0, 0), pc.ground_tile_location)
+        end)
+
+        it('should *not* set active_loop_layer if loop_entrance_trigger tile is detected, but didn\'t change', function ()
+          pc.active_loop_layer = -1
+          pc.ground_tile_location = location(0, 0)
+
+          pc:set_ground_tile_location(location(0, 0))
+
+          assert.are_equal(-1, pc.active_loop_layer)
+        end)
+
+        it('should set ground tile location if different value is passed', function ()
+          pc.ground_tile_location = location(0, 0)
+          pc:set_ground_tile_location(location(1, 0))
+          assert.are_same(location(1, 0), pc.ground_tile_location)
+        end)
+
+        it('should set active_loop_layer to 1 if loop_entrance_trigger tile is detected and new', function ()
+          pc.active_loop_layer = -1
+          pc.ground_tile_location = location(-1, 0)
+
+          pc:set_ground_tile_location(location(1, 0))
+
+          assert.are_equal(1, pc.active_loop_layer)
+        end)
+
+        it('should set active_loop_layer to 2 if loop_exit_trigger tile is detected and new', function ()
+          pc.active_loop_layer = -1
+          pc.ground_tile_location = location(-1, 0)
+
+          pc:set_ground_tile_location(location(0, 0))
+
+          assert.are_equal(2, pc.active_loop_layer)
+        end)
+
       end)
 
       describe('_compute_ground_sensors_query_info', function ()
@@ -1705,7 +1739,9 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
-          spy.on(player_char, "set_ground_tile_location")
+          -- trigger check inside set_ground_tile_location will fail as it needs context
+          -- (tile_test_data + mset), so we prefer stubbing as we don't check ground_tile_location directly
+          stub(player_char, "set_ground_tile_location")
         end)
 
         teardown(function ()
@@ -1795,8 +1831,9 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 10), nil, false}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(15, 10), false}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
           end)
@@ -1806,8 +1843,10 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), location(1, 1), true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(15, 12), true}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 1-45/360)
           end)
@@ -1817,8 +1856,10 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), location(1, 1), true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(15, 12), true}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 1-45/360)
           end)
@@ -1828,8 +1869,9 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(11, 13), nil, true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(11, 13), true}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)
@@ -2193,7 +2235,9 @@ describe('player_char', function ()
         local new_ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
 
         setup(function ()
-          spy.on(player_char, "set_ground_tile_location")
+          -- trigger check inside set_ground_tile_location will fail as it needs context
+          -- (tile_test_data + mset), so we prefer stubbing as we don't check ground_tile_location directly
+          stub(player_char, "set_ground_tile_location")
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
 
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
@@ -4796,7 +4840,9 @@ describe('player_char', function ()
         setup(function ()
           spy.on(player_char, "_enter_motion_state")
           spy.on(player_char, "_check_hold_jump")
-          spy.on(player_char, "set_ground_tile_location")
+          -- trigger check inside set_ground_tile_location will fail as it needs context
+          -- (tile_test_data + mset), so we prefer stubbing as we don't check ground_tile_location directly
+          stub(player_char, "set_ground_tile_location")
           spy.on(player_char, "set_slope_angle_with_quadrant")
         end)
 

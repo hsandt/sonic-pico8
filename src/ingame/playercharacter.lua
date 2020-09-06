@@ -57,6 +57,8 @@ local player_char = new_class()
 -- motion_state             motion_states   motion state (platformer mode only)
 -- quadrant                 directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
 -- orientation              horizontal_dirs direction faced by character
+-- active_loop_layer        int             currently active loop layer (1 for entrance, 2 for exit)
+
 -- ground_tile_location     location|nil    location of current ground tile character is on (nil if airborne)
 -- position                 vector          current position (character center "between" pixels)
 -- ground_speed             float           current speed along the ground (~px/frame)
@@ -65,11 +67,13 @@ local player_char = new_class()
 -- debug_velocity           vector          current velocity in debug mode (m/s)
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
+
 -- move_intention           vector          current move intention (normalized)
 -- jump_intention           bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
+
 -- has_interrupted_jump     bool            has the character already interrupted his jump once?
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
@@ -94,7 +98,10 @@ function player_char:_setup()
   self.motion_state = motion_states.grounded
   self.quadrant = directions.down
   self.orientation = horizontal_dirs.right
+  self.active_loop_layer = 1
 
+  -- impossible value makes sure that first set_ground_tile_location
+  --  will trigger change event
   self.ground_tile_location = location(-1, -1)
   self.position = vector(-1, -1)
   self.ground_speed = 0.
@@ -210,6 +217,13 @@ function player_char:set_bottom_center(bottom_center_position)
   self.position = bottom_center_position - self:get_center_height() * self:get_quadrant_down()
 end
 --#endif
+
+-- set ground tile location and apply any trigger if it changed
+function player_char:set_ground_tile_location(tile_loc)
+  if self.ground_tile_location ~= tile_loc then
+    self.ground_tile_location = tile_loc
+  end
+end
 
 -- set slope angle and update quadrant
 -- if force_upward_sprite is true, set sprite angle to 0
@@ -593,7 +607,7 @@ function player_char:_check_escape_from_ground()
       -- snap character up to ground top (it does nothing if already touching ground)
       self.position.y = self.position.y + signed_distance_to_closest_ground
       -- register ground tile for later
-      self.ground_tile_location = query_info.tile_location
+      self:set_ground_tile_location(query_info.tile_location)
       -- set slope angle to new ground
       self:set_slope_angle_with_quadrant(next_slope_angle)
     else
@@ -741,7 +755,7 @@ function player_char:_update_platformer_motion_grounded()
     -- we are still grounded, so:
 
     -- update ground tile (if needed)
-    self.ground_tile_location = ground_motion_result.tile_location
+    self:set_ground_tile_location(ground_motion_result.tile_location)
 
     -- update slope angle (if needed)
     self:set_slope_angle_with_quadrant(ground_motion_result.slope_angle)
@@ -1313,7 +1327,7 @@ function player_char:_update_platformer_motion_airborne()
 
   if air_motion_result.is_landing then
     -- register new ground tile, update slope angle and enter grounded state
-    self.ground_tile_location = air_motion_result.tile_location
+    self:set_ground_tile_location(air_motion_result.tile_location)
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
     self:_enter_motion_state(motion_states.grounded)
   end

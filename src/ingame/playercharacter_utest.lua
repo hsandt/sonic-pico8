@@ -135,6 +135,7 @@ describe('player_char', function ()
           motion_states.grounded,
           directions.down,
           horizontal_dirs.right,
+          1,
 
           location(-1, -1),
           vector(-1, -1),
@@ -161,6 +162,7 @@ describe('player_char', function ()
           pc.motion_state,
           pc.quadrant,
           pc.orientation,
+          pc.active_loop_layer,
 
           pc.ground_tile_location,
           pc.position,
@@ -529,6 +531,22 @@ describe('player_char', function ()
         pc.quadrant = directions.right
         pc:set_bottom_center(vector(10 + 11, 0))
         assert.are_same(vector(10, 0), pc.position)
+      end)
+
+    end)
+
+    describe('set_ground_tile_location', function ()
+
+      it('should preserve ground tile location if current value is passed', function ()
+        pc.ground_tile_location = location(0, 0)
+        pc:set_ground_tile_location(location(0, 0))
+        assert.are_same(location(0, 0), pc.ground_tile_location)
+      end)
+
+      it('should set ground tile location if different value is passed', function ()
+        pc.ground_tile_location = location(0, 0)
+        pc:set_ground_tile_location(location(1, 0))
+        assert.are_same(location(1, 0), pc.ground_tile_location)
       end)
 
     end)
@@ -1687,14 +1705,17 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
+          spy.on(player_char, "set_ground_tile_location")
         end)
 
         teardown(function ()
           player_char.set_slope_angle_with_quadrant:revert()
+          player_char.set_ground_tile_location:revert()
         end)
 
         after_each(function ()
           player_char.set_slope_angle_with_quadrant:clear()
+          player_char.set_ground_tile_location:clear()
         end)
 
         describe('with full flat tile', function ()
@@ -1711,6 +1732,8 @@ describe('player_char', function ()
             -- interface
             assert.are_same({vector(12, 6), nil, false}, {pc:get_bottom_center(), pc.ground_tile_location, result})
 
+            -- when nil, we don't use the set callback for ground tile location
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
           end)
@@ -1720,8 +1743,10 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), location(1, 1), true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(12, 8), true}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)
@@ -1731,8 +1756,10 @@ describe('player_char', function ()
             local result = pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), location(1, 1), true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(12, 8), true}, {pc:get_bottom_center(), result})
 
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)
@@ -1744,6 +1771,8 @@ describe('player_char', function ()
             -- interface
             assert.are_same({vector(12, 13), nil, true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
 
+            -- when nil, we don't use the set callback for ground tile location
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)
@@ -2164,6 +2193,7 @@ describe('player_char', function ()
         local new_ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
 
         setup(function ()
+          spy.on(player_char, "set_ground_tile_location")
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
 
           update_ground_speed_mock = stub(player_char, "_update_ground_speed", function (self)
@@ -2178,6 +2208,7 @@ describe('player_char', function ()
 
           update_ground_speed_mock:revert()
           enter_motion_state_stub:revert()
+          player_char.set_ground_tile_location:revert()
           check_jump_intention_stub:revert()
         end)
 
@@ -2186,6 +2217,7 @@ describe('player_char', function ()
 
           update_ground_speed_mock:clear()
           enter_motion_state_stub:clear()
+          player_char.set_ground_tile_location:clear()
           check_jump_intention_stub:clear()
         end)
 
@@ -2237,9 +2269,10 @@ describe('player_char', function ()
             assert.are_same(vector(3, 4), pc.position)
           end)
 
-          it('should set ground_tile_location to location(0, 1)', function ()
+          it('should call player_char.set_ground_tile_location with location(0, 1)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_same(location(0, 1), pc.ground_tile_location)
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(0, 1))
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.25', function ()
@@ -2384,9 +2417,10 @@ describe('player_char', function ()
             assert.are_same(vector(3, 4), pc.position)
           end)
 
-          it('should set ground_tile_location to location(0, 1)', function ()
+          it('should call player_char.set_ground_tile_location with location(0, 1)', function ()
             pc:_update_platformer_motion_grounded()
-            assert.are_same(location(0, 1), pc.ground_tile_location)
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(0, 1))
           end)
 
           it('should call set_slope_angle_with_quadrant with 0.5', function ()
@@ -4482,6 +4516,38 @@ describe('player_char', function ()
 
         end)
 
+        describe('(with two tiles in a row)', function ()
+
+          before_each(function ()
+            -- ##
+            mock_mset(0, 0, full_tile_id)
+            mock_mset(1, 0, full_tile_id)
+          end)
+
+          it('when stepping right on a new tile, increment x and update tile location to new tile', function ()
+            local motion_result = motion.ground_motion_result(
+              location(0, 0),
+              vector(5, 0 - pc_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            pc:_next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                location(1, 0),
+                vector(6, 0 - pc_data.center_height_standing),
+                0,
+                false,
+                false
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
       end)  -- _next_ground_step
 
       describe('_is_blocked_by_ceiling_at', function ()
@@ -4730,12 +4796,14 @@ describe('player_char', function ()
         setup(function ()
           spy.on(player_char, "_enter_motion_state")
           spy.on(player_char, "_check_hold_jump")
+          spy.on(player_char, "set_ground_tile_location")
           spy.on(player_char, "set_slope_angle_with_quadrant")
         end)
 
         teardown(function ()
           player_char._enter_motion_state:revert()
           player_char._check_hold_jump:revert()
+          player_char.set_ground_tile_location:revert()
           player_char.set_slope_angle_with_quadrant:revert()
         end)
 
@@ -4745,6 +4813,7 @@ describe('player_char', function ()
           -- clear spy just after this instead of after_each to avoid messing the call count
           player_char._enter_motion_state:clear()
           player_char._check_hold_jump:clear()
+          player_char.set_ground_tile_location:clear()
           player_char.set_slope_angle_with_quadrant:clear()
         end)
 
@@ -5053,9 +5122,10 @@ describe('player_char', function ()
             compute_air_motion_result_mock:clear()
           end)
 
-          it('should set ground_tile_location to location(0, 1)', function ()
+          it('should call player_char.set_ground_tile_location with location(0, 1)', function ()
             pc:_update_platformer_motion_airborne()
-            assert.are_same(location(0, 1), pc.ground_tile_location)
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(0, 1))
           end)
 
           it('should enter grounded state and set_slope_angle_with_quadrant: 0.5', function ()

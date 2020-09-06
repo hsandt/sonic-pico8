@@ -83,6 +83,12 @@ function world.get_tile_qbottom(tile_loc, quadrant)
   return world.get_quadrant_y_coord(tile_loc:to_center_position() + 4 * dir_vectors[quadrant], quadrant)
 end
 
+-- return tile collision data of tile located at tile_location
+function world.get_tile_collision_data_at(tile_location)
+  local tile_id = mget(tile_location.i, tile_location.j)
+  return collision_data.get_tile_collision_data(tile_id)
+end
+
 -- return (qcolumn_height, slope_angle) where:
 --  - qcolumn_height is the qcolumn height at tile_location on qcolumn_index0, or 0 if there is no colliding tile
 --    (if quadrant is horizontal, qcolum = row, but indices are always top to bottom, left to right)
@@ -97,7 +103,11 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
   if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 32 then
 
     -- check if that tile at tile_location has a collider (mget will return 0 if there is no tile,
-    --  so we must make the "empty" sprite 0 has no flags set)
+    --  so we must make sure the the "empty" sprite 0 has no flags set)
+    -- this is just an extra check but we could also directly get tcd = world.get_tile_collision_data_at(tile_location)
+    --  not place collision flags on visual sprites anymore (only on mask sprites)
+    --  and decide whether tile is collider or not by checking if tcd ~= nil
+    -- this would remove a potentially helping assert but would make sprite flagging simpler
     local current_tile_id = mget(tile_location.i, tile_location.j)
     local current_tile_collision_flag = fget(current_tile_id, sprite_flags.collision)
     if current_tile_collision_flag then

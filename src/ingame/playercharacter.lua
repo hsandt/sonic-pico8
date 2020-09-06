@@ -224,19 +224,19 @@ function player_char:set_ground_tile_location(tile_loc)
   if self.ground_tile_location ~= tile_loc then
     self.ground_tile_location = tile_loc
 
-    -- retrive tile at location
-    local tile_id = mget(tile_loc.i, tile_loc.j)
-    -- get the tile collision mask
-    local tcd = collision_data.get_tile_collision_data(tile_id)
-    assert(tcd, "player_char:set_ground_tile_location: tile "..tile_id.." is registered as ground tile but it has no collision data")
+    -- get the tile collision data
+    local tcd = world.get_tile_collision_data_at(tile_loc)
+    assert(tcd, "player_char:set_ground_tile_location: tile at "..tile_loc.." is registered as ground tile but it has no collision data")
 
     if tcd then
       local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
       -- when touching loop entrance trigger, enable entrance (and disable exit) layer
       --  and reversely
       if fget(mask_tile_id, sprite_flags.loop_entrance_trigger) then
+        log("set active loop layer: 1", 'loop')
         self.active_loop_layer = 1
       elseif fget(mask_tile_id, sprite_flags.loop_exit_trigger) then
+        log("set active loop layer: 2", 'loop')
         self.active_loop_layer = 2
       end
     end
@@ -494,9 +494,22 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
 
     -- check for tile collision special cases (world._compute_qcolumn_height_at
     --  does *not* check for this since it requires player character state)
-    if fget(mget(curr_tile_loc.i, curr_tile_loc.j), sprite_flags.loop_exit) then
-      -- tile is on layer with disabled collision, return emptiness
-      qcolumn_height, slope_angle = 0--, nil
+
+    local ignore_tile = false
+
+    -- get the tile collision data (a bit redundant with world._compute_qcolumn_height_at below
+    --  unfortunately; if you really want to avoid redundancy, change it to take tcd directly)
+    local tcd = world.get_tile_collision_data_at(curr_tile_loc)
+    if tcd then
+      local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
+      if fget(mask_tile_id, sprite_flags.loop_exit) then
+        ignore_tile = true
+      end
+    end
+
+    if ignore_tile then
+        -- tile is on layer with disabled collision, return emptiness
+        qcolumn_height, slope_angle = 0--, nil
     else
       -- Ceiling ignore reverse full tiles on first tile. Comment from _is_column_blocked_by_ceiling_at
       --  before extracting iterate_over_collision_tiles

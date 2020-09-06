@@ -136,8 +136,8 @@ describe('player_char', function ()
           directions.down,
           horizontal_dirs.right,
 
-          location(0, 0),
-          vector.zero(),
+          location(-1, -1),
+          vector(-1, -1),
           0,
           0,
           vector.zero(),
@@ -192,11 +192,9 @@ describe('player_char', function ()
     local pc
 
     before_each(function ()
-      -- recreate player character for each test (setup spies will need to refer to pc, not the instance)
+      -- recreate player character for each test (setup spies will need to refer to player_char,
+      --  not the instance)
       pc = player_char()
-      pc.debug_move_max_speed = 60.
-      pc.debug_move_accel = 480.
-      pc.debug_move_decel = 480.
     end)
 
     describe('is_grounded', function ()
@@ -4756,7 +4754,7 @@ describe('player_char', function ()
             compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
               return motion.air_motion_result(
                 nil,
-                vector(2, 8),
+                vector(4, 8),  -- make sure it's far enough from stage left edge to avoid soft clamping
                 false,
                 false,
                 false,
@@ -4914,7 +4912,7 @@ describe('player_char', function ()
 
             pc:_update_platformer_motion_airborne()
 
-            assert.are_same(vector(2, 8), pc.position)
+            assert.are_same(vector(4, 8), pc.position)
           end)
 
           it('should preserve velocity.y', function ()
@@ -4938,7 +4936,7 @@ describe('player_char', function ()
             stub(player_char, "_compute_air_motion_result", function (self)
               return motion.air_motion_result(
                 nil,
-                vector(2, 8),
+                vector(4, 8),
                 false, -- not the focus, but verified
                 true,  -- focus in this test
                 false,
@@ -4993,7 +4991,7 @@ describe('player_char', function ()
             compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
               return motion.air_motion_result(
                 nil,
-                vector(2, 8),
+                vector(4, 8),
                 true,  -- focus in this test
                 false, -- not the focus, but verified
                 false,
@@ -5038,7 +5036,7 @@ describe('player_char', function ()
             compute_air_motion_result_mock = stub(player_char, "_compute_air_motion_result", function (self)
               return motion.air_motion_result(
                 location(0, 1),
-                vector(2, 8),
+                vector(4, 8),
                 false,
                 false,
                 true,  -- focus in this test
@@ -6059,7 +6057,7 @@ describe('player_char', function ()
         pc:_update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)
         assert.spy(update_velocity_debug_mock).was_called_with(match.ref(pc))
-        assert.are_same(vector(1, 2) + vector(4, -3) * delta_time60, pc.position)
+        assert.are_same(vector(1, 2) + vector(4, -3), pc.position)
       end)
 
     end)
@@ -6087,74 +6085,36 @@ describe('player_char', function ()
 
     describe('_update_velocity_component_debug', function ()
 
-      it('should accelerate when there is some input', function ()
-        pc.move_intention = vector(-1, 1)
+      it('should accelerate on x when there is some input on x', function ()
+        pc.move_intention = vector(-1, 0)
+
         pc:_update_velocity_component_debug("x")
+
         assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel * delta_time60, 0),
+          vector(- pc.debug_move_accel, 0),
           pc.debug_velocity))
+      end)
+
+
+      it('should accelerate on y when there is some input on y', function ()
+        pc.move_intention = vector(0, 1)
+
         pc:_update_velocity_component_debug("y")
+
         assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel * delta_time60, pc.debug_move_accel * delta_time60),
+          vector(0, pc.debug_move_accel),
           pc.debug_velocity))
       end)
 
-    end)
-
-    -- integration test as utest kept here for the moment, but prefer itests for this
-    describe('_update_velocity_debug and move', function ()
-
-      before_each(function ()
-        pc.position = vector(4, -4)
-      end)
-
-      after_each(function ()
+      it('should accelerate on xy when there is some input on xy', function ()
         pc.move_intention = vector(-1, 1)
-      end)
 
-      it('when move intention is (-1, 1), update 1 frame => at (3.867 -3.867)', function ()
-        pc.move_intention = vector(-1, 1)
-        pc:_update_velocity_debug()
-        pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        assert.is_true(almost_eq_with_message(vector(3.8667, -3.8667), pc.position))
-      end)
+        pc:_update_velocity_component_debug("x")
+        pc:_update_velocity_component_debug("y")
 
-      it('when move intention is (-1, 1), update 11 frame => at (−2.73 2.73)', function ()
-        pc.move_intention = vector(-1, 1)
-        for i=1,10 do
-          pc:_update_velocity_debug()
-          pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        end
-        assert.is_true(almost_eq_with_message(vector(-2.73, 2.73), pc.position))
-        assert.is_true(almost_eq_with_message(vector(-60, 60), pc.debug_velocity))  -- at max speed
-      end)
-
-      it('when move intention is (0, 0) after 11 frames, update 16 frames more => character should have decelerated', function ()
-        pc.move_intention = vector(-1, 1)
-        for i=1,10 do
-          pc:_update_velocity_debug()
-          pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        end
-        pc.move_intention = vector.zero()
-        for i=1,5 do
-          pc:_update_velocity_debug()
-          pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        end
-        assert.is_true(almost_eq_with_message(vector(-20, 20), pc.debug_velocity, 0.01))
-      end)
-
-      it('when move intention is (0, 0) after 11 frames, update 19 frames more => character should have stopped', function ()
-        pc.move_intention = vector(-1, 1)
-        for i=1,10 do
-          pc:_update_velocity_debug()
-          pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        end
-        pc.move_intention = vector.zero()
-        for i=1,8 do
-          pc:_update_velocity_debug()
-          pc.position:add_inplace(pc.debug_velocity * delta_time60)
-        end
-        assert.is_true(almost_eq_with_message(vector.zero(), pc.debug_velocity))
+        assert.is_true(almost_eq_with_message(
+          vector(- pc.debug_move_accel, pc.debug_move_accel),
+          pc.debug_velocity))
       end)
 
     end)

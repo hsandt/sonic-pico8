@@ -274,7 +274,7 @@ expect pc_velocity 0 0
 
 -- bugfix history:
 -- . test failed because initial character position was wrong in the test
--- * test failed in pico8 only because in _compute_signed_distance_to_closest_ground,
+-- * test failed in pico8 only because in _compute_closest_ground_query_info,
 --   I was setting min_signed_distance = 32768 = -32767
 itest_dsl_parser.register(
   'platformer land vertical', [[

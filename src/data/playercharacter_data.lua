@@ -103,7 +103,7 @@ local playercharacter_data = {
   full_height_compact = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
-  --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)
+  --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
   max_ground_escape_height = 4,
 

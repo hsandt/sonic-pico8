@@ -29,6 +29,9 @@ function stage_state:_init()
   -- substate
   self.current_substate = stage_state.substates.play
 
+  -- active loop layer (1 for entrance, 2 for exit)
+  self.active_loop_layer = 1
+
   -- player character
   self.player_char = nil
   -- has the player character already reached the goal once?
@@ -42,6 +45,7 @@ end
 
 function stage_state:on_enter()
   self.current_substate = stage_state.substates.play
+  self.active_loop_layer = 1
   self:spawn_player_char()
   self.has_reached_goal = false
   self.camera_pos = vector.zero()

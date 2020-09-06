@@ -41,6 +41,7 @@ describe('stage_state', function ()
             ':stage',
             1,
             stage_state.substates.play,
+            1,
             nil,
             false,
             vector.zero(),
@@ -50,6 +51,7 @@ describe('stage_state', function ()
             state.type,
             state.curr_stage_id,
             state.current_substate,
+            state.active_loop_layer,
             state.player_char,
             state.has_reached_goal,
             state.camera_pos,
@@ -83,6 +85,10 @@ describe('stage_state', function ()
 
         it('should enter the play substates', function ()
           assert.are_equal(stage_state.substates.play, state.current_substate)
+        end)
+
+        it('should set active_loop_layer to 1', function ()
+          assert.are_equal(1, state.active_loop_layer)
         end)
 
         it('should call spawn_player_char', function ()

@@ -102,11 +102,6 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
     local current_tile_collision_flag = fget(current_tile_id, sprite_flags.collision)
     if current_tile_collision_flag then
 
-      -- for now, disable loop_exit layer just for testing
-      if fget(current_tile_id, sprite_flags.loop_exit) then
-        return 0--, nil
-      end
-
       -- get the tile collision mask
       local tcd = collision_data.get_tile_collision_data(current_tile_id)
       assert(tcd, "collision_data.tiles_collision_data does not contain entry for sprite id: "..current_tile_id..", yet it has the collision flag set")
@@ -201,13 +196,6 @@ function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadran
 
     end
 
-  elseif tile_location.i < 0 then
-    -- prevent player from going to the left of the level with an invisible wall
-    --  made of full tiles
-    -- we could just use slope_angle 0 but with match the quadrant to be a bit more correct
-    --  (imagine that there is a loop bottom-left slope at the left of the level, at least
-    --  the player could run up the left edge of the screen)
-    return tile_size, world.quadrant_to_right_angle(quadrant)
   end
 
   return 0--, nil

@@ -203,10 +203,6 @@ describe('world (with mock tiles data setup)', function ()
 
   describe('_compute_qcolumn_height_at', function ()
 
-    it('should return (0, nil) if tile location is outside map area on the left (any quadrant)', function ()
-      assert.are_same({8, 0.75}, {world._compute_qcolumn_height_at(location(-1, 2), 0, directions.left)})
-    end)
-
     it('should return (0, nil) if tile location is outside map area except on the left (any quadrant)', function ()
       assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(128, 2), 0, directions.down)})
     end)
@@ -354,19 +350,6 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
     end)
-
-    describe('with loop bottom-left', function ()
-
-      before_each(function ()
-        mock_mset(0, 0, loop_bottomleft)
-      end)
-
-      it('should return (0, nil) on loop bottom-left (currently inactive by default)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(0, 0), 4, directions.down)})
-      end)
-
-    end)
-
 
   end)
 

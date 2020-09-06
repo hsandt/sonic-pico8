@@ -458,23 +458,28 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
   -- keep looping until callback is satisfied (in general we found a collision or neary ground)
   --  or we've reached the last tile
   while true do
-    -- Ceiling ignore reverse full tiles on first tile. Comment from _is_column_blocked_by_ceiling_at
-    --  before extracting iterate_over_collision_tiles
-    -- on the first tile, we don't cannot really be blocked by a ground
-    --  with the same interior direction as quadrant <=> opposite to quadrant_opp
-    --  (imagine Sonic standing on a half-tile; this definitely cannot be ceiling)
-    --  so we do not consider the reverse collision with full tile_size q-height with them
-    -- if you're unsure, try to force-set this to false and you'll see utests like
-    --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
-    --  failing
-    local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
+    local qcolumn_height, slope_angle
 
-    -- get q-bottom of tile to compare heights easily later
-    -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
-    local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, collision_check_quadrant)
+    -- check for tile collision special cases (world._compute_qcolumn_height_at
+    --  does *not* check for this since it requires player character state)
+    if fget(mget(curr_tile_loc.i, curr_tile_loc.j), sprite_flags.loop_exit) then
+      -- tile is on layer with disabled collision, return emptiness
+      qcolumn_height, slope_angle = 0--, nil
+    else
+      -- Ceiling ignore reverse full tiles on first tile. Comment from _is_column_blocked_by_ceiling_at
+      --  before extracting iterate_over_collision_tiles
+      -- on the first tile, we don't cannot really be blocked by a ground
+      --  with the same interior direction as quadrant <=> opposite to quadrant_opp
+      --  (imagine Sonic standing on a half-tile; this definitely cannot be ceiling)
+      --  so we do not consider the reverse collision with full tile_size q-height with them
+      -- if you're unsure, try to force-set this to false and you'll see utests like
+      --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
+      --  failing
+      local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
 
-    -- check for ground (by q-column) in currently checked tile, at sensor qX
-    local qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+      -- check for ground (by q-column) in currently checked tile, at sensor qX
+      qcolumn_height, slope_angle = world._compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+    end
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
     --  but that the q-column is empty and we don't know what is more below
@@ -482,11 +487,16 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
     --  (unless we've reached end of iteration with the last tile, in which case
     --  the next tile would be too far to snap down anyway)
     if qcolumn_height > 0 then
+      -- get q-bottom of tile to compare heights
+      -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
+      local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, collision_check_quadrant)
+
       -- signed distance to closest ground/ceiling is positive when q-above ground/q-below ceiling
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
       --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
       -- then subtract qcolumn_height and you get the signed distance to the current ground q-column
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
+
       -- let caller decide how to handle the presence of collider
       local result = collider_distance_callback(curr_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
@@ -684,12 +694,32 @@ function player_char:_update_platformer_motion_grounded()
     self.ground_speed = 0
   end
 
+  -- check for stage left edge soft block
+  -- normally we'd compute ground sensor position with q-left and q-right vectors
+  --  but since left side of level is always flat, we don't mind
+  if flr(ground_motion_result.position.x) < pc_data.ground_sensor_extent_x then
+    -- clamp position to stage left edge
+    -- note that in theory we should update the ground motion result
+    --  tile location and slope angle to match the new position,
+    --  but in practice we know that speeds are low and besides there is
+    --  nothing on the left of the stage, so basically we are not changing
+    --  ground tile here
+    ground_motion_result.position.x = ceil(pc_data.ground_sensor_extent_x)
+    -- also clamp ground speed to a very small negative value
+    --  (btw it is probably already negative since we're going left)
+    --  to preserve Sonic's running animation at the slowest playback speed
+    --  to match original game's behavior
+    --  and also to make it continue trying to cross the stage boundary
+    --  and enter this block next frame, until player stops moving
+    self.ground_speed = max(-0.1, self.ground_speed)
+  end
+
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
   self.velocity = self.ground_speed * vector.unit_from_angle(self.slope_angle)
 
-  -- we can now update position and slope
+  -- update position
   self.position = ground_motion_result.position
 
   -- character falls by default if finds no ground to stick to
@@ -1254,8 +1284,6 @@ function player_char:_update_platformer_motion_airborne()
 
   local air_motion_result = self:_compute_air_motion_result()
 
-  self.position = air_motion_result.position
-
   -- FIX to top-left corner enter during jump lies here, or when is_blocked_by_wall is set...
   -- since motion is not considered up, we are only blocked by wall...
 
@@ -1266,6 +1294,22 @@ function player_char:_update_platformer_motion_airborne()
   if air_motion_result.is_blocked_by_ceiling then
     self.velocity.y = 0
   end
+
+  -- check for stage left edge soft block
+  -- see _update_platformer_motion_grounded
+  if flr(air_motion_result.position.x) < pc_data.ground_sensor_extent_x then
+    -- clamp position to stage left edge and clamp velocity x to 0
+    -- note that in theory we should update the air motion result
+    --  tile location and slope angle to match the new position,
+    --  but in practice we know that speeds are low and besides there is
+    --  nothing on the left of the stage so basically we already have
+    --  the ground info we need, worst case character will fall 1 extra frame
+    --  then land
+    air_motion_result.position.x = ceil(pc_data.ground_sensor_extent_x)
+    self.velocity.x = max(0, self.velocity.x)
+  end
+
+  self.position = air_motion_result.position
 
   if air_motion_result.is_landing then
     -- register new ground tile, update slope angle and enter grounded state

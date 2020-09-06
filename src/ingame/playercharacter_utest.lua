@@ -1670,6 +1670,19 @@ describe('player_char', function ()
 
         end)
 
+        describe('with a tile on disabled collision layer', function ()
+
+          before_each(function ()
+            mock_mset(0, 0, loop_bottomleft)
+          end)
+
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            -- interface
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:_compute_closest_ground_query_info(vector(4, 4)))
+          end)
+
+        end)
+
       end)
 
       describe('_check_escape_from_ground', function ()
@@ -2531,6 +2544,49 @@ describe('player_char', function ()
             -- this only works because _enter_motion_state is stubbed
             -- if it was spied, it would still call set_slope_angle_with_quadrant inside
             assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
+          end)
+
+        end)
+
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
+
+          local compute_ground_motion_result_mock
+
+          setup(function ()
+            stub(player_char, "_compute_ground_motion_result", function (self)
+              return motion.ground_motion_result(
+                location(-1, 0),
+                vector(2.5, 4),  -- flr(2.5) must be < pc_data.ground_sensor_extent_x
+                0,
+                false,
+                false
+              )
+            end)
+          end)
+
+          teardown(function ()
+            player_char._compute_ground_motion_result:revert()
+          end)
+
+          after_each(function ()
+            player_char._compute_ground_motion_result:clear()
+          end)
+
+          it('should clamp character position X to stage left boundary (including half-width offset)', function ()
+            pc:_update_platformer_motion_grounded()
+
+            -- in practice, clamped to 3
+            assert.are_same(ceil(pc_data.ground_sensor_extent_x), pc.position.x)
+          end)
+
+          it('should clamp the ground speed to -0.1', function ()
+            -- note that we didn't set move intention
+            -- so character will decel to -2.5 this frame, but enough to test clamping
+            pc.ground_speed = -3
+
+            pc:_update_platformer_motion_grounded()
+
+            assert.are_equal(-0.1, pc.ground_speed)
           end)
 
         end)
@@ -5018,6 +5074,48 @@ describe('player_char', function ()
           end)
 
         end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)
+
+        describe('(when _compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
+
+          local compute_ground_motion_result_mock
+
+          setup(function ()
+            stub(player_char, "_compute_air_motion_result", function (self)
+              return motion.air_motion_result(
+                nil,
+                vector(2.5, 0),  -- flr(2.5) must be < pc_data.ground_sensor_extent_x
+                false,
+                false,
+                false,
+                0.5
+              )
+            end)
+          end)
+
+          teardown(function ()
+            player_char._compute_air_motion_result:revert()
+          end)
+
+          after_each(function ()
+            player_char._compute_air_motion_result:clear()
+          end)
+
+          it('should clamp character position X to stage left boundary (including half-width offset)', function ()
+            pc:_update_platformer_motion_airborne()
+
+            -- in practice, clamped to 3
+            assert.are_equal(ceil(pc_data.ground_sensor_extent_x), pc.position.x)
+          end)
+
+          it('should clamp the ground speed to -0.1', function ()
+            pc.velocity.x = -10
+
+            pc:_update_platformer_motion_airborne()
+
+            assert.are_equal(0, pc.velocity.x)
+          end)
+
+        end)
 
       end)  -- _update_platformer_motion_airborne
 

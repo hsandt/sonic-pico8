@@ -6095,6 +6095,16 @@ describe('player_char', function ()
           pc.debug_velocity))
       end)
 
+      it('should decelerate on x when there is no input on x', function ()
+        pc.debug_velocity.x = -2
+        pc.move_intention = vector(0, 0)
+
+        pc:_update_velocity_component_debug("x")
+
+        assert.is_true(almost_eq_with_message(
+          vector(-2 + pc.debug_move_decel, 0),
+          pc.debug_velocity))
+      end)
 
       it('should accelerate on y when there is some input on y', function ()
         pc.move_intention = vector(0, 1)
@@ -6106,14 +6116,15 @@ describe('player_char', function ()
           pc.debug_velocity))
       end)
 
-      it('should accelerate on xy when there is some input on xy', function ()
-        pc.move_intention = vector(-1, 1)
+      it('should accelerate/decelerate on xy when there is some input on xy', function ()
+        pc.debug_velocity = vector(0, 2)
+        pc.move_intention = vector(-1, 0)
 
         pc:_update_velocity_component_debug("x")
         pc:_update_velocity_component_debug("y")
 
         assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel, pc.debug_move_accel),
+          vector(- pc.debug_move_accel, 2 - pc.debug_move_decel),
           pc.debug_velocity))
       end)
 

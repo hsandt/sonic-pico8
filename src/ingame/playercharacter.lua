@@ -447,10 +447,10 @@ function player_char:_get_ground_sensor_position_from(center_position, quadrant_
 end
 
 -- helper method for _compute_closest_ground_query_info and _is_blocked_by_ceiling_at
--- it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
+-- for given player character pc, it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
-local function iterate_over_collision_tiles(collision_check_quadrant, start_tile_offset_qy, last_tile_offset_qy, sensor_position_base, sensor_offset_qy, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
+local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_tile_offset_qy, last_tile_offset_qy, sensor_position_base, sensor_offset_qy, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
   local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
 
@@ -502,7 +502,8 @@ local function iterate_over_collision_tiles(collision_check_quadrant, start_tile
     local tcd = world.get_tile_collision_data_at(curr_tile_loc)
     if tcd then
       local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
-      if fget(mask_tile_id, sprite_flags.loop_exit) then
+      if pc.active_loop_layer == 1 and fget(mask_tile_id, sprite_flags.loop_exit) or
+          pc.active_loop_layer == 2 and fget(mask_tile_id, sprite_flags.loop_entrance) then
         ignore_tile = true
       end
     end
@@ -620,7 +621,7 @@ function player_char:_compute_closest_ground_query_info(sensor_position)
   --  from sensor + offset position (in qy)
   -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
   --  where the character can snap up (escape) and snap down
-  return iterate_over_collision_tiles(self.quadrant, - (pc_data.max_ground_escape_height + 1), pc_data.max_ground_snap_height, sensor_position, 0, ground_check_collider_distance_callback, ground_check_no_collider_callback)
+  return iterate_over_collision_tiles(self, self.quadrant, - (pc_data.max_ground_escape_height + 1), pc_data.max_ground_snap_height, sensor_position, 0, ground_check_collider_distance_callback, ground_check_no_collider_callback)
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
@@ -1255,7 +1256,7 @@ function player_char:_is_column_blocked_by_ceiling_at(sensor_position)
   --  - (max_ground_escape_height + 1 - full_height) offset for first tile according to explanation above + the fact that we consider this offset from sensor_position base + offset (full_height)
   --  - no offset for last tile since we end checking at head top exactly, so argument 3 is 0
   local full_height = self:get_full_height()
-  return iterate_over_collision_tiles(oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
+  return iterate_over_collision_tiles(self, oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 
 -- if character intends to jump, prepare jump for next frame

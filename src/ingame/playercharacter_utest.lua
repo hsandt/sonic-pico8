@@ -1720,15 +1720,38 @@ describe('player_char', function ()
 
         end)
 
-        describe('with a tile on disabled collision layer', function ()
+        describe('with bottom/side loop tile', function ()
 
           before_each(function ()
+            -- note that in the real game we place a visual tile which maps to mask tile with trigger
+            -- we don't have constants for visual tiles but we could make a few dummy ones if we want
+            --  to test the visual to mask mapping logic for real
             mock_mset(0, 0, loop_bottomleft)
+            mock_mset(1, 0, loop_bottomright)
           end)
 
-          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+          it('(entrance active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            pc.active_loop_layer = 1
             -- interface
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:_compute_closest_ground_query_info(vector(4, 4)))
+          end)
+
+          it('(entrance active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            pc.active_loop_layer = 1
+            -- interface
+            assert.are_same(ground_query_info(location(1, 0), -4, 0.125), pc:_compute_closest_ground_query_info(vector(12, 4)))
+          end)
+
+          it('(exit active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            pc.active_loop_layer = 2
+            -- interface
+            assert.are_same(ground_query_info(location(0, 0), -4, 0.875), pc:_compute_closest_ground_query_info(vector(4, 4)))
+          end)
+
+          it('(exit active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            pc.active_loop_layer = 2
+            -- interface
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:_compute_closest_ground_query_info(vector(12, 4)))
           end)
 
         end)

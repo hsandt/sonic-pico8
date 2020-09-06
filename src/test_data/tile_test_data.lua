@@ -65,7 +65,7 @@ function tile_test_data.setup()
   fset(loop_bottomleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
   fset(loop_bottomleft, sprite_flags.loop_exit, true)
   fset(loop_bottomright, sprite_flags.collision, true)
-  fset(loop_bottomright, sprite_flags.loop_exit, true)
+  fset(loop_bottomright, sprite_flags.loop_entrance, true)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

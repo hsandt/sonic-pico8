@@ -19,14 +19,14 @@ return {
       -- stage title
       title = "proto zone",
 
-      width = 100,
+      width = 128,
       height = 32,
 
       -- where the player character spawns on stage start
       spawn_location = location(3, 24),
 
       -- the x to reach to finish the stage
-      goal_x = 800,  -- 100 tiles
+      goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)
 
       -- background color
       background_color = colors.dark_blue,

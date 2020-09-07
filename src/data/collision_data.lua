@@ -95,6 +95,13 @@ sprite_flags = {
   # loop sides
   6  @ (6, 0) => (7, 0)
   22 @ (6, 1) => (7, 1)
+  # curves (shape and visual like loop but collision mask has no layer-related flags)
+  69  @ (5, 4) CURVE TOP-TOP-RIGHT
+  70  @ (6, 4) CURVE TOP-RIGHT
+  86  @ (6, 5) CURVE TOP-RIGHT-RIGHT
+  102 @ (6, 6) CURVE BOTTOM-RIGHT-RIGHT
+  101 @ (5, 6) CURVE BOTTOM-RIGHT
+  85  @ (5, 5) CURVE BOTTOM-BOTTOM-RIGHT
 
   # proto (black and white tiles being their own collision masks)
   # must match tile_data.lua
@@ -124,8 +131,16 @@ sprite_flags = {
    60  @ (12, 0) LOOP BOTTOM-LEFT (no DSL representation)
    44  @ (12, 0) LOOP BOTTOM-LEFT-LEFT (no DSL representation)
    28  @ (12, 0) LOOP TOP-LEFT-LEFT (no DSL representation)
+  # loop sides
    7   @ (7, 0)
    23  @ (7, 1)
+
+   76  @ (12, 4) CURVE TOP-TOP-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   77  @ (13, 4) CURVE TOP-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   79  @ (15, 4) CURVE TOP-RIGHT-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   95  @ (15, 5) CURVE BOTTOM-RIGHT-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   111 @ (15, 6) CURVE BOTTOM-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   78  @ (14, 4) CURVE BOTTOM-BOTTOM-RIGHT (shape like loop but no layer mask flag nor trigger flag)
 
    103 @ (7, 4) MID SLOPE ASC 1
    104 @ (8, 4) MID SLOPE ASC 2
@@ -200,6 +215,13 @@ local raw_tiles_data = serialization.parse_expression(
     [6]  = {{7, 0}, {0, -8}},
     [22] = {{7, 1}, {0,  8}},
 
+    [69] = {{12, 4}, {-8, -4}},
+    [70] = {{13, 4}, {-4, -4}},
+    [86] = {{15, 4}, {-4, -8}},
+    [102]= {{15, 5}, { 4, -8}},
+    [101]= {{15, 6}, { 4, -4}},
+    [85] = {{14, 4}, { 8, -4}},
+
     [32] = {{0, 2}, {8, 0}},
     [80] = {{0, 5}, {8, 0}},
     [96] = {{0, 6}, {8, 0}},
@@ -237,6 +259,13 @@ local raw_tiles_data = serialization.parse_expression(
 
     [7]  = {{7, 0}, {0, -8}},
     [23] = {{7, 1}, {0,  8}},
+
+    [76] = {{12, 4}, {-8, -4}},
+    [77] = {{13, 4}, {-4, -4}},
+    [79] = {{15, 4}, {-4, -8}},
+    [95] = {{15, 5}, { 4, -8}},
+    [111]= {{15, 6}, { 4, -4}},
+    [78] = {{14, 4}, { 8, -4}}
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
     -- this is only for [112], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of

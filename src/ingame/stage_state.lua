@@ -170,19 +170,74 @@ function stage_state:render_background()
   rectfill(0, horizon_line_y - 1, 127, horizon_line_y - 1, colors.blue)
   -- white horizon line
   rectfill(0, horizon_line_y, 127, horizon_line_y, colors.white)
+  rectfill(0, horizon_line_y + 1, 127, horizon_line_y + 1, colors.indigo)
+
+  -- clouds in the sky, from lowest to highest (and biggest)
+  local cloud_dx_list_per_j = {
+    {0, 60, 140, 220},
+    {30, 150, 240},
+    {10, 90, 210},
+    {50, 130}
+  }
+  local dy_list_per_j = {
+    {0, 0, -1, 0},
+    {0, -1, -1, 0},
+    {0, -1, 1, 0},
+    {0, 1, -1, 1}
+  }
+  local dy0 = 8.9
+  local dy_mult = 14.7
+  local r0 = 2
+  local r_mult = 0.9
+  local speed0 = 3
+  local speed_mult = 3.5
+  for j = 0, 3 do
+    for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
+      self:draw_cloud(cloud_dx, horizon_line_y - dy0 - dy_mult * j, dy_list_per_j[j + 1], r0 + r_mult * j, speed0 + speed_mult * j)
+    end
+  end
 
   -- shiny reflections in water
   -- vary y
-  local dy_list = {5, 4, 7, 3, 2, 6}
+  local reflection_dy_list = {4, 3, 6, 2, 1, 5}
   local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
   -- to cover up to ~127 with intervals of 6,
   --  we need i up to 21 since 21*6 = 126
   for i = 0, 21 do
-    self:render_water_reflections(6 * i, horizon_line_y + dy_list[i % 6 + 1], period_list[i % 5 + 1])
+    self:draw_water_reflections(6 * i, horizon_line_y + 2 + reflection_dy_list[i % 6 + 1], period_list[i % 5 + 1])
   end
 end
 
-function stage_state:render_water_reflections(x, y, period)
+function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
+  -- indigo outline (prefer circfill to circ to avoid gaps
+  --  between inside and outline for some values)
+  local offset_x = t() * speed
+  -- we make clouds cycle horizontally but we don't want to
+  --  make them disappear as soon as they reach the left edge of the screen
+  --  so we take a margin of 100px (must be at least cloud width)
+  --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
+  --  where extra margin is to avoid having cloud spawning immediately on screen right
+  --  edge)
+  -- intermediate var to avoid luamin bracket stripping bug #50
+  local x0 = x - offset_x + 100
+  -- clouds move to the left
+  x0 = x0 % 300 - 100
+
+  local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
+  local r_mult_list = {0.8, 1.4, 1.1, 0.7}
+
+  -- indigo outline
+  for i=1,4 do
+    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius + 1, colors.indigo)
+  end
+
+  -- white inside
+  for i=1,4 do
+    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius, colors.white)
+  end
+end
+
+function stage_state:draw_water_reflections(x, y, period)
   -- animate reflections by switching colors over time
   local ratio = (t() % period) / period
   local c1, c2

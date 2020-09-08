@@ -154,7 +154,56 @@ end
 -- render the stage background
 function stage_state:render_background()
   camera()
-  rectfill(0, 0, 127, 127, self.curr_stage_data.background_color)
+
+  -- dark blue sky + sea
+  -- (in stage data, but actually the code below only makes sense
+  --  for stage with jungle/sea background)
+  rectfill(0, 0, 127, 127, colors.dark_blue)
+
+  -- horizon line is very bright
+  local horizon_line_y = 60
+  -- dithering above horizon line
+  for i = 0, 126, 2 do
+    line(i, horizon_line_y - 3, i + 1, horizon_line_y - 2, colors.blue)
+  end
+  -- blue line above horizon line
+  rectfill(0, horizon_line_y - 1, 127, horizon_line_y - 1, colors.blue)
+  -- white horizon line
+  rectfill(0, horizon_line_y, 127, horizon_line_y, colors.white)
+
+  -- shiny reflections in water
+  -- vary y
+  local dy_list = {5, 4, 7, 3, 2, 6}
+  local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
+  -- to cover up to ~127 with intervals of 6,
+  --  we need i up to 21 since 21*6 = 126
+  for i = 0, 21 do
+    self:render_water_reflections(6 * i, horizon_line_y + dy_list[i % 6 + 1], period_list[i % 5 + 1])
+  end
+end
+
+function stage_state:render_water_reflections(x, y, period)
+  -- animate reflections by switching colors over time
+  local ratio = (t() % period) / period
+  local c1, c2
+  if ratio < 0.2 then
+    c1 = colors.dark_blue
+    c2 = colors.blue
+  elseif ratio < 0.4 then
+    c1 = colors.white
+    c2 = colors.blue
+  elseif ratio < 0.6 then
+    c1 = colors.blue
+    c2 = colors.dark_blue
+  elseif ratio < 0.8 then
+    c1 = colors.blue
+    c2 = colors.white
+  else
+    c1 = colors.dark_blue
+    c2 = colors.blue
+  end
+  pset(x, y, c1)
+  pset(x + 1, y, c2)
 end
 
 -- render the stage elements with the main camera:
@@ -172,6 +221,8 @@ function stage_state:render_environment()
   -- instead just draw the portion of the level of interest
   -- (and either keep camera offset or offset manually and subtract from camera offset)
   set_unique_transparency(colors.pink)
+  -- todo: first render everything but loop entrance tiles, then after player char,
+  -- only loop entrance tiles
   map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height)
 
   -- goal as vertical line

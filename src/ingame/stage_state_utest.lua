@@ -562,12 +562,13 @@ describe('stage_state', function ()
               assert.spy(title_overlay_draw_labels_stub).was_called_with(state.title_overlay)
             end)
 
-            it('render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
+            it('#solo render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(1)
-              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, state.curr_stage_data.background_color)
+              assert.spy(rectfill_stub).was_called(3)
+              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
+              -- more calls but we don't check beckground details, human tests are better for this
             end)
 
             it('render_stage_elements should set camera position, call map for environment and player_char:render', function ()

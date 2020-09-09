@@ -38,6 +38,10 @@ function stage_state:_init()
 
   -- title overlay
   self.title_overlay = overlay(0)
+
+  -- list of background tree delta heights (i.e. above base height),
+  --  per row, from farthest to closest
+  self.tree_dheight_array_list = nil
 end
 
 function stage_state:on_enter()
@@ -48,6 +52,9 @@ function stage_state:on_enter()
 
   self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
+
+  -- randomize tree height on stage start so it's stable during the stage
+  self:randomize_tree_dheight_array_list()
 end
 
 function stage_state:on_exit()
@@ -206,6 +213,15 @@ function stage_state:render_background()
   for i = 0, 21 do
     self:draw_water_reflections(6 * i, horizon_line_y + 2 + reflection_dy_list[i % 6 + 1], period_list[i % 5 + 1])
   end
+
+  -- tree rows
+  -- base height so trees have a bottom part long enough to cover the gap with the trees below
+  local tree_base_height = 10
+  local tree_row_y0 = 89
+  local tree_row_dy_mult = 8
+  for j = 0, 3 do
+    self:draw_tree_row(tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+  end
 end
 
 function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
@@ -220,6 +236,7 @@ function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
   --  edge)
   -- intermediate var to avoid luamin bracket stripping bug #50
   local x0 = x - offset_x + 100
+
   -- clouds move to the left
   x0 = x0 % 300 - 100
 
@@ -259,6 +276,28 @@ function stage_state:draw_water_reflections(x, y, period)
   end
   pset(x, y, c1)
   pset(x + 1, y, c2)
+end
+
+function stage_state:randomize_tree_dheight_array_list()
+  self.tree_dheight_array_list = {}
+  for j = 1, 4 do
+    self.tree_dheight_array_list[j] = {}
+    for i = 1, 64 do
+      -- shape of trees are a kind of sin with peaks every 6 pixels,
+      --  but it's always above a threshold curved like a broad bouncing sin,
+      --  hence the max with abs sin at longer period
+      self.tree_dheight_array_list[j][i] = max(3 * abs(sin(i/20)), flr(rnd(8)))
+    end
+  end
+end
+
+function stage_state:draw_tree_row(y, base_height, dheight_array, color)
+  local size = #dheight_array
+  for x = 0, 127 do
+    local height = base_height + dheight_array[x % size + 1]
+    -- draw vertical line from bottom to (variable) top
+    line(x, y, x, y - height, color)
+  end
 end
 
 -- render the stage elements with the main camera:

@@ -172,7 +172,7 @@ function stage_state:render_background()
   rectfill(0, 0, 127, 127, colors.dark_blue)
 
   -- horizon line is very bright
-  local horizon_line_y = 60
+  local horizon_line_y = 90 - 0.5 * self.camera_pos.y
   -- dithering above horizon line
   for i = 0, 126, 2 do
     line(i, horizon_line_y - 3, i + 1, horizon_line_y - 2, colors.blue)
@@ -229,26 +229,21 @@ function stage_state:render_background()
     self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
   end
 
-  -- tree rows
+  -- tree/leaves data
+
   -- base height so trees have a bottom part long enough to cover the gap with the trees below
   local tree_base_height = 10
-  local tree_row_y0 = 89
+  local tree_row_y0 = horizon_line_y + 29
   local tree_row_dy_mult = 8
   -- parallax speed of farthest row
   local tree_row_parallax_speed_min = 0.3
   -- parallax speed of closest row
   local tree_row_parallax_speed_max = 0.42
   local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
-  for j = 0, 3 do
-    -- elements farther from camera have slower parallax speed, closest has base parallax speed
-    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    self:draw_tree_row(parallax_offset, tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
-  end
 
   local leaves_base_height = 21
-  local leaves_y0 = 110
-  local leaves_row_dy_mult = 19
+  local leaves_y0 = horizon_line_y + 33
+  local leaves_row_dy_mult = 18
   -- for max parallax speed, reuse the one of trees
   -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
   --  is actually the same sprite as the closest tree top (which is really just a big green patch)
@@ -256,12 +251,26 @@ function stage_state:render_background()
   --  want both elements to move exactly together, prefer drawing a long line from tree top to leaf bottom
   --  in a single draw_tree_and_leaves function
   -- however we use different speeds for farther leaves
-  leaves_row_parallax_speed_min = 0.36
+  local leaves_row_parallax_speed_min = 0.36
   local leaves_row_parallax_speed_range = tree_row_parallax_speed_max - leaves_row_parallax_speed_min
+
+  -- leaves (before trees so trees can hide some leaves with base height too long if needed)
   for j = 0, 1 do
     local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j / 1
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    self:draw_leaves_row(parallax_offset, leaves_y0 - leaves_row_dy_mult * j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 1 and colors.green or colors.dark_green)
+    -- first patch of leaves chains from closest trees, so no base height
+    --  easier to connect and avoid hiding closest trees
+    -- intermediate var for luamin #50
+    local complementary_j = 1 - j
+    self:draw_leaves_row(parallax_offset, leaves_y0 + leaves_row_dy_mult * complementary_j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+  end
+
+  -- tree rows
+  for j = 0, 3 do
+    -- elements farther from camera have slower parallax speed, closest has base parallax speed
+    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_tree_row(parallax_offset, tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 end
 

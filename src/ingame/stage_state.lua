@@ -223,15 +223,34 @@ function stage_state:render_background()
   local tree_base_height = 10
   local tree_row_y0 = 89
   local tree_row_dy_mult = 8
+  -- parallax speed of closest row
+  local tree_row_parallax_speed_max = 0.42
+  -- parallax speed of farthest row
+  local tree_row_parallax_speed_min = 0.3
+  local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
   for j = 0, 3 do
-    self:draw_tree_row(tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    -- elements farther from camera have slower parallax speed, closest has base parallax speed
+    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_tree_row(parallax_offset, tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 
   local leaves_base_height = 21
   local leaves_y0 = 110
   local leaves_row_dy_mult = 19
+  -- for max parallax speed, reuse the one of trees
+  -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
+  --  is actually the same sprite as the closest tree top (which is really just a big green patch)
+  -- due to a small calculation error the final speeds end slightly different, so if you really
+  --  want both elements to move exactly together, prefer drawing a long line from tree top to leaf bottom
+  --  in a single draw_tree_and_leaves function
+  -- however we use different speeds for farther leaves
+  leaves_row_parallax_speed_min = 0.36
+  local leaves_row_parallax_speed_range = tree_row_parallax_speed_max - leaves_row_parallax_speed_min
   for j = 0, 1 do
-    self:draw_leaves_row(leaves_y0 - leaves_row_dy_mult * j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 1 and colors.green or colors.dark_green)
+    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j / 1
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_leaves_row(parallax_offset, leaves_y0 - leaves_row_dy_mult * j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 1 and colors.green or colors.dark_green)
   end
 end
 
@@ -314,19 +333,23 @@ function stage_state:randomize_background_data()
   end
 end
 
-function stage_state:draw_tree_row(y, base_height, dheight_array, color)
+function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    local height = base_height + dheight_array[x % size + 1]
+    -- intermediate var to avoid luamin bracket removal issue #50
+    local parallax_x = x + parallax_offset
+    local height = base_height + dheight_array[parallax_x % size + 1]
     -- draw vertical line from bottom to (variable) top
     line(x, y, x, y - height, color)
   end
 end
 
-function stage_state:draw_leaves_row(y, base_height, dheight_array, color)
+function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    local height = base_height + dheight_array[x % size + 1]
+    -- intermediate var to avoid luamin bracket removal issue #50
+    local parallax_x = x + parallax_offset
+    local height = base_height + dheight_array[parallax_x % size + 1]
     -- draw vertical line from top to (variable) bottom
     line(x, y, x, y + height, color)
   end

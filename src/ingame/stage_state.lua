@@ -212,10 +212,21 @@ function stage_state:render_background()
   -- vary y
   local reflection_dy_list = {4, 3, 6, 2, 1, 5}
   local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
+  -- parallax speed of (relatively) close reflection (dy = 6)
+  local water_parallax_speed_max = 0.015
   -- to cover up to ~127 with intervals of 6,
   --  we need i up to 21 since 21*6 = 126
   for i = 0, 21 do
-    self:draw_water_reflections(6 * i, horizon_line_y + 2 + reflection_dy_list[i % 6 + 1], period_list[i % 5 + 1])
+    local dy = reflection_dy_list[i % 6 + 1]
+    local y = horizon_line_y + 2 + dy
+    -- elements farther from camera have slower parallax speed, closest has base parallax speed
+    -- clamp in case some y are bigger than 6, but it's better if you can adjust to max of
+    --  reflection_dy_list so max is still max and different dy give different speeds
+    -- we have speed 0 at the horizon line, so no need to compute min
+    -- note that real optics would give some 1 / tan(distance) factor but linear is enough for us
+    local parallax_speed = water_parallax_speed_max * min(6, dy) / 6
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
   end
 
   -- tree rows
@@ -223,10 +234,10 @@ function stage_state:render_background()
   local tree_base_height = 10
   local tree_row_y0 = 89
   local tree_row_dy_mult = 8
-  -- parallax speed of closest row
-  local tree_row_parallax_speed_max = 0.42
   -- parallax speed of farthest row
   local tree_row_parallax_speed_min = 0.3
+  -- parallax speed of closest row
+  local tree_row_parallax_speed_max = 0.42
   local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
   for j = 0, 3 do
     -- elements farther from camera have slower parallax speed, closest has base parallax speed
@@ -284,7 +295,7 @@ function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
   end
 end
 
-function stage_state:draw_water_reflections(x, y, period)
+function stage_state:draw_water_reflections(parallax_offset, x, y, period)
   -- animate reflections by switching colors over time
   local ratio = (t() % period) / period
   local c1, c2
@@ -304,8 +315,8 @@ function stage_state:draw_water_reflections(x, y, period)
     c1 = colors.dark_blue
     c2 = colors.blue
   end
-  pset(x, y, c1)
-  pset(x + 1, y, c2)
+  pset((x - parallax_offset) % screen_width, y, c1)
+  pset((x - parallax_offset + 1) % screen_width, y, c2)
 end
 
 function stage_state:randomize_background_data()

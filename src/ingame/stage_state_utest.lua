@@ -566,7 +566,7 @@ describe('stage_state', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(3)
+              assert.spy(rectfill_stub).was_called(4)
               assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
               -- more calls but we don't check beckground details, human tests are better for this
             end)

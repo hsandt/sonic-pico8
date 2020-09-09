@@ -40,8 +40,12 @@ function stage_state:_init()
   self.title_overlay = overlay(0)
 
   -- list of background tree delta heights (i.e. above base height),
-  --  per row, from farthest to closest
-  self.tree_dheight_array_list = nil
+  --  per row, from farthest (top) to closest
+  --  (added for doc, commented out since nil does nothing)
+  -- self.tree_dheight_array_list = nil
+
+  -- list of falling leaves heights per row, from farthest (bottom) to closest
+  -- self.leaves_dheight_array_list = nil
 end
 
 function stage_state:on_enter()
@@ -53,8 +57,8 @@ function stage_state:on_enter()
   self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
 
-  -- randomize tree height on stage start so it's stable during the stage
-  self:randomize_tree_dheight_array_list()
+  -- randomize background data on stage start so it's stable during the stage
+  self:randomize_background_data()
 end
 
 function stage_state:on_exit()
@@ -222,6 +226,13 @@ function stage_state:render_background()
   for j = 0, 3 do
     self:draw_tree_row(tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
+
+  local leaves_base_height = 21
+  local leaves_y0 = 110
+  local leaves_row_dy_mult = 19
+  for j = 0, 1 do
+    self:draw_leaves_row(leaves_y0 - leaves_row_dy_mult * j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 1 and colors.green or colors.dark_green)
+  end
 end
 
 function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
@@ -278,15 +289,27 @@ function stage_state:draw_water_reflections(x, y, period)
   pset(x + 1, y, c2)
 end
 
-function stage_state:randomize_tree_dheight_array_list()
+function stage_state:randomize_background_data()
   self.tree_dheight_array_list = {}
   for j = 1, 4 do
     self.tree_dheight_array_list[j] = {}
+    -- longer periods on closer tree rows (also removes the need for offset
+    --  to avoid tree rows sin in sync, although parallax will offset anyway)
+    local period = 20 + 10 * (j-1)
     for i = 1, 64 do
-      -- shape of trees are a kind of sin with peaks every 6 pixels,
-      --  but it's always above a threshold curved like a broad bouncing sin,
-      --  hence the max with abs sin at longer period
-      self.tree_dheight_array_list[j][i] = max(3 * abs(sin(i/20)), flr(rnd(8)))
+      -- shape of trees are a kind of sin min threshold with random peaks
+      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
+    end
+  end
+
+  self.leaves_dheight_array_list = {}
+  for j = 1, 2 do
+    self.leaves_dheight_array_list[j] = {}
+    -- longer periods on closer leaves
+    local period = 70 + 35 * (j-1)
+    for i = 1, 64 do
+      -- shape of trees are a kind of broad sin random peaks
+      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
     end
   end
 end
@@ -297,6 +320,15 @@ function stage_state:draw_tree_row(y, base_height, dheight_array, color)
     local height = base_height + dheight_array[x % size + 1]
     -- draw vertical line from bottom to (variable) top
     line(x, y, x, y - height, color)
+  end
+end
+
+function stage_state:draw_leaves_row(y, base_height, dheight_array, color)
+  local size = #dheight_array
+  for x = 0, 127 do
+    local height = base_height + dheight_array[x % size + 1]
+    -- draw vertical line from top to (variable) bottom
+    line(x, y, x, y + height, color)
   end
 end
 

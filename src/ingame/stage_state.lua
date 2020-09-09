@@ -229,6 +229,9 @@ function stage_state:render_background()
     self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
   end
 
+  -- under the trees background
+  rectfill(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
+
   -- tree/leaves data
 
   -- base height so trees have a bottom part long enough to cover the gap with the trees below

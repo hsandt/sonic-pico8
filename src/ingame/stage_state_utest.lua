@@ -217,12 +217,39 @@ describe('stage_state', function ()
           describe('update_camera', function ()
 
             before_each(function ()
-              state.player_char.position = vector(12, 24)
+              -- required for stage edge clamping
+              -- we only need to mock width and height,
+              --  normally we'd get full stage data as in stage_data.lua
+              state.curr_stage_data = {
+                width = 100,
+                height = 20
+              }
             end)
 
             it('should move the camera to player position', function ()
+              state.player_char.position = vector(120, 80)
+
               state:update_camera()
-              assert.are_same(vector(12, 24), state.camera_pos)
+
+              assert.are_same(vector(120, 80), state.camera_pos)
+            end)
+
+            it('should move the camera to player position, clamped (top-left)', function ()
+              -- required for stage edge clamping
+              state.player_char.position = vector(12, 24)
+
+              state:update_camera()
+
+              assert.are_same(vector(64, 64), state.camera_pos)
+            end)
+
+            it('should move the camera to player position, clamped (top-right)', function ()
+              -- required for stage edge clamping
+              state.player_char.position = vector(2000, 1000)
+
+              state:update_camera()
+
+              assert.are_same(vector(800-64, 160-64), state.camera_pos)
             end)
 
           end)
@@ -515,7 +542,7 @@ describe('stage_state', function ()
             teardown(function ()
               rectfill_stub:revert()
               map_stub:revert()
-              state.render_environment:revert()
+              stage_state.render_environment:revert()
               player_char_render_stub:revert()
               title_overlay_draw_labels_stub:revert()
             end)
@@ -523,7 +550,7 @@ describe('stage_state', function ()
             after_each(function ()
               rectfill_stub:clear()
               map_stub:clear()
-              state.render_environment:clear()
+              stage_state.render_environment:clear()
               player_char_render_stub:clear()
               title_overlay_draw_labels_stub:clear()
             end)
@@ -535,12 +562,13 @@ describe('stage_state', function ()
               assert.spy(title_overlay_draw_labels_stub).was_called_with(state.title_overlay)
             end)
 
-            it('render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
+            it('#solo render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(1)
-              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, state.curr_stage_data.background_color)
+              assert.spy(rectfill_stub).was_called(4)
+              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
+              -- more calls but we don't check beckground details, human tests are better for this
             end)
 
             it('render_stage_elements should set camera position, call map for environment and player_char:render', function ()

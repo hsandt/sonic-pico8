@@ -45,8 +45,8 @@ describe('tile_collision_data', function ()
   describe('_init', function ()
 
     it('should create a tile_collision_data with reciprocal arrays and slope angle', function ()
-      local tcd = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
-      assert.are_same({{0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4)}, {tcd.height_array, tcd.width_array, tcd.slope_angle})
+      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)
+      assert.are_same({10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4)}, {tcd.mask_tile_id_loc, tcd.height_array, tcd.width_array, tcd.slope_angle})
     end)
 
   end)
@@ -54,7 +54,7 @@ describe('tile_collision_data', function ()
   describe('get_height', function ()
 
     it('should return the height at the given column index', function ()
-      local tcd = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
+      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
       assert.are_equal(2, tcd:get_height(2))
     end)
 
@@ -63,7 +63,7 @@ describe('tile_collision_data', function ()
   describe('get_width', function ()
 
     it('should return the width at the given column index', function ()
-      local tcd = tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
+      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
       assert.are_equal(2, tcd:get_width(4))
     end)
 
@@ -77,17 +77,17 @@ describe('tile_collision_data', function ()
     --  define the same tiles!
 
     it('should return true when empty', function ()
-      local tcd = tile_collision_data({0, 0, 0, 0, 0, 0, 0, 0}, {}, 0)
+      local tcd = tile_collision_data(20, {0, 0, 0, 0, 0, 0, 0, 0}, {}, 0)
       assert.is_true(tcd:is_full_vertical_rectangle())
     end)
 
     it('should return true when made of empty/full columns', function ()
-      local tcd = tile_collision_data({8, 8, 8, 0, 0, 0, 0, 0}, {}, 0.75)
+      local tcd = tile_collision_data(30, {8, 8, 8, 0, 0, 0, 0, 0}, {}, 0.75)
       assert.is_true(tcd:is_full_vertical_rectangle())
     end)
 
     it('should return false when not made of empty/full columns only', function ()
-      local tcd = tile_collision_data({4, 4, 4, 4, 3, 3, 3, 3}, {}, atan2(8, -1))
+      local tcd = tile_collision_data(40, {4, 4, 4, 4, 3, 3, 3, 3}, {}, atan2(8, -1))
       assert.is_false(tcd:is_full_vertical_rectangle())
     end)
 
@@ -96,17 +96,17 @@ describe('tile_collision_data', function ()
   describe('is_full_horizontal_rectangle', function ()
 
     it('should return true when empty', function ()
-      local tcd = tile_collision_data({}, {0, 0, 0, 0, 0, 0, 0, 0}, 0)
+      local tcd = tile_collision_data(50, {}, {0, 0, 0, 0, 0, 0, 0, 0}, 0)
       assert.is_true(tcd:is_full_horizontal_rectangle())
     end)
 
     it('should return true when made of empty/full rows', function ()
-      local tcd = tile_collision_data({}, {0, 0, 0, 0, 0, 8, 8, 8}, 0)
+      local tcd = tile_collision_data(60, {}, {0, 0, 0, 0, 0, 8, 8, 8}, 0)
       assert.is_true(tcd:is_full_horizontal_rectangle())
     end)
 
     it('should return false when not made of empty/full rows only', function ()
-      local tcd = tile_collision_data({}, {0, 0, 0, 0, 4, 8, 8, 8}, atan2(8, -1))
+      local tcd = tile_collision_data(70, {}, {0, 0, 0, 0, 4, 8, 8, 8}, atan2(8, -1))
       assert.is_false(tcd:is_full_horizontal_rectangle())
     end)
 
@@ -183,19 +183,19 @@ describe('tile_collision_data', function ()
       local raw_data = raw_tile_collision_data(1, atan2(8, -4))
       local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
       -- struct equality with are_equal would work, we just use are_same to benefit from diff asterisk provided by luassert
-      assert.are_same(tile_collision_data({0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), vertical_dirs.down, horizontal_dirs.right), tcd)
+      assert.are_same(tile_collision_data(1, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), vertical_dirs.down, horizontal_dirs.right), tcd)
     end)
 
     it('should return a tile_collision_data containing (mock tile 2) height/width array, slope angle, derived interior directions', function ()
       local raw_data = raw_tile_collision_data(2, atan2(-8, 8))
       local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
-      assert.are_same(tile_collision_data({8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, 8), vertical_dirs.up, horizontal_dirs.left), tcd)
+      assert.are_same(tile_collision_data(2, {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, 8), vertical_dirs.up, horizontal_dirs.left), tcd)
     end)
 
     it('should return a tile_collision_data containing (mock tile 3) height/width array, slope angle, derived interior directions', function ()
       local raw_data = raw_tile_collision_data(2, atan2(-8, -8))
       local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
-      assert.are_same(tile_collision_data({8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, -8), vertical_dirs.up, horizontal_dirs.right), tcd)
+      assert.are_same(tile_collision_data(2, {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, -8), vertical_dirs.up, horizontal_dirs.right), tcd)
     end)
 
   end)

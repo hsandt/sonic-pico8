@@ -6,20 +6,22 @@ local motion = {}
 --  e.g. "touching" does not occur when two aabb's pixel representations
 --  with 1px wide borders touch, but when their exact borders coincide
 
--- struct containing the result of a ground detection test
+-- struct containing the result of a ground detection test (a kind of raycast adapted to our height array system)
 local ground_query_info = new_struct()
 motion.ground_query_info = ground_query_info
 
--- signed_distance    float       signed distance to the detected ground (clamped to min-1 amd max+1)
--- slope_angle        float|nil   slope angle of the detected ground (nil if no ground)
-function ground_query_info:_init(signed_distance, slope_angle)
+-- tile_location      location|nil location of detected ground tile (nil if no ground)
+-- signed_distance    float        signed distance to the detected ground (clamped to min-1 and max+1)
+-- slope_angle        float|nil    slope angle of the detected ground (nil if no ground)
+function ground_query_info:_init(tile_location, signed_distance, slope_angle)
+  self.tile_location = tile_location
   self.signed_distance = signed_distance
   self.slope_angle = slope_angle
 end
 
 --#if log
 function ground_query_info:_tostring()
-  return "ground_query_info("..joinstr(", ", self.signed_distance, tostr(self.slope_angle))..")"
+  return "ground_query_info("..joinstr(", ", self.tile_location, self.signed_distance, tostr(self.slope_angle))..")"
 end
 --#endif
 
@@ -29,11 +31,15 @@ end
 local ground_motion_result = new_struct()
 motion.ground_motion_result = ground_motion_result
 
--- position     vector      position at the end of motion
--- slope_angle  float|nil   slope angle of the final position (nil if is_falling is true)
--- is_blocked   bool        was the character blocked during motion?
--- is_falling   bool        should the character fall after this motion?
-function ground_motion_result:_init(position, slope_angle, is_blocked, is_falling)
+-- tile_location location|nil location of ground tile at the end of motion (nil if no ground i.e. is_falling)
+-- position      vector       position at the end of motion
+-- slope_angle   float|nil    slope angle of the final position (nil if is_falling is true)
+-- is_blocked    bool         was the character blocked during motion?
+-- is_falling    bool         should the character fall after this motion?
+function ground_motion_result:_init(tile_location, position, slope_angle, is_blocked, is_falling)
+  assert((tile_location ~= nil) ~= is_falling)
+  assert(type(slope_angle) == "number" or slope_angle == nil)
+  self.tile_location = tile_location
   self.position = position
   self.slope_angle = slope_angle
   self.is_blocked = is_blocked
@@ -42,7 +48,7 @@ end
 
 --#if log
 function ground_motion_result:_tostring()
-  return "ground_motion_result("..joinstr(", ", self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
+  return "ground_motion_result("..joinstr(", ", self.tile_location, self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
 end
 --#endif
 
@@ -52,12 +58,16 @@ end
 local air_motion_result = new_struct()
 motion.air_motion_result = air_motion_result
 
--- position               vector    position at the end of motion
--- is_blocked_by_wall     bool      was the character blocked by a left/right wall during motion?
--- is_blocked_by_ceiling  bool      was the character blocked by a ceiling during motion?
--- is_landing             bool      has the character landed at the end of this motion?
--- slope_angle            float|nil slope angle of the final position (nil unless is_landing is true)
-function air_motion_result:_init(position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle)
+-- tile_location          location|nil location of ground tile at the end of motion (nil if no ground i.e. not is_landing)
+-- position               vector       position at the end of motion
+-- is_blocked_by_wall     bool         was the character blocked by a left/right wall during motion?
+-- is_blocked_by_ceiling  bool         was the character blocked by a ceiling during motion?
+-- is_landing             bool         has the character landed at the end of this motion?
+-- slope_angle            float|nil    slope angle of the final position (nil unless is_landing is true)
+function air_motion_result:_init(tile_location, position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle)
+  assert((tile_location ~= nil) == is_landing, "tile location is "..stringify(tile_location).." but is_landing is "..tostr(is_landing))
+  assert(type(is_blocked_by_wall) == "boolean")
+  self.tile_location = tile_location
   self.position = position
   self.is_blocked_by_wall = is_blocked_by_wall
   self.is_blocked_by_ceiling = is_blocked_by_ceiling
@@ -79,7 +89,7 @@ end
 --#if log
 function air_motion_result:_tostring()
   return "air_motion_result("..joinstr(", ",
-    self.position, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"
+    self.tile_location, self.position, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"
 end
 --#endif
 

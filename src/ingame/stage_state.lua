@@ -38,6 +38,14 @@ function stage_state:_init()
 
   -- title overlay
   self.title_overlay = overlay(0)
+
+  -- list of background tree delta heights (i.e. above base height),
+  --  per row, from farthest (top) to closest
+  --  (added for doc, commented out since nil does nothing)
+  -- self.tree_dheight_array_list = nil
+
+  -- list of falling leaves heights per row, from farthest (bottom) to closest
+  -- self.leaves_dheight_array_list = nil
 end
 
 function stage_state:on_enter()
@@ -48,6 +56,9 @@ function stage_state:on_enter()
 
   self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
+
+  -- randomize background data on stage start so it's stable during the stage
+  self:randomize_background_data()
 end
 
 function stage_state:on_exit()
@@ -127,8 +138,9 @@ end
 -- update camera position based on player character position
 function stage_state:update_camera()
   -- stiff motion
-  self.camera_pos.x = self.player_char.position.x
-  self.camera_pos.y = self.player_char.position.y
+  -- clamp on level edges (we are handling the center so need offset by screen_width/height)
+  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.width * tile_size - screen_width / 2)
+  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.height * tile_size - screen_height / 2)
 end
 
 -- set the camera offset for stage elements
@@ -153,7 +165,217 @@ end
 -- render the stage background
 function stage_state:render_background()
   camera()
-  rectfill(0, 0, 127, 127, self.curr_stage_data.background_color)
+
+  -- dark blue sky + sea
+  -- (in stage data, but actually the code below only makes sense
+  --  for stage with jungle/sea background)
+  rectfill(0, 0, 127, 127, colors.dark_blue)
+
+  -- horizon line is very bright
+  local horizon_line_y = 90 - 0.5 * self.camera_pos.y
+  -- dithering above horizon line
+  for i = 0, 126, 2 do
+    line(i, horizon_line_y - 3, i + 1, horizon_line_y - 2, colors.blue)
+  end
+  -- blue line above horizon line
+  rectfill(0, horizon_line_y - 1, 127, horizon_line_y - 1, colors.blue)
+  -- white horizon line
+  rectfill(0, horizon_line_y, 127, horizon_line_y, colors.white)
+  rectfill(0, horizon_line_y + 1, 127, horizon_line_y + 1, colors.indigo)
+
+  -- clouds in the sky, from lowest to highest (and biggest)
+  local cloud_dx_list_per_j = {
+    {0, 60, 140, 220},
+    {30, 150, 240},
+    {10, 90, 210},
+    {50, 130}
+  }
+  local dy_list_per_j = {
+    {0, 0, -1, 0},
+    {0, -1, -1, 0},
+    {0, -1, 1, 0},
+    {0, 1, -1, 1}
+  }
+  local dy0 = 8.9
+  local dy_mult = 14.7
+  local r0 = 2
+  local r_mult = 0.9
+  local speed0 = 3
+  local speed_mult = 3.5
+  for j = 0, 3 do
+    for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
+      self:draw_cloud(cloud_dx, horizon_line_y - dy0 - dy_mult * j, dy_list_per_j[j + 1], r0 + r_mult * j, speed0 + speed_mult * j)
+    end
+  end
+
+  -- shiny reflections in water
+  -- vary y
+  local reflection_dy_list = {4, 3, 6, 2, 1, 5}
+  local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
+  -- parallax speed of (relatively) close reflection (dy = 6)
+  local water_parallax_speed_max = 0.015
+  -- to cover up to ~127 with intervals of 6,
+  --  we need i up to 21 since 21*6 = 126
+  for i = 0, 21 do
+    local dy = reflection_dy_list[i % 6 + 1]
+    local y = horizon_line_y + 2 + dy
+    -- elements farther from camera have slower parallax speed, closest has base parallax speed
+    -- clamp in case some y are bigger than 6, but it's better if you can adjust to max of
+    --  reflection_dy_list so max is still max and different dy give different speeds
+    -- we have speed 0 at the horizon line, so no need to compute min
+    -- note that real optics would give some 1 / tan(distance) factor but linear is enough for us
+    local parallax_speed = water_parallax_speed_max * min(6, dy) / 6
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
+  end
+
+  -- under the trees background
+  rectfill(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
+
+  -- tree/leaves data
+
+  -- base height so trees have a bottom part long enough to cover the gap with the trees below
+  local tree_base_height = 10
+  local tree_row_y0 = horizon_line_y + 29
+  local tree_row_dy_mult = 8
+  -- parallax speed of farthest row
+  local tree_row_parallax_speed_min = 0.3
+  -- parallax speed of closest row
+  local tree_row_parallax_speed_max = 0.42
+  local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
+
+  local leaves_base_height = 21
+  local leaves_y0 = horizon_line_y + 33
+  local leaves_row_dy_mult = 18
+  -- for max parallax speed, reuse the one of trees
+  -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
+  --  is actually the same sprite as the closest tree top (which is really just a big green patch)
+  -- due to a small calculation error the final speeds end slightly different, so if you really
+  --  want both elements to move exactly together, prefer drawing a long line from tree top to leaf bottom
+  --  in a single draw_tree_and_leaves function
+  -- however we use different speeds for farther leaves
+  local leaves_row_parallax_speed_min = 0.36
+  local leaves_row_parallax_speed_range = tree_row_parallax_speed_max - leaves_row_parallax_speed_min
+
+  -- leaves (before trees so trees can hide some leaves with base height too long if needed)
+  for j = 0, 1 do
+    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j / 1
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    -- first patch of leaves chains from closest trees, so no base height
+    --  easier to connect and avoid hiding closest trees
+    -- intermediate var for luamin #50
+    local complementary_j = 1 - j
+    self:draw_leaves_row(parallax_offset, leaves_y0 + leaves_row_dy_mult * complementary_j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+  end
+
+  -- tree rows
+  for j = 0, 3 do
+    -- elements farther from camera have slower parallax speed, closest has base parallax speed
+    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
+    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    self:draw_tree_row(parallax_offset, tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+  end
+end
+
+function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
+  -- indigo outline (prefer circfill to circ to avoid gaps
+  --  between inside and outline for some values)
+  local offset_x = t() * speed
+  -- we make clouds cycle horizontally but we don't want to
+  --  make them disappear as soon as they reach the left edge of the screen
+  --  so we take a margin of 100px (must be at least cloud width)
+  --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
+  --  where extra margin is to avoid having cloud spawning immediately on screen right
+  --  edge)
+  -- intermediate var to avoid luamin bracket stripping bug #50
+  local x0 = x - offset_x + 100
+
+  -- clouds move to the left
+  x0 = x0 % 300 - 100
+
+  local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
+  local r_mult_list = {0.8, 1.4, 1.1, 0.7}
+
+  -- indigo outline
+  for i=1,4 do
+    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius + 1, colors.indigo)
+  end
+
+  -- white inside
+  for i=1,4 do
+    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius, colors.white)
+  end
+end
+
+function stage_state:draw_water_reflections(parallax_offset, x, y, period)
+  -- animate reflections by switching colors over time
+  local ratio = (t() % period) / period
+  local c1, c2
+  if ratio < 0.2 then
+    c1 = colors.dark_blue
+    c2 = colors.blue
+  elseif ratio < 0.4 then
+    c1 = colors.white
+    c2 = colors.blue
+  elseif ratio < 0.6 then
+    c1 = colors.blue
+    c2 = colors.dark_blue
+  elseif ratio < 0.8 then
+    c1 = colors.blue
+    c2 = colors.white
+  else
+    c1 = colors.dark_blue
+    c2 = colors.blue
+  end
+  pset((x - parallax_offset) % screen_width, y, c1)
+  pset((x - parallax_offset + 1) % screen_width, y, c2)
+end
+
+function stage_state:randomize_background_data()
+  self.tree_dheight_array_list = {}
+  for j = 1, 4 do
+    self.tree_dheight_array_list[j] = {}
+    -- longer periods on closer tree rows (also removes the need for offset
+    --  to avoid tree rows sin in sync, although parallax will offset anyway)
+    local period = 20 + 10 * (j-1)
+    for i = 1, 64 do
+      -- shape of trees are a kind of sin min threshold with random peaks
+      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
+    end
+  end
+
+  self.leaves_dheight_array_list = {}
+  for j = 1, 2 do
+    self.leaves_dheight_array_list[j] = {}
+    -- longer periods on closer leaves
+    local period = 70 + 35 * (j-1)
+    for i = 1, 64 do
+      -- shape of trees are a kind of broad sin random peaks
+      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
+    end
+  end
+end
+
+function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
+  local size = #dheight_array
+  for x = 0, 127 do
+    -- intermediate var to avoid luamin bracket removal issue #50
+    local parallax_x = x + parallax_offset
+    local height = base_height + dheight_array[parallax_x % size + 1]
+    -- draw vertical line from bottom to (variable) top
+    line(x, y, x, y - height, color)
+  end
+end
+
+function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
+  local size = #dheight_array
+  for x = 0, 127 do
+    -- intermediate var to avoid luamin bracket removal issue #50
+    local parallax_x = x + parallax_offset
+    local height = base_height + dheight_array[parallax_x % size + 1]
+    -- draw vertical line from top to (variable) bottom
+    line(x, y, x, y + height, color)
+  end
 end
 
 -- render the stage elements with the main camera:
@@ -171,6 +393,8 @@ function stage_state:render_environment()
   -- instead just draw the portion of the level of interest
   -- (and either keep camera offset or offset manually and subtract from camera offset)
   set_unique_transparency(colors.pink)
+  -- todo: first render everything but loop entrance tiles, then after player char,
+  -- only loop entrance tiles
   map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height)
 
   -- goal as vertical line

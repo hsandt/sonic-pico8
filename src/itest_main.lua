@@ -27,7 +27,7 @@ function _init()
   -- register log streams to output logs to both the console and the file log
   logging.logger:register_stream(logging.console_log_stream)
   logging.logger:register_stream(logging.file_log_stream)
-  logging.file_log_stream.file_prefix = "picosonic"
+  logging.file_log_stream.file_prefix = "picosonic_itest"
 
   -- clear log file on new itest session
   logging.file_log_stream:clear()
@@ -40,7 +40,8 @@ function _init()
     ['itest'] = true,
     -- ['log'] = nil,
     -- ['ui'] = nil,
-    -- ['frame'] = nil,
+    ['frame'] = true,
+    ['trace'] = true,
 
     -- game
     -- ['...'] = true,

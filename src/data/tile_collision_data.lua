@@ -7,27 +7,30 @@ local tile = {}
 --  tile_collision_data makes it possible to check for collision with ground very easily
 local tile_collision_data = new_struct()
 
--- height_array  [int]    sequence of column heights of a tile collision mask per column index,
+-- mask_tile_id_loc sprite_id_location    sprite location of the collision mask for this tile on the spritesheet
+--                                        taken directly from raw_tile_collision_data
+-- height_array     [int]    sequence of column heights of a tile collision mask per column index,
 --                          counting index from the left
 --                         if tile vertical interior is down, a column rises from the bottom (floor)
 --                         if tile vertical interior is up, a column falls from the top (ceiling)
--- width_array   [int]    sequence of row widths of a tile collision mask per row index,
+-- width_array      [int]    sequence of row widths of a tile collision mask per row index,
 --                          counting index from the top
 --                         if tile horizontal interior is left, a row is filled from the left (left wall or desc slope)
 --                         if tile horizontal interior is up, a row is filled from the right (right wall or asc slope)
 --                        note: knowing height_array and knowing width_array is equivalent (reciprocity)
 --                         we simply store both for faster access
--- slope_angle   float    slope angle in turn ratio (0.0 to 1.0 excluded, positive clockwise)
+-- slope_angle      float    slope angle in turn ratio (0.0 to 1.0 excluded, positive clockwise)
 --                         it also determines the interior:
 --                         0    to 0.25: horizontal interior right, vertical interior down (flat or asc slope)
 --                         0.25 to 0.5:  horizontal interior right, vertical interior up   (ceiling right corner or flat)
 --                         0.5  to 0.75: horizontal interior left,  vertical interior up   (ceiling flat or left corner)
 --                         0.75 to 1:    horizontal interior left,  vertical interior down (desc slope or flat)
--- interior_v    vertical_dirs     vertical direction of the tile's interior
+-- interior_v       vertical_dirs     vertical direction of the tile's interior
 --                                 (up for ceiling, down for floor)
--- interior_h    horizontal_dirs   horizontal direction of the tile's interior
+-- interior_h       horizontal_dirs   horizontal direction of the tile's interior
 --                                 (left for desc slope or left ceiling, asc slope or right ceiling)
-function tile_collision_data:_init(height_array, width_array, slope_angle, interior_v, interior_h)
+function tile_collision_data:_init(mask_tile_id_loc, height_array, width_array, slope_angle, interior_v, interior_h)
+  self.mask_tile_id_loc = mask_tile_id_loc
   self.height_array = height_array
   self.width_array = width_array
   self.slope_angle = slope_angle
@@ -80,7 +83,10 @@ end
 function tile_collision_data.slope_angle_to_interiors(slope_angle)
   assert(slope_angle % 1 == slope_angle)
   -- in edge cases (square angles), interior direction is arbitrary
-  local interior_v = (slope_angle < 0.25 or slope_angle >= 0.75) and vertical_dirs.down or vertical_dirs.up
+  -- due to https://github.com/mathiasbynens/luamin/issues/50 we need intermediate variable
+  --  to avoid wrong bracket stripping on minification
+  local is_slope_angle_down = slope_angle < 0.25 or slope_angle >= 0.75
+  local interior_v = is_slope_angle_down and vertical_dirs.down or vertical_dirs.up
   local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
   return interior_v, interior_h
 end
@@ -92,6 +98,7 @@ function tile_collision_data.from_raw_tile_collision_data(raw_data)
   local interior_v, interior_h = tile_collision_data.slope_angle_to_interiors(raw_data.slope_angle)
 
   return tile_collision_data(
+    raw_data.mask_tile_id_loc,
     tile_collision_data.read_height_array(raw_data.mask_tile_id_loc, interior_v),
     tile_collision_data.read_width_array(raw_data.mask_tile_id_loc, interior_h),
     raw_data.slope_angle,

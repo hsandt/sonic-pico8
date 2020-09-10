@@ -4,7 +4,11 @@ local raw_tile_collision_data = require("data/raw_tile_collision_data")
 local tile_collision_data = require("data/tile_collision_data")
 
 sprite_flags = {
-  collision = 0
+  collision = 0,              -- collision flag set on VISIBLE sprite (and MASK sprite for testing with proto tiles)
+  loop_entrance = 1,          -- loop bottom-right part
+  loop_exit = 2,              -- loop bottom-left part
+  loop_entrance_trigger = 3,  -- loop top-top-right part (enables entrance late as in original game)
+  loop_exit_trigger = 4,      -- loop top-top-left part (enables exit late as in original game)
 }
 
 -- table mapping visual tile sprite id to tile collision data (collision mask sprite id location + slope)
@@ -88,6 +92,16 @@ sprite_flags = {
   73 @ (9, 4)
   74 @ (10, 4)
   75 @ (11, 4)
+  # loop sides
+  6  @ (6, 0) => (7, 0)
+  22 @ (6, 1) => (7, 1)
+  # curves (shape and visual like loop but collision mask has no layer-related flags)
+  69  @ (5, 4) CURVE TOP-TOP-RIGHT
+  70  @ (6, 4) CURVE TOP-RIGHT
+  86  @ (6, 5) CURVE TOP-RIGHT-RIGHT
+  102 @ (6, 6) CURVE BOTTOM-RIGHT-RIGHT
+  101 @ (5, 6) CURVE BOTTOM-RIGHT
+  85  @ (5, 5) CURVE BOTTOM-BOTTOM-RIGHT
 
   # proto (black and white tiles being their own collision masks)
   # must match tile_data.lua
@@ -99,10 +113,43 @@ sprite_flags = {
    96  @ (0, 6) FLAT LOW TILE (2px high) _
    64  @ (0, 4) BOTTOM-RIGHT QUARTER TILE (4px high) r
    112 @ (0, 7) ASCENDING 22.5 < slope_angle: 0.0625 ~= atan2(8, -4) (actually 0.0738) but kept for historical utest/itest reasons
+   117 @ (5, 7) ASCENDING 1-2 UPPER-LEVEL SLOPE y (8, 4) higher 1:2 ascending slope (completes 58 from loop)
    113 @ (1, 7) ASCENDING 45 /   slope_angle: 0.125 = atan2(1, -1)
    116 @ (4, 7) DESCENDING 45 \  slope_angle: 1-0.125 = atan2(1, 1)
-   117 @ (5, 7) higher 2:1 ascending slope (completes 58 from loop)
-   12  @ (12, 0) LOOP TOP-LEFT: reusing mask of loop top-left with itself
+   33  @ (1, 2) LOW ASC SLOPE (no DSL representation)
+   37  @ (5, 2) LOW DESC SLOPE (no DSL representation)
+   38  @ (6, 2) 3/4 FULL FLAT GROUND (no DSL representation)
+   12  @ (12, 0) LOOP TOP-LEFT (no DSL representation)
+   13  @ (13, 0) LOOP TOP-TOP-LEFT (no DSL representation)
+   14  @ (14, 0) LOOP TOP-TOP-RIGHT (no DSL representation)
+   15  @ (15, 0) LOOP TOP-RIGHT (no DSL representation)
+   31  @ (15, 1) LOOP TOP-RIGHT-RIGHT (no DSL representation)
+   47  @ (15, 2) LOOP BOTTOM-RIGHT-RIGHT (no DSL representation)
+   63  @ (15, 3) LOOP BOTTOM-RIGHT (no DSL representation)
+   62  @ (14, 2) LOOP BOTTOM-BOTTOM-RIGHT (no DSL representation)
+   61  @ (13, 1) LOOP BOTTOM-BOTTOM-LEFT (no DSL representation)
+   60  @ (12, 0) LOOP BOTTOM-LEFT (no DSL representation)
+   44  @ (12, 0) LOOP BOTTOM-LEFT-LEFT (no DSL representation)
+   28  @ (12, 0) LOOP TOP-LEFT-LEFT (no DSL representation)
+  # loop sides
+   7   @ (7, 0)
+   23  @ (7, 1)
+
+   76  @ (12, 4) CURVE TOP-TOP-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   77  @ (13, 4) CURVE TOP-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   79  @ (15, 4) CURVE TOP-RIGHT-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   95  @ (15, 5) CURVE BOTTOM-RIGHT-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   111 @ (15, 6) CURVE BOTTOM-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+   78  @ (14, 4) CURVE BOTTOM-BOTTOM-RIGHT (shape like loop but no layer mask flag nor trigger flag)
+
+   103 @ (7, 4) MID SLOPE ASC 1
+   104 @ (8, 4) MID SLOPE ASC 2
+   105 @ (9, 4) MID SLOPE ASC 3
+   106 @ (10, 4) MID SLOPE ASC 4
+   107 @ (11, 4) MID SLOPE DESC 1
+   108 @ (12, 4) MID SLOPE DESC 2
+   109 @ (13, 4) MID SLOPE DESC 3
+   110 @ (14, 4) MID SLOPE DESC 4
  --]]
 local raw_tiles_data = serialization.parse_expression(
    --[tile_id] = tile_data(
@@ -147,23 +194,33 @@ local raw_tiles_data = serialization.parse_expression(
     [125]= {{0, 2}, {8, 0}},
     [126]= {{0, 2}, {8, 0}},
 
-    [8]= {{12, 0}, {-4, 4}},
-    [9]= {{13, 0}, {-8, 4}},
+    [8] = {{12, 0}, {-4,  4}},
+    [9] = {{13, 0}, {-8,  4}},
     [10]= {{14, 0}, {-8, -4}},
     [11]= {{15, 0}, {-4, -4}},
     [27]= {{15, 1}, {-4, -8}},
-    [43]= {{15, 2}, {4, -8}},
-    [59]= {{15, 3}, {4, -4}},
-    [58]= {{14, 3}, {8, -4}},
-    [57]= {{13, 3}, {8, 4}},
-    [56]= {{12, 3}, {4, 4}},
-    [40]= {{12, 2}, {4, 8}},
-    [24]= {{12, 1}, {-4, 8}},
+    [43]= {{15, 2}, { 4, -8}},
+    [59]= {{15, 3}, { 4, -4}},
+    [58]= {{14, 3}, { 8, -4}},
+    [57]= {{13, 3}, { 8,  4}},
+    [56]= {{12, 3}, { 4,  4}},
+    [40]= {{12, 2}, { 4,  8}},
+    [24]= {{12, 1}, {-4,  8}},
 
     [72]= {{12, 4}, {8, 0}},
     [73]= {{13, 4}, {8, 0}},
     [74]= {{14, 4}, {8, 0}},
     [75]= {{15, 4}, {8, 0}},
+
+    [6]  = {{7, 0}, {0, -8}},
+    [22] = {{7, 1}, {0,  8}},
+
+    [69] = {{12, 4}, {-8, -4}},
+    [70] = {{13, 4}, {-4, -4}},
+    [86] = {{15, 4}, {-4, -8}},
+    [102]= {{15, 5}, { 4, -8}},
+    [101]= {{15, 6}, { 4, -4}},
+    [85] = {{14, 4}, { 8, -4}},
 
     [32] = {{0, 2}, {8, 0}},
     [80] = {{0, 5}, {8, 0}},
@@ -173,7 +230,42 @@ local raw_tiles_data = serialization.parse_expression(
     [113]= {{1, 7}, {8, -8}},
     [116]= {{4, 7}, {8, 8}},
     [117]= {{5, 7}, {8, -4}},
-    [12]= {{12, 0}, {-4, 4}}
+
+    [33] = {{1, 2}, {8, -2}},
+    [37] = {{5, 2}, {8, 2}},
+    [38] = {{6, 2}, {8, 0}},
+
+    [12] = {{12, 0}, {-4,  4}},
+    [13] = {{13, 0}, {-8,  4}},
+    [14] = {{14, 0}, {-8, -4}},
+    [15] = {{15, 0}, {-4, -4}},
+    [31] = {{15, 1}, {-4, -8}},
+    [47] = {{15, 2}, { 4, -8}},
+    [63] = {{15, 3}, { 4, -4}},
+    [62] = {{14, 3}, { 8, -4}},
+    [61] = {{13, 3}, { 8,  4}},
+    [60] = {{12, 3}, { 4,  4}},
+    [44] = {{12, 2}, { 4,  8}},
+    [28] = {{12, 1}, {-4,  8}},
+
+    [87] = {{7, 5},  {8, -2}},
+    [88] = {{8, 5},  {8, -1}},
+    [89] = {{9, 5},  {8, -2}},
+    [90] = {{10, 5}, {8, -2}},
+    [91] = {{11, 5}, {8, 2}},
+    [92] = {{12, 5}, {8, 2}},
+    [93] = {{13, 5}, {8, 1}},
+    [94] = {{14, 5}, {8, 2}},
+
+    [7]  = {{7, 0}, {0, -8}},
+    [23] = {{7, 1}, {0,  8}},
+
+    [76] = {{12, 4}, {-8, -4}},
+    [77] = {{13, 4}, {-4, -4}},
+    [79] = {{15, 4}, {-4, -8}},
+    [95] = {{15, 5}, { 4, -8}},
+    [111]= {{15, 6}, { 4, -4}},
+    [78] = {{14, 4}, { 8, -4}}
   }]], function (t)
     -- t[2] may be {x, y} to use for atan2 or slope_angle directly
     -- this is only for [112], if we update utests/itests to use the more correct atan2(8, -4) then we can get rid of

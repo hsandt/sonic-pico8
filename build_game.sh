@@ -13,7 +13,7 @@ build_output_path="$(dirname "$0")/build"
 author="hsandt"
 title="pico-sonic"
 cartridge_stem="picosonic"
-version="3.2"
+version="4.0"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."
@@ -76,13 +76,17 @@ if [[ $config == 'debug' ]]; then
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,deprecated,log,cheat,sandbox,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  symbols='assert,deprecated,cheat'
+  symbols='assert,cheat,mouse,tuner'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
   symbols='assert,deprecated,cheat,ultrafast'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
+elif [[ $config == 'assert' ]]; then
+  symbols='assert'
+elif [[ $config == 'profiler' ]]; then
+  symbols='profiler'
 fi
 
 # Build from main

@@ -17,19 +17,16 @@ return {
 
     [1] = {
       -- stage title
-      title = "proto zone",
+      title = "angel island",
 
-      width = 100,
+      width = 128,
       height = 32,
 
       -- where the player character spawns on stage start
-      spawn_location = location(5, 20),
+      spawn_location = location(3, 24),
 
       -- the x to reach to finish the stage
-      goal_x = 800,  -- 100 tiles
-
-      -- background color
-      background_color = colors.dark_blue,
+      goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)
 
       -- bgm id
       bgm_id = audio.music_pattern_ids.green_hill

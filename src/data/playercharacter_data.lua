@@ -5,7 +5,7 @@ local animated_sprite_data = require("engine/render/animated_sprite_data")
 local playercharacter_data = {
 
   -- platformer motion
-  -- values in px, px/frame, px/frame^2 are *2 compared to SPG since we work with 8px tiles
+  -- values in px, px/frame, px/frame^2 are /2 compared to SPG since we work with 8px tiles
   -- for values in px, px/frame, px/frame^2, I added /64
   -- for degrees, /360 form
   -- (for readability)
@@ -47,7 +47,10 @@ local playercharacter_data = {
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
   -- air drag factor applied every frame, at 60 FPS
-  air_drag_factor_per_frame = 0.96875,
+  -- note that combined with air_accel_x_frame2, we can deduce the actual
+  --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
+  --  = 1.453125 px/frames
+  air_drag_factor_per_frame = 0.96875,  -- 62/64
 
   -- min absolute velocity x for which air drag is applied
   air_drag_min_velocity_x = 0.25,  -- 16/64
@@ -57,12 +60,20 @@ local playercharacter_data = {
   air_drag_max_abs_velocity_y = 8,  -- 512/64
 
   -- ground acceleration (px/frame)
-  max_ground_speed = 3,
+  max_ground_speed = 3,  -- 192/64
+
+  -- ground speed threshold under which character will fall/slide off when walking at more
+  --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
+  ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
+
+  -- duration of horizontal control lock after fall/slide off (frames)
+  horizontal_control_lock_duration = 30,  -- 0.5s
 
   -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
+  -- from this and gravity we can deduce the max jump height: 49.921875
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
@@ -92,7 +103,7 @@ local playercharacter_data = {
   full_height_compact = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
-  --  _compute_signed_distance_to_closest_ground uses it as upper_limit tile_size)
+  --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
   max_ground_escape_height = 4,
 
@@ -102,17 +113,21 @@ local playercharacter_data = {
 
   -- debug motion
 
-  -- motion speed in debug mode, in px/s
-  debug_move_max_speed = 60.,
+  -- motion speed in debug mode (px/frame)
+  debug_move_max_speed = 6,
 
-  -- acceleration speed in debug mode, in px/s^2 (480. to reach max speed of 60. in 0.5s)
-  debug_move_accel = 480.,
+  -- acceleration speed in debug mode (px/frame^2)
+  debug_move_accel = 0.1,
 
-  -- deceleration speed in debug mode, in px/s^2 (480. to stop from a speed of 60. in 0.5s)
-  debug_move_decel = 480.,
+  -- deceleration speed in debug mode (px/frame^2)
+  debug_move_decel = 1,
 
 
   -- sprite
+
+  -- speed at which the character sprite angle falls back toward 0 (upward)
+  --  when character is airborne (typically after falling from ceiling)
+  sprite_angle_airborne_reset_speed_frame = 0.0095,  -- 0.5/(7/8×60) ie character moves from upside down to upward in 7/8 s
 
   -- stand right
   -- colors.pink: 14

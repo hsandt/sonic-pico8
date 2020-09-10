@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0] - 2020-09-10
+### Added
+- Character falls off wall or ceiling when running too slow
+- Character sprite rotates gradually to be upward when airborne
+- Character cannot intentionally move after losing ground (horizontal control lock)
+- Stripped version of Angel Island Act 1 (replaces proto zone), skinning WIP
+- Camera stops at stage boundaries
+- Character cannot go past the left edge of the stage
+- Ground tile detection system applied to loop: loop collision layer system allows character to run through it. Does not support going through loop twice in the same direction
+- Background: sky, sea with light reflections, trees and leaves with parallax
+
+### Changed
+- Updated pico-boots to v1.0
+- Snap character sprite angle to closest 45-degree step (closer to Sonic 1\~3 than Sonic Mania)
+- Moved goal to stage right boundary
+- Character spawns on ground on stage start
+- Fixed air spin sprite angle being affected by previous rotation on ground
+- Fixed pixel jitter when running on ceiling
+- Fixed character landing inside slope
+- Fixed character landing 1px above the ground
+- Fixed collision mask on loop tiles
+
 ## [3.2] - 2020-08-25
 ### Added
 - Loop quadrant system (walk at any angle, jump orthogonally)
@@ -97,8 +119,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v3.0...HEAD
-[3.1]: https://github.com/hsandt/sonic-pico8/compare/v3.0-sprite-anim...v3.1
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.0...HEAD
+[4.0]: https://github.com/hsandt/sonic-pico8/compare/v3.1...v4.0
+[3.1]: https://github.com/hsandt/sonic-pico8/compare/v3.0...v3.1
 [3.0]: https://github.com/hsandt/sonic-pico8/compare/v2.3-sprite-anim...v3.0
 [2.3-sprite-anim]: https://github.com/hsandt/sonic-pico8/compare/v2.2...v2.3-sprite-anim
 [2.2]: https://github.com/hsandt/sonic-pico8/compare/v2.1...v2.2

@@ -20,22 +20,26 @@ Works with PICO-8 0.2.0i and 0.2.1b.
 
 ## Features
 
-Version: 3.2
+Version: 4.0
 
 ### Physics
 
-* Character runs on flat ground and slopes
+* Character runs on flat ground, slopes, and through loops (WIP)
 * Character is blocked by walls when running, walls and ceiling when jumping
-* Character jumps with variable height
+* Character jumps with variable height orthogonally to current ground
+* Character preserves momentum on jumping and landing
 
 ### Rendering
 
-* Character rendered with Idle and Spin static sprite, Run animated sprite
-* Environment rendered with tilemap
+* Character sprites: *idle*, *spin*, *run* cycle
+* Midground plane: collision tiles and decorations
+* Background planes: sky, ocean and trees moving with parallax
 
 ## Releases
 
 You can directly download a released version of the game on the [releases](Releases) page, and run it with PICO-8 as you would normally with a downloaded cartridge.
+
+Note that the cartridge formats .p8 and .p8.png cannot be run with a vanilla PICO-8 as they exceed the maximum token limit (8192). To play them, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
 
 ## Build
 
@@ -67,8 +71,6 @@ Instead of the last instruction, you can also enter directly:
 * `pico8 -run build/picosonic_v${BUILD_VERSION}_debug.p8`
 
 where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.travis.yml`.
-
-Note, however, that the current debug version is bloated and is likely not to run in a vanilla PICO-8 (due to the cartridge getting over the max token limit).
 
 To play the release version (no debugging features, but more compact code and more likely to fit into a PICO-8 cartridge):
 

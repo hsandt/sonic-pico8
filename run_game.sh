@@ -5,7 +5,7 @@
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="3.2"
+version="4.0"
 config="$1"; shift
 
 run_cmd="pico8 -run build/${cartridge_stem}_v${version}_${config}.p8 -screenshot_scale 4 -gif_scale 4 -gif_len 60 $@"

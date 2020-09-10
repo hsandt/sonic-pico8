@@ -17,7 +17,7 @@ return {
 
     [1] = {
       -- stage title
-      title = "proto zone",
+      title = "angel island",
 
       width = 128,
       height = 32,

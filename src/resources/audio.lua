@@ -1,7 +1,8 @@
 local audio = {}
 
 local sfx_ids = {
-  goal_reached = 58
+  goal_reached = 58,
+  jump = 59
 }
 
 local music_pattern_ids = {

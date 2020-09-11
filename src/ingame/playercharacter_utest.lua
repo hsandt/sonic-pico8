@@ -1,12 +1,14 @@
 require("test/bustedhelper")
+local player_char = require("ingame/playercharacter")
+
+local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
-local player_char = require("ingame/playercharacter")
-local input = require("engine/input/input")
-local motion = require("platformer/motion")
-local world = require("platformer/world")
-local ground_query_info = motion.ground_query_info
 local pc_data = require("data/playercharacter_data")
+local motion = require("platformer/motion")
+local ground_query_info = motion.ground_query_info
+local world = require("platformer/world")
+local audio = require("resources/audio")
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('player_char', function ()
@@ -4828,6 +4830,18 @@ describe('player_char', function ()
 
       describe('_check_jump', function ()
 
+        setup(function ()
+          stub(_G, "sfx")
+        end)
+
+        teardown(function ()
+          sfx:revert()
+        end)
+
+        after_each(function ()
+          sfx:clear()
+        end)
+
         it('should not set jump members and return false when should_jump is false', function ()
           pc.velocity = vector(4.1, -1)
           local result = pc:_check_jump()
@@ -4854,6 +4868,15 @@ describe('player_char', function ()
 
           assert.is_true(almost_eq_with_message(2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.x))
           assert.is_true(almost_eq_with_message(-2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.y))
+        end)
+
+        it('should play jump sfx when character should jump', function ()
+          pc.should_jump = true
+
+          pc:_check_jump()
+
+          assert.spy(sfx).was_called(1)
+          assert.spy(sfx).was_called_with(audio.sfx_ids.jump)
         end)
 
       end)

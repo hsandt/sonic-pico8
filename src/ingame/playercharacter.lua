@@ -2,11 +2,13 @@
 local _logging = require("engine/debug/logging")
 --#endif
 local input = require("engine/input/input")
-local world = require("platformer/world")
 local animated_sprite = require("engine/render/animated_sprite")
+
 local collision_data = require("data/collision_data")
 local pc_data = require("data/playercharacter_data")
 local motion = require("platformer/motion")
+local world = require("platformer/world")
+local audio = require("resources/audio")
 
 -- enum for character control
 control_modes = {
@@ -1289,6 +1291,9 @@ function player_char:_check_jump()
     self.velocity:add_inplace(jump_impulse)
     self:_enter_motion_state(motion_states.air_spin)
     self.has_jumped_this_frame = true
+
+    sfx(audio.sfx_ids.jump)
+
     return true
   end
   return false

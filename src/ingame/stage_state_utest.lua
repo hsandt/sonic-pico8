@@ -562,11 +562,11 @@ describe('stage_state', function ()
               assert.spy(title_overlay_draw_labels_stub).was_called_with(state.title_overlay)
             end)
 
-            it('#solo render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
+            it('render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(4)
+              assert.spy(rectfill_stub).was_called(5)
               assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
               -- more calls but we don't check beckground details, human tests are better for this
             end)
@@ -617,7 +617,7 @@ describe('stage_state', function ()
 
             it('play_bgm should start level bgm', function ()
               state:play_bgm()
-              assert.are_same({music=audio.music_pattern_ids.green_hill, fadems=0, channel_mask=0}, pico8.current_music)
+              assert.are_same({music=audio.music_pattern_ids.green_hill, fadems=0, channel_mask=(1 << 0) + (1 << 2) + (1 << 3)}, pico8.current_music)
             end)
 
             it('stop_bgm should stop level bgm if started, else do nothing', function ()

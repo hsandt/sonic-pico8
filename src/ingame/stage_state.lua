@@ -416,7 +416,10 @@ end
 -- audio
 
 function stage_state:play_bgm()
-  music(self.curr_stage_data.bgm_id, 0)
+  -- only 4 channels at a time in PICO-8
+  -- set music channel mask (priority over SFX) to everything but 1,
+  --  which is a nice bass (at least with current GHZ BGM)
+  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 2) + shl(1, 3))
 end
 
 function stage_state:stop_bgm(fade_duration)

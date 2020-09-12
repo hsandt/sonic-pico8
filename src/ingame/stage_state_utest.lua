@@ -8,9 +8,11 @@ local label = require("engine/ui/label")
 
 local picosonic_app = require("application/picosonic_app")
 local stage_data = require("data/stage_data")
+local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 describe('stage_state', function ()
 
@@ -35,7 +37,6 @@ describe('stage_state', function ()
 
     describe('state', function ()
 
-      -- bugfix history: .
       it('init', function ()
         assert.are_same({
             ':stage',
@@ -43,6 +44,7 @@ describe('stage_state', function ()
             stage_state.substates.play,
             nil,
             false,
+            {},
             vector.zero(),
             overlay(0)
           },
@@ -52,6 +54,7 @@ describe('stage_state', function ()
             state.current_substate,
             state.player_char,
             state.has_reached_goal,
+            state.emeralds,
             state.camera_pos,
             state.title_overlay
           })
@@ -63,18 +66,24 @@ describe('stage_state', function ()
           stub(stage_state, "spawn_player_char")
           stub(picosonic_app, "start_coroutine")
           stub(stage_state, "play_bgm")
+          stub(stage_state, "randomize_background_data")
+          stub(stage_state, "spawn_emeralds")
         end)
 
         teardown(function ()
           stage_state.spawn_player_char:revert()
           picosonic_app.start_coroutine:revert()
           stage_state.play_bgm:revert()
+          stage_state.randomize_background_data:revert()
+          stage_state.spawn_emeralds:revert()
         end)
 
         after_each(function ()
           stage_state.spawn_player_char:clear()
           picosonic_app.start_coroutine:clear()
           stage_state.play_bgm:clear()
+          stage_state.randomize_background_data:clear()
+          stage_state.spawn_emeralds:clear()
         end)
 
         before_each(function ()
@@ -105,9 +114,19 @@ describe('stage_state', function ()
           s.was_called_with(match.ref(state.app), stage_state.show_stage_title_async, match.ref(state))
         end)
 
-        it('should call start_coroutine_method on show_stage_title_async', function ()
+        it('should call play_bgm', function ()
           assert.spy(state.play_bgm).was_called(1)
           assert.spy(state.play_bgm).was_called_with(match.ref(state))
+        end)
+
+        it('should call randomize_background_data', function ()
+          assert.spy(state.randomize_background_data).was_called(1)
+          assert.spy(state.randomize_background_data).was_called_with(match.ref(state))
+        end)
+
+        it('should call spawn_emeralds', function ()
+          assert.spy(state.spawn_emeralds).was_called(1)
+          assert.spy(state.spawn_emeralds).was_called_with(match.ref(state))
         end)
 
       end)
@@ -334,7 +353,44 @@ describe('stage_state', function ()
 
           end)  -- state.render
 
-          describe('#solo extend_spring', function ()
+          describe('#solo spawn_emeralds', function ()
+
+            -- setup is too early, stage state will start afterward in before_each,
+            --  and its on_enter will call spawn_emeralds, making it hard
+            --  to test in isolation. Hence before_each.
+            before_each(function ()
+              local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+              mset(1, 1, emerald_repr_sprite_id)
+              mset(2, 2, emerald_repr_sprite_id)
+              mset(3, 3, emerald_repr_sprite_id)
+            end)
+
+            after_each(function ()
+              pico8:clear_map()
+            end)
+
+            it('should clear all emerald tiles', function ()
+              state:spawn_emeralds()
+              assert.are_same({0, 0, 0},
+                {
+                  mget(1, 1),
+                  mget(2, 2),
+                  mget(3, 3),
+                })
+            end)
+
+            it('should spawn and store emerald objects for each removed emerald tile', function ()
+              state:spawn_emeralds()
+              assert.are_same({
+                emerald(1, location(1, 1)),
+                emerald(2, location(2, 2)),
+                emerald(3, location(3, 3)),
+                }, state.emeralds)
+            end)
+
+          end)
+
+          describe('extend_spring', function ()
 
             setup(function ()
               stub(picosonic_app, "start_coroutine")

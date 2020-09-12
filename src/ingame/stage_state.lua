@@ -3,6 +3,7 @@ local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 
+local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
@@ -34,6 +35,10 @@ function stage_state:_init()
   self.player_char = nil
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
+
+  -- items
+  self.emeralds = {}
+
   -- position of the main camera, at the center of the view
   self.camera_pos = vector.zero()
 
@@ -60,6 +65,8 @@ function stage_state:on_enter()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
+
+  self:spawn_emeralds()
 end
 
 function stage_state:on_exit()
@@ -106,6 +113,26 @@ function stage_state:spawn_player_char()
   self.player_char:spawn_at(spawn_position)
 end
 
+-- replace emerald representative sprite (the left part with most of the pixels)
+--  with an actual emerald object, to make it easier to recolor and pick up
+function stage_state:spawn_emeralds()
+  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
+  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
+  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
+  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+  for i = 0, 127 do
+    for j = 0, 127 do
+      local tile_sprite_id = mget(i, j)
+      if tile_sprite_id == emerald_repr_sprite_id then
+        -- replace the representative tile (spawn point) with nothing,
+        --  since we're going to create a distinct emerald object
+        mset(i, j, 0)
+        -- spawn emerald object and store it is sequence member
+        add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
+      end
+    end
+  end
+end
 
 -- visual events
 
@@ -401,6 +428,7 @@ function stage_state:render_stage_elements()
   self:set_camera_offset_stage()
   self:render_environment()
   self:render_player_char()
+  self:render_emeralds()
 end
 
 -- render the stage environment (tiles)
@@ -420,6 +448,13 @@ end
 -- render the player character at its current position
 function stage_state:render_player_char()
   self.player_char:render()
+end
+
+-- render the emeralds
+function stage_state:render_emeralds()
+  for em in all(self.emeralds) do
+    em:render()
+  end
 end
 
 -- render the title overlay with a fixed ui camera

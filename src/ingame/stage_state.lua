@@ -6,6 +6,7 @@ local overlay = require("engine/ui/overlay")
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 local stage_state = derived_class(gamestate)
 
@@ -114,11 +115,11 @@ end
 
 function stage_state:extend_spring_async(spring_loc)
   -- set tilemap to show extended spring
-  mset(spring_loc.i, spring_loc.j, stage_data.spring_extend_sprite_id)
-  -- wait1
-  self.app:yield_delay_s(tuned("dur", stage_data.spring_extend_duration, 0.05))
+  mset(spring_loc.i, spring_loc.j, visual.spring_extend_sprite_id)
+  -- wait just enough to show extended spring before it goes out of screen
+  self.app:yield_delay_s(stage_data.spring_extend_duration)
   -- revert to default spring sprite
-  mset(spring_loc.i, spring_loc.j, stage_data.spring_normal_sprite_id)
+  mset(spring_loc.i, spring_loc.j, visual.spring_normal_sprite_id)
 end
 
 -- gameplay events

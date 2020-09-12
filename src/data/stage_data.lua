@@ -1,3 +1,5 @@
+local sprite_data = require("engine/render/sprite_data")
+
 local audio = require("resources/audio")
 
 return {
@@ -13,10 +15,6 @@ return {
 
   -- spring extension duration (tiles use custom animation via async instead of animated_sprite)
   spring_extend_duration = 0.15,
-
-  -- sprites
-  spring_normal_sprite_id = 4,
-  spring_extend_sprite_id = 5,
 
   -- stage-specific data, per id
 

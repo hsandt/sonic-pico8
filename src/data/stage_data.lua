@@ -11,6 +11,13 @@ return {
   -- duration of bgm fade out after reaching goal (s)
   bgm_fade_out_duration = 1.0,
 
+  -- spring extension duration (tiles use custom animation via async instead of animated_sprite)
+  spring_extend_duration = 0.15,
+
+  -- sprites
+  spring_normal_sprite_id = 4,
+  spring_extend_sprite_id = 5,
+
   -- stage-specific data, per id
 
   for_stage = {

@@ -104,7 +104,7 @@ sprite_flags = {
   101 @ (5, 6) CURVE BOTTOM-RIGHT
   85  @ (5, 5) CURVE BOTTOM-BOTTOM-RIGHT
   # items
-  5   @ (5, 0) spring => half-tile @ (0, 5)
+  4   @ (4, 0) spring => half-tile @ (0, 5)
   5   @ (5, 0) spring (extended) => half-tile @ (0, 5) too to simplify
 
   # proto (black and white tiles being their own collision masks)

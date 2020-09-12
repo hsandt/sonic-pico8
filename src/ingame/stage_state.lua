@@ -109,7 +109,16 @@ end
 -- visual events
 
 function stage_state:extend_spring(spring_loc)
-  -- TODO
+  self.app:start_coroutine(self.extend_spring_async, self, spring_loc)
+end
+
+function stage_state:extend_spring_async(spring_loc)
+  -- set tilemap to show extended spring
+  mset(spring_loc.i, spring_loc.j, stage_data.spring_extend_sprite_id)
+  -- wait1
+  self.app:yield_delay_s(tuned("dur", stage_data.spring_extend_duration, 0.05))
+  -- revert to default spring sprite
+  mset(spring_loc.i, spring_loc.j, stage_data.spring_normal_sprite_id)
 end
 
 -- gameplay events

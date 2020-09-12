@@ -336,8 +336,24 @@ describe('stage_state', function ()
 
           describe('#solo extend_spring', function ()
 
+            setup(function ()
+              stub(picosonic_app, "start_coroutine")
+            end)
+
+            teardown(function ()
+              picosonic_app.start_coroutine:revert()
+            end)
+
+            -- start_coroutine is also called on stage enter (with show_stage_title_async)
+            -- so we must clear call count *before* the first test
+            before_each(function ()
+              picosonic_app.start_coroutine:clear()
+            end)
+
             it('should play a coroutine that replaces spring tile with extended spring tile until a certain time (only check no error)', function ()
-              assert.has_no_errors(function() state:extend_spring() end)
+              state:extend_spring(location(2, 0))
+              assert.spy(picosonic_app.start_coroutine).was_called(1)
+              assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.extend_spring_async, match.ref(state), location(2, 0))
             end)
 
           end)
@@ -371,8 +387,7 @@ describe('stage_state', function ()
               end)
 
               it('should not start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_not_called()
+                assert.spy(picosonic_app.start_coroutine).was_not_called()
               end)
 
             end)
@@ -389,9 +404,8 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_called(1)
-                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
+                assert.spy(picosonic_app.start_coroutine).was_called(1)
+                assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)
@@ -408,9 +422,8 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_called(1)
-                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
+                assert.spy(picosonic_app.start_coroutine).was_called(1)
+                assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)

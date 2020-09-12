@@ -153,6 +153,7 @@ local playercharacter_data = {
       run10 = {{4, 10}, {2, 2}, {11, 8}, 14},
       run11 = {{6, 10}, {2, 2}, {11, 8}, 14},
       spin  = {{0, 12}, {2, 2}, {5, 5},  14},
+      spring_jump = {{2, 12}, {2, 3}, {11, 10},  14},
     }]], function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
@@ -171,13 +172,15 @@ local playercharacter_data = {
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
 playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expression(
+  -- see animated_sprite_data.lua for anim_loop_modes values
   --[anim_name] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
-  --        sprite_keys,  step_frames, loop_mode)
+  --        sprite_keys,   step_frames, loop_mode as int)
   [[{
-    idle = {{"idle"},     10,          true},
+    idle = {{"idle"},               10,                2},
     run  = {{"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"},
-                           5,          true},
-    spin = {{"spin"},     10,          true},
+                                     5,                4},
+    spin = {{"spin"},               10,                2},
+    spring_jump = {{"spring_jump"}, 10,                2}
 }]], function (t)
   return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])
 end)

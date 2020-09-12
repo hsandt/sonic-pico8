@@ -1964,12 +1964,14 @@ describe('player_char', function ()
           assert.are_same({
               motion_states.air_spin,
               0,
+              false,
               false
             },
             {
               pc.motion_state,
               pc.ground_speed,
-              pc.should_jump
+              pc.should_jump,
+              pc.should_play_spring_jump
             })
         end)
 
@@ -1996,12 +1998,14 @@ describe('player_char', function ()
           assert.are_same({
               motion_states.grounded,
               false,
+              false,
               false
             },
             {
               pc.motion_state,
               pc.has_jumped_this_frame,
-              pc.has_interrupted_jump
+              pc.has_interrupted_jump,
+              pc.should_play_spring_jump
             })
         end)
 
@@ -6430,7 +6434,7 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
       end)
 
-      it('should play run anim when grounded and ground speed is not 0', function ()
+      it('should play run anim with last anim_run_speed when grounded and ground speed is not 0', function ()
         pc.motion_state = motion_states.grounded
         pc.ground_speed = -0.1
         pc.anim_run_speed = 2.5
@@ -6441,12 +6445,36 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
       end)
 
-      it('should not play new anim at all when falling', function ()
+      it('should play spring_jump when "falling upward" with should_play_spring_jump: true', function ()
+        pc.motion_state = motion_states.falling
+        pc.should_play_spring_jump = true
+
+        pc:_check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spring_jump")
+      end)
+
+      it('should stop spring_jump anim and play run anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
+        pc.motion_state = motion_states.falling
+        pc.velocity.y = 1
+        pc.anim_run_speed = 2.5
+        pc.should_play_spring_jump = true
+
+        pc:_check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+      end)
+
+      it('should play run anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
+        pc.anim_run_speed = 2.5
         pc.motion_state = motion_states.falling
 
         pc:_check_play_anim()
 
-        assert.spy(animated_sprite.play).was_not_called()
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
       end)
 
       it('should play spin anim when air spinning', function ()

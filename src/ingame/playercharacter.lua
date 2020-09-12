@@ -712,6 +712,7 @@ function player_char:_enter_motion_state(next_motion_state)
     self:set_slope_angle_with_quadrant(nil, --[[force_upward_sprite:]] true)
     self.ground_speed = 0
     self.should_jump = false
+    self.should_play_spring_jump = false
   elseif next_motion_state == motion_states.grounded then
     -- Momentum: transfer part of velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
     self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
@@ -720,6 +721,7 @@ function player_char:_enter_motion_state(next_motion_state)
     --  reset values airborne vars
     self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
     self.has_interrupted_jump = false
+    self.should_play_spring_jump = false
   end
 end
 
@@ -1747,10 +1749,17 @@ function player_char:_check_play_anim()
       self.anim_spr:play("run", false, self.anim_run_speed)
     end
   elseif self.motion_state == motion_states.falling then
-    -- do not play another animation, preserve previous one so character
-    --  can run in the air when falling off a cliff or ceiling
-    -- TODO: however, do gradually rotate the sprite toward upward if needed
-    --  so character does not keep running upward, etc.
+    -- stop spring jump anim when falling down again
+    if self.should_play_spring_jump and self.velocity.y > 0 then
+      self.should_play_spring_jump = false
+    end
+
+    if self.should_play_spring_jump then
+      self.anim_spr:play("spring_jump")
+    else
+      -- normal fall -> run in the air
+      self.anim_spr:play("run", false, self.anim_run_speed)
+    end
   else -- self.motion_state == motion_states.air_spin
     self.anim_spr:play("spin")
   end

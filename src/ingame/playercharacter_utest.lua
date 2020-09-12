@@ -1,10 +1,12 @@
 require("test/bustedhelper")
 local player_char = require("ingame/playercharacter")
 
+local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
 local pc_data = require("data/playercharacter_data")
+local stage_state = require("ingame/stage_state")
 local motion = require("platformer/motion")
 local ground_query_info = motion.ground_query_info
 local world = require("platformer/world")
@@ -157,6 +159,7 @@ describe('player_char', function ()
 
           0,
           0,
+          false,
         },
         {
           pc.control_mode,
@@ -184,6 +187,7 @@ describe('player_char', function ()
 
           pc.anim_run_speed,
           pc.continuous_sprite_angle,
+          pc.should_play_spring_jump,
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -192,7 +196,7 @@ describe('player_char', function ()
 
   end)
 
-  describe('(with player character, speed 60, debug accel 480)', function ()
+  describe('(with player character)', function ()
     local pc
 
     before_each(function ()
@@ -392,18 +396,16 @@ describe('player_char', function ()
 
     describe('warp_to', function ()
 
-      local enter_motion_state_stub
-
       setup(function ()
-        enter_motion_state_stub = stub(player_char, "_enter_motion_state")
+        stub(player_char, "_enter_motion_state")
       end)
 
       teardown(function ()
-        enter_motion_state_stub:revert()
+        player_char._enter_motion_state:revert()
       end)
 
       after_each(function ()
-        enter_motion_state_stub:clear()
+        player_char._enter_motion_state:clear()
       end)
 
       it('should set the character\'s position', function ()
@@ -431,8 +433,6 @@ describe('player_char', function ()
           -- implementation
           assert.spy(check_escape_from_ground_mock).was_called(1)
           assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(pc))
-          assert.spy(enter_motion_state_stub).was_called(1)
-          assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
         end)
 
       end)
@@ -457,8 +457,6 @@ describe('player_char', function ()
           -- implementation
           assert.spy(check_escape_from_ground_mock).was_called(1)
           assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(pc))
-          assert.spy(enter_motion_state_stub).was_called(1)
-          assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.grounded)
         end)
 
       end)
@@ -1766,17 +1764,20 @@ describe('player_char', function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
           -- trigger check inside set_ground_tile_location will fail as it needs context
           -- (tile_test_data + mset), so we prefer stubbing as we don't check ground_tile_location directly
-          stub(player_char, "set_ground_tile_location")
+          spy.on(player_char, "set_ground_tile_location")
+          spy.on(player_char, "_enter_motion_state")
         end)
 
         teardown(function ()
           player_char.set_slope_angle_with_quadrant:revert()
           player_char.set_ground_tile_location:revert()
+          player_char._enter_motion_state:revert()
         end)
 
         after_each(function ()
           player_char.set_slope_angle_with_quadrant:clear()
           player_char.set_ground_tile_location:clear()
+          player_char._enter_motion_state:clear()
         end)
 
         describe('with full flat tile', function ()
@@ -1786,56 +1787,63 @@ describe('player_char', function ()
             mock_mset(1, 1, full_tile_id)
           end)
 
-          it('should reset state vars to airborne convention when character is not touching ground at all, and return false', function ()
+          it('should reset state vars to airborne convention when character is not touching ground at all, and enter state falling', function ()
             pc:set_bottom_center(vector(12, 6))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 6), nil, false}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(12, 6), nil}, {pc:get_bottom_center(), pc.ground_tile_location})
 
-            -- when nil, we don't use the set callback for ground tile location
-            assert.spy(player_char.set_ground_tile_location).was_not_called()
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+            assert.spy(player_char._enter_motion_state).was_called(1)
+            assert.spy(player_char._enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
           end)
 
-          it('should do nothing when character is just on top of the ground, update slope to 0 and return true', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 0 and enter state grounded', function ()
             pc:set_bottom_center(vector(12, 8))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), true}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(12, 8), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_called(1)
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+
+            assert.spy(player_char._enter_motion_state).was_called(1)
+            assert.spy(player_char._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and return true', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and enter state grounded', function ()
             pc:set_bottom_center(vector(12, 9))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 8), true}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(12, 8), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_called(1)
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+
+            assert.spy(player_char._enter_motion_state).was_called(1)
+            assert.spy(player_char._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
           end)
 
-          it('should reset state vars to too deep convention when character is too deep inside the ground and return true', function ()
+          it('should reset state vars to too deep convention when character is too deep inside the ground and enter state falling', function ()
             pc:set_bottom_center(vector(12, 13))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 13), nil, true}, {pc:get_bottom_center(), pc.ground_tile_location, result})
+            assert.are_same({vector(12, 13), nil}, {pc:get_bottom_center(), pc.ground_tile_location})
 
             -- when nil, we don't use the set callback for ground tile location
             assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+
+            assert.spy(player_char._enter_motion_state).was_called(1)
+            assert.spy(player_char._enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
           end)
 
         end)
@@ -1853,10 +1861,10 @@ describe('player_char', function ()
 
           it('should reset state vars to airborne convention when character is not touching ground at all, and return false', function ()
             pc:set_bottom_center(vector(15, 10))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 10), false}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(15, 10), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
@@ -1865,10 +1873,10 @@ describe('player_char', function ()
 
           it('should do nothing when character is just on top of the ground, update slope to 1-45/360 and return true', function ()
             pc:set_bottom_center(vector(15, 12))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), true}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(15, 12), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_called(1)
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
@@ -1878,10 +1886,10 @@ describe('player_char', function ()
 
           it('should move the character upward just enough to escape ground if character is inside ground, update slope to 1-45/360 and return true', function ()
             pc:set_bottom_center(vector(15, 13))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(15, 12), true}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(15, 12), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_called(1)
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
@@ -1891,10 +1899,10 @@ describe('player_char', function ()
 
           it('should reset state vars to too deep convention when character is too deep inside the ground, and return true', function ()
             pc:set_bottom_center(vector(11, 13))
-            local result = pc:_check_escape_from_ground()
+            pc:_check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(11, 13), true}, {pc:get_bottom_center(), result})
+            assert.are_same(vector(11, 13), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
@@ -2107,31 +2115,39 @@ describe('player_char', function ()
 
         describe('(_check_jump stubbed)', function ()
 
-          local check_jump_stub
-
           setup(function ()
-            check_jump_stub = stub(player_char, "_check_jump")
+            stub(player_char, "_check_jump")
+            stub(player_char, "check_spring")
           end)
 
           teardown(function ()
-            check_jump_stub:revert()
+            player_char._check_jump:revert()
+            player_char.check_spring:revert()
           end)
 
           after_each(function ()
-            check_jump_stub:clear()
+            player_char._check_jump:clear()
+            player_char.check_spring:clear()
           end)
 
           it('(when motion state is grounded) should call _check_jump', function ()
             pc.motion_state = motion_states.grounded
             pc:_update_platformer_motion()
-            assert.spy(check_jump_stub).was_called(1)
-            assert.spy(check_jump_stub).was_called_with(match.ref(pc))
+            assert.spy(player_char._check_jump).was_called(1)
+            assert.spy(player_char._check_jump).was_called_with(match.ref(pc))
           end)
 
           it('(when motion state is airborne) should call _check_jump', function ()
             pc.motion_state = motion_states.falling  -- or any airborne state
             pc:_update_platformer_motion()
-            assert.spy(check_jump_stub).was_not_called()
+            assert.spy(player_char._check_jump).was_not_called()
+          end)
+
+          it('should call check_spring (after motion)', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc:_update_platformer_motion()
+            assert.spy(player_char.check_spring).was_called()
+            assert.spy(player_char.check_spring).was_called_with(match.ref(pc))
           end)
 
         end)
@@ -5279,6 +5295,33 @@ describe('player_char', function ()
 
       end)  -- _update_platformer_motion_airborne
 
+      describe('check_spring', function ()
+
+        setup(function ()
+          stub(player_char, "trigger_spring")
+        end)
+
+        teardown(function ()
+          player_char.trigger_spring:revert()
+        end)
+
+        before_each(function ()
+          mock_mset(2, 0, spring_id)
+        end)
+
+        after_each(function ()
+          player_char.trigger_spring:clear()
+        end)
+
+        it('should call trigger_spring when ground tile location points to a spring tile', function ()
+          pc.ground_tile_location = location(2, 0)
+          pc:check_spring()
+          assert.spy(player_char.trigger_spring).was_called(1)
+          assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        end)
+
+      end)
+
     end)  -- (with mock tiles data setup)
 
     describe('_check_hold_jump', function ()
@@ -6197,6 +6240,52 @@ describe('player_char', function ()
       end)  -- (with mock tiles data setup)
 
     end)  -- _next_air_step
+
+    describe('trigger_spring', function ()
+
+      setup(function ()
+        stub(stage_state, "extend_spring")
+        spy.on(player_char, "_enter_motion_state")
+      end)
+
+      teardown(function ()
+        stage_state.extend_spring:revert()
+        player_char._enter_motion_state:revert()
+      end)
+
+      before_each(function ()
+        -- normally we add and enter gamestate properly, but enough for this test
+        flow.curr_state = stage_state()
+      end)
+
+      after_each(function ()
+        stage_state.extend_spring:clear()
+        player_char._enter_motion_state:clear()
+      end)
+
+      it('should set upward velocity on character', function ()
+        pc:trigger_spring(location(2, 0))
+        assert.are_same(vector(0, - pc_data.spring_jump_speed_frame), pc.velocity)
+      end)
+
+      it('should enter motion state: falling', function ()
+        pc:trigger_spring(location(2, 0))
+        assert.spy(player_char._enter_motion_state).was_called(1)
+        assert.spy(player_char._enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
+      end)
+
+      it('should set should_play_spring_jump to true', function ()
+        pc:trigger_spring(location(2, 0))
+        assert.is_true(pc.should_play_spring_jump)
+      end)
+
+      it('should call extend_spring on current stage state with spring location', function ()
+        pc:trigger_spring(location(2, 0))
+        assert.spy(stage_state.extend_spring).was_called(1)
+        assert.spy(stage_state.extend_spring).was_called_with(match.ref(flow.curr_state), location(2, 0))
+      end)
+
+    end)
 
     describe('_update_debug', function ()
 

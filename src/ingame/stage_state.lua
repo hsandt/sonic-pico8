@@ -106,6 +106,12 @@ function stage_state:spawn_player_char()
 end
 
 
+-- visual events
+
+function stage_state:extend_spring(spring_loc)
+  -- TODO
+end
+
 -- gameplay events
 
 function stage_state:check_reached_goal()

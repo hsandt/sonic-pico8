@@ -10,9 +10,13 @@ require("test_data/tile_representation")
 
 local mock_raw_tile_collision_data = {
   -- collision_data values + PICO-8 spritesheet must match our mockup data
-  -- unfortunately, transform callback doesn't know about key so we repeat it in the value
-  --  if it proves common usage, just make a transform_with_key function that
-  --  takes a callback where you can pass key as first argument
+  -- REFACTOR: put all common data (collision mask id/location and slope angle) in common
+  --  and only replace tile collision mask in PICO-8 spritesheet with height array for busted
+  -- another waste is that tiles pointing to the same collision mask must duplicate
+  --  height arrays, like half_tile_id and spring_id
+
+  -- note that the first value is the collision mask sprite id, NOT the original sprite id in the key
+  --  so they may differ when not working with prototype tiles
   [full_tile_id] = {full_tile_id, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
   [half_tile_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
   [flat_low_tile_id] = {flat_low_tile_id, {2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
@@ -26,6 +30,7 @@ local mock_raw_tile_collision_data = {
   [loop_toptopright] = {loop_toptopright, {1, 1, 2, 2, 3, 3, 4, 4}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, -4)},
   [loop_bottomleft] = {loop_bottomleft, {8, 8, 8, 8, 8, 7, 6, 5}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, 4)},
   [loop_bottomright] = {loop_bottomright, {5, 6, 7, 8, 8, 8, 8, 8}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, -4)},
+  [spring_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},  -- copied from half_tile_id...
 }
 
 -- process data above to generate interior_v/h automatically, so we don't have to add them manually
@@ -48,6 +53,9 @@ local tile_test_data = {}
 
 function tile_test_data.setup()
   -- mock sprite flags
+  -- this includes "visual" sprites like springs!
+
+  -- collision masks / proto tiles
   fset(1, sprite_flags.collision, true)   -- invalid tile (missing collision mask id location below)
   fset(full_tile_id, sprite_flags.collision, true)  -- full tile
   fset(half_tile_id, sprite_flags.collision, true)  -- half-tile (bottom half)
@@ -66,6 +74,10 @@ function tile_test_data.setup()
   fset(loop_bottomleft, sprite_flags.loop_exit, true)
   fset(loop_bottomright, sprite_flags.collision, true)
   fset(loop_bottomright, sprite_flags.loop_entrance, true)
+
+  -- visual sprites
+  fset(spring_id, sprite_flags.collision, true)
+  fset(spring_id, sprite_flags.spring, true)
 
   -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

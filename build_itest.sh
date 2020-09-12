@@ -22,7 +22,8 @@ config='itest'
 # cheat needed to set debug motion mode
 # symbols='assert,log,itest,cheat'
 # attempt to reduce char count (working at 64000 chars for now)
-symbols='log,itest,cheat'
+# symbols='log,itest,cheat'
+symbols='itest,dump'
 
 # Build from itest main for all itests
 "$picoboots_scripts_path/build_cartridge.sh"               \

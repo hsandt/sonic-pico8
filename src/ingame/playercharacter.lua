@@ -1,6 +1,7 @@
 --#if log
 local _logging = require("engine/debug/logging")
 --#endif
+local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
@@ -76,12 +77,13 @@ local player_char = new_class()
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
-
 -- has_interrupted_jump     bool            has the character already interrupted his jump once?
+
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
+-- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 function player_char:_init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -126,6 +128,7 @@ function player_char:_setup()
   self.anim_spr:play("idle")
   self.anim_run_speed = 0.
   self.continuous_sprite_angle = 0.
+  self.should_play_spring_jump = false
 end
 
 function player_char:is_grounded()
@@ -195,11 +198,8 @@ function player_char:warp_to(position)
   self.position = position
 
   -- character is initialized grounded, but let him fall if he is spawned in the air
-  local new_is_grounded = self:_check_escape_from_ground()
-  -- always enter new state depending on whether ground is detected,
-  --  forcing state vars reset even if we haven't changed state
-  local new_state = new_is_grounded and motion_states.grounded or motion_states.falling
-  self:_enter_motion_state(new_state)
+  -- if grounded, also allows to set ground tile properly
+  self:_check_escape_from_ground()
 end
 
 -- same as warp_to, but with bottom position
@@ -225,6 +225,15 @@ end
 function player_char:set_ground_tile_location(tile_loc)
   if self.ground_tile_location ~= tile_loc then
     self.ground_tile_location = tile_loc
+
+    -- gradually switching to visual tile flag convention:
+    -- flags should now be placed on visual sprites, not collision masks,
+    --  so collision masks can be reused for tiles and items with very different behaviors,
+    --  e.g. half-tile vs spring
+    -- to complete switching, replace all mask_tile_id with visual_tile_id,
+    --  remove redundant mask tiles made for curves that are like loops but without
+    --  loop flags, and move the loop flags back to loop visual tiles
+    -- local visual_tile_id = mget(tile_loc.i, tile_loc.j)
 
     -- get the tile collision data
     local tcd = world.get_tile_collision_data_at(tile_loc)
@@ -630,7 +639,8 @@ end
 -- if ground is detected and the character can escape, update the slope angle with the angle of the new ground
 -- if the character cannot escape or is in the air, still reset all values to be safe
 --  (e.g. on initial warp it allows us to set ground_tile_location to a proper value instead of default location(0, 0))
--- return true iff the character was either touching the ground or inside it (even too deep)
+-- finally, enter grounded state if the character was either touching the ground or inside it (even too deep),
+--  else enter falling state
 function player_char:_check_escape_from_ground()
   local query_info = self:_compute_ground_sensors_query_info(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
@@ -650,13 +660,11 @@ function player_char:_check_escape_from_ground()
       self.ground_tile_location = nil
       self:set_slope_angle_with_quadrant(0)
     end
-    return true
+    self:_enter_motion_state(motion_states.grounded)
+  else
+    -- character in the air, reset
+    self:_enter_motion_state(motion_states.falling)
   end
-
-  -- character in the air, reset
-  self.ground_tile_location = nil
-  self:set_slope_angle_with_quadrant(nil)
-  return false
 end
 
 -- enter motion state, reset state vars appropriately
@@ -729,6 +737,8 @@ function player_char:_update_platformer_motion()
   else
     self:_update_platformer_motion_airborne()
   end
+
+  self:check_spring()
 end
 
 -- update motion following platformer grounded motion rules
@@ -1662,6 +1672,27 @@ function player_char:_next_air_step(direction, ref_motion_result)
     ref_motion_result.position = next_position_candidate
     log("not blocked, setting motion result position to next candidate: "..next_position_candidate, "trace2")
   end
+end
+
+-- item checks
+function player_char:check_spring()
+  if self.ground_tile_location then
+    -- follow new convention of putting flags on the visual sprite
+    local ground_visual_tile_id = mget(self.ground_tile_location.i, self.ground_tile_location.j)
+    if fget(ground_visual_tile_id, sprite_flags.spring) then
+      log("character triggers spring", 'spring')
+      self:trigger_spring(self.ground_tile_location)
+    end
+  end
+end
+
+function player_char:trigger_spring(spring_loc)
+  self.velocity.y = -pc_data.spring_jump_speed_frame
+  self:_enter_motion_state(motion_states.falling)
+  self.should_play_spring_jump = true
+
+  assert(flow.curr_state.type == ':stage')
+  flow.curr_state:extend_spring(spring_loc)
 end
 
 --#if cheat

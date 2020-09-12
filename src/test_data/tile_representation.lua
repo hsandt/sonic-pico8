@@ -19,6 +19,7 @@ loop_toptopright = 14
 -- but useful for utests which directly mset with ID constants
 loop_bottomleft = 56
 loop_bottomright = 59
+spring_id = 5
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap
@@ -36,4 +37,5 @@ tile_symbol_to_ids = {
   ['Y'] = loop_topleft,  -- loop top-left corner
   ['Z'] = loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
   ['R'] = loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
+  ['s'] = spring_id,
 }

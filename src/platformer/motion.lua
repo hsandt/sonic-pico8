@@ -37,7 +37,10 @@ motion.ground_motion_result = ground_motion_result
 -- is_blocked    bool         was the character blocked during motion?
 -- is_falling    bool         should the character fall after this motion?
 function ground_motion_result:_init(tile_location, position, slope_angle, is_blocked, is_falling)
-  assert((tile_location ~= nil) ~= is_falling)
+  -- we don't assert symmetrically to air_motion_result:
+  --  it's possible to have no ground tile location and not is_falling
+  --  when _check_escape_from_ground found character too deep inside ground,
+  --  so it can have the grounded animation with slope 0 but no specific tile to walk on
   assert(type(slope_angle) == "number" or slope_angle == nil)
   self.tile_location = tile_location
   self.position = position

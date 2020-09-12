@@ -73,13 +73,18 @@ local playercharacter_data = {
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
-  -- from this and gravity we can deduce the max jump height: 49.921875
+  -- from this and gravity we can deduce the max jump height: 49.921875 (6+ tiles) at frame 31
+  -- when hopping, you'll reach jump height: 19.296875 (2+ tiles) at frame 20
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
   --  note that when jump is interrupted mid-air, gravity should still be applied just after that
   --  which will give a value of 1.890625. for a hop, the initial speed will remain 2.
   jump_interrupt_speed_frame = 2,
+
+  -- absolute vertical speed given by spring bounce (px/frame)
+  -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
+  spring_jump_speed_frame = 5,
 
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis
   -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)

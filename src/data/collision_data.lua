@@ -9,6 +9,7 @@ sprite_flags = {
   loop_exit = 2,              -- loop bottom-left part
   loop_entrance_trigger = 3,  -- loop top-top-right part (enables entrance late as in original game)
   loop_exit_trigger = 4,      -- loop top-top-left part (enables exit late as in original game)
+  spring = 5,                 -- spring
 }
 
 -- table mapping visual tile sprite id to tile collision data (collision mask sprite id location + slope)
@@ -102,6 +103,9 @@ sprite_flags = {
   102 @ (6, 6) CURVE BOTTOM-RIGHT-RIGHT
   101 @ (5, 6) CURVE BOTTOM-RIGHT
   85  @ (5, 5) CURVE BOTTOM-BOTTOM-RIGHT
+  # items
+  5   @ (5, 0) spring => half-tile @ (0, 5)
+  5   @ (5, 0) spring (extended) => half-tile @ (0, 5) too to simplify
 
   # proto (black and white tiles being their own collision masks)
   # must match tile_data.lua
@@ -221,6 +225,9 @@ local raw_tiles_data = serialization.parse_expression(
     [102]= {{15, 5}, { 4, -8}},
     [101]= {{15, 6}, { 4, -4}},
     [85] = {{14, 4}, { 8, -4}},
+
+    [4] = {{0, 5}, {8, 0}},
+    [5] = {{0, 5}, {8, 0}},
 
     [32] = {{0, 2}, {8, 0}},
     [80] = {{0, 5}, {8, 0}},

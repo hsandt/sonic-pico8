@@ -42,6 +42,7 @@ function _init()
     -- ['ui'] = nil,
     ['frame'] = true,
     ['trace'] = true,
+    ['spring'] = true,
 
     -- game
     -- ['...'] = true,

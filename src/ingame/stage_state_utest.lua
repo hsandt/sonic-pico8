@@ -334,6 +334,14 @@ describe('stage_state', function ()
 
           end)  -- state.render
 
+          describe('#solo extend_spring', function ()
+
+            it('should play a coroutine that replaces spring tile with extended spring tile until a certain time (only check no error)', function ()
+              assert.has_no_errors(function() state:extend_spring() end)
+            end)
+
+          end)
+
           describe('check_reached_goal', function ()
 
             setup(function ()

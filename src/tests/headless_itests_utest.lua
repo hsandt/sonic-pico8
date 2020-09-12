@@ -28,6 +28,7 @@ logging.logger.active_categories = {
   ['frame'] = true,
   ['trace'] = true,
   ['trace2'] = true,
+  ['spring'] = true,
 
   -- game
   -- ['...'] = true,

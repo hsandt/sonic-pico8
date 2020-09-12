@@ -41,7 +41,7 @@ expect pc_bottom_pos 0x0038.b7f1 8
 
 -- currently fails on busted with 4, 11 and PICO-8 with 4, 8!
 itest_dsl_parser.register(
-  '#solo platformer stand half tile', [[
+  'platformer stand half tile', [[
 @stage #
 .
 =
@@ -683,6 +683,8 @@ expect pc_velocity 0 0
 -- for some reason, busted and pico-8 results also slightly differ
 --  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
 
+--[=[
+
 itest_dsl_parser.register(
   'platformer air ceiling corner block', [[
 @stage #
@@ -705,6 +707,9 @@ expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity -0x000.9aba -1.609375
 ]])
+
+--]=]
+
 
 -- itest
 
@@ -759,6 +764,50 @@ expect pc_velocity -0x000.9aba -1.609375
 -- at frame 18: bpos (4, 15.625), velocity (0, -1.5), air_spin -> before apogee
 -- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+
+--[=[
+
+itest_dsl_parser.register(
+  'bounce on spring (escape)', [[
+@stage #
+s..
+...
+...
+...
+...
+...
+...
+###
+
+warp 4 4
+wait 1
+
+expect pc_bottom_pos 4 4
+expect pc_motion_state falling
+expect pc_velocity 0 -5
+]])
+
+--]=]
+
+itest_dsl_parser.register(
+  'bounce on spring (land)', [[
+@stage #
+s..
+...
+...
+...
+...
+...
+...
+###
+
+warp 4 3.9
+wait 1
+
+expect pc_bottom_pos 4 4
+expect pc_motion_state falling
+expect pc_velocity 0 -5
+]])
 
 --[=[
 

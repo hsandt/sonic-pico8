@@ -688,6 +688,25 @@ expect pc_velocity 0 0
 itest_dsl_parser.register(
   'platformer air ceiling corner block', [[
 @stage #
+##
+#.
+#.
+##
+
+warp 12 24
+jump
+move left
+wait 20
+
+expect pc_velocity 0 1
+]])
+
+-- complete test above with velocity, must be positive above all
+-- test below is more complex, forget about it
+
+itest_dsl_parser.register(
+  'platformer air ceiling corner block (loop)', [[
+@stage #
 YZ.
 ...
 ...

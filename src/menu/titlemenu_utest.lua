@@ -1,8 +1,6 @@
 require("engine/test/bustedhelper")
 local titlemenu = require("menu/titlemenu")
 
-local gamestate = require("engine/application/gamestate")
-local input = require("engine/input/input")
 local ui = require("engine/ui/ui")
 
 local menu = require("menu/menu")

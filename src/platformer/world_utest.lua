@@ -306,7 +306,7 @@ describe('world (with mock tiles data setup)', function ()
     describe('with loop top-left tile', function ()
 
       before_each(function ()
-        mock_mset(1, 1, loop_topleft)
+        mock_mset(1, 1, visual_loop_topleft)
       end)
 
       it('should return 8 on column 6 (quadrant down)', function ()

@@ -12,13 +12,22 @@ asc_slope_22_id = 112
 asc_slope_22_upper_level_id = 117
 asc_slope_45_id = 113
 desc_slope_45_id = 116
-loop_topleft = 12
-loop_toptopleft = 13
-loop_toptopright = 14
+-- because of the new convention of placing special sprite flags on visual tiles,
+--  for meaningful tests we separate both tiles and check that flags are verified
+--  on the right sprites. tilemap testing loop functionality should place the visual
+--  tile!
+visual_loop_topleft = 8
+mask_loop_topleft = 12  -- no more than a mask, alone it's a mere curved tile
+visual_loop_toptopleft = 9
+mask_loop_toptopleft = 13
+visual_loop_toptopright = 10
+mask_loop_toptopright = 14
 -- below have no representation as not used in DSL itests
 -- but useful for utests which directly mset with ID constants
-loop_bottomleft = 56
-loop_bottomright = 59
+visual_loop_bottomleft = 56
+mask_loop_bottomleft = 60
+visual_loop_bottomright = 59
+mask_loop_bottomright = 63
 spring_id = 5
 
 -- symbol mapping for itests
@@ -34,8 +43,8 @@ tile_symbol_to_ids = {
   ['y']  = asc_slope_22_upper_level_id,  -- ascending slope upper level 22.5 (actually 1:2)
   ['/']  = asc_slope_45_id,  -- ascending slope 45
   ['\\'] = desc_slope_45_id,  -- descending slope 45
-  ['Y'] = loop_topleft,  -- loop top-left corner
-  ['Z'] = loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
-  ['R'] = loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
+  ['Y'] = visual_loop_topleft,  -- loop top-left corner
+  ['Z'] = visual_loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
+  ['R'] = visual_loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
   ['s'] = spring_id,
 }

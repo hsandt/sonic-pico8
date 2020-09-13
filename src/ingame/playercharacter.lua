@@ -233,23 +233,21 @@ function player_char:set_ground_tile_location(tile_loc)
     -- to complete switching, replace all mask_tile_id with visual_tile_id,
     --  remove redundant mask tiles made for curves that are like loops but without
     --  loop flags, and move the loop flags back to loop visual tiles
-    -- local visual_tile_id = mget(tile_loc.i, tile_loc.j)
 
-    -- get the tile collision data
-    local tcd = world.get_tile_collision_data_at(tile_loc)
-    assert(tcd, "player_char:set_ground_tile_location: tile at "..tile_loc.." is registered as ground tile but it has no collision data")
-
-    if tcd then
-      local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
-      -- when touching loop entrance trigger, enable entrance (and disable exit) layer
-      --  and reversely
-      if fget(mask_tile_id, sprite_flags.loop_entrance_trigger) then
-        log("set active loop layer: 1", 'loop')
-        self.active_loop_layer = 1
-      elseif fget(mask_tile_id, sprite_flags.loop_exit_trigger) then
-        log("set active loop layer: 2", 'loop')
-        self.active_loop_layer = 2
-      end
+    -- when touching loop entrance trigger, enable entrance (and disable exit) layer
+    --  and reversely
+    -- we are now checking sprite flags on the visual tile, not mask tile
+    -- ! This means the loop mask tiles don't "know" about loops and are considered
+    --  like normal curves, so you cannot use them to prototype a loop anymore.
+    -- Make sure to use the visual loop tiles even in blockout, just like you'd place
+    --  the real spring sprite instead of a half-tile mask.
+    local visual_tile_id = mget(tile_loc.i, tile_loc.j)
+    if fget(visual_tile_id, sprite_flags.loop_entrance_trigger) then
+      log("set active loop layer: 1", 'loop')
+      self.active_loop_layer = 1
+    elseif fget(visual_tile_id, sprite_flags.loop_exit_trigger) then
+      log("set active loop layer: 2", 'loop')
+      self.active_loop_layer = 2
     end
   end
 end
@@ -508,15 +506,11 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    -- get the tile collision data (a bit redundant with world._compute_qcolumn_height_at below
-    --  unfortunately; if you really want to avoid redundancy, change it to take tcd directly)
-    local tcd = world.get_tile_collision_data_at(curr_tile_loc)
-    if tcd then
-      local mask_tile_id = tcd.mask_tile_id_loc:to_sprite_id()
-      if pc.active_loop_layer == 1 and fget(mask_tile_id, sprite_flags.loop_exit) or
-          pc.active_loop_layer == 2 and fget(mask_tile_id, sprite_flags.loop_entrance) then
-        ignore_tile = true
-      end
+    -- we now check sprite flags on visual tile instead of mask tile, so no need to get tile collision data
+    local visual_tile_id = mget(curr_tile_loc.i, curr_tile_loc.j)
+    if pc.active_loop_layer == 1 and fget(visual_tile_id, sprite_flags.loop_exit) or
+        pc.active_loop_layer == 2 and fget(visual_tile_id, sprite_flags.loop_entrance) then
+      ignore_tile = true
     end
 
     if ignore_tile then

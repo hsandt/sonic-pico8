@@ -106,29 +106,6 @@ describe('credits', function ()
 
       end)
 
-      describe('draw_credits_text', function ()
-
-        setup(function ()
-          stub(ui, "print_centered")
-        end)
-
-        teardown(function ()
-          ui.print_centered:revert()
-        end)
-
-        after_each(function ()
-          ui.print_centered:clear()
-        end)
-
-        it('should print some author and copyright text centered, in white', function ()
-          c:draw_credits_text()
-
-          assert.spy(ui.print_centered).was_called(3)
-          -- no need to check what exactly is printed
-        end)
-
-      end)
-
     end)  -- (with menu entered)
 
   end)  -- (with instance)

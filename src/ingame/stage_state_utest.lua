@@ -609,10 +609,9 @@ describe('stage_state', function ()
 
           describe('back_to_titlemenu', function ()
 
-            it('should change gamestate to titlemenu on next update', function ()
+            it('should query gamestate: titlemenu', function ()
               state:back_to_titlemenu()
-              flow:update()
-              assert.are_equal(':titlemenu', flow.curr_state.type)
+              assert.are_equal(':titlemenu', flow.next_state.type)
             end)
 
           end)

@@ -25,11 +25,14 @@ local mock_raw_tile_collision_data = {
   [asc_slope_22_upper_level_id] = {asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
   [asc_slope_45_id] = {asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
   [desc_slope_45_id] = {desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
-  [loop_topleft] = {loop_topleft, {8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4)},
-  [loop_toptopleft] = {loop_toptopleft, {4, 4, 3, 3, 2, 2, 1, 1}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, 4)},
-  [loop_toptopright] = {loop_toptopright, {1, 1, 2, 2, 3, 3, 4, 4}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, -4)},
-  [loop_bottomleft] = {loop_bottomleft, {8, 8, 8, 8, 8, 7, 6, 5}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, 4)},
-  [loop_bottomright] = {loop_bottomright, {5, 6, 7, 8, 8, 8, 8, 8}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, -4)},
+  [visual_loop_topleft] = {mask_loop_topleft, {8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4)},
+  [visual_loop_toptopleft] = {mask_loop_toptopleft, {4, 4, 3, 3, 2, 2, 1, 1}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, 4)},
+  [visual_loop_toptopright] = {mask_loop_toptopright, {1, 1, 2, 2, 3, 3, 4, 4}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, -4)},
+  [visual_loop_bottomleft] = {mask_loop_bottomleft, {8, 8, 8, 8, 8, 7, 6, 5}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, 4)},
+  [visual_loop_bottomright] = {mask_loop_bottomright, {5, 6, 7, 8, 8, 8, 8, 8}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, -4)},
+  -- note that we didn't add definitions for mask_ versions, as we don't use them in tests
+  -- if we need them, then since content is the same, instead of duplicating lines for mask_,
+  --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
   [spring_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},  -- copied from half_tile_id...
 }
 
@@ -65,15 +68,33 @@ function tile_test_data.setup()
   fset(asc_slope_22_upper_level_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 4
   fset(asc_slope_45_id, sprite_flags.collision, true)  -- ascending slope 45
   fset(desc_slope_45_id, sprite_flags.collision, true)  -- descending slope 45
-  fset(loop_topleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
-  fset(loop_toptopleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
-  fset(loop_toptopleft, sprite_flags.loop_exit_trigger, true)
-  fset(loop_toptopright, sprite_flags.collision, true)
-  fset(loop_toptopright, sprite_flags.loop_entrance_trigger, true)
-  fset(loop_bottomleft, sprite_flags.collision, true)  -- low-tile (bottom quarter)
-  fset(loop_bottomleft, sprite_flags.loop_exit, true)
-  fset(loop_bottomright, sprite_flags.collision, true)
-  fset(loop_bottomright, sprite_flags.loop_entrance, true)
+
+  fset(visual_loop_topleft, sprite_flags.collision, true)
+  fset(visual_loop_topleft, sprite_flags.loop_exit, true)
+
+  -- mask also have collision falg, but only useful to test
+  -- a non-loop proto curve tile with the same shaped
+  fset(mask_loop_topleft, sprite_flags.collision, true)
+
+  fset(visual_loop_toptopleft, sprite_flags.collision, true)
+  fset(visual_loop_toptopleft, sprite_flags.loop_exit_trigger, true)
+
+  fset(mask_loop_toptopleft, sprite_flags.collision, true)
+
+  fset(visual_loop_toptopright, sprite_flags.collision, true)
+  fset(visual_loop_toptopright, sprite_flags.loop_entrance_trigger, true)
+
+  fset(mask_loop_toptopright, sprite_flags.collision, true)
+
+  fset(visual_loop_bottomleft, sprite_flags.collision, true)
+  fset(visual_loop_bottomleft, sprite_flags.loop_exit, true)
+
+  fset(mask_loop_bottomleft, sprite_flags.collision, true)
+
+  fset(visual_loop_bottomright, sprite_flags.collision, true)
+  fset(visual_loop_bottomright, sprite_flags.loop_entrance, true)
+
+  fset(mask_loop_bottomright, sprite_flags.collision, true)
 
   -- visual sprites
   fset(spring_id, sprite_flags.collision, true)

@@ -140,20 +140,24 @@ local playercharacter_data = {
     --anim_name = sprite_data(
     --          id_loc,  span,   pivot,   transparent_color (14: pink))
     [[{
-      idle  = {{0, 8},  {2, 2}, {11, 8}, 14},
-      run1  = {{2, 8},  {2, 2}, {11, 8}, 14},
-      run2  = {{4, 8},  {2, 2}, {11, 8}, 14},
-      run3  = {{6, 8},  {2, 2}, {11, 8}, 14},
-      run4  = {{8, 8},  {2, 2}, {11, 8}, 14},
-      run5  = {{10, 8}, {2, 2}, {11, 8}, 14},
-      run6  = {{12, 8}, {2, 2}, {11, 8}, 14},
-      run7  = {{14, 8}, {2, 2}, {11, 8}, 14},
-      run8  = {{0, 10}, {2, 2}, {11, 8}, 14},
-      run9  = {{2, 10}, {2, 2}, {11, 8}, 14},
-      run10 = {{4, 10}, {2, 2}, {11, 8}, 14},
-      run11 = {{6, 10}, {2, 2}, {11, 8}, 14},
-      spin  = {{0, 12}, {2, 2}, {5, 5},  14},
-      spring_jump = {{2, 12}, {2, 3}, {11, 10},  14},
+      idle   = {{0,  8},  {2, 2}, {11, 8}, 14},
+      walk1  = {{2,  8},  {2, 2}, {11, 8}, 14},
+      walk2  = {{4,  8},  {2, 2}, {11, 8}, 14},
+      walk3  = {{6,  8},  {2, 2}, {11, 8}, 14},
+      walk4  = {{8,  8},  {2, 2}, {11, 8}, 14},
+      walk5  = {{10, 8},  {2, 2}, {11, 8}, 14},
+      walk6  = {{12, 8},  {2, 2}, {11, 8}, 14},
+      walk7  = {{14, 8},  {2, 2}, {11, 8}, 14},
+      walk8  = {{0, 10},  {2, 2}, {11, 8}, 14},
+      walk9  = {{2, 10},  {2, 2}, {11, 8}, 14},
+      walk10 = {{4, 10},  {2, 2}, {11, 8}, 14},
+      walk11 = {{6, 10},  {2, 2}, {11, 8}, 14},
+      run1   = {{8, 10},  {2, 2}, {11, 8}, 14},
+      run2   = {{10,10},  {2, 2}, {11, 8}, 14},
+      run3   = {{12,10},  {2, 2}, {11, 8}, 14},
+      run4   = {{14,10},  {2, 2}, {11, 8}, 14},
+      spin   = {{0, 12},  {2, 2}, {5, 5},  14},
+      spring_jump = {{2, 12}, {2, 3}, {11, 10}, 14},
     }]], function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
@@ -163,11 +167,13 @@ local playercharacter_data = {
       )
   end),
 
-  -- minimum playback speed for "run" animation, to avoid very slow animation
-  -- 5/16: the 5 counters the 5 duration frames of ["run"] below, 1/8 to represent max duration 8 in SPG:Animations
+  -- minimum playback speed for "walk" animation, to avoid very slow animation
+  -- 5/16: the 5 counters the 5 duration frames of ["walk"] below, 1/8 to represent max duration 8 in SPG:Animations
   -- and an extra 1/2 because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
-  run_anim_min_play_speed = 0.3125
+  walk_anim_min_play_speed = 0.3125,
 
+  -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
+  run_cycle_min_speed_frame = 3,
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
@@ -177,7 +183,9 @@ playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expr
   --        sprite_keys,   step_frames, loop_mode as int)
   [[{
     idle = {{"idle"},               10,                2},
-    run  = {{"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"},
+    walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6", "walk7", "walk8", "walk9", "walk10", "walk11"},
+                                     5,                4},
+    run  = {{"run1", "run2", "run3", "run4"},
                                      5,                4},
     spin = {{"spin"},               10,                2},
     spring_jump = {{"spring_jump"}, 10,                2}

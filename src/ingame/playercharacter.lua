@@ -80,7 +80,7 @@ local player_char = new_class()
 -- has_interrupted_jump     bool            has the character already interrupted his jump once?
 
 -- anim_spr                 animated_sprite animated sprite component
--- anim_run_speed           float           Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
+-- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
@@ -813,11 +813,13 @@ function player_char:_update_platformer_motion_grounded()
     if self.ground_speed ~= 0 then
       -- set animation speed for run now, since it can be used during actual run on ground
       --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
+      -- (according to SPG, in original game, ground speed in preserved when airborne, so they use it directly
+      --  for airborne animations)
       -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
       --  instead, we prefer the more organic approach of continuous playback speed
       -- however, to simulate the max duration clamping, we use min playback speed clamping
       --  (this prevents Sonic sprite from running super slow, bad visually)
-      self.anim_run_speed = max(pc_data.run_anim_min_play_speed, abs(self.ground_speed))
+      self.anim_run_speed = max(pc_data.walk_anim_min_play_speed, abs(self.ground_speed))
     else
       -- character is really idle, we don't want a minimal playback speed
       self.anim_run_speed = 0
@@ -1758,7 +1760,11 @@ function player_char:_check_play_anim()
     if self.ground_speed == 0 then
       self.anim_spr:play("idle")
     else
-      self.anim_spr:play("run", false, self.anim_run_speed)
+      -- grounded and moving: play walk cycle at low speed, run cycle at high speed
+      -- we have access to self.ground_speed but self.anim_run_speed is shorter than
+      --  abs(self.ground_speed), and the values arethe same for normal to high speeds
+      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
+      self.anim_spr:play(anim_name, false, self.anim_run_speed)
     end
   elseif self.motion_state == motion_states.falling then
     -- stop spring jump anim when falling down again
@@ -1770,7 +1776,11 @@ function player_char:_check_play_anim()
       self.anim_spr:play("spring_jump")
     else
       -- normal fall -> run in the air
-      self.anim_spr:play("run", false, self.anim_run_speed)
+      -- we don't have access to previous ground speed as unlike original game, we clear it when airborne
+      --  but we can use the stored anim_run_speed, which is the same except for very low speed
+      -- (and we don't mind them as we are checking run cycle for high speeds)
+      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
+      self.anim_spr:play(anim_name, false, self.anim_run_speed)
     end
   else -- self.motion_state == motion_states.air_spin
     self.anim_spr:play("spin")

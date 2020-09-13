@@ -2408,11 +2408,11 @@ describe('player_char', function ()
             assert.are_equal(2.5, pc.anim_run_speed)
           end)
 
-          describe('(_update_ground_speed sets ground speed to -pc_data.run_anim_min_play_speed / 2)', function ()
+          describe('(_update_ground_speed sets ground speed to -pc_data.walk_anim_min_play_speed / 2)', function ()
 
             setup(function ()
-              -- something lower than pc_data.run_anim_min_play_speed in abs value to test max
-              new_ground_speed = -pc_data.run_anim_min_play_speed / 2
+              -- something lower than pc_data.walk_anim_min_play_speed in abs value to test max
+              new_ground_speed = -pc_data.walk_anim_min_play_speed / 2
             end)
 
             teardown(function ()
@@ -2420,10 +2420,10 @@ describe('player_char', function ()
               new_ground_speed = -2.5
             end)
 
-            it('should set the run animation playback speed to run_anim_min_play_speed when ground speed is non-zero, lower than run_anim_min_play_speed in abs)', function ()
+            it('should set the run animation playback speed to walk_anim_min_play_speed when ground speed is non-zero, lower than walk_anim_min_play_speed in abs)', function ()
               pc:_update_platformer_motion_grounded()
 
-              assert.are_equal(pc_data.run_anim_min_play_speed, pc.anim_run_speed)
+              assert.are_equal(pc_data.walk_anim_min_play_speed, pc.anim_run_speed)
             end)
 
           end)
@@ -6512,15 +6512,26 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
       end)
 
-      it('should play run anim with last anim_run_speed when grounded and ground speed is not 0', function ()
+      it('should play walk anim with last anim_run_speed when grounded and ground speed is low', function ()
         pc.motion_state = motion_states.grounded
-        pc.ground_speed = -0.1
-        pc.anim_run_speed = 2.5
+        pc.ground_speed = -(pc_data.run_cycle_min_speed_frame - 0.1) -- -2.9
+        pc.anim_run_speed = abs(pc.ground_speed)                     -- 2.9
 
         pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
+      end)
+
+      it('should play run anim with last anim_run_speed when grounded and ground speed is high', function ()
+        pc.motion_state = motion_states.grounded
+        pc.ground_speed = -pc_data.run_cycle_min_speed_frame         -- -3.0
+        pc.anim_run_speed = abs(pc.ground_speed)                     -- 3.0
+
+        pc:_check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
       end)
 
       it('should play spring_jump when "falling upward" with should_play_spring_jump: true', function ()
@@ -6533,26 +6544,48 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spring_jump")
       end)
 
-      it('should stop spring_jump anim and play run anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
+      it('(low anim speed) should stop spring_jump anim and play walk anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
         pc.motion_state = motion_states.falling
         pc.velocity.y = 1
-        pc.anim_run_speed = 2.5
+        pc.anim_run_speed = pc_data.run_cycle_min_speed_frame - 0.1  -- 2.9
         pc.should_play_spring_jump = true
 
         pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
       end)
 
-      it('should play run anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
-        pc.anim_run_speed = 2.5
+      it('(high anim speed) should stop spring_jump anim and play run anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
+        pc.motion_state = motion_states.falling
+        pc.velocity.y = 1
+        pc.anim_run_speed = pc_data.run_cycle_min_speed_frame  -- 3.0
+        pc.should_play_spring_jump = true
+
+        pc:_check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
+      end)
+
+      it('(low anim speed) should play walk anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
+        pc.anim_run_speed = pc_data.run_cycle_min_speed_frame - 0.1  -- 2.9
         pc.motion_state = motion_states.falling
 
         pc:_check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 2.5)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
+      end)
+
+      it('(high anim speed)should play run anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
+        pc.anim_run_speed = pc_data.run_cycle_min_speed_frame  -- 3.0
+        pc.motion_state = motion_states.falling
+
+        pc:_check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
       end)
 
       it('should play spin anim when air spinning', function ()

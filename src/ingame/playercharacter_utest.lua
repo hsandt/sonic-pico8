@@ -2119,24 +2119,33 @@ describe('player_char', function ()
 
       describe('_update_platformer_motion', function ()
 
+        setup(function ()
+          stub(player_char, "check_spring")
+          stub(player_char, "check_emerald")
+        end)
+
+        teardown(function ()
+          player_char.check_spring:revert()
+          player_char.check_emerald:revert()
+        end)
+
+        after_each(function ()
+          player_char.check_spring:clear()
+          player_char.check_emerald:clear()
+        end)
+
         describe('(_check_jump stubbed)', function ()
 
           setup(function ()
             stub(player_char, "_check_jump")
-            stub(player_char, "check_spring")
-            stub(player_char, "check_emerald")
           end)
 
           teardown(function ()
             player_char._check_jump:revert()
-            player_char.check_spring:revert()
-            player_char.check_emerald:revert()
           end)
 
           after_each(function ()
             player_char._check_jump:clear()
-            player_char.check_spring:clear()
-            player_char.check_emerald:clear()
           end)
 
           it('(when motion state is grounded) should call _check_jump', function ()

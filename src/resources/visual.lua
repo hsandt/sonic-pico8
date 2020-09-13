@@ -23,6 +23,7 @@ local sprite_data_t = {
 --#if mouse
   cursor = sprite_data(sprite_id_location(1, 0), nil, nil, colors.pink),
 --#endif
+  menu_cursor = sprite_data(sprite_id_location(1, 0), nil, nil, colors.pink),
   emerald = sprite_data(sprite_id_location(4, 1), tile_vector(2, 1), vector(4, 4), colors.pink),
 }
 

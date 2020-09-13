@@ -6,11 +6,13 @@ local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
 local pc_data = require("data/playercharacter_data")
+local emerald = require("ingame/emerald")
 local stage_state = require("ingame/stage_state")
 local motion = require("platformer/motion")
 local ground_query_info = motion.ground_query_info
 local world = require("platformer/world")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('player_char', function ()
@@ -2122,16 +2124,19 @@ describe('player_char', function ()
           setup(function ()
             stub(player_char, "_check_jump")
             stub(player_char, "check_spring")
+            stub(player_char, "check_emerald")
           end)
 
           teardown(function ()
             player_char._check_jump:revert()
             player_char.check_spring:revert()
+            player_char.check_emerald:revert()
           end)
 
           after_each(function ()
             player_char._check_jump:clear()
             player_char.check_spring:clear()
+            player_char.check_emerald:clear()
           end)
 
           it('(when motion state is grounded) should call _check_jump', function ()
@@ -2152,6 +2157,13 @@ describe('player_char', function ()
             pc:_update_platformer_motion()
             assert.spy(player_char.check_spring).was_called()
             assert.spy(player_char.check_spring).was_called_with(match.ref(pc))
+          end)
+
+          it('should call check_emerald (after motion)', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc:_update_platformer_motion()
+            assert.spy(player_char.check_emerald).was_called()
+            assert.spy(player_char.check_emerald).was_called_with(match.ref(pc))
           end)
 
         end)
@@ -5322,6 +5334,63 @@ describe('player_char', function ()
           pc:check_spring()
           assert.spy(player_char.trigger_spring).was_called(1)
           assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        end)
+
+      end)
+
+      describe('check_emerald', function ()
+
+        local mock_is_in_emerald_pick_area
+        local mock_emerald = emerald(3, location(1, 2))
+
+        setup(function ()
+          stub(stage_state, "character_pick_emerald")
+          stub(stage_state, "check_emerald_pick_area", function (self, _pos)
+            return mock_is_in_emerald_pick_area and mock_emerald or nil
+          end)
+        end)
+
+        teardown(function ()
+          stage_state.character_pick_emerald:revert()
+          stage_state.check_emerald_pick_area:revert()
+        end)
+
+        before_each(function ()
+          -- normally we add and enter gamestate properly, but enough for this test
+          flow.curr_state = stage_state()
+
+          mock_mset(2, 0, visual.sprite_data_t.emerald.id_loc:to_sprite_id())
+        end)
+
+        after_each(function ()
+          mock_is_in_emerald_pick_area = nil
+
+          stage_state.character_pick_emerald:clear()
+        end)
+
+        describe('(not in emerald pick area)', function ()
+
+          setup(function ()
+            mock_is_in_emerald_pick_area = false
+          end)
+
+          teardown(function ()
+            mock_is_in_emerald_pick_area = nil
+          end)
+
+          it('should not call pick_emerald when check_emerald_pick_area returns false on current position', function ()
+            mock_is_in_emerald_pick_area = false
+            pc:check_emerald()
+            assert.spy(stage_state.character_pick_emerald).was_not_called()
+          end)
+
+          it('should call pick_emerald when check_emerald_pick_area returns true on current position', function ()
+            mock_is_in_emerald_pick_area = true
+            pc:check_emerald()
+            assert.spy(stage_state.character_pick_emerald).was_called(1)
+            assert.spy(stage_state.character_pick_emerald).was_called_with(match.ref(flow.curr_state), match.ref(mock_emerald))
+          end)
+
         end)
 
       end)

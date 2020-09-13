@@ -17,6 +17,10 @@ function emerald:_tostring()
 end
 --#endif
 
+function emerald:get_center()
+  return self.location:to_center_position()
+end
+
 -- render the emerald at its current location
 function emerald:render()
   -- recolor emerald based on number
@@ -27,7 +31,7 @@ function emerald:render()
   pal(colors.red, custom_colors[1])
   pal(colors.dark_purple, custom_colors[2])
   -- pass center of tile, so emerald is represented with pivot at the center
-  visual.sprite_data_t.emerald:render(self.location:to_center_position())
+  visual.sprite_data_t.emerald:render(self:get_center())
   pal()
 end
 

@@ -741,6 +741,7 @@ function player_char:_update_platformer_motion()
   end
 
   self:check_spring()
+  self:check_emerald()
 end
 
 -- update motion following platformer grounded motion rules
@@ -1693,8 +1694,19 @@ function player_char:trigger_spring(spring_loc)
   self:_enter_motion_state(motion_states.falling)
   self.should_play_spring_jump = true
 
-  assert(flow.curr_state.type == ':stage')
-  flow.curr_state:extend_spring(spring_loc)
+  local stage_state = flow.curr_state
+  assert(stage_state.type == ':stage')
+  stage_state:extend_spring(spring_loc)
+end
+
+function player_char:check_emerald()
+  local stage_state = flow.curr_state
+  assert(stage_state.type == ':stage')
+
+  local em = stage_state:check_emerald_pick_area(self.position)
+  if em then
+    stage_state:character_pick_emerald(em)
+  end
 end
 
 --#if cheat

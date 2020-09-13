@@ -36,7 +36,8 @@ function stage_state:_init()
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
 
-  -- items
+  -- items (could also be in world if it was a singleton or member of stage_state
+  --  instead of being essentially static; as member, it may be renamed 'stage')
   self.emeralds = {}
 
   -- position of the main camera, at the center of the view
@@ -150,6 +151,25 @@ function stage_state:extend_spring_async(spring_loc)
 end
 
 -- gameplay events
+
+-- check if position is in emerald pick up area and if so,
+--  return emerald. Else, return nil.
+function stage_state:check_emerald_pick_area(position)
+  for em in all(self.emeralds) do
+    -- max xy distance check <=> inside square area (simplified version of AABB)
+    local delta = position - em:get_center()
+    local max_distance = max(abs(delta.x), abs(delta.y))
+    if max_distance < stage_data.emerald_pick_radius then
+      return em
+    end
+  end
+end
+
+function stage_state:character_pick_emerald(em)
+  -- remove emerald from sequence (use del to make sure
+  --  later object indices are decremented)
+  del(self.emeralds, em)
+end
 
 function stage_state:check_reached_goal()
   if not self.has_reached_goal and

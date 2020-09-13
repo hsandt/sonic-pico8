@@ -25,6 +25,15 @@ describe('emerald', function ()
 
   end)
 
+  describe('get_center', function ()
+
+    it('emerald(7, location(2, 1)) => "emerald(7, location(2, 1))"', function ()
+      local em = emerald(7, location(2, 1))
+      assert.are_same(vector(20, 12), em:get_center())
+    end)
+
+  end)
+
   describe('render', function ()
 
     setup(function ()

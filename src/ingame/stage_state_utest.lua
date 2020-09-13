@@ -353,7 +353,7 @@ describe('stage_state', function ()
 
           end)  -- state.render
 
-          describe('#solo spawn_emeralds', function ()
+          describe('spawn_emeralds', function ()
 
             -- setup is too early, stage state will start afterward in before_each,
             --  and its on_enter will call spawn_emeralds, making it hard
@@ -410,6 +410,48 @@ describe('stage_state', function ()
               state:extend_spring(location(2, 0))
               assert.spy(picosonic_app.start_coroutine).was_called(1)
               assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.extend_spring_async, match.ref(state), location(2, 0))
+            end)
+
+          end)
+
+          describe('check_emerald_pick_area', function ()
+
+            before_each(function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+            end)
+
+            it('should return nil when position is too far from all the emeralds', function ()
+              assert.is_nil(state:check_emerald_pick_area(vector(12, 12)))
+            end)
+
+            it('should return emerald when position is close to that emerald (giving priority to lower index)', function ()
+              assert.are_equal(state.emeralds[1], state:check_emerald_pick_area(vector(8, 4)))
+            end)
+
+          end)
+
+          describe('character_pick_emerald', function ()
+
+            before_each(function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+            end)
+
+            it('should remove an emerald from the sequence', function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+              state:character_pick_emerald(state.emeralds[2])
+              assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
             end)
 
           end)

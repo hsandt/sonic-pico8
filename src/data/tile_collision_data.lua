@@ -91,17 +91,19 @@ function tile_collision_data.slope_angle_to_interiors(slope_angle)
   return interior_v, interior_h
 end
 
-function tile_collision_data.from_raw_tile_collision_data(raw_data)
-  assert(raw_data.slope_angle >= 0 and raw_data.slope_angle < 1, "tile_collision_data.from_raw_tile_collision_data: raw_data.slope_angle is "..raw_data.slope_angle..", apply `% 1` before passing")
+function tile_collision_data.from_raw_tile_collision_data(mask_tile_id, slope_angle)
+  assert(slope_angle >= 0 and slope_angle < 1, "tile_collision_data.from_raw_tile_collision_data: slope_angle is "..slope_angle..", please apply `% 1` before passing")
   -- we don't mind edge cases (slope angle at 0, 0.25, 0.5 or 0.75 exactly)
   --  and assume the code will handle any arbitrary decision on interior_h/v
-  local interior_v, interior_h = tile_collision_data.slope_angle_to_interiors(raw_data.slope_angle)
+  local interior_v, interior_h = tile_collision_data.slope_angle_to_interiors(slope_angle)
+
+  local mask_tile_id_loc = sprite_id_location.from_sprite_id(mask_tile_id)
 
   return tile_collision_data(
-    raw_data.mask_tile_id_loc,
-    tile_collision_data.read_height_array(raw_data.mask_tile_id_loc, interior_v),
-    tile_collision_data.read_width_array(raw_data.mask_tile_id_loc, interior_h),
-    raw_data.slope_angle,
+    mask_tile_id_loc,
+    tile_collision_data.read_height_array(mask_tile_id_loc, interior_v),
+    tile_collision_data.read_width_array(mask_tile_id_loc, interior_h),
+    slope_angle,
     interior_v,
     interior_h
   )

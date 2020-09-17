@@ -1,8 +1,6 @@
 require("test/bustedhelper")
 local tile_collision_data = require("data/tile_collision_data")
 
-local raw_tile_collision_data = require("data/raw_tile_collision_data")
-
 -- when we have to mock tile sprite data in PICO-8,
 -- we use the following
 
@@ -155,18 +153,20 @@ describe('tile_collision_data', function ()
 
     setup(function ()
       stub(tile_collision_data, "read_height_array", function (tile_mask_id_location, slope_angle)
-        if tile_mask_id_location == 1 then
+        assert(tile_mask_id_location.j == 0, "we are only testing on first row to simplify")
+        if tile_mask_id_location.i == 1 then
           return {0, 1, 2, 2, 3, 3, 4, 4}
-        elseif tile_mask_id_location == 2 then
+        elseif tile_mask_id_location.i == 2 then
           return {8, 6, 4, 3, 2, 2, 1, 1}
         else
           return {1, 1, 2, 2, 3, 4, 6, 8}
         end
       end)
       stub(tile_collision_data, "read_width_array", function (tile_mask_id_location, slope_angle)
-        if tile_mask_id_location == 1 then
+        assert(tile_mask_id_location.j == 0, "we are only testing on first row to simplify")
+        if tile_mask_id_location.i == 1 then
           return {0, 0, 0, 0, 2, 4, 6, 7}
-        elseif tile_mask_id_location == 2 then
+        elseif tile_mask_id_location.i == 2 then
           return {8, 6, 4, 3, 2, 2, 1, 1}
         else
           return {8, 6, 4, 3, 2, 2, 1, 1}
@@ -180,22 +180,19 @@ describe('tile_collision_data', function ()
     end)
 
     it('should return a tile_collision_data containing (mock tile 1) height/width array, slope angle, derived interior directions', function ()
-      local raw_data = raw_tile_collision_data(1, atan2(8, -4))
-      local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
+      local tcd = tile_collision_data.from_raw_tile_collision_data(1, atan2(8, -4))
       -- struct equality with are_equal would work, we just use are_same to benefit from diff asterisk provided by luassert
-      assert.are_same(tile_collision_data(1, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), vertical_dirs.down, horizontal_dirs.right), tcd)
+      assert.are_same(tile_collision_data(sprite_id_location(1, 0), {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), vertical_dirs.down, horizontal_dirs.right), tcd)
     end)
 
     it('should return a tile_collision_data containing (mock tile 2) height/width array, slope angle, derived interior directions', function ()
-      local raw_data = raw_tile_collision_data(2, atan2(-8, 8))
-      local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
-      assert.are_same(tile_collision_data(2, {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, 8), vertical_dirs.up, horizontal_dirs.left), tcd)
+      local tcd = tile_collision_data.from_raw_tile_collision_data(2, atan2(-8, 8))
+      assert.are_same(tile_collision_data(sprite_id_location(2, 0), {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, 8), vertical_dirs.up, horizontal_dirs.left), tcd)
     end)
 
     it('should return a tile_collision_data containing (mock tile 3) height/width array, slope angle, derived interior directions', function ()
-      local raw_data = raw_tile_collision_data(2, atan2(-8, -8))
-      local tcd = tile_collision_data.from_raw_tile_collision_data(raw_data)
-      assert.are_same(tile_collision_data(2, {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, -8), vertical_dirs.up, horizontal_dirs.right), tcd)
+      local tcd = tile_collision_data.from_raw_tile_collision_data(2, atan2(-8, -8))
+      assert.are_same(tile_collision_data(sprite_id_location(2, 0), {8, 6, 4, 3, 2, 2, 1, 1}, {8, 6, 4, 3, 2, 2, 1, 1}, atan2(-8, -8), vertical_dirs.up, horizontal_dirs.right), tcd)
     end)
 
   end)

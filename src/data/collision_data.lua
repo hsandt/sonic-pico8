@@ -16,7 +16,7 @@ sprite_flags = {
 -- we define the angles as (dx, dy) following convention of a point moving CCW
 --  then compute atan2(dx, dy)
 -- we could compute the angles manually from the height array, but since there subtleties of +/- 1px
---  depending on how we interpret pixel ladders, we prefer setting them manually to get the slope factor we want
+--  depending on how we interpretr pixel ladders, we prefer setting them manually to get the slope factor we want
 local mask_tile_angles = transform(
   {
     -- low slope descending every 4px with flat ground at every step
@@ -188,6 +188,21 @@ local mask_tile_ids = {
   [125] = 29,
 
 -- grass
+  [49] = 1,
+  [50] = 2,
+  [51] = 3,
+  [52] = 4,
+  [53] = 5,
+  [54] = 6,
+  [55] = 7,
+  [56] = 8,
+  [57] = 9,
+  [58] = 10,
+  [59] = 11,
+  [60] = 12,
+  [61] = 13,
+  [62] = 14,
+  [63] = 15,
   [65] = 29,
   [66] = 29,
   [67] = 29,

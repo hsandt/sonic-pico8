@@ -116,6 +116,11 @@ end
 
 -- replace emerald representative sprite (the left part with most of the pixels)
 --  with an actual emerald object, to make it easier to recolor and pick up
+-- ! VERY SLOW !
+-- it's not perceptible at runtime, but consider stubbing it when unit testing
+--  while entering stage state in before_each, or you'll waste around 0.5s each time
+-- alternatively, you may bake stage data (esp. emerald positions) in a separate object
+--  (that doesn't get reset with stage_state) and reuse it whenever you want
 function stage_state:spawn_emeralds()
   -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
   --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
@@ -446,23 +451,31 @@ end
 -- - player character
 function stage_state:render_stage_elements()
   self:set_camera_offset_stage()
-  self:render_environment()
-  self:render_player_char()
+  self:render_environment_midground()
   self:render_emeralds()
+  self:render_player_char()
+  self:render_environment_foreground()
 end
 
 -- render the stage environment (tiles)
-function stage_state:render_environment()
-  -- optimize: don't draw the whole stage offset by camera,
-  -- instead just draw the portion of the level of interest
-  -- (and either keep camera offset or offset manually and subtract from camera offset)
+function stage_state:render_environment_midground()
+  -- possible optimize: don't draw the whole stage offset by camera,
+  --  instead just draw the portion of the level of interest
+  --  (and either keep camera offset or offset manually and subtract from camera offset)
+  -- that said, I didn't notice a performance drop by drawing the full tilemap
+  --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
-  -- todo: first render everything but loop entrance tiles, then after player char,
-  -- only loop entrance tiles
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height)
+
+  -- draw sprites on every layer but foreground
+  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.midground))
 
   -- goal as vertical line
   rectfill(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
+end
+
+function stage_state:render_environment_foreground()
+  set_unique_transparency(colors.pink)
+  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.foreground))
 end
 
 -- render the player character at its current position

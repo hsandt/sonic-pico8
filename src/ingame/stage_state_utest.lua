@@ -133,22 +133,30 @@ describe('stage_state', function ()
 
       describe('on_exit', function ()
 
+
         setup(function ()
           stub(overlay, "clear_labels")
           stub(picosonic_app, "stop_all_coroutines")
           stub(stage_state, "stop_bgm")
+          -- we don't really mind spying on spawn_emeralds
+          --  but we do not want to spend 0.5s finding all of them
+          --  in before_each every time due to on_enter,
+          --  so we stub this
+          stub(stage_state, "spawn_emeralds")
         end)
 
         teardown(function ()
           overlay.clear_labels:revert()
           picosonic_app.stop_all_coroutines:revert()
           stage_state.stop_bgm:revert()
+          stage_state.spawn_emeralds:revert()
         end)
 
         after_each(function ()
           overlay.clear_labels:clear()
           picosonic_app.stop_all_coroutines:clear()
           stage_state.stop_bgm:clear()
+          stage_state.spawn_emeralds:clear()
         end)
 
         before_each(function ()
@@ -212,6 +220,43 @@ describe('stage_state', function ()
 
       end)
 
+      describe('spawn_emeralds', function ()
+
+        -- setup is too early, stage state will start afterward in before_each,
+        --  and its on_enter will call spawn_emeralds, making it hard
+        --  to test in isolation. Hence before_each.
+        before_each(function ()
+          local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+          mset(1, 1, emerald_repr_sprite_id)
+          mset(2, 2, emerald_repr_sprite_id)
+          mset(3, 3, emerald_repr_sprite_id)
+        end)
+
+        after_each(function ()
+          pico8:clear_map()
+        end)
+
+        it('should clear all emerald tiles', function ()
+          state:spawn_emeralds()
+          assert.are_same({0, 0, 0},
+            {
+              mget(1, 1),
+              mget(2, 2),
+              mget(3, 3),
+            })
+        end)
+
+        it('should spawn and store emerald objects for each removed emerald tile', function ()
+          state:spawn_emeralds()
+          assert.are_same({
+            emerald(1, location(1, 1)),
+            emerald(2, location(2, 2)),
+            emerald(3, location(3, 3)),
+            }, state.emeralds)
+        end)
+
+      end)
+
       describe('(stage states added)', function ()
 
         before_each(function ()
@@ -224,6 +269,22 @@ describe('stage_state', function ()
         end)
 
         describe('(stage state entered)', function ()
+
+          setup(function ()
+            -- we don't really mind spying on spawn_emeralds
+            --  but we do not want to spend 0.5s finding all of them
+            --  in before_each every time due to on_enter,
+            --  so we stub this
+            stub(stage_state, "spawn_emeralds")
+          end)
+
+          teardown(function ()
+            stage_state.spawn_emeralds:revert()
+          end)
+
+          after_each(function ()
+            stage_state.spawn_emeralds:clear()
+          end)
 
           before_each(function ()
             flow:_change_state(state)
@@ -352,43 +413,6 @@ describe('stage_state', function ()
             end)
 
           end)  -- state.render
-
-          describe('spawn_emeralds', function ()
-
-            -- setup is too early, stage state will start afterward in before_each,
-            --  and its on_enter will call spawn_emeralds, making it hard
-            --  to test in isolation. Hence before_each.
-            before_each(function ()
-              local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
-              mset(1, 1, emerald_repr_sprite_id)
-              mset(2, 2, emerald_repr_sprite_id)
-              mset(3, 3, emerald_repr_sprite_id)
-            end)
-
-            after_each(function ()
-              pico8:clear_map()
-            end)
-
-            it('should clear all emerald tiles', function ()
-              state:spawn_emeralds()
-              assert.are_same({0, 0, 0},
-                {
-                  mget(1, 1),
-                  mget(2, 2),
-                  mget(3, 3),
-                })
-            end)
-
-            it('should spawn and store emerald objects for each removed emerald tile', function ()
-              state:spawn_emeralds()
-              assert.are_same({
-                emerald(1, location(1, 1)),
-                emerald(2, location(2, 2)),
-                emerald(3, location(3, 3)),
-                }, state.emeralds)
-            end)
-
-          end)
 
           describe('extend_spring', function ()
 
@@ -652,7 +676,8 @@ describe('stage_state', function ()
             setup(function ()
               rectfill_stub = stub(_G, "rectfill")
               map_stub = stub(_G, "map")
-              spy.on(stage_state, "render_environment")
+              spy.on(stage_state, "render_environment_midground")
+              stub(stage_state, "render_environment_foreground")  -- stub will make us remember we don't cover it
               player_char_render_stub = stub(player_char, "render")
               title_overlay_draw_labels_stub = stub(overlay, "draw_labels")
             end)
@@ -660,7 +685,8 @@ describe('stage_state', function ()
             teardown(function ()
               rectfill_stub:revert()
               map_stub:revert()
-              stage_state.render_environment:revert()
+              stage_state.render_environment_midground:revert()
+              stage_state.render_environment_foreground:revert()
               player_char_render_stub:revert()
               title_overlay_draw_labels_stub:revert()
             end)
@@ -668,7 +694,8 @@ describe('stage_state', function ()
             after_each(function ()
               rectfill_stub:clear()
               map_stub:clear()
-              stage_state.render_environment:clear()
+              stage_state.render_environment_midground:clear()
+              stage_state.render_environment_foreground:clear()
               player_char_render_stub:clear()
               title_overlay_draw_labels_stub:clear()
             end)
@@ -693,8 +720,10 @@ describe('stage_state', function ()
               state.camera_pos = vector(24, 13)
               state:render_stage_elements()
               assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(state.render_environment).was_called(1)
-              assert.spy(state.render_environment).was_called_with(match.ref(state))
+              assert.spy(state.render_environment_midground).was_called(1)
+              assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
+              assert.spy(state.render_environment_foreground).was_called(1)
+              assert.spy(state.render_environment_foreground).was_called_with(match.ref(state))
               assert.spy(player_char_render_stub).was_called(1)
               assert.spy(player_char_render_stub).was_called_with(match.ref(state.player_char))
             end)
@@ -711,10 +740,10 @@ describe('stage_state', function ()
                 state:set_camera_offset_stage()
               end)
 
-              it('render_environment should call map', function ()
-                state:render_environment()
+              it('render_environment_midground should call map', function ()
+                state:render_environment_midground()
                 assert.spy(map_stub).was_called(1)
-                assert.spy(map_stub).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height)
+                assert.spy(map_stub).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height, 1 << sprite_flags.midground)
               end)
 
               it('render_player_char should call player_char:render', function ()
@@ -771,6 +800,8 @@ describe('stage_state', function ()
 
               -- should be each
               before_each(function ()
+                -- spawn_emeralds has been stubbed in this context,
+                --  so this won't slow down every test
                 flow:_change_state(state)
               end)
 

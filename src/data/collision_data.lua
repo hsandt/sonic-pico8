@@ -7,6 +7,8 @@ sprite_flags = {
   loop_entrance_trigger = 3,  -- loop top-top-right part (enables entrance late as in original game)
   loop_exit_trigger = 4,      -- loop top-top-left part (enables exit late as in original game)
   spring = 5,                 -- spring
+  midground = 6,              -- midground sprite (should be drawn after programmatical background)
+  foreground = 7,             -- foreground sprite (should be drawn last)
 }
 
 -- below, we are not using serialization.parse_expression anymore

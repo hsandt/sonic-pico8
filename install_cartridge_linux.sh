@@ -13,7 +13,7 @@ fi
 # Configuration: cartridge
 cartridge_stem="picosonic"
 version="4.0"
-config="$1"; shift
+config="$1"
 
 # option "png" will export the png cartridge
 if [[ $2 = "png" ]] ; then

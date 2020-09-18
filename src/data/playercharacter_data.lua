@@ -17,7 +17,7 @@ local playercharacter_data = {
   ground_decel_frame2 = 0.25,  -- 16/64
 
   -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
-  -- ground active deceleration factor on descending slope ([0-1])
+  -- ground active deceleration factor on descending slope (no unit, [0-1])
   ground_decel_descending_slope_factor = 0.5,
 
   -- ground friction (passive deceleration) (px/frame^2)
@@ -34,6 +34,7 @@ local playercharacter_data = {
   --  - No Friction on Steep Descending Slope
   --  - Progressive Ascending Steep Slope Factor
   -- max slope angle on which friction is applied (]0-0.25[, but we recommend more than 22.5 degrees i.e. 0.0625)
+  --  (PICO-8 angle)
   steep_slope_min_angle = 0.075,  -- 27/360
 
   -- derived data: the slope angle for which ground friction is exactly opposed to slope factor
@@ -43,19 +44,19 @@ local playercharacter_data = {
   -- time needed when ascending a slope before full slope factor is applied (s)
   progressive_ascending_slope_duration = 0.5,
 
-  -- air acceleration on x axis (px/frames^2)
+  -- air acceleration on x axis (px/frame^2)
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
-  -- air drag factor applied every frame, at 60 FPS
+  -- air drag factor applied every frame, at 60 FPS (no unit)
   -- note that combined with air_accel_x_frame2, we can deduce the actual
   --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
-  --  = 1.453125 px/frames
+  --  = 1.453125 px/frame
   air_drag_factor_per_frame = 0.96875,  -- 62/64
 
-  -- min absolute velocity x for which air drag is applied
+  -- min absolute velocity x for which air drag is applied (px/frame)
   air_drag_min_velocity_x = 0.25,  -- 16/64
 
-  -- maximum absolute velocity y for which air drag is applied
+  -- maximum absolute velocity y for which air drag is applied (px/frame)
   -- the actual range is ] -air_drag_max_abs_velocity_y, 0 [
   air_drag_max_abs_velocity_y = 8,  -- 512/64
 
@@ -69,7 +70,8 @@ local playercharacter_data = {
   -- duration of horizontal control lock after fall/slide off (frames)
   horizontal_control_lock_duration = 30,  -- 0.5s
 
-  -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
+  -- max air speed (px/frame)
+  --  (very high, probably won't happen unless Sonic falls in bottomless pit)
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
@@ -87,6 +89,7 @@ local playercharacter_data = {
   spring_jump_speed_frame = 5,
 
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis
+  --  (px)
   -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)
   --  so we can get the right pixel when offsetting to the left and flooring
   -- note that we don't define wall_sensor_extent_x, which is assumed to be ground_sensor_extent_x + 1
@@ -94,26 +97,32 @@ local playercharacter_data = {
   ground_sensor_extent_x = 2.5,
 
   -- height between the standing character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
+  --  (px)
   center_height_standing = 8,
 
   -- height between the ground sensors and the top of the standing character's collider (used to detect ceiling)
+  --  (px)
   -- should be 2 * center_height_standing, but left as separate data for customization (e.g. you can add 1 as in the SPG)
   full_height_standing = 16,
 
   -- same as center_height_standing but when character is crouching, rolling or jumping
+  --  (px)
   center_height_compact = 4,
 
   -- same as full_height_standing but when character is crouching, rolling or jumping
+  --  (px)
   -- should be 2 * center_height_compact, but left as separate data for customization (e.g. you can add 1 as in the SPG)
   full_height_compact = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
+  --  (px)
   --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
   max_ground_escape_height = 4,
 
   -- max vertical distance allowed to snap to a lower ground while running (on step or curve)
   -- a.k.a. max step down
+  --  (px)
   max_ground_snap_height = 4,
 
   -- debug motion

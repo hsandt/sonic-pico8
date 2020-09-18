@@ -327,13 +327,11 @@ function stage_state:render_background()
 
   -- leaves (before trees so trees can hide some leaves with base height too long if needed)
   for j = 0, 1 do
-    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j / 1
+    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j  -- actually j / 1 where 1 is max j
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
-    -- intermediate var for luamin #50
-    local complementary_j = 1 - j
-    self:draw_leaves_row(parallax_offset, leaves_y0 + leaves_row_dy_mult * complementary_j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_leaves_row(parallax_offset, leaves_y0 + leaves_row_dy_mult * (1 - j), leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 
   -- tree rows
@@ -355,11 +353,9 @@ function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
   --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
   --  where extra margin is to avoid having cloud spawning immediately on screen right
   --  edge)
-  -- intermediate var to avoid luamin bracket stripping bug #50
-  local x0 = x - offset_x + 100
 
   -- clouds move to the left
-  x0 = x0 % 300 - 100
+  x0 = (x - offset_x + 100) % 300 - 100
 
   local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
   local r_mult_list = {0.8, 1.4, 1.1, 0.7}
@@ -427,9 +423,7 @@ end
 function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    -- intermediate var to avoid luamin bracket removal issue #50
-    local parallax_x = x + parallax_offset
-    local height = base_height + dheight_array[parallax_x % size + 1]
+    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
     -- draw vertical line from bottom to (variable) top
     line(x, y, x, y - height, color)
   end
@@ -438,9 +432,7 @@ end
 function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    -- intermediate var to avoid luamin bracket removal issue #50
-    local parallax_x = x + parallax_offset
-    local height = base_height + dheight_array[parallax_x % size + 1]
+    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
     -- draw vertical line from top to (variable) bottom
     line(x, y, x, y + height, color)
   end

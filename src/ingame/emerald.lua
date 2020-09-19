@@ -6,7 +6,7 @@ emerald.emerald = emerald
 -- number    int            number of the emerald, from 1 to 8
 --                          also determines the color palette
 -- location  tile_location  location of the emerald on the map (top-left)
-function emerald:_init(number, location)
+function emerald:init(number, location)
   self.number = number
   self.location = location
 end

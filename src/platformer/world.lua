@@ -95,9 +95,9 @@ end
 --  - slope_angle is the slope angle of the corresponding tile, or nil if there is no colliding tile
 -- if ignore_reverse is true, return 0, nil if the tile interior is opposed to quadrant interior direction
 -- this is useful for ceiling check on character's current tile and actually matches Classic Sonic behavior better
-function world._compute_qcolumn_height_at(tile_location, qcolumn_index0, quadrant, ignore_reverse)
+function world.compute_qcolumn_height_at(tile_location, qcolumn_index0, quadrant, ignore_reverse)
 
-  assert(0 <= qcolumn_index0 and qcolumn_index0 < 8, "world._compute_qcolumn_height_at: invalid qcolumn_index0 "..qcolumn_index0)
+  assert(0 <= qcolumn_index0 and qcolumn_index0 < 8, "world.compute_qcolumn_height_at: invalid qcolumn_index0 "..qcolumn_index0)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
   if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 32 then

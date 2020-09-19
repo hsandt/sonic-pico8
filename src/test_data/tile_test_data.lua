@@ -100,7 +100,7 @@ function tile_test_data.setup()
   fset(spring_id, sprite_flags.collision, true)
   fset(spring_id, sprite_flags.spring, true)
 
-  -- mock height array _init so it doesn't have to dig in sprite data, inaccessible from busted
+  -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)
     return mock_tile_collision_data[current_tile_id]
   end)

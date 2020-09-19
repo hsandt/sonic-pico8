@@ -287,7 +287,7 @@ describe('stage_state', function ()
           end)
 
           before_each(function ()
-            flow:_change_state(state)
+            flow:change_state(state)
             -- entering stage currently starts coroutine show_stage_title_async
             -- which will cause side effects when updating coroutines to test other
             -- async functions, so clear that now
@@ -783,7 +783,7 @@ describe('stage_state', function ()
           describe('on exit stage state to enter titlemenu state', function ()
 
             before_each(function ()
-              flow:_change_state(titlemenu)
+              flow:change_state(titlemenu)
             end)
 
             it('player character should be nil', function ()
@@ -802,7 +802,7 @@ describe('stage_state', function ()
               before_each(function ()
                 -- spawn_emeralds has been stubbed in this context,
                 --  so this won't slow down every test
-                flow:_change_state(state)
+                flow:change_state(state)
               end)
 
               it('current substate should be play', function ()

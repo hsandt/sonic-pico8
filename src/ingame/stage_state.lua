@@ -19,8 +19,8 @@ stage_state.substates = {
   result = "result"  -- result screen
 }
 
-function stage_state:_init()
-  gamestate._init(self)
+function stage_state:init()
+  gamestate.init(self)
 
   -- stage id
   self.curr_stage_id = 1

@@ -31,8 +31,8 @@ local visual = require("resources/visual")
 
 local picosonic_app = derived_class(gameapp)
 
-function picosonic_app:_init()
-  gameapp._init(self, fps60)
+function picosonic_app:init()
+  gameapp.init(self, fps60)
 end
 
 function picosonic_app:instantiate_gamestates() -- override

@@ -6,7 +6,7 @@ require("engine/common")
 require("common")
 
 -- we also require codetuner so any file can used tuned()
--- if tuner symbol is defined, then we also initialize it in _init
+-- if tuner symbol is defined, then we also initialize it in init
 local codetuner = require("engine/debug/codetuner")
 
 --#if log

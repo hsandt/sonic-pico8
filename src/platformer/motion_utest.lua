@@ -8,7 +8,7 @@ describe('motion', function ()
 
   describe('ground_query_info', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
 
       it('should create a ground_query_info with signed_distance, slope_angle', function ()
         local info = ground_query_info(location(2, 1), -2.0, 0.25)
@@ -35,7 +35,7 @@ describe('motion', function ()
 
   describe('ground_motion_result', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
 
       it('should create a ground_motion_result with position, slope_angle, is_blocked, is_falling', function ()
         local gmr = ground_motion_result(location(2, 1), vector(2, 3), 0.25, true, false)
@@ -57,7 +57,7 @@ describe('motion', function ()
 
   describe('air_motion_result', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
 
       it('should create a air_motion_result with position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle', function ()
         local gmr = air_motion_result(location(2, 1), vector(2, 3), true, false, true, -0.25)

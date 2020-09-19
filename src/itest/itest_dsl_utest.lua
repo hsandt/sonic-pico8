@@ -38,7 +38,7 @@ describe('itest_dsl', function ()
 
   describe('gameplay_value_data', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create gameplay value data', function ()
         local data = gameplay_value_data("position", parsable_types.vector)
         assert.is_not_nil(data)
@@ -420,7 +420,7 @@ describe('itest_dsl', function ()
 
   describe('command', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local cmd = command(command_types.move, {horizontal_dirs.left})
         assert.is_not_nil(cmd)
@@ -432,7 +432,7 @@ describe('itest_dsl', function ()
 
   describe('expectation', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local exp = expectation("pc_bottom_pos", 24)
         assert.is_not_nil(exp)
@@ -444,7 +444,7 @@ describe('itest_dsl', function ()
 
   describe('dsl_itest', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local dsli = dsl_itest()
         assert.is_not_nil(dsli)

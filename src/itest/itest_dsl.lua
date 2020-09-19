@@ -74,7 +74,7 @@ local evaluators
 local gameplay_value_data = new_struct()
 itest_dsl.gameplay_value_data = gameplay_value_data
 
-function gameplay_value_data:_init(name, parsable_type, eval)
+function gameplay_value_data:init(name, parsable_type, eval)
   self.name = name
   self.parsable_type = parsable_type
 end
@@ -421,7 +421,7 @@ end
 local command = new_struct()
 itest_dsl.command = command
 
-function command:_init(cmd_type, args)
+function command:init(cmd_type, args)
   self.type = cmd_type
   self.args = args
 end
@@ -435,7 +435,7 @@ end
 local expectation = new_struct()
 itest_dsl.expectation = expectation
 
-function expectation:_init(gp_value_type_str, expected_value)
+function expectation:init(gp_value_type_str, expected_value)
   self.gp_value_type_str = gp_value_type_str
   self.expected_value = expected_value
 end
@@ -451,7 +451,7 @@ end
 local dsl_itest = new_struct()
 itest_dsl.dsl_itest = dsl_itest
 
-function dsl_itest:_init()
+function dsl_itest:init()
   -- all attributes are initially nil (even commands, as we construct the table during parsing)
 end
 

@@ -29,7 +29,7 @@ local tile_collision_data = new_struct()
 --                                 (up for ceiling, down for floor)
 -- interior_h       horizontal_dirs   horizontal direction of the tile's interior
 --                                 (left for desc slope or left ceiling, asc slope or right ceiling)
-function tile_collision_data:_init(mask_tile_id_loc, height_array, width_array, slope_angle, interior_v, interior_h)
+function tile_collision_data:init(mask_tile_id_loc, height_array, width_array, slope_angle, interior_v, interior_h)
   self.mask_tile_id_loc = mask_tile_id_loc
   self.height_array = height_array
   self.width_array = width_array

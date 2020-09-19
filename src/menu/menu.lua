@@ -35,7 +35,7 @@ Instance state
 --]]
 
 local menu = new_class()
-function menu:_init(app, items_count_per_page, alignment, text_color, prev_page_arrow_offset)
+function menu:init(app, items_count_per_page, alignment, text_color, prev_page_arrow_offset)
   -- external references
   self.app = app
 

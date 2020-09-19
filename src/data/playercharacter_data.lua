@@ -93,7 +93,7 @@ local playercharacter_data = {
   -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)
   --  so we can get the right pixel when offsetting to the left and flooring
   -- note that we don't define wall_sensor_extent_x, which is assumed to be ground_sensor_extent_x + 1
-  -- see comment in player_char:_next_ground_step on last block
+  -- see comment in player_char:next_ground_step on last block
   ground_sensor_extent_x = 2.5,
 
   -- height between the standing character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)

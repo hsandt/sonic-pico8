@@ -40,7 +40,7 @@ local tile_collision_data = require("data/tile_collision_data")
 
 describe('tile_collision_data', function ()
 
-  describe('_init', function ()
+  describe('init', function ()
 
     it('should create a tile_collision_data with reciprocal arrays and slope angle', function ()
       local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down)

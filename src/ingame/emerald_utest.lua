@@ -7,7 +7,7 @@ local visual = require("resources/visual")
 
 describe('emerald', function ()
 
-  describe('_init', function ()
+  describe('init', function ()
 
     it('should create an emerald with a number', function ()
       local em = emerald(7, location(2, 1))

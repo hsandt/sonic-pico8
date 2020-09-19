@@ -313,16 +313,16 @@ describe('world (with mock tiles data setup)', function ()
         assert.are_same({8, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
       end)
 
-      it('should return 6 on column 6 (quadrant up)', function ()
-        assert.are_same({6, atan2(-4, 4)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
+      it('should return 4 on column 6 (quadrant up)', function ()
+        assert.are_same({4, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
       end)
 
       it('should return 8 on row 6 (quadrant right)', function ()
         assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.right)})
       end)
 
-      it('should return 6 on row 6 (quadrant left)', function ()
-        assert.are_same({6, atan2(-4, 4)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
+      it('should return 2 on row 6 (quadrant left)', function ()
+        assert.are_same({2, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
       end)
 
     end)

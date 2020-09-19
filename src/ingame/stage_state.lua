@@ -151,11 +151,22 @@ end
 
 function stage_state:extend_spring_async(spring_loc)
   -- set tilemap to show extended spring
-  mset(spring_loc.i, spring_loc.j, visual.spring_extend_sprite_id)
+  mset(spring_loc.i, spring_loc.j, visual.spring_extended_bottom_left_id)
+  mset(spring_loc.i + 1, spring_loc.j, visual.spring_extended_bottom_left_id + 1)
+  -- if there is anything above spring, tiles will be overwritten, so make sure
+  --  to leave space above it
+  mset(spring_loc.i, spring_loc.j - 1, visual.spring_extended_top_left_id)
+  mset(spring_loc.i + 1, spring_loc.j - 1, visual.spring_extended_top_left_id + 1)
+
   -- wait just enough to show extended spring before it goes out of screen
   self.app:yield_delay_s(stage_data.spring_extend_duration)
+
   -- revert to default spring sprite
   mset(spring_loc.i, spring_loc.j, visual.spring_normal_sprite_id)
+  mset(spring_loc.i + 1, spring_loc.j, visual.spring_normal_sprite_id + 1)
+  -- nothing above spring tiles in normal state, so simply remove extended top tiles
+  mset(spring_loc.i, spring_loc.j - 1, 0)
+  mset(spring_loc.i + 1, spring_loc.j - 1, 0)
 end
 
 -- gameplay events

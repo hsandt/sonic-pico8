@@ -13,11 +13,13 @@ local mock_raw_tile_collision_data = {
   -- REFACTOR: put all common data (collision mask id/location and slope angle) in common
   --  and only replace tile collision mask in PICO-8 spritesheet with height array for busted
   -- another waste is that tiles pointing to the same collision mask must duplicate
-  --  height arrays, like half_tile_id and spring_id
+  --  height arrays, like half_tile_id and spring_left_id
 
   -- note that the first value is the collision mask sprite id, NOT the original sprite id in the key
   --  so they may differ when not working with prototype tiles
   [full_tile_id] = {full_tile_id, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
+  [flat_high_tile_left_id] = {flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},
+  [flat_high_tile_id] = {flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
   [half_tile_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
   [flat_low_tile_id] = {flat_low_tile_id, {2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
   [bottom_right_quarter_tile_id] = {bottom_right_quarter_tile_id, {0, 0, 0, 0, 4, 4, 4, 4}, {0, 0, 0, 0, 4, 4, 4, 4}, atan2(8, 0)},
@@ -25,15 +27,16 @@ local mock_raw_tile_collision_data = {
   [asc_slope_22_upper_level_id] = {asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
   [asc_slope_45_id] = {asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
   [desc_slope_45_id] = {desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
-  [visual_loop_topleft] = {mask_loop_topleft, {8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4)},
-  [visual_loop_toptopleft] = {mask_loop_toptopleft, {4, 4, 3, 3, 2, 2, 1, 1}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, 4)},
-  [visual_loop_toptopright] = {mask_loop_toptopright, {1, 1, 2, 2, 3, 3, 4, 4}, {8, 6, 4, 2, 0, 0, 0, 0}, atan2(-8, -4)},
-  [visual_loop_bottomleft] = {mask_loop_bottomleft, {8, 8, 8, 8, 8, 7, 6, 5}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, 4)},
-  [visual_loop_bottomright] = {mask_loop_bottomright, {5, 6, 7, 8, 8, 8, 8, 8}, {5, 6, 7, 8, 8, 8, 8, 8}, atan2(4, -4)},
+  [visual_loop_topleft] = {mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
+  [visual_loop_toptopleft] = {mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
+  [visual_loop_toptopright] = {mask_loop_toptopright, {0, 0, 0, 1, 1, 2, 2, 3}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, -3)},
+  [visual_loop_bottomleft] = {mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
+  [visual_loop_bottomright] = {mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
   -- note that we didn't add definitions for mask_ versions, as we don't use them in tests
   -- if we need them, then since content is the same, instead of duplicating lines for mask_,
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
-  [spring_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},  -- copied from half_tile_id...
+  [spring_left_id] = {flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
+  [spring_left_id + 1] = {flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
 }
 
 -- process data above to generate interior_v/h automatically, so we don't have to add them manually
@@ -97,8 +100,11 @@ function tile_test_data.setup()
   fset(mask_loop_bottomright, sprite_flags.collision, true)
 
   -- visual sprites
-  fset(spring_id, sprite_flags.collision, true)
-  fset(spring_id, sprite_flags.spring, true)
+  fset(spring_left_id, sprite_flags.collision, true)
+  fset(spring_left_id, sprite_flags.spring, true)
+
+  fset(spring_left_id + 1, sprite_flags.collision, true)
+  fset(spring_left_id + 1, sprite_flags.spring, true)
 
   -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

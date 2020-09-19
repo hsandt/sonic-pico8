@@ -8,32 +8,32 @@ local collision_data = require("data/collision_data")
 -- after minification if keys are not protected with ["key"] syntax)
 local playercharacter_data = require("data/playercharacter_data")
 
-check('sprite_id_location(8, 0) (loop top-left) should have collision flag set', function (utest_name)
-  local sprite_id = sprite_id_location(8, 0):to_sprite_id()
-  assert_log(utest_name, fget(sprite_id, sprite_flags.collision), "sprite_id_location(0, 4) has collision flag unset")
+check('sprite_id_location(1, 2) (loop top-left) should have collision flag set', function (utest_name)
+  local sprite_id = sprite_id_location(1, 2):to_sprite_id()
+  assert_log(utest_name, fget(sprite_id, sprite_flags.collision), "sprite_id_location(1, 2) has collision flag unset")
 end)
 
-check('sprite_id_location(8, 0) (loop top-left) should have collision arrays of loop top-left, angle atan2(-4, 4), interior up-left', function (utest_name)
-  local sprite_id = sprite_id_location(8, 0):to_sprite_id()
+check('sprite_id_location(1, 2) (loop top-left) should have collision arrays of loop top-left, angle atan2(-4, 4), interior up-left', function (utest_name)
+  local sprite_id = sprite_id_location(1, 2):to_sprite_id()
   local tcd = collision_data.get_tile_collision_data(sprite_id)
-  assert_log(utest_name, are_same_with_message(tcd, tile_collision_data(sprite_id_location(12, 0), {8, 8, 8, 8, 8, 7, 6, 5}, {8, 8, 8, 8, 8, 7, 6, 5}, atan2(-4, 4), vertical_dirs.up, horizontal_dirs.left)))
+  assert_log(utest_name, are_same_with_message(tcd, tile_collision_data(sprite_id_location(12, 0), {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5), vertical_dirs.up, horizontal_dirs.left)))
 end)
 
-check('tile_collision_data.read_height_array on sprite_id_location(0, 0) should return an array with tile mask data: full', function (utest_name)
-  local array = tile_collision_data.read_height_array(sprite_id_location(0, 2), vertical_dirs.down)
+check('tile_collision_data.read_height_array on sprite_id_location(13, 1) should return an array with tile mask data: full', function (utest_name)
+  local array = tile_collision_data.read_height_array(sprite_id_location(13, 1), vertical_dirs.down)
   assert_log(utest_name, are_same_with_message({8, 8, 8, 8, 8, 8, 8, 8}, array))
 end)
 
 -- bugfix history:
 --  = after switching to pink transparency, all my tiles became square blocks
 -- warning: it's a proto tile, if you strip it from final build later, test another tile instead
-check('tile_collision_data.read_height_array on sprite_id_location(1, 7) return an array with tile mask data: ascending slope 45', function (utest_name)
-  local array = tile_collision_data.read_height_array(sprite_id_location(1, 7), vertical_dirs.down)
+check('tile_collision_data.read_height_array on sprite_id_location(5, 1) return an array with tile mask data: ascending slope 45', function (utest_name)
+  local array = tile_collision_data.read_height_array(sprite_id_location(5, 1), vertical_dirs.down)
   assert_log(utest_name, are_same_with_message({1, 2, 3, 4, 5, 6, 7, 8}, array))
 end)
 
-check('tile_collision_data.read_height_array on sprite_id_location(0, 5) return an array with tile mask data: half-tile', function (utest_name)
-  local array = tile_collision_data.read_height_array(sprite_id_location(0, 5), vertical_dirs.down)
+check('tile_collision_data.read_height_array on sprite_id_location(4, 0) return an array with tile mask data: half-tile', function (utest_name)
+  local array = tile_collision_data.read_height_array(sprite_id_location(4, 0), vertical_dirs.down)
   assert_log(utest_name, are_same_with_message({4, 4, 4, 4, 4, 4, 4, 4}, array))
 end)
 

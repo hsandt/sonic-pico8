@@ -11,6 +11,9 @@ local visual = require("resources/visual")
 
 local stage_state = derived_class(gamestate)
 
+-- aliases (they don't need to be short, as they will be minified)
+local rectfill_ = rectfill
+
 stage_state.type = ':stage'
 
 -- enums
@@ -229,6 +232,9 @@ end
 
 
 -- render
+local function draw_full_line(y, c)
+  line(0, y, 127, y, c)
+end
 
 -- render the stage background
 function stage_state:render_background()
@@ -237,19 +243,15 @@ function stage_state:render_background()
   -- dark blue sky + sea
   -- (in stage data, but actually the code below only makes sense
   --  for stage with jungle/sea background)
-  rectfill(0, 0, 127, 127, colors.dark_blue)
+  rectfill_(0, 0, 127, 127, colors.dark_blue)
 
   -- horizon line is very bright
   local horizon_line_y = 90 - 0.5 * self.camera_pos.y
-  -- dithering above horizon line
-  for i = 0, 126, 2 do
-    line(i, horizon_line_y - 3, i + 1, horizon_line_y - 2, colors.blue)
-  end
   -- blue line above horizon line
-  rectfill(0, horizon_line_y - 1, 127, horizon_line_y - 1, colors.blue)
+  draw_full_line(horizon_line_y - 1, colors.blue)
   -- white horizon line
-  rectfill(0, horizon_line_y, 127, horizon_line_y, colors.white)
-  rectfill(0, horizon_line_y + 1, 127, horizon_line_y + 1, colors.indigo)
+  draw_full_line(horizon_line_y, colors.white)
+  draw_full_line(horizon_line_y + 1, colors.indigo)
 
   -- clouds in the sky, from lowest to highest (and biggest)
   local cloud_dx_list_per_j = {
@@ -294,7 +296,7 @@ function stage_state:render_background()
   end
 
   -- under the trees background
-  rectfill(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
+  rectfill_(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
 
   -- tree/leaves data
 
@@ -453,7 +455,7 @@ function stage_state:render_environment_midground()
   map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.midground))
 
   -- goal as vertical line
-  rectfill(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
+  rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
 end
 
 function stage_state:render_environment_foreground()

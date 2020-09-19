@@ -27,7 +27,6 @@ local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
 local app = picosonic_app_titlemenu()
 
 function _init()
-  printh("INIT!!!")
 --#if log
   -- start logging before app in case we need to read logs about app start itself
   logging.logger:register_stream(logging.console_log_stream)

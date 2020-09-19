@@ -9,7 +9,7 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
-cd("picosonic")
+cd("picosonic/v4.0_release")
 
 -- first, load ingame cartridge just to save the png cartridge
 --  before we load something else

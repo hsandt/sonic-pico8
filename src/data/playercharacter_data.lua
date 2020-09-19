@@ -23,9 +23,6 @@ local playercharacter_data = {
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
 
-  -- gravity acceleration (px/frame^2)
-  gravity_frame2 = 0.109375,  -- 7/64
-
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
 
@@ -87,6 +84,9 @@ local playercharacter_data = {
   -- absolute vertical speed given by spring bounce (px/frame)
   -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
   spring_jump_speed_frame = 5,
+
+  -- gravity acceleration (px/frame^2)
+  gravity_frame2 = 0.109375,  -- 7/64
 
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis
   --  (px)

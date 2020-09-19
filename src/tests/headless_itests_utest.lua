@@ -7,7 +7,7 @@ local logging = require("engine/debug/logging")
 -- in PICO-8, itests can be run entirely on either cartridge
 -- to reproduce this behavior, we set the cartridge suffix as env variable
 --  and require the right app and itest folder based on this
-local cartridge_suffix = os.getenv('CARTRIDGE_SUFFIX')
+local cartridge_suffix = os.getenv('ITEST_CARTRIDGE_SUFFIX')
 if cartridge_suffix == 'ignore' then
   -- All: test are running all the utests excluding the headless itests first
   --  then engine utests, then the headless itests for both cartridges,
@@ -16,7 +16,7 @@ if cartridge_suffix == 'ignore' then
   return
 end
 
-assert(cartridge_suffix, "env variable CARTRIDGE_SUFFIX not set")
+assert(cartridge_suffix, "env variable ITEST_CARTRIDGE_SUFFIX not set")
 
 local picosonic_app = require("application/picosonic_app_"..cartridge_suffix)
 

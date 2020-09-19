@@ -446,14 +446,14 @@
 					"name": "headless_itests titlemenu",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "titlemenu"
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu"
 					}
 				},
 				{
 					"name": "headless_itests titlemenu (render)",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "titlemenu",
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
 						"ENABLE_RENDER": "1"
 					}
 				},
@@ -461,14 +461,14 @@
 					"name": "headless_itests titlemenu - solo",
 					"cmd": ["./test.sh -f headless_itests -m solo"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "titlemenu"
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu"
 					}
 				},
 				{
 					"name": "headless_itests titlemenu - solo (render)",
 					"cmd": ["./test.sh -f headless_itests -m solo"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "titlemenu",
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
 						"ENABLE_RENDER": "1"
 					}
 				},
@@ -476,14 +476,14 @@
 					"name": "headless_itests ingame",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "ingame"
+						"ITEST_CARTRIDGE_SUFFIX": "ingame"
 					}
 				},
 				{
 					"name": "headless_itests ingame (render)",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "ingame",
+						"ITEST_CARTRIDGE_SUFFIX": "ingame",
 						"ENABLE_RENDER": "1"
 					}
 				},
@@ -491,14 +491,14 @@
 					"name": "headless_itests ingame - solo",
 					"cmd": ["./test.sh -f headless_itests -m solo"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "ingame"
+						"ITEST_CARTRIDGE_SUFFIX": "ingame"
 					}
 				},
 				{
 					"name": "headless_itests ingame - solo (render)",
 					"cmd": ["./test.sh -f headless_itests -m solo"],
 					"env": {
-						"CARTRIDGE_SUFFIX": "ingame",
+						"ITEST_CARTRIDGE_SUFFIX": "ingame",
 						"ENABLE_RENDER": "1"
 					}
 				},
@@ -541,7 +541,7 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			// note that luacov report is generated in the working directory, so the second test report will overwrite the previous one
-			"cmd": ["CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && pico-boots/test.sh && CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests"],
+			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",

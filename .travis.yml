@@ -66,8 +66,12 @@ script:
   # because character count is over 65536 and that systematically failed the build
   # while build release works fine
   # - ./build_itest.sh
-  # test (including rendered headless itests thanks to ENABLE_RENDER=1)
-  - ./test.sh -m all
+  # test: all utests
+  - ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh
+  # test: all headless itests for titlemenu (ENABLE_RENDER set in env)
+  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests -m all
+  # test: all headless itests for stage (ENABLE_RENDER set in env)
+  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests -m all
   # coverage
   - bash <(curl -s https://codecov.io/bash)
 

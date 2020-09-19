@@ -709,12 +709,13 @@ expect
           "(ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
+        local full = full_tile_id
         assert.is_true(are_same_with_message(
           {
             tilemap({
-              { 0,  0,  0,  0},
-              {32, 32,  0,  0},
-              { 0,  0, 32, 32}
+              {   0,    0,    0,    0},
+              {full, full,    0,    0},
+              {   0,    0, full, full}
             }),
             6
           },

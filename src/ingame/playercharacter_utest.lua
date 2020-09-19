@@ -1741,13 +1741,14 @@ describe('player_char', function ()
           it('(entrance active) position on entrance should return actual ground_query_info() as entrance is solid', function ()
             pc.active_loop_layer = 1
             -- interface
-            assert.are_same(ground_query_info(location(1, 0), -4, 0.125), pc:compute_closest_ground_query_info(vector(12, 4)))
+            assert.are_same(ground_query_info(location(1, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(12, 4)))
           end)
 
           it('(exit active) position on exit should return actual ground_query_info() as exit is solid', function ()
             pc.active_loop_layer = 2
             -- interface
-            assert.are_same(ground_query_info(location(0, 0), -4, 0.875), pc:compute_closest_ground_query_info(vector(4, 4)))
+            -- slight dissymetry due to pixel coord being considered at the top left... so we are 2px inside the step at 3, not 4
+            assert.are_same(ground_query_info(location(0, 0), -2, atan2(8, 5)), pc:compute_closest_ground_query_info(vector(3, 4)))
           end)
 
           it('(exit active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
@@ -5331,7 +5332,7 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
-          mock_mset(2, 0, spring_id)
+          mock_mset(2, 0, spring_left_id)
         end)
 
         after_each(function ()

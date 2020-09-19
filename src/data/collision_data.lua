@@ -23,11 +23,11 @@ local mask_tile_angles = transform(
   {
     -- low slope descending every 4px with flat ground at every step
     [1]  = {8, 2},
-    [2]  = {8, 0},
+    [2]  = {8, 0},  -- flat tile 6px high
     [3]  = {8, 2},
-    [4]  = {8, 0},
+    [4]  = {8, 0},  -- half-tile (4px high)
     [5]  = {8, 2},
-    [6]  = {8, 0},
+    [6]  = {8, 0},  -- flat tile 2px high
     [7]  = {8, 2},
 
     -- low slope ascending every 4px
@@ -233,6 +233,11 @@ local mask_tile_ids = {
   [75]  = 27,  -- normal: right part
   [106] = 29,  -- extended: bottom-left part
   [107] = 29,  -- extended: bottom-right part
+-- extended higher parts (no collisions)
+--[[
+  [90] = 0,   -- spring extended: top-left part (we only collide with bottom)
+  [91] = 0,   -- spring extended: top-right part (we only collide with bottom)
+--]]
 
 -- rock
   [92]  = 28,  -- rock (small left or big top-left part)
@@ -282,8 +287,6 @@ local mask_tile_ids = {
   [79] = 0,   -- mouse cursor (#mouse only)
   [81] = 0,   -- ledge grass left
   [82] = 0,   -- ledge grass right
-  [90] = 0,   -- spring extended: top-left part (we only collide with bottom)
-  [91] = 0,   -- spring extended: top-right part (we only collide with bottom)
   [122] = 0,  -- emerald core part (custom collision detection for pick-up)
   [123] = 0,  -- emerald right part (just a small bit)
   [126] = 0,  -- falling leaves (pattern 1)

@@ -670,12 +670,12 @@ describe('stage_state', function ()
 
           describe('state render methods', function ()
 
-            local map_stub
             local player_char_render_stub
 
             setup(function ()
-              rectfill_stub = stub(_G, "rectfill")
-              map_stub = stub(_G, "map")
+              stub(_G, "rectfill")
+              stub(_G, "line")
+              stub(_G, "map")
               spy.on(stage_state, "render_environment_midground")
               stub(stage_state, "render_environment_foreground")  -- stub will make us remember we don't cover it
               player_char_render_stub = stub(player_char, "render")
@@ -683,8 +683,9 @@ describe('stage_state', function ()
             end)
 
             teardown(function ()
-              rectfill_stub:revert()
-              map_stub:revert()
+              rectfill:revert()
+              line:revert()
+              map:revert()
               stage_state.render_environment_midground:revert()
               stage_state.render_environment_foreground:revert()
               player_char_render_stub:revert()
@@ -692,8 +693,9 @@ describe('stage_state', function ()
             end)
 
             after_each(function ()
-              rectfill_stub:clear()
-              map_stub:clear()
+              rectfill:clear()
+              line:clear()
+              map:clear()
               stage_state.render_environment_midground:clear()
               stage_state.render_environment_foreground:clear()
               player_char_render_stub:clear()
@@ -711,9 +713,9 @@ describe('stage_state', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(5)
-              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
-              -- more calls but we don't check beckground details, human tests are better for this
+
+              -- more calls including rectfill and MANY line calls but we don't check background details, human tests are better for this
+              -- assert.spy(line).was_called(771)
             end)
 
             it('render_stage_elements should set camera position, call map for environment and player_char:render', function ()
@@ -742,8 +744,8 @@ describe('stage_state', function ()
 
               it('render_environment_midground should call map', function ()
                 state:render_environment_midground()
-                assert.spy(map_stub).was_called(1)
-                assert.spy(map_stub).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height, 1 << sprite_flags.midground)
+                assert.spy(map).was_called(1)
+                assert.spy(map).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height, 1 << sprite_flags.midground)
               end)
 
               it('render_player_char should call player_char:render', function ()

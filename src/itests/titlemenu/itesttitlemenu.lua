@@ -4,8 +4,10 @@ local itest_manager, integration_test, time_trigger = integrationtest.itest_mana
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 
---[=[
 
+-- testing credits is easier than entering stage
+--  because stage in on another cartridge (ingame),
+--  and itest builds are done separately (so we'd need to stub load)
 itest_manager:register_itest('player select credits, confirm',
     {':titlemenu'}, function ()
 
@@ -14,39 +16,21 @@ itest_manager:register_itest('player select credits, confirm',
     flow:change_gamestate_by_type(':titlemenu')
   end)
 
+  -- just for visualization
   wait(1.0)
 
-  -- player holds down, causing a just pressed input
-  act(function ()
-    input.simulated_buttons_down[0][button_ids.down] = true
-  end)
+  -- player presses down 1 frame to select 'credits'
+  short_press(button_ids.down)
 
-  wait(0.5)
+  -- player presses o to enter the credits
+  short_press(button_ids.o)
 
-  -- end short press. cursor should point to 'credits'
-  act(function ()
-    input.simulated_buttons_down[0][button_ids.down] = false
-  end)
+  -- just for visualization
+  wait(1.0)
 
-  wait(0.5)
-
-  -- player holds x, causing a just pressed input. this should enter the credits
-  act(function ()
-    input.simulated_buttons_down[0][button_ids.x] = true
-  end)
-
-  wait(0.5)
-
-  -- end short press (1 frame after press is enough to load the next game state)
-  act(function ()
-    input.simulated_buttons_down[0][button_ids.x] = false
-  end)
-
-  -- check that we entered the credits state
+  -- check that we are now in the credits state
   final_assert(function ()
     return flow.curr_state.type == ':credits', "current game state is not ':credits', has instead type: "..flow.curr_state.type
   end)
 
 end)
-
---]=]

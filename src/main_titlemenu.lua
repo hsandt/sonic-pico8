@@ -1,4 +1,5 @@
--- main entry file for the game
+-- main entry file for the titlemenu cartridge (the first one)
+--  game states: titlemenu, credits
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
@@ -21,11 +22,12 @@ local vlogger = require("engine/debug/visual_logger")
 local profiler = require("engine/debug/profiler")
 --#endif
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
 
-local app = picosonic_app()
+local app = picosonic_app_titlemenu()
 
 function _init()
+  printh("INIT!!!")
 --#if log
   -- start logging before app in case we need to read logs about app start itself
   logging.logger:register_stream(logging.console_log_stream)

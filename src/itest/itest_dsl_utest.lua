@@ -18,7 +18,7 @@ local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
      "dsl_itest", "itest_dsl_parser")
 local stage_state = require("ingame/stage_state")
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app_ingame = require("application/picosonic_app_ingame")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 local tile_test_data = require("test_data/tile_test_data")
@@ -28,7 +28,7 @@ describe('itest_dsl', function ()
   local state
 
   before_each(function ()
-    local app = picosonic_app()
+    local app = picosonic_app_ingame()
     state = stage_state()
     state.app = app
 

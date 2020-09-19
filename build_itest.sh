@@ -3,8 +3,8 @@
 # Build a PICO-8 cartridge for the integration tests.
 # This is essentially a proxy script for pico-boots/scripts/build_cartridge.sh with the right parameters.
 
-# Extra options are passed to build_cartridge.sh (with $@).
-# This is useful in particular for --symbols.
+# Usage: build_itest.sh cartridge_suffix
+#   cartridge_suffix  'titlemenu' or 'ingame'
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
@@ -25,13 +25,17 @@ config='itest'
 # symbols='log,itest,cheat'
 symbols='itest,dump'
 
+cartridge_suffix="$1"; shift
+
 # Build from itest main for all itests
+# metadata doesn't really matter for tests, we pass it anyway
 "$picoboots_scripts_path/build_cartridge.sh"               \
-  "$game_src_path" itest_main.lua itests                   \
+  "$game_src_path" itest_main_${cartridge_suffix}.lua      \
+  itests/${cartridge_suffix}                               \
   -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
   -a "$author" -t "$title"                                 \
   -p "$build_output_path"                                  \
-  -o "${cartridge_stem}_v${version}"                       \
+  -o "${cartridge_stem}_${cartridge_suffix}_v${version}"   \
   -c "$config"                                             \
   -s "$symbols"                                            \
   --minify-level 2

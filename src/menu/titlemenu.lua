@@ -16,7 +16,7 @@ titlemenu.type = ':titlemenu'
 -- sequence of menu items to display, with their target states
 titlemenu.items = transform({
     {"start", function(app)
-      flow:query_gamestate_type(':stage')
+      load('picosonic_ingame.p8')
     end},
     {"credits", function(app)
       flow:query_gamestate_type(':credits')

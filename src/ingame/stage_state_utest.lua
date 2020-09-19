@@ -6,7 +6,7 @@ local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 local label = require("engine/ui/label")
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app = require("application/picosonic_app_ingame")
 local stage_data = require("data/stage_data")
 local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
@@ -633,9 +633,18 @@ describe('stage_state', function ()
 
           describe('back_to_titlemenu', function ()
 
-            it('should query gamestate: titlemenu', function ()
+            setup(function ()
+              stub(_G, "load")
+            end)
+
+            teardown(function ()
+              load:revert()
+            end)
+
+            it('should laod cartridge: picosonic_titlemenu.p8', function ()
               state:back_to_titlemenu()
-              assert.are_equal(':titlemenu', flow.next_state.type)
+              assert.spy(load).was_called(1)
+              assert.spy(load).was_called_with('picosonic_titlemenu.p8')
             end)
 
           end)

@@ -784,46 +784,38 @@ expect pc_velocity -0x000.9aba -1.609375
 -- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
 
---[=[
 
 itest_dsl_parser.register(
   'bounce on spring (escape)', [[
 @stage #
-s..
-...
-...
-...
-...
-...
-...
-###
+..
+..
+..
+..
+sS
 
-warp 4 4
+warp 10 34
 wait 1
 
-expect pc_bottom_pos 4 4
+expect pc_bottom_pos 10 34
 expect pc_motion_state falling
 expect pc_velocity 0 -5
 ]])
 
---]=]
 
 itest_dsl_parser.register(
   'bounce on spring (land)', [[
 @stage #
-s..
-...
-...
-...
-...
-...
-...
-###
+..
+..
+..
+..
+sS
 
-warp 4 3.9
+warp 10 33.9
 wait 1
 
-expect pc_bottom_pos 4 4
+expect pc_bottom_pos 10 34
 expect pc_motion_state falling
 expect pc_velocity 0 -5
 ]])

@@ -211,7 +211,7 @@ function stage_state:feedback_reached_goal()
 end
 
 function stage_state:back_to_titlemenu()
-  flow:query_gamestate_type(':titlemenu')
+  load('picosonic_titlemenu.p8')
 end
 
 

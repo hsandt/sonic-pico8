@@ -130,46 +130,46 @@
 			"name": "Game: build and run ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"],
+			"cmd": ["./build_and_install_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug-ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug-ultrafast)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_single_cartridge.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./build_single_cartridge.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./build_single_cartridge.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_single_cartridge.sh ingame profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame profiler)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame profiler)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_single_cartridge.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
 				},
 			]
 		},
@@ -177,18 +177,18 @@
 			"name": "Game: build and run titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
+			"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
+					"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_single_cartridge.sh titlemenu release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
+					"cmd": ["./build_and_install_single_cartridge.sh titlemenu release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
 				},
 			]
 		},
@@ -196,18 +196,18 @@
 			"name": "Game: build and run full game",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
+			"cmd": ["./build_and_install_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
+					"cmd": ["./build_and_install_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_all_cartridges.sh release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
+					"cmd": ["./build_and_install_all_cartridges.sh release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
 				},
 			]
 		},

@@ -4,7 +4,7 @@
 # This is required if you need to play with multiple carts,
 #  as other carts will only be loaded in PICO-8 carts location
 
-# Usage: install_single_cartridge.sh config [png]
+# Usage: install_single_cartridge.sh cartridge_suffix config [png]
 #   cartridge_suffix  'titlemenu' or 'ingame'
 #   config            build config (e.g. 'debug' or 'release')
 #   png 		      if passed, the .png cartridge is installed
@@ -16,10 +16,11 @@
 #  saved from PICO-8 with export_cartridge_release.p8 into PICO-8 carts folder
 
 # check that source and output paths have been provided
-if [[ $# -lt 1 ]] ; then
-    echo "build.sh takes 1 or 2 params, provided $#:
-    \$1: config ('debug', 'release', etc.)
-    \$2: optional suffix ('png' for .png cartridge install)"
+if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
+    echo "build.sh takes 1 to 2 params, provided $#:
+    \$1: cartridge_suffix ('titlemenu' or 'ingame')
+    \$2: config ('debug', 'release', etc.)
+    \$3: optional suffix ('png' for .png cartridge install)"
     exit 1
 fi
 

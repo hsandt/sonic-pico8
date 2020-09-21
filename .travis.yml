@@ -8,7 +8,7 @@ language: python # Can use any language here, but if it's not 'python'
 python: "3.6"
 
 env:
-  - LUA_VERSION=5.3 ENABLE_RENDER=1
+  - LUA_VERSION=5.3 BUILD_VERSION=4.1 ENABLE_RENDER=1
 
 cache:
   directories:
@@ -62,6 +62,9 @@ script:
   # (although it's bad sign for us if we cannot debug the game)
   # - ./build_all_cartridges.sh debug
   - ./build_all_cartridges.sh release
+  - pushd build/v${BUILD_VERSION}
+  - zip -r picosonic_v${BUILD_VERSION}_release_cartridges.zip .
+  - popd
   # disabled build_itest.sh in Travis until strings are compressed
   # because character count is over 65536 and that systematically failed the build
   # while build release works fine
@@ -79,7 +82,7 @@ deploy:
   provider: releases
   api_key:
     secure: bfXQQ0AXGHgXiq0xOxhYQ2AXX/flQnxJh/+eA/HUGfwdoPDq0QTdqFA/3jEMWkJSsFKEBVKDjJGCt24QPxUIjTu91r1wyCNdL2KlNfnogRjWAVutRZxB/OC2HWR3kJtPjkFQBCsOXHBxGI3hMJL7LWr5WfNsSGMbcRMfvphxFT3ER8XBHAUEJY6roITm6noHroqQt8Uye+0+rkGqJ8QslKRqq8qBZMZeOiOrh6SBdlhsGw0KqNno/dMXQxx2ZCrh/VUeWjNvxzXe/mZjfBPbhvyecN7jz+FytEdAhdt1Dy37hhyOAkDfxLGGsH1YAAfinH8uFwoSRo0MH8fuhdXpT7jUXuAgP9/RS0FEiZDdX+J/FdncCbnoDfE9B4Dt3L3srISeiNwxKK5sx2kzyWvftK30pV1+zEgnbVEKGPIIeGb5wYWSCmzHf+CfLMk+bzeznTrpo/irY/vjoRBefNaVWXqLygrNWxM1uIMJae+OA3MYeUSYd1lpCyRw98i3GC7si68M9OaDeLoDjnqOLqvhurB/RmLzCU7mCYipn2kxykAOdevWN73cyx9VhdFy2GPE5VDw6EO6ZQP04KaeYxP2pgR4ts2kYWpVvf1PGg+2yN4QMkVhrWV+6dG2jtUO0BrCqt5Tpw0I3C3aFmBjjzFBBuKsZpr2yUG3roxnu1Dhww0=
-  file: build/picosonic_v4.1_release.p8
+  file: build/v${BUILD_VERSION}/picosonic_v${BUILD_VERSION}_release_cartridges.zip
   on:
     tags: 'true'
   skip_cleanup: 'true'

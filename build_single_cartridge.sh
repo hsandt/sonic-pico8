@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# Build and export a specific cartridge for the game
-#  (since for multi-cartridge games, exporting in PICO-8 carts/ folder allows
-#   cartridge transitions)
+# Build a specific cartridge for the game
 # It relies on pico-boots/scripts/build_cartridge.sh
-#  and install_single_cartridge.sh (which is currently only support on Linux).
 # It also defines game information and defined symbols per config.
 
 # Configuration: paths
@@ -25,7 +22,7 @@ help() {
 }
 
 usage() {
-  echo "Usage: test.sh CARTRIDGE_SUFFIX [CONFIG]
+  echo "Usage: build_single_cartridge.sh CARTRIDGE_SUFFIX [CONFIG]
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
@@ -131,6 +128,3 @@ if [[ $? -ne 0 ]]; then
   echo "Build failed, STOP."
   exit 1
 fi
-
-# Immediately export to carts to allow multi-cartridge loading
-"$game_scripts_path/install_single_cartridge.sh" "$cartridge_suffix" "$config"

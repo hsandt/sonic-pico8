@@ -179,6 +179,9 @@ local playercharacter_data = {
   -- and an extra 1/2 factor because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
   walk_anim_min_play_speed = 0.625,
 
+  -- same for spinning animation
+  spin_anim_min_play_speed = 0.625,
+
   -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
   run_cycle_min_speed_frame = 3,
 }

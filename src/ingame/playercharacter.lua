@@ -1783,7 +1783,7 @@ function player_char:check_play_anim()
       end
     end
   else -- self.motion_state == motion_states.air_spin
-    self.anim_spr:play("spin", false, self.anim_run_speed)
+    self.anim_spr:play("spin", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
   end
 end
 

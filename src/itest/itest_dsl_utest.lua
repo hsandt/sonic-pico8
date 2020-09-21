@@ -18,7 +18,7 @@ local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
      "dsl_itest", "itest_dsl_parser")
 local stage_state = require("ingame/stage_state")
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app_ingame = require("application/picosonic_app_ingame")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 local tile_test_data = require("test_data/tile_test_data")
@@ -28,7 +28,7 @@ describe('itest_dsl', function ()
   local state
 
   before_each(function ()
-    local app = picosonic_app()
+    local app = picosonic_app_ingame()
     state = stage_state()
     state.app = app
 
@@ -38,7 +38,7 @@ describe('itest_dsl', function ()
 
   describe('gameplay_value_data', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create gameplay value data', function ()
         local data = gameplay_value_data("position", parsable_types.vector)
         assert.is_not_nil(data)
@@ -420,7 +420,7 @@ describe('itest_dsl', function ()
 
   describe('command', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local cmd = command(command_types.move, {horizontal_dirs.left})
         assert.is_not_nil(cmd)
@@ -432,7 +432,7 @@ describe('itest_dsl', function ()
 
   describe('expectation', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local exp = expectation("pc_bottom_pos", 24)
         assert.is_not_nil(exp)
@@ -444,7 +444,7 @@ describe('itest_dsl', function ()
 
   describe('dsl_itest', function ()
 
-    describe('_init', function ()
+    describe('init', function ()
       it('should create a new dsl itest', function ()
         local dsli = dsl_itest()
         assert.is_not_nil(dsli)
@@ -709,12 +709,13 @@ expect
           "(ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
+        local full = full_tile_id
         assert.is_true(are_same_with_message(
           {
             tilemap({
-              { 0,  0,  0,  0},
-              {32, 32,  0,  0},
-              { 0,  0, 32, 32}
+              {   0,    0,    0,    0},
+              {full, full,    0,    0},
+              {   0,    0, full, full}
             }),
             6
           },

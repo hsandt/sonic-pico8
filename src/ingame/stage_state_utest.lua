@@ -6,11 +6,13 @@ local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 local label = require("engine/ui/label")
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app = require("application/picosonic_app_ingame")
 local stage_data = require("data/stage_data")
+local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 describe('stage_state', function ()
 
@@ -35,7 +37,6 @@ describe('stage_state', function ()
 
     describe('state', function ()
 
-      -- bugfix history: .
       it('init', function ()
         assert.are_same({
             ':stage',
@@ -43,6 +44,7 @@ describe('stage_state', function ()
             stage_state.substates.play,
             nil,
             false,
+            {},
             vector.zero(),
             overlay(0)
           },
@@ -52,6 +54,7 @@ describe('stage_state', function ()
             state.current_substate,
             state.player_char,
             state.has_reached_goal,
+            state.emeralds,
             state.camera_pos,
             state.title_overlay
           })
@@ -63,18 +66,24 @@ describe('stage_state', function ()
           stub(stage_state, "spawn_player_char")
           stub(picosonic_app, "start_coroutine")
           stub(stage_state, "play_bgm")
+          stub(stage_state, "randomize_background_data")
+          stub(stage_state, "spawn_emeralds")
         end)
 
         teardown(function ()
           stage_state.spawn_player_char:revert()
           picosonic_app.start_coroutine:revert()
           stage_state.play_bgm:revert()
+          stage_state.randomize_background_data:revert()
+          stage_state.spawn_emeralds:revert()
         end)
 
         after_each(function ()
           stage_state.spawn_player_char:clear()
           picosonic_app.start_coroutine:clear()
           stage_state.play_bgm:clear()
+          stage_state.randomize_background_data:clear()
+          stage_state.spawn_emeralds:clear()
         end)
 
         before_each(function ()
@@ -105,31 +114,49 @@ describe('stage_state', function ()
           s.was_called_with(match.ref(state.app), stage_state.show_stage_title_async, match.ref(state))
         end)
 
-        it('should call start_coroutine_method on show_stage_title_async', function ()
+        it('should call play_bgm', function ()
           assert.spy(state.play_bgm).was_called(1)
           assert.spy(state.play_bgm).was_called_with(match.ref(state))
+        end)
+
+        it('should call randomize_background_data', function ()
+          assert.spy(state.randomize_background_data).was_called(1)
+          assert.spy(state.randomize_background_data).was_called_with(match.ref(state))
+        end)
+
+        it('should call spawn_emeralds', function ()
+          assert.spy(state.spawn_emeralds).was_called(1)
+          assert.spy(state.spawn_emeralds).was_called_with(match.ref(state))
         end)
 
       end)
 
       describe('on_exit', function ()
 
+
         setup(function ()
           stub(overlay, "clear_labels")
           stub(picosonic_app, "stop_all_coroutines")
           stub(stage_state, "stop_bgm")
+          -- we don't really mind spying on spawn_emeralds
+          --  but we do not want to spend 0.5s finding all of them
+          --  in before_each every time due to on_enter,
+          --  so we stub this
+          stub(stage_state, "spawn_emeralds")
         end)
 
         teardown(function ()
           overlay.clear_labels:revert()
           picosonic_app.stop_all_coroutines:revert()
           stage_state.stop_bgm:revert()
+          stage_state.spawn_emeralds:revert()
         end)
 
         after_each(function ()
           overlay.clear_labels:clear()
           picosonic_app.stop_all_coroutines:clear()
           stage_state.stop_bgm:clear()
+          stage_state.spawn_emeralds:clear()
         end)
 
         before_each(function ()
@@ -193,6 +220,43 @@ describe('stage_state', function ()
 
       end)
 
+      describe('spawn_emeralds', function ()
+
+        -- setup is too early, stage state will start afterward in before_each,
+        --  and its on_enter will call spawn_emeralds, making it hard
+        --  to test in isolation. Hence before_each.
+        before_each(function ()
+          local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+          mset(1, 1, emerald_repr_sprite_id)
+          mset(2, 2, emerald_repr_sprite_id)
+          mset(3, 3, emerald_repr_sprite_id)
+        end)
+
+        after_each(function ()
+          pico8:clear_map()
+        end)
+
+        it('should clear all emerald tiles', function ()
+          state:spawn_emeralds()
+          assert.are_same({0, 0, 0},
+            {
+              mget(1, 1),
+              mget(2, 2),
+              mget(3, 3),
+            })
+        end)
+
+        it('should spawn and store emerald objects for each removed emerald tile', function ()
+          state:spawn_emeralds()
+          assert.are_same({
+            emerald(1, location(1, 1)),
+            emerald(2, location(2, 2)),
+            emerald(3, location(3, 3)),
+            }, state.emeralds)
+        end)
+
+      end)
+
       describe('(stage states added)', function ()
 
         before_each(function ()
@@ -206,8 +270,24 @@ describe('stage_state', function ()
 
         describe('(stage state entered)', function ()
 
+          setup(function ()
+            -- we don't really mind spying on spawn_emeralds
+            --  but we do not want to spend 0.5s finding all of them
+            --  in before_each every time due to on_enter,
+            --  so we stub this
+            stub(stage_state, "spawn_emeralds")
+          end)
+
+          teardown(function ()
+            stage_state.spawn_emeralds:revert()
+          end)
+
+          after_each(function ()
+            stage_state.spawn_emeralds:clear()
+          end)
+
           before_each(function ()
-            flow:_change_state(state)
+            flow:change_state(state)
             -- entering stage currently starts coroutine show_stage_title_async
             -- which will cause side effects when updating coroutines to test other
             -- async functions, so clear that now
@@ -334,6 +414,72 @@ describe('stage_state', function ()
 
           end)  -- state.render
 
+          describe('extend_spring', function ()
+
+            setup(function ()
+              stub(picosonic_app, "start_coroutine")
+            end)
+
+            teardown(function ()
+              picosonic_app.start_coroutine:revert()
+            end)
+
+            -- start_coroutine is also called on stage enter (with show_stage_title_async)
+            -- so we must clear call count *before* the first test
+            before_each(function ()
+              picosonic_app.start_coroutine:clear()
+            end)
+
+            it('should play a coroutine that replaces spring tile with extended spring tile until a certain time (only check no error)', function ()
+              state:extend_spring(location(2, 0))
+              assert.spy(picosonic_app.start_coroutine).was_called(1)
+              assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.extend_spring_async, match.ref(state), location(2, 0))
+            end)
+
+          end)
+
+          describe('check_emerald_pick_area', function ()
+
+            before_each(function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+            end)
+
+            it('should return nil when position is too far from all the emeralds', function ()
+              assert.is_nil(state:check_emerald_pick_area(vector(12, 12)))
+            end)
+
+            it('should return emerald when position is close to that emerald (giving priority to lower index)', function ()
+              assert.are_equal(state.emeralds[1], state:check_emerald_pick_area(vector(8, 4)))
+            end)
+
+          end)
+
+          describe('character_pick_emerald', function ()
+
+            before_each(function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+            end)
+
+            it('should remove an emerald from the sequence', function ()
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+              state:character_pick_emerald(state.emeralds[2])
+              assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
+            end)
+
+          end)
+
           describe('check_reached_goal', function ()
 
             setup(function ()
@@ -363,8 +509,7 @@ describe('stage_state', function ()
               end)
 
               it('should not start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_not_called()
+                assert.spy(picosonic_app.start_coroutine).was_not_called()
               end)
 
             end)
@@ -381,9 +526,8 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_called(1)
-                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
+                assert.spy(picosonic_app.start_coroutine).was_called(1)
+                assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)
@@ -400,9 +544,8 @@ describe('stage_state', function ()
               end)
 
               it('should start on_reached_goal_async', function ()
-                local s = assert.spy(picosonic_app.start_coroutine)
-                s.was_called(1)
-                s.was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
+                assert.spy(picosonic_app.start_coroutine).was_called(1)
+                assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
               end)
 
             end)
@@ -490,10 +633,18 @@ describe('stage_state', function ()
 
           describe('back_to_titlemenu', function ()
 
-            it('should change gamestate to titlemenu on next update', function ()
+            setup(function ()
+              stub(_G, "load")
+            end)
+
+            teardown(function ()
+              load:revert()
+            end)
+
+            it('should laod cartridge: picosonic_titlemenu.p8', function ()
               state:back_to_titlemenu()
-              flow:update()
-              assert.are_equal(':titlemenu', flow.curr_state.type)
+              assert.spy(load).was_called(1)
+              assert.spy(load).was_called_with('picosonic_titlemenu.p8')
             end)
 
           end)
@@ -528,29 +679,34 @@ describe('stage_state', function ()
 
           describe('state render methods', function ()
 
-            local map_stub
             local player_char_render_stub
 
             setup(function ()
-              rectfill_stub = stub(_G, "rectfill")
-              map_stub = stub(_G, "map")
-              spy.on(stage_state, "render_environment")
+              stub(_G, "rectfill")
+              stub(_G, "line")
+              stub(_G, "map")
+              spy.on(stage_state, "render_environment_midground")
+              stub(stage_state, "render_environment_foreground")  -- stub will make us remember we don't cover it
               player_char_render_stub = stub(player_char, "render")
               title_overlay_draw_labels_stub = stub(overlay, "draw_labels")
             end)
 
             teardown(function ()
-              rectfill_stub:revert()
-              map_stub:revert()
-              stage_state.render_environment:revert()
+              rectfill:revert()
+              line:revert()
+              map:revert()
+              stage_state.render_environment_midground:revert()
+              stage_state.render_environment_foreground:revert()
               player_char_render_stub:revert()
               title_overlay_draw_labels_stub:revert()
             end)
 
             after_each(function ()
-              rectfill_stub:clear()
-              map_stub:clear()
-              stage_state.render_environment:clear()
+              rectfill:clear()
+              line:clear()
+              map:clear()
+              stage_state.render_environment_midground:clear()
+              stage_state.render_environment_foreground:clear()
               player_char_render_stub:clear()
               title_overlay_draw_labels_stub:clear()
             end)
@@ -562,21 +718,23 @@ describe('stage_state', function ()
               assert.spy(title_overlay_draw_labels_stub).was_called_with(state.title_overlay)
             end)
 
-            it('#solo render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
+            it('render_background should reset camera position, call rectfill on the whole screen with stage background color', function ()
               state.camera_pos = vector(24, 13)
               state:render_background()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(rectfill_stub).was_called(4)
-              assert.spy(rectfill_stub).was_called_with(0, 0, 127, 127, colors.dark_blue)
-              -- more calls but we don't check beckground details, human tests are better for this
+
+              -- more calls including rectfill and MANY line calls but we don't check background details, human tests are better for this
+              -- assert.spy(line).was_called(771)
             end)
 
             it('render_stage_elements should set camera position, call map for environment and player_char:render', function ()
               state.camera_pos = vector(24, 13)
               state:render_stage_elements()
               assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(state.render_environment).was_called(1)
-              assert.spy(state.render_environment).was_called_with(match.ref(state))
+              assert.spy(state.render_environment_midground).was_called(1)
+              assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
+              assert.spy(state.render_environment_foreground).was_called(1)
+              assert.spy(state.render_environment_foreground).was_called_with(match.ref(state))
               assert.spy(player_char_render_stub).was_called(1)
               assert.spy(player_char_render_stub).was_called_with(match.ref(state.player_char))
             end)
@@ -593,10 +751,10 @@ describe('stage_state', function ()
                 state:set_camera_offset_stage()
               end)
 
-              it('render_environment should call map', function ()
-                state:render_environment()
-                assert.spy(map_stub).was_called(1)
-                assert.spy(map_stub).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height)
+              it('render_environment_midground should call map', function ()
+                state:render_environment_midground()
+                assert.spy(map).was_called(1)
+                assert.spy(map).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height, 1 << sprite_flags.midground)
               end)
 
               it('render_player_char should call player_char:render', function ()
@@ -617,7 +775,7 @@ describe('stage_state', function ()
 
             it('play_bgm should start level bgm', function ()
               state:play_bgm()
-              assert.are_same({music=audio.music_pattern_ids.green_hill, fadems=0, channel_mask=0}, pico8.current_music)
+              assert.are_same({music=audio.music_pattern_ids.green_hill, fadems=0, channel_mask=(1 << 0) + (1 << 2) + (1 << 3)}, pico8.current_music)
             end)
 
             it('stop_bgm should stop level bgm if started, else do nothing', function ()
@@ -636,7 +794,7 @@ describe('stage_state', function ()
           describe('on exit stage state to enter titlemenu state', function ()
 
             before_each(function ()
-              flow:_change_state(titlemenu)
+              flow:change_state(titlemenu)
             end)
 
             it('player character should be nil', function ()
@@ -653,7 +811,9 @@ describe('stage_state', function ()
 
               -- should be each
               before_each(function ()
-                flow:_change_state(state)
+                -- spawn_emeralds has been stubbed in this context,
+                --  so this won't slow down every test
+                flow:change_state(state)
               end)
 
               it('current substate should be play', function ()

@@ -12,11 +12,11 @@ local itest_manager = integrationtest.itest_manager
 local logging = require("engine/debug/logging")
 --#endif
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app_ingame = require("application/picosonic_app_ingame")
 
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
-local app = picosonic_app()
+local app = picosonic_app_ingame()
 itest_runner.app = app
 
 -- tag to add require for itest files here
@@ -27,7 +27,7 @@ function _init()
   -- register log streams to output logs to both the console and the file log
   logging.logger:register_stream(logging.console_log_stream)
   logging.logger:register_stream(logging.file_log_stream)
-  logging.file_log_stream.file_prefix = "picosonic_itest"
+  logging.file_log_stream.file_prefix = "picosonic_itest_ingame"
 
   -- clear log file on new itest session
   logging.file_log_stream:clear()
@@ -42,13 +42,14 @@ function _init()
     -- ['ui'] = nil,
     ['frame'] = true,
     ['trace'] = true,
+    ['spring'] = true,
 
     -- game
     -- ['...'] = true,
   }
 --#endif
 
-  picosonic_app.initial_gamestate = ':titlemenu'
+  picosonic_app_ingame.initial_gamestate = ':stage'
 
   -- start first itest
   itest_manager:init_game_and_start_next_itest()

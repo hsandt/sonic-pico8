@@ -1,275 +1,136 @@
-require("test/bustedhelper")
-local input = require("engine/input/input")
-local flow = require("engine/application/flow")
-local gamestate = require("engine/application/gamestate")
-
-local picosonic_app = require("application/picosonic_app")
+require("engine/test/bustedhelper")
 local titlemenu = require("menu/titlemenu")
 
-local dummy_stage_state = derived_class(gamestate)
-dummy_stage_state.type = ':stage'
+local ui = require("engine/ui/ui")
 
-local dummy_credits_state = derived_class(gamestate)
-dummy_credits_state.type = ':credits'
+local menu = require("menu/menu")
 
 describe('titlemenu', function ()
 
-  describe('static members', function ()
+  describe('(with instance)', function ()
 
-    it('type is :stage', function ()
-      assert.are_equal(':titlemenu', titlemenu.type)
+    local fake_app = {}
+    local tm
+
+    setup(function ()
+      stub(menu, "show_items")
     end)
 
-  end)
-
-  describe('(stage states added)', function ()
+    teardown(function ()
+      menu.show_items:revert()
+    end)
 
     before_each(function ()
-      flow:add_gamestate(titlemenu)
-      flow:add_gamestate(dummy_credits_state)
-      flow:add_gamestate(dummy_stage_state)
+      tm = titlemenu()
+      tm.app = fake_app
     end)
 
     after_each(function ()
-      flow:init()
+      menu.show_items:clear()
     end)
 
-    describe('(with instance)', function ()
+    describe('on_enter', function ()
 
-      local state
+      it('should create text menu with app', function ()
+        tm:on_enter()
+
+        assert.are_equal(fake_app, tm.menu.app)
+        assert.are_same({alignments.horizontal_center, colors.white}, {tm.menu.alignment, tm.menu.text_color})
+      end)
+
+      it('should show text menu', function ()
+        tm:on_enter()
+
+        assert.spy(menu.show_items).was_called(1)
+        assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(titlemenu.items))
+      end)
+
+    end)
+
+    describe('(with menu entered)', function ()
 
       before_each(function ()
-        local app = picosonic_app()
-        state = titlemenu()
-          -- no need to register gamestate properly, just add app member to pass tests
-        state.app = app
+        tm:on_enter()
       end)
 
-      describe('state:on_enter', function ()
+      describe('update', function ()
 
-        before_each(function ()
-          state:on_enter()
+        setup(function ()
+          stub(menu, "update")
         end)
 
-        it('should initialize cursor at index 0', function ()
-          state:on_enter()
-          assert.are_equal(0, state.current_cursor_index)
+        teardown(function ()
+          menu.update:revert()
+        end)
+
+        it('should update menu', function ()
+          tm:update()
+
+          assert.spy(menu.update).was_called(1)
+          assert.spy(menu.update).was_called_with(match.ref(tm.menu))
         end)
 
       end)
 
-      describe('state:on_exit', function ()
-      end)
+      describe('render', function ()
 
-      describe('(titlemenu state entered)', function ()
-
-        before_each(function ()
-          flow:_change_state(state)
+        setup(function ()
+          stub(titlemenu, "draw_title")
+          -- stub menu.draw completely to avoid altering the count of ui.print_centered calls
+          stub(menu, "draw")
         end)
 
-        describe('state.current_cursor_index', function ()
-          it('should be set to 0', function ()
-            assert.are_equal(0, state.current_cursor_index)
-          end)
-        end)
-
-        describe('state:update', function ()
-
-          setup(function ()
-            stub(titlemenu, "move_cursor_up")
-            stub(titlemenu, "move_cursor_down")
-            stub(titlemenu, "confirm_current_selection")
-          end)
-
-          teardown(function ()
-            titlemenu.move_cursor_up:revert()
-            titlemenu.move_cursor_down:revert()
-            titlemenu.confirm_current_selection:revert()
-          end)
-
-          after_each(function ()
-            input:init()
-
-            titlemenu.move_cursor_up:clear()
-            titlemenu.move_cursor_down:clear()
-            titlemenu.confirm_current_selection:clear()
-          end)
-
-          it('(when input up in down) it should be move cursor up', function ()
-            input.players_btn_states[0][button_ids.up] = btn_states.just_pressed
-            state:update()
-            assert.spy(titlemenu.move_cursor_up).was_called(1)
-            assert.spy(titlemenu.move_cursor_up).was_called_with(match.ref(state))
-          end)
-
-          it('(when input down in down) it should be move cursor down', function ()
-            input.players_btn_states[0][button_ids.down] = btn_states.just_pressed
-            state:update()
-            assert.spy(titlemenu.move_cursor_down).was_called(1)
-            assert.spy(titlemenu.move_cursor_down).was_called_with(match.ref(state))
-          end)
-
-          it('(when input x in down) it should be move cursor x', function ()
-            input.players_btn_states[0][button_ids.x] = btn_states.just_pressed
-            state:update()
-            assert.spy(titlemenu.confirm_current_selection).was_called(1)
-            assert.spy(titlemenu.confirm_current_selection).was_called_with(match.ref(state))
-          end)
-
-        end)
-
-        describe('(cursor start at index 0)', function ()
-
-          before_each(function ()
-            state.current_cursor_index = 0
-          end)
-
-          after_each(function ()
-            state.current_cursor_index = 0
-          end)
-
-          describe('state:move_cursor_up', function ()
-
-            it('should not change current_cursor_index due to clamping', function ()
-              state:move_cursor_up()
-              assert.are_equal(0, state.current_cursor_index)
-            end)
-
-          end)
-
-          describe('state:move_cursor_down', function ()
-
-            it('should increase current_cursor_index', function ()
-              state:move_cursor_down()
-              assert.are_equal(1, state.current_cursor_index)
-            end)
-
-          end)
-
-          describe('render', function ()
-
-            local api_print_stub
-
-            setup(function ()
-              api_print_stub = stub(api, "print")
-            end)
-
-            teardown(function ()
-              api_print_stub:revert()
-            end)
-
-            after_each(function ()
-              api_print_stub:clear()
-            end)
-
-            it('should print "starts", "credits" and cursor ">" in front of start in white', function ()
-              state:render()
-              assert.are_equal(colors.white, pico8.color)
-              assert.spy(api_print_stub).was_called(3)
-              assert.spy(api_print_stub).was_called_with("start", 4*11, 6*12)
-              assert.spy(api_print_stub).was_called_with("credits", 4*11, 6*13)
-              assert.spy(api_print_stub).was_called_with(">", 4*10, 6*12)
-            end)
-
-          end)
-
-        end)
-
-        describe('(cursor start at index 1)', function ()
-
-          before_each(function ()
-            state.current_cursor_index = 1
-          end)
-
-          after_each(function ()
-            state.current_cursor_index = 0
-          end)
-
-          describe('state:move_cursor_up', function ()
-
-            it('should decrease current_cursor_index', function ()
-              state:move_cursor_up()
-              assert.are_equal(0, state.current_cursor_index)
-            end)
-
-          end)
-
-          describe('state:move_cursor_down', function ()
-
-            it('should not change current_cursor_index due to clamping', function ()
-              state:move_cursor_down()
-              assert.are_equal(1, state.current_cursor_index)
-            end)
-
-          end)
-
-
-          describe('render', function ()
-
-            local api_print_stub
-
-            setup(function ()
-              api_print_stub = stub(api, "print")
-            end)
-
-            teardown(function ()
-              api_print_stub:revert()
-            end)
-
-            after_each(function ()
-              api_print_stub:clear()
-            end)
-
-            it('should print "starts", "credits" and cursor ">" in front of credits in white', function ()
-              state:render()
-              assert.are_equal(colors.white, pico8.color)
-              assert.spy(api_print_stub).was_called(3)
-              assert.spy(api_print_stub).was_called_with("start", 4*11, 6*12)
-              assert.spy(api_print_stub).was_called_with("credits", 4*11, 6*13)
-              assert.spy(api_print_stub).was_called_with(">", 4*10, 6*13)
-            end)
-
-          end)
-
-        end)
-
-      end)  -- (titlemenu state entered)
-
-      describe('(enter titlemenu state each time)', function ()
-
-        before_each(function ()
-          flow:_change_state(state)
+        teardown(function ()
+          titlemenu.draw_title:revert()
+          menu.draw:revert()
         end)
 
         after_each(function ()
-          flow.curr_state:on_exit()  -- whatever the current gamestate is
-          flow.curr_state = nil
+          titlemenu.draw_title:clear()
+          menu.draw:clear()
         end)
 
-        describe('state:confirm_current_selection', function ()
+        it('should draw title', function ()
+          tm:render()
 
-          it('should have queried stage state', function ()
-            state.current_cursor_index = 0
-            state:confirm_current_selection()
-            assert.are_equal(':stage', flow.next_state.type)
-          end)
-
+          assert.spy(titlemenu.draw_title).was_called(1)
+          assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
         end)
 
-        describe('state:confirm_current_selection', function ()
+        it('should draw menu', function ()
+          tm:render()
 
-          it('should have queried credits state', function ()
-            state.current_cursor_index = 1
-            state:confirm_current_selection()
-            assert.are_equal(':credits', flow.next_state.type)
-          end)
-
+          assert.spy(menu.draw).was_called(1)
+          -- no need to check where exactly it is printed
         end)
 
-      end)  -- (enter titlemenu state each time)
+      end)
 
-    end)  -- (with instance)
+      describe('draw_title', function ()
 
-  end)  -- (stage states added)
+        setup(function ()
+          stub(ui, "print_centered")
+        end)
+
+        teardown(function ()
+          ui.print_centered:revert()
+        end)
+
+        after_each(function ()
+          ui.print_centered:clear()
+        end)
+
+        it('should print "pico-sonic by leyn" centered, in white', function ()
+          tm:draw_title()
+
+          assert.spy(ui.print_centered).was_called(2)
+          -- no need to check what exactly is printed
+        end)
+
+      end)
+
+    end)  -- (with menu entered)
+
+  end)  -- (with instance)
 
 end)

@@ -1,8 +1,16 @@
+local sprite_data = require("engine/render/sprite_data")
+
 local audio = require("resources/audio")
 
 return {
 
   -- common data
+
+  -- gameplay
+
+  emerald_pick_radius = 8,
+
+  -- UI
 
   -- delay between stage enter and showing stage title (s)
   show_stage_title_delay = 4.0,
@@ -10,6 +18,11 @@ return {
   back_to_titlemenu_delay = 1.0,
   -- duration of bgm fade out after reaching goal (s)
   bgm_fade_out_duration = 1.0,
+
+  -- other visuals
+
+  -- spring extension duration (tiles use custom animation via async instead of animated_sprite)
+  spring_extend_duration = 0.15,
 
   -- stage-specific data, per id
 

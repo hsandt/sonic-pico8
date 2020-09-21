@@ -16,9 +16,9 @@ build_output_path="$(dirname "$0")/build"
 author="hsandt"
 title="pico-sonic pico8 utests (all)"
 cartridge_stem="picosonic_pico8_utests_all"
-version="4.0"
+version="4.1"
 config='debug'
-symbols='assert,log,p8utest'
+symbols='assert,dump,log,p8utest'
 
 # Build from itest main for all pico8 utests
 # Note that a pico8 utest_main build is much smaller than a normal build,

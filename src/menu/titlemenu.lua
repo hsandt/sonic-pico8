@@ -1,64 +1,50 @@
+require("engine/core/fun_helper")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
--- local ui = require("engine/ui/ui")
+local ui = require("engine/ui/ui")
+
+local menu_item = require("menu/menu_item")
+local menu = require("menu/menu_with_sfx")
 
 local titlemenu = derived_class(gamestate)
 
 titlemenu.type = ':titlemenu'
 
-function titlemenu:_init()
-  -- parameters
+-- parameters data
 
-  -- number of items in the menu
-  self.items_count = 2
-
-  -- state vars
-
-  -- current cursor index (0: start, 1: credits)
-  self.current_cursor_index = 0
-end
+-- sequence of menu items to display, with their target states
+titlemenu.items = transform({
+    {"start", function(app)
+      load('picosonic_ingame.p8')
+    end},
+    {"credits", function(app)
+      flow:query_gamestate_type(':credits')
+    end},
+  }, unpacking(menu_item))
 
 function titlemenu:on_enter()
-  self.current_cursor_index = 0
+  self.menu = menu(self.app, 2, alignments.horizontal_center, colors.white)
+  self.menu:show_items(titlemenu.items)
 end
 
 function titlemenu:on_exit()
 end
 
 function titlemenu:update()
-  if input:is_just_pressed(button_ids.up) then
-    self:move_cursor_up()
-  elseif input:is_just_pressed(button_ids.down) then
-    self:move_cursor_down()
-  elseif input:is_just_pressed(button_ids.x) then
-    self:confirm_current_selection()
-  end
+  self.menu:update()
 end
 
 function titlemenu:render()
-  color(colors.white)
-  api.print("start", 4*11, 6*12)
-  api.print("credits", 4*11, 6*13)
-  api.print(">", 4*10, 6*(12+self.current_cursor_index))
+  self:draw_title()
+  self.menu:draw(screen_width / 2, 72)
 end
 
-function titlemenu:move_cursor_up()
-  -- move cursor up, clamped
-  self.current_cursor_index = max(self.current_cursor_index - 1, 0)
-end
-
-function titlemenu:move_cursor_down()
-  -- move cursor down, clamped
-  self.current_cursor_index = min(self.current_cursor_index + 1, self.items_count - 1)
-end
-
-function titlemenu:confirm_current_selection()
-  if self.current_cursor_index == 0 then
-    flow:query_gamestate_type(':stage')
-  else  -- current_cursor_index == 1
-    flow:query_gamestate_type(':credits')
-  end
+function titlemenu:draw_title()
+  local y = 14
+  ui.print_centered("* pico-sonic *", 64, y, colors.white)
+  y = y + 8
+  ui.print_centered("by leyn", 64, y, colors.white)
 end
 
 return titlemenu

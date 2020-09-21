@@ -18,9 +18,13 @@ It is currently under development.
 
 Works with PICO-8 0.2.0i and 0.2.1b.
 
+## Screenshots
+
+![Sonic running toward emerald](screenshots/picosonic_showcase.png?raw=true)
+
 ## Features
 
-Version: 4.0
+Version: 4.1
 
 ### Physics
 
@@ -28,12 +32,22 @@ Version: 4.0
 * Character is blocked by walls when running, walls and ceiling when jumping
 * Character jumps with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
+* Spring bounce
 
 ### Rendering
 
-* Character sprites: *idle*, *spin*, *run* cycle
-* Midground plane: collision tiles and decorations
+* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin*
+* Foreground plane: grass and leaves
+* Midground plane: collision tiles
 * Background planes: sky, ocean and trees moving with parallax
+
+## Audio
+
+* Stage BGM and jump SFX
+
+## Content
+
+One demo stage, a small reproduction of Angel Island Act 1 without enemies, hazards, rings nor item boxes, but with emeralds.
 
 ## Releases
 

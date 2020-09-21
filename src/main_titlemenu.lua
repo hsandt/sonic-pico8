@@ -1,4 +1,5 @@
--- main entry file for the game
+-- main entry file for the titlemenu cartridge (the first one)
+--  game states: titlemenu, credits
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
@@ -6,7 +7,7 @@ require("engine/common")
 require("common")
 
 -- we also require codetuner so any file can used tuned()
--- if tuner symbol is defined, then we also initialize it in _init
+-- if tuner symbol is defined, then we also initialize it in init
 local codetuner = require("engine/debug/codetuner")
 
 --#if log
@@ -21,9 +22,9 @@ local vlogger = require("engine/debug/visual_logger")
 local profiler = require("engine/debug/profiler")
 --#endif
 
-local picosonic_app = require("application/picosonic_app")
+local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
 
-local app = picosonic_app()
+local app = picosonic_app_titlemenu()
 
 function _init()
 --#if log

@@ -3,11 +3,16 @@ local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 
+local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 local stage_state = derived_class(gamestate)
+
+-- aliases (they don't need to be short, as they will be minified)
+local rectfill_ = rectfill
 
 stage_state.type = ':stage'
 
@@ -17,8 +22,8 @@ stage_state.substates = {
   result = "result"  -- result screen
 }
 
-function stage_state:_init()
-  gamestate._init(self)
+function stage_state:init()
+  gamestate.init(self)
 
   -- stage id
   self.curr_stage_id = 1
@@ -33,6 +38,11 @@ function stage_state:_init()
   self.player_char = nil
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
+
+  -- items (could also be in world if it was a singleton or member of stage_state
+  --  instead of being essentially static; as member, it may be renamed 'stage')
+  self.emeralds = {}
+
   -- position of the main camera, at the center of the view
   self.camera_pos = vector.zero()
 
@@ -59,6 +69,8 @@ function stage_state:on_enter()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
+
+  self:spawn_emeralds()
 end
 
 function stage_state:on_exit()
@@ -105,8 +117,78 @@ function stage_state:spawn_player_char()
   self.player_char:spawn_at(spawn_position)
 end
 
+-- replace emerald representative sprite (the left part with most of the pixels)
+--  with an actual emerald object, to make it easier to recolor and pick up
+-- ! VERY SLOW !
+-- it's not perceptible at runtime, but consider stubbing it when unit testing
+--  while entering stage state in before_each, or you'll waste around 0.5s each time
+-- alternatively, you may bake stage data (esp. emerald positions) in a separate object
+--  (that doesn't get reset with stage_state) and reuse it whenever you want
+function stage_state:spawn_emeralds()
+  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
+  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
+  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
+  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+  for i = 0, 127 do
+    for j = 0, 127 do
+      local tile_sprite_id = mget(i, j)
+      if tile_sprite_id == emerald_repr_sprite_id then
+        -- replace the representative tile (spawn point) with nothing,
+        --  since we're going to create a distinct emerald object
+        mset(i, j, 0)
+        -- spawn emerald object and store it is sequence member
+        add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
+      end
+    end
+  end
+end
+
+-- visual events
+
+function stage_state:extend_spring(spring_loc)
+  self.app:start_coroutine(self.extend_spring_async, self, spring_loc)
+end
+
+function stage_state:extend_spring_async(spring_loc)
+  -- set tilemap to show extended spring
+  mset(spring_loc.i, spring_loc.j, visual.spring_extended_bottom_left_id)
+  mset(spring_loc.i + 1, spring_loc.j, visual.spring_extended_bottom_left_id + 1)
+  -- if there is anything above spring, tiles will be overwritten, so make sure
+  --  to leave space above it
+  mset(spring_loc.i, spring_loc.j - 1, visual.spring_extended_top_left_id)
+  mset(spring_loc.i + 1, spring_loc.j - 1, visual.spring_extended_top_left_id + 1)
+
+  -- wait just enough to show extended spring before it goes out of screen
+  self.app:yield_delay_s(stage_data.spring_extend_duration)
+
+  -- revert to default spring sprite
+  mset(spring_loc.i, spring_loc.j, visual.spring_normal_sprite_id)
+  mset(spring_loc.i + 1, spring_loc.j, visual.spring_normal_sprite_id + 1)
+  -- nothing above spring tiles in normal state, so simply remove extended top tiles
+  mset(spring_loc.i, spring_loc.j - 1, 0)
+  mset(spring_loc.i + 1, spring_loc.j - 1, 0)
+end
 
 -- gameplay events
+
+-- check if position is in emerald pick up area and if so,
+--  return emerald. Else, return nil.
+function stage_state:check_emerald_pick_area(position)
+  for em in all(self.emeralds) do
+    -- max xy distance check <=> inside square area (simplified version of AABB)
+    local delta = position - em:get_center()
+    local max_distance = max(abs(delta.x), abs(delta.y))
+    if max_distance < stage_data.emerald_pick_radius then
+      return em
+    end
+  end
+end
+
+function stage_state:character_pick_emerald(em)
+  -- remove emerald from sequence (use del to make sure
+  --  later object indices are decremented)
+  del(self.emeralds, em)
+end
 
 function stage_state:check_reached_goal()
   if not self.has_reached_goal and
@@ -129,7 +211,7 @@ function stage_state:feedback_reached_goal()
 end
 
 function stage_state:back_to_titlemenu()
-  flow:query_gamestate_type(':titlemenu')
+  load('picosonic_titlemenu.p8')
 end
 
 
@@ -161,6 +243,9 @@ end
 
 
 -- render
+local function draw_full_line(y, c)
+  line(0, y, 127, y, c)
+end
 
 -- render the stage background
 function stage_state:render_background()
@@ -169,19 +254,15 @@ function stage_state:render_background()
   -- dark blue sky + sea
   -- (in stage data, but actually the code below only makes sense
   --  for stage with jungle/sea background)
-  rectfill(0, 0, 127, 127, colors.dark_blue)
+  rectfill_(0, 0, 127, 127, colors.dark_blue)
 
   -- horizon line is very bright
   local horizon_line_y = 90 - 0.5 * self.camera_pos.y
-  -- dithering above horizon line
-  for i = 0, 126, 2 do
-    line(i, horizon_line_y - 3, i + 1, horizon_line_y - 2, colors.blue)
-  end
   -- blue line above horizon line
-  rectfill(0, horizon_line_y - 1, 127, horizon_line_y - 1, colors.blue)
+  draw_full_line(horizon_line_y - 1, colors.blue)
   -- white horizon line
-  rectfill(0, horizon_line_y, 127, horizon_line_y, colors.white)
-  rectfill(0, horizon_line_y + 1, 127, horizon_line_y + 1, colors.indigo)
+  draw_full_line(horizon_line_y, colors.white)
+  draw_full_line(horizon_line_y + 1, colors.indigo)
 
   -- clouds in the sky, from lowest to highest (and biggest)
   local cloud_dx_list_per_j = {
@@ -196,15 +277,11 @@ function stage_state:render_background()
     {0, -1, 1, 0},
     {0, 1, -1, 1}
   }
-  local dy0 = 8.9
-  local dy_mult = 14.7
-  local r0 = 2
-  local r_mult = 0.9
-  local speed0 = 3
-  local speed_mult = 3.5
   for j = 0, 3 do
     for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
-      self:draw_cloud(cloud_dx, horizon_line_y - dy0 - dy_mult * j, dy_list_per_j[j + 1], r0 + r_mult * j, speed0 + speed_mult * j)
+      self:draw_cloud(cloud_dx, horizon_line_y - --[[dy0]] 8.9 - --[[dy_mult]] 14.7 * j,
+        dy_list_per_j[j + 1], --[[r0]] 2 + --[[r_mult]] 0.9 * j,
+        --[[speed0]] 3 + --[[speed_mult]] 3.5 * j)
     end
   end
 
@@ -230,23 +307,16 @@ function stage_state:render_background()
   end
 
   -- under the trees background
-  rectfill(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
+  rectfill_(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
 
   -- tree/leaves data
 
-  -- base height so trees have a bottom part long enough to cover the gap with the trees below
-  local tree_base_height = 10
-  local tree_row_y0 = horizon_line_y + 29
-  local tree_row_dy_mult = 8
   -- parallax speed of farthest row
   local tree_row_parallax_speed_min = 0.3
   -- parallax speed of closest row
   local tree_row_parallax_speed_max = 0.42
   local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
 
-  local leaves_base_height = 21
-  local leaves_y0 = horizon_line_y + 33
-  local leaves_row_dy_mult = 18
   -- for max parallax speed, reuse the one of trees
   -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
   --  is actually the same sprite as the closest tree top (which is really just a big green patch)
@@ -259,13 +329,11 @@ function stage_state:render_background()
 
   -- leaves (before trees so trees can hide some leaves with base height too long if needed)
   for j = 0, 1 do
-    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j / 1
+    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j  -- actually j / 1 where 1 is max j
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
-    -- intermediate var for luamin #50
-    local complementary_j = 1 - j
-    self:draw_leaves_row(parallax_offset, leaves_y0 + leaves_row_dy_mult * complementary_j, leaves_base_height, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_leaves_row(parallax_offset, horizon_line_y + 33 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 
   -- tree rows
@@ -273,7 +341,9 @@ function stage_state:render_background()
     -- elements farther from camera have slower parallax speed, closest has base parallax speed
     local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    self:draw_tree_row(parallax_offset, tree_row_y0 + tree_row_dy_mult * j, tree_base_height, self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
+    self:draw_tree_row(parallax_offset, horizon_line_y + 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
+      self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 end
 
@@ -287,11 +357,9 @@ function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
   --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
   --  where extra margin is to avoid having cloud spawning immediately on screen right
   --  edge)
-  -- intermediate var to avoid luamin bracket stripping bug #50
-  local x0 = x - offset_x + 100
 
   -- clouds move to the left
-  x0 = x0 % 300 - 100
+  x0 = (x - offset_x + 100) % 300 - 100
 
   local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
   local r_mult_list = {0.8, 1.4, 1.1, 0.7}
@@ -359,9 +427,7 @@ end
 function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    -- intermediate var to avoid luamin bracket removal issue #50
-    local parallax_x = x + parallax_offset
-    local height = base_height + dheight_array[parallax_x % size + 1]
+    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
     -- draw vertical line from bottom to (variable) top
     line(x, y, x, y - height, color)
   end
@@ -370,9 +436,7 @@ end
 function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
-    -- intermediate var to avoid luamin bracket removal issue #50
-    local parallax_x = x + parallax_offset
-    local height = base_height + dheight_array[parallax_x % size + 1]
+    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
     -- draw vertical line from top to (variable) bottom
     line(x, y, x, y + height, color)
   end
@@ -383,27 +447,43 @@ end
 -- - player character
 function stage_state:render_stage_elements()
   self:set_camera_offset_stage()
-  self:render_environment()
+  self:render_environment_midground()
+  self:render_emeralds()
   self:render_player_char()
+  self:render_environment_foreground()
 end
 
 -- render the stage environment (tiles)
-function stage_state:render_environment()
-  -- optimize: don't draw the whole stage offset by camera,
-  -- instead just draw the portion of the level of interest
-  -- (and either keep camera offset or offset manually and subtract from camera offset)
+function stage_state:render_environment_midground()
+  -- possible optimize: don't draw the whole stage offset by camera,
+  --  instead just draw the portion of the level of interest
+  --  (and either keep camera offset or offset manually and subtract from camera offset)
+  -- that said, I didn't notice a performance drop by drawing the full tilemap
+  --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
-  -- todo: first render everything but loop entrance tiles, then after player char,
-  -- only loop entrance tiles
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height)
+
+  -- draw sprites on every layer but foreground
+  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.midground))
 
   -- goal as vertical line
-  rectfill(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
+  rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
+end
+
+function stage_state:render_environment_foreground()
+  set_unique_transparency(colors.pink)
+  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.foreground))
 end
 
 -- render the player character at its current position
 function stage_state:render_player_char()
   self.player_char:render()
+end
+
+-- render the emeralds
+function stage_state:render_emeralds()
+  for em in all(self.emeralds) do
+    em:render()
+  end
 end
 
 -- render the title overlay with a fixed ui camera
@@ -416,7 +496,10 @@ end
 -- audio
 
 function stage_state:play_bgm()
-  music(self.curr_stage_data.bgm_id, 0)
+  -- only 4 channels at a time in PICO-8
+  -- set music channel mask (priority over SFX) to everything but 1,
+  --  which is a nice bass (at least with current GHZ BGM)
+  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 2) + shl(1, 3))
 end
 
 function stage_state:stop_bgm(fade_duration)

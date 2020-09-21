@@ -37,59 +37,86 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: build game",
+			"name": "Game: build cartridge titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh debug"],
+			"cmd": ["./build_single_cartridge.sh titlemenu debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_game.sh debug"]
-				},
-				{
-					"name": "debug-ultrafast",
-					"cmd": ["./build_game.sh debug-ultrafast"]
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./build_game.sh cheat"]
-				},
-				{
-					"name": "ultrafast",
-					"cmd": ["./build_game.sh ultrafast"]
-				},
-				{
-					"name": "cheat-ultrafast",
-					"cmd": ["./build_game.sh cheat-ultrafast"]
-				},
-				{
-					"name": "sandbox",
-					"cmd": ["./build_game.sh sandbox"]
-				},
-				{
-					"name": "assert",
-					"cmd": ["./build_game.sh assert"]
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./build_game.sh profiler"]
+					"cmd": ["./build_single_cartridge.sh titlemenu debug"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_game.sh release"]
+					"cmd": ["./build_single_cartridge.sh titlemenu release"]
 				}
 			]
 		},
 		{
-			"name": "Game: build itests",
+			"name": "Game: build cartridge ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh"],
+			"cmd": ["./build_single_cartridge.sh ingame debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_single_cartridge.sh ingame debug"]
+				},
+				{
+					"name": "debug-ultrafast",
+					"cmd": ["./build_single_cartridge.sh ingame debug-ultrafast"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_single_cartridge.sh ingame cheat"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./build_single_cartridge.sh ingame ultrafast"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./build_single_cartridge.sh ingame cheat-ultrafast"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./build_single_cartridge.sh ingame sandbox"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_single_cartridge.sh ingame assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_single_cartridge.sh ingame profiler"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_single_cartridge.sh ingame release"]
+				}
+			]
+		},
+		{
+			"name": "Game: build itests titlemenu",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh titlemenu"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build itests ingame",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh ingame"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
 		{
 			"name": "Game: build pico8 utests",
@@ -100,62 +127,108 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Game: build and reload or run",
+			"name": "Game: build and run ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_game.sh debug && (./pico-boots/scripts/reload.sh || ./run_game.sh debug)"],
+			"cmd": ["./build_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_game.sh debug && (./pico-boots/scripts/reload.sh || ./run_game.sh debug)"]
+					"cmd": ["./build_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./build_game.sh debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh debug-ultrafast)"]
+					"cmd": ["./build_single_cartridge.sh ingame debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug-ultrafast)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_game.sh cheat && (./pico-boots/scripts/reload.sh || ./run_game.sh cheat)"]
+					"cmd": ["./build_single_cartridge.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./build_game.sh ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh ultrafast)"]
+					"cmd": ["./build_single_cartridge.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./build_game.sh cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_game.sh cheat-ultrafast)"]
+					"cmd": ["./build_single_cartridge.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./build_game.sh sandbox && (./pico-boots/scripts/reload.sh || ./run_game.sh sandbox)"]
+					"cmd": ["./build_single_cartridge.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./build_game.sh assert && (./pico-boots/scripts/reload.sh || ./run_game.sh assert)"]
+					"cmd": ["./build_single_cartridge.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_game.sh profiler && (./pico-boots/scripts/reload.sh || ./run_game.sh profiler)"]
+					"cmd": ["./build_single_cartridge.sh ingame profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame profiler)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_game.sh release && (./pico-boots/scripts/reload.sh || ./run_game.sh release)"]
-				}
+					"cmd": ["./build_single_cartridge.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
+				},
 			]
 		},
 		{
-			"name": "Game: build and reload or run itests",
+			"name": "Game: build and run titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh && (./pico-boots/scripts/reload.sh || ./run_itest.sh)"],
+			"cmd": ["./build_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_single_cartridge.sh titlemenu release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
+				},
+			]
 		},
 		{
-			"name": "Game: build and reload or run pico8 utests",
+			"name": "Game: build and run full game",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_all_cartridges.sh debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_all_cartridges.sh release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
+				},
+			]
+		},
+		{
+			"name": "Game: build and run itests titlemenu",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh titlemenu && (./pico-boots/scripts/reload.sh || ./run_itest.sh titlemenu)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build and run itests ingame",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh ingame && (./pico-boots/scripts/reload.sh || ./run_itest.sh ingame)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build and run pico8 utests",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_pico8_utests.sh && (./pico-boots/scripts/reload.sh || ./run_pico8_utests.sh)"],
@@ -166,107 +239,145 @@
 			"name": "Game: start",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./run_game.sh debug"],
+			"cmd": ["./run_cartridge.sh ingame debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
-					"name": "debug",
-					"cmd": ["./run_game.sh debug"]
+					"name": "ingame debug",
+					"cmd": ["./run_cartridge.sh ingame debug"]
 				},
 				{
-					"name": "debug-ultrafast",
-					"cmd": ["./run_game.sh debug-ultrafast"]
+					"name": "ingame debug-ultrafast",
+					"cmd": ["./run_cartridge.sh ingame debug-ultrafast"]
 				},
 				{
-					"name": "cheat",
-					"cmd": ["./run_game.sh cheat"]
+					"name": "ingame cheat",
+					"cmd": ["./run_cartridge.sh ingame cheat"]
 				},
 				{
-					"name": "ultrafast",
-					"cmd": ["./run_game.sh ultrafast"]
+					"name": "ingame ultrafast",
+					"cmd": ["./run_cartridge.sh ingame ultrafast"]
 				},
 				{
-					"name": "cheat-ultrafast",
-					"cmd": ["./run_game.sh cheat-ultrafast"]
+					"name": "ingame cheat-ultrafast",
+					"cmd": ["./run_cartridge.sh ingame cheat-ultrafast"]
 				},
 				{
-					"name": "sandbox",
-					"cmd": ["./run_game.sh sandbox"]
+					"name": "ingame sandbox",
+					"cmd": ["./run_cartridge.sh ingame sandbox"]
 				},
 				{
-					"name": "assert",
-					"cmd": ["./run_game.sh assert"]
+					"name": "ingame assert",
+					"cmd": ["./run_cartridge.sh ingame assert"]
 				},
 				{
-					"name": "profiler",
-					"cmd": ["./run_game.sh profiler"]
+					"name": "ingame profiler",
+					"cmd": ["./run_cartridge.sh ingame profiler"]
 				},
 				{
-					"name": "release",
-					"cmd": ["./run_game.sh release"]
+					"name": "ingame release",
+					"cmd": ["./run_cartridge.sh ingame release"]
 				},
 				{
-					"name": "itests",
-					"cmd": ["./run_itest.sh"],
+					"name": "titlemenu debug",
+					"cmd": ["./run_cartridge.sh titlemenu debug"]
+				},
+				{
+					"name": "titlemenu release",
+					"cmd": ["./run_cartridge.sh titlemenu release"]
+				},
+				{
+					"name": "itests titlemenu",
+					"cmd": ["./run_itest.sh titlemenu"],
+				},
+				{
+					"name": "itests ingame",
+					"cmd": ["./run_itest.sh ingame"],
 				},
 				{
 					"name": "pico8 utests",
 					"cmd": ["./run_pico8_utests.sh"],
-				}
+				},
 			]
 		},
 		{
-			"name": "Game: install cartridge (Linux)",
+			"name": "Game: install cartridge titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./install_cartridge_linux.sh debug"],
+			"cmd": ["./install_single_cartridge.sh titlemenu debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./install_cartridge_linux.sh debug"]
-				},
-				{
-					"name": "debug-ultrafast",
-					"cmd": ["./install_cartridge_linux.sh debug-ultrafast"]
-				},
-				{
-					"name": "cheat",
-					"cmd": ["./install_cartridge_linux.sh cheat"]
-				},
-				{
-					"name": "ultrafast",
-					"cmd": ["./install_cartridge_linux.sh ultrafast"]
-				},
-				{
-					"name": "cheat-ultrafast",
-					"cmd": ["./install_cartridge_linux.sh cheat-ultrafast"]
-				},
-				{
-					"name": "sandbox",
-					"cmd": ["./install_cartridge_linux.sh sandbox"]
-				},
-				{
-					"name": "assert",
-					"cmd": ["./install_cartridge_linux.sh assert"]
-				},
-				{
-					"name": "profiler",
-					"cmd": ["./install_cartridge_linux.sh profiler"]
+					"cmd": ["./install_single_cartridge.sh titlemenu debug"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./install_cartridge_linux.sh release"]
+					"cmd": ["./install_single_cartridge.sh titlemenu release"]
 				},
 				{
-					"name": "cheat (png)",
-					"cmd": ["./install_cartridge_linux.sh cheat png"]
+					"name": "debug (png)",
+					"cmd": ["./install_single_cartridge.sh titlemenu debug png"]
 				},
 				{
 					"name": "release (png)",
-					"cmd": ["./install_cartridge_linux.sh release png"]
+					"cmd": ["./install_single_cartridge.sh titlemenu release png"]
+				}
+			]
+		},
+		{
+			"name": "Game: install cartridge ingame",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge.sh ingame debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_single_cartridge.sh ingame debug"]
+				},
+				{
+					"name": "debug-ultrafast",
+					"cmd": ["./install_single_cartridge.sh ingame debug-ultrafast"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_single_cartridge.sh ingame cheat"]
+				},
+				{
+					"name": "ultrafast",
+					"cmd": ["./install_single_cartridge.sh ingame ultrafast"]
+				},
+				{
+					"name": "cheat-ultrafast",
+					"cmd": ["./install_single_cartridge.sh ingame cheat-ultrafast"]
+				},
+				{
+					"name": "sandbox",
+					"cmd": ["./install_single_cartridge.sh ingame sandbox"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./install_single_cartridge.sh ingame assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./install_single_cartridge.sh ingame profiler"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_single_cartridge.sh ingame release"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_single_cartridge.sh ingame cheat png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_single_cartridge.sh ingame release png"]
 				}
 			]
 		},
@@ -275,13 +386,6 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./export_cartridge_release.sh"],
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Game: install and export cartridge release (Linux)",
-			"working_dir": "${project_path}",
-			"shell": true,
-			"cmd": ["./install_cartridge_linux.sh release && ./export_cartridge_release.sh"],
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
@@ -339,27 +443,65 @@
 					"cmd": ["./test.sh test_data"],
 				},
 				{
-					"name": "headless_itests",
-					"cmd": ["./test.sh -f headless_itests"],
-				},
-				{
-					"name": "headless_itests (render)",
+					"name": "headless_itests titlemenu",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu"
+					}
+				},
+				{
+					"name": "headless_itests titlemenu (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
 						"ENABLE_RENDER": "1"
 					}
 				},
 				{
-					"name": "headless_itests - solo",
-					"cmd": ["./test.sh -f headless_itests -m solo"],
-				},
-				{
-					"name": "headless_itests - solo (render)",
+					"name": "headless_itests titlemenu - solo",
 					"cmd": ["./test.sh -f headless_itests -m solo"],
 					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu"
+					}
+				},
+				{
+					"name": "headless_itests titlemenu - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
 						"ENABLE_RENDER": "1"
 					}
-				}
+				},
+				{
+					"name": "headless_itests ingame",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame"
+					}
+				},
+				{
+					"name": "headless_itests ingame (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests ingame - solo",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame"
+					}
+				},
+				{
+					"name": "headless_itests ingame - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame",
+						"ENABLE_RENDER": "1"
+					}
+				},
 			]
 		},
 		{
@@ -399,16 +541,15 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			// note that luacov report is generated in the working directory, so the second test report will overwrite the previous one
-			"cmd": ["./test.sh && echo '' && pico-boots/test.sh"],
+			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
-					// if you aim for 100% coverage including render methods
+					// if you aim for 100% coverage including render methods for headless itests
 					"name": "(render)",
-					"cmd": ["./test.sh && echo '' && pico-boots/test.sh"],
 					"env": {
 						"ENABLE_RENDER": "1"
 					}

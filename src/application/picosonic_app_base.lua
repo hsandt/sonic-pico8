@@ -1,5 +1,5 @@
--- custom game application
--- used by main and itest_main
+-- base class for custom game application
+-- derive it for each cartridge
 
 local gameapp = require("engine/application/gameapp")
 local input = require("engine/input/input")
@@ -24,36 +24,29 @@ local vlogger = require("engine/debug/visual_logger")
 local ui = require("engine/ui/ui")
 --#endif
 
-local titlemenu = require("menu/titlemenu")
-local credits = require("menu/credits")
-local stage_state = require("ingame/stage_state")
 local visual = require("resources/visual")
 
-local picosonic_app = derived_class(gameapp)
+local picosonic_app_base = derived_class(gameapp)
 
-function picosonic_app:_init()
-  gameapp._init(self, fps60)
-end
-
-function picosonic_app:instantiate_gamestates() -- override
-  return {titlemenu(), credits(), stage_state()}
+function picosonic_app_base:init()
+  gameapp.init(self, fps60)
 end
 
 --#if mouse
-function picosonic_app:on_post_start() -- override
+function picosonic_app_base:on_post_start() -- override
   -- enable mouse devkit
   input:toggle_mouse(true)
   ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 end
 --#endif
 
-function picosonic_app:on_reset() -- override
+function picosonic_app_base:on_reset() -- override
 --#if mouse
   ui:set_cursor_sprite_data(nil)
 --#endif
 end
 
-function picosonic_app:on_update() -- override
+function picosonic_app_base:on_update() -- override
 --#if profiler
   profiler.window:update()
 --#endif
@@ -67,7 +60,7 @@ function picosonic_app:on_update() -- override
 --#endif
 end
 
-function picosonic_app:on_render() -- override
+function picosonic_app_base:on_render() -- override
 --#if profiler
   profiler.window:render()
 --#endif
@@ -86,4 +79,4 @@ function picosonic_app:on_render() -- override
 --#endif
 end
 
-return picosonic_app
+return picosonic_app_base

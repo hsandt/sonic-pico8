@@ -221,11 +221,11 @@ describe('world (with mock tiles data setup)', function ()
   describe('_compute_qcolumn_height_at', function ()
 
     it('should return (0, nil) if tile location is outside map area except on the left (any quadrant)', function ()
-      assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(128, 2), 0, directions.down)})
+      assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(128, 2), 0, directions.down)})
     end)
 
     it('should return (0, nil) if tile has collision flag unset (any quadrant)', function ()
-      assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 0, directions.right)})
+      assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 0, directions.right)})
     end)
 
     describe('with invalid tile', function ()
@@ -237,7 +237,7 @@ describe('world (with mock tiles data setup)', function ()
 
       it('should assert if tile has collision flag set but no collision mask id associated (any quadrant)', function ()
         assert.has_error(function ()
-          world._compute_qcolumn_height_at(location(1, 1), 0, directions.up)
+          world.compute_qcolumn_height_at(location(1, 1), 0, directions.up)
         end,
         "collision_data.tiles_collision_data does not contain entry for sprite id: 1, yet it has the collision flag set")
       end)
@@ -254,51 +254,51 @@ describe('world (with mock tiles data setup)', function ()
       end)
 
       it('should return 0 on column 3 (quadrant down)', function ()
-        assert.are_same({0, 0}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
+        assert.are_same({0, 0}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
       end)
 
       it('should return 4 on column 4 (quadrant down)', function ()
-        assert.are_same({4, 0}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.down)})
+        assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.down)})
       end)
 
       it('should return 0 (reverse: nothing) on column 3 (quadrant up)', function ()
-        assert.are_same({0, 0.5}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
+        assert.are_same({0, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
       end)
 
       it('should return 8 (reverse: all) on column 4 (quadrant up)', function ()
-        assert.are_same({8, 0.5}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.up)})
+        assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.up)})
       end)
 
       it('should return 0 (ignore reverse) on column 3 (quadrant up)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.up, true)})
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up, true)})
       end)
 
       it('should return 0 (ignore reverse) on column 4 (quadrant up)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.up, true)})
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.up, true)})
       end)
 
       it('should return 0 on row 3 (quadrant right)', function ()
-        assert.are_same({0, 0}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
+        assert.are_same({0, 0}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
       end)
 
       it('should return 4 on row 3 (quadrant right)', function ()
-        assert.are_same({4, 0}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
+        assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
       end)
 
       it('should return 0 (reverse: nothing) on row 3 (quadrant left)', function ()
-        assert.are_same({0, 0.75}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
+        assert.are_same({0, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
       end)
 
       it('should return 8 (reverse: all) on row 4 (quadrant left)', function ()
-        assert.are_same({8, 0.75}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
+        assert.are_same({8, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
       end)
 
       it('should return 0 (ignore reverse) on row 3 (quadrant left)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.left, true)})
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left, true)})
       end)
 
       it('should return 0 (ignore reverse) on row 4 (quadrant left)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.left, true)})
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left, true)})
       end)
 
     end)
@@ -306,23 +306,23 @@ describe('world (with mock tiles data setup)', function ()
     describe('with loop top-left tile', function ()
 
       before_each(function ()
-        mock_mset(1, 1, loop_topleft)
+        mock_mset(1, 1, visual_loop_topleft)
       end)
 
       it('should return 8 on column 6 (quadrant down)', function ()
-        assert.are_same({8, 0}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
+        assert.are_same({8, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
       end)
 
-      it('should return 6 on column 6 (quadrant up)', function ()
-        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
+      it('should return 4 on column 6 (quadrant up)', function ()
+        assert.are_same({4, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
       end)
 
       it('should return 8 on row 6 (quadrant right)', function ()
-        assert.are_same({8, 0.25}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.right)})
+        assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.right)})
       end)
 
-      it('should return 6 on row 6 (quadrant left)', function ()
-        assert.are_same({6, atan2(-4, 4)}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
+      it('should return 2 on row 6 (quadrant left)', function ()
+        assert.are_same({2, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
       end)
 
     end)
@@ -339,31 +339,31 @@ describe('world (with mock tiles data setup)', function ()
       --  and not up/down... but that would only be a hypothetical tile, we don't have such a thing
       --  right now in the game
       it('should return 4 (rectangle) on column 6 (quadrant down)', function ()
-        assert.are_same({4, 0}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
+        assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
       end)
 
       it('should return 8 (reverse all) on column 6 (quadrant up)', function ()
-        assert.are_same({8, 0.5}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
+        assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
       end)
 
       it('should return 0 (ignore reverse) on column 6 (quadrant up)', function ()
-        assert.are_same({0, nil}, {world._compute_qcolumn_height_at(location(1, 1), 6, directions.up, true)})
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up, true)})
       end)
 
       it('should return 0 (rectangle) on row 3 (quadrant right)', function ()
-        assert.are_same({0, 0.25}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
+        assert.are_same({0, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
       end)
 
       it('should return 0 (rectangle) on row 4 (quadrant right)', function ()
-        assert.are_same({8, 0.25}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
+        assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
       end)
 
       it('should return 0 (rectangle) on row 3 (quadrant left)', function ()
-        assert.are_same({0, 0.75}, {world._compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
+        assert.are_same({0, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
       end)
 
       it('should return 8 (rectangle) on row 4 (quadrant left)', function ()
-        assert.are_same({8, 0.75}, {world._compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
+        assert.are_same({8, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
       end)
 
     end)

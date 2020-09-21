@@ -17,14 +17,11 @@ local playercharacter_data = {
   ground_decel_frame2 = 0.25,  -- 16/64
 
   -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
-  -- ground active deceleration factor on descending slope ([0-1])
+  -- ground active deceleration factor on descending slope (no unit, [0-1])
   ground_decel_descending_slope_factor = 0.5,
 
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
-
-  -- gravity acceleration (px/frame^2)
-  gravity_frame2 = 0.109375,  -- 7/64
 
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
@@ -34,6 +31,7 @@ local playercharacter_data = {
   --  - No Friction on Steep Descending Slope
   --  - Progressive Ascending Steep Slope Factor
   -- max slope angle on which friction is applied (]0-0.25[, but we recommend more than 22.5 degrees i.e. 0.0625)
+  --  (PICO-8 angle)
   steep_slope_min_angle = 0.075,  -- 27/360
 
   -- derived data: the slope angle for which ground friction is exactly opposed to slope factor
@@ -43,19 +41,19 @@ local playercharacter_data = {
   -- time needed when ascending a slope before full slope factor is applied (s)
   progressive_ascending_slope_duration = 0.5,
 
-  -- air acceleration on x axis (px/frames^2)
+  -- air acceleration on x axis (px/frame^2)
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
-  -- air drag factor applied every frame, at 60 FPS
+  -- air drag factor applied every frame, at 60 FPS (no unit)
   -- note that combined with air_accel_x_frame2, we can deduce the actual
   --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
-  --  = 1.453125 px/frames
+  --  = 1.453125 px/frame
   air_drag_factor_per_frame = 0.96875,  -- 62/64
 
-  -- min absolute velocity x for which air drag is applied
+  -- min absolute velocity x for which air drag is applied (px/frame)
   air_drag_min_velocity_x = 0.25,  -- 16/64
 
-  -- maximum absolute velocity y for which air drag is applied
+  -- maximum absolute velocity y for which air drag is applied (px/frame)
   -- the actual range is ] -air_drag_max_abs_velocity_y, 0 [
   air_drag_max_abs_velocity_y = 8,  -- 512/64
 
@@ -69,11 +67,13 @@ local playercharacter_data = {
   -- duration of horizontal control lock after fall/slide off (frames)
   horizontal_control_lock_duration = 30,  -- 0.5s
 
-  -- max air speed (very high, probably won't happen unless Sonic falls in bottomless pit)
+  -- max air speed (px/frame)
+  --  (very high, probably won't happen unless Sonic falls in bottomless pit)
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
-  -- from this and gravity we can deduce the max jump height: 49.921875
+  -- from this and gravity we can deduce the max jump height: 49.921875 (6+ tiles) at frame 31
+  -- when hopping, you'll reach jump height: 19.296875 (2+ tiles) at frame 20
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)
@@ -81,34 +81,48 @@ local playercharacter_data = {
   --  which will give a value of 1.890625. for a hop, the initial speed will remain 2.
   jump_interrupt_speed_frame = 2,
 
+  -- absolute vertical speed given by spring bounce (px/frame)
+  -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
+  spring_jump_speed_frame = 5,
+
+  -- gravity acceleration (px/frame^2)
+  gravity_frame2 = 0.109375,  -- 7/64
+
   -- half-width of ground sensors, i.e. x distance of a ground sensor from the character's center vertical axis
+  --  (px)
   -- the 0.5 allows us to always have the sensor above the middle of a pixel (we always offset from a floored coord)
   --  so we can get the right pixel when offsetting to the left and flooring
   -- note that we don't define wall_sensor_extent_x, which is assumed to be ground_sensor_extent_x + 1
-  -- see comment in player_char:_next_ground_step on last block
+  -- see comment in player_char:next_ground_step on last block
   ground_sensor_extent_x = 2.5,
 
   -- height between the standing character center and the ground sensors, i.e. the height of the character sprite center (0 when the center is at the bottom pixel level)
+  --  (px)
   center_height_standing = 8,
 
   -- height between the ground sensors and the top of the standing character's collider (used to detect ceiling)
+  --  (px)
   -- should be 2 * center_height_standing, but left as separate data for customization (e.g. you can add 1 as in the SPG)
   full_height_standing = 16,
 
   -- same as center_height_standing but when character is crouching, rolling or jumping
+  --  (px)
   center_height_compact = 4,
 
   -- same as full_height_standing but when character is crouching, rolling or jumping
+  --  (px)
   -- should be 2 * center_height_compact, but left as separate data for customization (e.g. you can add 1 as in the SPG)
   full_height_compact = 8,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
+  --  (px)
   --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
   max_ground_escape_height = 4,
 
   -- max vertical distance allowed to snap to a lower ground while running (on step or curve)
   -- a.k.a. max step down
+  --  (px)
   max_ground_snap_height = 4,
 
   -- debug motion
@@ -135,19 +149,24 @@ local playercharacter_data = {
     --anim_name = sprite_data(
     --          id_loc,  span,   pivot,   transparent_color (14: pink))
     [[{
-      idle  = {{0, 8},  {2, 2}, {11, 8}, 14},
-      run1  = {{2, 8},  {2, 2}, {11, 8}, 14},
-      run2  = {{4, 8},  {2, 2}, {11, 8}, 14},
-      run3  = {{6, 8},  {2, 2}, {11, 8}, 14},
-      run4  = {{8, 8},  {2, 2}, {11, 8}, 14},
-      run5  = {{10, 8}, {2, 2}, {11, 8}, 14},
-      run6  = {{12, 8}, {2, 2}, {11, 8}, 14},
-      run7  = {{14, 8}, {2, 2}, {11, 8}, 14},
-      run8  = {{0, 10}, {2, 2}, {11, 8}, 14},
-      run9  = {{2, 10}, {2, 2}, {11, 8}, 14},
-      run10 = {{4, 10}, {2, 2}, {11, 8}, 14},
-      run11 = {{6, 10}, {2, 2}, {11, 8}, 14},
-      spin  = {{0, 12}, {2, 2}, {5, 5},  14},
+      idle   = {{0,  8},  {2, 2}, {11, 8}, 14},
+      walk1  = {{2,  8},  {2, 2}, {11, 8}, 14},
+      walk2  = {{4,  8},  {2, 2}, {11, 8}, 14},
+      walk3  = {{6,  8},  {2, 2}, {11, 8}, 14},
+      walk4  = {{8,  8},  {2, 2}, {11, 8}, 14},
+      walk5  = {{10, 8},  {2, 2}, {11, 8}, 14},
+      walk6  = {{12, 8},  {2, 2}, {11, 8}, 14},
+      walk7  = {{14, 8},  {2, 2}, {11, 8}, 14},
+      walk8  = {{0, 10},  {2, 2}, {11, 8}, 14},
+      walk9  = {{2, 10},  {2, 2}, {11, 8}, 14},
+      walk10 = {{4, 10},  {2, 2}, {11, 8}, 14},
+      walk11 = {{6, 10},  {2, 2}, {11, 8}, 14},
+      run1   = {{8, 10},  {2, 2}, {11, 8}, 14},
+      run2   = {{10,10},  {2, 2}, {11, 8}, 14},
+      run3   = {{12,10},  {2, 2}, {11, 8}, 14},
+      run4   = {{14,10},  {2, 2}, {11, 8}, 14},
+      spin   = {{0, 12},  {2, 2}, {5, 5},  14},
+      spring_jump = {{2, 12}, {2, 3}, {11, 10}, 14},
     }]], function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
@@ -157,22 +176,28 @@ local playercharacter_data = {
       )
   end),
 
-  -- minimum playback speed for "run" animation, to avoid very slow animation
-  -- 5/16: the 5 counters the 5 duration frames of ["run"] below, 1/8 to represent max duration 8 in SPG:Animations
+  -- minimum playback speed for "walk" animation, to avoid very slow animation
+  -- 5/16: the 5 counters the 5 duration frames of ["walk"] below, 1/8 to represent max duration 8 in SPG:Animations
   -- and an extra 1/2 because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
-  run_anim_min_play_speed = 0.3125
+  walk_anim_min_play_speed = 0.3125,
 
+  -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
+  run_cycle_min_speed_frame = 3,
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
 playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expression(
+  -- see animated_sprite_data.lua for anim_loop_modes values
   --[anim_name] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
-  --        sprite_keys,  step_frames, loop_mode)
+  --        sprite_keys,   step_frames, loop_mode as int)
   [[{
-    idle = {{"idle"},     10,          true},
-    run  = {{"run1", "run2", "run3", "run4", "run5", "run6", "run7", "run8", "run9", "run10", "run11"},
-                           5,          true},
-    spin = {{"spin"},     10,          true},
+    idle = {{"idle"},               10,                2},
+    walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6", "walk7", "walk8", "walk9", "walk10", "walk11"},
+                                     5,                4},
+    run  = {{"run1", "run2", "run3", "run4"},
+                                     5,                4},
+    spin = {{"spin"},               10,                2},
+    spring_jump = {{"spring_jump"}, 10,                2}
 }]], function (t)
   return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])
 end)

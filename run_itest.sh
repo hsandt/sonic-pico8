@@ -1,13 +1,19 @@
 #!/bin/bash
 
 # Run itest with PICO-8 executable
-# Pass any extra arguments to pico8
+
+# Usage: build_itest.sh cartridge_suffix
+#   cartridge_suffix  'titlemenu' or 'ingame'
+
+# Any extra arguments are passed to pico8
 
 # Configuration: cartridge
 cartridge_stem="picosonic_itest_all"
-version="4.0"
+version="4.1"
 
-run_cmd="pico8 -run build/${cartridge_stem}_v${version}_itest.p8 -screenshot_scale 4 -gif_scale 4 $@"
+cartridge_suffix="$1"; shift
+
+run_cmd="pico8 -run build/${cartridge_stem}_${cartridge_suffix}_v${version}_itest.p8 -screenshot_scale 4 -gif_scale 4 $@"
 
 # Support UNIX platforms without gnome-terminal by checking if the command exists
 # If you `reload.sh` the game, the separate terminal allows you to keep watching the program output,

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1] - 2020-09-21
+### Added
+- Spring tile and behavior
+- Emerald tile and behavior
+- Detail tiles: falling leaves, hiding leaves
+- Animation: character run cycle when moving on ground at high speed
+- Jump SFX (takes over less important music channel)
+- Credits screen
+
+### Changed
+- Split project in two cartridges: titlemenu and ingame (to drop compressed size under 100% and allow export again)
+- Reorganized spritesheet and collision data
+- Skinned level completely, improved shapes, added ceiling, springs and emeralds
+- Render foreground after midground (grass and leaves)
+
 ## [4.0] - 2020-09-10
 ### Added
 - Character falls off wall or ceiling when running too slow
@@ -119,7 +134,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.0...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.1...HEAD
+[4.1]: https://github.com/hsandt/sonic-pico8/compare/v4.0...v4.1
 [4.0]: https://github.com/hsandt/sonic-pico8/compare/v3.1...v4.0
 [3.1]: https://github.com/hsandt/sonic-pico8/compare/v3.0...v3.1
 [3.0]: https://github.com/hsandt/sonic-pico8/compare/v2.3-sprite-anim...v3.0

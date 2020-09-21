@@ -9,7 +9,7 @@
 
 # Configuration: cartridge
 cartridge_stem="picosonic_itest_all"
-version="4.0"
+version="4.1"
 
 cartridge_suffix="$1"; shift
 

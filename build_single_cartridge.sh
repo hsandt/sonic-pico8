@@ -17,7 +17,7 @@ data_path="$(dirname "$0")/data"
 author="hsandt"
 title="pico-sonic"
 cartridge_stem="picosonic"
-version="4.0"
+version="4.1"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."

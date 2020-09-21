@@ -9,7 +9,7 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
-cd("picosonic/v4.0_release")
+cd("picosonic/v4.1_release")
 
 -- first, load ingame cartridge just to save the png cartridge
 --  before we load something else
@@ -29,5 +29,5 @@ save("picosonic_titlemenu.p8.png")
 --  with top-left at sprite 2 => -i 2
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass ingame as second cartridge
-export("picosonic_v4.0_release.bin picosonic_ingame.p8 -i 2 -s 2 -c 14")
-export("picosonic_v4.0_release.html picosonic_ingame.p8 -i 2 -s 2 -c 14")
+export("picosonic_v4.1_release.bin picosonic_ingame.p8 -i 2 -s 2 -c 14")
+export("picosonic_v4.1_release.html picosonic_ingame.p8 -i 2 -s 2 -c 14")

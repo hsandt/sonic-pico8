@@ -175,9 +175,9 @@ local playercharacter_data = {
   end),
 
   -- minimum playback speed for "walk" animation, to avoid very slow animation
-  -- 5/16: the 5 counters the 5 duration frames of ["walk"] below, 1/8 to represent max duration 8 in SPG:Animations
-  -- and an extra 1/2 because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
-  walk_anim_min_play_speed = 0.3125,
+  -- 10/16=5/8: the 10 counters the 10 duration frames of ["walk"] below, 1/8 to represent max duration 8 in SPG:Animations
+  -- and an extra 1/2 factor because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
+  walk_anim_min_play_speed = 0.625,
 
   -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
   run_cycle_min_speed_frame = 3,

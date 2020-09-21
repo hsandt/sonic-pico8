@@ -778,7 +778,7 @@ function player_char:update_platformer_motion_grounded()
     --  instead, we prefer the more organic approach of continuous playback speed
     -- however, to simulate the max duration clamping, we use min playback speed clamping
     --  (this prevents Sonic sprite from running super slow, bad visually)
-    self.anim_run_speed = max(pc_data.walk_anim_min_play_speed, abs(self.ground_speed))
+    self.anim_run_speed = abs(self.ground_speed)
   else
     -- character is really idle, we don't want a minimal playback speed
     self.anim_run_speed = 0
@@ -1756,9 +1756,12 @@ function player_char:check_play_anim()
     else
       -- grounded and moving: play walk cycle at low speed, run cycle at high speed
       -- we have access to self.ground_speed but self.anim_run_speed is shorter than
-      --  abs(self.ground_speed), and the values arethe same for normal to high speeds
-      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
-      self.anim_spr:play(anim_name, false, self.anim_run_speed)
+      --  abs(self.ground_speed), and the values are the same for normal to high speeds
+      if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
+        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+      else
+        self.anim_spr:play("run", false, self.anim_run_speed)
+      end
     end
   elseif self.motion_state == motion_states.falling then
     -- stop spring jump anim when falling down again
@@ -1773,8 +1776,11 @@ function player_char:check_play_anim()
       -- we don't have access to previous ground speed as unlike original game, we clear it when airborne
       --  but we can use the stored anim_run_speed, which is the same except for very low speed
       -- (and we don't mind them as we are checking run cycle for high speeds)
-      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
-      self.anim_spr:play(anim_name, false, self.anim_run_speed)
+      if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
+        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+      else
+        self.anim_spr:play("run", false, self.anim_run_speed)
+      end
     end
   else -- self.motion_state == motion_states.air_spin
     self.anim_spr:play("spin", false, self.anim_run_speed)

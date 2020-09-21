@@ -161,10 +161,11 @@ local playercharacter_data = {
       run2   = {{2, 10}, {2, 2}, {10, 8}, 14},
       run3   = {{4, 10}, {2, 2}, {10, 8}, 14},
       run4   = {{6, 10}, {2, 2}, {10, 8}, 14},
-      spin1  = {{0, 12}, {2, 2}, { 6, 6}, 14},
-      spin2  = {{2, 12}, {2, 2}, { 6, 6}, 14},
-      spin3  = {{4, 12}, {2, 2}, { 6, 6}, 14},
-      spin4  = {{6, 12}, {2, 2}, { 6, 6}, 14},
+      spin_full_ball = {{0, 12}, {2, 2}, { 6, 6}, 14},
+      spin1  = {{2, 12}, {2, 2}, { 6, 6}, 14},
+      spin2  = {{4, 12}, {2, 2}, { 6, 6}, 14},
+      spin3  = {{6, 12}, {2, 2}, { 6, 6}, 14},
+      spin4  = {{8, 12}, {2, 2}, { 6, 6}, 14},
     }]], function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
@@ -184,6 +185,11 @@ local playercharacter_data = {
 
   -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
   run_cycle_min_speed_frame = 3,
+
+  -- speed from which the spin_fast anim is played, instead of the spin_slow anim (px/frame)
+  -- according to SPG it's the same as run_cycle_min_speed_frame, which means it happens
+  --  when jumping after seeing the run cycle
+  spin_fast_min_speed_frame = 3,
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
@@ -197,7 +203,9 @@ playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expr
                                     10,                4},
     run  = {{"run1", "run2", "run3", "run4"},
                                      5,                4},
-    spin = {{"spin1", "spin2", "spin3", "spin4"},
+    spin_slow = {{"spin_full_ball", "spin1", "spin2", "spin3", "spin4"},
+                                     5,                4},
+    spin_fast = {{"spin_full_ball", "spin1", "spin2", "spin_full_ball", "spin3", "spin4"},
                                      5,                4},
     spring_jump = {{"spring_jump"}, 10,                2}
 }]], function (t)

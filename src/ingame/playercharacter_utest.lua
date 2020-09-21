@@ -6592,14 +6592,34 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
       end)
 
-      it('should play spin anim when air spinning', function ()
-        pc.anim_run_speed = 2.0
+      it('(air spin with very low anim speed from ground) should play spin_slow anim at pc_data.spin_anim_min_play_speed', function ()
+        pc.anim_run_speed = pc_data.spin_anim_min_play_speed / 2
         pc.motion_state = motion_states.air_spin
 
         pc:check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, 2.0)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_slow", false, pc_data.spin_anim_min_play_speed)
+      end)
+
+      it('(air spin with medium anim speed from ground) should play spin_slow anim at anim_run_speed', function ()
+        pc.anim_run_speed = (pc_data.spin_anim_min_play_speed + pc_data.spin_fast_min_speed_frame) / 2  -- between both
+        pc.motion_state = motion_states.air_spin
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_slow", false, pc.anim_run_speed)
+      end)
+
+      it('(air spin with high anim speed from ground) should play spin_fast anim at anim_run_speed', function ()
+        pc.anim_run_speed = pc_data.spin_fast_min_speed_frame
+        pc.motion_state = motion_states.air_spin
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_fast", false, pc_data.spin_fast_min_speed_frame)
       end)
 
     end)

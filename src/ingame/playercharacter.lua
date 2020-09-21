@@ -1779,11 +1779,17 @@ function player_char:check_play_anim()
       if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
         self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
       else
+        -- run_cycle_min_speed_frame > walk_anim_min_play_speed so no need to clamp here
         self.anim_spr:play("run", false, self.anim_run_speed)
       end
     end
   else -- self.motion_state == motion_states.air_spin
-    self.anim_spr:play("spin", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
+    if self.anim_run_speed < pc_data.spin_fast_min_speed_frame then
+      self.anim_spr:play("spin_slow", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
+    else
+      -- spin_fast_min_speed_frame > spin_anim_min_play_speed so no need to clamp here
+      self.anim_spr:play("spin_fast", false, self.anim_run_speed)
+    end
   end
 end
 

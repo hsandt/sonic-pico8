@@ -149,24 +149,22 @@ local playercharacter_data = {
     --anim_name = sprite_data(
     --          id_loc,  span,   pivot,   transparent_color (14: pink))
     [[{
-      idle   = {{0,  8},  {2, 2}, {11, 8}, 14},
-      walk1  = {{2,  8},  {2, 2}, {11, 8}, 14},
-      walk2  = {{4,  8},  {2, 2}, {11, 8}, 14},
-      walk3  = {{6,  8},  {2, 2}, {11, 8}, 14},
-      walk4  = {{8,  8},  {2, 2}, {11, 8}, 14},
-      walk5  = {{10, 8},  {2, 2}, {11, 8}, 14},
-      walk6  = {{12, 8},  {2, 2}, {11, 8}, 14},
-      walk7  = {{14, 8},  {2, 2}, {11, 8}, 14},
-      walk8  = {{0, 10},  {2, 2}, {11, 8}, 14},
-      walk9  = {{2, 10},  {2, 2}, {11, 8}, 14},
-      walk10 = {{4, 10},  {2, 2}, {11, 8}, 14},
-      walk11 = {{6, 10},  {2, 2}, {11, 8}, 14},
-      run1   = {{8, 10},  {2, 2}, {11, 8}, 14},
-      run2   = {{10,10},  {2, 2}, {11, 8}, 14},
-      run3   = {{12,10},  {2, 2}, {11, 8}, 14},
-      run4   = {{14,10},  {2, 2}, {11, 8}, 14},
-      spin   = {{0, 12},  {2, 2}, {5, 5},  14},
-      spring_jump = {{2, 12}, {2, 3}, {11, 10}, 14},
+      idle   = {{0,  8}, {2, 2}, {10, 8}, 14},
+      walk1  = {{2,  8}, {2, 2}, {10, 8}, 14},
+      walk2  = {{4,  8}, {2, 2}, { 9, 8}, 14},
+      walk3  = {{6,  8}, {2, 2}, {10, 8}, 14},
+      walk4  = {{8,  8}, {2, 2}, {10, 8}, 14},
+      walk5  = {{10, 8}, {2, 2}, {10, 8}, 14},
+      walk6  = {{12, 8}, {2, 2}, {10, 8}, 14},
+      spring_jump = {{14, 8}, {2, 3}, {9, 8}, 14},
+      run1   = {{0, 10}, {2, 2}, {10, 8}, 14},
+      run2   = {{2, 10}, {2, 2}, {10, 8}, 14},
+      run3   = {{4, 10}, {2, 2}, {10, 8}, 14},
+      run4   = {{6, 10}, {2, 2}, {10, 8}, 14},
+      spin1  = {{0, 12}, {2, 2}, { 6, 6}, 14},
+      spin2  = {{2, 12}, {2, 2}, { 6, 6}, 14},
+      spin3  = {{4, 12}, {2, 2}, { 6, 6}, 14},
+      spin4  = {{6, 12}, {2, 2}, { 6, 6}, 14},
     }]], function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
@@ -192,11 +190,12 @@ playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expr
   --        sprite_keys,   step_frames, loop_mode as int)
   [[{
     idle = {{"idle"},               10,                2},
-    walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6", "walk7", "walk8", "walk9", "walk10", "walk11"},
-                                     5,                4},
+    walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6"},
+                                    10,                4},
     run  = {{"run1", "run2", "run3", "run4"},
                                      5,                4},
-    spin = {{"spin"},               10,                2},
+    spin = {{"spin1", "spin2", "spin3", "spin4"},
+                                     5,                4},
     spring_jump = {{"spring_jump"}, 10,                2}
 }]], function (t)
   return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])

@@ -6590,12 +6590,13 @@ describe('player_char', function ()
       end)
 
       it('should play spin anim when air spinning', function ()
+        pc.anim_run_speed = 2.0
         pc.motion_state = motion_states.air_spin
 
         pc:check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, 2.0)
       end)
 
     end)

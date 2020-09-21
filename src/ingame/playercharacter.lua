@@ -769,6 +769,21 @@ function player_char:update_platformer_motion_grounded()
     self.ground_speed = max(-0.1, self.ground_speed)
   end
 
+  if self.ground_speed ~= 0 then
+    -- set animation speed for run now, since it can be used during actual run on ground
+    --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
+    -- (according to SPG, in original game, ground speed in preserved when airborne, so they use it directly
+    --  for airborne animations)
+    -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
+    --  instead, we prefer the more organic approach of continuous playback speed
+    -- however, to simulate the max duration clamping, we use min playback speed clamping
+    --  (this prevents Sonic sprite from running super slow, bad visually)
+    self.anim_run_speed = max(pc_data.walk_anim_min_play_speed, abs(self.ground_speed))
+  else
+    -- character is really idle, we don't want a minimal playback speed
+    self.anim_run_speed = 0
+  end
+
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
@@ -803,21 +818,6 @@ function player_char:update_platformer_motion_grounded()
 
     -- only allow jump preparation for next frame if not already falling
     self:check_jump_intention()
-
-    if self.ground_speed ~= 0 then
-      -- set animation speed for run now, since it can be used during actual run on ground
-      --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
-      -- (according to SPG, in original game, ground speed in preserved when airborne, so they use it directly
-      --  for airborne animations)
-      -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
-      --  instead, we prefer the more organic approach of continuous playback speed
-      -- however, to simulate the max duration clamping, we use min playback speed clamping
-      --  (this prevents Sonic sprite from running super slow, bad visually)
-      self.anim_run_speed = max(pc_data.walk_anim_min_play_speed, abs(self.ground_speed))
-    else
-      -- character is really idle, we don't want a minimal playback speed
-      self.anim_run_speed = 0
-    end
   end
 
   log("self.position: "..self.position, "trace")
@@ -1777,7 +1777,7 @@ function player_char:check_play_anim()
       self.anim_spr:play(anim_name, false, self.anim_run_speed)
     end
   else -- self.motion_state == motion_states.air_spin
-    self.anim_spr:play("spin")
+    self.anim_spr:play("spin", false, self.anim_run_speed)
   end
 end
 

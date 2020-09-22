@@ -258,9 +258,12 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
       --  not farther than a tile away
       -- remember that area uses location units and must be scaled
       -- we don't bother with pc_data exact sensor distance, etc. but our margin
-      --  should somewhat match the character width/height and the size of a tile
-      if tile_size * area.right + 3 <= position.x and position.x <= tile_size * area.right + 11 and
-          tile_size * area.top - 16 <= position.y and position.y <= tile_size * area.bottom + 16 then
+      --  should somewhat match the character width/height + max amount of move in a frame (~6) to be safe
+      --  and prevent character from hitting the layer, then having it disabled too late
+      -- make sure to add 1 to right/bottom to get the right/bottom position of the tile
+      --  not its topleft
+      if tile_size * area.right + 3 <= position.x and position.x <= (tile_size + 1) * area.right + 11 and
+          tile_size * area.top - 16 <= position.y and position.y <= (tile_size + 1) * area.bottom + 16 then
         -- external exit trigger detected, switch to exit layer
         return 2
       end
@@ -271,7 +274,7 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
       --  of the *exit* area, so consider character in when on the left of the entrance area,
       --  not farther than a tile away
       if tile_size * area.left - 11 <= position.x and position.x <= tile_size * area.left - 3 and
-          tile_size * area.top - 16 <= position.y and position.y <= tile_size * area.bottom + 16 then
+          tile_size * area.top - 16 <= position.y and position.y <= (tile_size + 1) * area.bottom + 16 then
         -- external entrance trigger detected, switch to entrance layer
         return 1
       end

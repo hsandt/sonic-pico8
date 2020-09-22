@@ -525,11 +525,12 @@ describe('stage_state', function ()
             end)
 
             it('should return 2 when entering external entrance trigger and not yet on layer 2', function ()
-              assert.are_equal(2, state:check_loop_external_triggers(vector(3*8+3, 4*8), 1))
+              -- to get bottom/left of a tile you need to add 1 to i/j
+              assert.are_equal(2, state:check_loop_external_triggers(vector((3+1)*8+4, (4+1)*8), 1))
             end)
 
             it('should return nil when entering external entrance trigger but already on layer 2', function ()
-              assert.is_nil(state:check_loop_external_triggers(vector(3*8+3, 4*8), 2))
+              assert.is_nil(state:check_loop_external_triggers(vector((3+1)*8+4, (4+1)*8), 2))
             end)
 
           end)

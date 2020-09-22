@@ -94,7 +94,8 @@ elif [[ $config == 'cheat' ]]; then
   # but I don't see how adding more lines makes the game faster
   # symbols='assert,dump,log,cheat,tuner'
   # symbols='cheat,tuner,mouse'
-  symbols='assert,cheat'
+  # symbols='assert,cheat,log,dump'
+  symbols='cheat,log,dump'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then

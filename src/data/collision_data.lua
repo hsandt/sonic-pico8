@@ -258,7 +258,7 @@ local mask_tile_ids = {
 -- loop parts: right (from bottom to top)
   [118] = 38,
   [102] = 22,
-  [118] = 39,
+  [119] = 39,
   [103] = 23,
 
 -- loop parts: top (from left to right)

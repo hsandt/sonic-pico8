@@ -11,6 +11,17 @@ sprite_flags = {
   foreground = 7,             -- foreground sprite (should be drawn last)
 }
 
+sprite_masks = {
+  collision = 1,  -- 1 << 0
+  loop_entrance = 2,  -- 1 << 1
+  loop_exit = 4,  -- 1 << 2
+  loop_entrance_trigger = 8,  -- 1 << 3
+  loop_exit_trigger = 16,  -- 1 << 4
+  spring = 32,  -- 1 << 5
+  midground = 64,  -- 1 << 6
+  foreground = 128,  -- 1 << 7
+}
+
 -- below, we are not using serialization.parse_expression anymore
 --  because we want to insert inline comments and have unlimited tokens anyway
 

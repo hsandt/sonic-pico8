@@ -473,10 +473,10 @@ function stage_state:render_environment_midground()
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
 
   -- find which tiles are bordering the screen
-  local screen_left_i = flr(screen_topleft.x / tile_size) + 1
-  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - 1
-  local screen_top_j = flr(screen_topleft.y / tile_size) + 1
-  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - 1
+  local screen_left_i = flr(screen_topleft.x / tile_size)
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size)
+  local screen_top_j = flr(screen_topleft.y / tile_size)
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size)
 
   -- only draw tiles that are inside or partially on screen,
   --  and on midground layer

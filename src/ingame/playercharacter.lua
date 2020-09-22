@@ -227,27 +227,20 @@ function player_char:set_ground_tile_location(tile_loc)
   if self.ground_tile_location ~= tile_loc then
     self.ground_tile_location = tile_loc
 
-    -- gradually switching to visual tile flag convention:
-    -- flags should now be placed on visual sprites, not collision masks,
-    --  so collision masks can be reused for tiles and items with very different behaviors,
-    --  e.g. half-tile vs spring
-    -- to complete switching, replace all mask_tile_id with visual_tile_id,
-    --  remove redundant mask tiles made for curves that are like loops but without
-    --  loop flags, and move the loop flags back to loop visual tiles
-
-    -- when touching loop entrance trigger, enable entrance (and disable exit) layer
+    -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
     --  and reversely
     -- we are now checking loop triggers directly from stage data
+    -- external triggers are different and can be entered airborne, see check_loop_external_triggers
     local stage_state = flow.curr_state
     assert(stage_state.type == ':stage')
 
     if stage_state:is_tile_loop_entrance_trigger(tile_loc) then
       -- note that active loop layer may already be 1
-      log("set active loop layer: 1", 'loop')
+      log("internal trigger detected, set active loop layer: 1", 'loop')
       self.active_loop_layer = 1
     elseif stage_state:is_tile_loop_exit_trigger(tile_loc) then
       -- note that active loop layer may already be 2
-      log("set active loop layer: 2", 'loop')
+      log("internal trigger detected, set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
     end
   end
@@ -739,6 +732,7 @@ function player_char:update_platformer_motion()
 
   self:check_spring()
   self:check_emerald()
+  self:check_loop_external_triggers()
 end
 
 -- update motion following platformer grounded motion rules
@@ -1676,7 +1670,7 @@ function player_char:next_air_step(direction, ref_motion_result)
   end
 end
 
--- item checks
+-- item and trigger checks
 function player_char:check_spring()
   if self.ground_tile_location then
     -- follow new convention of putting flags on the visual sprite
@@ -1717,6 +1711,17 @@ function player_char:check_emerald()
   local em = stage_state:check_emerald_pick_area(self.position)
   if em then
     stage_state:character_pick_emerald(em)
+  end
+end
+
+function player_char:check_loop_external_triggers()
+  local stage_state = flow.curr_state
+  assert(stage_state.type == ':stage')
+
+  local layer_to_activate = stage_state:check_loop_external_triggers(self.position, self.active_loop_layer)
+  if layer_to_activate then
+    log("external trigger detected, set active loop layer: "..layer_to_activate, 'loop')
+    self.active_loop_layer = layer_to_activate
   end
 end
 

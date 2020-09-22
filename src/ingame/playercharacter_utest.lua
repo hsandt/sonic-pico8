@@ -2149,16 +2149,19 @@ describe('player_char', function ()
         setup(function ()
           stub(player_char, "check_spring")
           stub(player_char, "check_emerald")
+          stub(player_char, "check_loop_external_triggers")
         end)
 
         teardown(function ()
           player_char.check_spring:revert()
           player_char.check_emerald:revert()
+          player_char.check_loop_external_triggers:revert()
         end)
 
         after_each(function ()
           player_char.check_spring:clear()
           player_char.check_emerald:clear()
+          player_char.check_loop_external_triggers:clear()
         end)
 
         describe('(_check_jump stubbed)', function ()
@@ -2200,6 +2203,13 @@ describe('player_char', function ()
             pc:update_platformer_motion()
             assert.spy(player_char.check_emerald).was_called()
             assert.spy(player_char.check_emerald).was_called_with(match.ref(pc))
+          end)
+
+          it('should call check_loop_external_triggers (after motion)', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_loop_external_triggers).was_called()
+            assert.spy(player_char.check_loop_external_triggers).was_called_with(match.ref(pc))
           end)
 
         end)
@@ -5415,6 +5425,52 @@ describe('player_char', function ()
             assert.spy(stage_state.character_pick_emerald).was_called_with(match.ref(flow.curr_state), match.ref(mock_emerald))
           end)
 
+        end)
+
+      end)
+
+      describe('check_loop_external_triggers', function ()
+
+        setup(function ()
+          stub(stage_state, "check_loop_external_triggers", function (self, pos, _previous_active_layer)
+            -- simulate some very broad triggers
+            -- don't care about previous_active_layer, we are already doing proper checks for that
+            --  in stage_state:check_loop_external_triggers utests
+            if pos.y > 10 then
+              return nil
+            end
+            if pos.x < 0 then
+              return 1
+            elseif pos.x > 5 then
+              return 2
+            end
+          end)
+        end)
+
+        teardown(function ()
+          stage_state.check_loop_external_triggers:revert()
+        end)
+
+        it('should set active loop layer to 1 when detecting external entrance trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(-1, 0)
+          pc:check_loop_external_triggers()
+          assert.are_equal(1, pc.active_loop_layer)
+        end)
+
+        it('should set active loop layer to 2 when detecting external exit trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(6, 0)
+          pc:check_loop_external_triggers()
+          assert.are_equal(2, pc.active_loop_layer)
+        end)
+
+        it('should not set active loop layer when not detecting any external loop trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(0, 15)
+          pc:check_loop_external_triggers()
+          -- invalid value of course, just to show that nothing was set
+          assert.are_equal(-1, pc.active_loop_layer)
         end)
 
       end)

@@ -244,6 +244,41 @@ function stage_state:character_pick_emerald(em)
   del(self.emeralds, em)
 end
 
+-- if character is entering an external loop trigger that should activate a *new* loop layer,
+--  return that layer number
+-- else, return nil
+function stage_state:check_loop_external_triggers(position, previous_active_layer)
+  -- first, if character was already on layer 1 (entrance), we only need to check
+  --  for character entering a loop from the back (external exit trigger)
+  --  to make sure they don't get stuck there, and vice-versa
+  if previous_active_layer == 1 then
+    for area in all(self.curr_stage_data.loop_entrance_areas) do
+      -- by convention, a loop external exit trigger is always made of 1 column just on the *right*
+      --  of the *entrance* area, so consider character in when on the right of the exit area,
+      --  not farther than a tile away
+      -- remember that area uses location units and must be scaled
+      -- we don't bother with pc_data exact sensor distance, etc. but our margin
+      --  should somewhat match the character width/height and the size of a tile
+      if tile_size * area.right + 3 <= position.x and position.x <= tile_size * area.right + 11 and
+          tile_size * area.top - 16 <= position.y and position.y <= tile_size * area.bottom + 16 then
+        -- external exit trigger detected, switch to exit layer
+        return 2
+      end
+    end
+  else
+    for area in all(self.curr_stage_data.loop_exit_areas) do
+      -- by convention, a loop external entrance trigger is always made of 1 column just on the *left*
+      --  of the *exit* area, so consider character in when on the left of the entrance area,
+      --  not farther than a tile away
+      if tile_size * area.left - 11 <= position.x and position.x <= tile_size * area.left - 3 and
+          tile_size * area.top - 16 <= position.y and position.y <= tile_size * area.bottom + 16 then
+        -- external entrance trigger detected, switch to entrance layer
+        return 1
+      end
+    end
+  end
+end
+
 function stage_state:check_reached_goal()
   if not self.has_reached_goal and
       self.player_char.position.x >= self.curr_stage_data.goal_x then

@@ -153,48 +153,54 @@ describe('stage_state', function ()
 
       describe('is_tile_in_loop_entrance', function ()
 
+        before_each(function ()
+          -- customize loop areas locally. We are redefining a table so that won't affect
+          --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+          --  but if we need to for the tests we'll just add the missing members
+          state.curr_stage_data = {
+            loop_entrance_areas = {location_rect(1, 0, 3, 4)}
+          }
+        end)
+
         -- we wrote those tests before extracting is_tile_in_area and it's simpler
         --  to test result than stubbing is_tile_in_area with a dummy function anyway,
         --  so we keep direct testing despite overlapping is_tile_in_area utests above
 
         it('should return true for tile in one of the entrance areas, but not the top-left corner reserved to trigger', function ()
-          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
-          --  location_rect:contains correctness
-          assert.is_true(state:is_tile_in_loop_entrance(location(90, 20)))
+          assert.is_true(state:is_tile_in_loop_entrance(location(2, 0)))
         end)
 
         it('should return false for tile just on the top-left corner entrance trigger (and not inside another area excluding trigger)', function ()
-          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
-          --  location_rect:contains correctness
-          assert.is_false(state:is_tile_in_loop_entrance(location(90, 19)))
+          assert.is_false(state:is_tile_in_loop_entrance(location(1, 0)))
         end)
 
         it('should return false for tile not in any of the entrance areas', function ()
-          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
-          --  location_rect:contains correctness
-          assert.is_false(state:is_tile_in_loop_entrance(location(90, 18)))
+          assert.is_false(state:is_tile_in_loop_entrance(location(0, 0)))
         end)
 
       end)
 
       describe('is_tile_in_loop_exit', function ()
 
+        before_each(function ()
+          -- customize loop areas locally. We are redefining a table so that won't affect
+          --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+          --  but if we need to for the tests we'll just add the missing members
+          state.curr_stage_data = {
+            loop_exit_areas = {location_rect(-1, 0, 0, 2)}
+          }
+        end)
+
         it('should return true for tile in one of the exit areas, but not the top-right corner reserved to trigger', function ()
-          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
-          --  location_rect:contains correctness
-          assert.is_true(state:is_tile_in_loop_exit(location(88, 19)))
+          assert.is_true(state:is_tile_in_loop_exit(location(0, 1)))
         end)
 
         it('should return false for tile just on the top-right corner exit trigger (and not inside another area excluding trigger)', function ()
-          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
-          --  location_rect:contains correctness
-          assert.is_false(state:is_tile_in_loop_exit(location(89, 19)))
+          assert.is_false(state:is_tile_in_loop_exit(location(0, 0)))
         end)
 
         it('should return false for tile not in any of the exit areas', function ()
-          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
-          --  location_rect:contains correctness
-          assert.is_false(state:is_tile_in_loop_entrance(location(86, 18)))
+          assert.is_false(state:is_tile_in_loop_exit(location(0, -1)))
         end)
 
       end)
@@ -490,6 +496,40 @@ describe('stage_state', function ()
               }
               state:character_pick_emerald(state.emeralds[2])
               assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
+            end)
+
+          end)
+
+          describe('#solo check_loop_external_triggers', function ()
+
+            before_each(function ()
+              -- customize loop areas locally. We are redefining a table so that won't affect
+              --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+              --  but if we need to for the tests we'll just add the missing members
+              state.curr_stage_data = {
+                loop_exit_areas = {location_rect(-1, 0, 0, 2)},
+                loop_entrance_areas = {location_rect(1, 0, 3, 4)}
+              }
+            end)
+
+            it('should return nil when not entering external entrance trigger at all', function ()
+              assert.is_nil(state:check_loop_external_triggers(vector(-20, 0), 2))
+            end)
+
+            it('should return 1 when entering external entrance trigger and not yet on layer 1', function ()
+              assert.are_equal(1, state:check_loop_external_triggers(vector(-11, 0), 2))
+            end)
+
+            it('should return 1 when entering external entrance trigger but already on layer 1', function ()
+              assert.is_nil(state:check_loop_external_triggers(vector(-11, 0), 1))
+            end)
+
+            it('should return 2 when entering external entrance trigger and not yet on layer 2', function ()
+              assert.are_equal(2, state:check_loop_external_triggers(vector(3*8+3, 4*8), 1))
+            end)
+
+            it('should return nil when entering external entrance trigger but already on layer 2', function ()
+              assert.is_nil(state:check_loop_external_triggers(vector(3*8+3, 4*8), 2))
             end)
 
           end)

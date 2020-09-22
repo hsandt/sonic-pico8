@@ -111,22 +111,50 @@ end
 -- queries
 
 -- return true iff tile_loc: location is in any of the areas: {location_rect}
-function stage_state:is_tile_in_area(tile_loc, areas)
+function stage_state:is_tile_in_area(tile_loc, areas, extra_condition_callback)
   for area in all(areas) do
-    if area:contains(tile_loc) then
+    if (extra_condition_callback == nil or extra_condition_callback(tile_loc, area)) and
+        area:contains(tile_loc) then
       return true
     end
   end
   return false
 end
 
+-- return true iff tile is located in loop entrance area
+--  *except at its top-left which is reversed to non-layered entrance trigger*
 function stage_state:is_tile_in_loop_entrance(tile_loc)
-  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_entrance_areas)
+  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_entrance_areas, function (tile_loc, area)
+    return tile_loc ~= location(area.left, area.top)
+  end)
 end
 
+-- return true iff tile is located in loop entrance area
+--  *except at its top-right which is reversed to non-layered entrance trigger*
 function stage_state:is_tile_in_loop_exit(tile_loc)
-  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_exit_areas)
+  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_exit_areas, function (tile_loc, area)
+    return tile_loc ~= location(area.right, area.top)
+  end)
 end
+
+-- return true iff tile is located at the top-left (trigger location) of any entrance loop
+function stage_state:is_tile_loop_entrance_trigger(tile_loc)
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    if tile_loc == location(area.left, area.top) then
+      return true
+    end
+  end
+end
+
+-- return true iff tile is located at the top-right (trigger location) of any exit loop
+function stage_state:is_tile_loop_exit_trigger(tile_loc)
+  for area in all(self.curr_stage_data.loop_exit_areas) do
+    if tile_loc == location(area.right, area.top) then
+      return true
+    end
+  end
+end
+
 
 -- setup
 
@@ -497,8 +525,8 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   for i = screen_left_i, screen_right_i do
     for j = screen_top_j, screen_bottom_j do
       local sprite_id = mget(i, j)
-      -- don't bother checking empty tile 0, otherwise delegate check to condition callback
-      if sprite_id ~= 0 and condition_callback(i, j) then
+      -- don't bother checking empty tile 0, otherwise delegate check to condition callback, if any
+      if sprite_id ~= 0 and (condition_callback == nil or condition_callback(i, j)) then
         spr(sprite_id, tile_size * i, tile_size * j)
       end
     end

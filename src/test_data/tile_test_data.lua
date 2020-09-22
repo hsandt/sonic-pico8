@@ -71,22 +71,22 @@ function tile_test_data.setup()
   fset(asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
   fset(desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
 
-  fset(visual_loop_topleft, sprite_masks.collision + sprite_masks.loop_exit + sprite_masks.midground)
+  fset(visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
   -- mask also have collision falg, but only useful to test
   -- a non-loop proto curve tile with the same shaped
   fset(mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopleft, sprite_masks.collision + sprite_masks.loop_exit_trigger + sprite_masks.midground)
+  fset(visual_loop_toptopleft, sprite_masks.collision +  sprite_masks.midground)
   fset(mask_loop_toptopleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopright, sprite_masks.collision + sprite_masks.loop_entrance_trigger + sprite_masks.midground)
+  fset(visual_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
   fset(mask_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_bottomleft, sprite_masks.collision + sprite_masks.loop_exit + sprite_masks.midground)
+  fset(visual_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
   fset(mask_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_bottomright, sprite_masks.collision + sprite_masks.loop_entrance + sprite_masks.midground)
+  fset(visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
   fset(mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
 
   -- visual sprites

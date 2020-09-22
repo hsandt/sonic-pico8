@@ -230,16 +230,26 @@ describe('world (with mock tiles data setup)', function ()
 
     describe('with invalid tile', function ()
 
+      setup(function ()
+        -- hopefully something big enough so it falls on character spritesheet and we can
+        --  set and clear collision without modifying legit data
+        fset(128, sprite_flags.collision, true)
+      end)
+
+      teardown(function ()
+        fset(128, sprite_flags.collision, false)
+      end)
+
       before_each(function ()
         -- create an invalid tile with a collision flag but no collision mask associated
-        mock_mset(1, 1, 1)
+        mock_mset(1, 1, 128)
       end)
 
       it('should assert if tile has collision flag set but no collision mask id associated (any quadrant)', function ()
         assert.has_error(function ()
           world.compute_qcolumn_height_at(location(1, 1), 0, directions.up)
         end,
-        "collision_data.tiles_collision_data does not contain entry for sprite id: 1, yet it has the collision flag set")
+        "collision_data.tiles_collision_data does not contain entry for sprite id: 128, yet it has the collision flag set")
       end)
 
     end)

@@ -2,6 +2,7 @@ require("test/bustedhelper")
 local player_char = require("ingame/playercharacter")
 
 local flow = require("engine/application/flow")
+local location_rect = require("engine/core/location_rect")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
@@ -202,6 +203,11 @@ describe('player_char', function ()
     local pc
 
     before_each(function ()
+      -- normally we add and enter gamestate properly to initialize stage,
+      --  but enough here, we just need to provide access to stage via flow for
+      --  things like loop layer checks
+      flow.curr_state = stage_state()
+
       -- recreate player character for each test (setup spies will need to refer to player_char,
       --  not the instance)
       pc = player_char()
@@ -968,10 +974,19 @@ describe('player_char', function ()
       describe('set_ground_tile_location', function ()
 
         before_each(function ()
-          -- add trigger tiles to test trigger flag detection
+          -- add tiles usually placed at loop entrance/exit triggers
+          -- but new system doesn't flag triggers, so remember to define loop areas manually
           -- ZR
           mock_mset(0, 0, visual_loop_toptopleft)
           mock_mset(1, 0, visual_loop_toptopright)
+
+          -- customize loop areas locally. We are redefining a table so that won't affect
+          --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+          --  but if we need to for the tests we'll just add the missing members
+          flow.curr_state.curr_stage_data = {
+            loop_exit_areas = {location_rect(-1, 0, 0, 2)},
+            loop_entrance_areas = {location_rect(1, 0, 3, 4)}
+          }
         end)
 
         it('should preserve ground tile location if current value is passed', function ()
@@ -996,6 +1011,7 @@ describe('player_char', function ()
         end)
 
         it('should set active_loop_layer to 1 if loop_entrance_trigger tile is detected and new', function ()
+          -- just to check value change
           pc.active_loop_layer = -1
           pc.ground_tile_location = location(-1, 0)
 
@@ -1005,6 +1021,7 @@ describe('player_char', function ()
         end)
 
         it('should set active_loop_layer to 2 if loop_exit_trigger tile is detected and new', function ()
+          -- just to check value change
           pc.active_loop_layer = -1
           pc.ground_tile_location = location(-1, 0)
 
@@ -1725,11 +1742,20 @@ describe('player_char', function ()
         describe('with bottom/side loop tile', function ()
 
           before_each(function ()
-            -- note that in the real game we place a visual tile which maps to mask tile with trigger
-            -- we don't have constants for visual tiles but we could make a few dummy ones if we want
-            --  to test the visual to mask mapping logic for real
+            -- place loop tiles, but remember the loop areas give them meaning
             mock_mset(0, 0, visual_loop_bottomleft)
             mock_mset(1, 0, visual_loop_bottomright)
+
+            -- customize loop areas locally. We are redefining a table so that won't affect
+            --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+            --  but if we need to for the tests we'll just add the missing members
+            flow.curr_state.curr_stage_data = {
+              -- a bit tight honestly because I placed to corners too close to each other, but
+              --  can get away with narrow rectangles; as long as the trigger corners are not at
+              --  the bottom
+              loop_exit_areas = {location_rect(0, -3, 0, 0)},
+              loop_entrance_areas = {location_rect(1, -3, 1, 0)}
+            }
           end)
 
           it('(entrance active) position on exit should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
@@ -5357,9 +5383,6 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
-          -- normally we add and enter gamestate properly, but enough for this test
-          flow.curr_state = stage_state()
-
           mock_mset(2, 0, visual.sprite_data_t.emerald.id_loc:to_sprite_id())
         end)
 
@@ -6325,11 +6348,6 @@ describe('player_char', function ()
       teardown(function ()
         stage_state.extend_spring:revert()
         player_char.enter_motion_state:revert()
-      end)
-
-      before_each(function ()
-        -- normally we add and enter gamestate properly, but enough for this test
-        flow.curr_state = stage_state()
       end)
 
       after_each(function ()

@@ -133,67 +133,6 @@ describe('stage_state', function ()
 
       end)
 
-      describe('on_exit', function ()
-
-
-        setup(function ()
-          stub(overlay, "clear_labels")
-          stub(picosonic_app, "stop_all_coroutines")
-          stub(stage_state, "stop_bgm")
-          -- we don't really mind spying on spawn_emeralds
-          --  but we do not want to spend 0.5s finding all of them
-          --  in before_each every time due to on_enter,
-          --  so we stub this
-          stub(stage_state, "spawn_emeralds")
-        end)
-
-        teardown(function ()
-          overlay.clear_labels:revert()
-          picosonic_app.stop_all_coroutines:revert()
-          stage_state.stop_bgm:revert()
-          stage_state.spawn_emeralds:revert()
-        end)
-
-        after_each(function ()
-          overlay.clear_labels:clear()
-          picosonic_app.stop_all_coroutines:clear()
-          stage_state.stop_bgm:clear()
-          stage_state.spawn_emeralds:clear()
-        end)
-
-        before_each(function ()
-          -- enter first, so we can check if on_exit cleans state correctly
-          state:on_enter()
-          state:on_exit()
-        end)
-
-        it('should stop all the coroutines', function ()
-          local s = assert.spy(picosonic_app.stop_all_coroutines)
-          s.was_called(1)
-          s.was_called_with(match.ref(state.app))
-        end)
-
-        it('should clear the player character', function ()
-          assert.is_nil(state.player_char)
-        end)
-
-        it('should call title_overlay:clear_labels', function ()
-          local s = assert.spy(overlay.clear_labels)
-          s.was_called(1)
-          s.was_called_with(match.ref(state.title_overlay))
-        end)
-
-        it('should reset pico8 camera', function ()
-          assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
-        end)
-
-        it('should call stop_bgm', function ()
-          assert.spy(stage_state.stop_bgm).was_called(1)
-          assert.spy(stage_state.stop_bgm).was_called_with(match.ref(state))
-        end)
-
-      end)
-
       describe('is_tile_in_area', function ()
 
         it('should return true for tile in one of the entrance areas', function ()
@@ -218,10 +157,16 @@ describe('stage_state', function ()
         --  to test result than stubbing is_tile_in_area with a dummy function anyway,
         --  so we keep direct testing despite overlapping is_tile_in_area utests above
 
-        it('should return true for tile in one of the entrance areas', function ()
+        it('should return true for tile in one of the entrance areas, but not the top-left corner reserved to trigger', function ()
           -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
           --  location_rect:contains correctness
-          assert.is_true(state:is_tile_in_loop_entrance(location(90, 19)))
+          assert.is_true(state:is_tile_in_loop_entrance(location(90, 20)))
+        end)
+
+        it('should return false for tile just on the top-left corner entrance trigger (and not inside another area excluding trigger)', function ()
+          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+          --  location_rect:contains correctness
+          assert.is_false(state:is_tile_in_loop_entrance(location(90, 19)))
         end)
 
         it('should return false for tile not in any of the entrance areas', function ()
@@ -234,44 +179,22 @@ describe('stage_state', function ()
 
       describe('is_tile_in_loop_exit', function ()
 
-        it('should return true for tile in one of the entrance areas', function ()
+        it('should return true for tile in one of the exit areas, but not the top-right corner reserved to trigger', function ()
           -- this depends on stage_data.for_stage[1].loop_exit_areas content and
           --  location_rect:contains correctness
-          assert.is_true(state:is_tile_in_loop_exit(location(87, 19)))
+          assert.is_true(state:is_tile_in_loop_exit(location(88, 19)))
+        end)
+
+        it('should return false for tile just on the top-right corner exit trigger (and not inside another area excluding trigger)', function ()
+          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
+          --  location_rect:contains correctness
+          assert.is_false(state:is_tile_in_loop_exit(location(89, 19)))
         end)
 
         it('should return false for tile not in any of the exit areas', function ()
           -- this depends on stage_data.for_stage[1].loop_exit_areas content and
           --  location_rect:contains correctness
           assert.is_false(state:is_tile_in_loop_entrance(location(86, 18)))
-        end)
-
-      end)
-
-      describe('spawn_player_char', function ()
-
-        setup(function ()
-          spy.on(player_char, "spawn_at")
-        end)
-
-        teardown(function ()
-          player_char.spawn_at:revert()
-        end)
-
-        it('should spawn the player character at the stage spawn location', function ()
-          state:spawn_player_char()
-          local player_char = state.player_char
-          assert.is_not_nil(player_char)
-          local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
-
-          -- interface
-          assert.are_equal(spawn_position, player_char.position)
-          -- we haven't initialized any map in busted, so the character is falling in the air and spawn_at detected this
-          assert.are_equal(motion_states.falling, player_char.motion_state)
-
-          -- implementation
-          assert.spy(player_char.spawn_at).was_called(1)
-          assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
         end)
 
       end)
@@ -350,6 +273,39 @@ describe('stage_state', function ()
             -- which will cause side effects when updating coroutines to test other
             -- async functions, so clear that now
             state.app:stop_all_coroutines()
+          end)
+
+          describe('spawn_player_char', function ()
+
+            setup(function ()
+              spy.on(player_char, "spawn_at")
+            end)
+
+            teardown(function ()
+              player_char.spawn_at:revert()
+            end)
+
+            before_each(function ()
+              -- clear count before test as entering stage will auto-spawn character once
+              player_char.spawn_at:clear()
+            end)
+
+            it('should spawn the player character at the stage spawn location', function ()
+               state:spawn_player_char()
+              local player_char = state.player_char
+              assert.is_not_nil(player_char)
+              local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
+
+              -- interface
+              assert.are_equal(spawn_position, player_char.position)
+              -- we haven't initialized any map in busted, so the character is falling in the air and spawn_at detected this
+              assert.are_equal(motion_states.falling, player_char.motion_state)
+
+              -- implementation
+              assert.spy(player_char.spawn_at).was_called(1)
+              assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
+            end)
+
           end)
 
           describe('update_camera', function ()
@@ -785,7 +741,17 @@ describe('stage_state', function ()
               title_overlay_draw_labels_stub:clear()
             end)
 
-            it('draw_onscreen_tiles should call spr on tiles present on screen', function ()
+            it('draw_onscreen_tiles should call spr on tiles present on screen (no condition)', function ()
+              state.camera_pos = vector(0, 0)
+              state:draw_onscreen_tiles()
+              assert.spy(spr).was_called(3)
+              -- spring at (0, 0) on-screen
+              assert.spy(spr).was_called_with(spring_left_id, 0, 0)
+              assert.spy(spr).was_called_with(spring_left_id, 3 * 8, 0)
+              assert.spy(spr).was_called_with(46, 5 * 8, 0)
+            end)
+
+            it('draw_onscreen_tiles should call spr on tiles present on screen (with condition)', function ()
               state.camera_pos = vector(0, 0)
               state:draw_onscreen_tiles(function (i, j)
                 -- just a condition that will only show first tile
@@ -918,7 +884,68 @@ describe('stage_state', function ()
 
           end)  -- on exit stage state to enter titlemenu state
 
-        end)  -- (enter stage state)
+          -- unlike above, we test on_exit method itself here
+          describe('on_exit', function ()
+
+            setup(function ()
+              stub(overlay, "clear_labels")
+              stub(picosonic_app, "stop_all_coroutines")
+              stub(stage_state, "stop_bgm")
+              -- we don't really mind spying on spawn_emeralds
+              --  but we do not want to spend 0.5s finding all of them
+              --  in before_each every time due to on_enter,
+              --  so we stub this
+              stub(stage_state, "spawn_emeralds")
+            end)
+
+            teardown(function ()
+              overlay.clear_labels:revert()
+              picosonic_app.stop_all_coroutines:revert()
+              stage_state.stop_bgm:revert()
+              stage_state.spawn_emeralds:revert()
+            end)
+
+            after_each(function ()
+              overlay.clear_labels:clear()
+              stage_state.stop_bgm:clear()
+              stage_state.spawn_emeralds:clear()
+            end)
+
+            before_each(function ()
+              -- another before_each called stop_all_coroutines,
+              --  so we must clear the count
+              picosonic_app.stop_all_coroutines:clear()
+
+              state:on_exit()
+            end)
+
+            it('should stop all the coroutines', function ()
+              assert.spy(picosonic_app.stop_all_coroutines).was_called(1)
+              assert.spy(picosonic_app.stop_all_coroutines).was_called_with(match.ref(state.app))
+            end)
+
+            it('should clear the player character', function ()
+              assert.is_nil(state.player_char)
+            end)
+
+            it('should call title_overlay:clear_labels', function ()
+              local s = assert.spy(overlay.clear_labels)
+              s.was_called(1)
+              s.was_called_with(match.ref(state.title_overlay))
+            end)
+
+            it('should reset pico8 camera', function ()
+              assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
+            end)
+
+            it('should call stop_bgm', function ()
+              assert.spy(stage_state.stop_bgm).was_called(1)
+              assert.spy(stage_state.stop_bgm).was_called_with(match.ref(state))
+            end)
+
+          end)
+
+        end)  -- (stage state entered)
 
       end)  -- (stage states added)
 

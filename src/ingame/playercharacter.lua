@@ -237,16 +237,16 @@ function player_char:set_ground_tile_location(tile_loc)
 
     -- when touching loop entrance trigger, enable entrance (and disable exit) layer
     --  and reversely
-    -- we are now checking sprite flags on the visual tile, not mask tile
-    -- ! This means the loop mask tiles don't "know" about loops and are considered
-    --  like normal curves, so you cannot use them to prototype a loop anymore.
-    -- Make sure to use the visual loop tiles even in blockout, just like you'd place
-    --  the real spring sprite instead of a half-tile mask.
-    local visual_tile_id = mget(tile_loc.i, tile_loc.j)
-    if fget(visual_tile_id, sprite_flags.loop_entrance_trigger) then
+    -- we are now checking loop triggers directly from stage data
+    local stage_state = flow.curr_state
+    assert(stage_state.type == ':stage')
+
+    if stage_state:is_tile_loop_entrance_trigger(tile_loc) then
+      -- note that active loop layer may already be 1
       log("set active loop layer: 1", 'loop')
       self.active_loop_layer = 1
-    elseif fget(visual_tile_id, sprite_flags.loop_exit_trigger) then
+    elseif stage_state:is_tile_loop_exit_trigger(tile_loc) then
+      -- note that active loop layer may already be 2
       log("set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
     end
@@ -507,10 +507,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    -- we now check sprite flags on visual tile instead of mask tile, so no need to get tile collision data
-    local visual_tile_id = mget(curr_tile_loc.i, curr_tile_loc.j)
-    if pc.active_loop_layer == 1 and fget(visual_tile_id, sprite_flags.loop_exit) or
-        pc.active_loop_layer == 2 and fget(visual_tile_id, sprite_flags.loop_entrance) then
+    local stage_state = flow.curr_state
+    assert(stage_state.type == ':stage')
+
+    -- we now check loop layer belonging directly from stage data
+    if pc.active_loop_layer == 1 and stage_state:is_tile_in_loop_exit(curr_tile_loc) or
+        pc.active_loop_layer == 2 and stage_state:is_tile_in_loop_entrance(curr_tile_loc) then
       ignore_tile = true
     end
 

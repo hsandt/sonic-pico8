@@ -93,7 +93,8 @@ elif [[ $config == 'cheat' ]]; then
   # this must be related to the new dump symbol used in dump.lua,
   # but I don't see how adding more lines makes the game faster
   # symbols='assert,dump,log,cheat,tuner'
-  symbols='cheat,tuner,mouse'
+  # symbols='cheat,tuner,mouse'
+  symbols='assert,cheat'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
@@ -101,7 +102,7 @@ elif [[ $config == 'cheat-ultrafast' ]]; then
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,dump'
+  symbols='assert,log,dump'
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler'
 fi

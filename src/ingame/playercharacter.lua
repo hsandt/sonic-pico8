@@ -10,6 +10,7 @@ local pc_data = require("data/playercharacter_data")
 local motion = require("platformer/motion")
 local world = require("platformer/world")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 -- enum for character control
 control_modes = {
@@ -1677,22 +1678,37 @@ end
 function player_char:check_spring()
   if self.ground_tile_location then
     -- follow new convention of putting flags on the visual sprite
+    -- of course since we know visual.spring_left_id we could check if tile id is
+    --  spring_left_id or spring_left_id + 1 directly, but flag is more convenient for 1st check
     local ground_visual_tile_id = mget(self.ground_tile_location.i, self.ground_tile_location.j)
     if fget(ground_visual_tile_id, sprite_flags.spring) then
       log("character triggers spring", 'spring')
-      self:trigger_spring(self.ground_tile_location)
+      -- to get spring left part location we still need to check exact tile id
+      -- note that we only check for non-extended sprite, so make sure not to flag
+      --  extended visual spring sprites as "springs" (in practice, in 1P it's impossible
+      --  for player to hit spring twice in a row unless ceiling is very low, but safer)
+      local spring_left_loc = self.ground_tile_location:copy()
+      assert(visual.spring_left_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_left_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
+      if ground_visual_tile_id == visual.spring_left_id + 1 then
+        -- we are on right part of spring, so representative tile is just on the left
+        spring_left_loc.i = spring_left_loc.i - 1
+      end
+      printh("ground_visual_tile_id: "..dump(ground_visual_tile_id))
+      printh("visual.spring_left_id: "..dump(visual.spring_left_id))
+      printh("spring_left_loc: "..dump(spring_left_loc))
+      self:trigger_spring(spring_left_loc)
     end
   end
 end
 
-function player_char:trigger_spring(spring_loc)
+function player_char:trigger_spring(spring_left_loc)
   self.velocity.y = -pc_data.spring_jump_speed_frame
   self:enter_motion_state(motion_states.falling)
   self.should_play_spring_jump = true
 
   local stage_state = flow.curr_state
   assert(stage_state.type == ':stage')
-  stage_state:extend_spring(spring_loc)
+  stage_state:extend_spring(spring_left_loc)
 end
 
 function player_char:check_emerald()

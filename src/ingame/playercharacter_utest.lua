@@ -5312,7 +5312,11 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
+          -- ..sS
+          -- note that spring_left_id is only accessible for utests,
+          --  runtime script should use visual.spring_left_id
           mock_mset(2, 0, spring_left_id)
+          mock_mset(3, 0, spring_left_id + 1)
         end)
 
         after_each(function ()
@@ -5321,6 +5325,13 @@ describe('player_char', function ()
 
         it('should call trigger_spring when ground tile location points to a spring tile', function ()
           pc.ground_tile_location = location(2, 0)
+          pc:check_spring()
+          assert.spy(player_char.trigger_spring).was_called(1)
+          assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        end)
+
+        it('should call trigger_spring when ground tile location points to a spring tile', function ()
+          pc.ground_tile_location = location(3, 0)
           pc:check_spring()
           assert.spy(player_char.trigger_spring).was_called(1)
           assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))

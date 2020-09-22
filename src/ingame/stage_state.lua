@@ -135,6 +135,8 @@ function stage_state:spawn_emeralds()
       if tile_sprite_id == emerald_repr_sprite_id then
         -- replace the representative tile (spawn point) with nothing,
         --  since we're going to create a distinct emerald object
+        -- note that mset is risky in general as it loses info,
+        --  but on stage reload we reload the cartridge so map will be reset
         mset(i, j, 0)
         -- spawn emerald object and store it is sequence member
         add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
@@ -145,28 +147,32 @@ end
 
 -- visual events
 
-function stage_state:extend_spring(spring_loc)
-  self.app:start_coroutine(self.extend_spring_async, self, spring_loc)
+function stage_state:extend_spring(spring_left_loc)
+  self.app:start_coroutine(self.extend_spring_async, self, spring_left_loc)
 end
 
-function stage_state:extend_spring_async(spring_loc)
+function stage_state:extend_spring_async(spring_left_loc)
+  -- note that mset is risky in general as it loses info (e.g. if interrupting
+  --  this coroutine on stage exit, the spring will get stuck as extended),
+  --  but on stage reload we reload the cartridge so map will be reset
+
   -- set tilemap to show extended spring
-  mset(spring_loc.i, spring_loc.j, visual.spring_extended_bottom_left_id)
-  mset(spring_loc.i + 1, spring_loc.j, visual.spring_extended_bottom_left_id + 1)
+  mset(spring_left_loc.i, spring_left_loc.j, visual.spring_extended_bottom_left_id)
+  mset(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_extended_bottom_left_id + 1)
   -- if there is anything above spring, tiles will be overwritten, so make sure
   --  to leave space above it
-  mset(spring_loc.i, spring_loc.j - 1, visual.spring_extended_top_left_id)
-  mset(spring_loc.i + 1, spring_loc.j - 1, visual.spring_extended_top_left_id + 1)
+  mset(spring_left_loc.i, spring_left_loc.j - 1, visual.spring_extended_top_left_id)
+  mset(spring_left_loc.i + 1, spring_left_loc.j - 1, visual.spring_extended_top_left_id + 1)
 
   -- wait just enough to show extended spring before it goes out of screen
   self.app:yield_delay_s(stage_data.spring_extend_duration)
 
   -- revert to default spring sprite
-  mset(spring_loc.i, spring_loc.j, visual.spring_normal_sprite_id)
-  mset(spring_loc.i + 1, spring_loc.j, visual.spring_normal_sprite_id + 1)
+  mset(spring_left_loc.i, spring_left_loc.j, visual.spring_left_id)
+  mset(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_left_id + 1)
   -- nothing above spring tiles in normal state, so simply remove extended top tiles
-  mset(spring_loc.i, spring_loc.j - 1, 0)
-  mset(spring_loc.i + 1, spring_loc.j - 1, 0)
+  mset(spring_left_loc.i, spring_left_loc.j - 1, 0)
+  mset(spring_left_loc.i + 1, spring_left_loc.j - 1, 0)
 end
 
 -- gameplay events

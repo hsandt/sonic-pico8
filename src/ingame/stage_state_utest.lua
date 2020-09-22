@@ -3,6 +3,7 @@ local stage_state = require("ingame/stage_state")
 
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local location_rect = require("engine/core/location_rect")
 local overlay = require("engine/ui/overlay")
 local label = require("engine/ui/label")
 
@@ -189,6 +190,60 @@ describe('stage_state', function ()
         it('should call stop_bgm', function ()
           assert.spy(stage_state.stop_bgm).was_called(1)
           assert.spy(stage_state.stop_bgm).was_called_with(match.ref(state))
+        end)
+
+      end)
+
+      describe('is_tile_in_area', function ()
+
+        it('should return true for tile in one of the entrance areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+          --  location_rect:contains correctness
+          assert.is_true(state:is_tile_in_area(location(4, 4),
+            {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))
+        end)
+
+        it('should return false for tile not in any of the entrance areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+          --  location_rect:contains correctness
+          assert.is_true(state:is_tile_in_area(location(5, 5),
+            {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))
+        end)
+
+      end)
+
+      describe('is_tile_in_loop_entrance', function ()
+
+        -- we wrote those tests before extracting is_tile_in_area and it's simpler
+        --  to test result than stubbing is_tile_in_area with a dummy function anyway,
+        --  so we keep direct testing despite overlapping is_tile_in_area utests above
+
+        it('should return true for tile in one of the entrance areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+          --  location_rect:contains correctness
+          assert.is_true(state:is_tile_in_loop_entrance(location(90, 19)))
+        end)
+
+        it('should return false for tile not in any of the entrance areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+          --  location_rect:contains correctness
+          assert.is_false(state:is_tile_in_loop_entrance(location(90, 18)))
+        end)
+
+      end)
+
+      describe('is_tile_in_loop_exit', function ()
+
+        it('should return true for tile in one of the entrance areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
+          --  location_rect:contains correctness
+          assert.is_true(state:is_tile_in_loop_exit(location(87, 19)))
+        end)
+
+        it('should return false for tile not in any of the exit areas', function ()
+          -- this depends on stage_data.for_stage[1].loop_exit_areas content and
+          --  location_rect:contains correctness
+          assert.is_false(state:is_tile_in_loop_entrance(location(86, 18)))
         end)
 
       end)
@@ -709,10 +764,13 @@ describe('stage_state', function ()
             end)
 
             before_each(function ()
-              -- 2 tiles on screen, 1 outside when camera is at (0, 0)
+              -- 2 midground tiles on screen, 1 outside when camera is at (0, 0)
               mock_mset(0, 0, spring_left_id)
-              mock_mset(4, 0, spring_left_id)
+              mock_mset(3, 0, spring_left_id)
               mock_mset(9, 0, spring_left_id)
+              -- 1 undefined tile onscreen (it's foreground hiding leaf in PICO-8,
+              --  but what matters here is that midground flag is not set)
+              mock_mset(5, 0, 46)
             end)
 
             after_each(function ()
@@ -725,6 +783,17 @@ describe('stage_state', function ()
               stage_state.render_environment_foreground:clear()
               player_char_render_stub:clear()
               title_overlay_draw_labels_stub:clear()
+            end)
+
+            it('draw_onscreen_tiles should call spr on tiles present on screen', function ()
+              state.camera_pos = vector(0, 0)
+              state:draw_onscreen_tiles(function (i, j)
+                -- just a condition that will only show first tile
+                return i % 2 == 0
+              end)
+              assert.spy(spr).was_called(1)
+              -- spring at (0, 0) on-screen
+              assert.spy(spr).was_called_with(spring_left_id, 0, 0)
             end)
 
             it('render_title_overlay should call title_overlay:draw_labels', function ()
@@ -763,17 +832,14 @@ describe('stage_state', function ()
 
             describe('(after set_camera_offset_stage)', function ()
 
-              before_each(function ()
-                state:set_camera_offset_stage()
-              end)
-
-              it('render_environment_midground should call spr', function ()
+              it('render_environment_midground should call spr on tiles present on screen', function ()
+                -- this test was written before extracting draw_onscreen_tiles so it checks result directly
                 state.camera_pos = vector(0, 0)
                 state:render_environment_midground()
                 assert.spy(spr).was_called(2)
                 -- springs at (0, 0) and (4, 0) on-screen
                 assert.spy(spr).was_called_with(spring_left_id, 0, 0)
-                assert.spy(spr).was_called_with(spring_left_id, 32, 0)
+                assert.spy(spr).was_called_with(spring_left_id, 24, 0)
               end)
 
               it('render_player_char should call player_char:render', function ()

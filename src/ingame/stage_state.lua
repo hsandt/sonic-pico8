@@ -108,6 +108,26 @@ function stage_state:render()
 end
 
 
+-- queries
+
+-- return true iff tile_loc: location is in any of the areas: {location_rect}
+function stage_state:is_tile_in_area(tile_loc, areas)
+  for area in all(areas) do
+    if area:contains(tile_loc) then
+      return true
+    end
+  end
+  return false
+end
+
+function stage_state:is_tile_in_loop_entrance(tile_loc)
+  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_entrance_areas)
+end
+
+function stage_state:is_tile_in_loop_exit(tile_loc)
+  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_exit_areas)
+end
+
 -- setup
 
 -- spawn the player character at the stage spawn location
@@ -459,15 +479,9 @@ function stage_state:render_stage_elements()
   self:render_environment_foreground()
 end
 
--- render the stage environment (tiles)
-function stage_state:render_environment_midground()
-  -- possible optimize: don't draw the whole stage offset by camera,
-  --  instead just draw the portion of the level of interest
-  --  (and either keep camera offset or offset manually and subtract from camera offset)
-  -- that said, I didn't notice a performance drop by drawing the full tilemap
-  --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
-
+-- draw all tiles entirely or partially on-screen if they verify condition_callback: function(i, j) -> bool
+--  where (i, j) is the location of the tile to possibly draw
+function stage_state:draw_onscreen_tiles(condition_callback)
   -- get screen corners
   local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
@@ -483,11 +497,28 @@ function stage_state:render_environment_midground()
   for i = screen_left_i, screen_right_i do
     for j = screen_top_j, screen_bottom_j do
       local sprite_id = mget(i, j)
-      if fget(sprite_id, sprite_flags.midground) then
+      -- don't bother checking empty tile 0, otherwise delegate check to condition callback
+      if sprite_id ~= 0 and condition_callback(i, j) then
         spr(sprite_id, tile_size * i, tile_size * j)
       end
     end
   end
+end
+
+-- render the stage environment (tiles)
+function stage_state:render_environment_midground()
+  -- possible optimize: don't draw the whole stage offset by camera,
+  --  instead just draw the portion of the level of interest
+  --  (and either keep camera offset or offset manually and subtract from camera offset)
+  -- that said, I didn't notice a performance drop by drawing the full tilemap
+  --  so I guess map is already optimized to only draw what's on camera
+  set_unique_transparency(colors.pink)
+
+  -- only draw onscreen midground tiles that are not loop entrance (they'll be drawn on foreground later)
+  self:draw_onscreen_tiles(function (i, j)
+    local sprite_id = mget(i, j)
+    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(location(i, j))
+  end)
 
   -- goal as vertical line
   rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
@@ -496,6 +527,12 @@ end
 function stage_state:render_environment_foreground()
   set_unique_transparency(colors.pink)
   map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.foreground))
+
+  -- in addition to tiles always on foreground, draw loop entrance tiles normally on midground
+  self:draw_onscreen_tiles(function (i, j)
+    local sprite_id = mget(i, j)
+    return fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(location(i, j))
+  end)
 end
 
 -- render the player character at its current position

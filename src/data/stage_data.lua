@@ -1,3 +1,4 @@
+local location_rect = require("engine/core/location_rect")
 local sprite_data = require("engine/render/sprite_data")
 
 local audio = require("resources/audio")
@@ -42,7 +43,23 @@ return {
       goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)
 
       -- bgm id
-      bgm_id = audio.music_pattern_ids.green_hill
+      bgm_id = audio.music_pattern_ids.green_hill,
+
+      -- layer data
+
+      loop_exit_areas = {
+        -- small loop
+        location_rect(87, 19, 89, 24),
+        -- big loop
+        location_rect(115, 8, 118, 14),
+      },
+
+      loop_entrance_areas = {
+        -- small loop
+        location_rect(90, 19, 92, 24),
+        -- big loop
+        location_rect(120, 8, 123, 14),
+      }
     }
 
   }

@@ -35,7 +35,7 @@ function _init()
   logging.logger:register_stream(vlogger.vlog_stream)
 --#endif
 
-  logging.file_log_stream.file_prefix = "picosonic"
+  logging.file_log_stream.file_prefix = "picosonic_ingame"
 
   -- clear log file on new game session (or to preserve the previous log,
   -- you could add a newline and some "[SESSION START]" tag instead)
@@ -66,7 +66,7 @@ function _init()
 
 --#if profiler
   -- uncomment to enable profiler
-  -- profiler.window:show(colors.orange)
+  profiler.window:show(colors.orange)
 --#endif
 
 --#if tuner

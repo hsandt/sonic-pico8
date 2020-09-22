@@ -13,6 +13,7 @@ local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
 local visual = require("resources/visual")
+local tile_test_data = require("test_data/tile_test_data")
 
 describe('stage_state', function ()
 
@@ -227,6 +228,8 @@ describe('stage_state', function ()
         --  to test in isolation. Hence before_each.
         before_each(function ()
           local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+          -- we're not using tile_test_data.setup here (since emeralds are checked
+          --  directly by id, not using collision data) so don't use mock_mset
           mset(1, 1, emerald_repr_sprite_id)
           mset(2, 2, emerald_repr_sprite_id)
           mset(3, 3, emerald_repr_sprite_id)
@@ -682,9 +685,11 @@ describe('stage_state', function ()
             local player_char_render_stub
 
             setup(function ()
+              tile_test_data.setup()
+
               stub(_G, "rectfill")
               stub(_G, "line")
-              stub(_G, "map")
+              stub(_G, "spr")
               spy.on(stage_state, "render_environment_midground")
               stub(stage_state, "render_environment_foreground")  -- stub will make us remember we don't cover it
               player_char_render_stub = stub(player_char, "render")
@@ -692,19 +697,30 @@ describe('stage_state', function ()
             end)
 
             teardown(function ()
+              tile_test_data.teardown()
+
               rectfill:revert()
               line:revert()
-              map:revert()
+              spr:revert()
               stage_state.render_environment_midground:revert()
               stage_state.render_environment_foreground:revert()
               player_char_render_stub:revert()
               title_overlay_draw_labels_stub:revert()
             end)
 
+            before_each(function ()
+              -- 2 tiles on screen, 1 outside when camera is at (0, 0)
+              mock_mset(0, 0, spring_left_id)
+              mock_mset(4, 0, spring_left_id)
+              mock_mset(9, 0, spring_left_id)
+            end)
+
             after_each(function ()
+              pico8:clear_map()
+
               rectfill:clear()
               line:clear()
-              map:clear()
+              spr:clear()
               stage_state.render_environment_midground:clear()
               stage_state.render_environment_foreground:clear()
               player_char_render_stub:clear()
@@ -727,7 +743,7 @@ describe('stage_state', function ()
               -- assert.spy(line).was_called(771)
             end)
 
-            it('render_stage_elements should set camera position, call map for environment and player_char:render', function ()
+            it('render_stage_elements should set camera position, call render_environment methods for environment and player_char:render', function ()
               state.camera_pos = vector(24, 13)
               state:render_stage_elements()
               assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
@@ -751,10 +767,13 @@ describe('stage_state', function ()
                 state:set_camera_offset_stage()
               end)
 
-              it('render_environment_midground should call map', function ()
+              it('render_environment_midground should call spr', function ()
+                state.camera_pos = vector(0, 0)
                 state:render_environment_midground()
-                assert.spy(map).was_called(1)
-                assert.spy(map).was_called_with(0, 0, 0, 0, state.curr_stage_data.width, state.curr_stage_data.height, 1 << sprite_flags.midground)
+                assert.spy(spr).was_called(2)
+                -- springs at (0, 0) and (4, 0) on-screen
+                assert.spy(spr).was_called_with(spring_left_id, 0, 0)
+                assert.spy(spr).was_called_with(spring_left_id, 32, 0)
               end)
 
               it('render_player_char should call player_char:render', function ()

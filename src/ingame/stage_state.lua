@@ -468,8 +468,26 @@ function stage_state:render_environment_midground()
   --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
 
-  -- draw sprites on every layer but foreground
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.midground))
+  -- get screen corners
+  local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
+  local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
+
+  -- find which tiles are bordering the screen
+  local screen_left_i = flr(screen_topleft.x / tile_size) + 1
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - 1
+  local screen_top_j = flr(screen_topleft.y / tile_size) + 1
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - 1
+
+  -- only draw tiles that are inside or partially on screen,
+  --  and on midground layer
+  for i = screen_left_i, screen_right_i do
+    for j = screen_top_j, screen_bottom_j do
+      local sprite_id = mget(i, j)
+      if fget(sprite_id, sprite_flags.midground) then
+        spr(sprite_id, tile_size * i, tile_size * j)
+      end
+    end
+  end
 
   -- goal as vertical line
   rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)

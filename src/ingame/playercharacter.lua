@@ -1693,9 +1693,6 @@ function player_char:check_spring()
         -- we are on right part of spring, so representative tile is just on the left
         spring_left_loc.i = spring_left_loc.i - 1
       end
-      printh("ground_visual_tile_id: "..dump(ground_visual_tile_id))
-      printh("visual.spring_left_id: "..dump(visual.spring_left_id))
-      printh("spring_left_loc: "..dump(spring_left_loc))
       self:trigger_spring(spring_left_loc)
     end
   end

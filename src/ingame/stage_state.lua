@@ -553,10 +553,12 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
 
   -- find which tiles are bordering the screen
-  local screen_left_i = flr(screen_topleft.x / tile_size)
-  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size)
-  local screen_top_j = flr(screen_topleft.y / tile_size)
-  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size)
+  -- camera is not supposed to show things beyond the map
+  --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
+  local screen_left_i = max(0, flr(screen_topleft.x / tile_size))
+  local screen_right_i = min(flr((screen_bottomright.x - 1) / tile_size), 127)
+  local screen_top_j = max(0, flr(screen_topleft.y / tile_size))
+  local screen_bottom_j = min(flr((screen_bottomright.y - 1) / tile_size), 32)
 
   -- only draw tiles that are inside or partially on screen,
   --  and on midground layer
@@ -592,12 +594,13 @@ end
 
 function stage_state:render_environment_foreground()
   set_unique_transparency(colors.pink)
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.foreground))
 
-  -- in addition to tiles always on foreground, draw loop entrance tiles normally on midground
+  -- draw tiles always on foreground and alsotiles normally on midground
+  --  but put to foreground as part of loop entrance
   self:draw_onscreen_tiles(function (i, j)
     local sprite_id = mget(i, j)
-    return fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(location(i, j))
+    return fget(sprite_id, sprite_flags.foreground) or
+      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(location(i, j))
   end)
 end
 

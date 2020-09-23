@@ -25,9 +25,21 @@
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
 		{
-			"name": "Game: edit data",
+			"name": "Game: edit data: common",
 			"shell": true,
 			"cmd": ["./edit_data.sh"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage1_00",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_stage1_00.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage1_01",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_stage1_01.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
@@ -328,7 +340,7 @@
 			]
 		},
 		{
-			"name": "Game: install cartridge ingame",
+			"name": "Game: install cartridge ingame (with stage maps)",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./install_single_cartridge.sh ingame debug"],

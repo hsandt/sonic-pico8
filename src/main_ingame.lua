@@ -50,6 +50,7 @@ function _init()
     ['log'] = true,
     ['ui'] = true,
     ['loop'] = true,
+    ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,

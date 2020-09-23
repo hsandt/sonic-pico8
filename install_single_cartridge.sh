@@ -53,4 +53,8 @@ echo "Installing ${cartridge_filepath} in ${install_dirpath} ..."
 # trailing slash just to make sure we copy to a directory
 cp "${cartridge_filepath}" "${install_dirpath}/"
 
+# Also copy data stage cartridges for extended map
+# Since copy is very fast, we do this even when instaling titlemenu cartridge to simplify
+cp data/data_stage*.p8 "${install_dirpath}/"
+
 echo "Done."

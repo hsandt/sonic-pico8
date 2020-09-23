@@ -93,6 +93,8 @@ function tile_test_data.setup()
   fset(spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
   fset(spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
 
+  fset(grass_top_decoration1, sprite_masks.foreground)
+
   -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)
     return mock_tile_collision_data[current_tile_id]

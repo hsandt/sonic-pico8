@@ -200,7 +200,7 @@ local mask_tile_ids = {
   [124] = 29,
   [125] = 29,
 
--- grass
+-- ground with grass, flat and slopes
   [49] = 1,
   [50] = 2,
   [51] = 3,

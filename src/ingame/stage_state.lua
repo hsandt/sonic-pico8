@@ -71,6 +71,11 @@ function stage_state:on_enter()
   self:randomize_background_data()
 
   self:spawn_emeralds()
+
+  -- don't initialize loaded region coords to force first
+  --  (we don't know in which region player character will spawn)
+  -- self.loaded_map_region_coords = nil
+  self:reload_map_region()
 end
 
 function stage_state:on_exit()
@@ -94,8 +99,9 @@ function stage_state:update()
     self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
+    self:reload_map_region()
   else
-
+    -- add stage ending logic here
   end
 end
 
@@ -192,6 +198,43 @@ function stage_state:spawn_emeralds()
     end
   end
 end
+
+
+-- extended map system: to allow game to display more than the standard 128x32 PICO-8 map
+--  (as we need shared data for extra sprites and it wouldn't work for horizontal extension),
+--  we split an extended map into multiple cartridge __map__ data (called regions) and
+--  reload them at runtime
+-- when player is near the boundary between two regions, camera is overlapping them but
+--  we don't want to see empty areas in the non-loaded region, so we need an intermediate reload
+--  that picks half of each region
+-- when player is near the cross intersection of 4 regions, camera is overlapping 4 of them
+--  so we need an intermediate reload that picks a quarter of each region (called overlapping region)
+-- for instance, with an extended map compounded of a grid of 2x2 = 4 maps, we'd have
+--  4 full reloads, 4 2-half reloads, 1 4-quarter reloads for a total of 9 possible reloads
+-- note that we consider camera close enough to player character to use either position to detect
+--  when we should reload a map region
+
+-- if player character is approaching another map region, reload full or overlapping region
+function stage_state:reload_map_region()
+  local new_map_region_coords
+  if self.player_char.position.y < tile_size * 22 then
+    new_map_region_coords = vector(0, 0)
+  else
+    new_map_region_coords = vector(0, 1)
+  end
+
+  if self.loaded_map_region_coords ~= new_map_region_coords then
+    -- current map region changed, must reload
+    -- overlapping reload not support
+    -- we also reload everything from cartridge, without reusing parts already loaded for a local mem copy
+    local map_region_filename = "data_stage"..self.curr_stage_id.."_"..new_map_region_coords.x..new_map_region_coords.y..".p8"
+    log("reload "..map_region_filename, "reload")
+    reload(0x2000, 0x2000, 0x1000, map_region_filename)
+    -- reload(0x2000, 0x2000, 0x0001, map_region_filename)
+    self.loaded_map_region_coords = new_map_region_coords
+  end
+end
+
 
 -- visual events
 

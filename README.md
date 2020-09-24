@@ -59,6 +59,8 @@ However, if you download the cartridges or compressed cartridges archive to run 
 
 2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
 
+3. I recommend using a fast reload patch (I will write a post to explain how to do it later) to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions.
+
 ## Build
 
 Follow this if you want to build the game yourself.

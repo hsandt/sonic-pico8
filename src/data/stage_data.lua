@@ -39,7 +39,7 @@ return {
       height = 64,
 
       -- where the player character spawns on stage start
-      spawn_location = location(3, 24),
+      spawn_location = location(3, 32+24),
 
       -- the x to reach to finish the stage
       goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)

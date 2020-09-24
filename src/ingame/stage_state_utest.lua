@@ -72,7 +72,7 @@ describe('stage_state', function ()
           stub(stage_state, "play_bgm")
           stub(stage_state, "randomize_background_data")
           stub(stage_state, "spawn_emeralds")
-          stub(stage_state, "reload_map_region")
+          stub(stage_state, "check_reload_map_region")
         end)
 
         teardown(function ()
@@ -81,7 +81,7 @@ describe('stage_state', function ()
           stage_state.play_bgm:revert()
           stage_state.randomize_background_data:revert()
           stage_state.spawn_emeralds:revert()
-          stage_state.reload_map_region:revert()
+          stage_state.check_reload_map_region:revert()
         end)
 
         after_each(function ()
@@ -90,7 +90,7 @@ describe('stage_state', function ()
           stage_state.play_bgm:clear()
           stage_state.randomize_background_data:clear()
           stage_state.spawn_emeralds:clear()
-          stage_state.reload_map_region:clear()
+          stage_state.check_reload_map_region:clear()
         end)
 
         before_each(function ()
@@ -365,19 +365,19 @@ describe('stage_state', function ()
               stub(player_char, "update")
               stub(stage_state, "check_reached_goal")
               stub(stage_state, "update_camera")
-              stub(stage_state, "reload_map_region")
+              stub(stage_state, "check_reload_map_region")
             end)
 
             teardown(function ()
               player_char.update:revert()
               stage_state.check_reached_goal:revert()
               stage_state.update_camera:revert()
-              stage_state.reload_map_region:revert()
+              stage_state.check_reload_map_region:revert()
             end)
 
             before_each(function ()
-              -- reload_map_region is called in on_enter, so clear count
-              stage_state.reload_map_region:clear()
+              -- check_reload_map_region is called in on_enter, so clear count
+              stage_state.check_reload_map_region:clear()
             end)
 
             after_each(function ()
@@ -388,7 +388,7 @@ describe('stage_state', function ()
 
             describe('(current substate is play)', function ()
 
-              it('should call player_char:update, check_reached_goal, update_camera, reload_map_region', function ()
+              it('should call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.play
                 state:update()
                 assert.spy(player_char.update).was_called(1)
@@ -397,20 +397,20 @@ describe('stage_state', function ()
                 assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
                 assert.spy(stage_state.update_camera).was_called(1)
                 assert.spy(stage_state.update_camera).was_called_with(match.ref(state))
-                assert.spy(stage_state.reload_map_region).was_called(1)
-                assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state))
+                assert.spy(stage_state.check_reload_map_region).was_called(1)
+                assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
               end)
             end)
 
             describe('(current substate is result)', function ()
 
-              it('should not call player_char:update, check_reached_goal, update_camera, reload_map_region', function ()
+              it('should not call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.result
                 state:update()
                 assert.spy(player_char.update).was_not_called()
                 assert.spy(stage_state.check_reached_goal).was_not_called()
                 assert.spy(stage_state.update_camera).was_not_called()
-                assert.spy(stage_state.reload_map_region).was_not_called()
+                assert.spy(stage_state.check_reload_map_region).was_not_called()
               end)
 
             end)
@@ -450,7 +450,7 @@ describe('stage_state', function ()
 
           end)  -- state.render
 
-          describe('reload_map_region', function ()
+          describe('#solo check_reload_map_region', function ()
 
             setup(function ()
               stub(_G, "reload")
@@ -465,26 +465,49 @@ describe('stage_state', function ()
               _G.reload:clear()
             end)
 
-            it('should call reload', function ()
-              -- on_enter set loaded_map_region_coords via reload, so reset it just to make sure we have a change
-              state.loaded_map_region_coords = nil
-              state.curr_stage_id = 2
-              state.player_char.position = vector(0, tile_size * 32)
+            describe('(character is in region (0, 0), approaching (0, 1))', function ()
 
-              state:reload_map_region()
+              before_each(function ()
+                state.curr_stage_id = 2
+                state.loaded_map_region_coords = vector(0, 0)
+                state.player_char.position = vector(0, tile_size * 32)
+              end)
 
-              assert.spy(reload).was_called(1)
-              assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
+              it('should call reload for map 01', function ()
+                state:check_reload_map_region()
+
+                assert.spy(reload).was_called(1)
+                assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
+              end)
+
+              it('should set loaded_map_region_coords to (0, 1)', function ()
+                state:check_reload_map_region()
+
+                assert.are_same(vector(0, 1), state.loaded_map_region_coords)
+              end)
+
             end)
 
-            it('should set loaded_map_region_coords when player character reaches upper part of the extended map', function ()
-              -- on_enter set loaded_map_region_coords via reload, so reset it just to make sure we have a change
-              state.loaded_map_region_coords = nil
-              state.player_char.position = vector(0, tile_size * 32)
+            describe('(character is in region (0, 0), not aproaching another region)', function ()
 
-              state:reload_map_region()
+              before_each(function ()
+                state.curr_stage_id = 2
+                state.loaded_map_region_coords = vector(0, 0)
+                state.player_char.position = vector(0, 0)
+              end)
 
-              assert.are_same(vector(0, 1), state.loaded_map_region_coords)
+              it('should not call reload', function ()
+                state:check_reload_map_region()
+
+                assert.spy(reload).was_not_called()
+              end)
+
+              it('should preserve loaded_map_region_coords', function ()
+                state:check_reload_map_region()
+
+                assert.are_same(vector(0, 0), state.loaded_map_region_coords)
+              end)
+
             end)
 
           end)
@@ -787,36 +810,40 @@ describe('stage_state', function ()
 
           end)
 
-          describe('misc state render methods', function ()
-
-            local player_char_render_stub
+          describe('#solo misc state render methods', function ()
 
             setup(function ()
+              spy.on(stage_state, "set_camera_with_origin")
               spy.on(stage_state, "render_environment_midground")
               spy.on(stage_state, "render_environment_foreground")
-              player_char_render_stub = stub(player_char, "render")
-              title_overlay_draw_labels_stub = stub(overlay, "draw_labels")
+              stub(player_char, "render")
+              stub(emerald, "render")
+              stub(overlay, "draw_labels")
             end)
 
             teardown(function ()
+              stage_state.set_camera_with_origin:revert()
               stage_state.render_environment_midground:revert()
               stage_state.render_environment_foreground:revert()
-              player_char_render_stub:revert()
-              title_overlay_draw_labels_stub:revert()
+              player_char.render:revert()
+              emerald.render:revert()
+              overlay.draw_labels:revert()
             end)
 
             after_each(function ()
+              stage_state.set_camera_with_origin:clear()
               stage_state.render_environment_midground:clear()
               stage_state.render_environment_foreground:clear()
-              player_char_render_stub:clear()
-              title_overlay_draw_labels_stub:clear()
+              player_char.render:clear()
+              emerald.render:clear()
+              overlay.draw_labels:clear()
             end)
 
             it('render_title_overlay should call title_overlay:draw_labels', function ()
               state:render_title_overlay()
               assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(title_overlay_draw_labels_stub).was_called(1)
-              assert.spy(title_overlay_draw_labels_stub).was_called_with(state.title_overlay)
+              assert.spy(overlay.draw_labels).was_called(1)
+              assert.spy(overlay.draw_labels).was_called_with(state.title_overlay)
             end)
 
             it('render_background should reset camera position', function ()
@@ -828,28 +855,50 @@ describe('stage_state', function ()
               -- assert.spy(line).was_called(771)
             end)
 
-            it('render_stage_elements should set camera position, call render_environment methods for environment and player_char:render', function ()
-              state.camera_pos = vector(24, 13)
+            it('render_stage_elements should call render_environment methods for environment and player_char:render', function ()
               state:render_stage_elements()
-              assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
               assert.spy(state.render_environment_midground).was_called(1)
               assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
               assert.spy(state.render_environment_foreground).was_called(1)
               assert.spy(state.render_environment_foreground).was_called_with(match.ref(state))
-              assert.spy(player_char_render_stub).was_called(1)
-              assert.spy(player_char_render_stub).was_called_with(match.ref(state.player_char))
+              assert.spy(player_char.render).was_called(1)
+              assert.spy(player_char.render).was_called_with(match.ref(state.player_char))
             end)
 
-            it('set_camera_offset_stage should set the pico8 camera so that it is centered on the camera position', function ()
+            it('set_camera_with_origin should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
               state.camera_pos = vector(24, 13)
-              state:set_camera_offset_stage()
+              state:set_camera_with_origin()
               assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
             end)
 
-            it('render_player_char should call player_char:render', function ()
+            it('set_camera_with_origin should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
+              state.camera_pos = vector(24, 13)
+              state:set_camera_with_origin(vector(10, 20))
+              assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
+            end)
+
+            it('render_player_char should call set_camera_with_origin and player_char:render', function ()
               state:render_player_char()
-              assert.spy(player_char_render_stub).was_called(1)
-              assert.spy(player_char_render_stub).was_called_with(match.ref(state.player_char))
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+              assert.spy(player_char.render).was_called(1)
+              assert.spy(player_char.render).was_called_with(match.ref(state.player_char))
+            end)
+
+            it('render_emeralds should call set_camera_with_origin and player_char:render', function ()
+              state.emeralds = {
+                emerald(1, location(1, 1)),
+                emerald(2, location(2, 2)),
+              }
+
+              state:render_emeralds()
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+              assert.spy(emerald.render).was_called(2)
+              assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[1]))
+              assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[2]))
             end)
 
           end)
@@ -859,12 +908,14 @@ describe('stage_state', function ()
             setup(function ()
               tile_test_data.setup()
 
+              spy.on(stage_state, "set_camera_with_origin")
               stub(_G, "spr")
             end)
 
             teardown(function ()
               tile_test_data.teardown()
 
+              stage_state.set_camera_with_origin:revert()
               spr:revert()
             end)
 
@@ -883,12 +934,18 @@ describe('stage_state', function ()
             after_each(function ()
               pico8:clear_map()
 
+              stage_state.set_camera_with_origin:clear()
               spr:clear()
             end)
 
-            it('draw_onscreen_tiles should call spr on tiles present on screen (no condition)', function ()
+            it('#solo draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 0))', function ()
+              state.loaded_map_region_coords = vector(0, 0)
               state.camera_pos = vector(0, 0)
+
               state:draw_onscreen_tiles()
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, 0))
               assert.spy(spr).was_called(4)
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)
               assert.spy(spr).was_called_with(spring_left_id, 3 * 8, 0)
@@ -896,12 +953,51 @@ describe('stage_state', function ()
               assert.spy(spr).was_called_with(grass_top_decoration1, 0, 8)
             end)
 
-            it('draw_onscreen_tiles should call spr on tiles present on screen (with condition)', function ()
+            it('#solo draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 0))', function ()
+              state.loaded_map_region_coords = vector(0, 0)
               state.camera_pos = vector(0, 0)
+
               state:draw_onscreen_tiles(function (i, j)
                 -- just a condition that will only show first tile
                 return i == 0 and j == 0
               end)
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, 0))
+              assert.spy(spr).was_called(1)
+              -- spring at (0, 0) on-screen
+              assert.spy(spr).was_called_with(spring_left_id, 0, 0)
+            end)
+
+            it('#solo draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 1))', function ()
+              state.loaded_map_region_coords = vector(0, 1)
+              -- camera pos doesn't need to be at tile_size * 32, it could be anywhere in the region (0, 1)
+              --  but for this test, don't go too far as we must have the test tiles on-screen,
+              --  and since there were originally placed for (0, 0) as in the test above,
+              --  for the lower region everything is offset by 32 on y so we should be around (0, 32)
+              state.camera_pos = vector(0, tile_size * 40)
+
+              state:draw_onscreen_tiles()
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, tile_size * 32))
+              assert.spy(spr).was_called(4)
+              assert.spy(spr).was_called_with(spring_left_id, 0, 0)
+              assert.spy(spr).was_called_with(spring_left_id, 3 * 8, 0)
+              assert.spy(spr).was_called_with(46, 5 * 8, 0)
+              assert.spy(spr).was_called_with(grass_top_decoration1, 0, 8)
+            end)
+
+            it('#solo draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 1))', function ()
+              state.loaded_map_region_coords = vector(0, 1)
+              state.camera_pos = vector(0, tile_size * 40)
+              state:draw_onscreen_tiles(function (i, j)
+                -- just a condition that will only show first tile
+                return i == 0 and j == 0
+              end)
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, tile_size * 32))
               assert.spy(spr).was_called(1)
               -- spring at (0, 0) on-screen
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)

@@ -75,7 +75,7 @@ function stage_state:on_enter()
   -- don't initialize loaded region coords to force first
   --  (we don't know in which region player character will spawn)
   -- self.loaded_map_region_coords = nil
-  self:reload_map_region()
+  self:check_reload_map_region()
 end
 
 function stage_state:on_exit()
@@ -99,7 +99,7 @@ function stage_state:update()
     self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
-    self:reload_map_region()
+    self:check_reload_map_region()
   else
     -- add stage ending logic here
   end
@@ -215,9 +215,9 @@ end
 --  when we should reload a map region
 
 -- if player character is approaching another map region, reload full or overlapping region
-function stage_state:reload_map_region()
+function stage_state:check_reload_map_region()
   local new_map_region_coords
-  if self.player_char.position.y < tile_size * 22 then
+  if self.player_char.position.y < 32 * tile_size then
     new_map_region_coords = vector(0, 0)
   else
     new_map_region_coords = vector(0, 1)
@@ -230,7 +230,6 @@ function stage_state:reload_map_region()
     local map_region_filename = "data_stage"..self.curr_stage_id.."_"..new_map_region_coords.x..new_map_region_coords.y..".p8"
     log("reload "..map_region_filename, "reload")
     reload(0x2000, 0x2000, 0x1000, map_region_filename)
-    -- reload(0x2000, 0x2000, 0x0001, map_region_filename)
     self.loaded_map_region_coords = new_map_region_coords
   end
 end
@@ -360,11 +359,15 @@ function stage_state:update_camera()
   self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.height * tile_size - screen_height / 2)
 end
 
--- set the camera offset for stage elements
-function stage_state:set_camera_offset_stage()
+-- set the camera offset to draw stage elements with optional origin (default (0, 0))
+-- tilemap should be drawn with region map topleft (in px) as origin
+-- characters and items should be drawn with extended map topleft (0, 0) as origin
+function stage_state:set_camera_with_origin(origin)
+  origin = origin or vector.zero()
   -- the camera position is used to render the stage. it represents the screen center
   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
-  camera(self.camera_pos.x - screen_width / 2, self.camera_pos.y - screen_height / 2)
+  -- finally subtract the origin to place tiles correctly
+  camera(self.camera_pos.x - screen_width / 2 - origin.x, self.camera_pos.y - screen_height / 2 - origin.y)
 end
 
 
@@ -581,7 +584,6 @@ end
 -- - environment
 -- - player character
 function stage_state:render_stage_elements()
-  self:set_camera_offset_stage()
   self:render_environment_midground()
   self:render_emeralds()
   self:render_player_char()
@@ -595,13 +597,30 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
 
-  -- find which tiles are bordering the screen
+  -- compute map region topleft in world tile coordinates so we draw tiles for this region
+  --  with the right offset
+  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
+  --  they will be considered as fractional numbers by Lua (displayed with '.')
+  local region_topleft = location(128 * self.loaded_map_region_coords.x, 32 * self.loaded_map_region_coords.y)
+
+  -- set camera offset to take region topleft into account
+  -- this way we don't have to add that offset to spr() on every call
+  self:set_camera_with_origin(vector(tile_size * region_topleft.i, tile_size * region_topleft.j))
+
+  -- find which tiles are bordering the screen and define boundary locations
   -- camera is not supposed to show things beyond the map
   --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
-  local screen_left_i = max(0, flr(screen_topleft.x / tile_size))
-  local screen_right_i = min(flr((screen_bottomright.x - 1) / tile_size), 127)
-  local screen_top_j = max(0, flr(screen_topleft.y / tile_size))
-  local screen_bottom_j = min(flr((screen_bottomright.y - 1) / tile_size), 32)
+  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft.i
+  screen_left_i = max(0, screen_left_i)
+  
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft.i
+  screen_left_i = min(screen_left_i, 127)
+
+  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft.j
+  screen_top_j = max(0, screen_top_j)
+
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft.j
+  screen_bottom_j = min(screen_bottom_j, 32)
 
   -- only draw tiles that are inside or partially on screen,
   --  and on midground layer
@@ -649,11 +668,15 @@ end
 
 -- render the player character at its current position
 function stage_state:render_player_char()
+  self:set_camera_with_origin()
+
   self.player_char:render()
 end
 
 -- render the emeralds
 function stage_state:render_emeralds()
+  self:set_camera_with_origin()
+
   for em in all(self.emeralds) do
     em:render()
   end

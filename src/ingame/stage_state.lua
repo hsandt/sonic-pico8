@@ -808,8 +808,8 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   -- compute map region topleft in world tile coordinates so we draw tiles for this region
   --  with the right offset
   -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
-  --  they will be considered as fractional numbers by Lua (displayed with '.')
-  local region_topleft = location(128 * self.loaded_map_region_coords.x, 32 * self.loaded_map_region_coords.y)
+  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
+  local region_topleft = location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
 
   -- set camera offset to take region topleft into account
   -- this way we don't have to add that offset to spr() on every call

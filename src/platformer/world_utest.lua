@@ -202,22 +202,6 @@ describe('world (with mock tiles data setup)', function ()
 
   end)
 
-  describe('get_tile_collision_data_at', function ()
-
-    before_each(function ()
-      mock_mset(1, 1, full_tile_id)
-    end)
-
-    it('should return tile collision data for full_tile_id at (1, 1)', function ()
-      -- it's easier to check value directly than stubbing get_tile_collision_data
-      -- just check that value is not nil because we may pass the test just because test data
-      --  has not been set properly and both values are nil
-      assert.is_not_nil(collision_data.get_tile_collision_data(full_tile_id))
-      assert.are_same(collision_data.get_tile_collision_data(full_tile_id), world.get_tile_collision_data_at(location(1, 1)))
-    end)
-
-  end)
-
   describe('_compute_qcolumn_height_at', function ()
 
     it('should return (0, nil) if tile location is outside map area except on the left (any quadrant)', function ()

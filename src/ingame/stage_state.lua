@@ -64,9 +64,13 @@ function stage_state:on_enter()
   --  (we don't know in which region player character will spawn)
   -- self.loaded_map_region_coords = nil
 
-  -- make sure to reload map region before spawning player character who needs it
-  --  for initial collision check
-  -- region being based on camera, we also need to set the camera position
+  -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
+  --  we preload all map regions on stage start and spawn
+  self:spawn_objects_in_all_map_regions()
+
+  -- make sure to reload map region where player character will be before spawning player character,
+  --  as he will need it for initial collision check
+  -- region being based on camera, we need to set the camera position first
   -- anywhere near the spawning location is good (worst case, it's too far and the character
   --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
   self.camera_pos = self.curr_stage_data.spawn_location:to_center_position()
@@ -253,6 +257,12 @@ function stage_state:get_map_region_filename(u, v)
   return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
 end
 
+function stage_state:get_region_grid_dimensions()
+  local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
+  local region_count_per_column = ceil(self.curr_stage_data.tile_height / map_region_tile_height)
+  return region_count_per_row, region_count_per_column
+end
+
 -- return the map region coordinates corresponding to a position
 -- if the position is close to a map region boundary (typically close enough so camera
 --  may show empty tiles if the neighbor region is not loaded),
@@ -260,8 +270,7 @@ end
 --  on x, y, or both is near the cross boundary of 4 regions)
 function stage_state:get_map_region_coords(position)
   --  pre-compute number of regions per row/column (ceil in case the last region does not cover full PICO-8 map)
-  local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
-  local region_count_per_column = ceil(self.curr_stage_data.tile_height / map_region_tile_height)
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
 
   -- get region where the position is located, without minding being near boundaries at first
   local u = flr(position.x / map_region_width)
@@ -462,6 +471,8 @@ function stage_state:reload_map_region(new_map_region_coords)
     -- copy top-left quarter of bottom-right map to bottom-right:
     self:reload_quarter_of_map_region(horizontal_dirs.right, vertical_dirs.down, self:get_map_region_filename(u_left + 1, v_upper + 1))
   end
+
+  self.loaded_map_region_coords = new_map_region_coords
 end
 
 -- if player character is approaching another map region, reload full or overlapping region
@@ -478,10 +489,23 @@ function stage_state:check_reload_map_region()
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
     self:reload_map_region(new_map_region_coords)
-    self.loaded_map_region_coords = new_map_region_coords
-    -- load any *new* items detected in this region
-    self:spawn_new_emeralds()
   end
+end
+
+-- preload all map regions one by one, scanning object tiles and spawning corresponding objects
+function stage_state:spawn_objects_in_all_map_regions()
+  printh("START")
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- only load full regions not transition regions, that will be enough to cover all tiles
+  for u = 0, region_count_per_row - 1 do
+    for v = 0, region_count_per_column - 1 do
+      self:reload_map_region(vector(u, v))
+      -- load any *new* items detected in this region
+      self:spawn_new_emeralds()
+    end
+  end
+  printh("END")
 end
 
 

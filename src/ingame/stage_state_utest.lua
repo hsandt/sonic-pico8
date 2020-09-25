@@ -73,6 +73,7 @@ describe('stage_state', function ()
           stub(picosonic_app, "start_coroutine")
           stub(stage_state, "play_bgm")
           stub(stage_state, "randomize_background_data")
+          stub(stage_state, "spawn_objects_in_all_map_regions")
           stub(stage_state, "check_reload_map_region")
         end)
 
@@ -81,6 +82,7 @@ describe('stage_state', function ()
           picosonic_app.start_coroutine:revert()
           stage_state.play_bgm:revert()
           stage_state.randomize_background_data:revert()
+          stage_state.spawn_objects_in_all_map_regions:revert()
           stage_state.check_reload_map_region:revert()
         end)
 
@@ -89,11 +91,27 @@ describe('stage_state', function ()
           picosonic_app.start_coroutine:clear()
           stage_state.play_bgm:clear()
           stage_state.randomize_background_data:clear()
+          stage_state.spawn_objects_in_all_map_regions:clear()
           stage_state.check_reload_map_region:clear()
         end)
 
         before_each(function ()
           state:on_enter()
+        end)
+
+        it('should call spawn_objects_in_all_map_regions', function ()
+          assert.spy(state.spawn_objects_in_all_map_regions).was_called(1)
+          assert.spy(state.spawn_objects_in_all_map_regions).was_called_with(match.ref(state))
+        end)
+
+        it('should initialize camera at future character spawn position', function ()
+          local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
+          assert.are_same(spawn_position, state.camera_pos)
+        end)
+
+        it('should call check_reload_map_region', function ()
+          assert.spy(state.check_reload_map_region).was_called(1)
+          assert.spy(state.check_reload_map_region).was_called_with(match.ref(state))
         end)
 
         it('should enter the play substates', function ()
@@ -108,11 +126,6 @@ describe('stage_state', function ()
 
         it('should set has_reached_goal to false', function ()
           assert.is_false(state.has_reached_goal)
-        end)
-
-        it('should initialize camera at future character spawn position', function ()
-          local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
-          assert.are_same(spawn_position, state.camera_pos)
         end)
 
         it('should call start_coroutine_method on show_stage_title_async', function ()
@@ -276,6 +289,19 @@ describe('stage_state', function ()
         it('stage 2, (1, 0) => "data_stage2_10.p8"', function ()
           state.curr_stage_id = 2
           assert.are_equal("data_stage2_10.p8", state:get_map_region_filename(1, 0))
+        end)
+
+      end)
+
+      describe('get_region_grid_dimensions', function ()
+
+        it('should return the number of regions per row, per column"', function ()
+          state.curr_stage_data = {
+            tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
+            tile_height = 32 * 3  -- 3 regions per column
+          }
+
+          assert.are_same({2, 3}, {state:get_region_grid_dimensions()})
         end)
 
       end)
@@ -568,6 +594,75 @@ describe('stage_state', function ()
 
       end)
 
+      describe('reload_map_region', function ()
+
+        setup(function ()
+          stub(_G, "reload")
+          stub(stage_state, "reload_vertical_half_of_map_region")
+          stub(stage_state, "reload_horizontal_half_of_map_region")
+          stub(stage_state, "reload_quarter_of_map_region")
+        end)
+
+        teardown(function ()
+          _G.reload:revert()
+          stage_state.reload_vertical_half_of_map_region:revert()
+          stage_state.reload_horizontal_half_of_map_region:revert()
+          stage_state.reload_quarter_of_map_region:revert()
+        end)
+
+        -- on_enter calls check_reload_map_region, so reset count for all reload utility methods
+        before_each(function ()
+          _G.reload:clear()
+          stage_state.reload_vertical_half_of_map_region:clear()
+          stage_state.reload_horizontal_half_of_map_region:clear()
+          stage_state.reload_quarter_of_map_region:clear()
+
+          state.curr_stage_id = 2
+        end)
+
+        it('should call reload for map 01 for region coords (0, 1)', function ()
+          state:reload_map_region(vector(0, 1))
+
+          assert.spy(reload).was_called(1)
+          assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
+        end)
+
+        it('should call reload_vertical_half_of_map_region for map 10 and 11 for region coords (1, 0.5)', function ()
+          state:reload_map_region(vector(1, 0.5))
+
+          assert.spy(stage_state.reload_vertical_half_of_map_region).was_called(2)
+          assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage2_10.p8")
+          assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage2_11.p8")
+        end)
+
+        it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
+          state:reload_map_region(vector(0.5, 0))
+
+          assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called(2)
+          assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, "data_stage2_00.p8")
+          assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, "data_stage2_10.p8")
+        end)
+
+        it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
+          state:reload_map_region(vector(0.5, 0.5))
+
+          assert.spy(stage_state.reload_quarter_of_map_region).was_called(4)
+          assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.up, "data_stage2_00.p8")
+          assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.up, "data_stage2_10.p8")
+          assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.down, "data_stage2_01.p8")
+          assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.down, "data_stage2_11.p8")
+        end)
+
+        it('should set loaded_map_region_coords to the passed region', function ()
+          state.loaded_map_region_coords = vector(0, 0)
+
+          state:reload_map_region(vector(1, 0.5))
+
+          assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
+        end)
+
+      end)
+
       describe('check_reload_map_region', function ()
 
         setup(function ()
@@ -575,13 +670,11 @@ describe('stage_state', function ()
             return vector(1, 0.5)
           end)
           stub(stage_state, "reload_map_region")
-          stub(stage_state, "spawn_new_emeralds")
         end)
 
         teardown(function ()
           stage_state.get_map_region_coords:revert()
           stage_state.reload_map_region:revert()
-          stage_state.spawn_new_emeralds:revert()
         end)
 
         before_each(function ()
@@ -592,7 +685,6 @@ describe('stage_state', function ()
         after_each(function ()
           stage_state.get_map_region_coords:clear()
           stage_state.reload_map_region:clear()
-          stage_state.spawn_new_emeralds:clear()
         end)
 
         it('should call reload_map_region with (1, 0.5)', function ()
@@ -604,28 +696,51 @@ describe('stage_state', function ()
           assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 0.5))
         end)
 
-        it('should call reload_map_region with (1, 0.5) if no change occurs', function ()
+        it('should not call reload_map_region with (1, 0.5) if no change occurs', function ()
           state.loaded_map_region_coords = vector(1, 0.5)
           state:check_reload_map_region()
 
           assert.spy(stage_state.reload_map_region).was_not_called()
         end)
 
-        it('should set loaded_map_region_coords to (1, 0.5)', function ()
-          state.loaded_map_region_coords = vector(0, 0)
+      end)
 
-          state:check_reload_map_region()
+      describe('spawn_objects_in_all_map_regions', function ()
 
-          assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
+        setup(function ()
+          stub(stage_state, "reload_map_region")
+          stub(stage_state, "spawn_new_emeralds")
         end)
 
-        it('should call spawn_new_emeralds', function ()
-          state.loaded_map_region_coords = vector(0, 0)
+        teardown(function ()
+          stage_state.reload_map_region:revert()
+          stage_state.spawn_new_emeralds:revert()
+        end)
 
-          state:check_reload_map_region()
+        after_each(function ()
+          stage_state.reload_map_region:clear()
+          stage_state.spawn_new_emeralds:clear()
+        end)
 
-          assert.spy(state.spawn_new_emeralds).was_called(1)
-          assert.spy(state.spawn_new_emeralds).was_called_with(match.ref(state))
+        it('should call reload every map on the 2x3 grid, spawning emeralds at the same time', function ()
+          state.curr_stage_data = {
+            tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
+            tile_height = 32 * 3  -- 3 regions per column
+          }
+          state.loaded_map_region_coords = vector(1, 0.5)
+
+          state:spawn_objects_in_all_map_regions()
+
+          assert.spy(stage_state.reload_map_region).was_called(6)
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(0, 0))
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 0))
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(0, 1))
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 1))
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(0, 2))
+          assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 2))
+
+          assert.spy(stage_state.spawn_new_emeralds).was_called(6)
+          assert.spy(stage_state.spawn_new_emeralds).was_called_with(match.ref(state))
         end)
 
       end)
@@ -644,19 +759,19 @@ describe('stage_state', function ()
         describe('(stage state entered)', function ()
 
           setup(function ()
-            -- we don't really mind spying on spawn_new_emeralds
-            --  but we do not want to spend 0.5s finding all of them
-            --  in before_each every time due to on_enter,
+            -- we don't really mind spying on spawn_objects_in_all_map_regions
+            --  but we do not want to spend several seconds finding all of them
+            --  in before_each every time due to on_enter just for tests,
             --  so we stub this
-            stub(stage_state, "spawn_new_emeralds")
+            stub(stage_state, "spawn_objects_in_all_map_regions")
           end)
 
           teardown(function ()
-            stage_state.spawn_new_emeralds:revert()
+            stage_state.spawn_objects_in_all_map_regions:revert()
           end)
 
           after_each(function ()
-            stage_state.spawn_new_emeralds:clear()
+            stage_state.spawn_objects_in_all_map_regions:clear()
           end)
 
           before_each(function ()
@@ -835,92 +950,6 @@ describe('stage_state', function ()
             end)
 
           end)  -- state.render
-
-          describe('reload_map_region', function ()
-
-            setup(function ()
-              stub(_G, "reload")
-              stub(stage_state, "reload_vertical_half_of_map_region")
-              stub(stage_state, "reload_horizontal_half_of_map_region")
-              stub(stage_state, "reload_quarter_of_map_region")
-            end)
-
-            teardown(function ()
-              _G.reload:revert()
-              stage_state.reload_vertical_half_of_map_region:revert()
-              stage_state.reload_horizontal_half_of_map_region:revert()
-              stage_state.reload_quarter_of_map_region:revert()
-            end)
-
-            -- on_enter calls check_reload_map_region, so reset count for all reload utility methods
-            before_each(function ()
-              _G.reload:clear()
-              stage_state.reload_vertical_half_of_map_region:clear()
-              stage_state.reload_horizontal_half_of_map_region:clear()
-              stage_state.reload_quarter_of_map_region:clear()
-
-              state.curr_stage_id = 2
-            end)
-
-            it('should call reload for map 01 for region coords (0, 1)', function ()
-              state:reload_map_region(vector(0, 1))
-
-              assert.spy(reload).was_called(1)
-              assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
-            end)
-
-            it('should call reload_vertical_half_of_map_region for map 10 and 11 for region coords (1, 0.5)', function ()
-              state:reload_map_region(vector(1, 0.5))
-
-              assert.spy(stage_state.reload_vertical_half_of_map_region).was_called(2)
-              assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage2_10.p8")
-              assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage2_11.p8")
-            end)
-
-            it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-              state:reload_map_region(vector(0.5, 0))
-
-              assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called(2)
-              assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, "data_stage2_00.p8")
-              assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, "data_stage2_10.p8")
-            end)
-
-            it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-              state:reload_map_region(vector(0.5, 0.5))
-
-              assert.spy(stage_state.reload_quarter_of_map_region).was_called(4)
-              assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.up, "data_stage2_00.p8")
-              assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.up, "data_stage2_10.p8")
-              assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.down, "data_stage2_01.p8")
-              assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.down, "data_stage2_11.p8")
-            end)
-
-          end)
-
-          describe('check_reload_map_region', function ()
-
-            setup(function ()
-              stub(_G, "reload")
-            end)
-
-            teardown(function ()
-              _G.reload:revert()
-            end)
-
-            -- on_enter set loaded_map_region_coords via reload, so reset count to make sure reload is called again
-            before_each(function ()
-              _G.reload:clear()
-            end)
-
-            it('should call reload for map 01', function ()
-              state.curr_stage_id = 2
-              state:reload_map_region(vector(0, 1))
-
-              assert.spy(reload).was_called(1)
-              assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
-            end)
-
-          end)
 
           describe('extend_spring', function ()
 

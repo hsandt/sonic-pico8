@@ -39,8 +39,9 @@ function stage_state:init()
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
 
-  -- items (could also be in world if it was a singleton or member of stage_state
-  --  instead of being essentially static; as member, it may be renamed 'stage')
+  -- emeralds: spawned global locations list (to remember not to respawn on region reload) and
+  --  actual objects list (we remove objects when picked up)
+  self.spawned_emerald_locations = {}
   self.emeralds = {}
 
   -- position of the main camera, at the center of the view
@@ -80,8 +81,6 @@ function stage_state:on_enter()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
-
-  self:spawn_emeralds()
 end
 
 function stage_state:on_exit()
@@ -184,23 +183,52 @@ end
 --  while entering stage state in before_each, or you'll waste around 0.5s each time
 -- alternatively, you may bake stage data (esp. emerald positions) in a separate object
 --  (that doesn't get reset with stage_state) and reuse it whenever you want
-function stage_state:spawn_emeralds()
+function stage_state:spawn_new_emeralds()
   -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
   --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
   --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
   local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
-  for i = 0, 127 do
-    for j = 0, 127 do
-      local tile_sprite_id = self:mget_global_to_region(location(i, j))
-      if tile_sprite_id == emerald_repr_sprite_id then
-        -- replace the representative tile (spawn point) with nothing,
-        --  since we're going to create a distinct emerald object
-        -- note that mset is risky in general as it loses info,
-        --  but on stage reload we reload the cartridge so map will be reset
-        mset(i, j, 0)
-        -- spawn emerald object and store it is sequence member
-        add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
-        printh("adding emerald #"..#self.emeralds)
+  for i = 0, map_region_tile_width - 1 do
+    for j = 0, map_region_tile_height - 1 do
+      -- here we already have region (i, j), so no need to convert for mget
+      local tile_sprite_id = mget(i, j)
+
+      -- we do need to convert for spawn global locations tracking though
+      local region_loc = location(i, j)
+      local global_loc = self:region_to_global_location(region_loc)
+
+      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
+        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+        --  and won't be drawn at all
+        -- besides, the emerald tiles would come back on next region reload anyway
+        --  (hence the importance of tracking emeralds already spawned)
+
+        -- remember where you spawned that emerald, in global location so that we can keep track
+        --  of all emeralds across the extended map
+        add(self.spawned_emerald_locations, global_loc)
+
+        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+        --  when changing region)
+        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+        -- aesthetics note: right now, the number depends on the order in which emeralds are discovered
+        -- since we added the region system, regions may be discovered in different orders so even though
+        --  i, j iteration is done the same way, groups of emeralds may be discovered in a different order
+        -- as a result, they will be colored differently
+        -- to avoid this, you can:
+        -- a. force reload_map_region + spawn objects on all map regions on stage enter to spawn *all* objects
+        --    in a determined order.
+        --    One advantage is that we don't even need to track spawned emerald locations in this case,
+        --    since we know all have been spawned and we don't need to mind objects anymore on further region loading.
+        --    But it will add a small lag on start.
+        -- b. create emerald sprites for each color and place them manually instead of using palette swap
+        -- c. determine color from a savvy computation based on i and j, but deterministic (the most simple between
+        --    to split the space in vertical slices, once color per slice, to reproduce the original i, j iteration
+        --    pm the whole map)
+        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+        log("added emerald #"..#self.emeralds, "emerald")
       end
     end
   end
@@ -451,6 +479,8 @@ function stage_state:check_reload_map_region()
     -- current map region changed, must reload
     self:reload_map_region(new_map_region_coords)
     self.loaded_map_region_coords = new_map_region_coords
+    -- load any *new* items detected in this region
+    self:spawn_new_emeralds()
   end
 end
 
@@ -812,12 +842,14 @@ function stage_state:render_stage_elements()
   self:render_environment_foreground()
 end
 
--- helper to avoid computing get_region_topleft_uv oneself every time
--- does not replace all mget, such as the one in world.compute_qcolumn_height_at which is too deep
---  so we must still precompute region location there
-function stage_state:mget_global_to_region(global_loc)
-  local region_loc = global_loc - self:get_region_topleft_uv()
-  return mget(region_loc.i, region_loc.j)
+-- global <-> region location converters
+
+function stage_state:global_to_region_location(global_loc)
+  return global_loc - self:get_region_topleft_uv()
+end
+
+function stage_state:region_to_global_location(region_loc)
+  return region_loc + self:get_region_topleft_uv()
 end
 
 -- same kind of helper, but for mset

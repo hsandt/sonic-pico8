@@ -1683,7 +1683,9 @@ function player_char:check_spring()
     local curr_stage_state = flow.curr_state
     assert(curr_stage_state.type == ':stage')
 
-    local ground_visual_tile_id = curr_stage_state:mget_global_to_region(self.ground_tile_location)
+    -- convert to region location before using mget
+    local ground_tile_region_location = curr_stage_state:global_to_region_location(self.ground_tile_location)
+    local ground_visual_tile_id = mget(ground_tile_region_location.i, ground_tile_region_location.j)
 
     -- follow new convention of putting flags on the visual sprite
     -- of course since we know visual.spring_left_id we could check if tile id is

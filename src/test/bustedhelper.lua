@@ -5,4 +5,4 @@
 --  in your game utests, always require("test/bustedhelper") at the top
 --  instead of "engine/test/bustedhelper"
 require("engine/test/bustedhelper")
-require("common")
+require("common_ingame")

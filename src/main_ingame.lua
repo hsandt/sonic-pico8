@@ -4,7 +4,7 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
-require("common")
+require("common_ingame")
 
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
@@ -50,6 +50,7 @@ function _init()
     ['log'] = true,
     ['ui'] = true,
     ['loop'] = true,
+    ['emerald'] = true,
     ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,

@@ -47,6 +47,7 @@ describe('stage_state', function ()
             nil,
             false,
             {},
+            {},
             vector.zero(),
             overlay(0),
             nil
@@ -57,6 +58,7 @@ describe('stage_state', function ()
             state.current_substate,
             state.player_char,
             state.has_reached_goal,
+            state.spawned_emerald_locations,
             state.emeralds,
             state.camera_pos,
             state.title_overlay,
@@ -71,7 +73,6 @@ describe('stage_state', function ()
           stub(picosonic_app, "start_coroutine")
           stub(stage_state, "play_bgm")
           stub(stage_state, "randomize_background_data")
-          stub(stage_state, "spawn_emeralds")
           stub(stage_state, "check_reload_map_region")
         end)
 
@@ -80,7 +81,6 @@ describe('stage_state', function ()
           picosonic_app.start_coroutine:revert()
           stage_state.play_bgm:revert()
           stage_state.randomize_background_data:revert()
-          stage_state.spawn_emeralds:revert()
           stage_state.check_reload_map_region:revert()
         end)
 
@@ -89,7 +89,6 @@ describe('stage_state', function ()
           picosonic_app.start_coroutine:clear()
           stage_state.play_bgm:clear()
           stage_state.randomize_background_data:clear()
-          stage_state.spawn_emeralds:clear()
           stage_state.check_reload_map_region:clear()
         end)
 
@@ -130,11 +129,6 @@ describe('stage_state', function ()
         it('should call randomize_background_data', function ()
           assert.spy(state.randomize_background_data).was_called(1)
           assert.spy(state.randomize_background_data).was_called_with(match.ref(state))
-        end)
-
-        it('should call spawn_emeralds', function ()
-          assert.spy(state.spawn_emeralds).was_called(1)
-          assert.spy(state.spawn_emeralds).was_called_with(match.ref(state))
         end)
 
       end)
@@ -211,10 +205,10 @@ describe('stage_state', function ()
 
       end)
 
-      describe('#solo spawn_emeralds', function ()
+      describe('spawn_new_emeralds', function ()
 
         -- setup is too early, stage state will start afterward in before_each,
-        --  and its on_enter will call spawn_emeralds, making it hard
+        --  and its on_enter will call spawn_new_emeralds, making it hard
         --  to test in isolation. Hence before_each.
         before_each(function ()
           local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
@@ -224,30 +218,55 @@ describe('stage_state', function ()
           mset(2, 2, emerald_repr_sprite_id)
           mset(3, 3, emerald_repr_sprite_id)
 
-          state.loaded_map_region_coords = vector(0, 0)
+          state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
         end)
 
         after_each(function ()
           pico8:clear_map()
         end)
 
-        it('should clear all emerald tiles', function ()
-          state:spawn_emeralds()
-          assert.are_same({0, 0, 0},
-            {
-              mget(1, 1),
-              mget(2, 2),
-              mget(3, 3),
-            })
+        it('should store new emerald global location to remember not to spawn it again', function ()
+          state:spawn_new_emeralds()
+
+          assert.are_same({
+            location(1, 1 + 32),
+            location(2, 2 + 32),
+            location(3, 3 + 32),
+          }, state.spawned_emerald_locations)
         end)
 
-        it('should spawn and store emerald objects for each removed emerald tile', function ()
-          state:spawn_emeralds()
+        it('should spawn and store new emerald objects for each emerald tile', function ()
+          state:spawn_new_emeralds()
+
           assert.are_same({
-            emerald(1, location(1, 1)),
-            emerald(2, location(2, 2)),
-            emerald(3, location(3, 3)),
-            }, state.emeralds)
+            emerald(1, location(1, 1 + 32)),
+            emerald(2, location(2, 2 + 32)),
+            emerald(3, location(3, 3 + 32)),
+          }, state.emeralds)
+        end)
+
+        it('should ignore emeralds already spawned ((2, 2 + 32) here)', function ()
+          state.loaded_map_region_coords = vector(0, 1)
+          state.spawned_emerald_locations = {
+            location(2, 2 + 32),
+          }
+
+          state:spawn_new_emeralds()
+
+          -- we'll still add 1 and 3, so result will be the same as above, but in different order
+          assert.are_same({
+            location(2, 2 + 32),
+            location(1, 1 + 32),
+            location(3, 3 + 32),
+          }, state.spawned_emerald_locations)
+
+          -- note that in our example we didn't have emerald object 2
+          -- so supposedly we spawned it but also picked it earlier
+          -- this means the emerald at (1, 1 + 32) starts at number 2 already
+          assert.are_same({
+            emerald(2, location(1, 1 + 32)),
+            emerald(3, location(3, 3 + 32)),
+          }, state.emeralds)
         end)
 
       end)
@@ -556,11 +575,13 @@ describe('stage_state', function ()
             return vector(1, 0.5)
           end)
           stub(stage_state, "reload_map_region")
+          stub(stage_state, "spawn_new_emeralds")
         end)
 
         teardown(function ()
           stage_state.get_map_region_coords:revert()
           stage_state.reload_map_region:revert()
+          stage_state.spawn_new_emeralds:revert()
         end)
 
         before_each(function ()
@@ -571,6 +592,7 @@ describe('stage_state', function ()
         after_each(function ()
           stage_state.get_map_region_coords:clear()
           stage_state.reload_map_region:clear()
+          stage_state.spawn_new_emeralds:clear()
         end)
 
         it('should call reload_map_region with (1, 0.5)', function ()
@@ -597,6 +619,15 @@ describe('stage_state', function ()
           assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
         end)
 
+        it('should call spawn_new_emeralds', function ()
+          state.loaded_map_region_coords = vector(0, 0)
+
+          state:check_reload_map_region()
+
+          assert.spy(state.spawn_new_emeralds).was_called(1)
+          assert.spy(state.spawn_new_emeralds).was_called_with(match.ref(state))
+        end)
+
       end)
 
       describe('(stage states added)', function ()
@@ -613,19 +644,19 @@ describe('stage_state', function ()
         describe('(stage state entered)', function ()
 
           setup(function ()
-            -- we don't really mind spying on spawn_emeralds
+            -- we don't really mind spying on spawn_new_emeralds
             --  but we do not want to spend 0.5s finding all of them
             --  in before_each every time due to on_enter,
             --  so we stub this
-            stub(stage_state, "spawn_emeralds")
+            stub(stage_state, "spawn_new_emeralds")
           end)
 
           teardown(function ()
-            stage_state.spawn_emeralds:revert()
+            stage_state.spawn_new_emeralds:revert()
           end)
 
           after_each(function ()
-            stage_state.spawn_emeralds:clear()
+            stage_state.spawn_new_emeralds:clear()
           end)
 
           before_each(function ()
@@ -1282,7 +1313,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('mget_global_to_region', function ()
+          describe('(region at (2, 3))', function ()
 
             setup(function ()
               stub(stage_state, "get_region_topleft_uv", function (self)
@@ -1294,16 +1325,16 @@ describe('stage_state', function ()
               stage_state.get_region_topleft_uv:revert()
             end)
 
-            before_each(function ()
-              mset(0, 1, 56)
+            describe('global_to_region_location', function ()
+              it('global loc (2, 4) - (2, 3) => (0, 1)', function ()
+                assert.are_equal(location(0, 1), state:global_to_region_location(location(2, 4)))
+              end)
             end)
 
-            after_each(function ()
-              pico8:clear_map()
-            end)
-
-            it('global loc (2, 4) - (2, 3) => mget(0, 1) = 56', function ()
-              assert.are_equal(56, state:mget_global_to_region(location(2, 4)))
+            describe('region_to_global_location', function ()
+              it('region loc (0, 1) + (2, 3) => (2, 4)', function ()
+                assert.are_equal(location(2, 4), state:region_to_global_location(location(0, 1)))
+              end)
             end)
 
           end)
@@ -1498,7 +1529,7 @@ describe('stage_state', function ()
 
               -- should be each
               before_each(function ()
-                -- spawn_emeralds has been stubbed in this context,
+                -- spawn_new_emeralds has been stubbed in this context,
                 --  so this won't slow down every test
                 flow:change_state(state)
               end)
@@ -1527,24 +1558,24 @@ describe('stage_state', function ()
               stub(overlay, "clear_labels")
               stub(picosonic_app, "stop_all_coroutines")
               stub(stage_state, "stop_bgm")
-              -- we don't really mind spying on spawn_emeralds
+              -- we don't really mind spying on spawn_new_emeralds
               --  but we do not want to spend 0.5s finding all of them
               --  in before_each every time due to on_enter,
               --  so we stub this
-              stub(stage_state, "spawn_emeralds")
+              stub(stage_state, "spawn_new_emeralds")
             end)
 
             teardown(function ()
               overlay.clear_labels:revert()
               picosonic_app.stop_all_coroutines:revert()
               stage_state.stop_bgm:revert()
-              stage_state.spawn_emeralds:revert()
+              stage_state.spawn_new_emeralds:revert()
             end)
 
             after_each(function ()
               overlay.clear_labels:clear()
               stage_state.stop_bgm:clear()
-              stage_state.spawn_emeralds:clear()
+              stage_state.spawn_new_emeralds:clear()
             end)
 
             before_each(function ()

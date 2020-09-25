@@ -6,3 +6,4 @@
 
 require("engine/core/direction_ext")
 require("engine/core/vector_ext")
+require("engine/core/seq_helper")

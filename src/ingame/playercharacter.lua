@@ -223,9 +223,9 @@ end
 --#endif
 
 -- set ground tile location and apply any trigger if it changed
-function player_char:set_ground_tile_location(tile_loc)
-  if self.ground_tile_location ~= tile_loc then
-    self.ground_tile_location = tile_loc
+function player_char:set_ground_tile_location(global_tile_loc)
+  if self.ground_tile_location ~= global_tile_loc then
+    self.ground_tile_location = global_tile_loc
 
     -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
     --  and reversely
@@ -234,11 +234,11 @@ function player_char:set_ground_tile_location(tile_loc)
     local curr_stage_state = flow.curr_state
     assert(curr_stage_state.type == ':stage')
 
-    if curr_stage_state:is_tile_loop_entrance_trigger(tile_loc) then
+    if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
       -- note that active loop layer may already be 1
       log("internal trigger detected, set active loop layer: 1", 'loop')
       self.active_loop_layer = 1
-    elseif curr_stage_state:is_tile_loop_exit_trigger(tile_loc) then
+    elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
       -- note that active loop layer may already be 2
       log("internal trigger detected, set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
@@ -473,12 +473,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  always oriented with check quadrant (by convention we check from q-top to q-bottom)
   -- p8tool has a bug that prevents support of (complex expression):method() syntax (although PICO-8 does support it)
   --  so we play on the fact that method = function bound to self and just write the .static_method(self) syntax (same token count)
-  local start_tile_loc = vector.to_location(sensor_position + start_tile_offset_qy * collision_check_quadrant_down)
-  local last_tile_loc = vector.to_location(sensor_position + last_tile_offset_qy * collision_check_quadrant_down)
+  local start_global_tile_loc = vector.to_location(sensor_position + start_tile_offset_qy * collision_check_quadrant_down)
+  local last_global_tile_loc = vector.to_location(sensor_position + last_tile_offset_qy * collision_check_quadrant_down)
 
   -- precompute start tile topleft (we're actually only interested in sensor location topleft,
   --  and both have the same qx)
-  local start_tile_topleft = start_tile_loc:to_topleft_position()
+  local start_tile_topleft = start_global_tile_loc:to_topleft_position()
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
@@ -494,8 +494,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  but with fewer tokens as we don't need the extra conversion
   local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - start_tile_topleft, collision_check_quadrant)  -- from 0 to tile_size - 1
 
-  -- start iteration from start_tile_loc
-  local curr_tile_loc = start_tile_loc:copy()
+  -- start iteration from start_global_tile_loc
+  local curr_global_tile_loc = start_global_tile_loc:copy()
 
   -- keep looping until callback is satisfied (in general we found a collision or neary ground)
   --  or we've reached the last tile
@@ -508,8 +508,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     local ignore_tile = false
 
     -- we now check loop layer belonging directly from stage data
-    if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_tile_loc) or
-        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_tile_loc) then
+    if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
+        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) then
       ignore_tile = true
     end
 
@@ -526,11 +526,11 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- if you're unsure, try to force-set this to false and you'll see utests like
       --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
       --  failing
-      local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
+      local ignore_reverse = ignore_reverse_on_start_tile and start_global_tile_loc == curr_global_tile_loc
 
       -- check for ground (by q-column) in currently checked tile, at sensor qX
       -- make sure to convert the global tile location into region coordinates
-      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_tile_loc - region_topleft_uv,
+      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_global_tile_loc - region_topleft_uv,
         qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 
@@ -542,7 +542,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     if qcolumn_height > 0 then
       -- get q-bottom of tile to compare heights
       -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
-      local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, collision_check_quadrant)
+      local current_tile_qbottom = world.get_tile_qbottom(curr_global_tile_loc, collision_check_quadrant)
 
       -- signed distance to closest ground/ceiling is positive when q-above ground/q-below ceiling
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
@@ -551,7 +551,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
       -- let caller decide how to handle the presence of collider
-      local result = collider_distance_callback(curr_tile_loc, signed_distance_to_closest_collider, slope_angle)
+      local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
       -- we cannot 2x return from a called function directly, so instead, we check if a result was returned
       --  if so, we return from the caller
@@ -563,17 +563,17 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
       --  which means we will enter the "end of iteration" block below
-      assert(curr_tile_loc == last_tile_loc)
+      assert(curr_global_tile_loc == last_global_tile_loc)
     end
 
     -- since we only iterate on qj, we really only care about qj (which is i when quadrant is horizontal)
     --  but it costed more token to define get_quadrant_j_coord than to just compare both coords
-    if curr_tile_loc == last_tile_loc then
+    if curr_global_tile_loc == last_global_tile_loc then
       -- let caller decide how to handle the end of iteration without finding any collider
       return no_collider_callback()
     end
 
-    curr_tile_loc = curr_tile_loc + tile_loc_step
+    curr_global_tile_loc = curr_global_tile_loc + tile_loc_step
   end
 end
 

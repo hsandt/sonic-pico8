@@ -127,11 +127,11 @@ end
 
 -- queries
 
--- return true iff tile_loc: location is in any of the areas: {location_rect}
-function stage_state:is_tile_in_area(tile_loc, areas, extra_condition_callback)
+-- return true iff global_tile_loc: location is in any of the areas: {location_rect}
+function stage_state:is_tile_in_area(global_tile_loc, areas, extra_condition_callback)
   for area in all(areas) do
-    if (extra_condition_callback == nil or extra_condition_callback(tile_loc, area)) and
-        area:contains(tile_loc) then
+    if (extra_condition_callback == nil or extra_condition_callback(global_tile_loc, area)) and
+        area:contains(global_tile_loc) then
       return true
     end
   end
@@ -140,33 +140,33 @@ end
 
 -- return true iff tile is located in loop entrance area
 --  *except at its top-left which is reversed to non-layered entrance trigger*
-function stage_state:is_tile_in_loop_entrance(tile_loc)
-  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_entrance_areas, function (tile_loc, area)
-    return tile_loc ~= location(area.left, area.top)
+function stage_state:is_tile_in_loop_entrance(global_tile_loc)
+  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_entrance_areas, function (global_tile_loc, area)
+    return global_tile_loc ~= location(area.left, area.top)
   end)
 end
 
 -- return true iff tile is located in loop entrance area
 --  *except at its top-right which is reversed to non-layered entrance trigger*
-function stage_state:is_tile_in_loop_exit(tile_loc)
-  return self:is_tile_in_area(tile_loc, self.curr_stage_data.loop_exit_areas, function (tile_loc, area)
-    return tile_loc ~= location(area.right, area.top)
+function stage_state:is_tile_in_loop_exit(global_tile_loc)
+  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_exit_areas, function (global_tile_loc, area)
+    return global_tile_loc ~= location(area.right, area.top)
   end)
 end
 
 -- return true iff tile is located at the top-left (trigger location) of any entrance loop
-function stage_state:is_tile_loop_entrance_trigger(tile_loc)
+function stage_state:is_tile_loop_entrance_trigger(global_tile_loc)
   for area in all(self.curr_stage_data.loop_entrance_areas) do
-    if tile_loc == location(area.left, area.top) then
+    if global_tile_loc == location(area.left, area.top) then
       return true
     end
   end
 end
 
 -- return true iff tile is located at the top-right (trigger location) of any exit loop
-function stage_state:is_tile_loop_exit_trigger(tile_loc)
+function stage_state:is_tile_loop_exit_trigger(global_tile_loc)
   for area in all(self.curr_stage_data.loop_exit_areas) do
-    if tile_loc == location(area.right, area.top) then
+    if global_tile_loc == location(area.right, area.top) then
       return true
     end
   end
@@ -964,7 +964,8 @@ function stage_state:render_environment_midground()
   -- only draw onscreen midground tiles that are not loop entrance (they'll be drawn on foreground later)
   self:draw_onscreen_tiles(function (i, j)
     local sprite_id = mget(i, j)
-    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(location(i, j))
+    local global_tile_location = self:region_to_global_location(location(i, j))
+    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(global_tile_location)
   end)
 
   -- goal as vertical line
@@ -978,8 +979,9 @@ function stage_state:render_environment_foreground()
   --  but put to foreground as part of loop entrance
   self:draw_onscreen_tiles(function (i, j)
     local sprite_id = mget(i, j)
+    local global_tile_location = self:region_to_global_location(location(i, j))
     return fget(sprite_id, sprite_flags.foreground) or
-      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(location(i, j))
+      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(global_tile_location)
   end)
 end
 

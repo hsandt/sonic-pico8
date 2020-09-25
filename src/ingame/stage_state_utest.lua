@@ -111,8 +111,9 @@ describe('stage_state', function ()
           assert.is_false(state.has_reached_goal)
         end)
 
-        it('should initialize camera at origin', function ()
-          assert.are_same(vector:zero(), state.camera_pos)
+        it('should initialize camera at future character spawn position', function ()
+          local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
+          assert.are_same(spawn_position, state.camera_pos)
         end)
 
         it('should call start_coroutine_method on show_stage_title_async', function ()
@@ -712,25 +713,30 @@ describe('stage_state', function ()
               stub(player_char, "update")
               stub(stage_state, "check_reached_goal")
               stub(stage_state, "update_camera")
-              stub(stage_state, "check_reload_map_region")
             end)
 
             teardown(function ()
               player_char.update:revert()
               stage_state.check_reached_goal:revert()
               stage_state.update_camera:revert()
-              stage_state.check_reload_map_region:revert()
             end)
 
             before_each(function ()
-              -- check_reload_map_region is called in on_enter, so clear count
-              stage_state.check_reload_map_region:clear()
+              -- check_reload_map_region must not be stubbed in setup, which would happen
+              --  before the before_each -> flow:change_state(state) of (stage state entered)
+              --  context. Instead we stub and revert before and after each
+              -- (alternatively we could spy.on if we don't mind extra work during tests)
+              -- in general we should actually avoid relying on complex methods like change_state
+              --  in before_each and just manually set the properties we really need on state
+              stub(stage_state, "check_reload_map_region")
             end)
 
             after_each(function ()
               player_char.update:clear()
               stage_state.check_reached_goal:clear()
               stage_state.update_camera:clear()
+
+              stage_state.check_reload_map_region:revert()
             end)
 
             describe('(current substate is play)', function ()
@@ -1270,6 +1276,20 @@ describe('stage_state', function ()
               assert.spy(emerald.render).was_called(2)
               assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[1]))
               assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[2]))
+            end)
+
+          end)
+
+          describe('get_region_topleft_uv', function ()
+
+            it('region (0, 0) => (0, 0)', function ()
+              state.loaded_map_region_coords = vector(0, 0)
+              assert.are_same(location(0, 0), state:get_region_topleft_uv())
+            end)
+
+            it('region (0.5, 1) => (64, 32)', function ()
+              state.loaded_map_region_coords = vector(0.5, 1)
+              assert.are_same(location(64, 32), state:get_region_topleft_uv())
             end)
 
           end)

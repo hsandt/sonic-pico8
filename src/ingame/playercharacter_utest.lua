@@ -206,7 +206,9 @@ describe('player_char', function ()
       -- normally we add and enter gamestate properly to initialize stage,
       --  but enough here, we just need to provide access to stage via flow for
       --  things like loop layer checks
-      flow.curr_state = stage_state()
+      local curr_stage_state = stage_state()
+      curr_stage_state.loaded_map_region_coords = vector(0, 0)
+      flow.curr_state = curr_stage_state
 
       -- recreate player character for each test (setup spies will need to refer to player_char,
       --  not the instance)

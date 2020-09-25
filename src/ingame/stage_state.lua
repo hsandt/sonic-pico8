@@ -59,10 +59,21 @@ function stage_state:init()
 end
 
 function stage_state:on_enter()
+  -- don't initialize loaded region coords to force first
+  --  (we don't know in which region player character will spawn)
+  -- self.loaded_map_region_coords = nil
+
+  -- make sure to reload map region before spawning player character who needs it
+  --  for initial collision check
+  -- region being based on camera, we also need to set the camera position
+  -- anywhere near the spawning location is good (worst case, it's too far and the character
+  --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
+  self.camera_pos = self.curr_stage_data.spawn_location:to_center_position()
+  self:check_reload_map_region()
+
   self.current_substate = stage_state.substates.play
   self:spawn_player_char()
   self.has_reached_goal = false
-  self.camera_pos = vector.zero()
 
   self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
@@ -71,11 +82,6 @@ function stage_state:on_enter()
   self:randomize_background_data()
 
   self:spawn_emeralds()
-
-  -- don't initialize loaded region coords to force first
-  --  (we don't know in which region player character will spawn)
-  -- self.loaded_map_region_coords = nil
-  self:check_reload_map_region()
 end
 
 function stage_state:on_exit()
@@ -234,9 +240,8 @@ function stage_state:get_map_region_coords(position)
 
   -- check if we are near a boundary, ie modulo map_region_width/height is either
   --  < margin or > map_region_width/height - margin
-  -- note that a margin of 8 tiles works as long as camera follows character 1:1
-  --  when adding camera window, we'll either need more margin around character position
-  --  or to reload regions based on camera position to avoid seeing empty tiles on unloaded areas
+  -- note that a margin of 8 tiles should be enough for most speeds and collision checks,
+  --  increase if character starts moving out of screen and miss tiles and odd events like tat
   local transition_margin = 8 * tile_size
 
   local dx = position.x % map_region_width
@@ -432,8 +437,14 @@ end
 
 -- if player character is approaching another map region, reload full or overlapping region
 function stage_state:check_reload_map_region()
-  -- we consider camera close enough to player character to use either position a
-  local new_map_region_coords = self:get_map_region_coords(self.player_char.position)
+  -- we consider camera close enough to player character to use either position
+  -- in our case we use the camera because:
+  -- 1. on stage enter, the player has not spawn yet but we need to set some region just
+  --    so when the player spawns and queries the world about initial collision, they
+  --    know where to search tile data with correct region origin
+  -- 2. if camera moves away from player a bit too much, we are sure never to discover empty tiles
+  --    in unloaded areas as the regions would be loaded by tracking camera movement
+  local new_map_region_coords = self:get_map_region_coords(self.camera_pos)
 
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
@@ -798,6 +809,14 @@ function stage_state:render_stage_elements()
   self:render_environment_foreground()
 end
 
+function stage_state:get_region_topleft_uv()
+  -- compute map region topleft in world tile coordinates so we draw tiles for this region
+  --  with the right offset
+  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
+  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
+  return location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
+end
+
 -- draw all tiles entirely or partially on-screen if they verify condition_callback: function(i, j) -> bool
 --  where (i, j) is the location of the tile to possibly draw
 function stage_state:draw_onscreen_tiles(condition_callback)
@@ -805,29 +824,25 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
 
-  -- compute map region topleft in world tile coordinates so we draw tiles for this region
-  --  with the right offset
-  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
-  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
-  local region_topleft = location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
+  local region_topleft_uv = self:get_region_topleft_uv()
 
   -- set camera offset to take region topleft into account
   -- this way we don't have to add that offset to spr() on every call
-  self:set_camera_with_origin(vector(tile_size * region_topleft.i, tile_size * region_topleft.j))
+  self:set_camera_with_origin(vector(tile_size * region_topleft_uv.i, tile_size * region_topleft_uv.j))
 
   -- find which tiles are bordering the screen and define boundary locations
   -- camera is not supposed to show things beyond the map
   --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
-  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft.i
+  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft_uv.i
   screen_left_i = max(0, screen_left_i)
 
-  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft.i
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft_uv.i
   screen_left_i = min(screen_left_i, 127)
 
-  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft.j
+  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft_uv.j
   screen_top_j = max(0, screen_top_j)
 
-  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft.j
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft_uv.j
   screen_bottom_j = min(screen_bottom_j, 32)
 
   -- only draw tiles that are inside or partially on screen,

@@ -231,14 +231,14 @@ function player_char:set_ground_tile_location(tile_loc)
     --  and reversely
     -- we are now checking loop triggers directly from stage data
     -- external triggers are different and can be entered airborne, see check_loop_external_triggers
-    local stage_state = flow.curr_state
-    assert(stage_state.type == ':stage')
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
 
-    if stage_state:is_tile_loop_entrance_trigger(tile_loc) then
+    if curr_stage_state:is_tile_loop_entrance_trigger(tile_loc) then
       -- note that active loop layer may already be 1
       log("internal trigger detected, set active loop layer: 1", 'loop')
       self.active_loop_layer = 1
-    elseif stage_state:is_tile_loop_exit_trigger(tile_loc) then
+    elseif curr_stage_state:is_tile_loop_exit_trigger(tile_loc) then
       -- note that active loop layer may already be 2
       log("internal trigger detected, set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
@@ -454,6 +454,13 @@ end
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
 local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_tile_offset_qy, last_tile_offset_qy, sensor_position_base, sensor_offset_qy, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
+  -- precompute region topleft uv
+  -- note that we never change region during a collision check, but the 8 tiles margin
+  --  should be enough compared to the short distance along which we check for ground, wall and ceiling
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+  local region_topleft_uv = curr_stage_state:get_region_topleft_uv()
+
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
   local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
 
@@ -500,12 +507,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    local stage_state = flow.curr_state
-    assert(stage_state.type == ':stage')
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
 
     -- we now check loop layer belonging directly from stage data
-    if pc.active_loop_layer == 1 and stage_state:is_tile_in_loop_exit(curr_tile_loc) or
-        pc.active_loop_layer == 2 and stage_state:is_tile_in_loop_entrance(curr_tile_loc) then
+    if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_tile_loc) or
+        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_tile_loc) then
       ignore_tile = true
     end
 
@@ -525,7 +532,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
 
       -- check for ground (by q-column) in currently checked tile, at sensor qX
-      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+      qcolumn_height, slope_angle = world.compute_qcolumn_height_at_region(region_topleft_uv, curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
@@ -1699,26 +1706,26 @@ function player_char:trigger_spring(spring_left_loc)
   self:enter_motion_state(motion_states.falling)
   self.should_play_spring_jump = true
 
-  local stage_state = flow.curr_state
-  assert(stage_state.type == ':stage')
-  stage_state:extend_spring(spring_left_loc)
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+  curr_stage_state:extend_spring(spring_left_loc)
 end
 
 function player_char:check_emerald()
-  local stage_state = flow.curr_state
-  assert(stage_state.type == ':stage')
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
 
-  local em = stage_state:check_emerald_pick_area(self.position)
+  local em = curr_stage_state:check_emerald_pick_area(self.position)
   if em then
-    stage_state:character_pick_emerald(em)
+    curr_stage_state:character_pick_emerald(em)
   end
 end
 
 function player_char:check_loop_external_triggers()
-  local stage_state = flow.curr_state
-  assert(stage_state.type == ':stage')
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
 
-  local layer_to_activate = stage_state:check_loop_external_triggers(self.position, self.active_loop_layer)
+  local layer_to_activate = curr_stage_state:check_loop_external_triggers(self.position, self.active_loop_layer)
   if layer_to_activate then
     log("external trigger detected, set active loop layer: "..layer_to_activate, 'loop')
     self.active_loop_layer = layer_to_activate

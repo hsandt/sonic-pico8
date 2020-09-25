@@ -83,22 +83,36 @@ function world.get_tile_qbottom(tile_loc, quadrant)
   return world.get_quadrant_y_coord(tile_loc:to_center_position() + 4 * dir_vectors[quadrant], quadrant)
 end
 
+-- proxy for compute_qcolumn_height_at that converts tile location to region tile location
+--  by taking region origin into account
+function world.compute_qcolumn_height_at_region(region_topleft_uv, tile_location, qcolumn_index0, quadrant, ignore_reverse)
+  -- with the extended map system, mget has a different meaning based on the current region
+  -- a clean approach would probably to have a region-independent world instance,
+  --  and a world_scroller that is region-aware and referenced by the stage_state
+  -- but since the region offset is easy to get, in this case we'll just access stage state via flow
+  --  as we do from PC and check the regions directly, although it adds a reverse dependency
+  --  and complexity utests
+  -- use same trick as in draw_onscreen_tiles to offset tiles by region topleft uv
+  local region_tile_location = location(tile_location.i - region_topleft_uv.i, tile_location.j - region_topleft_uv.j)
+
+  return world.compute_qcolumn_height_at(region_tile_location, qcolumn_index0, quadrant, ignore_reverse)
+end
+
 -- return (qcolumn_height, slope_angle) where:
---  - qcolumn_height is the qcolumn height at tile_location on qcolumn_index0, or 0 if there is no colliding tile
+--  - qcolumn_height is the qcolumn height at region_tile_location on qcolumn_index0, or 0 if there is no colliding tile
 --    (if quadrant is horizontal, qcolum = row, but indices are always top to bottom, left to right)
 --  - slope_angle is the slope angle of the corresponding tile, or nil if there is no colliding tile
 -- if ignore_reverse is true, return 0, nil if the tile interior is opposed to quadrant interior direction
 -- this is useful for ceiling check on character's current tile and actually matches Classic Sonic behavior better
-function world.compute_qcolumn_height_at(tile_location, qcolumn_index0, quadrant, ignore_reverse)
-
+function world.compute_qcolumn_height_at(region_tile_location, qcolumn_index0, quadrant, ignore_reverse)
   assert(0 <= qcolumn_index0 and qcolumn_index0 < 8, "world.compute_qcolumn_height_at: invalid qcolumn_index0 "..qcolumn_index0)
 
   -- only consider valid tiles; consider there are no colliding tiles outside the map area
-  if tile_location.i >= 0 and tile_location.i < 128 and tile_location.j >= 0 and tile_location.j < 32 then
+  if region_tile_location.i >= 0 and region_tile_location.i < 128 and region_tile_location.j >= 0 and region_tile_location.j < 32 then
 
-    -- check if that tile at tile_location has a collider (mget will return 0 if there is no tile,
+    -- check if that tile at region_tile_location has a collider (mget will return 0 if there is no tile,
     --  so we must make sure the the "empty" sprite 0 has no flags set)
-    local current_tile_id = mget(tile_location.i, tile_location.j)
+    local current_tile_id = mget(region_tile_location.i, region_tile_location.j)
     local current_tile_collision_flag = fget(current_tile_id, sprite_flags.collision)
     if current_tile_collision_flag then
 

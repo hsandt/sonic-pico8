@@ -462,27 +462,29 @@ function stage_state:extend_spring(spring_left_loc)
 end
 
 function stage_state:extend_spring_async(spring_left_loc)
-  -- note that mset is risky in general as it loses info (e.g. if interrupting
-  --  this coroutine on stage exit, the spring will get stuck as extended),
-  --  but on stage reload we reload the cartridge so map will be reset
+  -- note that we adapted mset to the new region system
+  -- but now it's not a good idea to do that with dynamic objects because of region reload
+  -- springs may be reloaded, suddenly reverting to their normal form
+  --  and the async coroutine may even continue in the absence of cleanup (although it would just
+  --  set them to their normal form again anyway)
 
   -- set tilemap to show extended spring
-  mset(spring_left_loc.i, spring_left_loc.j, visual.spring_extended_bottom_left_id)
-  mset(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_extended_bottom_left_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_extended_bottom_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_extended_bottom_left_id + 1)
   -- if there is anything above spring, tiles will be overwritten, so make sure
   --  to leave space above it
-  mset(spring_left_loc.i, spring_left_loc.j - 1, visual.spring_extended_top_left_id)
-  mset(spring_left_loc.i + 1, spring_left_loc.j - 1, visual.spring_extended_top_left_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, visual.spring_extended_top_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, visual.spring_extended_top_left_id + 1)
 
   -- wait just enough to show extended spring before it goes out of screen
   self.app:yield_delay_s(stage_data.spring_extend_duration)
 
   -- revert to default spring sprite
-  mset(spring_left_loc.i, spring_left_loc.j, visual.spring_left_id)
-  mset(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_left_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_left_id + 1)
   -- nothing above spring tiles in normal state, so simply remove extended top tiles
-  mset(spring_left_loc.i, spring_left_loc.j - 1, 0)
-  mset(spring_left_loc.i + 1, spring_left_loc.j - 1, 0)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, 0)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, 0)
 end
 
 -- gameplay events
@@ -814,12 +816,14 @@ end
 -- does not replace all mget, such as the one in world.compute_qcolumn_height_at which is too deep
 --  so we must still precompute region location there
 function stage_state:mget_global_to_region(global_loc)
-  -- compute map region topleft in world tile coordinates so we draw tiles for this region
-  --  with the right offset
-  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
-  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
   local region_loc = global_loc - self:get_region_topleft_uv()
   return mget(region_loc.i, region_loc.j)
+end
+
+-- same kind of helper, but for mset
+function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
+  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_uv()
+  mset(region_loc.i, region_loc.j, sprite_id)
 end
 
 function stage_state:get_region_topleft_uv()

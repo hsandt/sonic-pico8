@@ -48,19 +48,20 @@ return {
       bgm_id = audio.music_pattern_ids.green_hill,
 
       -- layer data
+      -- all tile locations are global
 
       loop_exit_areas = {
         -- small loop
-        location_rect(87, 19, 89, 24),
+        location_rect(87, 19 + 32, 89, 24 + 32),
         -- big loop
-        location_rect(115, 8, 118, 14),
+        location_rect(115, 8 + 32, 118, 14 + 32),
       },
 
       loop_entrance_areas = {
         -- small loop
-        location_rect(90, 19, 92, 24),
+        location_rect(90, 19 + 32, 92, 24 + 32),
         -- big loop
-        location_rect(120, 8, 123, 14),
+        location_rect(120, 8 + 32, 123, 14 + 32),
       }
     }
 

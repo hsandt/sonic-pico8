@@ -41,6 +41,8 @@ function stage_state:init()
 
   -- emeralds: spawned global locations list (to remember not to respawn on region reload) and
   --  actual objects list (we remove objects when picked up)
+  -- DEPRECATED: remove spawned_emerald_locations, they shouldn't be needed since we now
+  --  spawn all objects on stage start
   self.spawned_emerald_locations = {}
   self.emeralds = {}
 
@@ -560,6 +562,31 @@ function stage_state:character_pick_emerald(em)
   del(self.emeralds, em)
 end
 
+-- return (top_left, bottom_right) positions from an entrance area: location_rect
+function stage_state.compute_external_entrance_trigger_corners(entrance_area)
+  -- by convention, a loop external exit trigger is always made of 1 column just on the *right*
+  --  of the *entrance* area, so consider character in when on the right of the exit area,
+  --  not farther than a tile away
+  -- remember that area uses location units and must be scaled
+  -- we don't bother with pc_data exact sensor distance, etc. but our margin
+  --  should somewhat match the character width/height + max amount of move in a frame (~6) to be safe
+  --  and prevent character from hitting the layer, then having it disabled too late
+  -- make sure to add 1 to right/bottom to get the right/bottom position of the tile
+  --  not its topleft
+  -- all positions are global, so we don't need any region coordinate conversion
+  return vector(tile_size * (entrance_area.right + 1) + 3,  tile_size * entrance_area.top - 8),
+         vector(tile_size * (entrance_area.right + 1) + 11, tile_size * (entrance_area.bottom + 1) + 8)
+end
+
+-- return (top_left, bottom_right) positions from an exit area: location_rect
+function stage_state.compute_external_exit_trigger_corners(exit_area)
+  -- by convention, a loop external entrance trigger is always made of 1 column just on the *left*
+  --  of the *exit* area, so consider character in when on the left of the entrance area,
+  --  not farther than a tile away
+  return vector(tile_size * exit_area.left - 11,  tile_size * exit_area.top - 8),
+         vector(tile_size * exit_area.left - 3,   tile_size * (exit_area.bottom + 1) + 8)
+end
+
 -- if character is entering an external loop trigger that should activate a *new* loop layer,
 --  return that layer number
 -- else, return nil
@@ -569,17 +596,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
   --  to make sure they don't get stuck there, and vice-versa
   if previous_active_layer == 1 then
     for area in all(self.curr_stage_data.loop_entrance_areas) do
-      -- by convention, a loop external exit trigger is always made of 1 column just on the *right*
-      --  of the *entrance* area, so consider character in when on the right of the exit area,
-      --  not farther than a tile away
-      -- remember that area uses location units and must be scaled
-      -- we don't bother with pc_data exact sensor distance, etc. but our margin
-      --  should somewhat match the character width/height + max amount of move in a frame (~6) to be safe
-      --  and prevent character from hitting the layer, then having it disabled too late
-      -- make sure to add 1 to right/bottom to get the right/bottom position of the tile
-      --  not its topleft
-      if tile_size * area.right + 3 <= position.x and position.x <= (tile_size + 1) * area.right + 11 and
-          tile_size * area.top - 16 <= position.y and position.y <= (tile_size + 1) * area.bottom + 16 then
+      local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
+      if ext_entrance_trigger_top_left.x <= position.x and position.x <= ext_entrance_bottom_right.x and
+          ext_entrance_trigger_top_left.y <= position.y and position.y <= ext_entrance_bottom_right.y then
         -- external exit trigger detected, switch to exit layer
         return 2
       end
@@ -589,8 +608,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
       -- by convention, a loop external entrance trigger is always made of 1 column just on the *left*
       --  of the *exit* area, so consider character in when on the left of the entrance area,
       --  not farther than a tile away
-      if tile_size * area.left - 11 <= position.x and position.x <= tile_size * area.left - 3 and
-          tile_size * area.top - 16 <= position.y and position.y <= (tile_size + 1) * area.bottom + 16 then
+      local ext_exit_trigger_top_left, ext_exit_bottom_right = stage_state.compute_external_exit_trigger_corners(area)
+      if ext_exit_trigger_top_left.x <= position.x and position.x <= ext_exit_bottom_right.x and
+          ext_exit_trigger_top_left.y <= position.y and position.y <= ext_exit_bottom_right.y then
         -- external entrance trigger detected, switch to entrance layer
         return 1
       end
@@ -862,6 +882,9 @@ function stage_state:render_stage_elements()
   self:render_emeralds()
   self:render_player_char()
   self:render_environment_foreground()
+--#if debug_trigger
+  self:debug_render_trigger()
+--#endif
 end
 
 -- global <-> region location converters
@@ -966,6 +989,24 @@ function stage_state:render_player_char()
 
   self.player_char:render()
 end
+
+--#if debug_trigger
+-- render the stage triggers
+function stage_state:debug_render_trigger()
+  self:set_camera_with_origin()
+
+
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
+    rect(ext_entrance_trigger_top_left.x, ext_entrance_trigger_top_left.y, ext_entrance_bottom_right.x, ext_entrance_bottom_right.y, colors.red)
+  end
+
+  for area in all(self.curr_stage_data.loop_exit_areas) do
+    local ext_exit_trigger_top_left, ext_exit_bottom_right = stage_state.compute_external_exit_trigger_corners(area)
+    rect(ext_exit_trigger_top_left.x, ext_exit_trigger_top_left.y, ext_exit_bottom_right.x, ext_exit_bottom_right.y, colors.red)
+  end
+end
+--#endif
 
 -- render the emeralds
 function stage_state:render_emeralds()

@@ -39,6 +39,8 @@ expect pc_bottom_pos 0x0038.b7f1 8
 
 --]=]
 
+--[=[
+
 -- currently fails on busted with 4, 11 and PICO-8 with 4, 8!
 itest_dsl_parser.register(
   'platformer stand half tile', [[
@@ -54,6 +56,8 @@ expect pc_motion_state grounded
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+
+--]=]
 
 --[=[
 

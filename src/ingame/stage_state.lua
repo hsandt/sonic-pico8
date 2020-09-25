@@ -494,7 +494,6 @@ end
 
 -- preload all map regions one by one, scanning object tiles and spawning corresponding objects
 function stage_state:spawn_objects_in_all_map_regions()
-  printh("START")
   local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
 
   -- only load full regions not transition regions, that will be enough to cover all tiles
@@ -505,7 +504,6 @@ function stage_state:spawn_objects_in_all_map_regions()
       self:spawn_new_emeralds()
     end
   end
-  printh("END")
 end
 
 

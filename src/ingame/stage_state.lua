@@ -211,25 +211,222 @@ end
 --  so we need an intermediate reload that picks a quarter of each region (called overlapping region)
 -- for instance, with an extended map compounded of a grid of 2x2 = 4 maps, we'd have
 --  4 full reloads, 4 2-half reloads, 1 4-quarter reloads for a total of 9 possible reloads
--- note that we consider camera close enough to player character to use either position to detect
---  when we should reload a map region
+
+-- return map filename for current stage and given region coordinates (u: int, v: int)
+--  do not try this with transitional regions, instead we'll patch them from individual regions
+function stage_state:get_map_region_filename(u, v)
+  return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
+end
+
+-- return the map region coordinates corresponding to a position
+-- if the position is close to a map region boundary (typically close enough so camera
+--  may show empty tiles if the neighbor region is not loaded),
+--  return coordinates for a transitional region (ending in .5, half-way between the two regions,
+--  on x, y, or both is near the cross boundary of 4 regions)
+function stage_state:get_map_region_coords(position)
+  --  pre-compute number of regions per row/column (ceil in case the last region does not cover full PICO-8 map)
+  local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
+  local region_count_per_column = ceil(self.curr_stage_data.tile_height / map_region_tile_height)
+
+  -- get region where the position is located, without minding being near boundaries at first
+  local u = flr(position.x / map_region_width)
+  local v = flr(position.y / map_region_height)
+
+  -- check if we are near a boundary, ie modulo map_region_width/height is either
+  --  < margin or > map_region_width/height - margin
+  -- note that a margin of 8 tiles works as long as camera follows character 1:1
+  --  when adding camera window, we'll either need more margin around character position
+  --  or to reload regions based on camera position to avoid seeing empty tiles on unloaded areas
+  local transition_margin = 8 * tile_size
+
+  local dx = position.x % map_region_width
+  if dx < transition_margin then
+    -- position is close to left border, transition with left region
+    --  unless we are already on the left edge of the extended map
+    if u > 0 then
+      u = u - 0.5
+    end
+  elseif dx > map_region_width - transition_margin then
+    -- position is close to right border, transition with right region
+    --  unless we are already on the right edge of the extended map
+    --  (compare to number of regions in a row using stage width and ceil in case the last region is partial)
+    if u < region_count_per_row - 1 then
+      u = u + 0.5
+    end
+  end
+
+  local dy = position.y % map_region_height
+  if dy < transition_margin then
+    -- position is close to top border, transition with region above
+    --  unless we are already on the top edge of the extended map
+    if v > 0 then
+      v = v - 0.5
+    end
+  elseif dy > map_region_height - transition_margin then
+    -- position is close to bottom border, transition with region below
+    --  unless we are already on the bottom edge of the extended map
+    if v < region_count_per_column - 1 then
+      v = v + 0.5
+    end
+  end
+
+  -- clamp to existing region in case character or camera goes awry for some reason
+  u = mid(0, u, region_count_per_row - 1)
+  v = mid(0, v, region_count_per_column - 1)
+
+  return vector(u, v)
+end
+
+-- reload horizontal half (left or right) of map in filename
+--  to opposite half (right or left, indicated by dest_hdir) in current map memory
+function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
+  -- unfortunately, reload doesn't allow us to copy rectangular portions of any width
+  --  into memory, only contiguous memory in the linear sense (read row by row)
+  -- in order to copy the horizontal half of a tilemap (64x32 tiles), we need to copy
+  --  32 lines of 64 tiles, one by one
+
+  -- reloading from an external file 32 times is too slow, so we store the whole
+  --  external tilemap first into general memory 0x4300, to process it later
+  reload(0x4300, 0x2000, 0x1000, filename)
+
+  -- depending on whether we copy from their left half to our right half, or reversely,
+  --  we set the source and destination addresses differently
+  -- a line contains 128 = 0x80 tiles so:
+  --  1. current map memory always starts at 0x2000, line offset j adds j * 0x80
+  --  2. general memory always starts at 0x4300, line offset j adds j * 0x80
+  --  3. to start on the right half of a line, add 64 = 0x40 tiles
+  local dest_addr0 = 0x2000
+  local source_addr0 = 0x4300
+  if dest_hdir == horizontal_dirs.right then
+    dest_addr0 = dest_addr0 + 0x40
+  else
+    source_addr0 = source_addr0 + 0x40
+  end
+
+  -- copy 32 lines of length 64 = 0x40
+  for j = 0, 31 do
+    memcpy(dest_addr0 + j * 0x80, source_addr0 + j * 0x80, 0x40)
+  end
+end
+
+-- reload vertical half (upper or lower) of map in filename
+--  to opposite half (lower or upper, indicated by dest_hdir) in current map memory
+function stage_state:reload_vertical_half_of_map_region(dest_vdir, filename)
+  -- copying vertical half is much easier than horizontal half because the lines are complete
+  -- so we just pick the topleft of that half and copy a contiguous sequence of 128*16 = 0x800
+  --  (the easiest is to remember that full map size is 0x1000 so take half of it)
+  --  into current map memory
+  -- addresses are obtained this way:
+  --  1. current map memory topleft is 0x2000
+  --  2. loaded map memory topleft is 0x2000
+  --  3. to start on the bottom half of a map, add 0x800 tiles
+  local dest_addr = 0x2000
+  local source_addr = 0x2000
+  if dest_vdir == vertical_dirs.down then
+    dest_addr = dest_addr + 0x800
+  else
+    source_addr = source_addr + 0x800
+  end
+
+  reload(dest_addr, source_addr, 0x800, filename)
+end
+
+-- reload quarter of map in filename
+--  to opposite quarter (left <-> right and lower <-> upper, destination indicated by dest_hdir and dest_vdir)
+--  in current map memory
+function stage_state:reload_quarter_of_map_region(dest_hdir, dest_vdir, filename)
+  -- copying quarter combines logic from horizontal half and vertical half reload:
+  -- as with horizontal half, we must copy line by line and we may start on the bottom side, offset by 0x800,
+  --  and to be faster, we copy the full map into general memory
+  -- as with vertical half, lines have a length of 64 = 0x40 and may start on the right side with an offset of 0x40
+  --  in addition, we only need to copy 16 lines
+
+  reload(0x4300, 0x2000, 0x1000, filename)
+
+  -- addresses are obtained this way:
+  --  1. current map memory topleft is 0x2000
+  --  2. general memory topleft is 0x4300
+  --  3. to start on the bottom half of a map, add 0x800
+  --  3. to start on the right half of a map, add 0x40
+  --  4. line offset j adds j * 0x80
+  local dest_addr0 = 0x2000
+  local source_addr0 = 0x4300
+
+  if dest_vdir == vertical_dirs.down then
+    dest_addr0 = dest_addr0 + 0x800
+  else
+    source_addr0 = source_addr0 + 0x800
+  end
+
+  if dest_hdir == horizontal_dirs.right then
+    dest_addr0 = dest_addr0 + 0x40
+  else
+    source_addr0 = source_addr0 + 0x40
+  end
+
+  -- copy 16 lines of length 64 = 0x40
+  for j = 0, 15 do
+    memcpy(dest_addr0 + j * 0x80, source_addr0 + j * 0x80, 0x40)
+  end
+end
+
+function stage_state:reload_map_region(new_map_region_coords)
+  -- distinguish solo regions, which are literally loaded from a single region data file,
+  --  and overlapping regions, which are patched from 2 or 4 region data files
+  -- to simplify, we do not reuse current map memory and instead
+  --  completely reload map data from files, which should still be fast enough
+  --  (we have to load some data for unloaded parts anyway)
+
+  -- when using fractions, use the top-left side as a reference,
+  --  then add 1 if you need transition with bottom-right neighbor
+  local u_left = flr(new_map_region_coords.x)
+  local v_upper = flr(new_map_region_coords.y)
+
+  if new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 == 0 then
+    -- integer coordinates => solo region
+    log("reload map region: single", "reload")
+
+    reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(u_left, v_upper))
+  elseif new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 ~= 0 then
+    -- fractional y => vertically overlapping region (2 patches)
+    log("reload map region: Y overlap", "reload")
+
+    -- copy lower part of map region above to upper part of map memory
+    self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
+    -- copy upper part of map region below to lower part of map memory
+    self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
+  elseif new_map_region_coords.x % 1 ~= 0 and new_map_region_coords.y % 1 == 0 then
+    -- fractional x => horizontally overlapping region (2 patches)
+    log("reload map region: X overlap", "reload")
+
+    -- copy right part of left map region to left part of map memory
+    self:reload_horizontal_half_of_map_region(horizontal_dirs.left, self:get_map_region_filename(u_left, v_upper))
+    -- copy left part of right map region to right part of map memory
+    self:reload_horizontal_half_of_map_region(horizontal_dirs.right, self:get_map_region_filename(u_left + 1, v_upper))
+  else
+    -- fractional x & y => cross overlapping region (4 patches)
+    log("reload map region: cross overlap", "reload")
+    -- copy to temp memory, but with 4 files this time
+
+    -- copy bottom-right quarter of top-left map to top-left
+    self:reload_quarter_of_map_region(horizontal_dirs.left, vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
+    -- copy top-right quarter of bottom-left map to bottom-left:
+    self:reload_quarter_of_map_region(horizontal_dirs.left, vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
+    -- copy bottom-left quarter of top-right map to top-right:
+    self:reload_quarter_of_map_region(horizontal_dirs.right, vertical_dirs.up, self:get_map_region_filename(u_left + 1, v_upper))
+    -- copy top-left quarter of bottom-right map to bottom-right:
+    self:reload_quarter_of_map_region(horizontal_dirs.right, vertical_dirs.down, self:get_map_region_filename(u_left + 1, v_upper + 1))
+  end
+end
 
 -- if player character is approaching another map region, reload full or overlapping region
 function stage_state:check_reload_map_region()
-  local new_map_region_coords
-  if self.player_char.position.y < 32 * tile_size then
-    new_map_region_coords = vector(0, 0)
-  else
-    new_map_region_coords = vector(0, 1)
-  end
+  -- we consider camera close enough to player character to use either position a
+  local new_map_region_coords = self:get_map_region_coords(self.player_char.position)
 
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
-    -- overlapping reload not support
-    -- we also reload everything from cartridge, without reusing parts already loaded for a local mem copy
-    local map_region_filename = "data_stage"..self.curr_stage_id.."_"..new_map_region_coords.x..new_map_region_coords.y..".p8"
-    log("reload "..map_region_filename, "reload")
-    reload(0x2000, 0x2000, 0x1000, map_region_filename)
+    self:reload_map_region(new_map_region_coords)
     self.loaded_map_region_coords = new_map_region_coords
   end
 end
@@ -355,8 +552,8 @@ end
 function stage_state:update_camera()
   -- stiff motion
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)
-  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.width * tile_size - screen_width / 2)
-  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.height * tile_size - screen_height / 2)
+  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
 end
 
 -- set the camera offset to draw stage elements with optional origin (default (0, 0))
@@ -612,7 +809,7 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
   local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft.i
   screen_left_i = max(0, screen_left_i)
-  
+
   local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft.i
   screen_left_i = min(screen_left_i, 127)
 

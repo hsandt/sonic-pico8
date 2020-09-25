@@ -33,10 +33,10 @@ return {
       -- stage title
       title = "angel island",
 
-      -- dimensions (128 * number of chained maps per row, 32 * number of chained maps per column)
+      -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column)
       -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
-      width = 128,
-      height = 64,
+      tile_width = 256,
+      tile_height = 64,
 
       -- where the player character spawns on stage start
       spawn_location = location(3, 32+24),

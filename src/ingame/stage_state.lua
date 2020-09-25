@@ -296,16 +296,16 @@ function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
   --  2. general memory always starts at 0x4300, line offset j adds j * 0x80
   --  3. to start on the right half of a line, add 64 = 0x40 tiles
   local dest_addr0 = 0x2000
-  local source_addr0 = 0x4300
+  local temp_source_addr0 = 0x4300
   if dest_hdir == horizontal_dirs.right then
     dest_addr0 = dest_addr0 + 0x40
   else
-    source_addr0 = source_addr0 + 0x40
+    temp_source_addr0 = temp_source_addr0 + 0x40
   end
 
   -- copy 32 lines of length 64 = 0x40
   for j = 0, 31 do
-    memcpy(dest_addr0 + j * 0x80, source_addr0 + j * 0x80, 0x40)
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
   end
 end
 
@@ -337,11 +337,9 @@ end
 function stage_state:reload_quarter_of_map_region(dest_hdir, dest_vdir, filename)
   -- copying quarter combines logic from horizontal half and vertical half reload:
   -- as with horizontal half, we must copy line by line and we may start on the bottom side, offset by 0x800,
-  --  and to be faster, we copy the full map into general memory
+  --  and to be faster, we copy map data into general memory (but only half of it)
   -- as with vertical half, lines have a length of 64 = 0x40 and may start on the right side with an offset of 0x40
   --  in addition, we only need to copy 16 lines
-
-  reload(0x4300, 0x2000, 0x1000, filename)
 
   -- addresses are obtained this way:
   --  1. current map memory topleft is 0x2000
@@ -349,24 +347,37 @@ function stage_state:reload_quarter_of_map_region(dest_hdir, dest_vdir, filename
   --  3. to start on the bottom half of a map, add 0x800
   --  3. to start on the right half of a map, add 0x40
   --  4. line offset j adds j * 0x80
+
+  -- finally, as a small optimization, we only copy the vertical half of interest
+  --  from the map file to general memory (but always at its top)
+  -- this means we need to compute the 0x800 offset when copying a lower
+  --  quarter from the *original* map data to temp memory, but we won't need to re-add
+  --  that offset again when copying from the temp memory to current map memory
+
   local dest_addr0 = 0x2000
-  local source_addr0 = 0x4300
+  local source_addr0 = 0x2000
+  local temp_source_addr0 = 0x4300
 
   if dest_vdir == vertical_dirs.down then
     dest_addr0 = dest_addr0 + 0x800
   else
+    -- here is the lower quarter offset for original map only
     source_addr0 = source_addr0 + 0x800
   end
 
   if dest_hdir == horizontal_dirs.right then
     dest_addr0 = dest_addr0 + 0x40
   else
-    source_addr0 = source_addr0 + 0x40
+    -- for horizontal offset, we must add it to temp memory address though
+    temp_source_addr0 = temp_source_addr0 + 0x40
   end
+
+  -- now we only need to copy half of the tilemap (0x800) for the vertical half of interest
+  reload(0x4300, source_addr0, 0x800, filename)
 
   -- copy 16 lines of length 64 = 0x40
   for j = 0, 15 do
-    memcpy(dest_addr0 + j * 0x80, source_addr0 + j * 0x80, 0x40)
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
   end
 end
 

@@ -430,6 +430,10 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./test.sh -f $file_base_name"],
+			"env": {
+				// won't work on headless_itests_utest, please use headless_itests command
+				"ITEST_CARTRIDGE_SUFFIX": "ignore"
+			},
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
@@ -437,23 +441,43 @@
 			[
 				{
 					"name": "(solo)",
-					"cmd": ["./test.sh -f $file_base_name -m solo"]
+					"cmd": ["./test.sh -f $file_base_name -m solo"],
+					"env": {
+						// won't work on headless_itests_utest, please use headless_itests command
+						"ITEST_CARTRIDGE_SUFFIX": "ignore"
+					}
 				},
 				{
 					"name": "(all)",
-					"cmd": ["./test.sh -f $file_base_name -m all"]
+					"cmd": ["./test.sh -f $file_base_name -m all"],
+					"env": {
+						// won't work on headless_itests_utest, please use headless_itests command
+						"ITEST_CARTRIDGE_SUFFIX": "ignore"
+					}
 				},
 				{
 					"name": "*",
-					"cmd": ["./test.sh"]
+					"cmd": ["./test.sh"],
+					"env": {
+						// won't work on headless_itests_utest, please use headless_itests command
+						"ITEST_CARTRIDGE_SUFFIX": "ignore"
+					}
 				},
 				{
 					"name": "* (solo)",
-					"cmd": ["./test.sh -m solo"]
+					"cmd": ["./test.sh -m solo"],
+					"env": {
+						// won't work on headless_itests_utest, please use headless_itests command
+						"ITEST_CARTRIDGE_SUFFIX": "ignore"
+					}
 				},
 				{
 					"name": "* (all)",
-					"cmd": ["./test.sh -m all"]
+					"cmd": ["./test.sh -m all"],
+					"env": {
+						// won't work on headless_itests_utest, please use headless_itests command
+						"ITEST_CARTRIDGE_SUFFIX": "ignore"
+					}
 				},
 				{
 					"name": "application",

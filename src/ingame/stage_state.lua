@@ -191,7 +191,7 @@ function stage_state:spawn_emeralds()
   local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
   for i = 0, 127 do
     for j = 0, 127 do
-      local tile_sprite_id = mget(i, j)
+      local tile_sprite_id = self:mget_global_to_region(location(i, j))
       if tile_sprite_id == emerald_repr_sprite_id then
         -- replace the representative tile (spawn point) with nothing,
         --  since we're going to create a distinct emerald object
@@ -200,6 +200,7 @@ function stage_state:spawn_emeralds()
         mset(i, j, 0)
         -- spawn emerald object and store it is sequence member
         add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
+        printh("adding emerald #"..#self.emeralds)
       end
     end
   end
@@ -807,6 +808,18 @@ function stage_state:render_stage_elements()
   self:render_emeralds()
   self:render_player_char()
   self:render_environment_foreground()
+end
+
+-- helper to avoid computing get_region_topleft_uv oneself every time
+-- does not replace all mget, such as the one in world.compute_qcolumn_height_at which is too deep
+--  so we must still precompute region location there
+function stage_state:mget_global_to_region(global_loc)
+  -- compute map region topleft in world tile coordinates so we draw tiles for this region
+  --  with the right offset
+  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
+  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
+  local region_loc = global_loc - self:get_region_topleft_uv()
+  return mget(region_loc.i, region_loc.j)
 end
 
 function stage_state:get_region_topleft_uv()

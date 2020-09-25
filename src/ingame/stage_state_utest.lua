@@ -211,7 +211,7 @@ describe('stage_state', function ()
 
       end)
 
-      describe('spawn_emeralds', function ()
+      describe('#solo spawn_emeralds', function ()
 
         -- setup is too early, stage state will start afterward in before_each,
         --  and its on_enter will call spawn_emeralds, making it hard
@@ -223,6 +223,8 @@ describe('stage_state', function ()
           mset(1, 1, emerald_repr_sprite_id)
           mset(2, 2, emerald_repr_sprite_id)
           mset(3, 3, emerald_repr_sprite_id)
+
+          state.loaded_map_region_coords = vector(0, 0)
         end)
 
         after_each(function ()
@@ -1276,6 +1278,32 @@ describe('stage_state', function ()
               assert.spy(emerald.render).was_called(2)
               assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[1]))
               assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[2]))
+            end)
+
+          end)
+
+          describe('mget_global_to_region', function ()
+
+            setup(function ()
+              stub(stage_state, "get_region_topleft_uv", function (self)
+                return location(2, 3)
+              end)
+            end)
+
+            teardown(function ()
+              stage_state.get_region_topleft_uv:revert()
+            end)
+
+            before_each(function ()
+              mset(0, 1, 56)
+            end)
+
+            after_each(function ()
+              pico8:clear_map()
+            end)
+
+            it('global loc (2, 4) - (2, 3) => mget(0, 1) = 56', function ()
+              assert.are_equal(56, state:mget_global_to_region(location(2, 4)))
             end)
 
           end)

@@ -507,9 +507,6 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    local curr_stage_state = flow.curr_state
-    assert(curr_stage_state.type == ':stage')
-
     -- we now check loop layer belonging directly from stage data
     if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_tile_loc) or
         pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_tile_loc) then
@@ -532,7 +529,9 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
 
       -- check for ground (by q-column) in currently checked tile, at sensor qX
-      qcolumn_height, slope_angle = world.compute_qcolumn_height_at_region(region_topleft_uv, curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+      -- make sure to convert the global tile location into region coordinates
+      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_tile_loc - region_topleft_uv,
+        qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
@@ -1680,10 +1679,15 @@ end
 -- item and trigger checks
 function player_char:check_spring()
   if self.ground_tile_location then
+    -- get stage state for global to region location conversion
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
+
+    local ground_visual_tile_id = curr_stage_state:mget_global_to_region(self.ground_tile_location)
+
     -- follow new convention of putting flags on the visual sprite
     -- of course since we know visual.spring_left_id we could check if tile id is
     --  spring_left_id or spring_left_id + 1 directly, but flag is more convenient for 1st check
-    local ground_visual_tile_id = mget(self.ground_tile_location.i, self.ground_tile_location.j)
     if fget(ground_visual_tile_id, sprite_flags.spring) then
       log("character triggers spring", 'spring')
       -- to get spring left part location we still need to check exact tile id

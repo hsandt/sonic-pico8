@@ -51,17 +51,21 @@ return {
       -- all tile locations are global
 
       loop_exit_areas = {
-        -- small loop
-        location_rect(87, 19 + 32, 89, 24 + 32),
-        -- big loop
-        location_rect(115, 8 + 32, 118, 14 + 32),
+        -- lower loop (read in region (1, 1))
+        location_rect(128 + 93, 32 + 12, 128 + 98, 32 + 22),
+        -- upper loop 1 (read in region (2, 0))
+        location_rect(256 + 78, 20, 256 + 83, 30),
+        -- upper loop 2 (read in region (2, 0) and (2, 1))
+        location_rect(256 + 104, 26, 256 + 109, 32 + 3),
       },
 
       loop_entrance_areas = {
-        -- small loop
-        location_rect(90, 19 + 32, 92, 24 + 32),
-        -- big loop
-        location_rect(120, 8 + 32, 123, 14 + 32),
+        -- small loop (read in region (1, 1))
+        location_rect(128 + 101, 32 + 12, 128 + 106, 32 + 22),
+        -- upper loop 1 (read in region (2, 0))
+        location_rect(256 + 86, 20, 256 + 91, 30),
+        -- upper loop 2 (read in region (2, 0) and (2, 1))
+        location_rect(256 + 112, 26, 256 + 117, 32 + 3),
       }
     }
 

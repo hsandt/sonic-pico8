@@ -218,20 +218,9 @@ function stage_state:spawn_new_emeralds()
         -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
         --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
 
-        -- aesthetics note: right now, the number depends on the order in which emeralds are discovered
-        -- since we added the region system, regions may be discovered in different orders so even though
-        --  i, j iteration is done the same way, groups of emeralds may be discovered in a different order
-        -- as a result, they will be colored differently
-        -- to avoid this, you can:
-        -- a. force reload_map_region + spawn objects on all map regions on stage enter to spawn *all* objects
-        --    in a determined order.
-        --    One advantage is that we don't even need to track spawned emerald locations in this case,
-        --    since we know all have been spawned and we don't need to mind objects anymore on further region loading.
-        --    But it will add a small lag on start.
-        -- b. create emerald sprites for each color and place them manually instead of using palette swap
-        -- c. determine color from a savvy computation based on i and j, but deterministic (the most simple between
-        --    to split the space in vertical slices, once color per slice, to reproduce the original i, j iteration
-        --    pm the whole map)
+        -- aesthetics note: the number depends on the order in which emeralds are discovered
+        -- but regions are always preloaded for object spawning in the same order, so
+        -- for given emerald locations, their colors are deterministic
         add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
 
         log("added emerald #"..#self.emeralds, "emerald")

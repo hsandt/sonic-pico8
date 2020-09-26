@@ -35,14 +35,14 @@ return {
 
       -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column)
       -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
-      tile_width = 256,
-      tile_height = 64,
+      tile_width = 128 * 3,
+      tile_height = 32 * 2,
 
-      -- where the player character spawns on stage start
-      spawn_location = location(3, 32+24),
+      -- where the player character spawns on stage start (region (0, 1))
+      spawn_location = location(7, 32+15),
 
       -- the x to reach to finish the stage
-      goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)
+      goal_x = 3*128*8,  -- 3072, after 3 regions of 128 tiles (goal is at stage right edge unlike classic Sonic)
 
       -- bgm id
       bgm_id = audio.music_pattern_ids.green_hill,

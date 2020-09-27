@@ -8,6 +8,7 @@ local overlay = require("engine/ui/overlay")
 local label = require("engine/ui/label")
 
 local picosonic_app = require("application/picosonic_app_ingame")
+local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
@@ -815,7 +816,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('update_camera', function ()
+          describe('#solo update_camera', function ()
 
             before_each(function ()
               -- required for stage edge clamping
@@ -827,12 +828,50 @@ describe('stage_state', function ()
               }
             end)
 
+            it('should move the camera X so player X is on left edge if he goes beyond left edge', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.position = vector(120 - camera_data.window_half_width - 1, 80)
+
+              state:update_camera()
+
+              assert.are_same(120 - 1, state.camera_pos.x)
+            end)
+
+            it('should not move the camera on X if player X remains in window X (left edge)', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.position = vector(120 - camera_data.window_half_width, 80)
+
+              state:update_camera()
+
+              assert.are_same(120, state.camera_pos.x)
+            end)
+
+            it('should not move the camera on X if player X remains in window X (right edge)', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.position = vector(120 + camera_data.window_half_width, 80)
+
+              state:update_camera()
+
+              assert.are_same(120, state.camera_pos.x)
+            end)
+
+            it('should move the camera X so player X is on right edge if he goes beyond right edge', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.position = vector(120 + camera_data.window_half_width + 1, 80)
+
+              state:update_camera()
+
+              assert.are_same(120 + 1, state.camera_pos.x)
+            end)
+
             it('should move the camera to player position', function ()
+              state.camera_pos = vector(120, 80)
+
               state.player_char.position = vector(120, 80)
 
               state:update_camera()
 
-              assert.are_same(vector(120, 80), state.camera_pos)
+              assert.are_same(120, state.camera_pos.x)
             end)
 
             it('should move the camera to player position, clamped (top-left)', function ()
@@ -844,7 +883,7 @@ describe('stage_state', function ()
               assert.are_same(vector(64, 64), state.camera_pos)
             end)
 
-            it('should move the camera to player position, clamped (top-right)', function ()
+            it('should move the camera to player position, clamped (bottom-right)', function ()
               -- required for stage edge clamping
               state.player_char.position = vector(2000, 1000)
 

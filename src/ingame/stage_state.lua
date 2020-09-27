@@ -5,6 +5,7 @@ local overlay = require("engine/ui/overlay")
 
 local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
+local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual")
@@ -636,10 +637,20 @@ end
 
 -- update camera position based on player character position
 function stage_state:update_camera()
-  -- stiff motion
+  -- windowed motion: only move camera when character is leaving the central window
+  -- unlike original game we simply use the current center position even when compact (curled)
+  --  instead of the ghost standing center position
+  if self.player_char.position.x < self.camera_pos.x - camera_data.window_half_width then
+    self.camera_pos.x = self.player_char.position.x + camera_data.window_half_width
+  elseif self.player_char.position.x > self.camera_pos.x + camera_data.window_half_width then
+    self.camera_pos.x = self.player_char.position.x - camera_data.window_half_width
+  end
+
+  self.camera_pos.y = self.player_char.position.y
+
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)
-  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  self.camera_pos.y = mid(screen_height / 2, self.camera_pos.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
 end
 
 -- set the camera offset to draw stage elements with optional origin (default (0, 0))

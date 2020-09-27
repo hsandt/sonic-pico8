@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# Build all game cartridges.
-# This essentially calls build_single_cartridge.sh on each cartridge.
+# Build all game cartridges and install them in PICO-8 carts folder.
+
+# Currently only supported on Linux.
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
 
 help() {
-  echo "Build a PICO-8 cartridge with the passed config."
+  echo "Build and install all PICO-8 cartridges with the passed config."
   usage
 }
 
 usage() {
-  echo "Usage: build_all_cartridges.sh CARTRIDGE_SUFFIX [CONFIG]
+  echo "Usage: build_and_install_all_cartridges.sh [CONFIG]
 
 ARGUMENTS
   CONFIG                    Build config. Determines defined preprocess symbols.
@@ -57,5 +58,5 @@ if [[ ${#positional_args[@]} -ge 1 ]]; then
   config="${positional_args[0]}"
 fi
 
-"$game_scripts_path/build_single_cartridge.sh" titlemenu "$config"
-"$game_scripts_path/build_single_cartridge.sh" ingame "$config"
+"$game_scripts_path/build_all_cartridges.sh" "$config"
+"$game_scripts_path/install_all_cartridges.sh" "$config"

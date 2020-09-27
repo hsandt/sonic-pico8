@@ -1,10 +1,7 @@
 #!/bin/bash
 
-# Build and export a specific cartridge for the game
-#  (since for multi-cartridge games, exporting in PICO-8 carts/ folder allows
-#   cartridge transitions)
+# Build a specific cartridge for the game
 # It relies on pico-boots/scripts/build_cartridge.sh
-#  and install_single_cartridge.sh (which is currently only support on Linux).
 # It also defines game information and defined symbols per config.
 
 # Configuration: paths
@@ -17,7 +14,7 @@ data_path="$(dirname "$0")/data"
 author="hsandt"
 title="pico-sonic"
 cartridge_stem="picosonic"
-version="4.1"
+version="4.2"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."
@@ -25,7 +22,7 @@ help() {
 }
 
 usage() {
-  echo "Usage: test.sh CARTRIDGE_SUFFIX [CONFIG]
+  echo "Usage: build_single_cartridge.sh CARTRIDGE_SUFFIX [CONFIG]
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
@@ -95,8 +92,11 @@ elif [[ $config == 'cheat' ]]; then
   # a weird bug makes game very slow when dump is defined but not log
   # this must be related to the new dump symbol used in dump.lua,
   # but I don't see how adding more lines makes the game faster
+  # symbols='cheat'
   # symbols='assert,dump,log,cheat,tuner'
-  symbols='cheat,tuner,mouse'
+  # symbols='cheat,tuner,mouse'
+  # symbols='assert,cheat,log,dump'
+  symbols='cheat,log,dump,debug_trigger'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
@@ -104,7 +104,7 @@ elif [[ $config == 'cheat-ultrafast' ]]; then
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,dump'
+  symbols='assert,log,dump'
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler'
 fi
@@ -131,6 +131,3 @@ if [[ $? -ne 0 ]]; then
   echo "Build failed, STOP."
   exit 1
 fi
-
-# Immediately export to carts to allow multi-cartridge loading
-"$game_scripts_path/install_single_cartridge.sh" "$cartridge_suffix" "$config"

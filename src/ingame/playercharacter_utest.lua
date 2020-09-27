@@ -2,6 +2,7 @@ require("test/bustedhelper")
 local player_char = require("ingame/playercharacter")
 
 local flow = require("engine/application/flow")
+local location_rect = require("engine/core/location_rect")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
@@ -202,6 +203,13 @@ describe('player_char', function ()
     local pc
 
     before_each(function ()
+      -- normally we add and enter gamestate properly to initialize stage,
+      --  but enough here, we just need to provide access to stage via flow for
+      --  things like loop layer checks
+      local curr_stage_state = stage_state()
+      curr_stage_state.loaded_map_region_coords = vector(0, 0)
+      flow.curr_state = curr_stage_state
+
       -- recreate player character for each test (setup spies will need to refer to player_char,
       --  not the instance)
       pc = player_char()
@@ -968,10 +976,19 @@ describe('player_char', function ()
       describe('set_ground_tile_location', function ()
 
         before_each(function ()
-          -- add trigger tiles to test trigger flag detection
+          -- add tiles usually placed at loop entrance/exit triggers
+          -- but new system doesn't flag triggers, so remember to define loop areas manually
           -- ZR
           mock_mset(0, 0, visual_loop_toptopleft)
           mock_mset(1, 0, visual_loop_toptopright)
+
+          -- customize loop areas locally. We are redefining a table so that won't affect
+          --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+          --  but if we need to for the tests we'll just add the missing members
+          flow.curr_state.curr_stage_data = {
+            loop_exit_areas = {location_rect(-1, 0, 0, 2)},
+            loop_entrance_areas = {location_rect(1, 0, 3, 4)}
+          }
         end)
 
         it('should preserve ground tile location if current value is passed', function ()
@@ -996,6 +1013,7 @@ describe('player_char', function ()
         end)
 
         it('should set active_loop_layer to 1 if loop_entrance_trigger tile is detected and new', function ()
+          -- just to check value change
           pc.active_loop_layer = -1
           pc.ground_tile_location = location(-1, 0)
 
@@ -1005,6 +1023,7 @@ describe('player_char', function ()
         end)
 
         it('should set active_loop_layer to 2 if loop_exit_trigger tile is detected and new', function ()
+          -- just to check value change
           pc.active_loop_layer = -1
           pc.ground_tile_location = location(-1, 0)
 
@@ -1725,11 +1744,20 @@ describe('player_char', function ()
         describe('with bottom/side loop tile', function ()
 
           before_each(function ()
-            -- note that in the real game we place a visual tile which maps to mask tile with trigger
-            -- we don't have constants for visual tiles but we could make a few dummy ones if we want
-            --  to test the visual to mask mapping logic for real
+            -- place loop tiles, but remember the loop areas give them meaning
             mock_mset(0, 0, visual_loop_bottomleft)
             mock_mset(1, 0, visual_loop_bottomright)
+
+            -- customize loop areas locally. We are redefining a table so that won't affect
+            --  the original data table in stage_data.lua. To simplify we don't redefine everything,
+            --  but if we need to for the tests we'll just add the missing members
+            flow.curr_state.curr_stage_data = {
+              -- a bit tight honestly because I placed to corners too close to each other, but
+              --  can get away with narrow rectangles; as long as the trigger corners are not at
+              --  the bottom
+              loop_exit_areas = {location_rect(0, -3, 0, 0)},
+              loop_entrance_areas = {location_rect(1, -3, 1, 0)}
+            }
           end)
 
           it('(entrance active) position on exit should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
@@ -2123,16 +2151,19 @@ describe('player_char', function ()
         setup(function ()
           stub(player_char, "check_spring")
           stub(player_char, "check_emerald")
+          stub(player_char, "check_loop_external_triggers")
         end)
 
         teardown(function ()
           player_char.check_spring:revert()
           player_char.check_emerald:revert()
+          player_char.check_loop_external_triggers:revert()
         end)
 
         after_each(function ()
           player_char.check_spring:clear()
           player_char.check_emerald:clear()
+          player_char.check_loop_external_triggers:clear()
         end)
 
         describe('(_check_jump stubbed)', function ()
@@ -2174,6 +2205,13 @@ describe('player_char', function ()
             pc:update_platformer_motion()
             assert.spy(player_char.check_emerald).was_called()
             assert.spy(player_char.check_emerald).was_called_with(match.ref(pc))
+          end)
+
+          it('should call check_loop_external_triggers (after motion)', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_loop_external_triggers).was_called()
+            assert.spy(player_char.check_loop_external_triggers).was_called_with(match.ref(pc))
           end)
 
         end)
@@ -2407,26 +2445,6 @@ describe('player_char', function ()
             pc:update_platformer_motion_grounded()
 
             assert.are_equal(2.5, pc.anim_run_speed)
-          end)
-
-          describe('(_update_ground_speed sets ground speed to -pc_data.walk_anim_min_play_speed / 2)', function ()
-
-            setup(function ()
-              -- something lower than pc_data.walk_anim_min_play_speed in abs value to test max
-              new_ground_speed = -pc_data.walk_anim_min_play_speed / 2
-            end)
-
-            teardown(function ()
-              -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
-              new_ground_speed = -2.5
-            end)
-
-            it('should set the run animation playback speed to walk_anim_min_play_speed when ground speed is non-zero, lower than walk_anim_min_play_speed in abs)', function ()
-              pc:update_platformer_motion_grounded()
-
-              assert.are_equal(pc_data.walk_anim_min_play_speed, pc.anim_run_speed)
-            end)
-
           end)
 
           describe('(walking on ceiling or wall-ceiling)', function ()
@@ -5332,7 +5350,11 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
+          -- ..sS
+          -- note that spring_left_id is only accessible for utests,
+          --  runtime script should use visual.spring_left_id
           mock_mset(2, 0, spring_left_id)
+          mock_mset(3, 0, spring_left_id + 1)
         end)
 
         after_each(function ()
@@ -5341,6 +5363,13 @@ describe('player_char', function ()
 
         it('should call trigger_spring when ground tile location points to a spring tile', function ()
           pc.ground_tile_location = location(2, 0)
+          pc:check_spring()
+          assert.spy(player_char.trigger_spring).was_called(1)
+          assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        end)
+
+        it('should call trigger_spring when ground tile location points to a spring tile', function ()
+          pc.ground_tile_location = location(3, 0)
           pc:check_spring()
           assert.spy(player_char.trigger_spring).was_called(1)
           assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
@@ -5366,9 +5395,6 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
-          -- normally we add and enter gamestate properly, but enough for this test
-          flow.curr_state = stage_state()
-
           mock_mset(2, 0, visual.sprite_data_t.emerald.id_loc:to_sprite_id())
         end)
 
@@ -5401,6 +5427,52 @@ describe('player_char', function ()
             assert.spy(stage_state.character_pick_emerald).was_called_with(match.ref(flow.curr_state), match.ref(mock_emerald))
           end)
 
+        end)
+
+      end)
+
+      describe('check_loop_external_triggers', function ()
+
+        setup(function ()
+          stub(stage_state, "check_loop_external_triggers", function (self, pos, _previous_active_layer)
+            -- simulate some very broad triggers
+            -- don't care about previous_active_layer, we are already doing proper checks for that
+            --  in stage_state:check_loop_external_triggers utests
+            if pos.y > 10 then
+              return nil
+            end
+            if pos.x < 0 then
+              return 1
+            elseif pos.x > 5 then
+              return 2
+            end
+          end)
+        end)
+
+        teardown(function ()
+          stage_state.check_loop_external_triggers:revert()
+        end)
+
+        it('should set active loop layer to 1 when detecting external entrance trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(-1, 0)
+          pc:check_loop_external_triggers()
+          assert.are_equal(1, pc.active_loop_layer)
+        end)
+
+        it('should set active loop layer to 2 when detecting external exit trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(6, 0)
+          pc:check_loop_external_triggers()
+          assert.are_equal(2, pc.active_loop_layer)
+        end)
+
+        it('should not set active loop layer when not detecting any external loop trigger', function ()
+          pc.active_loop_layer = -1
+          pc.position = vector(0, 15)
+          pc:check_loop_external_triggers()
+          -- invalid value of course, just to show that nothing was set
+          assert.are_equal(-1, pc.active_loop_layer)
         end)
 
       end)
@@ -6336,11 +6408,6 @@ describe('player_char', function ()
         player_char.enter_motion_state:revert()
       end)
 
-      before_each(function ()
-        -- normally we add and enter gamestate properly, but enough for this test
-        flow.curr_state = stage_state()
-      end)
-
       after_each(function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
@@ -6513,6 +6580,17 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
       end)
 
+      it('should play walk anim with walk_anim_min_play_speed when grounded and ground speed is lower than anim_run_speed in abs (clamping)', function ()
+        pc.motion_state = motion_states.grounded
+        pc.ground_speed = -pc_data.walk_anim_min_play_speed / 2  -- it's very low, much lower than walk_anim_min_play_speed
+        pc.anim_run_speed = abs(pc.ground_speed)
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, pc_data.walk_anim_min_play_speed)
+      end)
+
       it('should play walk anim with last anim_run_speed when grounded and ground speed is low', function ()
         pc.motion_state = motion_states.grounded
         pc.ground_speed = -(pc_data.run_cycle_min_speed_frame - 0.1) -- -2.9
@@ -6527,7 +6605,7 @@ describe('player_char', function ()
       it('should play run anim with last anim_run_speed when grounded and ground speed is high', function ()
         pc.motion_state = motion_states.grounded
         pc.ground_speed = -pc_data.run_cycle_min_speed_frame         -- -3.0
-        pc.anim_run_speed = abs(pc.ground_speed)                     -- 3.0
+        pc.anim_run_speed = abs(pc.ground_speed)                     -- 3.0, much higher than walk_anim_min_play_speed
 
         pc:check_play_anim()
 
@@ -6543,6 +6621,18 @@ describe('player_char', function ()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spring_jump")
+      end)
+
+      it('(low anim speed) should stop spring_jump anim and play walk anim at walk_anim_min_play_speed when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again) and anim run speed is lower than anim_run_speed in abs (clamping)', function ()
+        pc.motion_state = motion_states.falling
+        pc.velocity.y = 1
+        pc.anim_run_speed = pc_data.walk_anim_min_play_speed / 2  -- it's very low, much lower than walk_anim_min_play_speed
+        pc.should_play_spring_jump = true
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, pc_data.walk_anim_min_play_speed)
       end)
 
       it('(low anim speed) should stop spring_jump anim and play walk anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
@@ -6589,13 +6679,34 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
       end)
 
-      it('should play spin anim when air spinning', function ()
+      it('(air spin with very low anim speed from ground) should play spin_slow anim at pc_data.spin_anim_min_play_speed', function ()
+        pc.anim_run_speed = pc_data.spin_anim_min_play_speed / 2
         pc.motion_state = motion_states.air_spin
 
         pc:check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin")
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_slow", false, pc_data.spin_anim_min_play_speed)
+      end)
+
+      it('(air spin with medium anim speed from ground) should play spin_slow anim at anim_run_speed', function ()
+        pc.anim_run_speed = (pc_data.spin_anim_min_play_speed + pc_data.spin_fast_min_speed_frame) / 2  -- between both
+        pc.motion_state = motion_states.air_spin
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_slow", false, pc.anim_run_speed)
+      end)
+
+      it('(air spin with high anim speed from ground) should play spin_fast anim at anim_run_speed', function ()
+        pc.anim_run_speed = pc_data.spin_fast_min_speed_frame
+        pc.motion_state = motion_states.air_spin
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_fast", false, pc_data.spin_fast_min_speed_frame)
       end)
 
     end)

@@ -31,6 +31,7 @@ mask_loop_bottomleft = 17
 visual_loop_bottomright = 100
 mask_loop_bottomright = 20
 spring_left_id = 74                   -- add 1 to get right
+grass_top_decoration1 = 76            -- no collider, just to test foreground
 
 -- symbol mapping for itests
 -- (could also be used for utests instead of manual mock_mset, but need to extract parse_tilemap

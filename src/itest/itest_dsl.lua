@@ -305,6 +305,15 @@ itest_dsl.value_parsers = value_parsers
 function itest_dsl._execute_warp(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char:warp_bottom_to(args[1])
+
+  -- immediately move camera to player (don't rely on update_camera which may have smoothing later)
+  --  and reload map region there
+  -- this trick is needed for itests that last only 1 frame (like spring bounce),
+  --  so the colliders in the warp region are correctly set and ground reactions work
+  current_stage_state.camera_pos.x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  current_stage_state.camera_pos.y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+
+  current_stage_state:check_reload_map_region()
 end
 
 function itest_dsl._execute_set(args)

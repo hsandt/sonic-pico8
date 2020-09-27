@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Run game cartridge with PICO-8 executable
+# Run game cartridge located in PICO-8 carts install folder with PICO-8 executable
+# Must be called after build and install script for that cartridge suffix.
 # Usage: run_game.sh cartridge_suffix config [extra]
 #   cartridge_suffix  'titlemenu' or 'ingame'
 #   config            build config (e.g. 'debug' or 'release')
@@ -10,7 +11,7 @@
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="4.1"
+version="4.2"
 
 # shift allows to pass extra arguments as $@
 cartridge_suffix="$1"; shift

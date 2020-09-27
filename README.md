@@ -24,11 +24,11 @@ Works with PICO-8 0.2.0i and 0.2.1b.
 
 ## Features
 
-Version: 4.1
+Version: 4.2
 
 ### Physics
 
-* Character runs on flat ground, slopes, and through loops (WIP)
+* Character runs on flat ground, slopes, and through loops
 * Character is blocked by walls when running, walls and ceiling when jumping
 * Character jumps with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
@@ -36,24 +36,43 @@ Version: 4.1
 
 ### Rendering
 
-* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin*
-* Foreground plane: grass and leaves
-* Midground plane: collision tiles
+* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle
+* Foreground plane: grass and leaves, loop entrance
+* Midground plane: general collision tiles, loop exit, some decorations
 * Background planes: sky, ocean and trees moving with parallax
+* Camera window and smoothing system
 
-## Audio
+### Audio
 
 * Stage BGM and jump SFX
 
-## Content
+### Content
 
-One demo stage, a small reproduction of Angel Island Act 1 without enemies, hazards, rings nor item boxes, but with emeralds.
+One demo stage, a reproduction of Angel Island Act 1 at scale 1:1 (but using tiles of 8x8) thanks to a custom map streaming system. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected.
+
+## Known technical issues
+
+* When jumping diagonally, Sonic can go past the ceiling in a vertical motion
+* Sonic can walk up low slopes with too much ease, and some slopes behave differently than in Sonic 3
+* After running up a vertical wall and falling, Sonic may fall *into* the wall and get stuck
+* The game slows down in some areas, and tends to run at 30 FPS (instead of 60) in others
+
+## Known design issues
+
+* The stage feels very empty and too big due to the lack of items and hazards, despite a reproduction 1:1 of the original map
+* Scaling is slightly inconsistent as the tilemap is 1:1, but the Sonic sprites are slightly smaller than they should be, and the rocks even smaller
 
 ## Releases
 
-You can directly download a released version of the game on the [releases](Releases) page, and run it with PICO-8 as you would normally with a downloaded cartridge.
+You can directly download a released version of the game on the [releases](Releases) page. If you download the binary export for your platform, you're good to go.
 
-Note that the cartridge formats .p8 and .p8.png cannot be run with a vanilla PICO-8 as they exceed the maximum token limit (8192). To play them, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
+However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
+
+1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 carts folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
+
+2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
+
+3. I recommend using a fast reload patch (I will write a post to explain how to do it later) to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions.
 
 ## Build
 

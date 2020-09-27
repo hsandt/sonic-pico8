@@ -5,6 +5,7 @@ local overlay = require("engine/ui/overlay")
 
 local emerald = require("ingame/emerald")
 local player_char = require("ingame/playercharacter")
+local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual")
@@ -39,8 +40,11 @@ function stage_state:init()
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
 
-  -- items (could also be in world if it was a singleton or member of stage_state
-  --  instead of being essentially static; as member, it may be renamed 'stage')
+  -- emeralds: spawned global locations list (to remember not to respawn on region reload) and
+  --  actual objects list (we remove objects when picked up)
+  -- DEPRECATED: remove spawned_emerald_locations, they shouldn't be needed since we now
+  --  spawn all objects on stage start
+  self.spawned_emerald_locations = {}
   self.emeralds = {}
 
   -- position of the main camera, at the center of the view
@@ -59,18 +63,31 @@ function stage_state:init()
 end
 
 function stage_state:on_enter()
+  -- don't initialize loaded region coords to force first
+  --  (we don't know in which region player character will spawn)
+  -- self.loaded_map_region_coords = nil
+
+  -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
+  --  we preload all map regions on stage start and spawn
+  self:spawn_objects_in_all_map_regions()
+
+  -- make sure to reload map region where player character will be before spawning player character,
+  --  as he will need it for initial collision check
+  -- region being based on camera, we need to set the camera position first
+  -- anywhere near the spawning location is good (worst case, it's too far and the character
+  --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
+  self.camera_pos = self.curr_stage_data.spawn_location:to_center_position()
+  self:check_reload_map_region()
+
   self.current_substate = stage_state.substates.play
   self:spawn_player_char()
   self.has_reached_goal = false
-  self.camera_pos = vector.zero()
 
   self.app:start_coroutine(self.show_stage_title_async, self)
   self:play_bgm()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
-
-  self:spawn_emeralds()
 end
 
 function stage_state:on_exit()
@@ -94,8 +111,9 @@ function stage_state:update()
     self.player_char:update()
     self:check_reached_goal()
     self:update_camera()
+    self:check_reload_map_region()
   else
-
+    -- add stage ending logic here
   end
 end
 
@@ -105,6 +123,54 @@ function stage_state:render()
   self:render_background()
   self:render_stage_elements()
   self:render_title_overlay()
+end
+
+
+-- queries
+
+-- return true iff global_tile_loc: location is in any of the areas: {location_rect}
+function stage_state:is_tile_in_area(global_tile_loc, areas, extra_condition_callback)
+  for area in all(areas) do
+    if (extra_condition_callback == nil or extra_condition_callback(global_tile_loc, area)) and
+        area:contains(global_tile_loc) then
+      return true
+    end
+  end
+  return false
+end
+
+-- return true iff tile is located in loop entrance area
+--  *except at its top-left which is reversed to non-layered entrance trigger*
+function stage_state:is_tile_in_loop_entrance(global_tile_loc)
+  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_entrance_areas, function (global_tile_loc, area)
+    return global_tile_loc ~= location(area.left, area.top)
+  end)
+end
+
+-- return true iff tile is located in loop entrance area
+--  *except at its top-right which is reversed to non-layered entrance trigger*
+function stage_state:is_tile_in_loop_exit(global_tile_loc)
+  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_exit_areas, function (global_tile_loc, area)
+    return global_tile_loc ~= location(area.right, area.top)
+  end)
+end
+
+-- return true iff tile is located at the top-left (trigger location) of any entrance loop
+function stage_state:is_tile_loop_entrance_trigger(global_tile_loc)
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    if global_tile_loc == location(area.left, area.top) then
+      return true
+    end
+  end
+end
+
+-- return true iff tile is located at the top-right (trigger location) of any exit loop
+function stage_state:is_tile_loop_exit_trigger(global_tile_loc)
+  for area in all(self.curr_stage_data.loop_exit_areas) do
+    if global_tile_loc == location(area.right, area.top) then
+      return true
+    end
+  end
 end
 
 
@@ -124,49 +190,345 @@ end
 --  while entering stage state in before_each, or you'll waste around 0.5s each time
 -- alternatively, you may bake stage data (esp. emerald positions) in a separate object
 --  (that doesn't get reset with stage_state) and reuse it whenever you want
-function stage_state:spawn_emeralds()
+function stage_state:spawn_new_emeralds()
   -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
   --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
   --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
   local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
-  for i = 0, 127 do
-    for j = 0, 127 do
+  for i = 0, map_region_tile_width - 1 do
+    for j = 0, map_region_tile_height - 1 do
+      -- here we already have region (i, j), so no need to convert for mget
       local tile_sprite_id = mget(i, j)
-      if tile_sprite_id == emerald_repr_sprite_id then
-        -- replace the representative tile (spawn point) with nothing,
-        --  since we're going to create a distinct emerald object
-        mset(i, j, 0)
-        -- spawn emerald object and store it is sequence member
-        add(self.emeralds, emerald(#self.emeralds + 1, location(i, j)))
+
+      -- we do need to convert for spawn global locations tracking though
+      local region_loc = location(i, j)
+      local global_loc = self:region_to_global_location(region_loc)
+
+      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
+        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+        --  and won't be drawn at all
+        -- besides, the emerald tiles would come back on next region reload anyway
+        --  (hence the importance of tracking emeralds already spawned)
+
+        -- remember where you spawned that emerald, in global location so that we can keep track
+        --  of all emeralds across the extended map
+        add(self.spawned_emerald_locations, global_loc)
+
+        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+        --  when changing region)
+        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+        -- aesthetics note: the number depends on the order in which emeralds are discovered
+        -- but regions are always preloaded for object spawning in the same order, so
+        -- for given emerald locations, their colors are deterministic
+        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+        log("added emerald #"..#self.emeralds, "emerald")
       end
     end
   end
 end
 
--- visual events
 
-function stage_state:extend_spring(spring_loc)
-  self.app:start_coroutine(self.extend_spring_async, self, spring_loc)
+-- extended map system: to allow game to display more than the standard 128x32 PICO-8 map
+--  (as we need shared data for extra sprites and it wouldn't work for horizontal extension),
+--  we split an extended map into multiple cartridge __map__ data (called regions) and
+--  reload them at runtime
+-- when player is near the boundary between two regions, camera is overlapping them but
+--  we don't want to see empty areas in the non-loaded region, so we need an intermediate reload
+--  that picks half of each region
+-- when player is near the cross intersection of 4 regions, camera is overlapping 4 of them
+--  so we need an intermediate reload that picks a quarter of each region (called overlapping region)
+-- for instance, with an extended map compounded of a grid of 2x2 = 4 maps, we'd have
+--  4 full reloads, 4 2-half reloads, 1 4-quarter reloads for a total of 9 possible reloads
+
+-- return map filename for current stage and given region coordinates (u: int, v: int)
+--  do not try this with transitional regions, instead we'll patch them from individual regions
+function stage_state:get_map_region_filename(u, v)
+  return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
 end
 
-function stage_state:extend_spring_async(spring_loc)
+function stage_state:get_region_grid_dimensions()
+  local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
+  local region_count_per_column = ceil(self.curr_stage_data.tile_height / map_region_tile_height)
+  return region_count_per_row, region_count_per_column
+end
+
+-- return the map region coordinates corresponding to a position
+-- if the position is close to a map region boundary (typically close enough so camera
+--  may show empty tiles if the neighbor region is not loaded),
+--  return coordinates for a transitional region (ending in .5, half-way between the two regions,
+--  on x, y, or both is near the cross boundary of 4 regions)
+function stage_state:get_map_region_coords(position)
+  --  pre-compute number of regions per row/column (ceil in case the last region does not cover full PICO-8 map)
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- get region where the position is located, without minding being near boundaries at first
+  local u = flr(position.x / map_region_width)
+  local v = flr(position.y / map_region_height)
+
+  -- check if we are near a boundary, ie modulo map_region_width/height is either
+  --  < margin or > map_region_width/height - margin
+  -- note that a margin of 8 tiles should be enough for most speeds and collision checks,
+  --  increase if character starts moving out of screen and miss tiles and odd events like tat
+  local transition_margin = 8 * tile_size
+
+  local dx = position.x % map_region_width
+  if dx < transition_margin then
+    -- position is close to left border, transition with left region
+    --  unless we are already on the left edge of the extended map
+    if u > 0 then
+      u = u - 0.5
+    end
+  elseif dx > map_region_width - transition_margin then
+    -- position is close to right border, transition with right region
+    --  unless we are already on the right edge of the extended map
+    --  (compare to number of regions in a row using stage width and ceil in case the last region is partial)
+    if u < region_count_per_row - 1 then
+      u = u + 0.5
+    end
+  end
+
+  local dy = position.y % map_region_height
+  if dy < transition_margin then
+    -- position is close to top border, transition with region above
+    --  unless we are already on the top edge of the extended map
+    if v > 0 then
+      v = v - 0.5
+    end
+  elseif dy > map_region_height - transition_margin then
+    -- position is close to bottom border, transition with region below
+    --  unless we are already on the bottom edge of the extended map
+    if v < region_count_per_column - 1 then
+      v = v + 0.5
+    end
+  end
+
+  -- clamp to existing region in case character or camera goes awry for some reason
+  u = mid(0, u, region_count_per_row - 1)
+  v = mid(0, v, region_count_per_column - 1)
+
+  return vector(u, v)
+end
+
+-- reload horizontal half (left or right) of map in filename
+--  to opposite half (right or left, indicated by dest_hdir) in current map memory
+function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
+  -- unfortunately, reload doesn't allow us to copy rectangular portions of any width
+  --  into memory, only contiguous memory in the linear sense (read row by row)
+  -- in order to copy the horizontal half of a tilemap (64x32 tiles), we need to copy
+  --  32 lines of 64 tiles, one by one
+
+  -- reloading from an external file 32 times is too slow, so we store the whole
+  --  external tilemap first into general memory 0x4300, to process it later
+  reload(0x4300, 0x2000, 0x1000, filename)
+
+  -- depending on whether we copy from their left half to our right half, or reversely,
+  --  we set the source and destination addresses differently
+  -- a line contains 128 = 0x80 tiles so:
+  --  1. current map memory always starts at 0x2000, line offset j adds j * 0x80
+  --  2. general memory always starts at 0x4300, line offset j adds j * 0x80
+  --  3. to start on the right half of a line, add 64 = 0x40 tiles
+  local dest_addr0 = 0x2000
+  local temp_source_addr0 = 0x4300
+  if dest_hdir == horizontal_dirs.right then
+    dest_addr0 = dest_addr0 + 0x40
+  else
+    temp_source_addr0 = temp_source_addr0 + 0x40
+  end
+
+  -- copy 32 lines of length 64 = 0x40
+  for j = 0, 31 do
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
+  end
+end
+
+-- reload vertical half (upper or lower) of map in filename
+--  to opposite half (lower or upper, indicated by dest_hdir) in current map memory
+function stage_state:reload_vertical_half_of_map_region(dest_vdir, filename)
+  -- copying vertical half is much easier than horizontal half because the lines are complete
+  -- so we just pick the topleft of that half and copy a contiguous sequence of 128*16 = 0x800
+  --  (the easiest is to remember that full map size is 0x1000 so take half of it)
+  --  into current map memory
+  -- addresses are obtained this way:
+  --  1. current map memory topleft is 0x2000
+  --  2. loaded map memory topleft is 0x2000
+  --  3. to start on the bottom half of a map, add 0x800 tiles
+  local dest_addr = 0x2000
+  local source_addr = 0x2000
+  if dest_vdir == vertical_dirs.down then
+    dest_addr = dest_addr + 0x800
+  else
+    source_addr = source_addr + 0x800
+  end
+
+  reload(dest_addr, source_addr, 0x800, filename)
+end
+
+-- reload quarter of map in filename
+--  to opposite quarter (left <-> right and lower <-> upper, destination indicated by dest_hdir and dest_vdir)
+--  in current map memory
+function stage_state:reload_quarter_of_map_region(dest_hdir, dest_vdir, filename)
+  -- copying quarter combines logic from horizontal half and vertical half reload:
+  -- as with horizontal half, we must copy line by line and we may start on the bottom side, offset by 0x800,
+  --  and to be faster, we copy map data into general memory (but only half of it)
+  -- as with vertical half, lines have a length of 64 = 0x40 and may start on the right side with an offset of 0x40
+  --  in addition, we only need to copy 16 lines
+
+  -- addresses are obtained this way:
+  --  1. current map memory topleft is 0x2000
+  --  2. general memory topleft is 0x4300
+  --  3. to start on the bottom half of a map, add 0x800
+  --  3. to start on the right half of a map, add 0x40
+  --  4. line offset j adds j * 0x80
+
+  -- finally, as a small optimization, we only copy the vertical half of interest
+  --  from the map file to general memory (but always at its top)
+  -- this means we need to compute the 0x800 offset when copying a lower
+  --  quarter from the *original* map data to temp memory, but we won't need to re-add
+  --  that offset again when copying from the temp memory to current map memory
+
+  local dest_addr0 = 0x2000
+  local source_addr0 = 0x2000
+  local temp_source_addr0 = 0x4300
+
+  if dest_vdir == vertical_dirs.down then
+    dest_addr0 = dest_addr0 + 0x800
+  else
+    -- here is the lower quarter offset for original map only
+    source_addr0 = source_addr0 + 0x800
+  end
+
+  if dest_hdir == horizontal_dirs.right then
+    dest_addr0 = dest_addr0 + 0x40
+  else
+    -- for horizontal offset, we must add it to temp memory address though
+    temp_source_addr0 = temp_source_addr0 + 0x40
+  end
+
+  -- now we only need to copy half of the tilemap (0x800) for the vertical half of interest
+  reload(0x4300, source_addr0, 0x800, filename)
+
+  -- copy 16 lines of length 64 = 0x40
+  for j = 0, 15 do
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
+  end
+end
+
+function stage_state:reload_map_region(new_map_region_coords)
+  -- distinguish solo regions, which are literally loaded from a single region data file,
+  --  and overlapping regions, which are patched from 2 or 4 region data files
+  -- to simplify, we do not reuse current map memory and instead
+  --  completely reload map data from files, which should still be fast enough
+  --  (we have to load some data for unloaded parts anyway)
+
+  -- when using fractions, use the top-left side as a reference,
+  --  then add 1 if you need transition with bottom-right neighbor
+  local u_left = flr(new_map_region_coords.x)
+  local v_upper = flr(new_map_region_coords.y)
+
+  if new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 == 0 then
+    -- integer coordinates => solo region
+    log("reload map region: single", "reload")
+
+    reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(u_left, v_upper))
+  elseif new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 ~= 0 then
+    -- fractional y => vertically overlapping region (2 patches)
+    log("reload map region: Y overlap", "reload")
+
+    -- copy lower part of map region above to upper part of map memory
+    self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
+    -- copy upper part of map region below to lower part of map memory
+    self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
+  elseif new_map_region_coords.x % 1 ~= 0 and new_map_region_coords.y % 1 == 0 then
+    -- fractional x => horizontally overlapping region (2 patches)
+    log("reload map region: X overlap", "reload")
+
+    -- copy right part of left map region to left part of map memory
+    self:reload_horizontal_half_of_map_region(horizontal_dirs.left, self:get_map_region_filename(u_left, v_upper))
+    -- copy left part of right map region to right part of map memory
+    self:reload_horizontal_half_of_map_region(horizontal_dirs.right, self:get_map_region_filename(u_left + 1, v_upper))
+  else
+    -- fractional x & y => cross overlapping region (4 patches)
+    log("reload map region: cross overlap", "reload")
+    -- copy to temp memory, but with 4 files this time
+
+    -- copy bottom-right quarter of top-left map to top-left
+    self:reload_quarter_of_map_region(horizontal_dirs.left, vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
+    -- copy top-right quarter of bottom-left map to bottom-left:
+    self:reload_quarter_of_map_region(horizontal_dirs.left, vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
+    -- copy bottom-left quarter of top-right map to top-right:
+    self:reload_quarter_of_map_region(horizontal_dirs.right, vertical_dirs.up, self:get_map_region_filename(u_left + 1, v_upper))
+    -- copy top-left quarter of bottom-right map to bottom-right:
+    self:reload_quarter_of_map_region(horizontal_dirs.right, vertical_dirs.down, self:get_map_region_filename(u_left + 1, v_upper + 1))
+  end
+
+  self.loaded_map_region_coords = new_map_region_coords
+end
+
+-- if player character is approaching another map region, reload full or overlapping region
+function stage_state:check_reload_map_region()
+  -- we consider camera close enough to player character to use either position
+  -- in our case we use the camera because:
+  -- 1. on stage enter, the player has not spawn yet but we need to set some region just
+  --    so when the player spawns and queries the world about initial collision, they
+  --    know where to search tile data with correct region origin
+  -- 2. if camera moves away from player a bit too much, we are sure never to discover empty tiles
+  --    in unloaded areas as the regions would be loaded by tracking camera movement
+  local new_map_region_coords = self:get_map_region_coords(self.camera_pos)
+
+  if self.loaded_map_region_coords ~= new_map_region_coords then
+    -- current map region changed, must reload
+    self:reload_map_region(new_map_region_coords)
+  end
+end
+
+-- preload all map regions one by one, scanning object tiles and spawning corresponding objects
+function stage_state:spawn_objects_in_all_map_regions()
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- only load full regions not transition regions, that will be enough to cover all tiles
+  for u = 0, region_count_per_row - 1 do
+    for v = 0, region_count_per_column - 1 do
+      self:reload_map_region(vector(u, v))
+      -- load any *new* items detected in this region
+      self:spawn_new_emeralds()
+    end
+  end
+end
+
+
+-- visual events
+
+function stage_state:extend_spring(spring_left_loc)
+  self.app:start_coroutine(self.extend_spring_async, self, spring_left_loc)
+end
+
+function stage_state:extend_spring_async(spring_left_loc)
+  -- note that we adapted mset to the new region system
+  -- but now it's not a good idea to do that with dynamic objects because of region reload
+  -- springs may be reloaded, suddenly reverting to their normal form
+  --  and the async coroutine may even continue in the absence of cleanup (although it would just
+  --  set them to their normal form again anyway)
+
   -- set tilemap to show extended spring
-  mset(spring_loc.i, spring_loc.j, visual.spring_extended_bottom_left_id)
-  mset(spring_loc.i + 1, spring_loc.j, visual.spring_extended_bottom_left_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_extended_bottom_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_extended_bottom_left_id + 1)
   -- if there is anything above spring, tiles will be overwritten, so make sure
   --  to leave space above it
-  mset(spring_loc.i, spring_loc.j - 1, visual.spring_extended_top_left_id)
-  mset(spring_loc.i + 1, spring_loc.j - 1, visual.spring_extended_top_left_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, visual.spring_extended_top_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, visual.spring_extended_top_left_id + 1)
 
   -- wait just enough to show extended spring before it goes out of screen
   self.app:yield_delay_s(stage_data.spring_extend_duration)
 
   -- revert to default spring sprite
-  mset(spring_loc.i, spring_loc.j, visual.spring_normal_sprite_id)
-  mset(spring_loc.i + 1, spring_loc.j, visual.spring_normal_sprite_id + 1)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_left_id)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_left_id + 1)
   -- nothing above spring tiles in normal state, so simply remove extended top tiles
-  mset(spring_loc.i, spring_loc.j - 1, 0)
-  mset(spring_loc.i + 1, spring_loc.j - 1, 0)
+  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, 0)
+  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, 0)
 end
 
 -- gameplay events
@@ -188,6 +550,62 @@ function stage_state:character_pick_emerald(em)
   -- remove emerald from sequence (use del to make sure
   --  later object indices are decremented)
   del(self.emeralds, em)
+end
+
+-- return (top_left, bottom_right) positions from an entrance area: location_rect
+function stage_state.compute_external_entrance_trigger_corners(entrance_area)
+  -- by convention, a loop external exit trigger is always made of 1 column just on the *right*
+  --  of the *entrance* area, so consider character in when on the right of the exit area,
+  --  not farther than a tile away
+  -- remember that area uses location units and must be scaled
+  -- we don't bother with pc_data exact sensor distance, etc. but our margin
+  --  should somewhat match the character width/height + max amount of move in a frame (~6) to be safe
+  --  and prevent character from hitting the layer, then having it disabled too late
+  -- make sure to add 1 to right/bottom to get the right/bottom position of the tile
+  --  not its topleft
+  -- all positions are global, so we don't need any region coordinate conversion
+  return vector(tile_size * (entrance_area.right + 1) + 3,  tile_size * entrance_area.top - 8),
+         vector(tile_size * (entrance_area.right + 1) + 11, tile_size * (entrance_area.bottom + 1) + 8)
+end
+
+-- return (top_left, bottom_right) positions from an exit area: location_rect
+function stage_state.compute_external_exit_trigger_corners(exit_area)
+  -- by convention, a loop external entrance trigger is always made of 1 column just on the *left*
+  --  of the *exit* area, so consider character in when on the left of the entrance area,
+  --  not farther than a tile away
+  return vector(tile_size * exit_area.left - 11,  tile_size * exit_area.top - 8),
+         vector(tile_size * exit_area.left - 3,   tile_size * (exit_area.bottom + 1) + 8)
+end
+
+-- if character is entering an external loop trigger that should activate a *new* loop layer,
+--  return that layer number
+-- else, return nil
+function stage_state:check_loop_external_triggers(position, previous_active_layer)
+  -- first, if character was already on layer 1 (entrance), we only need to check
+  --  for character entering a loop from the back (external exit trigger)
+  --  to make sure they don't get stuck there, and vice-versa
+  if previous_active_layer == 1 then
+    for area in all(self.curr_stage_data.loop_entrance_areas) do
+      local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
+      if ext_entrance_trigger_top_left.x <= position.x and position.x <= ext_entrance_bottom_right.x and
+          ext_entrance_trigger_top_left.y <= position.y and position.y <= ext_entrance_bottom_right.y then
+        -- external exit trigger detected, switch to exit layer
+        return 2
+      end
+    end
+  else
+    for area in all(self.curr_stage_data.loop_exit_areas) do
+      -- by convention, a loop external entrance trigger is always made of 1 column just on the *left*
+      --  of the *exit* area, so consider character in when on the left of the entrance area,
+      --  not farther than a tile away
+      local ext_exit_trigger_top_left, ext_exit_bottom_right = stage_state.compute_external_exit_trigger_corners(area)
+      if ext_exit_trigger_top_left.x <= position.x and position.x <= ext_exit_bottom_right.x and
+          ext_exit_trigger_top_left.y <= position.y and position.y <= ext_exit_bottom_right.y then
+        -- external entrance trigger detected, switch to entrance layer
+        return 1
+      end
+    end
+  end
 end
 
 function stage_state:check_reached_goal()
@@ -219,17 +637,54 @@ end
 
 -- update camera position based on player character position
 function stage_state:update_camera()
-  -- stiff motion
+  -- windowed motion: only move camera when character is leaving the central window
+  -- unlike original game we simply use the current center position even when compact (curled)
+  --  instead of the ghost standing center position
+  -- instead of using if/else-if with boundaries, just clamp with mid to the required window
+  self.camera_pos.x = mid(self.camera_pos.x,
+    self.player_char.position.x - camera_data.window_half_width,
+    self.player_char.position.x + camera_data.window_half_width)
+
+  if self.player_char:is_grounded() then
+    -- on the ground, stick to y as much as possible
+    local target_y = self.player_char.position.y - camera_data.window_center_offset_y
+    local dy = target_y - self.camera_pos.y
+
+    -- clamp abs dy with catchup speed (which depends on ground speed)
+    local catchup_speed = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
+      camera_data.slow_catchup_speed or camera_data.fast_catchup_speed
+    dy = sgn(dy) * min(abs(dy), catchup_speed)
+
+    -- apply move
+    self.camera_pos.y = self.camera_pos.y + dy
+  else
+    -- in the air apply vertical window (stick to top and bottom edges)
+    local target_y = mid(self.camera_pos.y,
+      self.player_char.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
+      self.player_char.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
+    local dy = target_y - self.camera_pos.y
+
+    -- clamp abs dy with fast catchup speed
+    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed)
+
+    -- apply move
+    self.camera_pos.y = self.camera_pos.y + dy
+  end
+
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)
-  self.camera_pos.x = mid(screen_width / 2, self.player_char.position.x, self.curr_stage_data.width * tile_size - screen_width / 2)
-  self.camera_pos.y = mid(screen_height / 2, self.player_char.position.y, self.curr_stage_data.height * tile_size - screen_height / 2)
+  self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  self.camera_pos.y = mid(screen_height / 2, self.camera_pos.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
 end
 
--- set the camera offset for stage elements
-function stage_state:set_camera_offset_stage()
+-- set the camera offset to draw stage elements with optional origin (default (0, 0))
+-- tilemap should be drawn with region map topleft (in px) as origin
+-- characters and items should be drawn with extended map topleft (0, 0) as origin
+function stage_state:set_camera_with_origin(origin)
+  origin = origin or vector.zero()
   -- the camera position is used to render the stage. it represents the screen center
   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
-  camera(self.camera_pos.x - screen_width / 2, self.camera_pos.y - screen_height / 2)
+  -- finally subtract the origin to place tiles correctly
+  camera(self.camera_pos.x - screen_width / 2 - origin.x, self.camera_pos.y - screen_height / 2 - origin.y)
 end
 
 
@@ -446,11 +901,78 @@ end
 -- - environment
 -- - player character
 function stage_state:render_stage_elements()
-  self:set_camera_offset_stage()
   self:render_environment_midground()
   self:render_emeralds()
   self:render_player_char()
   self:render_environment_foreground()
+--#if debug_trigger
+  self:debug_render_trigger()
+--#endif
+end
+
+-- global <-> region location converters
+
+function stage_state:global_to_region_location(global_loc)
+  return global_loc - self:get_region_topleft_uv()
+end
+
+function stage_state:region_to_global_location(region_loc)
+  return region_loc + self:get_region_topleft_uv()
+end
+
+-- same kind of helper, but for mset
+function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
+  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_uv()
+  mset(region_loc.i, region_loc.j, sprite_id)
+end
+
+function stage_state:get_region_topleft_uv()
+  -- compute map region topleft in world tile coordinates so we draw tiles for this region
+  --  with the right offset
+  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
+  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
+  return location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
+end
+
+-- draw all tiles entirely or partially on-screen if they verify condition_callback: function(i, j) -> bool
+--  where (i, j) is the location of the tile to possibly draw
+function stage_state:draw_onscreen_tiles(condition_callback)
+  -- get screen corners
+  local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
+  local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
+
+  local region_topleft_uv = self:get_region_topleft_uv()
+
+  -- set camera offset to take region topleft into account
+  -- this way we don't have to add that offset to spr() on every call
+  self:set_camera_with_origin(vector(tile_size * region_topleft_uv.i, tile_size * region_topleft_uv.j))
+
+  -- find which tiles are bordering the screen and define boundary locations
+  -- camera is not supposed to show things beyond the map
+  --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
+  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft_uv.i
+  screen_left_i = max(0, screen_left_i)
+
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft_uv.i
+  screen_left_i = min(screen_left_i, 127)
+
+  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft_uv.j
+  screen_top_j = max(0, screen_top_j)
+
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft_uv.j
+  screen_bottom_j = min(screen_bottom_j, 32)
+
+  -- only draw tiles that are inside or partially on screen,
+  --  and on midground layer
+  for i = screen_left_i, screen_right_i do
+    for j = screen_top_j, screen_bottom_j do
+      local sprite_id = mget(i, j)
+      -- don't bother checking empty tile 0, otherwise delegate check to condition callback, if any
+      if sprite_id ~= 0 and (condition_callback == nil or condition_callback(i, j)) then
+        spr(sprite_id, tile_size * i, tile_size * j)
+      end
+    end
+  end
 end
 
 -- render the stage environment (tiles)
@@ -462,8 +984,12 @@ function stage_state:render_environment_midground()
   --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
 
-  -- draw sprites on every layer but foreground
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.midground))
+  -- only draw onscreen midground tiles that are not loop entrance (they'll be drawn on foreground later)
+  self:draw_onscreen_tiles(function (i, j)
+    local sprite_id = mget(i, j)
+    local global_tile_location = self:region_to_global_location(location(i, j))
+    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(global_tile_location)
+  end)
 
   -- goal as vertical line
   rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
@@ -471,16 +997,46 @@ end
 
 function stage_state:render_environment_foreground()
   set_unique_transparency(colors.pink)
-  map(0, 0, 0, 0, self.curr_stage_data.width, self.curr_stage_data.height, shl(1, sprite_flags.foreground))
+
+  -- draw tiles always on foreground and alsotiles normally on midground
+  --  but put to foreground as part of loop entrance
+  self:draw_onscreen_tiles(function (i, j)
+    local sprite_id = mget(i, j)
+    local global_tile_location = self:region_to_global_location(location(i, j))
+    return fget(sprite_id, sprite_flags.foreground) or
+      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(global_tile_location)
+  end)
 end
 
 -- render the player character at its current position
 function stage_state:render_player_char()
+  self:set_camera_with_origin()
+
   self.player_char:render()
 end
 
+--#if debug_trigger
+-- render the stage triggers
+function stage_state:debug_render_trigger()
+  self:set_camera_with_origin()
+
+
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
+    rect(ext_entrance_trigger_top_left.x, ext_entrance_trigger_top_left.y, ext_entrance_bottom_right.x, ext_entrance_bottom_right.y, colors.red)
+  end
+
+  for area in all(self.curr_stage_data.loop_exit_areas) do
+    local ext_exit_trigger_top_left, ext_exit_bottom_right = stage_state.compute_external_exit_trigger_corners(area)
+    rect(ext_exit_trigger_top_left.x, ext_exit_trigger_top_left.y, ext_exit_bottom_right.x, ext_exit_bottom_right.y, colors.red)
+  end
+end
+--#endif
+
 -- render the emeralds
 function stage_state:render_emeralds()
+  self:set_camera_with_origin()
+
   for em in all(self.emeralds) do
     em:render()
   end

@@ -62,49 +62,38 @@ function tile_test_data.setup()
   -- this includes "visual" sprites like springs!
 
   -- collision masks / proto tiles
-  fset(1, sprite_flags.collision, true)   -- invalid tile (missing collision mask id location below)
-  fset(full_tile_id, sprite_flags.collision, true)  -- full tile
-  fset(half_tile_id, sprite_flags.collision, true)  -- half-tile (bottom half)
-  fset(flat_low_tile_id, sprite_flags.collision, true)  -- low-tile (bottom quarter)
-  fset(bottom_right_quarter_tile_id, sprite_flags.collision, true)  -- quarter-tile (bottom-right half)
-  fset(asc_slope_22_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 2 (legacy)
-  fset(asc_slope_22_upper_level_id, sprite_flags.collision, true)  -- ascending slope 22.5 offset by 4
-  fset(asc_slope_45_id, sprite_flags.collision, true)  -- ascending slope 45
-  fset(desc_slope_45_id, sprite_flags.collision, true)  -- descending slope 45
+  fset(full_tile_id, sprite_masks.collision + sprite_masks.midground)  -- full tile
+  fset(half_tile_id, sprite_masks.collision + sprite_masks.midground)  -- half-tile (bottom half)
+  fset(flat_low_tile_id, sprite_masks.collision + sprite_masks.midground)  -- low-tile (bottom quarter)
+  fset(bottom_right_quarter_tile_id, sprite_masks.collision + sprite_masks.midground)  -- quarter-tile (bottom-right half)
+  fset(asc_slope_22_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset by 2 (legacy)
+  fset(asc_slope_22_upper_level_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset by 4
+  fset(asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
+  fset(desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
 
-  fset(visual_loop_topleft, sprite_flags.collision, true)
-  fset(visual_loop_topleft, sprite_flags.loop_exit, true)
+  fset(visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
   -- mask also have collision falg, but only useful to test
   -- a non-loop proto curve tile with the same shaped
-  fset(mask_loop_topleft, sprite_flags.collision, true)
+  fset(mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopleft, sprite_flags.collision, true)
-  fset(visual_loop_toptopleft, sprite_flags.loop_exit_trigger, true)
+  fset(visual_loop_toptopleft, sprite_masks.collision +  sprite_masks.midground)
+  fset(mask_loop_toptopleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(mask_loop_toptopleft, sprite_flags.collision, true)
+  fset(visual_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
+  fset(mask_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopright, sprite_flags.collision, true)
-  fset(visual_loop_toptopright, sprite_flags.loop_entrance_trigger, true)
+  fset(visual_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
+  fset(mask_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(mask_loop_toptopright, sprite_flags.collision, true)
-
-  fset(visual_loop_bottomleft, sprite_flags.collision, true)
-  fset(visual_loop_bottomleft, sprite_flags.loop_exit, true)
-
-  fset(mask_loop_bottomleft, sprite_flags.collision, true)
-
-  fset(visual_loop_bottomright, sprite_flags.collision, true)
-  fset(visual_loop_bottomright, sprite_flags.loop_entrance, true)
-
-  fset(mask_loop_bottomright, sprite_flags.collision, true)
+  fset(visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
+  fset(mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
 
   -- visual sprites
-  fset(spring_left_id, sprite_flags.collision, true)
-  fset(spring_left_id, sprite_flags.spring, true)
+  fset(spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
+  fset(spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
 
-  fset(spring_left_id + 1, sprite_flags.collision, true)
-  fset(spring_left_id + 1, sprite_flags.spring, true)
+  fset(grass_top_decoration1, sprite_masks.foreground)
 
   -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

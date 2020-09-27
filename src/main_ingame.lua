@@ -4,7 +4,7 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
-require("common")
+require("common_ingame")
 
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
@@ -35,7 +35,7 @@ function _init()
   logging.logger:register_stream(vlogger.vlog_stream)
 --#endif
 
-  logging.file_log_stream.file_prefix = "picosonic"
+  logging.file_log_stream.file_prefix = "picosonic_ingame"
 
   -- clear log file on new game session (or to preserve the previous log,
   -- you could add a newline and some "[SESSION START]" tag instead)
@@ -50,6 +50,8 @@ function _init()
     ['log'] = true,
     ['ui'] = true,
     ['loop'] = true,
+    ['emerald'] = true,
+    ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
@@ -66,7 +68,7 @@ function _init()
 
 --#if profiler
   -- uncomment to enable profiler
-  -- profiler.window:show(colors.orange)
+  profiler.window:show(colors.orange)
 --#endif
 
 --#if tuner

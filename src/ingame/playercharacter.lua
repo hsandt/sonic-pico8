@@ -10,6 +10,7 @@ local pc_data = require("data/playercharacter_data")
 local motion = require("platformer/motion")
 local world = require("platformer/world")
 local audio = require("resources/audio")
+local visual = require("resources/visual")
 
 -- enum for character control
 control_modes = {
@@ -131,10 +132,12 @@ function player_char:setup()
   self.should_play_spring_jump = false
 end
 
+-- return true iff character is grounded
 function player_char:is_grounded()
   return self.motion_state == motion_states.grounded
 end
 
+-- return true iff character is curled
 function player_char:is_compact()
   return self.motion_state == motion_states.air_spin
 end
@@ -222,31 +225,24 @@ end
 --#endif
 
 -- set ground tile location and apply any trigger if it changed
-function player_char:set_ground_tile_location(tile_loc)
-  if self.ground_tile_location ~= tile_loc then
-    self.ground_tile_location = tile_loc
+function player_char:set_ground_tile_location(global_tile_loc)
+  if self.ground_tile_location ~= global_tile_loc then
+    self.ground_tile_location = global_tile_loc
 
-    -- gradually switching to visual tile flag convention:
-    -- flags should now be placed on visual sprites, not collision masks,
-    --  so collision masks can be reused for tiles and items with very different behaviors,
-    --  e.g. half-tile vs spring
-    -- to complete switching, replace all mask_tile_id with visual_tile_id,
-    --  remove redundant mask tiles made for curves that are like loops but without
-    --  loop flags, and move the loop flags back to loop visual tiles
-
-    -- when touching loop entrance trigger, enable entrance (and disable exit) layer
+    -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
     --  and reversely
-    -- we are now checking sprite flags on the visual tile, not mask tile
-    -- ! This means the loop mask tiles don't "know" about loops and are considered
-    --  like normal curves, so you cannot use them to prototype a loop anymore.
-    -- Make sure to use the visual loop tiles even in blockout, just like you'd place
-    --  the real spring sprite instead of a half-tile mask.
-    local visual_tile_id = mget(tile_loc.i, tile_loc.j)
-    if fget(visual_tile_id, sprite_flags.loop_entrance_trigger) then
-      log("set active loop layer: 1", 'loop')
+    -- we are now checking loop triggers directly from stage data
+    -- external triggers are different and can be entered airborne, see check_loop_external_triggers
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
+
+    if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
+      -- note that active loop layer may already be 1
+      log("internal trigger detected, set active loop layer: 1", 'loop')
       self.active_loop_layer = 1
-    elseif fget(visual_tile_id, sprite_flags.loop_exit_trigger) then
-      log("set active loop layer: 2", 'loop')
+    elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
+      -- note that active loop layer may already be 2
+      log("internal trigger detected, set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
     end
   end
@@ -460,6 +456,13 @@ end
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
 local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_tile_offset_qy, last_tile_offset_qy, sensor_position_base, sensor_offset_qy, collider_distance_callback, no_collider_callback, ignore_reverse_on_start_tile)
+  -- precompute region topleft uv
+  -- note that we never change region during a collision check, but the 8 tiles margin
+  --  should be enough compared to the short distance along which we check for ground, wall and ceiling
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+  local region_topleft_uv = curr_stage_state:get_region_topleft_uv()
+
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
   local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
 
@@ -472,12 +475,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  always oriented with check quadrant (by convention we check from q-top to q-bottom)
   -- p8tool has a bug that prevents support of (complex expression):method() syntax (although PICO-8 does support it)
   --  so we play on the fact that method = function bound to self and just write the .static_method(self) syntax (same token count)
-  local start_tile_loc = vector.to_location(sensor_position + start_tile_offset_qy * collision_check_quadrant_down)
-  local last_tile_loc = vector.to_location(sensor_position + last_tile_offset_qy * collision_check_quadrant_down)
+  local start_global_tile_loc = vector.to_location(sensor_position + start_tile_offset_qy * collision_check_quadrant_down)
+  local last_global_tile_loc = vector.to_location(sensor_position + last_tile_offset_qy * collision_check_quadrant_down)
 
   -- precompute start tile topleft (we're actually only interested in sensor location topleft,
   --  and both have the same qx)
-  local start_tile_topleft = start_tile_loc:to_topleft_position()
+  local start_tile_topleft = start_global_tile_loc:to_topleft_position()
 
   -- we iterate on tiles along quadrant down, so just convert it to tile_vector
   --  to allow step addition
@@ -493,8 +496,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  but with fewer tokens as we don't need the extra conversion
   local qcolumn_index0 = world.get_quadrant_x_coord(sensor_position - start_tile_topleft, collision_check_quadrant)  -- from 0 to tile_size - 1
 
-  -- start iteration from start_tile_loc
-  local curr_tile_loc = start_tile_loc:copy()
+  -- start iteration from start_global_tile_loc
+  local curr_global_tile_loc = start_global_tile_loc:copy()
 
   -- keep looping until callback is satisfied (in general we found a collision or neary ground)
   --  or we've reached the last tile
@@ -506,10 +509,9 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    -- we now check sprite flags on visual tile instead of mask tile, so no need to get tile collision data
-    local visual_tile_id = mget(curr_tile_loc.i, curr_tile_loc.j)
-    if pc.active_loop_layer == 1 and fget(visual_tile_id, sprite_flags.loop_exit) or
-        pc.active_loop_layer == 2 and fget(visual_tile_id, sprite_flags.loop_entrance) then
+    -- we now check loop layer belonging directly from stage data
+    if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
+        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) then
       ignore_tile = true
     end
 
@@ -526,10 +528,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- if you're unsure, try to force-set this to false and you'll see utests like
       --  '(1 ascending slope 45) should return false for sensor position on the left of the tile'
       --  failing
-      local ignore_reverse = ignore_reverse_on_start_tile and start_tile_loc == curr_tile_loc
+      local ignore_reverse = ignore_reverse_on_start_tile and start_global_tile_loc == curr_global_tile_loc
 
       -- check for ground (by q-column) in currently checked tile, at sensor qX
-      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_tile_loc, qcolumn_index0, collision_check_quadrant, ignore_reverse)
+      -- make sure to convert the global tile location into region coordinates
+      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_global_tile_loc - region_topleft_uv,
+        qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 
     -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
@@ -540,7 +544,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     if qcolumn_height > 0 then
       -- get q-bottom of tile to compare heights
       -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
-      local current_tile_qbottom = world.get_tile_qbottom(curr_tile_loc, collision_check_quadrant)
+      local current_tile_qbottom = world.get_tile_qbottom(curr_global_tile_loc, collision_check_quadrant)
 
       -- signed distance to closest ground/ceiling is positive when q-above ground/q-below ceiling
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
@@ -549,7 +553,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
       -- let caller decide how to handle the presence of collider
-      local result = collider_distance_callback(curr_tile_loc, signed_distance_to_closest_collider, slope_angle)
+      local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
       -- we cannot 2x return from a called function directly, so instead, we check if a result was returned
       --  if so, we return from the caller
@@ -561,17 +565,17 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
       --  which means we will enter the "end of iteration" block below
-      assert(curr_tile_loc == last_tile_loc)
+      assert(curr_global_tile_loc == last_global_tile_loc)
     end
 
     -- since we only iterate on qj, we really only care about qj (which is i when quadrant is horizontal)
     --  but it costed more token to define get_quadrant_j_coord than to just compare both coords
-    if curr_tile_loc == last_tile_loc then
+    if curr_global_tile_loc == last_global_tile_loc then
       -- let caller decide how to handle the end of iteration without finding any collider
       return no_collider_callback()
     end
 
-    curr_tile_loc = curr_tile_loc + tile_loc_step
+    curr_global_tile_loc = curr_global_tile_loc + tile_loc_step
   end
 end
 
@@ -736,6 +740,7 @@ function player_char:update_platformer_motion()
 
   self:check_spring()
   self:check_emerald()
+  self:check_loop_external_triggers()
 end
 
 -- update motion following platformer grounded motion rules
@@ -767,6 +772,21 @@ function player_char:update_platformer_motion_grounded()
     --  and also to make it continue trying to cross the stage boundary
     --  and enter this block next frame, until player stops moving
     self.ground_speed = max(-0.1, self.ground_speed)
+  end
+
+  if self.ground_speed ~= 0 then
+    -- set animation speed for run now, since it can be used during actual run on ground
+    --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
+    -- (according to SPG, in original game, ground speed in preserved when airborne, so they use it directly
+    --  for airborne animations)
+    -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
+    --  instead, we prefer the more organic approach of continuous playback speed
+    -- however, to simulate the max duration clamping, we use min playback speed clamping
+    --  (this prevents Sonic sprite from running super slow, bad visually)
+    self.anim_run_speed = abs(self.ground_speed)
+  else
+    -- character is really idle, we don't want a minimal playback speed
+    self.anim_run_speed = 0
   end
 
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
@@ -803,21 +823,6 @@ function player_char:update_platformer_motion_grounded()
 
     -- only allow jump preparation for next frame if not already falling
     self:check_jump_intention()
-
-    if self.ground_speed ~= 0 then
-      -- set animation speed for run now, since it can be used during actual run on ground
-      --  but also after falling (from cliff or ceiling) in which case the playing speed is preserved
-      -- (according to SPG, in original game, ground speed in preserved when airborne, so they use it directly
-      --  for airborne animations)
-      -- for the run playback speed, we don't follow the SPG which uses flr(max(0, 8-abs(self.ground_speed)))
-      --  instead, we prefer the more organic approach of continuous playback speed
-      -- however, to simulate the max duration clamping, we use min playback speed clamping
-      --  (this prevents Sonic sprite from running super slow, bad visually)
-      self.anim_run_speed = max(pc_data.walk_anim_min_play_speed, abs(self.ground_speed))
-    else
-      -- character is really idle, we don't want a minimal playback speed
-      self.anim_run_speed = 0
-    end
   end
 
   log("self.position: "..self.position, "trace")
@@ -1673,35 +1678,65 @@ function player_char:next_air_step(direction, ref_motion_result)
   end
 end
 
--- item checks
+-- item and trigger checks
 function player_char:check_spring()
   if self.ground_tile_location then
+    -- get stage state for global to region location conversion
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
+
+    -- convert to region location before using mget
+    local ground_tile_region_location = curr_stage_state:global_to_region_location(self.ground_tile_location)
+    local ground_visual_tile_id = mget(ground_tile_region_location.i, ground_tile_region_location.j)
+
     -- follow new convention of putting flags on the visual sprite
-    local ground_visual_tile_id = mget(self.ground_tile_location.i, self.ground_tile_location.j)
+    -- of course since we know visual.spring_left_id we could check if tile id is
+    --  spring_left_id or spring_left_id + 1 directly, but flag is more convenient for 1st check
     if fget(ground_visual_tile_id, sprite_flags.spring) then
       log("character triggers spring", 'spring')
-      self:trigger_spring(self.ground_tile_location)
+      -- to get spring left part location we still need to check exact tile id
+      -- note that we only check for non-extended sprite, so make sure not to flag
+      --  extended visual spring sprites as "springs" (in practice, in 1P it's impossible
+      --  for player to hit spring twice in a row unless ceiling is very low, but safer)
+      local spring_left_loc = self.ground_tile_location:copy()
+      assert(visual.spring_left_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_left_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
+      if ground_visual_tile_id == visual.spring_left_id + 1 then
+        -- we are on right part of spring, so representative tile is just on the left
+        spring_left_loc.i = spring_left_loc.i - 1
+      end
+      self:trigger_spring(spring_left_loc)
     end
   end
 end
 
-function player_char:trigger_spring(spring_loc)
+function player_char:trigger_spring(spring_left_loc)
   self.velocity.y = -pc_data.spring_jump_speed_frame
   self:enter_motion_state(motion_states.falling)
   self.should_play_spring_jump = true
 
-  local stage_state = flow.curr_state
-  assert(stage_state.type == ':stage')
-  stage_state:extend_spring(spring_loc)
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+  curr_stage_state:extend_spring(spring_left_loc)
 end
 
 function player_char:check_emerald()
-  local stage_state = flow.curr_state
-  assert(stage_state.type == ':stage')
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
 
-  local em = stage_state:check_emerald_pick_area(self.position)
+  local em = curr_stage_state:check_emerald_pick_area(self.position)
   if em then
-    stage_state:character_pick_emerald(em)
+    curr_stage_state:character_pick_emerald(em)
+  end
+end
+
+function player_char:check_loop_external_triggers()
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+
+  local layer_to_activate = curr_stage_state:check_loop_external_triggers(self.position, self.active_loop_layer)
+  if layer_to_activate then
+    log("external trigger detected, set active loop layer: "..layer_to_activate, 'loop')
+    self.active_loop_layer = layer_to_activate
   end
 end
 
@@ -1756,9 +1791,12 @@ function player_char:check_play_anim()
     else
       -- grounded and moving: play walk cycle at low speed, run cycle at high speed
       -- we have access to self.ground_speed but self.anim_run_speed is shorter than
-      --  abs(self.ground_speed), and the values arethe same for normal to high speeds
-      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
-      self.anim_spr:play(anim_name, false, self.anim_run_speed)
+      --  abs(self.ground_speed), and the values are the same for normal to high speeds
+      if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
+        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+      else
+        self.anim_spr:play("run", false, self.anim_run_speed)
+      end
     end
   elseif self.motion_state == motion_states.falling then
     -- stop spring jump anim when falling down again
@@ -1773,11 +1811,20 @@ function player_char:check_play_anim()
       -- we don't have access to previous ground speed as unlike original game, we clear it when airborne
       --  but we can use the stored anim_run_speed, which is the same except for very low speed
       -- (and we don't mind them as we are checking run cycle for high speeds)
-      local anim_name = self.anim_run_speed >= pc_data.run_cycle_min_speed_frame and "run" or "walk"
-      self.anim_spr:play(anim_name, false, self.anim_run_speed)
+      if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
+        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+      else
+        -- run_cycle_min_speed_frame > walk_anim_min_play_speed so no need to clamp here
+        self.anim_spr:play("run", false, self.anim_run_speed)
+      end
     end
   else -- self.motion_state == motion_states.air_spin
-    self.anim_spr:play("spin")
+    if self.anim_run_speed < pc_data.spin_fast_min_speed_frame then
+      self.anim_spr:play("spin_slow", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
+    else
+      -- spin_fast_min_speed_frame > spin_anim_min_play_speed so no need to clamp here
+      self.anim_spr:play("spin_fast", false, self.anim_run_speed)
+    end
   end
 end
 

@@ -1,3 +1,4 @@
+local location_rect = require("engine/core/location_rect")
 local sprite_data = require("engine/render/sprite_data")
 
 local audio = require("resources/audio")
@@ -32,17 +33,40 @@ return {
       -- stage title
       title = "angel island",
 
-      width = 128,
-      height = 32,
+      -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column)
+      -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
+      tile_width = 128 * 3,
+      tile_height = 32 * 2,
 
-      -- where the player character spawns on stage start
-      spawn_location = location(3, 24),
+      -- where the player character spawns on stage start (region (0, 1))
+      spawn_location = location(7, 32+15),
 
       -- the x to reach to finish the stage
-      goal_x = 1024,  -- 128 tiles (full tilemap width, goal is at stage right edge unlike classic Sonic)
+      goal_x = 3*128*8,  -- 3072, after 3 regions of 128 tiles (goal is at stage right edge unlike classic Sonic)
 
       -- bgm id
-      bgm_id = audio.music_pattern_ids.green_hill
+      bgm_id = audio.music_pattern_ids.green_hill,
+
+      -- layer data
+      -- all tile locations are global
+
+      loop_exit_areas = {
+        -- lower loop (read in region (1, 1))
+        location_rect(128 + 93, 32 + 12, 128 + 98, 32 + 22),
+        -- upper loop 1 (read in region (2, 0))
+        location_rect(256 + 78, 20, 256 + 83, 30),
+        -- upper loop 2 (read in region (2, 0) and (2, 1))
+        location_rect(256 + 104, 26, 256 + 109, 32 + 3),
+      },
+
+      loop_entrance_areas = {
+        -- small loop (read in region (1, 1))
+        location_rect(128 + 101, 32 + 12, 128 + 106, 32 + 22),
+        -- upper loop 1 (read in region (2, 0))
+        location_rect(256 + 86, 20, 256 + 91, 30),
+        -- upper loop 2 (read in region (2, 0) and (2, 1))
+        location_rect(256 + 112, 26, 256 + 117, 32 + 3),
+      }
     }
 
   }

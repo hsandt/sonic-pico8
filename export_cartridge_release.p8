@@ -29,6 +29,8 @@ save("picosonic_titlemenu.p8.png")
 --  with top-left at sprite 160 (run1) => -i 160
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass ingame as second cartridge
-local additional_cartridge_list = "picosonic_ingame.p8 data_stage1_00.p8 data_stage1_01.p8"
+local additional_cartridge_list = "picosonic_ingame.p8 "..
+  "data_stage1_00.p8 data_stage1_10.p8 data_stage1_20.p8 "..
+  "data_stage1_01.p8 data_stage1_11.p8 data_stage1_21.p8"
 export("picosonic_v4.1_release.bin "..additional_cartridge_list.." -i 160 -s 2 -c 14")
 export("picosonic_v4.1_release.html "..additional_cartridge_list.." -i 160 -s 2 -c 14")

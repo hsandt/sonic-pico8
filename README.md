@@ -53,7 +53,7 @@ One demo stage, a small reproduction of Angel Island Act 1 without enemies, haza
 
 You can directly download a released version of the game on the [releases](Releases) page. If you download the binary export for your platform, you're good to go.
 
-However, if you download the cartridges or compressed cartridges archive to run them directly in PICO-8, there are a few caveats:
+However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
 
 1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 carts folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
 

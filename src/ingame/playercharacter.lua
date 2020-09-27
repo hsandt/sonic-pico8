@@ -132,10 +132,12 @@ function player_char:setup()
   self.should_play_spring_jump = false
 end
 
+-- return true iff character is grounded
 function player_char:is_grounded()
   return self.motion_state == motion_states.grounded
 end
 
+-- return true iff character is curled
 function player_char:is_compact()
   return self.motion_state == motion_states.air_spin
 end

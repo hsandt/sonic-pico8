@@ -864,6 +864,56 @@ describe('stage_state', function ()
               assert.are_same(120 + 1, state.camera_pos.x)
             end)
 
+            it('should move the camera Y so player Y sticks to reference Y', function ()
+              state.camera_pos = vector(120, 71)
+              state.player_char.motion_state = motion_states.grounded
+              state.player_char.position = vector(120, 82)
+
+              state:update_camera()
+
+              assert.are_same(82 + camera_data.window_center_offset_y, state.camera_pos.y)
+            end)
+
+            it('(airborne) should move the camera Y so player Y is on top edge if he goes beyond top edge', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.motion_state = motion_states.air_spin
+              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - 1)
+
+              state:update_camera()
+
+              assert.are_same(80 - 1, state.camera_pos.y)
+            end)
+
+            it('should not move the camera on Y if player Y remains in window Y (top edge)', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.motion_state = motion_states.air_spin
+              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height)
+
+              state:update_camera()
+
+              assert.are_same(80, state.camera_pos.y)
+            end)
+
+            it('should not move the camera on X if player X remains in window X (bottom edge)', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.motion_state = motion_states.air_spin
+              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height)
+
+              state:update_camera()
+
+              assert.are_same(80, state.camera_pos.y)
+            end)
+
+            it('should move the camera X so player X is on bottom edge if he goes beyond bottom edge', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.motion_state = motion_states.air_spin
+              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + 1)
+
+              state:update_camera()
+
+              assert.are_same(80 + 1, state.camera_pos.y)
+            end)
+
             it('should move the camera to player position', function ()
               state.camera_pos = vector(120, 80)
 

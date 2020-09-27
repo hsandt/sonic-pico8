@@ -640,13 +640,19 @@ function stage_state:update_camera()
   -- windowed motion: only move camera when character is leaving the central window
   -- unlike original game we simply use the current center position even when compact (curled)
   --  instead of the ghost standing center position
-  if self.player_char.position.x < self.camera_pos.x - camera_data.window_half_width then
-    self.camera_pos.x = self.player_char.position.x + camera_data.window_half_width
-  elseif self.player_char.position.x > self.camera_pos.x + camera_data.window_half_width then
-    self.camera_pos.x = self.player_char.position.x - camera_data.window_half_width
-  end
+  -- instead of using if/else-if with boundaries, just clamp with mid to the required window
+  self.camera_pos.x = mid(self.camera_pos.x,
+    self.player_char.position.x - camera_data.window_half_width,
+    self.player_char.position.x + camera_data.window_half_width)
 
-  self.camera_pos.y = self.player_char.position.y
+  if self.player_char:is_grounded() then
+    self.camera_pos.y = self.player_char.position.y + camera_data.window_center_offset_y
+  else
+    -- in the air apply vertical window
+    self.camera_pos.y = mid(self.camera_pos.y,
+      self.player_char.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
+      self.player_char.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
+  end
 
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)
   self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)

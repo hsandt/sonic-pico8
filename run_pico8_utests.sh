@@ -5,7 +5,7 @@
 
 # Configuration: cartridge
 cartridge_stem="picosonic_pico8_utests_all"
-version="4.1"
+version="4.2"
 
 run_cmd="pico8 -run build/${cartridge_stem}_v${version}_debug.p8 -screenshot_scale 4 -gif_scale 4 $@"
 

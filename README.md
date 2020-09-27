@@ -24,11 +24,11 @@ Works with PICO-8 0.2.0i and 0.2.1b.
 
 ## Features
 
-Version: 4.1
+Version: 4.2
 
 ### Physics
 
-* Character runs on flat ground, slopes, and through loops (WIP)
+* Character runs on flat ground, slopes, and through loops
 * Character is blocked by walls when running, walls and ceiling when jumping
 * Character jumps with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
@@ -36,18 +36,31 @@ Version: 4.1
 
 ### Rendering
 
-* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin*
-* Foreground plane: grass and leaves
-* Midground plane: collision tiles
+* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle
+* Foreground plane: grass and leaves, loop entrance
+* Midground plane: general collision tiles, loop exit, some decorations
 * Background planes: sky, ocean and trees moving with parallax
+* Camera window and smoothing system
 
-## Audio
+### Audio
 
 * Stage BGM and jump SFX
 
-## Content
+### Content
 
-One demo stage, a small reproduction of Angel Island Act 1 without enemies, hazards, rings nor item boxes, but with emeralds.
+One demo stage, a reproduction of Angel Island Act 1 at scale 1:1 (but using tiles of 8x8) thanks to a custom map streaming system. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected.
+
+## Known technical issues
+
+* When jumping diagonally, Sonic can go past the ceiling in a vertical motion
+* Sonic can walk up low slopes with too much ease, and some slopes behave differently than in Sonic 3
+* After running up a vertical wall and falling, Sonic may fall *into* the wall and get stuck
+* The game slows down in some areas, and tends to run at 30 FPS (instead of 60) in others
+
+## Known design issues
+
+* The stage feels very empty and too big due to the lack of items and hazards, despite a reproduction 1:1 of the original map
+* Scaling is slightly inconsistent as the tilemap is 1:1, but the Sonic sprites are slightly smaller than they should be, and the rocks even smaller
 
 ## Releases
 

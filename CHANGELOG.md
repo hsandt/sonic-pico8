@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2] - 2020-09-27
+### Added
+- Tilemap: switch to extended map system. Angel Island is now split is 3x2 regions of 128x32 tiles, defined in separate PICO-8 cartrdiges and reloaded into memory at runtime when approaching those regions. When close to 2-4 regions, an transition region is created from 2-4 patches of existing map data. Item collision and render also support this new system.
+- Tilemap: redrew extended map with 6 regions with complete skinning, except for palm trees
+- Loop: external loop triggers allow to setup correct collision layer *before* entering loop
+- Animation: added 4 sprites to spin cycle
+- Camera: camera window and smooth motion depending on character grounded/airborne state
+
+### Changed
+- Animation: better walk cycle with 6 sprites
+- Tilemap: draw loop entrance on foreground by drawing on-screen sprites manually
+- Tilemap: removed loop flags, now loop triggers are defined in stage data
+- Tile: fixed spring animation when landing on right part
+- Tile: fixed loop collision data
+- Export: fixed export icon
+
 ## [4.1] - 2020-09-21
 ### Added
 - Spring tile and behavior
@@ -134,7 +150,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.1...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.2...HEAD
+[4.2]: https://github.com/hsandt/sonic-pico8/compare/v4.1...v4.2
 [4.1]: https://github.com/hsandt/sonic-pico8/compare/v4.0...v4.1
 [4.0]: https://github.com/hsandt/sonic-pico8/compare/v3.1...v4.0
 [3.1]: https://github.com/hsandt/sonic-pico8/compare/v3.0...v3.1

@@ -1467,6 +1467,47 @@ describe('stage_state', function ()
 
           end)
 
+          describe('set_camera_with_origin', function ()
+
+            it('should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
+              state.camera_pos = vector(24, 13)
+              state:set_camera_with_origin()
+              assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
+            end)
+
+            it('should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
+              state.camera_pos = vector(24, 13)
+              state:set_camera_with_origin(vector(10, 20))
+              assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
+            end)
+
+          end)
+
+          describe('set_camera_with_region_origin', function ()
+
+            setup(function ()
+              stub(stage_state, "set_camera_with_origin")
+            end)
+
+            teardown(function ()
+              stage_state.set_camera_with_origin:revert()
+            end)
+
+            after_each(function ()
+              stage_state.set_camera_with_origin:clear()
+            end)
+
+            it('should call set_camera_with_origin with current region topleft xy', function ()
+              state.loaded_map_region_coords = vector(2, 1)
+
+              state:set_camera_with_region_origin()
+
+              assert.spy(state.set_camera_with_origin).was_called(1)
+              assert.spy(state.set_camera_with_origin).was_called_with(match.ref(state), vector(tile_size * map_region_tile_width * 2, tile_size * map_region_tile_height * 1))
+            end)
+
+          end)
+
           describe('misc state render methods', function ()
 
             setup(function ()
@@ -1503,7 +1544,7 @@ describe('stage_state', function ()
               state:render_title_overlay()
               assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
               assert.spy(overlay.draw_labels).was_called(1)
-              assert.spy(overlay.draw_labels).was_called_with(state.title_overlay)
+              assert.spy(overlay.draw_labels).was_called_with(match.ref(state.title_overlay))
             end)
 
             it('render_background should reset camera position', function ()
@@ -1527,18 +1568,6 @@ describe('stage_state', function ()
               -- #debug_trigger only end
               assert.spy(player_char.render).was_called(1)
               assert.spy(player_char.render).was_called_with(match.ref(state.player_char))
-            end)
-
-            it('set_camera_with_origin should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
-              state.camera_pos = vector(24, 13)
-              state:set_camera_with_origin()
-              assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
-            end)
-
-            it('set_camera_with_origin should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
-              state.camera_pos = vector(24, 13)
-              state:set_camera_with_origin(vector(10, 20))
-              assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
             end)
 
             it('render_player_char should call set_camera_with_origin and player_char:render', function ()
@@ -1570,13 +1599,13 @@ describe('stage_state', function ()
           describe('(region at (2, 3))', function ()
 
             setup(function ()
-              stub(stage_state, "get_region_topleft_uv", function (self)
+              stub(stage_state, "get_region_topleft_location", function (self)
                 return location(2, 3)
               end)
             end)
 
             teardown(function ()
-              stage_state.get_region_topleft_uv:revert()
+              stage_state.get_region_topleft_location:revert()
             end)
 
             describe('global_to_region_location', function ()
@@ -1593,16 +1622,16 @@ describe('stage_state', function ()
 
           end)
 
-          describe('get_region_topleft_uv', function ()
+          describe('get_region_topleft_location', function ()
 
             it('region (0, 0) => (0, 0)', function ()
               state.loaded_map_region_coords = vector(0, 0)
-              assert.are_same(location(0, 0), state:get_region_topleft_uv())
+              assert.are_same(location(0, 0), state:get_region_topleft_location())
             end)
 
             it('region (0.5, 1) => (64, 32)', function ()
               state.loaded_map_region_coords = vector(0.5, 1)
-              assert.are_same(location(64, 32), state:get_region_topleft_uv())
+              assert.are_same(location(64, 32), state:get_region_topleft_location())
             end)
 
           end)
@@ -1612,15 +1641,19 @@ describe('stage_state', function ()
             setup(function ()
               tile_test_data.setup()
 
-              spy.on(stage_state, "set_camera_with_origin")
+              stub(stage_state, "set_camera_with_origin")
+              stub(stage_state, "set_camera_with_region_origin")
               stub(_G, "spr")
+              stub(_G, "map")
             end)
 
             teardown(function ()
               tile_test_data.teardown()
 
               stage_state.set_camera_with_origin:revert()
+              stage_state.set_camera_with_region_origin:revert()
               spr:revert()
+              map:revert()
             end)
 
             before_each(function ()
@@ -1633,13 +1666,21 @@ describe('stage_state', function ()
               mock_mset(5, 0, 46)
               -- foreground tile to test foreground layer
               mock_mset(0, 1, grass_top_decoration1)
+
+              state.curr_stage_data = {
+                loop_exit_areas = {location_rect(-1, 0, 0, 2)},
+                loop_entrance_areas = {location_rect(1, 0, 3, 4)},
+                goal_x = 3000
+              }
             end)
 
             after_each(function ()
               pico8:clear_map()
 
               stage_state.set_camera_with_origin:clear()
+              stage_state.set_camera_with_region_origin:clear()
               spr:clear()
+              map:clear()
             end)
 
             it('draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 0))', function ()
@@ -1648,8 +1689,8 @@ describe('stage_state', function ()
 
               state:draw_onscreen_tiles()
 
-              assert.spy(stage_state.set_camera_with_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, 0))
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
               assert.spy(spr).was_called(4)
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)
               assert.spy(spr).was_called_with(spring_left_id, 3 * 8, 0)
@@ -1666,8 +1707,8 @@ describe('stage_state', function ()
                 return i == 0 and j == 0
               end)
 
-              assert.spy(stage_state.set_camera_with_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, 0))
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
               assert.spy(spr).was_called(1)
               -- spring at (0, 0) on-screen
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)
@@ -1683,8 +1724,8 @@ describe('stage_state', function ()
 
               state:draw_onscreen_tiles()
 
-              assert.spy(stage_state.set_camera_with_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, tile_size * 32))
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
               assert.spy(spr).was_called(4)
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)
               assert.spy(spr).was_called_with(spring_left_id, 3 * 8, 0)
@@ -1700,42 +1741,55 @@ describe('stage_state', function ()
                 return i == 0 and j == 0
               end)
 
-              assert.spy(stage_state.set_camera_with_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state), vector(0, tile_size * 32))
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
               assert.spy(spr).was_called(1)
               -- spring at (0, 0) on-screen
               assert.spy(spr).was_called_with(spring_left_id, 0, 0)
             end)
 
-            describe('(after set_camera_offset_stage)', function ()
+            it('render_environment_midground should call map for all midground sprites', function ()
+              -- note that we reverted to using map for performance, so this test doesn't need to be
+              --  in the tile test data setup context anymore
+              state.camera_pos = vector(0, 0)
+              state.loaded_map_region_coords = vector(0, 0)
 
-              it('render_environment_midground should call spr on tiles present on screen', function ()
-                -- this test was written before extracting draw_onscreen_tiles so it checks result directly
-                state.camera_pos = vector(0, 0)
-                state.loaded_map_region_coords = vector(0, 0)
+              state:render_environment_midground()
 
-                state:render_environment_midground()
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
 
-                assert.spy(spr).was_called(2)
-                -- springs at (0, 0) and (4, 0) on-screen
-                assert.spy(spr).was_called_with(spring_left_id, 0, 0)
-                assert.spy(spr).was_called_with(spring_left_id, 24, 0)
-              end)
+              assert.spy(map).was_called(1)
+              assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
 
-              it('render_environment_foreground should call spr on tiles present on screen', function ()
-                -- this test was not written before extracting draw_onscreen_tiles
-                --  but it was copy-pasted from render_environment_midground
-                state.camera_pos = vector(0, 0)
-                state.loaded_map_region_coords = vector(0, 0)
-
-                state:render_environment_foreground()
-
-                assert.spy(spr).was_called(1)
-                -- foreground grass at (0, 1) on-screen
-                assert.spy(spr).was_called_with(grass_top_decoration1, 0, 8)
-              end)
-
+              -- we also draw the goal line, but it's prototype so we don't test it
             end)
+
+            it('render_environment_foreground should call spr on tiles present on screen', function ()
+              -- this test was not written before extracting draw_onscreen_tiles
+              --  but it was copy-pasted from render_environment_midground
+              state.camera_pos = vector(0, 0)
+              state.loaded_map_region_coords = vector(2, 1)
+
+              state:render_environment_foreground()
+
+              -- we can't check call order, but set camera methods should be called consistently with map!
+              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+
+              assert.spy(map).was_called(2)
+              assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+
+              local area = state.curr_stage_data.loop_entrance_areas[1]
+              -- (2, 1) comes from state.loaded_map_region_coords
+              assert.spy(map).was_called_with(area.left - 2 * 128, area.top - 1 * 32,
+                tile_size * area.left, tile_size * area.top,
+                area.right - area.left + 1, area.bottom - area.top + 1,
+                sprite_masks.midground)
+                    end)
 
           end)  -- state render methods
 

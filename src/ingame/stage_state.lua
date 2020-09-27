@@ -687,6 +687,13 @@ function stage_state:set_camera_with_origin(origin)
   camera(self.camera_pos.x - screen_width / 2 - origin.x, self.camera_pos.y - screen_height / 2 - origin.y)
 end
 
+-- set the camera offset to draw stage elements with region origin
+--  use this to draw tiles with relative location
+function stage_state:set_camera_with_region_origin()
+  local region_topleft_loc = self:get_region_topleft_location()
+  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
+end
+
 
 -- ui
 
@@ -913,27 +920,28 @@ end
 -- global <-> region location converters
 
 function stage_state:global_to_region_location(global_loc)
-  return global_loc - self:get_region_topleft_uv()
+  return global_loc - self:get_region_topleft_location()
 end
 
 function stage_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_uv()
+  return region_loc + self:get_region_topleft_location()
 end
 
 -- same kind of helper, but for mset
 function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
-  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_uv()
+  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_location()
   mset(region_loc.i, region_loc.j, sprite_id)
 end
 
-function stage_state:get_region_topleft_uv()
-  -- compute map region topleft in world tile coordinates so we draw tiles for this region
-  --  with the right offset
+-- return current region topleft as location (convert uv to ij)
+function stage_state:get_region_topleft_location()
   -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
   --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
   return location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
 end
 
+--#if deprecated
+-- DEPRECATED as very expensive
 -- draw all tiles entirely or partially on-screen if they verify condition_callback: function(i, j) -> bool
 --  where (i, j) is the location of the tile to possibly draw
 function stage_state:draw_onscreen_tiles(condition_callback)
@@ -941,25 +949,25 @@ function stage_state:draw_onscreen_tiles(condition_callback)
   local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
   local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
 
-  local region_topleft_uv = self:get_region_topleft_uv()
+  local region_topleft_loc = self:get_region_topleft_location()
 
   -- set camera offset to take region topleft into account
   -- this way we don't have to add that offset to spr() on every call
-  self:set_camera_with_origin(vector(tile_size * region_topleft_uv.i, tile_size * region_topleft_uv.j))
+  self:set_camera_with_region_origin()
 
   -- find which tiles are bordering the screen and define boundary locations
   -- camera is not supposed to show things beyond the map
   --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
-  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft_uv.i
+  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft_loc.i
   screen_left_i = max(0, screen_left_i)
 
-  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft_uv.i
-  screen_left_i = min(screen_left_i, 127)
+  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft_loc.i
+  screen_right_i = min(screen_right_i, 127)
 
-  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft_uv.j
+  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft_loc.j
   screen_top_j = max(0, screen_top_j)
 
-  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft_uv.j
+  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft_loc.j
   screen_bottom_j = min(screen_bottom_j, 32)
 
   -- only draw tiles that are inside or partially on screen,
@@ -974,6 +982,7 @@ function stage_state:draw_onscreen_tiles(condition_callback)
     end
   end
 end
+--#endif
 
 -- render the stage environment (tiles)
 function stage_state:render_environment_midground()
@@ -984,12 +993,10 @@ function stage_state:render_environment_midground()
   --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
 
-  -- only draw onscreen midground tiles that are not loop entrance (they'll be drawn on foreground later)
-  self:draw_onscreen_tiles(function (i, j)
-    local sprite_id = mget(i, j)
-    local global_tile_location = self:region_to_global_location(location(i, j))
-    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(global_tile_location)
-  end)
+  -- only draw midground tiles
+  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
+  self:set_camera_with_region_origin()
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
 
   -- goal as vertical line
   rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
@@ -998,14 +1005,24 @@ end
 function stage_state:render_environment_foreground()
   set_unique_transparency(colors.pink)
 
-  -- draw tiles always on foreground and alsotiles normally on midground
-  --  but put to foreground as part of loop entrance
-  self:draw_onscreen_tiles(function (i, j)
-    local sprite_id = mget(i, j)
-    local global_tile_location = self:region_to_global_location(location(i, j))
-    return fget(sprite_id, sprite_flags.foreground) or
-      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(global_tile_location)
-  end)
+  -- draw tiles always on foreground first
+  self:set_camera_with_region_origin()
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
+
+  local region_topleft_loc = self:get_region_topleft_location()
+
+  -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
+  --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
+  --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
+  self:set_camera_with_origin()
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    -- draw map subset just for the loop entrance
+    -- if this is out-of-screen, map will know it should draw nothing so this is very performant already
+    map(area.left - region_topleft_loc.i, area.top - region_topleft_loc.j,
+        tile_size * area.left, tile_size * area.top,
+        area.right - area.left + 1, area.bottom - area.top + 1,
+        sprite_masks.midground)
+  end
 end
 
 -- render the player character at its current position

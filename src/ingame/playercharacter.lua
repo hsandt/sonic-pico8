@@ -461,7 +461,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  should be enough compared to the short distance along which we check for ground, wall and ceiling
   local curr_stage_state = flow.curr_state
   assert(curr_stage_state.type == ':stage')
-  local region_topleft_uv = curr_stage_state:get_region_topleft_uv()
+  local region_topleft_loc = curr_stage_state:get_region_topleft_location()
 
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
   local collision_check_quadrant_down = dir_vectors[collision_check_quadrant]
@@ -532,7 +532,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
       -- check for ground (by q-column) in currently checked tile, at sensor qX
       -- make sure to convert the global tile location into region coordinates
-      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_global_tile_loc - region_topleft_uv,
+      qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_global_tile_loc - region_topleft_loc,
         qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 

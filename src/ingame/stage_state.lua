@@ -646,12 +646,29 @@ function stage_state:update_camera()
     self.player_char.position.x + camera_data.window_half_width)
 
   if self.player_char:is_grounded() then
-    self.camera_pos.y = self.player_char.position.y + camera_data.window_center_offset_y
+    -- on the ground, stick to y as much as possible
+    local target_y = self.player_char.position.y - camera_data.window_center_offset_y
+    local dy = target_y - self.camera_pos.y
+
+    -- clamp abs dy with catchup speed (which depends on ground speed)
+    local catchup_speed = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
+      camera_data.slow_catchup_speed or camera_data.fast_catchup_speed
+    dy = sgn(dy) * min(abs(dy), catchup_speed)
+
+    -- apply move
+    self.camera_pos.y = self.camera_pos.y + dy
   else
-    -- in the air apply vertical window
-    self.camera_pos.y = mid(self.camera_pos.y,
+    -- in the air apply vertical window (stick to top and bottom edges)
+    local target_y = mid(self.camera_pos.y,
       self.player_char.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
       self.player_char.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
+    local dy = target_y - self.camera_pos.y
+
+    -- clamp abs dy with fast catchup speed
+    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed)
+
+    -- apply move
+    self.camera_pos.y = self.camera_pos.y + dy
   end
 
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)

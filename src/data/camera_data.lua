@@ -20,6 +20,17 @@ local camera_data = {
   -- half height of the camera window (px)
   -- ((128 - 64) / 2) / 2 (PICO-8 scaling)
   window_half_height = 16,
+
+  -- ground speed from which fast catchup speed is used (when grounded only)
+  fast_catchup_min_ground_speed = 4,
+
+  -- catchup speed when grounded with ground speed < fast_catchup_min_ground_speed
+  --  (e.g. when running)
+  slow_catchup_speed = 3,
+
+  -- catchup speed when airborne or grounded with ground speed of
+  --  fast_catchup_min_ground_speed or more (e.g. when rolling fast)
+  fast_catchup_speed = 8,
 }
 
 return camera_data

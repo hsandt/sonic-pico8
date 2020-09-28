@@ -49,6 +49,8 @@ function stage_state:init()
 
   -- position of the main camera, at the center of the view
   self.camera_pos = vector.zero()
+  -- camera forward extension offset (px, signed)
+  self.camera_forward_ext_offset = 0
 
   -- title overlay
   self.title_overlay = overlay(0)
@@ -637,23 +639,62 @@ end
 
 -- update camera position based on player character position
 function stage_state:update_camera()
-  -- windowed motion: only move camera when character is leaving the central window
-  -- unlike original game we simply use the current center position even when compact (curled)
-  --  instead of the ghost standing center position
-  -- instead of using if/else-if with boundaries, just clamp with mid to the required window
-  self.camera_pos.x = mid(self.camera_pos.x,
+  -- Window system: most of the time, only move camera when character
+  --  is leaving the central window
+
+  -- X tracking
+
+  -- Window system
+  -- clamp to required window
+  -- Be sure to use the non-extended camera position X by subtracting the old
+  --  self.camera_forward_ext_offset
+  -- (if you subtract self.camera_forward_ext_offset after its update below,
+  --  result will change slightly)
+  local windowed_camera_x = mid(self.camera_pos.x - self.camera_forward_ext_offset,
     self.player_char.position.x - camera_data.window_half_width,
     self.player_char.position.x + camera_data.window_half_width)
 
+  -- Forward extension system:
+  -- When character is moving fast on X, the camera moves slightly forward
+  -- When moving slowly again, the forward offset is gradually reduced back to zero
+  -- The rest of the time, camera X is just set to where it should be, using the window system
+  -- To make window and extension system independent, and avoid having the window
+  --  system clamp immediately the extension when character suddenly changes direction,
+  --  we track the extension offset independently.
+  -- This means that when checking if character X is inside the window,
+  --  we must mentally subtract the offset back to get the non-extended camera position
+  --  (or we could store some self.base_camera_pos if we didn't mind the extra member)
+
+  local target_forward_ext_offset = 0
+  if abs(self.player_char.velocity.x) >= camera_data.forward_ext_min_speed_x then
+    -- running fast enough, activate forward extension
+    -- remember that our offset is signed to allow left/right transitions
+    target_forward_ext_offset = sgn(self.player_char.velocity.x) * camera_data.forward_ext_distance
+  end
+
+  local ext_dx = target_forward_ext_offset - self.camera_forward_ext_offset
+
+  -- clamp abs ext_dx with catchup speed
+  ext_dx = sgn(ext_dx) * min(abs(ext_dx), camera_data.forward_ext_catchup_speed_x)
+
+  -- apply delta
+  self.camera_forward_ext_offset = self.camera_forward_ext_offset + ext_dx
+
+  -- combine Window and Forward extension
+  self.camera_pos.x = windowed_camera_x + self.camera_forward_ext_offset
+
+  -- Y tracking
+  -- unlike original game we simply use the current center position even when compact (curled)
+  --  instead of the ghost standing center position
   if self.player_char:is_grounded() then
     -- on the ground, stick to y as much as possible
     local target_y = self.player_char.position.y - camera_data.window_center_offset_y
     local dy = target_y - self.camera_pos.y
 
     -- clamp abs dy with catchup speed (which depends on ground speed)
-    local catchup_speed = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
-      camera_data.slow_catchup_speed or camera_data.fast_catchup_speed
-    dy = sgn(dy) * min(abs(dy), catchup_speed)
+    local catchup_speed_y = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
+      camera_data.slow_catchup_speed_y or camera_data.fast_catchup_speed_y
+    dy = sgn(dy) * min(abs(dy), catchup_speed_y)
 
     -- apply move
     self.camera_pos.y = self.camera_pos.y + dy
@@ -665,7 +706,7 @@ function stage_state:update_camera()
     local dy = target_y - self.camera_pos.y
 
     -- clamp abs dy with fast catchup speed
-    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed)
+    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed_y)
 
     -- apply move
     self.camera_pos.y = self.camera_pos.y + dy

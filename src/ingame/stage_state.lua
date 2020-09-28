@@ -670,7 +670,8 @@ function stage_state:update_camera()
   --  jittering when running on a bumpy ground that makes character oscillates between 2.9 and 3 (the threshold
   --  at which they activate forward extension)
   --  (the original game uses ground speed not velocity X so it doesn't have this issue)
-  local ratio = max(0, (abs(self.player_char.velocity.x) - camera_data.forward_ext_min_speed_x) / (camera_data.max_forward_ext_speed_x - camera_data.forward_ext_min_speed_x))
+  local range = camera_data.max_forward_ext_speed_x - camera_data.forward_ext_min_speed_x
+  local ratio = mid(0, 1, (abs(self.player_char.velocity.x) - camera_data.forward_ext_min_speed_x) / range)
   -- remember that our offset is signed to allow left/right transitions
   local target_forward_ext_offset = sgn(self.player_char.velocity.x) * ratio * camera_data.forward_ext_max_distance
 

@@ -904,7 +904,7 @@ describe('stage_state', function ()
               assert.are_equal(120 + camera_data.forward_ext_max_distance / 2, state.camera_pos.x)
             end)
 
-            it('forward extension: should increase forward extension by catch up speed until max when character stays above max_forward_ext_speed_x for long', function ()
+            it('forward extension: should increase forward extension by catch up speed until max when character stays at max_forward_ext_speed_x for long', function ()
               -- simulate a camera that has already been moving toward max offset and close to reaching it
               state.camera_forward_ext_offset = camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
               -- to reproduce the fast that the camera is more forward that it should be with window only,
@@ -912,6 +912,18 @@ describe('stage_state', function ()
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
               state.player_char.position = vector(120, 80)
               state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
+
+              state:update_camera()
+
+              assert.are_equal(camera_data.forward_ext_max_distance, state.camera_forward_ext_offset)
+              assert.are_equal(120 + camera_data.forward_ext_max_distance, state.camera_pos.x)
+            end)
+
+            it('forward extension: should increase forward extension by catch up speed until max (and not more) even when character stays *above* max_forward_ext_speed_x for long', function ()
+              state.camera_forward_ext_offset = camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
+              state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
+              state.player_char.position = vector(120, 80)
+              state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
 
               state:update_camera()
 

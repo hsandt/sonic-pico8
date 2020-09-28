@@ -43,10 +43,16 @@ local camera_data = {
   --  where the forward extension distance gradually increases toward its max when speed X increases.
 
   -- min speed on X to activate forward extension (px/frame)
-  forward_ext_min_speed_x = 3,
+  -- note that at exactly this speed, ratio is still 0 so no offset is applied
+  forward_ext_min_speed_x = 2.5,
 
-  -- forward extension distance (px)
-  forward_ext_distance = 32,
+  -- speed on X at which forward extension reaches its maximum distance (px/frame)
+  -- at this speed, ratio is 1 and (+/-) forward_ext_max_distance is applied
+  max_forward_ext_speed_x = 3,
+
+  -- forward extension maximum distance (px)
+  -- at speeds between forward_ext_min_speed_x and max_forward_ext_speed_x, a ratio is applied
+  forward_ext_max_distance = 32,
 
   -- catchup speed on X to reach maximum forward extension (px/frame)
   forward_ext_catchup_speed_x = 1,

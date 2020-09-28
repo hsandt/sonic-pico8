@@ -865,11 +865,12 @@ describe('stage_state', function ()
             end)
 
             -- forward extension, positive X
+            -- at forward_ext_min_speed_x the ratio is still 0, so we need a little more to test actual change
 
-            it('forward extension: should increase forward extension by catch up speed when character reaches forward_ext_min_speed_x', function ()
+            it('forward extension: should increase forward extension by catch up speed when character reaches (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2', function ()
               state.camera_pos = vector(120, 80)
               state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(camera_data.forward_ext_min_speed_x, 0)
+              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
 
               state:update_camera()
 
@@ -877,8 +878,35 @@ describe('stage_state', function ()
               assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
             end)
 
+            it('forward extension: should increase forward extension toward max by catch up speed when character reaches max_forward_ext_speed_x', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.position = vector(120, 80)
+              state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
+
+              state:update_camera()
+
+              assert.are_equal(camera_data.forward_ext_catchup_speed_x, state.camera_forward_ext_offset)
+              assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
+            end)
+
+            it('forward extension: should increase forward extension by catch up speed until half max when character stays above (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2 for long', function ()
+              -- simulate a camera that has already been moving toward half max offset and close to reaching it
+              state.camera_forward_ext_offset = camera_data.forward_ext_max_distance / 2 - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
+              -- to reproduce the fast that the camera is more forward that it should be with window only,
+              --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
+              state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
+              state.player_char.position = vector(120, 80)
+              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
+
+              state:update_camera()
+
+              assert.are_equal(camera_data.forward_ext_max_distance / 2, state.camera_forward_ext_offset)
+              assert.are_equal(120 + camera_data.forward_ext_max_distance / 2, state.camera_pos.x)
+            end)
+
             it('forward extension: should increase forward extension by catch up speed until max when character stays above forward_ext_min_speed_x for long', function ()
-              state.camera_forward_ext_offset = camera_data.forward_ext_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_distance
+              -- simulate a camera that has already been moving toward max offset and close to reaching it
+              state.camera_forward_ext_offset = camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
               -- to reproduce the fast that the camera is more forward that it should be with window only,
               --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
@@ -887,24 +915,24 @@ describe('stage_state', function ()
 
               state:update_camera()
 
-              assert.are_equal(camera_data.forward_ext_distance, state.camera_forward_ext_offset)
-              assert.are_equal(120 + camera_data.forward_ext_distance, state.camera_pos.x)
+              assert.are_equal(camera_data.forward_ext_max_distance, state.camera_forward_ext_offset)
+              assert.are_equal(120 + camera_data.forward_ext_max_distance, state.camera_pos.x)
             end)
 
             it('forward extension: should decrease forward extension by catch up speed when character goes below forward_ext_min_speed_x again', function ()
-              state.camera_forward_ext_offset = camera_data.forward_ext_distance
+              state.camera_forward_ext_offset = camera_data.forward_ext_max_distance
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
               state.player_char.position = vector(120, 80)
               state.player_char.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
 
               state:update_camera()
 
-              assert.are_equal(camera_data.forward_ext_distance - camera_data.forward_ext_catchup_speed_x, state.camera_forward_ext_offset)
-              assert.are_equal(120 + camera_data.forward_ext_distance - camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
+              assert.are_equal(camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, state.camera_forward_ext_offset)
+              assert.are_equal(120 + camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
             end)
 
             it('forward extension: should decrease forward extension back to 0 when character goes below forward_ext_min_speed_x for long', function ()
-              state.camera_forward_ext_offset = 0.1  -- just something lower than camera_data.forward_ext_distance
+              state.camera_forward_ext_offset = 0.1  -- just something lower than camera_data.forward_ext_max_distance
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
               state.player_char.position = vector(120, 80)
               state.player_char.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
@@ -929,7 +957,7 @@ describe('stage_state', function ()
             end)
 
             it('forward extension: should increase forward extension toward NEGATIVE by catch up speed until max when character stays above -forward_ext_min_speed_x for long', function ()
-              state.camera_forward_ext_offset = -(camera_data.forward_ext_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_distance
+              state.camera_forward_ext_offset = -(camera_data.forward_ext_max_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_max_distance
               -- to reproduce the fast that the camera is more forward that it should be with window only,
               --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
@@ -938,24 +966,24 @@ describe('stage_state', function ()
 
               state:update_camera()
 
-              assert.are_equal(-camera_data.forward_ext_distance, state.camera_forward_ext_offset)
-              assert.are_equal(120 - camera_data.forward_ext_distance, state.camera_pos.x)
+              assert.are_equal(-camera_data.forward_ext_max_distance, state.camera_forward_ext_offset)
+              assert.are_equal(120 - camera_data.forward_ext_max_distance, state.camera_pos.x)
             end)
 
             it('forward extension: should decrease forward extension (in abs) by catch up speed when character goes below forward_ext_min_speed_x (in abs) again', function ()
-              state.camera_forward_ext_offset = -camera_data.forward_ext_distance
+              state.camera_forward_ext_offset = -camera_data.forward_ext_max_distance
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
               state.player_char.position = vector(120, 80)
               state.player_char.velocity = vector(-(camera_data.forward_ext_min_speed_x - 1), 0)
 
               state:update_camera()
 
-              assert.are_equal(-(camera_data.forward_ext_distance - camera_data.forward_ext_catchup_speed_x), state.camera_forward_ext_offset)
-              assert.are_equal(120 - (camera_data.forward_ext_distance - camera_data.forward_ext_catchup_speed_x), state.camera_pos.x)
+              assert.are_equal(-(camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), state.camera_forward_ext_offset)
+              assert.are_equal(120 - (camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), state.camera_pos.x)
             end)
 
             it('forward extension: should decrease forward extension (in abs) back to 0 when character goes below forward_ext_min_speed_x (in abs) for long', function ()
-              state.camera_forward_ext_offset = -0.1  -- just something lower (in abs) than camera_data.forward_ext_distance
+              state.camera_forward_ext_offset = -0.1  -- just something lower (in abs) than camera_data.forward_ext_max_distance
               state.camera_pos = vector(120 + state.camera_forward_ext_offset, 80)
               state.player_char.position = vector(120, 80)
               state.player_char.velocity = vector(-(camera_data.forward_ext_min_speed_x - 1), 0)

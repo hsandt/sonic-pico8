@@ -665,13 +665,16 @@ function stage_state:update_camera()
   --  we must mentally subtract the offset back to get the non-extended camera position
   --  (or we could store some self.base_camera_pos if we didn't mind the extra member)
 
-  local target_forward_ext_offset = 0
-  if abs(self.player_char.velocity.x) >= camera_data.forward_ext_min_speed_x then
-    -- running fast enough, activate forward extension
-    -- remember that our offset is signed to allow left/right transitions
-    target_forward_ext_offset = sgn(self.player_char.velocity.x) * camera_data.forward_ext_distance
-  end
+  -- running fast enough activate forward extension (if below forward_ext_min_speed_x, ratio will be 0)
+  -- unlike original game, we prefer a gradual increase toward the max extension distance to avoid
+  --  jittering when running on a bumpy ground that makes character oscillates between 2.9 and 3 (the threshold
+  --  at which they activate forward extension)
+  --  (the original game uses ground speed not velocity X so it doesn't have this issue)
+  local ratio = max(0, (abs(self.player_char.velocity.x) - camera_data.forward_ext_min_speed_x) / (camera_data.max_forward_ext_speed_x - camera_data.forward_ext_min_speed_x))
+  -- remember that our offset is signed to allow left/right transitions
+  local target_forward_ext_offset = sgn(self.player_char.velocity.x) * ratio * camera_data.forward_ext_max_distance
 
+  -- compute delta to target
   local ext_dx = target_forward_ext_offset - self.camera_forward_ext_offset
 
   -- clamp abs ext_dx with catchup speed

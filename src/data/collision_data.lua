@@ -47,13 +47,16 @@ local mask_tile_angles = transform(
     [10] = {8, -2},
     [11] = {8, -2},
 
-    -- mid slope descending every 2px
-    [12] = {8, 4},
-    [13] = {8, 4},
+    -- mid slope descending every 2px,
+    --  but manually adjust from {8, 4} to a lower slope angle
+    --  for better physics feel, closer to Sonic 3 (and no 45 deg sprite rotation)
+    [12] = {8, 3},
+    [13] = {8, 3},
 
     -- mid slope ascending every 2px
-    [14] = {8, -4},
-    [15] = {8, -4},
+    --  (see remark on adjustment above)
+    [14] = {8, -3},
+    [15] = {8, -3},
 
     -- loop (collider only)
 

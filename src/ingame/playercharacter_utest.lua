@@ -6484,7 +6484,16 @@ describe('player_char', function ()
 
     end)
 
-    describe('#solo update_velocity_component_debug', function ()
+    describe('update_velocity_component_debug', function ()
+
+      it('should change nothing when debug speed and move intention in x is 0', function ()
+        pc.debug_velocity.x = 0
+        pc.move_intention.x = 0
+
+        pc:update_velocity_component_debug("x")
+
+        assert.are_equal(0, pc.debug_velocity.x)
+      end)
 
       it('should accelerate on x when vx = 0 and input x ~= 0', function ()
         pc.debug_velocity.x = 0
@@ -6554,6 +6563,36 @@ describe('player_char', function ()
         pc:update_velocity_component_debug("y")
 
         assert.are_same(vector(- pc.debug_move_accel, 2 - pc.debug_move_friction), pc.debug_velocity)
+      end)
+
+      describe('(when player is pressing double debug speed input)', function ()
+
+        before_each(function ()
+          input.players_btn_states[0][button_ids.o] = btn_states.pressed
+        end)
+
+        after_each(function ()
+          input:init()
+        end)
+
+        it('should change nothing when debug speed and move intention in x is 0', function ()
+          pc.debug_velocity.x = 0
+          pc.move_intention.x = 0
+
+          pc:update_velocity_component_debug("x")
+
+          assert.are_equal(0, pc.debug_velocity.x)
+        end)
+
+        it('should accelerate on x with 2x final speed when vx = 0 and input x ~= 0', function ()
+          pc.debug_velocity.x = 0
+          pc.move_intention.x = -1
+
+          pc:update_velocity_component_debug("x")
+
+          assert.are_equal(- 2 * pc.debug_move_accel, pc.debug_velocity.x)
+        end)
+
       end)
 
     end)

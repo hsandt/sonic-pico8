@@ -1765,28 +1765,33 @@ end
 function player_char:update_velocity_component_debug(coord)
   local old_debug_velocity_comp = self.debug_velocity:get(coord)
   local clamped_move_intention_comp = mid(-1, self.move_intention:get(coord), 1)
+  local new_debug_velocity_comp = 0  -- default value matters, else may be nil
 
   if clamped_move_intention_comp ~= 0 then
     if old_debug_velocity_comp == 0 or sgn(clamped_move_intention_comp) == sgn(old_debug_velocity_comp) then
       -- input from velocity component 0, or in same direction as current velocity component => accelerate
-      local new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_accel * clamped_move_intention_comp
+      new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_accel * clamped_move_intention_comp
       -- clamp to max in abs
       new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
-      -- set component
-      self.debug_velocity:set(coord, new_debug_velocity_comp)
     else
       -- input in opposite direction of current velocity component => decelerate
       -- input in same direction as current velocity component => accelerate
-      local new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_decel * clamped_move_intention_comp
+      new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_decel * clamped_move_intention_comp
       -- clamp to max in abs
       new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
-      -- set component
-      self.debug_velocity:set(coord, new_debug_velocity_comp)
     end
   elseif old_debug_velocity_comp ~= 0 then
     -- no input => friction aka passive deceleration
-    self.debug_velocity:set(coord, sgn(old_debug_velocity_comp) * max(0, abs(old_debug_velocity_comp) - self.debug_move_friction))
+    new_debug_velocity_comp = sgn(old_debug_velocity_comp) * max(0, abs(old_debug_velocity_comp) - self.debug_move_friction)
   end
+
+  -- check extra input to 2x debug speed
+  if input:is_down(button_ids.o) then
+    new_debug_velocity_comp = 2 * new_debug_velocity_comp
+  end
+
+  -- set component
+  self.debug_velocity:set(coord, new_debug_velocity_comp)
 end
 
 --#endif

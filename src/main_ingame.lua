@@ -51,6 +51,7 @@ function _init()
     ['ui'] = true,
     ['loop'] = true,
     ['emerald'] = true,
+    ['palm'] = true,
     ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,

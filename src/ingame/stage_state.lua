@@ -47,6 +47,10 @@ function stage_state:init()
   self.spawned_emerald_locations = {}
   self.emeralds = {}
 
+  -- palm trees: list of global locations of palm tree leaves core sprites detected
+  -- used to draw the palm tree extension sprites on foreground
+  self.palm_tree_leaves_core_global_locations = {}
+
   -- position of the main camera, at the center of the view
   self.camera_pos = vector.zero()
   -- camera forward extension offset (px, signed)
@@ -232,42 +236,21 @@ function stage_state:spawn_new_emeralds()
   end
 end
 
--- scan current map region and generate a palm tree leaves object for every palm tree top tile
+-- scan current map region and generate a palm tree leaves object for every palm tree leaves core tile
 function stage_state:spawn_palm_tree_leaves()
-  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
-  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
-  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
-  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
   for i = 0, map_region_tile_width - 1 do
     for j = 0, map_region_tile_height - 1 do
-      -- here we already have region (i, j), so no need to convert for mget
+      -- we already have region location (i, j), so no need to convert to global for mget
       local tile_sprite_id = mget(i, j)
 
-      -- we do need to convert for spawn global locations tracking though
-      local region_loc = location(i, j)
-      local global_loc = self:region_to_global_location(region_loc)
+      if tile_sprite_id == visual.palm_tree_leaves_core_id then
+        -- we do need to convert for spawn global locations
+        local region_loc = location(i, j)
+        local global_loc = self:region_to_global_location(region_loc)
 
-      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
-        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
-        --  and won't be drawn at all
-        -- besides, the emerald tiles would come back on next region reload anyway
-        --  (hence the importance of tracking emeralds already spawned)
-
-        -- remember where you spawned that emerald, in global location so that we can keep track
-        --  of all emeralds across the extended map
-        add(self.spawned_emerald_locations, global_loc)
-
-        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
-        --  when changing region)
-        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
-        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
-
-        -- aesthetics note: the number depends on the order in which emeralds are discovered
-        -- but regions are always preloaded for object spawning in the same order, so
-        -- for given emerald locations, their colors are deterministic
-        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
-
-        log("added emerald #"..#self.emeralds, "emerald")
+        -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+        add(self.palm_tree_leaves_core_global_locations, global_loc)
+        log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
       end
     end
   end
@@ -1118,6 +1101,17 @@ function stage_state:render_environment_foreground()
         tile_size * area.left, tile_size * area.top,
         area.right - area.left + 1, area.bottom - area.top + 1,
         sprite_masks.midground)
+  end
+
+  -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
+  for global_loc in all(self.palm_tree_leaves_core_global_locations) do
+    -- top has pivot at its bottom-left = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_top:render(global_loc:to_topleft_position())
+    -- right has pivot at is bottom-left = the top-right of the core
+    local right_global_loc = global_loc + location(1, 0)
+    visual.sprite_data_t.palm_tree_leaves_right:render(right_global_loc:to_topleft_position())
+    -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
   end
 end
 

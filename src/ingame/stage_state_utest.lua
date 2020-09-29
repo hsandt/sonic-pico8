@@ -4,6 +4,7 @@ local stage_state = require("ingame/stage_state")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local location_rect = require("engine/core/location_rect")
+local sprite_data = require("engine/render/sprite_data")
 local overlay = require("engine/ui/overlay")
 local label = require("engine/ui/label")
 
@@ -49,6 +50,7 @@ describe('stage_state', function ()
             false,
             {},
             {},
+            {},
             vector.zero(),
             overlay(0),
             nil
@@ -61,6 +63,7 @@ describe('stage_state', function ()
             state.has_reached_goal,
             state.spawned_emerald_locations,
             state.emeralds,
+            state.palm_tree_leaves_core_global_locations,
             state.camera_pos,
             state.title_overlay,
             state.loaded_map_region_coords
@@ -281,6 +284,35 @@ describe('stage_state', function ()
             emerald(2, location(1, 1 + 32)),
             emerald(3, location(3, 3 + 32)),
           }, state.emeralds)
+        end)
+
+      end)
+
+      describe('spawn_palm_tree_leaves', function ()
+
+        -- setup is too early, stage state will start afterward in before_each,
+        --  and its on_enter will call spawn_palm_tree_leaves, making it hard
+        --  to test in isolation. Hence before_each.
+        before_each(function ()
+          -- we're not using tile_test_data.setup here (since palm trees are checked
+          --  directly by id, not using collision data) so don't use mock_mset
+          mset(1, 1, visual.palm_tree_leaves_core_id)
+          mset(20, 2, visual.palm_tree_leaves_core_id)
+
+          state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
+        end)
+
+        after_each(function ()
+          pico8:clear_map()
+        end)
+
+        it('should store palm tree leaves core global location', function ()
+          state:spawn_palm_tree_leaves()
+
+          assert.are_same({
+            location(1, 1 + 32),
+            location(20, 2 + 32),
+          }, state.palm_tree_leaves_core_global_locations)
         end)
 
       end)
@@ -1809,6 +1841,7 @@ describe('stage_state', function ()
 
               stub(stage_state, "set_camera_with_origin")
               stub(stage_state, "set_camera_with_region_origin")
+              stub(sprite_data, "render")
               stub(_G, "spr")
               stub(_G, "map")
             end)
@@ -1818,6 +1851,7 @@ describe('stage_state', function ()
 
               stage_state.set_camera_with_origin:revert()
               stage_state.set_camera_with_region_origin:revert()
+              sprite_data.render:revert()
               spr:revert()
               map:revert()
             end)
@@ -1838,6 +1872,11 @@ describe('stage_state', function ()
                 loop_entrance_areas = {location_rect(1, 0, 3, 4)},
                 goal_x = 3000
               }
+
+              -- palm tree example to demonstrate extra foreground
+              state.palm_tree_leaves_core_global_locations = {
+                location(10, 2)
+              }
             end)
 
             after_each(function ()
@@ -1845,10 +1884,12 @@ describe('stage_state', function ()
 
               stage_state.set_camera_with_origin:clear()
               stage_state.set_camera_with_region_origin:clear()
+              sprite_data.render:clear()
               spr:clear()
               map:clear()
             end)
 
+            -- draw_onscreen_tiles is DEPRECATED
             it('draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 0))', function ()
               state.loaded_map_region_coords = vector(0, 0)
               state.camera_pos = vector(0, 0)
@@ -1944,6 +1985,7 @@ describe('stage_state', function ()
               assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
 
               assert.spy(map).was_called(2)
+
               assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
               assert.spy(stage_state.set_camera_with_origin).was_called(1)
@@ -1955,7 +1997,15 @@ describe('stage_state', function ()
                 tile_size * area.left, tile_size * area.top,
                 area.right - area.left + 1, area.bottom - area.top + 1,
                 sprite_masks.midground)
-                    end)
+
+              assert.spy(sprite_data.render).was_called(3)
+              -- top
+              assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_top), vector(8 * 10, 8 * 2))
+              -- right
+              assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 11, 8 * 2))
+              -- left (right flipped x)
+              assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 10, 8 * 2), true)
+            end)
 
           end)  -- state render methods
 

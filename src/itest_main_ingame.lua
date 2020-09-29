@@ -41,6 +41,7 @@ function _init()
     -- ['log'] = nil,
     -- ['ui'] = nil,
     ['frame'] = true,
+    ['frame2'] = true,
     ['trace'] = true,
     ['spring'] = true,
 

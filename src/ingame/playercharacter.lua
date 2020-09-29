@@ -1627,8 +1627,13 @@ function player_char:next_air_step(direction, ref_motion_result)
   -- It is necessary during horizontal motion to complement
   --  ground sensors, the edge case being when the bottom of the character matches
   --  the bottom of a collision tile, ground sensors could only detect the tile below
-  -- if we have already found a blocker above (only possible for left and right),
-  --  then there is no need to check further, though
+  -- if we have already found a blocker above and are still in left/right direction
+  --  then there is no need to check further, though.
+  -- But, as in the case of a jump into a ceiling corner, we may have an old is_blocked_by_wall flag from a previous
+  --  x motion step and now doing a y motion (in particular upward) that is unrelated.
+  -- We definitely want to detect the wall on the side AND the ceiling, so if direction is up, ALSO check
+  --  the ceiling even if wall was found in previous step.
+
   -- The SPG (http://info.sonicretro.org/SPG:Solid_Tiles#Ceiling_Sensors_.28C_and_D.29)
   --  remarks that ceiling detection is done when moving upward or when moving faster horizontally than vertically
   --  (this includes moving horizontally)
@@ -1644,12 +1649,12 @@ function player_char:next_air_step(direction, ref_motion_result)
   -- UPDATE: it doesn't seem to reliable as itest platformer slope ceiling block right
   --  would fail by considering character blocked by ascending slope above nothing
   --  I'm not sure why that itest used to work, but if having issues with this,
-  --  add an extra check on ground step if no pixel is found (and extactly at a tile bottom)
+  --  add an extra check on ground step if no pixel is found (and exactly at a tile bottom)
   --  to see if there is not a collision pixel 1px above (should be on another tile above)
   --  and from here compute the actual ground distance... of course, always add supporting ground
   --  tile under a ground tile when possible
   if not ref_motion_result.is_blocked_by_wall and
-      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) then
+      (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) or direction == directions.up then
     local is_blocked_by_ceiling_at_next = self:is_blocked_by_ceiling_at(next_position_candidate)
     if is_blocked_by_ceiling_at_next then
       if direction == directions.up then

@@ -698,10 +698,25 @@ itest_dsl_parser.register(
 warp 11 24
 jump
 move left
-wait 20
+wait 5
 
-expect pc_velocity 0 1
+expect pc_bottom_pos 11 16
+expect pc_motion_state air_spin
+expect pc_ground_spd 0
+expect pc_velocity 0 0
 ]])
+
+-- should hit ceiling at frame 5, Y 12
+-- when ceiling bug was active, removing the "move left" instruction
+--  proved it as the test would pass with a vertical jump that stops at:
+--[[
+[frame] frame #4
+[trace] self.position: vector(11.0, 13.609375)
+[trace] self.velocity: vector(0.0, -3.140625)
+[frame] frame #5
+[trace] self.position: vector(11.0, 12.0) (add 4 for bottom pos, so 16)
+[trace] self.velocity: vector(0.0, 0)
+--]]
 
 --[=[
 

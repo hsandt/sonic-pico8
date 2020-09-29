@@ -5967,6 +5967,38 @@ describe('player_char', function ()
             )
           end)
 
+          -- added to identify diagonal move getting through ceiling corner
+          --  trying to reduce itest to a utest
+          -- fixed by re-adding condition direction == directions.up which I removed
+          --  when I switched to the sheer velocity check (which in the end is much more rare)
+          it('direction up into ceiling should not move, and flag is_blocked_by_ceiling, even if already is_blocked_by_wall', function ()
+            -- we need an upward velocity for ceiling check if not faster on x than y
+            pc.velocity.x = 0
+            pc.velocity.y = -3
+
+            local motion_result = motion.air_motion_result(
+              nil,
+              vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
+              true,  -- is_blocked_by_wall
+              false,
+              false,
+              nil
+            )
+
+            pc:next_air_step(directions.up, motion_result)
+
+            assert.are_same(motion.air_motion_result(
+                nil,
+                vector(4, 8 + pc_data.full_height_standing - pc_data.center_height_standing),
+                true,  -- is_blocked_by_wall
+                true,
+                false,
+                nil
+              ),
+              motion_result
+            )
+          end)
+
           it('direction down into ground should not move, and flag is_landing with slope_angle 0', function ()
             pc.velocity.x = 0
             pc.velocity.y = 3

@@ -453,7 +453,7 @@ function player_char:get_ground_sensor_position_from(center_position, quadrant_h
   return qx_floored_bottom_center + offset_qx_vector
 end
 
--- helper method for _compute_closest_ground_query_info and _is_blocked_by_ceiling_at
+-- helper method for compute_closest_ground_query_info and _is_blocked_by_ceiling_at
 -- for given player character pc, it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
@@ -479,6 +479,11 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   --  so we play on the fact that method = function bound to self and just write the .static_method(self) syntax (same token count)
   local start_global_tile_loc = vector.to_location(sensor_position + start_tile_offset_qy * collision_check_quadrant_down)
   local last_global_tile_loc = vector.to_location(sensor_position + last_tile_offset_qy * collision_check_quadrant_down)
+
+--#if assert
+  -- only used for tile qj safety check, see comment at the bottom
+  local last_qj = world.get_quadrant_j_coord(last_global_tile_loc, collision_check_quadrant)
+--#endif
 
   -- precompute start tile topleft (we're actually only interested in sensor location topleft,
   --  and both have the same qx)
@@ -563,16 +568,33 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         return result
       end
 
-      -- else (can only happen in _compute_closest_ground_query_info): ground has been found, but it is too far below character's q-feet
+      -- else (can only happen in compute_closest_ground_query_info): ground has been found, but it is too far below character's q-feet
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
       --  which means we will enter the "end of iteration" block below
       assert(curr_global_tile_loc == last_global_tile_loc)
     end
 
-    -- since we only iterate on qj, we really only care about qj (which is i when quadrant is horizontal)
-    --  but it costed more token to define get_quadrant_j_coord than to just compare both coords
+    -- we do a simple check in PICO-8 release:
+--[[#pico8
+--#ifn assert
     if curr_global_tile_loc == last_global_tile_loc then
+--#endif
+--#pico8]]
+    -- ... which is perfectly fine in normal conditions
+    --  because we are supposed to reach the last tile at some point
+    -- however, for malformed requests like a very big ceiling escape distance that would start the iteration above
+    --  character full height top tile, we'd go crazy and iterate toward the infinite, then loop back at 65536 to -65536
+    --  and finally come back
+    -- to avoid this we do a proper q-comparison of qj "is current tile beyond last tile in the iteration direction"
+    --  so if we start beyond, it's fine, but still assert as weird behavior would occur like vx -> 0 when hitting ceiling
+    -- it's a rare case where assert version is faster than release version *in weird conditions*, useful to test
+    --  crazy escape values, but otherwise stick to the version above to reduce char count
+--#if assert
+    local curr_qj = world.get_quadrant_j_coord(curr_global_tile_loc, collision_check_quadrant)
+    if world.sub_qy(curr_qj, last_qj, collision_check_quadrant) >= 0  then
+--#endif
+      assert(curr_global_tile_loc == last_global_tile_loc, "see comment in iterate_over_collision_tiles")
       -- let caller decide how to handle the end of iteration without finding any collider
       return no_collider_callback()
     end
@@ -581,7 +603,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   end
 end
 
--- actual body of _compute_closest_ground_query_info passed to iterate_over_collision_tiles
+-- actual body of compute_closest_ground_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
 -- return nil if no clear result and we must continue to iterate (until the last tile)
 local function ground_check_collider_distance_callback(tile_location, signed_distance_to_closest_ground, slope_angle)
@@ -601,7 +623,7 @@ local function ground_check_collider_distance_callback(tile_location, signed_dis
   end
 end
 
--- actual body of _compute_closest_ground_query_info passed to iterate_over_collision_tiles
+-- actual body of compute_closest_ground_query_info passed to iterate_over_collision_tiles
 --  as no_collider_callback
 local function ground_check_no_collider_callback()
   -- end of iteration, and no ground found or too far below to snap q-down
@@ -648,8 +670,14 @@ function player_char:check_escape_from_ground()
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- character is either just touching ground (signed_distance_to_closest_ground == 0)
       --  or inside ground, so:
-      -- snap character up to ground top (it does nothing if already touching ground)
-      self.position.y = self.position.y + signed_distance_to_closest_ground
+      -- snap character q-upward to ground q-top (it does nothing if already touching ground)
+      -- (we currently only check_escape_from_ground after a warp where quadrant is down,
+      --  but this can prove useful if using this for ceiling adherence later; currently
+      --  we just use a manual offset when landing on a non-down quadrant to fix
+      --  #129 BUG MOTION curve_run_up_fall_in_wall as check_escape_from_ground even with quadrant
+      --  gives a different result, pushing out too much and ending quadrant down again)
+      local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
+      self.position:add_inplace(vector_to_closest_ground)
       -- register ground tile for later
       self:set_ground_tile_location(query_info.tile_location)
       -- set slope angle to new ground
@@ -1166,9 +1194,12 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
       -- caution: we are not updating qy at all, which means the character starts
       --  "walking horizontally in the air". in sonic games, we would expect
       --  momentum to take over and send the character along qy, preserving
-      --  velocity qvy from last frame
-      -- so when adding momentum, consider reusing the last delta qy (e.g. vector_to_closest_ground.y)
+      --  velocity qvy from last frame (e.g. when running off a slope)
+      -- consider reusing the last delta qy (e.g. vector_to_closest_ground qy)
       --  and applying it this frame
+      -- but we tested and since we lose a single frame of step max, it's not perceptible:
+      --  on the next airborne frames, the velocity and full air motion is more important and works
+      --  as expected when running off a slope
       ref_motion_result.is_falling = true
     end
   end
@@ -1267,7 +1298,7 @@ function player_char:is_column_blocked_by_ceiling_at(sensor_position)
   -- we must at least start checking ceiling 1 px above foot sensor (because when foot is just on top of tile,
   --  the current sensor tile is actually the tile *below* the character, which is often a full tile and will bypass
   --  ignore_reverse (see world.compute_qcolumn_height_at); in practice +4/+8 is a good offset, we pick max_ground_escape_height + 1 = 5
-  --  because it allows us to effectively check the q-higher pixels not already checked in _compute_closest_ground_query_info)
+  --  because it allows us to effectively check the q-higher pixels not already checked in compute_closest_ground_query_info)
 
   -- finally, we check actual collision at head top position, so we pass an offset of self:get_full_height() (argument 5)
   --  from here, we need:
@@ -1598,6 +1629,7 @@ function player_char:next_air_step(direction, ref_motion_result)
         --  the penetration distance will be no more than 1 and you will always snap to ground.
         -- But this didn't work when direction left/right hit the slope.
         -- refactor: code is similar to _check_escape_from_ground and above all _next_ground_step
+        -- if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
         if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
           next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
           -- landing: the character has just set foot on ground, flag it and initialize slope angle
@@ -1608,6 +1640,40 @@ function player_char:next_air_step(direction, ref_motion_result)
           -- if this step is blocked by landing, there is no extra motion,
           --  but character will enter grounded state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, query_info.slope_angle
+          -- as part of the bigger adherence system, but for now very simplified
+          --  to fix #129 BUG MOTION curve_run_up_fall_in_wall:
+          --  if the quadrant changed (from the air default, down), we must adjust the character
+          --  center position to stabilize his bottom position, so that his feet are just touching the new ground
+          --  instead of entering it
+          -- world.angle_to_quadrant will be called later as part of player_char:set_slope_angle_with_quadrant
+          --  on the final air motion result, but we prefer adjusting the position now
+          local new_quadrant = world.angle_to_quadrant(ref_motion_result.slope_angle)
+          -- we only care about left and right wall, as character center is *centered* in the collision rectangle,
+          --  if character becomes upside down (e.g. with ceiling adherence system) his feet will be placed
+          --  where his head was when it hit the ceiling, so they will also touch the ceiling
+          -- (currently character can only adhere to bottom-left or bottom-right slopes anyway, but if very steep
+          --  they are turn the quadrant to the side)
+          if new_quadrant % 2 == 0 then  -- equivalent to (new_quadrant == directions.left or new_quadrant == directions.right)
+            -- unfortunaly, check_escape_from_ground even with the new quadrant code proved either unable to push
+            --  the character out (already too deep in ground), or pushing the character out too much (when increasing escape threshold just there)
+            --  when called after taking final air motion result into account and detecting landing
+            -- so instead we manually adjust the position here, without being sure of how close to the ground
+            --  we are due to the complex case of rotating near a slope, but as an estimation we consider that
+            --  Sonic being a rectangle (almost a square when compact due to ground sensor 2.5 ~= compact center height 4 though,
+            --  being the reason for bug #129 only showing when falling standing), by adding the difference ground/wall sensor
+            --  vs center height we can somewhat escape from the ground and let next updates do the final adjustments
+            --  (leaving ground again and falling again on flatter ground, or escaping ground on next full pixel ground motion
+            --  so this time Sonic really steps exactly on the ground)
+            local new_quadrant_down = dir_vectors[new_quadrant]
+            local qupward_offset = - ceil(self:get_center_height() - pc_data.ground_sensor_extent_x) * new_quadrant_down
+            ref_motion_result.position:add_inplace(qupward_offset)
+          end
+          -- to simplify we keep the tile location, even though in theory we should readjust it to the adjusted position,
+          --  as we consider the position close enough, and if it sent us airborne then we'll just reland in a few frames anyway
+          -- note that at this point, it would be good to return some signal to the caller (advance_in_air_along)
+          --  to tell them to stop iterating because moving on XY after landing is not consistent,
+          --  plus we may have started adjusting the position above (if quadrant is left or right)
+          --  causing a weird result if we go on; but there are currently no visible issues in game
           ref_motion_result.tile_location = query_info.tile_location
           log("is landing at adjusted y: "..next_position_candidate.y..", setting slope angle to "..query_info.slope_angle, "trace2")
         else

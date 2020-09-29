@@ -30,6 +30,7 @@ visual_loop_bottomleft = 97
 mask_loop_bottomleft = 17
 visual_loop_bottomright = 100
 mask_loop_bottomright = 20
+visual_loop_bottomright_steepest = 102
 spring_left_id = 74                   -- add 1 to get right
 grass_top_decoration1 = 76            -- no collider, just to test foreground
 
@@ -49,6 +50,7 @@ tile_symbol_to_ids = {
   ['Y'] = visual_loop_topleft,  -- loop top-left corner
   ['Z'] = visual_loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
   ['R'] = visual_loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
+  ['i'] = visual_loop_bottomright_steepest,
   ['s'] = spring_left_id,
   ['S'] = spring_left_id + 1,
 }

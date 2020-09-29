@@ -134,6 +134,26 @@ describe('world (with mock tiles data setup)', function ()
 
   end)
 
+  describe('get_quadrant_j_coord', function ()
+
+    it('should return loc.j when quadrant is down', function ()
+      assert.are_equal(2, world.get_quadrant_j_coord(location(1, 2), directions.down))
+    end)
+
+    it('should return loc.j when quadrant is up', function ()
+      assert.are_equal(2, world.get_quadrant_j_coord(location(1, 2), directions.up))
+    end)
+
+    it('should return loc.j when quadrant is right', function ()
+      assert.are_equal(1, world.get_quadrant_j_coord(location(1, 2), directions.right))
+    end)
+
+    it('should return loc.j when quadrant is left', function ()
+      assert.are_equal(1, world.get_quadrant_j_coord(location(1, 2), directions.left))
+    end)
+
+  end)
+
   describe('set_position_quadrant_x', function ()
 
     it('should set pos.x when quadrant is down', function ()

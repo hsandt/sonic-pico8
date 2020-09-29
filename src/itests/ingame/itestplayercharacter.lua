@@ -681,14 +681,10 @@ expect pc_velocity 0 0
 
 --]=]
 
--- TODO: advance this test until actual collision with ceiling
--- around frame 19, so we can prove that character is going through ceiling
---  and this must be fixed
--- for some reason, busted and pico-8 results also slightly differ
---  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
+--[=[
 
 itest_dsl_parser.register(
-  '#solo platformer air ceiling corner block', [[
+  'platformer air ceiling corner block', [[
 @stage #
 ##
 #.
@@ -717,6 +713,8 @@ expect pc_velocity 0 0
 [trace] self.position: vector(11.0, 12.0) (add 4 for bottom pos, so 16)
 [trace] self.velocity: vector(0.0, 0)
 --]]
+
+--]=]
 
 --[=[
 
@@ -802,6 +800,34 @@ expect pc_velocity -0x000.9aba -1.609375
 -- at frame 18: bpos (4, 15.625), velocity (0, -1.5), air_spin -> before apogee
 -- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
+
+-- added to fix #129 BUG MOTION curve_run_up_fall_in_wall
+-- with bug, character is preserving his center but when falling without spinning,
+--  his shape is a rectangle not a square, so the instant rotation of 90 degrees
+--  will place his feet inside the wall just above the steep slope (responsible
+--  for the sudden quadrant change)
+-- with the fix, his position should be readjusted so his feet really just touch the wall
+--  increasing max_ground_escape_height to 6 can hotfix the thing, but it would still take
+--  2 frames to move down a full pixel and trigger the escape during ground motion
+-- that's why we prefer solving the issue on frame 9 (when landing is done) and not frame 11
+-- note that in the tilemap, we add the column of # for a realistic case,
+--  but even without them the issue appears, which makes us think the issue is the same as
+--  #128 BUG MOTION edgy_rising_curve_sonic_stuck and possibly
+--  #131 BUG MOTION fall_on_curve_to_death
+itest_dsl_parser.register(
+  'fall on curve top', [[
+@stage #
+..#
+..#
+.i#
+
+warp 13 12
+wait 9
+
+expect pc_bottom_pos 15 8
+expect pc_motion_state grounded
+expect pc_velocity 0 0.984375
+]])
 
 --[=[
 

@@ -32,6 +32,7 @@ local mock_raw_tile_collision_data = {
   [visual_loop_toptopright] = {mask_loop_toptopright, {0, 0, 0, 1, 1, 2, 2, 3}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, -3)},
   [visual_loop_bottomleft] = {mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
   [visual_loop_bottomright] = {mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
+  [visual_loop_bottomright_steepest] = {22, {0, 0, 0, 0, 0, 2, 5, 8}, {1, 1, 1, 2, 2, 2, 3, 3}, atan2(3, -8)},
   -- note that we didn't add definitions for mask_ versions, as we don't use them in tests
   -- if we need them, then since content is the same, instead of duplicating lines for mask_,
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
@@ -88,6 +89,8 @@ function tile_test_data.setup()
 
   fset(visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
   fset(mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
+
+  fset(visual_loop_bottomright_steepest, sprite_masks.collision + sprite_masks.midground)
 
   -- visual sprites
   fset(spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)

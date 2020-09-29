@@ -1861,6 +1861,23 @@ describe('player_char', function ()
             assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
           end)
 
+          it('should move the character q-upward (to the left on right wall) just enough to escape ground if character is inside q-ground, update slope to 0 and enter state grounded', function ()
+            pc.quadrant = directions.right
+            pc:set_bottom_center(vector(9, 12))
+            pc:check_escape_from_ground()
+
+            -- interface
+            assert.are_same(vector(8, 12), pc:get_bottom_center())
+
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
+
+            assert.spy(player_char.enter_motion_state).was_called(1)
+            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+          end)
+
           it('should reset state vars to too deep convention when character is too deep inside the ground and enter state falling', function ()
             pc:set_bottom_center(vector(12, 13))
             pc:check_escape_from_ground()
@@ -5967,8 +5984,8 @@ describe('player_char', function ()
             )
           end)
 
-          -- added to identify diagonal move getting through ceiling corner
-          --  trying to reduce itest to a utest
+          -- added to identify #122 BUG MOTION jump-through-ceiling-diagonal
+          --  trying to reduce itest "platformer air ceiling corner block" to a utest
           -- fixed by re-adding condition direction == directions.up which I removed
           --  when I switched to the sheer velocity check (which in the end is much more rare)
           it('direction up into ceiling should not move, and flag is_blocked_by_ceiling, even if already is_blocked_by_wall', function ()
@@ -6417,6 +6434,45 @@ describe('player_char', function ()
                 false,
                 false,
                 nil
+              ),
+              motion_result
+            )
+          end)
+
+        end)  -- (with flat ground)
+
+        describe('(with steep curve top)', function ()
+
+          before_each(function ()
+            -- i
+            mock_mset(0, 0, visual_loop_bottomright_steepest)
+          end)
+
+          -- added to identify #129 BUG MOTION curve_run_up_fall_in_wall
+          -- and accompany itest "fall on curve top"
+          it('direction down into steep curve should move, flag is_landing with slope_angle atan2(3, -8) but above all adjust position X to the left so feet just stand on the slope', function ()
+            pc.velocity.x = 0
+            pc.velocity.y = 3
+
+            local motion_result = motion.air_motion_result(
+              nil,
+              vector(5, 0 - pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:next_air_step(directions.down, motion_result)
+
+            assert.are_same(motion.air_motion_result(
+                location(0, 0),
+                -- kinda arbitrary offset of 6, but based on character data
+                vector(-1, 0 - pc_data.center_height_standing),
+                false,
+                false,
+                true,
+                atan2(3, -8)
               ),
               motion_result
             )

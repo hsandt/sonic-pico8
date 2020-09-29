@@ -828,6 +828,16 @@ describe('stage_state', function ()
               }
             end)
 
+            it('(debug motion) should track the player 1:1', function ()
+              state.camera_pos = vector(120, 80)
+              state.player_char.motion_mode = motion_modes.debug
+              state.player_char.position = vector(140, 100)
+
+              state:update_camera()
+
+              assert.are_same(vector(140, 100), state.camera_pos)
+            end)
+
             it('should move the camera X so player X is on left edge if he goes beyond left edge', function ()
               state.camera_pos = vector(120, 80)
               state.player_char.position = vector(120 - camera_data.window_half_width - 1, 80)

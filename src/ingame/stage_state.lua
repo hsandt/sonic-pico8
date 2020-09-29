@@ -232,6 +232,46 @@ function stage_state:spawn_new_emeralds()
   end
 end
 
+-- scan current map region and generate a palm tree leaves object for every palm tree top tile
+function stage_state:spawn_palm_tree_leaves()
+  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
+  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
+  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
+  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+  for i = 0, map_region_tile_width - 1 do
+    for j = 0, map_region_tile_height - 1 do
+      -- here we already have region (i, j), so no need to convert for mget
+      local tile_sprite_id = mget(i, j)
+
+      -- we do need to convert for spawn global locations tracking though
+      local region_loc = location(i, j)
+      local global_loc = self:region_to_global_location(region_loc)
+
+      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
+        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+        --  and won't be drawn at all
+        -- besides, the emerald tiles would come back on next region reload anyway
+        --  (hence the importance of tracking emeralds already spawned)
+
+        -- remember where you spawned that emerald, in global location so that we can keep track
+        --  of all emeralds across the extended map
+        add(self.spawned_emerald_locations, global_loc)
+
+        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+        --  when changing region)
+        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+        -- aesthetics note: the number depends on the order in which emeralds are discovered
+        -- but regions are always preloaded for object spawning in the same order, so
+        -- for given emerald locations, their colors are deterministic
+        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+        log("added emerald #"..#self.emeralds, "emerald")
+      end
+    end
+  end
+end
 
 -- extended map system: to allow game to display more than the standard 128x32 PICO-8 map
 --  (as we need shared data for extra sprites and it wouldn't work for horizontal extension),
@@ -496,6 +536,7 @@ function stage_state:spawn_objects_in_all_map_regions()
       self:reload_map_region(vector(u, v))
       -- load any *new* items detected in this region
       self:spawn_new_emeralds()
+      self:spawn_palm_tree_leaves()
     end
   end
 end
@@ -639,6 +680,16 @@ end
 
 -- update camera position based on player character position
 function stage_state:update_camera()
+--#if cheat
+    if self.player_char.motion_mode == motion_modes.debug then
+      -- in debug motion, just track the character (otherwise he may move too fast vertically
+      --  and lost the camera)
+      self.camera_pos = self.player_char.position
+      return
+    end
+    -- else: self.motion_mode == motion_modes.platformer
+--#endif
+
   -- Window system: most of the time, only move camera when character
   --  is leaving the central window
 

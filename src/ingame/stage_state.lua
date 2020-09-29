@@ -66,6 +66,11 @@ function stage_state:init()
 
   -- list of falling leaves heights per row, from farthest (bottom) to closest
   -- self.leaves_dheight_array_list = nil
+
+--#if itest
+  -- set to false in itest setup to disable object spawning, which relies on very slow map scan
+  self.enable_spawn_objects = true
+--#endif
 end
 
 function stage_state:on_enter()
@@ -75,7 +80,20 @@ function stage_state:on_enter()
 
   -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
   --  we preload all map regions on stage start and spawn
+
+--#if itest
+  -- skip this step during itests unles you specifically need to test objects e.g. picking an emerald,
+  --  as it's slow and will add considerable overhead on test start
+  if self.enable_spawn_objects then
+    self:spawn_objects_in_all_map_regions()
+  end
+--#endif
+
+--[[#pico8
+--#ifn itest
   self:spawn_objects_in_all_map_regions()
+--#endif
+--#pico8]]
 
   -- make sure to reload map region where player character will be before spawning player character,
   --  as he will need it for initial collision check

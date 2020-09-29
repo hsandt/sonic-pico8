@@ -622,6 +622,15 @@ function itest_dsl_parser.create_itest(name, dsli)
   itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
 
   itest_dsl_parser._itest.setup = function (app)
+    -- disable object scan + spawn as it's very slow to iterate on the whole map
+    --  at the beginning of each test
+    -- if later you add a test to specifically test objects, just add a flag in the DSL
+    --  like @stage #with_objects to still enable object scan + spawn
+    -- note that we do this even if dsli.gamestate_type is not stage,
+    --  as itests in titlemenu may enter stage and we don't want to waste time
+    --  when entering stage state at the end of the itest
+    flow.gamestates[':stage'].enable_spawn_objects = false
+
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == ':stage' then
       -- puppet control

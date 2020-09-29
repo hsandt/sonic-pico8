@@ -53,7 +53,9 @@ describe('stage_state', function ()
             {},
             vector.zero(),
             overlay(0),
-            nil
+            nil,
+            -- itest only
+            true,
           },
           {
             state.type,
@@ -66,7 +68,9 @@ describe('stage_state', function ()
             state.palm_tree_leaves_core_global_locations,
             state.camera_pos,
             state.title_overlay,
-            state.loaded_map_region_coords
+            state.loaded_map_region_coords,
+            -- itest only
+            state.enable_spawn_objects,
           })
       end)
 

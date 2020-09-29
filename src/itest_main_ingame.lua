@@ -86,12 +86,9 @@ function handle_input()
     return
   end
 
-  if itest_runner.current_state == test_states.success or
-    itest_runner.current_state == test_states.failure or
-    itest_runner.current_state == test_states.timeout then
-    -- previous itest has finished, wait for x press to continue to next itest
-    if btnp(button_ids.o) then
-      itest_manager:init_game_and_restart_itest()
-    end
+  if btnp(button_ids.o) then
+    itest_manager:init_game_and_restart_itest()
+  elseif btnp(button_ids.x) then
+    itest_runner:toggle_pause()
   end
 end

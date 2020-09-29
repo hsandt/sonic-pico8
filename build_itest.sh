@@ -23,7 +23,8 @@ config='itest'
 # symbols='assert,log,itest,cheat'
 # attempt to reduce char count (working at 64000 chars for now)
 # symbols='log,itest,cheat'
-symbols='itest,dump'
+# symbols='itest,dump'
+symbols='itest'
 
 cartridge_suffix="$1"; shift
 

@@ -687,23 +687,23 @@ expect pc_velocity 0 0
 -- for some reason, busted and pico-8 results also slightly differ
 --  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
 
---[=[
-
 itest_dsl_parser.register(
-  'platformer air ceiling corner block', [[
+  '#solo platformer air ceiling corner block', [[
 @stage #
 ##
 #.
 #.
 ##
 
-warp 12 24
+warp 11 24
 jump
 move left
 wait 20
 
 expect pc_velocity 0 1
 ]])
+
+--[=[
 
 -- complete test above with velocity, must be positive above all
 -- test below is more complex, forget about it
@@ -788,6 +788,7 @@ expect pc_velocity -0x000.9aba -1.609375
 -- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
 
+--[=[
 
 itest_dsl_parser.register(
   'bounce on spring (escape)', [[
@@ -823,6 +824,8 @@ expect pc_bottom_pos 10 34
 expect pc_motion_state falling
 expect pc_velocity 0 -5
 ]])
+
+--]=]
 
 --[=[
 

@@ -48,12 +48,12 @@ local mask_tile_angles = transform(
     [11] = {8, -2},
 
     -- mid slope descending every 2px
-    [12] = {8, -4},
-    [13] = {8, -4},
+    [12] = {8, 4},
+    [13] = {8, 4},
 
     -- mid slope ascending every 2px
-    [14] = {8, 4},
-    [15] = {8, 4},
+    [14] = {8, -4},
+    [15] = {8, -4},
 
     -- loop (collider only)
 

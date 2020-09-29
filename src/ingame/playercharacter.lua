@@ -42,12 +42,13 @@ motion_states = {
 
 local player_char = new_class()
 
--- parameters
+-- parameters (copied from PC data)
 
 -- spr_data               {string: sprite_data}   sprite data for this character
 -- debug_move_max_speed   float                   move max speed in debug mode
 -- debug_move_accel       float                   move acceleration in debug mode
 -- debug_move_decel       float                   move deceleration in debug mode
+-- debug_move_friction    float                   move friction in debug mode
 
 
 -- components
@@ -90,6 +91,7 @@ function player_char:init()
   self.debug_move_max_speed = pc_data.debug_move_max_speed
   self.debug_move_accel = pc_data.debug_move_accel
   self.debug_move_decel = pc_data.debug_move_decel
+  self.debug_move_friction = pc_data.debug_move_friction
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
 
@@ -1761,16 +1763,29 @@ end
 -- update the velocity component for coordinate "x" or "y" with debug motion
 -- coord  string  "x" or "y"
 function player_char:update_velocity_component_debug(coord)
-  if self.move_intention:get(coord) ~= 0 then
-    -- some input => accelerate (direction may still change or be opposed)
-    local clamped_move_intention_comp = mid(-1, self.move_intention:get(coord), 1)
-    self.debug_velocity:set(coord, self.debug_velocity:get(coord) + self.debug_move_accel * clamped_move_intention_comp)
-    self.debug_velocity:set(coord, mid(-self.debug_move_max_speed, self.debug_velocity:get(coord), self.debug_move_max_speed))
-  else
-    -- no input => decelerate
-    if self.debug_velocity:get(coord) ~= 0 then
-      self.debug_velocity:set(coord, sgn(self.debug_velocity:get(coord)) * max(abs(self.debug_velocity:get(coord)) - self.debug_move_decel, 0))
+  local old_debug_velocity_comp = self.debug_velocity:get(coord)
+  local clamped_move_intention_comp = mid(-1, self.move_intention:get(coord), 1)
+
+  if clamped_move_intention_comp ~= 0 then
+    if old_debug_velocity_comp == 0 or sgn(clamped_move_intention_comp) == sgn(old_debug_velocity_comp) then
+      -- input from velocity component 0, or in same direction as current velocity component => accelerate
+      local new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_accel * clamped_move_intention_comp
+      -- clamp to max in abs
+      new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
+      -- set component
+      self.debug_velocity:set(coord, new_debug_velocity_comp)
+    else
+      -- input in opposite direction of current velocity component => decelerate
+      -- input in same direction as current velocity component => accelerate
+      local new_debug_velocity_comp = old_debug_velocity_comp + self.debug_move_decel * clamped_move_intention_comp
+      -- clamp to max in abs
+      new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
+      -- set component
+      self.debug_velocity:set(coord, new_debug_velocity_comp)
     end
+  elseif old_debug_velocity_comp ~= 0 then
+    -- no input => friction aka passive deceleration
+    self.debug_velocity:set(coord, sgn(old_debug_velocity_comp) * max(0, abs(old_debug_velocity_comp) - self.debug_move_friction))
   end
 end
 

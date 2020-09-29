@@ -6484,49 +6484,76 @@ describe('player_char', function ()
 
     end)
 
-    describe('update_velocity_component_debug', function ()
+    describe('#solo update_velocity_component_debug', function ()
 
-      it('should accelerate on x when there is some input on x', function ()
+      it('should accelerate on x when vx = 0 and input x ~= 0', function ()
+        pc.debug_velocity.x = 0
+        pc.move_intention.x = -1
+
+        pc:update_velocity_component_debug("x")
+
+        assert.are_equal(- pc.debug_move_accel, pc.debug_velocity.x)
+      end)
+
+      it('should accelerate on positive x when vx > 0 and input x > 0', function ()
+        pc.debug_velocity = vector(2, 0)
+        pc.move_intention = vector(1, 0)
+
+        pc:update_velocity_component_debug("x")
+
+        assert.are_equal(2 + pc.debug_move_accel, pc.debug_velocity.x)
+      end)
+
+      it('should accelerate on negative x when vx < 0 and input x < 0', function ()
+        pc.debug_velocity = vector(-2, 0)
         pc.move_intention = vector(-1, 0)
 
         pc:update_velocity_component_debug("x")
 
-        assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel, 0),
-          pc.debug_velocity))
+        assert.are_equal(-2 - pc.debug_move_accel, pc.debug_velocity.x)
       end)
 
-      it('should decelerate on x when there is no input on x', function ()
+      it('should decelerate on x with friction when there is no input on x', function ()
         pc.debug_velocity.x = -2
-        pc.move_intention = vector(0, 0)
+        pc.move_intention.x = 0
 
         pc:update_velocity_component_debug("x")
 
-        assert.is_true(almost_eq_with_message(
-          vector(-2 + pc.debug_move_decel, 0),
-          pc.debug_velocity))
+        assert.are_equal(-2 + pc.debug_move_friction, pc.debug_velocity.x)
       end)
 
-      it('should accelerate on y when there is some input on y', function ()
-        pc.move_intention = vector(0, 1)
+      it('should decelerate on x even faster when vx > 0 and input x < 0', function ()
+        pc.debug_velocity.x = 2
+        pc.move_intention.x = -1
+
+        pc:update_velocity_component_debug("x")
+
+        assert.are_equal(2 - pc.debug_move_decel, pc.debug_velocity.x)
+      end)
+
+      -- no need to redo all the tests with y, since we checked vector:get/set
+      --  to work with X and Y symmetrically
+      -- just test a simple case to see if it doesn't crash
+
+      it('should accelerate on y when vy = 0 and input y ~= 0', function ()
+        pc.debug_velocity.y = 0
+        pc.move_intention.y = -1
 
         pc:update_velocity_component_debug("y")
 
-        assert.is_true(almost_eq_with_message(
-          vector(0, pc.debug_move_accel),
-          pc.debug_velocity))
+        assert.are_equal(- pc.debug_move_accel, pc.debug_velocity.y)
       end)
 
-      it('should accelerate/decelerate on xy when there is some input on xy', function ()
+      -- kind of itest to combine both X and Y
+
+      it('should accelerate/decelerate with friction on xy when there is input from 0 on x, no input on y', function ()
         pc.debug_velocity = vector(0, 2)
         pc.move_intention = vector(-1, 0)
 
         pc:update_velocity_component_debug("x")
         pc:update_velocity_component_debug("y")
 
-        assert.is_true(almost_eq_with_message(
-          vector(- pc.debug_move_accel, 2 - pc.debug_move_decel),
-          pc.debug_velocity))
+        assert.are_same(vector(- pc.debug_move_accel, 2 - pc.debug_move_friction), pc.debug_velocity)
       end)
 
     end)

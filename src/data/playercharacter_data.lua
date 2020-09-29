@@ -133,9 +133,11 @@ local playercharacter_data = {
   -- acceleration speed in debug mode (px/frame^2)
   debug_move_accel = 0.1,
 
-  -- deceleration speed in debug mode (px/frame^2)
-  debug_move_decel = 1,
+  -- active deceleration speed in debug mode (px/frame^2)
+  debug_move_decel = 2,
 
+  -- friction aka passive deceleration speed in debug mode (px/frame^2)
+  debug_move_friction = 1,
 
   -- sprite
 

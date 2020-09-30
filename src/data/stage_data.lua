@@ -60,7 +60,7 @@ return {
         -- upper loop 1 (read in region (2, 0))
         location_rect(256 + 78, 20, 256 + 83, 30),
         -- upper loop 2 (read in region (2, 0) and (2, 1))
-        location_rect(256 + 104, 26, 256 + 109, 32 + 3),
+        location_rect(256 + 104, 28, 256 + 109, 32 + 5),
       },
 
       loop_entrance_areas = {
@@ -69,7 +69,7 @@ return {
         -- upper loop 1 (read in region (2, 0))
         location_rect(256 + 86, 20, 256 + 91, 30),
         -- upper loop 2 (read in region (2, 0) and (2, 1))
-        location_rect(256 + 112, 26, 256 + 117, 32 + 3),
+        location_rect(256 + 112, 28, 256 + 117, 32 + 5),
       }
     }
 

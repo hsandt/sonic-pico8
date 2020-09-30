@@ -1140,7 +1140,7 @@ end
 -- ground_motion_result.position's qx should be floored for these steps
 --  (some functions assert when giving subpixel coordinates)
 function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result)
-  log("  _next_ground_step: "..joinstr(", ", quadrant_horizontal_dir, ref_motion_result), "trace2")
+  log("  next_ground_step: "..joinstr(", ", quadrant_horizontal_dir, ref_motion_result), "trace2")
 
   -- compute candidate position on next step. only flat slopes supported
   local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
@@ -1167,7 +1167,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
     -- position is inside ground, check if we can step up during this step
     -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
     --  the escape is done on the X axis so technically we escape row width)
-    -- refactor: code is similar to _check_escape_from_ground and above all _next_air_step
+    -- refactor: code is similar to _check_escape_from_ground and above all next_air_step
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up or step flat
       next_position_candidate:add_inplace(vector_to_closest_ground)
@@ -1593,7 +1593,7 @@ end
 --  it doesn't update the position and the corresponding flag is set
 -- air_motion_result.position.x/y should be floored for these steps
 function player_char:next_air_step(direction, ref_motion_result)
-  log("  _next_air_step: "..joinstr(", ", direction, ref_motion_result), "trace2")
+  log("  next_air_step: "..joinstr(", ", direction, ref_motion_result), "trace2")
 
   local step_vec = dir_vectors[direction]
   local next_position_candidate = ref_motion_result.position + step_vec
@@ -1628,7 +1628,7 @@ function player_char:next_air_step(direction, ref_motion_result)
         -- I used to check direction == directions.down only, and indeed if you step 1px down,
         --  the penetration distance will be no more than 1 and you will always snap to ground.
         -- But this didn't work when direction left/right hit the slope.
-        -- refactor: code is similar to _check_escape_from_ground and above all _next_ground_step
+        -- refactor: code is similar to _check_escape_from_ground and above all next_ground_step
         -- if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
         if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
           next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
@@ -1822,6 +1822,13 @@ function player_char:update_debug()
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS
   -- otherwise we'd have to change utests to init app+flow each time
   self.position = self.position + self.debug_velocity
+
+  -- clamp on level edges (add a small margin before right edge to avoid finishing the level by moving accidentally
+  --  too fast)
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+  self.position.x = mid(0, self.position.x, curr_stage_state.curr_stage_data.tile_width * tile_size - 8)
+  self.position.y = mid(0, self.position.y, curr_stage_state.curr_stage_data.tile_height * tile_size)
 end
 
 function player_char:update_velocity_debug()

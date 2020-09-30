@@ -6541,12 +6541,32 @@ describe('player_char', function ()
         move_stub:revert()
       end)
 
-      it('should call _update_velocity_debug, then move using the new velocity', function ()
-        pc.position = vector(1, 2)
+      before_each(function ()
+        flow.curr_state.curr_stage_data = {
+          tile_width = 20,
+          tile_height = 10,
+        }
+      end)
+
+      after_each(function ()
+        update_velocity_debug_mock:clear()
+        move_stub:clear()
+      end)
+
+      it('should call update_velocity_debug, then move using the new velocity', function ()
+        pc.position = vector(10, 20)
         pc:update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)
         assert.spy(update_velocity_debug_mock).was_called_with(match.ref(pc))
-        assert.are_same(vector(1, 2) + vector(4, -3), pc.position)
+        assert.are_same(vector(10, 20) + vector(4, -3), pc.position)
+      end)
+
+      it('should call update_velocity_debug, then move using the new velocity and clamp to level edges', function ()
+        pc.position = vector(20 * 8 - 9, 2)
+        pc:update_debug()
+        assert.spy(update_velocity_debug_mock).was_called(1)
+        assert.spy(update_velocity_debug_mock).was_called_with(match.ref(pc))
+        assert.are_same(vector(20 * 8 - 8, 0), pc.position)
       end)
 
     end)

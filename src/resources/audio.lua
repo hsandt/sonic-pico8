@@ -8,11 +8,6 @@ local sfx_ids = {
   menu_confirm = 62,
 }
 
-local music_pattern_ids = {
-  green_hill = 0
-}
-
 audio.sfx_ids = sfx_ids
-audio.music_pattern_ids = music_pattern_ids
 
 return audio

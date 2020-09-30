@@ -2015,13 +2015,31 @@ describe('stage_state', function ()
 
           describe('state audio methods', function ()
 
+            setup(function ()
+              stub(_G, "reload")
+            end)
+
+            teardown(function ()
+              reload:revert()
+            end)
+
+            -- reload is called during on_enter for region loading, so clear call count now
+            before_each(function ()
+              reload:clear()
+            end)
+
             after_each(function ()
               pico8.current_music = nil
             end)
 
             it('play_bgm should start level bgm', function ()
               state:play_bgm()
-              assert.are_same({music=audio.music_pattern_ids.green_hill, fadems=0, channel_mask=(1 << 0) + (1 << 2) + (1 << 3)}, pico8.current_music)
+
+              assert.spy(reload).was_called(2)
+              assert.spy(reload).was_called_with(0x3100, 0x3100, 0xa0, "data_bgm1.p8")
+              assert.spy(reload).was_called_with(0x3200, 0x3200, 0xd48, "data_bgm1.p8")
+
+              assert.are_same({music=state.curr_stage_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
             end)
 
             it('stop_bgm should stop level bgm if started, else do nothing', function ()

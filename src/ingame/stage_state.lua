@@ -1177,10 +1177,25 @@ end
 -- audio
 
 function stage_state:play_bgm()
+  -- reload music sfx and patterns from bgm cartridge memory
+  -- we guarantee that:
+  -- the bgm will take maximum 40 patterns (out of 64)
+  --  => 40 * 4 = 160 = 0xa0 bytes
+  -- the music sfx will take maximum 50 entries (out of 64)
+  --  => 50 * 68 = 3400 = 0xd48 bytes
+  -- the bgm should start at pattern 0, and bgm sfx at index 0 on both source and
+  --  current cartridge, so use copy memory from the start of each section
+
+  -- copy music patterns
+  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
+  -- copy music sfx
+  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+
   -- only 4 channels at a time in PICO-8
-  -- set music channel mask (priority over SFX) to everything but 1,
-  --  which is a nice bass (at least with current GHZ BGM)
-  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 2) + shl(1, 3))
+  -- Angel Island BGM currently uses only 3 channels so t's pretty safe
+  --  as there is always a channel left for SFX, but in case we add a 4th one
+  --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
+  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 function stage_state:stop_bgm(fade_duration)

@@ -45,7 +45,11 @@ return {
       goal_x = 3*128*8,  -- 3072, after 3 regions of 128 tiles (goal is at stage right edge unlike classic Sonic)
 
       -- bgm id
-      bgm_id = audio.music_pattern_ids.green_hill,
+      -- with the new dynamic bgm cartridge reload system,
+      --  we have separate cartridges containing the bgm
+      --  and it always starts at 0, covering not more than patterns 0-49
+      --  (to guarantee space for SFX)
+      bgm_id = 0,
 
       -- layer data
       -- all tile locations are global

@@ -371,7 +371,7 @@
 			]
 		},
 		{
-			"name": "Game: install cartridge ingame (with stage maps)",
+			"name": "Game: install cartridge ingame (with stage maps and bgm)",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./install_single_cartridge.sh ingame debug"],

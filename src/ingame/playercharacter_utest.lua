@@ -3124,7 +3124,6 @@ describe('player_char', function ()
 
           pc:update_ground_speed()
 
-          -- implementation
           assert.spy(player_char.update_ground_speed_by_slope).was_called(1)
           assert.spy(player_char.update_ground_speed_by_slope).was_called_with(match.ref(pc))
           assert.spy(player_char.update_ground_run_speed_by_intention).was_called(1)
@@ -3138,9 +3137,11 @@ describe('player_char', function ()
 
           pc:update_ground_speed()
 
-          -- implementation
+          assert.spy(player_char.update_ground_speed_by_slope).was_called(1)
+          assert.spy(player_char.update_ground_speed_by_slope).was_called_with(match.ref(pc))
           assert.spy(player_char.update_ground_roll_speed_by_intention).was_called(1)
           assert.spy(player_char.update_ground_roll_speed_by_intention).was_called_with(match.ref(pc))
+          assert.spy(player_char.clamp_ground_speed).was_not_called()
         end)
 
       end)  -- _update_ground_speed

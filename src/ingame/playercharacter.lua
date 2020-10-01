@@ -934,10 +934,15 @@ function player_char:update_ground_speed()
   self:update_ground_speed_by_slope()
   if self.motion_state == motion_states.standing then
     self:update_ground_run_speed_by_intention()
+    self:clamp_ground_speed()
   else
     self:update_ground_roll_speed_by_intention()
+    -- There is some particular clamping based on speed X in the original game,
+    --  with max speed 8 (in PICO-8 scale). SPG suggests to apply clamping to ground speed instead,
+    --  or not at all. Right now there's no place in the level where you'd go overspeed,
+    --  actually you'd rather try to get as much speed as possible to get past the loops,
+    --  so we are not clamping roll speed at all. Otherwise we'd probably just clamp ground speed to 8.
   end
-  self:clamp_ground_speed()
 end
 
 -- update ground speed based on current slope

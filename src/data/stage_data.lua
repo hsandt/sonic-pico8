@@ -56,20 +56,20 @@ return {
 
       loop_exit_areas = {
         -- lower loop (read in region (1, 1))
-        location_rect(128 + 93, 32 + 12, 128 + 98, 32 + 22),
+        location_rect(128 + 94, 32 + 12, 128 + 100, 32 + 22),
         -- upper loop 1 (read in region (2, 0))
-        location_rect(256 + 78, 20, 256 + 83, 30),
+        location_rect(256 + 81, 20, 256 + 87, 30),
         -- upper loop 2 (read in region (2, 0) and (2, 1))
-        location_rect(256 + 104, 28, 256 + 109, 32 + 5),
+        location_rect(256 + 105, 30, 256 + 111, 32 + 7),
       },
 
       loop_entrance_areas = {
         -- small loop (read in region (1, 1))
         location_rect(128 + 101, 32 + 12, 128 + 106, 32 + 22),
         -- upper loop 1 (read in region (2, 0))
-        location_rect(256 + 86, 20, 256 + 91, 30),
+        location_rect(256 + 88, 20, 256 + 93, 30),
         -- upper loop 2 (read in region (2, 0) and (2, 1))
-        location_rect(256 + 112, 28, 256 + 117, 32 + 5),
+        location_rect(256 + 112, 30, 256 + 117, 32 + 7),
       }
     }
 

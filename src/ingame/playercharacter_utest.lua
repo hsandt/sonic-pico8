@@ -139,7 +139,7 @@ describe('player_char', function ()
         {
           control_modes.human,
           motion_modes.platformer,
-          motion_states.grounded,
+          motion_states.standing,
           directions.down,
           horizontal_dirs.right,
           1,
@@ -218,7 +218,7 @@ describe('player_char', function ()
     describe('is_grounded', function ()
 
       it('should return true when character is standing on the ground', function ()
-        pc.motion_state = motion_states.grounded
+        pc.motion_state = motion_states.standing
         assert.is_true(pc:is_grounded())
       end)
 
@@ -242,7 +242,7 @@ describe('player_char', function ()
     describe('is_compact', function ()
 
       it('should return false when character is standing on the ground', function ()
-        pc.motion_state = motion_states.grounded
+        pc.motion_state = motion_states.standing
         assert.is_false(pc:is_compact())
       end)
 
@@ -435,7 +435,7 @@ describe('player_char', function ()
         assert.are_same(vector(56, 12), pc.position)
       end)
 
-      describe('(_check_escape_from_ground returns false)', function ()
+      describe('(check_escape_from_ground returns false)', function ()
 
         local check_escape_from_ground_mock
 
@@ -449,7 +449,7 @@ describe('player_char', function ()
           check_escape_from_ground_mock:revert()
         end)
 
-        it('should call _check_escape_from_ground and _enter_motion_state(motion_states.falling)', function ()
+        it('should call check_escape_from_ground and enter_motion_state(motion_states.falling)', function ()
           pc:spawn_at(vector(56, 12))
 
           -- implementation
@@ -459,7 +459,7 @@ describe('player_char', function ()
 
       end)
 
-      describe('(_check_escape_from_ground returns true)', function ()
+      describe('(check_escape_from_ground returns true)', function ()
 
         local check_escape_from_ground_mock
 
@@ -473,7 +473,7 @@ describe('player_char', function ()
           check_escape_from_ground_mock:revert()
         end)
 
-        it('should call _check_escape_from_ground and _enter_motion_state(motion_states.grounded)', function ()
+        it('should call check_escape_from_ground', function ()
           pc:spawn_at(vector(56, 12))
 
           -- implementation
@@ -1841,7 +1841,7 @@ describe('player_char', function ()
             assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
           end)
 
-          it('should do nothing when character is just on top of the ground, update slope to 0 and enter state grounded', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 0 and enter state standing', function ()
             pc:set_bottom_center(vector(12, 8))
             pc:check_escape_from_ground()
 
@@ -1854,10 +1854,10 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
 
             assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and enter state grounded', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and enter state standing', function ()
             pc:set_bottom_center(vector(12, 9))
             pc:check_escape_from_ground()
 
@@ -1870,10 +1870,10 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
 
             assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
-          it('should move the character q-upward (to the left on right wall) just enough to escape ground if character is inside q-ground, update slope to 0 and enter state grounded', function ()
+          it('should move the character q-upward (to the left on right wall) just enough to escape ground if character is inside q-ground, update slope to 0 and enter state standing', function ()
             pc.quadrant = directions.right
             pc:set_bottom_center(vector(9, 12))
             pc:check_escape_from_ground()
@@ -1887,7 +1887,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
 
             assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
           it('should reset state vars to too deep convention when character is too deep inside the ground and enter state falling', function ()
@@ -1903,7 +1903,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
 
             assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
         end)
@@ -1971,7 +1971,7 @@ describe('player_char', function ()
 
         end)
 
-      end)  -- _check_escape_from_ground
+      end)  -- check_escape_from_ground
 
       describe('enter_motion_state', function ()
 
@@ -1988,7 +1988,7 @@ describe('player_char', function ()
         end)
 
         it('should enter passed state: falling, reset ground-specific state vars, no animation change', function ()
-          -- character starts grounded
+          -- character starts standing
           pc:enter_motion_state(motion_states.falling)
 
           assert.are_same({
@@ -2003,14 +2003,14 @@ describe('player_char', function ()
             })
         end)
 
-        it('(grounded -> falling) should set _enter_motion_state to nil', function ()
+        it('(standing -> falling) should set enter_motion_state to nil', function ()
           pc.ground_tile_location = location(0, 1)
           pc:enter_motion_state(motion_states.falling)
           assert.is_nil(pc.ground_tile_location)
         end)
 
-        it('(grounded -> falling) should call set_slope_angle_with_quadrant(nil)', function ()
-          -- character starts grounded
+        it('(standing -> falling) should call set_slope_angle_with_quadrant(nil)', function ()
+          -- character starts standing
           pc:enter_motion_state(motion_states.falling)
 
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
@@ -2018,7 +2018,7 @@ describe('player_char', function ()
         end)
 
         it('should enter passed state: air_spin, reset ground-specific state vars, play spin animation', function ()
-          -- character starts grounded
+          -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
 
           assert.are_same({
@@ -2035,14 +2035,14 @@ describe('player_char', function ()
             })
         end)
 
-        it('(grounded -> air_spin) should set _enter_motion_state to nil', function ()
+        it('(standing -> air_spin) should set enter_motion_state to nil', function ()
           pc.ground_tile_location = location(0, 1)
           pc:enter_motion_state(motion_states.falling)
           assert.is_nil(pc.ground_tile_location)
         end)
 
-        it('(grounded -> air_spin) should call set_slope_angle_with_quadrant(nil)', function ()
-          -- character starts grounded
+        it('(standing -> air_spin) should call set_slope_angle_with_quadrant(nil)', function ()
+          -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
 
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
@@ -2050,13 +2050,13 @@ describe('player_char', function ()
         end)
 
         -- bugfix history: .
-        it('should enter passed state: grounded, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
+        it('should enter passed state: standing, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
           pc.motion_state = motion_states.falling
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_same({
-              motion_states.grounded,
+              motion_states.standing,
               false,
               false,
               false
@@ -2088,67 +2088,67 @@ describe('player_char', function ()
             })
         end)
 
-        it('(falling -> grounded, velocity X = 0 on flat ground) should set ground speed to 0', function ()
+        it('(falling -> standing, velocity X = 0 on flat ground) should set ground speed to 0', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = 0
           pc.velocity.y = 5
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_equal(0, pc.ground_speed)
         end)
 
-        it('(falling -> grounded, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
+        it('(falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = 2
           pc.velocity.y = 5
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_equal(2, pc.ground_speed)
         end)
 
-        it('(falling -> grounded, velocity X = 5 (over max) on flat ground) should transfer velocity X clamped to ground speed', function ()
+        it('(falling -> standing, velocity X = 5 (over max) on flat ground) should transfer velocity X clamped to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = pc_data.max_ground_speed + 2
           pc.velocity.y = 5
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_equal(pc_data.max_ground_speed, pc.ground_speed)
         end)
 
-        it('(falling -> grounded, velocity (sqrt(3)/2, 0.5) tangent to slope 30 deg desc) should transfer velocity norm (1) completely to ground speed', function ()
+        it('(falling -> standing, velocity (sqrt(3)/2, 0.5) tangent to slope 30 deg desc) should transfer velocity norm (1) completely to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = sqrt(3)/2
           pc.velocity.y = 0.5
           pc.slope_angle = 1-1/12  -- 30 deg/360 deg
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           -- should be OK in PICO-8, but with floating precision we need almost
           -- (angle of -1/12 was fine, but 1-1/12 offsets a little)
           assert.is_true(almost_eq_with_message(1, pc.ground_speed))
         end)
 
-        it('(falling -> grounded, velocity (-4, 4) orthogonally to slope 45 deg desc) should set ground speed to 0', function ()
+        it('(falling -> standing, velocity (-4, 4) orthogonally to slope 45 deg desc) should set ground speed to 0', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = -4
           pc.velocity.y = 4
           pc.slope_angle = 1-0.125  -- 45 deg/360 deg
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.is_true(almost_eq_with_message(0, pc.ground_speed))
         end)
 
-        it('(falling -> grounded, velocity (-4, 5) on slope 45 deg desc) should transfer just the tangent velocity (1/sqrt(2)) to ground speed', function ()
+        it('(falling -> standing, velocity (-4, 5) on slope 45 deg desc) should transfer just the tangent velocity (1/sqrt(2)) to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = -4
           pc.velocity.y = 5
           pc.slope_angle = 1-0.125  -- -45 deg/360 deg
 
-          pc:enter_motion_state(motion_states.grounded)
+          pc:enter_motion_state(motion_states.standing)
 
           assert.is_true(almost_eq_with_message(1/sqrt(2), pc.ground_speed))
         end)
@@ -2156,7 +2156,7 @@ describe('player_char', function ()
         it('should adjust center position down when becoming compact', function ()
           pc.position = vector(10, 20)
 
-          -- character starts grounded
+          -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
 
           assert.are_equal(20 + pc_data.center_height_standing - pc_data.center_height_compact, pc.position.y)
@@ -2166,8 +2166,8 @@ describe('player_char', function ()
           pc.motion_state = motion_states.air_spin
           pc.position = vector(10, 20)
 
-          -- character starts grounded
-          pc:enter_motion_state(motion_states.grounded)
+          -- character starts standing
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_equal(20 - pc_data.center_height_standing + pc_data.center_height_compact, pc.position.y)
         end)
@@ -2176,7 +2176,7 @@ describe('player_char', function ()
           pc.position = vector(10, 20)
           pc.quadrant = directions.left
 
-          -- character starts grounded
+          -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
 
           assert.are_same(vector(10 - pc_data.center_height_standing + pc_data.center_height_compact, 20), pc.position)
@@ -2186,8 +2186,8 @@ describe('player_char', function ()
           pc.motion_state = motion_states.air_spin
           pc.position = vector(10, 20)
 
-          -- character starts grounded
-          pc:enter_motion_state(motion_states.grounded)
+          -- character starts standing
+          pc:enter_motion_state(motion_states.standing)
 
           assert.are_same(vector(10, 20 - pc_data.center_height_standing + pc_data.center_height_compact), pc.position)
         end)
@@ -2235,7 +2235,7 @@ describe('player_char', function ()
           end)
 
           it('(when motion state is standing on ground) should call check_jump', function ()
-            pc.motion_state = motion_states.grounded
+            pc.motion_state = motion_states.standing
             pc:update_platformer_motion()
             assert.spy(player_char.check_jump).was_called(1)
             assert.spy(player_char.check_jump).was_called_with(match.ref(pc))
@@ -2320,7 +2320,7 @@ describe('player_char', function ()
             describe('(when character is standing)', function ()
 
               it('should call check_roll_start', function ()
-                pc.motion_state = motion_states.grounded
+                pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
@@ -2329,7 +2329,7 @@ describe('player_char', function ()
               end)
 
               it('should call update_platformer_motion_grounded', function ()
-                pc.motion_state = motion_states.grounded
+                pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
@@ -2400,7 +2400,7 @@ describe('player_char', function ()
             describe('(when character is standing first)', function ()
 
               it('should not call check_roll_start since check_jump will enter air_spin first', function ()
-                pc.motion_state = motion_states.grounded
+                pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
@@ -2408,7 +2408,7 @@ describe('player_char', function ()
               end)
 
               it('should call update_platformer_motion_airborne since check_jump will enter air_spin first', function ()
-                pc.motion_state = motion_states.grounded
+                pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
@@ -2466,7 +2466,7 @@ describe('player_char', function ()
 
         before_each(function ()
           -- assumption
-          pc.motion_state = motion_states.grounded
+          pc.motion_state = motion_states.standing
         end)
 
         it('should not start rolling if input down is pressed but abs ground speed (positive) is not enough', function ()
@@ -2590,7 +2590,7 @@ describe('player_char', function ()
 
           -- interface
           assert.spy(player_char.enter_motion_state).was_called(1)
-          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
         end)
 
         it('should end rolling if abs ground speed (negative) is not enough', function ()
@@ -2601,7 +2601,7 @@ describe('player_char', function ()
 
           -- interface
           assert.spy(player_char.enter_motion_state).was_called(1)
-          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
         end)
 
       end)
@@ -2710,7 +2710,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
           end)
 
-          it('should call check_jump_intention, not _enter_motion_state (not falling)', function ()
+          it('should call check_jump_intention, not enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2811,7 +2811,7 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call check_jump_intention, not _enter_motion_state (not falling)', function ()
+          it('should call check_jump_intention, not enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2907,7 +2907,7 @@ describe('player_char', function ()
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
+          it('should call enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2922,13 +2922,13 @@ describe('player_char', function ()
           end)
 
           -- we don't test that ground_tile_location is set to nil
-          --  because we stubbed _enter_motion_state which should do it,
+          --  because we stubbed enter_motion_state which should do it,
           --  but if it was spied we could test it
 
-          it('should not call set_slope_angle_with_quadrant (actually called inside _enter_motion_state)', function ()
+          it('should not call set_slope_angle_with_quadrant (actually called inside enter_motion_state)', function ()
             pc.slope_angle = 0
             pc:update_platformer_motion_grounded()
-            -- this only works because _enter_motion_state is stubbed
+            -- this only works because enter_motion_state is stubbed
             -- if it was spied, it would still call set_slope_angle_with_quadrant inside
             assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
@@ -2964,7 +2964,7 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
+          it('should call enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2978,10 +2978,10 @@ describe('player_char', function ()
             assert.are_same(vector(3, 4), pc.position)
           end)
 
-          it('should not call set_slope_angle_with_quadrant (actually called inside _enter_motion_state)', function ()
+          it('should not call set_slope_angle_with_quadrant (actually called inside enter_motion_state)', function ()
             pc.slope_angle = 0
             pc:update_platformer_motion_grounded()
-            -- this only works because _enter_motion_state is stubbed
+            -- this only works because enter_motion_state is stubbed
             -- if it was spied, it would still call set_slope_angle_with_quadrant inside
             assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
@@ -5300,7 +5300,7 @@ describe('player_char', function ()
           local result = pc:check_jump()
 
           -- interface
-          assert.are_same({false, vector(4.1, -1), motion_states.grounded, false, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
+          assert.are_same({false, vector(4.1, -1), motion_states.standing, false, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
         end)
 
         it('should consume should_jump, add initial var jump velocity, update motion state, set has_jumped_this_frame amd can_interrupt_jump flags and return true when should_jump is true', function ()
@@ -5679,14 +5679,14 @@ describe('player_char', function ()
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(0, 1))
           end)
 
-          it('should enter grounded state and set_slope_angle_with_quadrant: 0.5', function ()
+          it('should enter standing state and set_slope_angle_with_quadrant: 0.5', function ()
             pc.slope_angle = 0
 
             pc:update_platformer_motion_airborne()
 
             -- implementation
             assert.spy(pc.enter_motion_state).was_called(1)
-            assert.spy(pc.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+            assert.spy(pc.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
 
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
@@ -7129,8 +7129,8 @@ describe('player_char', function ()
         animated_sprite.play:clear()
       end)
 
-      it('should play idle anim when grounded and ground speed is 0', function ()
-        pc.motion_state = motion_states.grounded
+      it('should play idle anim when standing and ground speed is 0', function ()
+        pc.motion_state = motion_states.standing
         pc.ground_speed = 0
 
         pc:check_play_anim()
@@ -7139,8 +7139,8 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
       end)
 
-      it('should play walk anim with walk_anim_min_play_speed when grounded and ground speed is lower than anim_run_speed in abs (clamping)', function ()
-        pc.motion_state = motion_states.grounded
+      it('should play walk anim with walk_anim_min_play_speed when standing and ground speed is lower than anim_run_speed in abs (clamping)', function ()
+        pc.motion_state = motion_states.standing
         pc.ground_speed = -pc_data.walk_anim_min_play_speed / 2  -- it's very low, much lower than walk_anim_min_play_speed
         pc.anim_run_speed = abs(pc.ground_speed)
 
@@ -7150,8 +7150,8 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, pc_data.walk_anim_min_play_speed)
       end)
 
-      it('should play walk anim with last anim_run_speed when grounded and ground speed is low', function ()
-        pc.motion_state = motion_states.grounded
+      it('should play walk anim with last anim_run_speed when standing and ground speed is low', function ()
+        pc.motion_state = motion_states.standing
         pc.ground_speed = -(pc_data.run_cycle_min_speed_frame - 0.1) -- -2.9
         pc.anim_run_speed = abs(pc.ground_speed)                     -- 2.9
 
@@ -7161,8 +7161,8 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
       end)
 
-      it('should play run anim with last anim_run_speed when grounded and ground speed is high', function ()
-        pc.motion_state = motion_states.grounded
+      it('should play run anim with last anim_run_speed when standing and ground speed is high', function ()
+        pc.motion_state = motion_states.standing
         pc.ground_speed = -pc_data.run_cycle_min_speed_frame         -- -3.0
         pc.anim_run_speed = abs(pc.ground_speed)                     -- 3.0, much higher than walk_anim_min_play_speed
 
@@ -7285,7 +7285,7 @@ describe('player_char', function ()
     describe('check_update_sprite_angle', function ()
 
       it('should preserve sprite angle when motion state is not falling', function ()
-        pc.motion_state = motion_states.grounded
+        pc.motion_state = motion_states.standing
         pc.continuous_sprite_angle = 0.5
 
         pc:check_update_sprite_angle()

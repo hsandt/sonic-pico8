@@ -34,7 +34,7 @@ motion_modes = {
 
 -- enum for character motion state in platformer mode
 motion_states = {
-  grounded = 1,  -- character is idle or running on the ground (actually "standing" since "rolling" has been added since)
+  standing = 1,  -- character is idle or running on the ground
   falling  = 2,  -- character is falling in the air, but not spinning
   air_spin = 3,  -- character is in the air after a jump
   rolling  = 4,  -- character is rolling on the ground
@@ -84,7 +84,7 @@ local player_char = new_class()
 
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
--- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when grounded, but gradually moves toward 0 (upward) when airborne.
+-- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when standing, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 function player_char:init()
@@ -104,7 +104,7 @@ function player_char:setup()
 --#if cheat
   self.motion_mode = motion_modes.platformer
 --#endif
-  self.motion_state = motion_states.grounded
+  self.motion_state = motion_states.standing
   self.quadrant = directions.down
   self.orientation = horizontal_dirs.right
   self.active_loop_layer = 1
@@ -117,7 +117,7 @@ function player_char:setup()
   self.horizontal_control_lock_timer = 0.
   self.velocity = vector.zero()
   self.debug_velocity = vector.zero()
-  -- slope_angle starts at 0 instead of nil to match grounded state above
+  -- slope_angle starts at 0 instead of nil to match standing state above
   -- (if spawning in the air, fine, next update will reset angle to nil)
   self.slope_angle = 0.
   self.ascending_slope_time = 0.
@@ -137,7 +137,7 @@ end
 
 -- return true iff character is grounded
 function player_char:is_grounded()
-  return self.motion_state == motion_states.grounded or self.motion_state == motion_states.rolling
+  return self.motion_state == motion_states.standing or self.motion_state == motion_states.rolling
 end
 
 -- return true iff character is curled
@@ -197,13 +197,13 @@ function player_char:spawn_bottom_at(bottom_position)
   self:spawn_at(bottom_position - vector(0, self:get_center_height()))
 end
 
--- warp character to specific position, and update motion state (grounded/falling)
+-- warp character to specific position, and update motion state (standing/falling)
 -- while escaping from ground if needed
 --  use this when you don't want to reset the character state as spawn_at does
 function player_char:warp_to(position)
   self.position = position
 
-  -- character is initialized grounded, but let him fall if he is spawned in the air
+  -- character is initialized standing, but let him fall if he is spawned in the air
   -- if grounded, also allows to set ground tile properly
   self:check_escape_from_ground()
 end
@@ -304,7 +304,7 @@ function player_char:handle_input()
     --  but in pico-sonic we prefer decrementing timer when airborne, so after a long fall or jump you
     --  can immediately get control back
     -- to restore original game behavior, uncomment the line below and comment out the 2nd line below
-    -- if self.horizontal_control_lock_timer > 0 and self;is_grounded() then
+    -- if self.horizontal_control_lock_timer > 0 and self:is_grounded() then
     if self.horizontal_control_lock_timer > 0 then
       -- decrement control lock frame timer
       -- normally it's better to update non-intention state vars
@@ -664,7 +664,7 @@ end
 -- if ground is detected and the character can escape, update the slope angle with the angle of the new ground
 -- if the character cannot escape or is in the air, still reset all values to be safe
 --  (e.g. on initial warp it allows us to set ground_tile_location to a proper value instead of default location(0, 0))
--- finally, enter grounded state if the character was either touching the ground or inside it (even too deep),
+-- finally, enter standing state if the character was either touching the ground or inside it (even too deep),
 --  else enter falling state
 function player_char:check_escape_from_ground()
   local query_info = self:compute_ground_sensors_query_info(self.position)
@@ -691,7 +691,7 @@ function player_char:check_escape_from_ground()
       self.ground_tile_location = nil
       self:set_slope_angle_with_quadrant(0)
     end
-    self:enter_motion_state(motion_states.grounded)
+    self:enter_motion_state(motion_states.standing)
   else
     -- character in the air, reset
     self:enter_motion_state(motion_states.falling)
@@ -745,7 +745,7 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_speed = 0
     self.should_jump = false
     self.should_play_spring_jump = false
-  elseif next_motion_state == motion_states.grounded then
+  elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
@@ -759,7 +759,7 @@ function player_char:enter_motion_state(next_motion_state)
     end
   else  -- next_motion_state == motion_states.rolling
     -- we don't have code to preserve airborne tangential velocity here because we cannot really land and immediately roll
-    --  without going through the grounded state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
+    --  without going through the standing state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
     --  and Sonic Mania's Drop Dash would probably ignore previous velocity anyway
     if not was_grounded then
       -- we have just reached the ground (and possibly escaped),
@@ -782,7 +782,7 @@ function player_char:update_platformer_motion()
 
   -- do not move check below inside the is_grounded() check above,
   --  to clearly show that the state may have changed and we check it properly again
-  if self.motion_state == motion_states.grounded then
+  if self.motion_state == motion_states.standing then
     self:check_roll_start()
   elseif self.motion_state == motion_states.rolling then
     self:check_roll_end()
@@ -818,7 +818,7 @@ function player_char:check_roll_end()
   if abs(self.ground_speed) < pc_data.continue_roll_min_ground_speed then
     -- currently enter_motion_state from rolling to standing will do nothing more than set the state
     --  but we call it so we have a centralized place to add other side effects or cleanup if needed
-    self:enter_motion_state(motion_states.grounded)
+    self:enter_motion_state(motion_states.standing)
   end
 end
 
@@ -925,7 +925,7 @@ function player_char:update_ground_speed()
   -- But it should be OK overall.
   -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
   self:update_ground_speed_by_slope()
-  if self.motion_state == motion_states.grounded then
+  if self.motion_state == motion_states.standing then
     self:update_ground_run_speed_by_intention()
   else
     self:update_ground_roll_speed_by_intention()
@@ -1490,11 +1490,11 @@ function player_char:update_platformer_motion_airborne()
   self.position = air_motion_result.position
 
   if air_motion_result.is_landing then
-    -- register new ground tile, update slope angle and enter grounded state
+    -- register new ground tile, update slope angle and enter standing state
     self:set_ground_tile_location(air_motion_result.tile_location)
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
     -- always stand on ground, if we want to roll we'll switch to rolling on next frame
-    self:enter_motion_state(motion_states.grounded)
+    self:enter_motion_state(motion_states.standing)
   end
 
   log("self.position: "..self.position, "trace")
@@ -1580,7 +1580,7 @@ function player_char:compute_air_motion_result()
   -- Note, however, that this is a temporary fix: where we add quadrants, X and Y will have more symmetrical roles
   --  and we can expect similar issues when trying to land with high speed adherence on a 90-deg wall.
   -- Ultimately, I think it will work better with either d. or an Unreal-style multi-mode step approach
-  --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as grounded,
+  --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as standing,
   --  following the ground as usual).
   self:advance_in_air_along(motion_result, self.velocity, "x")
   log("=> "..motion_result, "trace2")
@@ -1725,7 +1725,7 @@ function player_char:next_air_step(direction, ref_motion_result)
           -- therefore, if he exactly reaches signed_distance_to_closest_ground == 0 this frame,
           --  it is still technically considered in the air
           -- if this step is blocked by landing, there is no extra motion,
-          --  but character will enter grounded state
+          --  but character will enter standing state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, query_info.slope_angle
           -- as part of the bigger adherence system, but for now very simplified
           --  to fix #129 BUG MOTION curve_run_up_fall_in_wall:
@@ -1969,12 +1969,12 @@ end
 
 -- play appropriate sprite animation based on current state
 function player_char:check_play_anim()
-  if self.motion_state == motion_states.grounded then
+  if self.motion_state == motion_states.standing then
     -- update ground animation based on speed
     if self.ground_speed == 0 then
       self.anim_spr:play("idle")
     else
-      -- grounded and moving: play walk cycle at low speed, run cycle at high speed
+      -- standing and moving: play walk cycle at low speed, run cycle at high speed
       -- we have access to self.ground_speed but self.anim_run_speed is shorter than
       --  abs(self.ground_speed), and the values are the same for normal to high speeds
       if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then

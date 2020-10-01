@@ -747,19 +747,22 @@ describe('stage_state', function ()
         setup(function ()
           stub(stage_state, "reload_map_region")
           stub(stage_state, "spawn_new_emeralds")
+          stub(stage_state, "spawn_palm_tree_leaves")
         end)
 
         teardown(function ()
           stage_state.reload_map_region:revert()
           stage_state.spawn_new_emeralds:revert()
+          stage_state.spawn_palm_tree_leaves:revert()
         end)
 
         after_each(function ()
           stage_state.reload_map_region:clear()
           stage_state.spawn_new_emeralds:clear()
+          stage_state.spawn_palm_tree_leaves:clear()
         end)
 
-        it('should call reload every map on the 2x3 grid, spawning emeralds at the same time', function ()
+        it('should call reload every map on the 2x3 grid = 6 calls, spawning emeralds and palm tree leaves at the same time', function ()
           state.curr_stage_data = {
             tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
             tile_height = 32 * 3  -- 3 regions per column
@@ -778,6 +781,9 @@ describe('stage_state', function ()
 
           assert.spy(stage_state.spawn_new_emeralds).was_called(6)
           assert.spy(stage_state.spawn_new_emeralds).was_called_with(match.ref(state))
+
+          assert.spy(stage_state.spawn_palm_tree_leaves).was_called(6)
+          assert.spy(stage_state.spawn_palm_tree_leaves).was_called_with(match.ref(state))
         end)
 
       end)
@@ -2109,6 +2115,7 @@ describe('stage_state', function ()
               --  in before_each every time due to on_enter,
               --  so we stub this
               stub(stage_state, "spawn_new_emeralds")
+              stub(stage_state, "spawn_palm_tree_leaves")
             end)
 
             teardown(function ()
@@ -2116,12 +2123,14 @@ describe('stage_state', function ()
               picosonic_app.stop_all_coroutines:revert()
               stage_state.stop_bgm:revert()
               stage_state.spawn_new_emeralds:revert()
+              stage_state.spawn_palm_tree_leaves:revert()
             end)
 
             after_each(function ()
               overlay.clear_labels:clear()
               stage_state.stop_bgm:clear()
               stage_state.spawn_new_emeralds:clear()
+              stage_state.spawn_palm_tree_leaves:clear()
             end)
 
             before_each(function ()

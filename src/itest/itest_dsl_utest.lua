@@ -195,6 +195,17 @@ describe('itest_dsl', function ()
 
   describe('execute_', function ()
 
+    -- stub very slow functions called on stage state enter
+    setup(function ()
+      stub(stage_state, "spawn_new_emeralds")
+      stub(stage_state, "spawn_palm_tree_leaves")
+    end)
+
+    teardown(function ()
+      stage_state.spawn_new_emeralds:revert()
+      stage_state.spawn_palm_tree_leaves:revert()
+    end)
+
     before_each(function ()
       flow:add_gamestate(state)
       flow:change_gamestate_by_type(':stage')
@@ -879,9 +890,14 @@ expect
         -- note we are testing as busted, so we get the almost_eq messages
         -- since we added quadrants, even integer coordinates receive float transformation,
         --  hence the .0 on passed position
-        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        -- local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        --   "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
+        --   "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        --   "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
+        -- shorter version in assertions.lua
+        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected ~~ with eps: 0.015625.\n"..
           "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
-          "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+          "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
           "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
@@ -1056,7 +1072,10 @@ expect
           expectation("pc_velocity", vector(-3, 7.5))    -- different from actual
         }
         itest_dsl_parser:_define_final_assertion()
-        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        -- local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        -- "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
+        -- short version in assertions.lua
+        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
         "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
         assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
       end)

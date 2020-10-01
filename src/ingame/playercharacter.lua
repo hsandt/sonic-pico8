@@ -2011,12 +2011,9 @@ function player_char:check_play_anim()
       end
     end
   else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
-    if self.anim_run_speed < pc_data.spin_fast_min_speed_frame then
-      self.anim_spr:play("spin_slow", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
-    else
-      -- spin_fast_min_speed_frame > spin_anim_min_play_speed so no need to clamp here
-      self.anim_spr:play("spin_fast", false, self.anim_run_speed)
-    end
+    local min_play_speed = self.motion_state == motion_states.rolling and
+      pc_data.rolling_spin_anim_min_play_speed or pc_data.air_spin_anim_min_play_speed
+    self.anim_spr:play("spin", false, max(min_play_speed, self.anim_run_speed))
   end
 end
 

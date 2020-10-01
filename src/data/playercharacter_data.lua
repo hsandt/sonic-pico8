@@ -198,19 +198,20 @@ local playercharacter_data = {
   -- and an extra 1/2 factor because for some reason, SPG values make animations look too fast (as if durations were for 30FPS)
   walk_anim_min_play_speed = 0.625,
 
-  -- same for spinning animation
-  spin_anim_min_play_speed = 0.625,
+  -- same for spinning animation, when rolling (it seems very fast in Sonic 3 even at low ground speed)
+  rolling_spin_anim_min_play_speed = 1.25,
+
+  -- same for spinning animation, when airborne
+  air_spin_anim_min_play_speed = 0.625,
 
   -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
   run_cycle_min_speed_frame = 3,
-
-  -- speed from which the spin_fast anim is played, instead of the spin_slow anim (px/frame)
-  -- according to SPG it's the same as run_cycle_min_speed_frame, which means it happens
-  --  when jumping after seeing the run cycle
-  spin_fast_min_speed_frame = 3,
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
+-- note that we do not split spin_slow and spin_fast as distinguished by SPG anymore
+--  in addition, while spin_slow was defined to have 1 spin_full_ball frame and
+--  spin_fast had 2, our spin has 4, once every other frame, to match Sonic 3 more closely
 playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expression(
   -- see animated_sprite_data.lua for anim_loop_modes values
   --[anim_name] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
@@ -221,9 +222,7 @@ playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expr
                                     10,                4},
     run  = {{"run1", "run2", "run3", "run4"},
                                      5,                4},
-    spin_slow = {{"spin_full_ball", "spin1", "spin2", "spin3", "spin4"},
-                                     5,                4},
-    spin_fast = {{"spin_full_ball", "spin1", "spin2", "spin_full_ball", "spin3", "spin4"},
+    spin = {{"spin_full_ball", "spin1", "spin_full_ball", "spin2", "spin_full_ball", "spin3", "spin_full_ball", "spin4"},
                                      5,                4},
     spring_jump = {{"spring_jump"}, 10,                2}
 }]], function (t)

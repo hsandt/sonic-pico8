@@ -123,12 +123,12 @@ local playercharacter_data = {
 
   -- same as center_height_standing but when character is crouching, rolling or jumping
   --  (px)
-  center_height_compact = 4,
+  center_height_compact = 6,
 
   -- same as full_height_standing but when character is crouching, rolling or jumping
   --  (px)
   -- should be 2 * center_height_compact, but left as separate data for customization (e.g. you can add 1 as in the SPG)
-  full_height_compact = 8,
+  full_height_compact = 12,
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  (px)

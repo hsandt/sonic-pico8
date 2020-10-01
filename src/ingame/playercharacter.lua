@@ -890,7 +890,14 @@ function player_char:update_platformer_motion_grounded()
   end
 
   if should_fall then
-    self:enter_motion_state(motion_states.falling)
+    local new_state
+    if self.motion_state == motion_states.standing then
+      new_state = motion_states.falling
+    else  -- self.motion_state == motion_states.rolling
+      -- roll fall is like an air_spin without can_interrupt_jump (nor double jump in Sonic 3)
+      new_state = motion_states.air_spin
+    end
+    self:enter_motion_state(new_state)
   else
     -- we are still grounded, so:
 

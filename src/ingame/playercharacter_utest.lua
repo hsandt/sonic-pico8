@@ -2756,6 +2756,15 @@ describe('player_char', function ()
                 assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
               end)
 
+              it('(when rolling) should enter air_spin state thanks to Falling and Sliding Off condition', function ()
+                pc.motion_state = motion_states.rolling
+
+                pc:update_platformer_motion_grounded()
+
+                assert.spy(enter_motion_state_stub).was_called(1)
+                assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
+              end)
+
             end)
 
             describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
@@ -2770,7 +2779,7 @@ describe('player_char', function ()
                 new_ground_speed = -2.5
               end)
 
-              it('should not enter falling state, escaping Falling and Sliding Off condition', function ()
+              it('should not enter falling (nor air_spin) state, escaping Falling and Sliding Off condition', function ()
                 pc:update_platformer_motion_grounded()
 
                 assert.spy(enter_motion_state_stub).was_not_called()
@@ -2857,6 +2866,19 @@ describe('player_char', function ()
             assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
           end)
 
+          it('(rolling on ceiling/wall-ceiling) should enter air_spin state and set horizontal control lock timer thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
+            pc.motion_state = motion_states.rolling
+            pc.slope_angle = 0.25
+            pc.quadrant = directions.right
+
+            pc:update_platformer_motion_grounded()
+
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
+
+            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
+          end)
+
           it('(on slope less than 90 degrees) should not enter falling state but still set horizontal control lock timer', function ()
             pc.slope_angle = 1-0.24
             pc.quadrant = directions.right
@@ -2916,6 +2938,17 @@ describe('player_char', function ()
             assert.spy(check_jump_intention_stub).was_not_called()
           end)
 
+          it('(when rolling) should call enter_motion_state with air_spin state, not call check_jump_intention (falling)', function ()
+            pc.motion_state = motion_states.rolling
+
+            pc:update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
+            assert.spy(check_jump_intention_stub).was_not_called()
+          end)
+
           it('should set the position to vector(3, 4)', function ()
             pc:update_platformer_motion_grounded()
             assert.are_same(vector(3, 4), pc.position)
@@ -2970,6 +3003,17 @@ describe('player_char', function ()
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
+            assert.spy(check_jump_intention_stub).was_not_called()
+          end)
+
+          it('(when rolling) should call enter_motion_state with air_spin state, not call check_jump_intention (falling)', function ()
+            pc.motion_state = motion_states.rolling
+
+            pc:update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(enter_motion_state_stub).was_called(1)
+            assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
             assert.spy(check_jump_intention_stub).was_not_called()
           end)
 

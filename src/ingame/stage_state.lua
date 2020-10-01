@@ -473,12 +473,12 @@ function stage_state:reload_map_region(new_map_region_coords)
 
   if new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 == 0 then
     -- integer coordinates => solo region
-    log("reload map region: single", "reload")
+    log("reload map region: "..new_map_region_coords.." (single)", "reload")
 
     reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(u_left, v_upper))
   elseif new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 ~= 0 then
     -- fractional y => vertically overlapping region (2 patches)
-    log("reload map region: Y overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (Y overlap)", "reload")
 
     -- copy lower part of map region above to upper part of map memory
     self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
@@ -486,7 +486,7 @@ function stage_state:reload_map_region(new_map_region_coords)
     self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
   elseif new_map_region_coords.x % 1 ~= 0 and new_map_region_coords.y % 1 == 0 then
     -- fractional x => horizontally overlapping region (2 patches)
-    log("reload map region: X overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (X overlap)", "reload")
 
     -- copy right part of left map region to left part of map memory
     self:reload_horizontal_half_of_map_region(horizontal_dirs.left, self:get_map_region_filename(u_left, v_upper))
@@ -494,7 +494,7 @@ function stage_state:reload_map_region(new_map_region_coords)
     self:reload_horizontal_half_of_map_region(horizontal_dirs.right, self:get_map_region_filename(u_left + 1, v_upper))
   else
     -- fractional x & y => cross overlapping region (4 patches)
-    log("reload map region: cross overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (cross overlap)", "reload")
     -- copy to temp memory, but with 4 files this time
 
     -- copy bottom-right quarter of top-left map to top-left

@@ -5300,16 +5300,16 @@ describe('player_char', function ()
           local result = pc:check_jump()
 
           -- interface
-          assert.are_same({false, vector(4.1, -1), motion_states.grounded, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame})
+          assert.are_same({false, vector(4.1, -1), motion_states.grounded, false, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
         end)
 
-        it('should consume should_jump, add initial var jump velocity, update motion state, set has_jumped_this_frame flag and return true when should_jump is true', function ()
+        it('should consume should_jump, add initial var jump velocity, update motion state, set has_jumped_this_frame amd can_interrupt_jump flags and return true when should_jump is true', function ()
           pc.velocity = vector(4.1, -1)
           pc.should_jump = true
           local result = pc:check_jump()
 
           -- interface
-          assert.are_same({true, vector(4.1, -4.25), motion_states.air_spin, true}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame})
+          assert.are_same({true, vector(4.1, -4.25), motion_states.air_spin, true, true}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
         end)
 
         it('should add impulse along ground normal when slope_angle is not 0 (and we should jump)', function ()

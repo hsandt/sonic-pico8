@@ -1417,6 +1417,7 @@ function player_char:check_jump()
     self.velocity:add_inplace(jump_impulse)
     self:enter_motion_state(motion_states.air_spin)
     self.has_jumped_this_frame = true
+    self.can_interrupt_jump = true
 
     sfx(audio.sfx_ids.jump)
 

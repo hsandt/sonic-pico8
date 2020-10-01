@@ -34,9 +34,10 @@ motion_modes = {
 
 -- enum for character motion state in platformer mode
 motion_states = {
-  grounded = 1,  -- character is idle or running on the ground
+  grounded = 1,  -- character is idle or running on the ground (actually "standing" since "rolling" has been added since)
   falling  = 2,  -- character is falling in the air, but not spinning
-  air_spin = 3   -- character is in the air after a jump
+  air_spin = 3,  -- character is in the air after a jump
+  rolling  = 4,  -- character is rolling on the ground
 }
 
 
@@ -79,7 +80,7 @@ local player_char = new_class()
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
--- has_interrupted_jump     bool            has the character already interrupted his jump once?
+-- can_interrupt_jump       bool            can the character interrupted his jump once?
 
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
@@ -126,7 +127,7 @@ function player_char:setup()
   self.hold_jump_intention = false
   self.should_jump = false
   self.has_jumped_this_frame = false
-  self.has_interrupted_jump = false
+  self.can_interrupt_jump = false
 
   self.anim_spr:play("idle")
   self.anim_run_speed = 0.
@@ -136,12 +137,12 @@ end
 
 -- return true iff character is grounded
 function player_char:is_grounded()
-  return self.motion_state == motion_states.grounded
+  return self.motion_state == motion_states.grounded or self.motion_state == motion_states.rolling
 end
 
 -- return true iff character is curled
 function player_char:is_compact()
-  return self.motion_state == motion_states.air_spin
+  return self.motion_state == motion_states.air_spin or self.motion_state == motion_states.rolling
 end
 
 function player_char:get_center_height()
@@ -285,8 +286,9 @@ function player_char:handle_input()
 
     -- ignore horizontal input when *grounded* with control lock timer is active
     -- checking == 0 is enough, <= 0 is just for safety
-    if self.motion_state ~= motion_states.grounded or self.horizontal_control_lock_timer <= 0 then
+    if not self:is_grounded() or self.horizontal_control_lock_timer <= 0 then
 
+      -- horizontal input
       if input:is_down(button_ids.left) then
         player_move_intention:add_inplace(vector(-1, 0))
       elseif input:is_down(button_ids.right) then
@@ -302,7 +304,7 @@ function player_char:handle_input()
     --  but in pico-sonic we prefer decrementing timer when airborne, so after a long fall or jump you
     --  can immediately get control back
     -- to restore original game behavior, uncomment the line below and comment out the 2nd line below
-    -- if self.horizontal_control_lock_timer > 0 and self.motion_state == motion_states.grounded then
+    -- if self.horizontal_control_lock_timer > 0 and self;is_grounded() then
     if self.horizontal_control_lock_timer > 0 then
       -- decrement control lock frame timer
       -- normally it's better to update non-intention state vars
@@ -311,6 +313,7 @@ function player_char:handle_input()
       self.horizontal_control_lock_timer = self.horizontal_control_lock_timer - 1
     end
 
+    -- vertical input (used for debug motion, crouch/roll, and possibly look up/down in the future)
     if input:is_down(button_ids.up) then
       player_move_intention:add_inplace(vector(0, -1))
     elseif input:is_down(button_ids.down) then
@@ -701,7 +704,8 @@ end
 -- current, self.slope_angle must have been previously set when
 --  entering ground state
 function player_char:enter_motion_state(next_motion_state)
-  -- store previous compact state before changing motion state
+  -- store previous grounded/compact state before changing motion state
+  local was_grounded = self:is_grounded()
   local was_compact = self:is_compact()
 
   -- update motion state
@@ -742,14 +746,28 @@ function player_char:enter_motion_state(next_motion_state)
     self.should_jump = false
     self.should_play_spring_jump = false
   elseif next_motion_state == motion_states.grounded then
-    -- Momentum: transfer part of velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
-    self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
-    self:clamp_ground_speed()
-    -- we have just reached the ground (and possibly escaped),
-    --  reset values airborne vars
-    self.has_jumped_this_frame = false  -- optional since consumed immediately in _update_platformer_motion_airborne
-    self.has_interrupted_jump = false
-    self.should_play_spring_jump = false
+    if not was_grounded then
+      -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
+      self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
+      self:clamp_ground_speed()
+
+      -- we have just reached the ground (and possibly escaped),
+      --  reset values airborne vars
+      self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
+      self.can_interrupt_jump = false
+      self.should_play_spring_jump = false
+    end
+  else  -- next_motion_state == motion_states.rolling
+    -- we don't have code to preserve airborne tangential velocity here because we cannot really land and immediately roll
+    --  without going through the grounded state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
+    --  and Sonic Mania's Drop Dash would probably ignore previous velocity anyway
+    if not was_grounded then
+      -- we have just reached the ground (and possibly escaped),
+      --  reset values airborne vars
+      self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
+      self.can_interrupt_jump = false
+      self.should_play_spring_jump = false
+    end
   end
 end
 
@@ -758,8 +776,16 @@ function player_char:update_platformer_motion()
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
-  if self.motion_state == motion_states.grounded then
+  if self:is_grounded() then
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
+  end
+
+  -- do not move check below inside the is_grounded() check above,
+  --  to clearly show that the state may have changed and we check it properly again
+  if self.motion_state == motion_states.grounded then
+    self:check_roll_start()
+  elseif self.motion_state == motion_states.rolling then
+    self:check_roll_end()
   end
 
   if self:is_grounded() then
@@ -771,6 +797,29 @@ function player_char:update_platformer_motion()
   self:check_spring()
   self:check_emerald()
   self:check_loop_external_triggers()
+end
+
+-- check if character is fast enough to roll and wants to roll
+-- if so, start rolling
+-- we assume character is standing on ground
+function player_char:check_roll_start()
+  -- if character is walking fast enough and pressing down (and no horizontal direction), he will roll
+  if abs(self.ground_speed) >= pc_data.roll_min_ground_speed and self.move_intention.x == 0 and self.move_intention.y > 0 then
+    -- currently enter_motion_state from standing to rolling will do nothing more than set the state
+    --  but we call it so we have a centralized place to add other side effects or cleanup if needed
+    self:enter_motion_state(motion_states.rolling)
+  end
+end
+
+-- check if character is too slow enough to continue rolling
+-- if so, stop rolling
+-- we assume character is rolling on ground
+function player_char:check_roll_end()
+  if abs(self.ground_speed) < pc_data.continue_roll_min_ground_speed then
+    -- currently enter_motion_state from rolling to standing will do nothing more than set the state
+    --  but we call it so we have a centralized place to add other side effects or cleanup if needed
+    self:enter_motion_state(motion_states.grounded)
+  end
 end
 
 -- update motion following platformer grounded motion rules
@@ -876,7 +925,11 @@ function player_char:update_ground_speed()
   -- But it should be OK overall.
   -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
   self:update_ground_speed_by_slope()
-  self:update_ground_speed_by_intention()
+  if self.motion_state == motion_states.grounded then
+    self:update_ground_run_speed_by_intention()
+  else
+    self:update_ground_roll_speed_by_intention()
+  end
   self:clamp_ground_speed()
 end
 
@@ -917,14 +970,16 @@ function player_char:update_ground_speed_by_slope()
   end
 end
 
--- update ground speed based on current move intention
-function player_char:update_ground_speed_by_intention()
+-- update ground speed while standing based on current move intention
+function player_char:update_ground_run_speed_by_intention()
   if self.move_intention.x ~= 0 then
 
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
       self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
-      -- face move direction if not already
+      -- face move direction if not already (this does something when starting running in the opposite
+      --  direction of the faced on from idle, and when character is already running backward
+      --  e.g. after a reverse jump, and player presses actual forward direction)
       self.orientation = signed_speed_to_dir(self.move_intention.x)
     else
       -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
@@ -972,6 +1027,30 @@ function player_char:update_ground_speed_by_intention()
     end
   end
 
+end
+
+-- update ground speed while rolling based on current move intention
+function player_char:update_ground_roll_speed_by_intention()
+  -- rolling differs from running as we always apply friction
+  --  then we also apply deceleration is input opposes ground speed
+  -- in addition, we are almost certain that there is some ground speed > 0.14 if we are rolling, even if we are on a steep slope,
+  --  considering continue_roll_min_ground_speed > gravity_frame2 (by ~0.14) and we unroll as soon as we go under continue_roll_min_ground_speed
+  -- so we go straightforward and apply friction (+ decel) and just clamp at 0 as a safety measure
+  local abs_decel = pc_data.ground_roll_friction_frame2
+
+  if self.ground_speed ~= 0 and self.move_intention.x ~= 0 then
+    if sgn(self.ground_speed) ~= sgn(self.move_intention.x) then
+      -- decelerate
+      abs_decel = abs_decel + pc_data.ground_roll_decel_frame2
+    else  -- sgn(self.ground_speed) == sgn(self.move_intention.x)
+      -- the only possible effect of pressing the forward direction during a roll,
+      --  is when we are rolling backward, as it corrects the orientation to forward (as when running backward)
+      --  but it doesn't affect physics
+      self.orientation = signed_speed_to_dir(self.move_intention.x)
+    end
+  end
+
+  self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - abs_decel)
 end
 
 -- clamp ground speed to max
@@ -1321,14 +1400,14 @@ end
 
 -- if character intends to jump, apply jump velocity from current ground
 --  and enter the air_spin state
--- return true iff jump was applied
+-- return true iff jump was applied (return value is currently unused)
 function player_char:check_jump()
   if self.should_jump then
     self.should_jump = false
 
     -- apply initial jump speed for variable jump
     -- note: if the player is doing a hop, the vertical speed will be reset
-    --  to the interrupt speed during the same frame in _update_platformer_motion_airborne
+    --  to the interrupt speed during the same frame in update_platformer_motion_airborne
     --  via _check_hold_jump (we don't do it here so we centralize the check and
     --  don't apply gravity during such a frame)
     -- to support slopes, we use the ground normal (rotate right tangent ccw)
@@ -1413,6 +1492,7 @@ function player_char:update_platformer_motion_airborne()
     -- register new ground tile, update slope angle and enter grounded state
     self:set_ground_tile_location(air_motion_result.tile_location)
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
+    -- always stand on ground, if we want to roll we'll switch to rolling on next frame
     self:enter_motion_state(motion_states.grounded)
   end
 
@@ -1420,13 +1500,19 @@ function player_char:update_platformer_motion_airborne()
   log("self.velocity: "..self.velocity, "trace")
 end
 
--- check if character wants to interrupt jump by not holding anymore,
+-- check if character can and wants to interrupt jump by not holding anymore,
 --  and set vertical speed to interrupt speed if so
 function player_char:check_hold_jump()
-  if not self.has_interrupted_jump and not self.hold_jump_intention then
+  -- if character is air spinning after falling from a roll, can_interrupt_jump will simply
+  --  be false from the start and it will never enter this block
+  -- this will prevent interrupting a rising air spin after rolling off a rising curve when releasing jump
+  -- do not set can_interrupt_jump to false when velocity y goes under jump_interrupt_speed_frame
+  --  as long as player holds jump input: as it may be processed in the future (under effector
+  --  or after enemy bounce for instance, although I'd probably reset it on enemy bounce)
+  if self.can_interrupt_jump and not self.hold_jump_intention then
     -- character has not interrupted jump yet and wants to
-    -- flag jump as interrupted even if it's too late, so we don't enter this block anymore
-    self.has_interrupted_jump = true
+    -- flag that you can't interrupt jump anymore even if it's too late, so we don't enter this block anymore
+    self.can_interrupt_jump = false
 
     -- character tries to interrupt jump, check if's not too late
     local signed_jump_interrupt_speed_frame = -pc_data.jump_interrupt_speed_frame
@@ -1916,7 +2002,7 @@ function player_char:check_play_anim()
         self.anim_spr:play("run", false, self.anim_run_speed)
       end
     end
-  else -- self.motion_state == motion_states.air_spin
+  else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
     if self.anim_run_speed < pc_data.spin_fast_min_speed_frame then
       self.anim_spr:play("spin_slow", false, max(pc_data.spin_anim_min_play_speed, self.anim_run_speed))
     else

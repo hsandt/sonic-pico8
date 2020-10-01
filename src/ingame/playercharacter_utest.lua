@@ -186,7 +186,7 @@ describe('player_char', function ()
           pc.hold_jump_intention,
           pc.should_jump,
           pc.has_jumped_this_frame,
-          pc.has_interrupted_jump,
+          pc.can_interrupt_jump,
 
           pc.anim_run_speed,
           pc.continuous_sprite_angle,
@@ -217,7 +217,13 @@ describe('player_char', function ()
 
     describe('is_grounded', function ()
 
-      it('should return true when character is grounded', function ()
+      it('should return true when character is standing on the ground', function ()
+        pc.motion_state = motion_states.grounded
+        assert.is_true(pc:is_grounded())
+      end)
+
+      it('should return true when character is rolling on the ground', function ()
+        pc.motion_state = motion_states.rolling
         assert.is_true(pc:is_grounded())
       end)
 
@@ -235,8 +241,14 @@ describe('player_char', function ()
 
     describe('is_compact', function ()
 
-      it('should return false when character is grounded', function ()
+      it('should return false when character is standing on the ground', function ()
+        pc.motion_state = motion_states.grounded
         assert.is_false(pc:is_compact())
+      end)
+
+      it('should return true when character is rolling on the ground', function ()
+        pc.motion_state = motion_states.rolling
+        assert.is_true(pc:is_compact())
       end)
 
       it('should return false when character is falling', function ()
@@ -2038,7 +2050,7 @@ describe('player_char', function ()
         end)
 
         -- bugfix history: .
-        it('should enter passed state: grounded, reset has_jumped_this_frame/has_interrupted_jump', function ()
+        it('should enter passed state: grounded, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
           pc.motion_state = motion_states.falling
 
           pc:enter_motion_state(motion_states.grounded)
@@ -2052,7 +2064,26 @@ describe('player_char', function ()
             {
               pc.motion_state,
               pc.has_jumped_this_frame,
-              pc.has_interrupted_jump,
+              pc.can_interrupt_jump,
+              pc.should_play_spring_jump
+            })
+        end)
+
+        it('should enter passed state: rolling, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
+          pc.motion_state = motion_states.falling
+
+          pc:enter_motion_state(motion_states.rolling)
+
+          assert.are_same({
+              motion_states.rolling,
+              false,
+              false,
+              false
+            },
+            {
+              pc.motion_state,
+              pc.has_jumped_this_frame,
+              pc.can_interrupt_jump,
               pc.should_play_spring_jump
             })
         end)
@@ -2166,24 +2197,30 @@ describe('player_char', function ()
       describe('update_platformer_motion', function ()
 
         setup(function ()
+          stub(player_char, "check_roll_start")
+          stub(player_char, "check_roll_end")
           stub(player_char, "check_spring")
           stub(player_char, "check_emerald")
           stub(player_char, "check_loop_external_triggers")
         end)
 
         teardown(function ()
+          player_char.check_roll_start:revert()
+          player_char.check_roll_end:revert()
           player_char.check_spring:revert()
           player_char.check_emerald:revert()
           player_char.check_loop_external_triggers:revert()
         end)
 
         after_each(function ()
+          player_char.check_roll_start:clear()
+          player_char.check_roll_end:clear()
           player_char.check_spring:clear()
           player_char.check_emerald:clear()
           player_char.check_loop_external_triggers:clear()
         end)
 
-        describe('(_check_jump stubbed)', function ()
+        describe('(check_jump stubbed)', function ()
 
           setup(function ()
             stub(player_char, "check_jump")
@@ -2197,14 +2234,21 @@ describe('player_char', function ()
             player_char.check_jump:clear()
           end)
 
-          it('(when motion state is grounded) should call _check_jump', function ()
+          it('(when motion state is standing on ground) should call check_jump', function ()
             pc.motion_state = motion_states.grounded
             pc:update_platformer_motion()
             assert.spy(player_char.check_jump).was_called(1)
             assert.spy(player_char.check_jump).was_called_with(match.ref(pc))
           end)
 
-          it('(when motion state is airborne) should call _check_jump', function ()
+          it('(when motion state is rolling on ground) should call check_jump', function ()
+            pc.motion_state = motion_states.rolling
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_jump).was_called(1)
+            assert.spy(player_char.check_jump).was_called_with(match.ref(pc))
+          end)
+
+          it('(when motion state is airborne) should call check_jump', function ()
             pc.motion_state = motion_states.falling  -- or any airborne state
             pc:update_platformer_motion()
             assert.spy(player_char.check_jump).was_not_called()
@@ -2233,13 +2277,13 @@ describe('player_char', function ()
 
         end)
 
-        describe('(_update_platformer_motion_grounded sets motion state to air_spin)', function ()
+        describe('(update_platformer_motion_grounded sets motion state to air_spin)', function ()
 
           local update_platformer_motion_grounded_mock
           local update_platformer_motion_airborne_stub
 
           setup(function ()
-            -- mock the worst case possible for _update_platformer_motion_grounded,
+            -- mock the worst case possible for update_platformer_motion_grounded,
             --  changing the state to air_spin to make sure the airborne branch is not entered afterward (else instead of 2 if blocks)
             update_platformer_motion_grounded_mock = stub(player_char, "update_platformer_motion_grounded", function (self)
               self.motion_state = motion_states.air_spin
@@ -2257,7 +2301,7 @@ describe('player_char', function ()
             update_platformer_motion_airborne_stub:clear()
           end)
 
-          describe('(_check_jump does nothing)', function ()
+          describe('(check_jump does nothing)', function ()
 
             local check_jump_stub
 
@@ -2273,10 +2317,42 @@ describe('player_char', function ()
               check_jump_stub:clear()
             end)
 
-            describe('(when character is grounded)', function ()
+            describe('(when character is standing)', function ()
 
-              it('should call _update_platformer_motion_grounded', function ()
+              it('should call check_roll_start', function ()
                 pc.motion_state = motion_states.grounded
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_roll_start).was_called(1)
+                assert.spy(player_char.check_roll_start).was_called_with(match.ref(pc))
+              end)
+
+              it('should call update_platformer_motion_grounded', function ()
+                pc.motion_state = motion_states.grounded
+
+                pc:update_platformer_motion()
+
+                assert.spy(update_platformer_motion_grounded_mock).was_called(1)
+                assert.spy(update_platformer_motion_grounded_mock).was_called_with(match.ref(pc))
+                assert.spy(update_platformer_motion_airborne_stub).was_not_called()
+              end)
+
+            end)
+
+            describe('(when character is rolling)', function ()
+
+              it('should call check_roll_start', function ()
+                pc.motion_state = motion_states.rolling
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_roll_end).was_called(1)
+                assert.spy(player_char.check_roll_end).was_called_with(match.ref(pc))
+              end)
+
+              it('should call update_platformer_motion_grounded', function ()
+                pc.motion_state = motion_states.rolling
 
                 pc:update_platformer_motion()
 
@@ -2289,7 +2365,7 @@ describe('player_char', function ()
 
             describe('(when character is in air_spin)', function ()
 
-              it('should call _update_platformer_motion_airborne', function ()
+              it('should call update_platformer_motion_airborne', function ()
                 pc.motion_state = motion_states.air_spin
 
                 pc:update_platformer_motion()
@@ -2303,7 +2379,7 @@ describe('player_char', function ()
 
           end)
 
-          describe('(_check_jump enters air_spin motion state)', function ()
+          describe('(check_jump enters air_spin motion state)', function ()
 
             local check_jump_mock
 
@@ -2321,9 +2397,17 @@ describe('player_char', function ()
               check_jump_mock:clear()
             end)
 
-            describe('(when character is grounded)', function ()
+            describe('(when character is standing first)', function ()
 
-              it('should call _update_platformer_motion_airborne since _check_jump will enter air_spin first', function ()
+              it('should not call check_roll_start since check_jump will enter air_spin first', function ()
+                pc.motion_state = motion_states.grounded
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_roll_start).was_not_called()
+              end)
+
+              it('should call update_platformer_motion_airborne since check_jump will enter air_spin first', function ()
                 pc.motion_state = motion_states.grounded
 
                 pc:update_platformer_motion()
@@ -2335,7 +2419,29 @@ describe('player_char', function ()
 
             end)
 
-            -- we need to test (when character is airborne) since in this context _check_jump
+            describe('(when character is rolling first)', function ()
+
+              it('should not call check_roll_end since check_jump will enter air_spin first', function ()
+                pc.motion_state = motion_states.rolling
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_roll_end).was_not_called()
+              end)
+
+              it('should call update_platformer_motion_airborne since check_jump will enter air_spin first', function ()
+                pc.motion_state = motion_states.rolling
+
+                pc:update_platformer_motion()
+
+                assert.spy(update_platformer_motion_airborne_stub).was_called(1)
+                assert.spy(update_platformer_motion_airborne_stub).was_called_with(match.ref(pc))
+                assert.spy(update_platformer_motion_grounded_mock).was_not_called()
+              end)
+
+            end)
+
+            -- we don't need to test (when character is airborne) since in this context check_jump
             -- always trigger a jump, which is impossible from the air (as double jump is not implemented)
 
           end)
@@ -2343,6 +2449,162 @@ describe('player_char', function ()
         end)
 
       end)  -- _update_platformer_motion
+
+      describe('check_roll_start', function ()
+
+        setup(function ()
+          stub(player_char, "enter_motion_state")
+        end)
+
+        teardown(function ()
+          player_char.enter_motion_state:revert()
+        end)
+
+        after_each(function ()
+          player_char.enter_motion_state:clear()
+        end)
+
+        before_each(function ()
+          -- assumption
+          pc.motion_state = motion_states.grounded
+        end)
+
+        it('should not start rolling if input down is pressed but abs ground speed (positive) is not enough', function ()
+          pc.ground_speed = pc_data.roll_min_ground_speed - 0.01
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should not start rolling if input down is pressed but abs ground speed (negative) is not enough', function ()
+          pc.ground_speed = -pc_data.roll_min_ground_speed + 0.01
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should not start rolling if input down is pressed and abs ground speed (positive) is enough, but input x is also pressed', function ()
+          pc.ground_speed = pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention = vector(-1, 1)
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should not start rolling if abs ground speed (positive) is high enough but input down is not pressed', function ()
+          pc.ground_speed = pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 0
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should not start rolling if abs ground speed (negative) is high enough but input down is not pressed', function ()
+          pc.ground_speed = -pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 0
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should start rolling if input down is pressed and abs ground speed (positive) is enough', function ()
+          pc.ground_speed = pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
+        end)
+
+        it('should start rolling if input down is pressed and abs ground speed (negative) is enough', function ()
+          pc.ground_speed = -pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
+        end)
+
+      end)
+
+      describe('check_roll_end', function ()
+
+        setup(function ()
+          stub(player_char, "enter_motion_state")
+        end)
+
+        teardown(function ()
+          player_char.enter_motion_state:revert()
+        end)
+
+        after_each(function ()
+          player_char.enter_motion_state:clear()
+        end)
+
+        before_each(function ()
+          -- assumption
+          pc.motion_state = motion_states.rolling
+        end)
+
+        it('should not end rolling if abs ground speed (positive) is high enough', function ()
+          pc.ground_speed = pc_data.continue_roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+
+          pc:check_roll_end()
+
+          -- interface
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should not end rolling if abs ground speed (negative) is high enough', function ()
+          pc.ground_speed = -pc_data.continue_roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+
+          pc:check_roll_end()
+
+          -- interface
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should end rolling if abs ground speed (positive) is not enough', function ()
+          pc.ground_speed = pc_data.continue_roll_min_ground_speed - 0.01
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+
+          pc:check_roll_end()
+
+          -- interface
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+        end)
+
+        it('should end rolling if abs ground speed (negative) is not enough', function ()
+          pc.ground_speed = -pc_data.continue_roll_min_ground_speed + 0.01
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+
+          pc:check_roll_end()
+
+          -- interface
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.grounded)
+        end)
+
+      end)
 
       -- bugfix history:
       --  ^ use fractional speed to check that fractional moves are supported
@@ -2448,7 +2710,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
           end)
 
-          it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
+          it('should call check_jump_intention, not _enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2549,7 +2811,7 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _check_jump_intention, not _enter_motion_state (not falling)', function ()
+          it('should call check_jump_intention, not _enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2645,7 +2907,7 @@ describe('player_char', function ()
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call _check_jump_intention (falling)', function ()
+          it('should call _enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2702,7 +2964,7 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call _enter_motion_state with falling state, not call _check_jump_intention (falling)', function ()
+          it('should call _enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
@@ -2769,26 +3031,29 @@ describe('player_char', function ()
 
         end)
 
-      end)  -- _update_platformer_motion_grounded
+      end)  -- update_platformer_motion_grounded
 
       describe('update_ground_speed', function ()
 
         setup(function ()
           -- the only reason we spy and not stub is to test the interface in the first test below
           spy.on(player_char, "update_ground_speed_by_slope")
-          spy.on(player_char, "update_ground_speed_by_intention")
+          spy.on(player_char, "update_ground_run_speed_by_intention")
+          spy.on(player_char, "update_ground_roll_speed_by_intention")
           spy.on(player_char, "clamp_ground_speed")
         end)
 
         teardown(function ()
           player_char.update_ground_speed_by_slope:revert()
-          player_char.update_ground_speed_by_intention:revert()
+          player_char.update_ground_run_speed_by_intention:revert()
+          player_char.update_ground_roll_speed_by_intention:revert()
           player_char.clamp_ground_speed:revert()
         end)
 
         after_each(function ()
           player_char.update_ground_speed_by_slope:clear()
-          player_char.update_ground_speed_by_intention:clear()
+          player_char.update_ground_run_speed_by_intention:clear()
+          player_char.update_ground_roll_speed_by_intention:clear()
           player_char.clamp_ground_speed:clear()
         end)
 
@@ -2797,7 +3062,7 @@ describe('player_char', function ()
         --  we do a mini itest to check the resulting velocity,
         --  which will prove that slope factor is applied before intention
 
-        it('should apply descending slope factor, then oppose it with strong decel when moving in the ascending direction of 45-degree slope from ground speed 0', function ()
+        it('(standing) should apply descending slope factor, then oppose it with strong decel when moving in the ascending direction of 45-degree slope from ground speed 0', function ()
           -- interface: check overall behavior (mini integration test)
           pc.ground_speed = 0
           pc.slope_angle = 1/8  -- 45 deg ascending
@@ -2810,7 +3075,7 @@ describe('player_char', function ()
           assert.are_equal(pc_data.ground_accel_frame2, pc.ground_speed)
         end)
 
-        it('should update ground speed based on slope, then intention', function ()
+        it('(standing) should update ground speed based on slope, then intention', function ()
           pc.ground_speed = 2.5
 
           pc:update_ground_speed()
@@ -2818,10 +3083,20 @@ describe('player_char', function ()
           -- implementation
           assert.spy(player_char.update_ground_speed_by_slope).was_called(1)
           assert.spy(player_char.update_ground_speed_by_slope).was_called_with(match.ref(pc))
-          assert.spy(player_char.update_ground_speed_by_intention).was_called(1)
-          assert.spy(player_char.update_ground_speed_by_intention).was_called_with(match.ref(pc))
+          assert.spy(player_char.update_ground_run_speed_by_intention).was_called(1)
+          assert.spy(player_char.update_ground_run_speed_by_intention).was_called_with(match.ref(pc))
           assert.spy(player_char.clamp_ground_speed).was_called(1)
           assert.spy(player_char.clamp_ground_speed).was_called_with(match.ref(pc))
+        end)
+
+        it('(rolling) should call update_ground_roll_speed_by_intention (instead of _run_)', function ()
+          pc.motion_state = motion_states.rolling
+
+          pc:update_ground_speed()
+
+          -- implementation
+          assert.spy(player_char.update_ground_roll_speed_by_intention).was_called(1)
+          assert.spy(player_char.update_ground_roll_speed_by_intention).was_called_with(match.ref(pc))
         end)
 
       end)  -- _update_ground_speed
@@ -2936,30 +3211,30 @@ describe('player_char', function ()
 
       end)  -- _update_ground_speed_by_slope
 
-      describe('update_ground_speed_by_intention', function ()
+      describe('update_ground_run_speed_by_intention', function ()
 
         it('should accelerate and set direction based on new speed when character is facing left, has ground speed 0 and move intention x > 0', function ()
           pc.orientation = horizontal_dirs.left
           pc.move_intention.x = 1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
 
         it('should accelerate and set direction when character is facing left, has ground speed > 0 and move intention x > 0', function ()
-          pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after hitting a spring
+          pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after landing on a steep ascending slope and walking backward
           pc.ground_speed = 1.5
           pc.move_intention.x = 1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 + pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
 
         it('should accelerate and preserve direction when character is facing left, has ground speed < 0 and move intention x < 0', function ()
-          pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after hitting a spring
+          pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after hitting a spring after landing on a steep ascending slope and walking backward
           pc.ground_speed = -1.5
           pc.move_intention.x = -1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.left, -1.5 - pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -2968,7 +3243,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           -- ground_decel_frame2 = 0.25, subtract it from ground_speed
           assert.are_same({horizontal_dirs.right, 1.25},
             {pc.orientation, pc.ground_speed})
@@ -2981,7 +3256,7 @@ describe('player_char', function ()
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
           pc.slope_angle = 1-0.125
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_descending_slope_factor * pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -2991,16 +3266,18 @@ describe('player_char', function ()
           pc.ground_speed = 1.5
           pc.move_intention.x = -1
           pc.slope_angle = 1-0.0625
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_decel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
+
+        -- End Original feature
 
         it('should decelerate and stop exactly at speed 0, preserving direction, when character has ground speed = ground accel * 1 frame and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 0.25
           pc.move_intention.x = -1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           -- ground_decel_frame2 = 0.25, subtract it from ground_speed
           assert.are_same({horizontal_dirs.right, 0},
             {pc.orientation, pc.ground_speed})
@@ -3015,7 +3292,7 @@ describe('player_char', function ()
           -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.24
           pc.move_intention.x = -1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_equal(horizontal_dirs.left, pc.orientation)
           assert.is_true(almost_eq_with_message(-0.01, pc.ground_speed, 1e-16))
         end)
@@ -3026,7 +3303,7 @@ describe('player_char', function ()
           -- start with speed < -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.12
           pc.move_intention.x = -1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.left, -pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3038,7 +3315,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = -1.5
           pc.move_intention.x = 1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, -1.25},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3049,7 +3326,7 @@ describe('player_char', function ()
           -- start with speed <= ground_accel_frame2 - ground_decel_frame2
           pc.ground_speed = -0.24
           pc.move_intention.x = 1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_equal(horizontal_dirs.right, pc.orientation)
           assert.is_true(almost_eq_with_message(0.01, pc.ground_speed, 1e-16))
         end)
@@ -3060,7 +3337,7 @@ describe('player_char', function ()
           -- start with speed > ground_accel_frame2 - ground_decel_frame2
           pc.ground_speed = -0.12
           pc.move_intention.x = 1
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3068,7 +3345,7 @@ describe('player_char', function ()
         it('should apply friction and preserve direction when character has ground speed > 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3077,7 +3354,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.slope_angle = 0.0625
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3086,7 +3363,7 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.slope_angle = 0.125
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3097,17 +3374,19 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = 1.5
           pc.slope_angle = 1-0.125
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 1.5},
             {pc.orientation, pc.ground_speed})
         end)
+
+        -- End Original feature
 
         -- bugfix history: missing tests that check the change of sign of ground speed
         it(' should apply friction and preserve direction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
           -- must be < friction
           pc.ground_speed = 0.01
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 0},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3117,7 +3396,7 @@ describe('player_char', function ()
         it('should apply friction and preserve direction when character has ground speed < 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = -1.5
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, -1.5 + pc_data.ground_friction_frame2},
             {pc.orientation, pc.ground_speed})
         end)
@@ -3127,19 +3406,116 @@ describe('player_char', function ()
           pc.orientation = horizontal_dirs.right
           -- must be < friction in abs
           pc.ground_speed = -0.01
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 0},
             {pc.orientation, pc.ground_speed})
         end)
 
         it('should not change ground speed nor direction when ground speed is 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.left
-          pc:update_ground_speed_by_intention()
+          pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.left, 0},
             {pc.orientation, pc.ground_speed})
         end)
 
-      end)  -- _update_ground_speed_by_intention
+      end)  -- update_ground_run_speed_by_intention
+
+      describe('update_ground_roll_speed_by_intention', function ()
+
+        -- really, rolling applies friction at anytime, active deceleration or not
+        -- so our tests are really split between two cases: just friction and decel + friction
+
+        it('should apply friction only when ground speed > 0 and move intention x is 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.move_intention.x = 0
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_equal(1.5 - pc_data.ground_roll_friction_frame2, pc.ground_speed)
+        end)
+
+        it('should apply friction only and *not* acceleration when ground speed > 0 and move intention x > 0', function ()
+          pc.orientation = horizontal_dirs.left
+          pc.ground_speed = -1.5
+          pc.move_intention.x = -1
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_equal(-1.5 + pc_data.ground_roll_friction_frame2, pc.ground_speed)
+        end)
+
+        it('should set orientation forward when ground speed > 0 and move intention x > 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -1.5
+          pc.move_intention.x = -1
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_equal(horizontal_dirs.left, pc.orientation)
+        end)
+
+        -- in general we do not need to check what happens when applying so much friction/deceleration that we are going to change sign,
+        --  simply because when going below continue_roll_min_ground_speed Sonic will stand up at the end of the update
+        --  (not here yet though), so it's unlikely he manages to change speed sign while still rolling by decelerating
+        --  since he would have to lose 0.25 px/frame in a single frame, while roll decel is 0.0625
+        -- however, because update_ground_speed_by_slope is called before, it's possibly in theory with a strong gravity and steep slope...
+        --  so we just check that the safety check that blocks the speed at 0 is working
+        -- in practice, it simply won't happen because even on a straight wall where gravity is applied at 100%, it's still lower than 0.25
+
+        it('should decelerate and stop exactly at speed 0, preserving direction, when character has ground speed < friction in abs move intention x has opposite sign', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.ground_roll_friction_frame2 / 2
+          pc.move_intention.x = 0
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        it('should decelerate *with friction added* keeping orientation when ground speed > 0 and move intention x < 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 1.5
+          pc.move_intention.x = -1
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 1.5 - pc_data.ground_roll_decel_frame2 - pc_data.ground_roll_friction_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should decelerate *with friction added* keeping orientation when ground speed < 0 and move intention x > 0', function ()
+          pc.orientation = horizontal_dirs.left
+          pc.ground_speed = -1.5
+          pc.move_intention.x = 1
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_same({horizontal_dirs.left, -1.5 + pc_data.ground_roll_decel_frame2 + pc_data.ground_roll_friction_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        -- same remark as above, check clamping just for safety
+
+        it('should decelerate and stop exactly at speed 0, preserving direction, when character has ground speed < (roll decel + friction) in abs and move intention x has opposite sign', function ()
+          pc.orientation = horizontal_dirs.left
+          pc.ground_speed = - (pc_data.ground_roll_friction_frame2 + pc_data.ground_roll_decel_frame2) / 2
+          pc.move_intention.x = 1
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        -- we do not check what happens when friction is applied so much that we are going to change sign,
+        --  for the same reason as above for decel
+
+        -- tests below seem symmetrical, but the character is actually running backward
+
+        it('should apply friction and preserve direction when character has ground speed < 0 and move intention x is 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -1.5
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, -1.5 + pc_data.ground_roll_friction_frame2},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+        it(' should apply friction but stop at 0 without changing ground speed sign when character has low ground speed < 0 and move intention x is 0', function ()
+          pc.orientation = horizontal_dirs.right
+          -- must be < ground_roll_friction_frame2 in abs
+          pc.ground_speed = -0.01
+          pc:update_ground_roll_speed_by_intention()
+          assert.are_same({horizontal_dirs.right, 0},
+            {pc.orientation, pc.ground_speed})
+        end)
+
+      end)  -- update_ground_roll_speed_by_intention
 
       describe('clamp_ground_speed', function ()
 
@@ -5013,6 +5389,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = true
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = false
 
             pc:update_platformer_motion_airborne()
@@ -5030,6 +5407,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.air_spin
             pc.velocity.y = -1  -- must be >= -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = true
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = false
 
             pc:update_platformer_motion_airborne()
@@ -5046,6 +5424,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3
             pc.has_jumped_this_frame = true
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = true
 
             pc:update_platformer_motion_airborne()
@@ -5062,6 +5441,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.air_spin
             pc.velocity.y = -1
             pc.has_jumped_this_frame = false
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = true
 
             pc:update_platformer_motion_airborne()
@@ -5078,6 +5458,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.air_spin
             pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = false
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = false
 
             pc:update_platformer_motion_airborne()
@@ -5095,6 +5476,7 @@ describe('player_char', function ()
             pc.motion_state = motion_states.falling
             pc.velocity.y = -3  -- must be < -pc_data.jump_interrupt_speed_frame (-2)
             pc.has_jumped_this_frame = false
+            pc.can_interrupt_jump = true
             pc.hold_jump_intention = false
 
             pc:update_platformer_motion_airborne()
@@ -5354,7 +5736,7 @@ describe('player_char', function ()
 
         end)
 
-      end)  -- _update_platformer_motion_airborne
+      end)  -- update_platformer_motion_airborne
 
       describe('check_spring', function ()
 
@@ -5505,36 +5887,39 @@ describe('player_char', function ()
 
       it('should interrupt the jump when still possible and hold_jump_intention is false', function ()
         pc.velocity.y = -3
+        pc.can_interrupt_jump = true
 
         pc:check_hold_jump()
 
-        assert.are_same({true, -pc_data.jump_interrupt_speed_frame}, {pc.has_interrupted_jump, pc.velocity.y})
+        assert.are_same({false, -pc_data.jump_interrupt_speed_frame}, {pc.can_interrupt_jump, pc.velocity.y})
       end)
 
-      it('should not change velocity but still set the interrupt flat when it\'s too late to interrupt jump and hold_jump_intention is false', function ()
+      it('should not change velocity but still set the interrupt flag when it\'s too late to interrupt jump and hold_jump_intention is false', function ()
         pc.velocity.y = -1
+        pc.can_interrupt_jump = true
 
         pc:check_hold_jump()
 
-        assert.are_same({true, -1}, {pc.has_interrupted_jump, pc.velocity.y})
+        assert.are_same({false, -1}, {pc.can_interrupt_jump, pc.velocity.y})
       end)
 
       it('should not try to interrupt jump if already done', function ()
         pc.velocity.y = -3
-        pc.has_interrupted_jump = true
+        pc.can_interrupt_jump = false
 
         pc:check_hold_jump()
 
-        assert.are_same({true, -3}, {pc.has_interrupted_jump, pc.velocity.y})
+        assert.are_same({false, -3}, {pc.can_interrupt_jump, pc.velocity.y})
       end)
 
       it('should not try to interrupt jump if still holding jump input', function ()
         pc.velocity.y = -3
+        pc.can_interrupt_jump = true
         pc.hold_jump_intention = true
 
         pc:check_hold_jump()
 
-        assert.are_same({false, -3}, {pc.has_interrupted_jump, pc.velocity.y})
+        assert.are_same({true, -3}, {pc.can_interrupt_jump, pc.velocity.y})
       end)
 
     end)
@@ -6876,6 +7261,18 @@ describe('player_char', function ()
       it('(air spin with high anim speed from ground) should play spin_fast anim at anim_run_speed', function ()
         pc.anim_run_speed = pc_data.spin_fast_min_speed_frame
         pc.motion_state = motion_states.air_spin
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_fast", false, pc_data.spin_fast_min_speed_frame)
+      end)
+
+      -- rolling uses the same animation as air_spin, so we only check one of its cases
+
+      it('(rolling with high anim speed from ground) should play spin_fast anim at anim_run_speed', function ()
+        pc.anim_run_speed = pc_data.spin_fast_min_speed_frame
+        pc.motion_state = motion_states.rolling
 
         pc:check_play_anim()
 

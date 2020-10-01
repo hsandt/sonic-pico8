@@ -16,12 +16,28 @@ local playercharacter_data = {
   -- ground active deceleration (brake) (px/frame^2)
   ground_decel_frame2 = 0.25,  -- 16/64
 
+  -- ground active deceleration (brake) during toll (px/frame^2)
+  ground_roll_decel_frame2 = 0.0625,  -- 4/64
+
   -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
   -- ground active deceleration factor on descending slope (no unit, [0-1])
   ground_decel_descending_slope_factor = 0.5,
 
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
+
+  -- ground friction (passive deceleration) during roll (px/frame^2)
+  -- interestingly, it is cumulated with active deceleration during roll
+  ground_roll_friction_frame2 = 0.01171875,  -- 0.75/64, half of ground_friction_frame2
+
+  -- minimum absolute ground speed required to perform a roll by crouching while moving (px/frame)
+  -- Note that we are really using the Sonic & Knuckles value of 1, divided by 2 for PICO-8 scaling,
+  --  and not the Sonic 1-3 value of 0.5. This allows character to crouch for spin dash more easily.
+  roll_min_ground_speed = 0.5,  -- 32/64
+
+  -- minimum absolute ground speed required to continue a roll, after starting it (px/frame)
+  -- if ground speed goes under this (in abs value), Sonic automatically stands up
+  continue_roll_min_ground_speed = 0.25,  -- 16/64
 
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64

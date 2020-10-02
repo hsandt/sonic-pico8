@@ -963,9 +963,15 @@ function stage_state:draw_background_forest_bottom()
     -- for 3 times a hole sequence spanning over 8 tiles on X, we get 3 * 8 * 8 = 192
     -- or if we considering offset from screen width: 128 + 8 * tile_size = 192 so perfectly fits
     -- hole areas are placed at different X and follow parallax X
-    local x = (80 - parallax_offset) + 8 * tile_size * i
-    x = (x + 8 * tile_size) % 192 - 8 * tile_size
-    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x, 94 + tile_offset_j_cycle[i + 1] * tile_size))
+    -- in our case, there is no "space" between what we consider hole areas
+    --  so the offset per i is the same as the area width
+    local area_width = 8 * tile_size
+    local x0 = (80 - parallax_offset) + area_width * i
+    x0 = (x0 + area_width) % 192 - area_width
+    local y0 = 94 + tile_offset_j_cycle[i + 1] * tile_size
+    -- sprite topleft is placed at (x0, y0), and we program graphics around sprite from that position
+    rectfill_(x0, y0 - tile_size, x0 + 4 * tile_size, y0 + 5 * tile_size, colors.dark_green)
+    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x0, y0))
   end
 end
 

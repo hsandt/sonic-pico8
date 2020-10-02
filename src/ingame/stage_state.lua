@@ -82,7 +82,7 @@ function stage_state:on_enter()
   --  we preload all map regions on stage start and spawn
 
 --#if itest
-  -- skip this step during itests unles you specifically need to test objects e.g. picking an emerald,
+  -- skip this step during itests unless you specifically need to test objects e.g. picking an emerald,
   --  as it's slow and will add considerable overhead on test start
   if self.enable_spawn_objects then
     self:spawn_objects_in_all_map_regions()
@@ -112,6 +112,12 @@ function stage_state:on_enter()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
+  -- reload background sprites by copying spritesheet top from background data
+  --  cartridge to the top of the current spritesheet, just to overwrite
+  -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
+  --  so 512 = 0x200 bytes per row,
+  --  so 1536 = 0x600 bytes
+  reload(0x0, 0x0, 0x600, "data_stage"..self.curr_stage_id.."_background.p8")
 end
 
 function stage_state:on_exit()
@@ -536,6 +542,9 @@ function stage_state:spawn_objects_in_all_map_regions()
     for v = 0, region_count_per_column - 1 do
       self:reload_map_region(vector(u, v))
       -- load any *new* items detected in this region
+      -- TODO OPTIMIZE: instead of scanning the region once per object type,
+      --  we should really scan the region once, and call one callback per object type
+      --  to check if there is anything to do on each tile
       self:spawn_new_emeralds()
       self:spawn_palm_tree_leaves()
     end
@@ -823,11 +832,17 @@ function stage_state:render_background()
   --  the equation to find when the tree top base was higher than the top of the screen
   --  we even had some margin so we tuned the value until we got close to the limit of
   --  not showing sea when it was on screen, then added some margin in case trees get smaller
+  -- should be 344 if we match Sonic 3, so we need to readjust the parallax y min/max
+  --  with the new higher extended map
   if self.camera_pos.y < 225 then
     self:draw_background_sea()
   end
 
   self:draw_background_forest_top()
+
+  if self.camera_pos.y >= 220 then
+    self:draw_background_forest_bottom()
+  end
 end
 
 function stage_state:draw_background_sea()
@@ -920,6 +935,11 @@ function stage_state:draw_background_forest_top()
     self:draw_tree_row(parallax_offset, 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
       self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
+end
+
+function stage_state:draw_background_forest_bottom()
+  camera()
+  spr(1, 0, 0, 2, 3)
 end
 
 function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)

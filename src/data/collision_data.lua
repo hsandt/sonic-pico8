@@ -190,9 +190,9 @@ local mask_tile_ids = {
 -- full tiles
 
 -- wood
-  [30] = 29,  -- wood (specular middle left)
-  [31] = 29,  -- wood (specular middle right)
-  [47] = 29,  -- wood (generic)
+  [218] = 29,  -- wood (specular middle left)
+  [219] = 29,  -- wood (specular middle right)
+  [235] = 29,  -- wood (generic)
   [48] = 29,  -- wood (specular top 1-column)
   [64] = 29,  -- wood (specular middle 1-column)
   [80] = 29,  -- wood (specular top 1-column)
@@ -291,7 +291,7 @@ local mask_tile_ids = {
 
 -- decorative tiles (no collision, but kept commented for tracking purpose)
 --[[
-  [46] = 0,  -- hiding leaves
+  [234] = 0,  -- hiding leaves
 
 -- grass top decorations
   [76] = 0,
@@ -309,6 +309,14 @@ local mask_tile_ids = {
 }
 
 -- convert angle and mask information into complete tile collision data table
+-- ! this is an actual operation done outside function scope, and therefore executed
+--   at require time. In practice, the ingame cartridge indirectly requires collision_data
+--   (via picosonic_app_ingame > stage_state > player_char > world)
+--   so this will be initialized on game start, which is perfect for us as the initial
+--   spritesheet is loaded at that point, and it contains all the collision masks
+-- doing this later, after background data cartridge reload (in stage on_enter)
+--  would fail, as the collision mask sprites would be overwritten by the runtime background
+--  sprites (only meant to be drawn programmatically)
 local tiles_collision_data = {}
 for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
   tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])

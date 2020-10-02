@@ -37,6 +37,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data: stage1 background",
+			"shell": true,
+			"cmd": ["pico8 data/data_stage1_background.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage1",
 			"shell": true,
 			"cmd": ["pico8 -run data/data_stage1_00.p8"],

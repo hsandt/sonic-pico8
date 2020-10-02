@@ -823,8 +823,8 @@ function stage_state:render_background()
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_y = 156 - 0.5 * self.camera_pos.y
-  camera(0, -horizon_line_y)
+  local horizon_line_dy = 156 - 0.5 * self.camera_pos.y
+  camera(0, -horizon_line_dy)
 
   -- only draw sky and sea if camera is high enough
 
@@ -832,17 +832,26 @@ function stage_state:render_background()
   -- basically, when the top of the trees goes lower than the top of the screen,
   --  you start seeing the sea, so you can start drawing the sea decorations
   --  (note that the sea background itself is always rendered above, so it's quite safe at the border)
-  if horizon_line_y >= -31 then
+  if horizon_line_dy >= -31 then
     self:draw_background_sea()
   end
 
-  self:draw_background_forest_top()
+  -- draw forest bottom first as it contains the big uniform background that may
+  --  cover forest top if it was drawn before
 
   -- 58 was tuned to start showing forest bottom when the lowest forest leaf starts going
   --  higher than the screen bottom
-  if horizon_line_y <= 58 then
+  if horizon_line_dy <= 58 then
+    -- under the trees background (reset camera just to make it clear we draw
+    --  to the screen bottom to cover anything left)
+    camera()
+    rectfill_(0, horizon_line_dy + 50, 127, 127, colors.black)
+
+    camera(0, -horizon_line_dy)
     self:draw_background_forest_bottom()
   end
+
+  self:draw_background_forest_top()
 end
 
 function stage_state:draw_background_sea()
@@ -896,9 +905,6 @@ function stage_state:draw_background_sea()
 end
 
 function stage_state:draw_background_forest_top()
-  -- under the trees background
-  rectfill_(0, 50, 127, 50 + screen_height, colors.dark_green)
-
   -- tree/leaves data
 
   -- parallax speed of farthest row
@@ -938,6 +944,9 @@ function stage_state:draw_background_forest_top()
 end
 
 function stage_state:draw_background_forest_bottom()
+  -- under the trees background
+  rectfill_(0, 50, 127, 50 + screen_height, colors.black)
+
   -- put value slightly lower than leaves_row_parallax_speed_min (0.36) since holes are supposed to be yet
   --  a bit farther, so slightly slower in parallax
   local parallax_speed = 0.3

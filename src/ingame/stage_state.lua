@@ -808,20 +808,34 @@ end
 
 -- render the stage background
 function stage_state:render_background()
+  -- always draw full sky background to be safe
   camera()
-
-  -- dark blue sky + sea
-  -- (in stage data, but actually the code below only makes sense
-  --  for stage with jungle/sea background)
   rectfill_(0, 0, 127, 127, colors.dark_blue)
 
-  -- horizon line is very bright
+  -- horizon line serves as a reference for the background
+  --  and moves down slowly when camera moves up
   local horizon_line_y = 90 - 0.5 * self.camera_pos.y
+  camera(0, -horizon_line_y)
+
+  -- only draw sky and sea if camera is high enough
+
+  -- 225 comes from horizon_line_y + 33 < 0 <=> 0 < 90 - 0.5 * self.camera_pos.y
+  --  the equation to find when the tree top base was higher than the top of the screen
+  --  we even had some margin so we tuned the value until we got close to the limit of
+  --  not showing sea when it was on screen, then added some margin in case trees get smaller
+  if self.camera_pos.y < 225 then
+    self:draw_background_sea()
+  end
+
+  self:draw_background_forest_top()
+end
+
+function stage_state:draw_background_sea()
   -- blue line above horizon line
-  draw_full_line(horizon_line_y - 1, colors.blue)
+  draw_full_line(- 1, colors.blue)
   -- white horizon line
-  draw_full_line(horizon_line_y, colors.white)
-  draw_full_line(horizon_line_y + 1, colors.indigo)
+  draw_full_line(0, colors.white)
+  draw_full_line(1, colors.indigo)
 
   -- clouds in the sky, from lowest to highest (and biggest)
   local cloud_dx_list_per_j = {
@@ -838,7 +852,7 @@ function stage_state:render_background()
   }
   for j = 0, 3 do
     for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
-      self:draw_cloud(cloud_dx, horizon_line_y - --[[dy0]] 8.9 - --[[dy_mult]] 14.7 * j,
+      self:draw_cloud(cloud_dx, - --[[dy0]] 8.9 - --[[dy_mult]] 14.7 * j,
         dy_list_per_j[j + 1], --[[r0]] 2 + --[[r_mult]] 0.9 * j,
         --[[speed0]] 3 + --[[speed_mult]] 3.5 * j)
     end
@@ -854,7 +868,7 @@ function stage_state:render_background()
   --  we need i up to 21 since 21*6 = 126
   for i = 0, 21 do
     local dy = reflection_dy_list[i % 6 + 1]
-    local y = horizon_line_y + 2 + dy
+    local y = 2 + dy
     -- elements farther from camera have slower parallax speed, closest has base parallax speed
     -- clamp in case some y are bigger than 6, but it's better if you can adjust to max of
     --  reflection_dy_list so max is still max and different dy give different speeds
@@ -864,9 +878,11 @@ function stage_state:render_background()
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
   end
+end
 
+function stage_state:draw_background_forest_top()
   -- under the trees background
-  rectfill_(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
+  rectfill_(0, 50, 127, 50 + screen_height, colors.dark_green)
 
   -- tree/leaves data
 
@@ -892,7 +908,7 @@ function stage_state:render_background()
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
-    self:draw_leaves_row(parallax_offset, horizon_line_y + 33 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_leaves_row(parallax_offset, 33 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 
   -- tree rows
@@ -901,7 +917,7 @@ function stage_state:render_background()
     local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
-    self:draw_tree_row(parallax_offset, horizon_line_y + 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
+    self:draw_tree_row(parallax_offset, 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
       self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 end

@@ -95,9 +95,9 @@ elif [[ $config == 'cheat' ]]; then
   # symbols='cheat'
   # symbols='assert,dump,log,cheat,tuner'
   # symbols='cheat,tuner,mouse'
-  # symbols='cheat,dump,tuner,mouse'
+  symbols='cheat,dump,tuner,mouse'
   # symbols='assert,cheat,log,dump'
-  symbols='cheat,log,dump,debug_trigger'
+  # symbols='cheat,log,dump,debug_trigger'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
@@ -107,7 +107,7 @@ elif [[ $config == 'sandbox' ]]; then
 elif [[ $config == 'assert' ]]; then
   symbols='assert,log,dump'
 elif [[ $config == 'profiler' ]]; then
-  symbols='profiler'
+  symbols='profiler,cheat'
 fi
 
 # Build cartridges without version nor config appended to name

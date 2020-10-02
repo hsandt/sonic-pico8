@@ -48,7 +48,7 @@ Version: 4.2
 
 ### Content
 
-One demo stage, a reproduction of Angel Island Act 1 at scale 1:1 (but using tiles of 8x8) thanks to a custom map streaming system. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected.
+One demo stage, a reproduction of the first part of Angel Island Act 1 (before it is set on fire) at scale 1:1 (but using tiles of 8x8) thanks to a custom map streaming system. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected.
 
 ## Known technical issues
 

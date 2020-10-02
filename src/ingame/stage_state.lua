@@ -823,24 +823,24 @@ function stage_state:render_background()
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_y = 90 - 0.5 * self.camera_pos.y
+  local horizon_line_y = 156 - 0.5 * self.camera_pos.y
   camera(0, -horizon_line_y)
 
   -- only draw sky and sea if camera is high enough
 
-  -- 225 comes from horizon_line_y + 33 < 0 <=> 0 < 90 - 0.5 * self.camera_pos.y
-  --  the equation to find when the tree top base was higher than the top of the screen
-  --  we even had some margin so we tuned the value until we got close to the limit of
-  --  not showing sea when it was on screen, then added some margin in case trees get smaller
-  -- should be 344 if we match Sonic 3, so we need to readjust the parallax y min/max
-  --  with the new higher extended map
-  if self.camera_pos.y < 225 then
+  -- -31 is based on the offset y 31 of the highest trees
+  -- basically, when the top of the trees goes lower than the top of the screen,
+  --  you start seeing the sea, so you can start drawing the sea decorations
+  --  (note that the sea background itself is always rendered above, so it's quite safe at the border)
+  if horizon_line_y >= -31 then
     self:draw_background_sea()
   end
 
   self:draw_background_forest_top()
 
-  if self.camera_pos.y >= 220 then
+  -- 58 was tuned to start showing forest bottom when the lowest forest leaf starts going
+  --  higher than the screen bottom
+  if horizon_line_y <= 58 then
     self:draw_background_forest_bottom()
   end
 end
@@ -923,7 +923,7 @@ function stage_state:draw_background_forest_top()
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
-    self:draw_leaves_row(parallax_offset, 33 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_leaves_row(parallax_offset, 31 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 
   -- tree rows
@@ -932,7 +932,7 @@ function stage_state:draw_background_forest_top()
     local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
     local parallax_offset = flr(parallax_speed * self.camera_pos.x)
     -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
-    self:draw_tree_row(parallax_offset, 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
+    self:draw_tree_row(parallax_offset, 31 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
       self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
   end
 end
@@ -951,7 +951,7 @@ function stage_state:draw_background_forest_bottom()
   -- for 3 times a hole sequence spanning over 8 tiles on X, we get 3 * 8 * 8 = 192
   -- 128 + 16 = 144 and 192 is already above that so it's OK
     local x = (8 * tile_size - parallax_offset - 16) % 192 - 16
-    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x, 194))
+    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x, 130))
   end
 end
 

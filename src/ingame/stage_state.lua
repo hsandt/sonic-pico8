@@ -970,8 +970,31 @@ function stage_state:draw_background_forest_bottom()
     x0 = (x0 + area_width) % 192 - area_width
     local y0 = 94 + tile_offset_j_cycle[i + 1] * tile_size
     -- sprite topleft is placed at (x0, y0), and we program graphics around sprite from that position
+    -- dark green patch around the hole
     rectfill_(x0, y0 - tile_size, x0 + 4 * tile_size, y0 + 5 * tile_size, colors.dark_green)
+    -- transitional zigzagging lines between dark green and black to avoid "squary" patch
+    self:draw_background_forest_bottom_hole_transition_x(x0 - 1, y0, -1)
+    self:draw_background_forest_bottom_hole_transition_x(x0 + 4 * tile_size, y0, 1)
+    self:draw_background_forest_bottom_hole_transition_y(x0, y0 - tile_size - 1, -1)
+    self:draw_background_forest_bottom_hole_transition_y(x0, y0 + 5 * tile_size, 1)
+    -- actual hole sprite
     visual.sprite_data_t.background_forest_bottom_hole:render(vector(x0, y0))
+  end
+end
+
+-- dir_mult: -1 for transition toward left, +1 for transition toward right
+function stage_state:draw_background_forest_bottom_hole_transition_x(x0, y0, dir_mult)
+  for dy = - tile_size, 5 * tile_size - 1 do
+    local y = y0 + dy
+    line(x0 + dir_mult * flr(2.5 * (1 + sin(dy/abs(1.7)) * sin(dy/1.41))), y, x0, y, colors.dark_green)
+  end
+end
+
+-- dir_mult: -1 for transition toward up, +1 for transition toward down
+function stage_state:draw_background_forest_bottom_hole_transition_y(x0, y0, dir_mult)
+  for dx = 0, 4 * tile_size - 1 do
+    local x = x0 + dx
+    line(x, y0 + dir_mult * flr(3.7 * (1 + sin(dx/abs(1.65)) * sin(dx/1.45))), x, y0, colors.dark_green)
   end
 end
 

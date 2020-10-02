@@ -1764,12 +1764,13 @@ describe('stage_state', function ()
             end)
 
             it('#solo render_background should reset camera position', function ()
+              -- set a value so that 156 - 0.5 * self.camera_pos.y is between -32 and 58,
+              --  just so we try to draw both background sea at the top, and forest bottom
               state.camera_pos = vector(24, 220)
-              assert.has_no_errors(function ()
-                state:render_background()
-              end)
 
-              -- more calls including rectfill and MANY line calls but we don't check background details, human tests are better for this
+              state:render_background()
+
+              -- calls include rectfill and MANY line calls but we don't check background details, human tests are better for this
               -- otherwise we'd have something like:
               -- assert.spy(line).was_called(771)
             end)

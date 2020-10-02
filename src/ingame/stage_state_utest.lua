@@ -1072,9 +1072,9 @@ describe('stage_state', function ()
 
             -- Y
 
-            it('(grounded, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
+            it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               -- alternative +/- ground speed to check abs logic
               state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
               -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
@@ -1088,9 +1088,9 @@ describe('stage_state', function ()
               assert.are_equal(80 - camera_data.slow_catchup_speed_y, state.camera_pos.y)
             end)
 
-            it('(grounded, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
+            it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
               -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y + 0.5))
@@ -1101,9 +1101,9 @@ describe('stage_state', function ()
               assert.are_equal(80 - camera_data.fast_catchup_speed_y, state.camera_pos.y)
             end)
 
-            it('(grounded, low ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than low catchup speed', function ()
+            it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than low catchup speed', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y - 0.5))
 
@@ -1112,9 +1112,9 @@ describe('stage_state', function ()
               assert.are_equal(80 - (camera_data.slow_catchup_speed_y - 0.5), state.camera_pos.y)
             end)
 
-            it('(grounded, high ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than fast catchup speed', function ()
+            it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than fast catchup speed', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = -camera_data.fast_catchup_min_ground_speed
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y - 0.5))
 
@@ -1123,9 +1123,9 @@ describe('stage_state', function ()
               assert.are_equal(80 - (camera_data.fast_catchup_speed_y - 0.5), state.camera_pos.y)
             end)
 
-            it('(grounded) should not move the camera Y if player Y remains in window Y (top edge)', function ()
+            it('(standing) should not move the camera Y if player Y remains in window Y (top edge)', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y)
 
@@ -1134,9 +1134,9 @@ describe('stage_state', function ()
               assert.are_equal(80, state.camera_pos.y)
             end)
 
-            it('(grounded) should not move the camera Y if player Y remains in window Y (bottom edge)', function ()
+            it('(standing) should not move the camera Y if player Y remains in window Y (bottom edge)', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y)
 
@@ -1145,9 +1145,9 @@ describe('stage_state', function ()
               assert.are_equal(80, state.camera_pos.y)
             end)
 
-            it('(grounded, low ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
+            it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y - 0.5))
 
@@ -1156,9 +1156,9 @@ describe('stage_state', function ()
               assert.are_equal(80 + (camera_data.slow_catchup_speed_y - 0.5), state.camera_pos.y)
             end)
 
-            it('(grounded, high ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
+            it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = -camera_data.fast_catchup_min_ground_speed
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y - 0.5))
 
@@ -1167,9 +1167,9 @@ describe('stage_state', function ()
               assert.are_equal(80 + (camera_data.fast_catchup_speed_y - 0.5), state.camera_pos.y)
             end)
 
-            it('(grounded, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
+            it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
               -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
               --  fast vertically... but it should be possible on a very high slope. Here we imagine a wall where we move
@@ -1182,9 +1182,9 @@ describe('stage_state', function ()
               assert.are_equal(80 + camera_data.slow_catchup_speed_y, state.camera_pos.y)
             end)
 
-            it('(grounded, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
+            it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
               state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.grounded
+              state.player_char.motion_state = motion_states.standing
               state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
               -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
               state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y + 0.5))
@@ -1761,6 +1761,7 @@ describe('stage_state', function ()
               assert.are_same(vector(0, 0), vector(pico8.camera_x, pico8.camera_y))
 
               -- more calls including rectfill and MANY line calls but we don't check background details, human tests are better for this
+              -- otherwise we'd have something like:
               -- assert.spy(line).was_called(771)
             end)
 

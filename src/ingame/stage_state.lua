@@ -938,8 +938,21 @@ function stage_state:draw_background_forest_top()
 end
 
 function stage_state:draw_background_forest_bottom()
-  camera()
-  spr(1, 0, 0, 2, 3)
+  -- put value slightly lower than leaves_row_parallax_speed_min (0.36) since holes are supposed to be yet
+  --  a bit farther, so slightly slower in parallax
+  local parallax_speed = 0.3
+  local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+
+  for i = 0, 2 do
+  -- like clouds, the extra margin beyond screen_width of 128 and the +16/-16 are because sprites
+  --  cannot be cut and looped around the screen, and the full background is wider than the screen too
+  --  (contains too many elements to be displayed at once)
+  -- 16 is for sprite width
+  -- for 3 times a hole sequence spanning over 8 tiles on X, we get 3 * 8 * 8 = 192
+  -- 128 + 16 = 144 and 192 is already above that so it's OK
+    local x = (8 * tile_size - parallax_offset - 16) % 192 - 16
+    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x, 194))
+  end
 end
 
 function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)

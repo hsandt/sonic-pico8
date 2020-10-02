@@ -36,6 +36,8 @@ local sprite_data_t = {
   -- right side pivot is located at top-right of core
   -- left side is a mirror of right side, and must be placed just on the left of the core
   palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), colors.pink),
+  -- this needs runtime background sprites to be reloaded, overwriting collision masks
+  background_forest_bottom_hole = sprite_data(sprite_id_location(1, 0), tile_vector(2, 3), vector(0, 0), colors.pink),
 }
 
 visual.sprite_data_t = sprite_data_t

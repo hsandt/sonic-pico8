@@ -842,13 +842,7 @@ function stage_state:render_background()
   -- 58 was tuned to start showing forest bottom when the lowest forest leaf starts going
   --  higher than the screen bottom
   if horizon_line_dy <= 58 then
-    -- under the trees background (reset camera just to make it clear we draw
-    --  to the screen bottom to cover anything left)
-    camera()
-    rectfill_(0, horizon_line_dy + 50, 127, 127, colors.black)
-
-    camera(0, -horizon_line_dy)
-    self:draw_background_forest_bottom()
+    self:draw_background_forest_bottom(horizon_line_dy)
   end
 
   self:draw_background_forest_top()
@@ -943,14 +937,27 @@ function stage_state:draw_background_forest_top()
   end
 end
 
-function stage_state:draw_background_forest_bottom()
-  -- under the trees background
-  rectfill_(0, 50, 127, 50 + screen_height, colors.black)
+function stage_state:draw_background_forest_bottom(horizon_line_dy)
+  -- under the trees background (since we set camera y to - horizon_line_dy previously,
+  --  a rectfill down to 127 - horizon_line_dy will effectively cover the bottom of the screen)
+  --  to the screen bottom to cover anything left)
+
+  -- for very dark green we dither between dark green and black using fill pattern:
+  --  pure Lua and picotool don't allow 0b notation unlike PICO-8, so pass the hex value directly
+  --  grid pattern: 0b0101101001011010 -> 0x5A5A
+  -- the Stan shirt effect will cause slight eye distraction around the hole patch edges
+  --  as the grid pattern won't be moving while the patches are, but this is less worse
+  --  than trying to move the pattern by alternating with 0xA5A5 when parallax_offset % 2 == 1
+  -- so we kept it like this
+  fillp(0x5a5a)
+  rectfill_(0, 50, 127, 127 - horizon_line_dy, colors.dark_green * 0x10 + colors.black)
+  fillp()
 
   -- put value slightly lower than leaves_row_parallax_speed_min (0.36) since holes are supposed to be yet
   --  a bit farther, so slightly slower in parallax
   local parallax_speed = 0.3
   local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+
   -- place holes at different levels for more variety
   local tile_offset_j_cycle = {0, 1, 3}
   local patch_extra_tile_j_cycle = {0, 0, 2}
@@ -973,6 +980,7 @@ function stage_state:draw_background_forest_bottom()
     -- sprite topleft is placed at (x0, y0), and we program graphics around sprite from that position
     -- dark green patch around the hole
     local extra_tile_j = patch_extra_tile_j_cycle[i + 1]
+
     rectfill_(x0, y0 - tile_size, x0 + 4 * tile_size, y0 + (5 + extra_tile_j) * tile_size, colors.dark_green)
     -- transitional zigzagging lines between dark green and black to avoid "squary" patch
     self:draw_background_forest_bottom_hole_transition_x(x0 - 1, y0, extra_tile_j, -1)

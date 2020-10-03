@@ -209,6 +209,9 @@ local playercharacter_data = {
 
   -- speed from which the run cycle anim is played, instead of the walk cycle (px/frame)
   run_cycle_min_speed_frame = 3,
+
+  -- speed from which the brake anim is played when decelerating (px/frame)
+  brake_anim_min_speed_frame = 2,
 }
 
 -- define animated sprite data in a second step, as it needs sprite data to be defined first
@@ -223,6 +226,8 @@ playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expr
     idle = {{"idle"},               10,                2},
     walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6"},
                                     10,                4},
+    brake  = {{"brake1", "brake2", "brake3"},
+                                    10,                2},
     run  = {{"run1", "run2", "run3", "run4"},
                                      5,                4},
     spin = {{"spin_full_ball", "spin1", "spin_full_ball", "spin2", "spin_full_ball", "spin3", "spin_full_ball", "spin4"},

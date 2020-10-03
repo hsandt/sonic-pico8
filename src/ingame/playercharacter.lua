@@ -87,6 +87,7 @@ local player_char = new_class()
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when standing, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
+-- should_play_brake_anim   bool            Set to true when braking to play braking animation (then revert to usual anim)
 function player_char:init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -133,6 +134,7 @@ function player_char:setup()
   self.anim_run_speed = 0.
   self.continuous_sprite_angle = 0.
   self.should_play_spring_jump = false
+  self.should_play_brake_anim = false
 end
 
 -- return true iff character is grounded
@@ -737,6 +739,7 @@ function player_char:enter_motion_state(next_motion_state)
     self:set_slope_angle_with_quadrant(nil)
     self.ground_speed = 0
     self.should_jump = false
+    -- don't reset should_play_brake_anim, Sonic can play brake anim while falling!
   elseif next_motion_state == motion_states.air_spin then
     -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity
@@ -745,6 +748,7 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_speed = 0
     self.should_jump = false
     self.should_play_spring_jump = false
+    self.should_play_brake_anim = false
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
@@ -767,6 +771,7 @@ function player_char:enter_motion_state(next_motion_state)
       self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
       self.can_interrupt_jump = false
       self.should_play_spring_jump = false
+      self.should_play_brake_anim = false
     end
   end
 end
@@ -984,11 +989,14 @@ end
 
 -- update ground speed while standing based on current move intention
 function player_char:update_ground_run_speed_by_intention()
+  -- set default new ground speed in case we don't enter any block (totally idle)
+  local new_ground_speed = self.ground_speed
+
   if self.move_intention.x ~= 0 then
 
     if self.ground_speed == 0 or sgn(self.ground_speed) == sgn(self.move_intention.x) then
       -- accelerate
-      self.ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
+     new_ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_accel_frame2
       -- face move direction if not already (this does something when starting running in the opposite
       --  direction of the faced on from idle, and when character is already running backward
       --  e.g. after a reverse jump, and player presses actual forward direction)
@@ -1008,18 +1016,21 @@ function player_char:update_ground_run_speed_by_intention()
       end
 
       -- decelerate
-      self.ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
+      new_ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
       -- check if speed has switched sign this frame, i.e. character has turned around
-      local has_changed_sign = self.ground_speed ~= 0 and sgn(self.ground_speed) == sgn(self.move_intention.x)
-
+      local has_changed_sign = new_ground_speed ~= 0 and sgn(new_ground_speed) == sgn(self.move_intention.x)
       if has_changed_sign then
         -- clamp speed after turn around by ground accel in absolute value to prevent exploit of
         --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
-        if abs(self.ground_speed) > pc_data.ground_accel_frame2 then
-          self.ground_speed = sgn(self.ground_speed) * pc_data.ground_accel_frame2
+        if abs(new_ground_speed) > pc_data.ground_accel_frame2 then
+          new_ground_speed = sgn(new_ground_speed) * pc_data.ground_accel_frame2
         end
         -- turn around
         self.orientation = signed_speed_to_dir(self.move_intention.x)
+      -- check if character was fast enough, and on quadrant down, to play brake anim
+      --  (it certainly wasn't the case if we changed sign)
+      elseif self.quadrant == directions.down and abs(self.ground_speed) >= pc_data.brake_anim_min_speed_frame then
+        self.should_play_brake_anim = true
       end
     end
 
@@ -1035,10 +1046,11 @@ function player_char:update_ground_run_speed_by_intention()
     -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
     --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
     if abs(sin(self.slope_angle)) <= sin(-pc_data.steep_slope_min_angle) or sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
-      self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+      new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
     end
   end
 
+  self.ground_speed = new_ground_speed
 end
 
 -- update ground speed while rolling based on current move intention
@@ -1981,6 +1993,23 @@ end
 
 -- play appropriate sprite animation based on current state
 function player_char:check_play_anim()
+  -- brake anim can be played during standing but also falling, so make a global check
+  --  giving priority to it
+  if self.should_play_brake_anim then
+    self.anim_spr:play("brake")
+
+    -- as long as brake anim is playing, it gets priority over standing and falling
+    -- brake anim ends with freeze_last, just to give us an extra frame to check
+    --  if it has ended and switch to another anim
+    -- we may be standing or falling at this point, if not playing anymore,
+    --  simply do not return and fallback to the general case below
+    if self.anim_spr.playing then
+      return
+    else
+      self.should_play_brake_anim = false
+    end
+  end
+
   if self.motion_state == motion_states.standing then
     -- update ground animation based on speed
     if self.ground_speed == 0 then
@@ -2004,7 +2033,8 @@ function player_char:check_play_anim()
     if self.should_play_spring_jump then
       self.anim_spr:play("spring_jump")
     else
-      -- normal fall -> run in the air
+      -- normal fall -> run in the air (even if not working, just to avoid having Sonic falling idle
+      --  e.g. when crumbling floor breaks beneath his feet; what Classic Sonic does, but we don't mind)
       -- we don't have access to previous ground speed as unlike original game, we clear it when airborne
       --  but we can use the stored anim_run_speed, which is the same except for very low speed
       -- (and we don't mind them as we are checking run cycle for high speeds)

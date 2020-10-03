@@ -163,6 +163,7 @@ describe('player_char', function ()
           0,
           0,
           false,
+          false,
         },
         {
           pc.control_mode,
@@ -191,6 +192,7 @@ describe('player_char', function ()
           pc.anim_run_speed,
           pc.continuous_sprite_angle,
           pc.should_play_spring_jump,
+          pc.should_play_brake_anim,
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -2018,6 +2020,11 @@ describe('player_char', function ()
         end)
 
         it('should enter passed state: air_spin, reset ground-specific state vars, play spin animation', function ()
+          pc.ground_speed = 10
+          pc.should_jump = true
+          pc.should_play_spring_jump = true
+          pc.should_play_brake_anim = true
+
           -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
 
@@ -2025,13 +2032,15 @@ describe('player_char', function ()
               motion_states.air_spin,
               0,
               false,
+              false,
               false
             },
             {
               pc.motion_state,
               pc.ground_speed,
               pc.should_jump,
-              pc.should_play_spring_jump
+              pc.should_play_spring_jump,
+              pc.should_play_brake_anim
             })
         end)
 
@@ -2051,6 +2060,11 @@ describe('player_char', function ()
 
         -- bugfix history: .
         it('should enter passed state: standing, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
+          pc.ground_speed = 10
+          pc.should_jump = true
+          pc.should_play_spring_jump = true
+          pc.should_play_brake_anim = true
+
           pc.motion_state = motion_states.falling
 
           pc:enter_motion_state(motion_states.standing)
@@ -2070,6 +2084,11 @@ describe('player_char', function ()
         end)
 
         it('should enter passed state: rolling, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
+          pc.ground_speed = 10
+          pc.should_jump = true
+          pc.should_play_spring_jump = true
+          pc.should_play_brake_anim = true
+
           pc.motion_state = motion_states.falling
 
           pc:enter_motion_state(motion_states.rolling)
@@ -2078,13 +2097,15 @@ describe('player_char', function ()
               motion_states.rolling,
               false,
               false,
+              false,
               false
             },
             {
               pc.motion_state,
               pc.has_jumped_this_frame,
               pc.can_interrupt_jump,
-              pc.should_play_spring_jump
+              pc.should_play_spring_jump,
+              pc.should_play_brake_anim
             })
         end)
 
@@ -3385,6 +3406,30 @@ describe('player_char', function ()
           pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
             {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should not set play brake anim flag when quadrant down and abs ground speed is too low', function ()
+          pc.quadrant = directions.down
+          pc.ground_speed = -pc_data.brake_anim_min_speed_frame + 0.01
+          pc.move_intention.x = 1
+          pc:update_ground_run_speed_by_intention()
+          assert.is_false(pc.should_play_brake_anim)
+        end)
+
+        it('should not set play brake anim flag when quadrant right and abs ground speed is high enough', function ()
+          pc.quadrant = directions.right
+          pc.ground_speed = -pc_data.brake_anim_min_speed_frame
+          pc.move_intention.x = 1
+          pc:update_ground_run_speed_by_intention()
+          assert.is_false(pc.should_play_brake_anim)
+        end)
+
+        it('should set play brake anim flag when quadrant down and abs ground speed is high enough', function ()
+          pc.quadrant = directions.down
+          pc.ground_speed = -pc_data.brake_anim_min_speed_frame
+          pc.move_intention.x = 1
+          pc:update_ground_run_speed_by_intention()
+          assert.is_true(pc.should_play_brake_anim)
         end)
 
         it('should apply friction and preserve direction when character has ground speed > 0 and move intention x is 0', function ()
@@ -7161,7 +7206,9 @@ describe('player_char', function ()
     describe('check_play_anim', function ()
 
       setup(function ()
-        spy.on(animated_sprite, "play")
+        -- spy.on would help testing more deeply, but we prefer utests independent
+        --  from other modules nor animation data
+        stub(animated_sprite, "play")
       end)
 
       teardown(function ()
@@ -7172,6 +7219,47 @@ describe('player_char', function ()
       --   which calls pc.anim_spr:play, we must clear call count just after that
       before_each(function ()
         animated_sprite.play:clear()
+      end)
+
+      it('should play brake animation (and preserve should_play_brake_anim) when should_play_brake_anim: true and return immediately if animation is still playing', function ()
+        -- works in any state; in practice, only standing and falling can have it
+        --  as other states will reset the flag
+        pc.motion_state = motion_states.falling
+        pc.should_play_brake_anim = true
+
+        -- this will simulate that the animation is already playing (or starts playing with the next call)
+        --  without having to stub check_play_anim, or even more complicated to spy.on it but set
+        --  manually current_anim_key to "brake" to preserve playing, or something else to start playing
+        pc.anim_spr.playing = true
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake")
+
+        assert.is_true(pc.should_play_brake_anim)
+      end)
+
+      it('should try to play brake animation one last time and reset should_play_brake_anim. then fallback to general case when should_play_brake_anim: true but animation has stopped playing', function ()
+        -- works in any state; in practice, only standing and falling can have it
+        --  as other states will reset the flag
+        pc.motion_state = motion_states.standing
+        pc.should_play_brake_anim = true
+
+        -- this is the default, but to make it clear the the animation has stopped playing
+        -- as we stub check_play_anim, we don't have to set anim_spr.current_anim_key to
+        --  "brake" just to prevent playing being set again
+        pc.anim_spr.playing = false
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(2)
+        -- tentative play -> not playing anymore
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake")
+        -- fallback based on motion_state
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+
+        assert.is_false(pc.should_play_brake_anim)
       end)
 
       it('should play idle anim when standing and ground speed is 0', function ()

@@ -1001,6 +1001,8 @@ function player_char:update_ground_run_speed_by_intention()
       --  direction of the faced on from idle, and when character is already running backward
       --  e.g. after a reverse jump, and player presses actual forward direction)
       self.orientation = signed_speed_to_dir(self.move_intention.x)
+      -- if character started braking then moved forward again, we should stop braking animation
+      self.should_play_brake_anim = false
     else
       -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
       --  Apply a fixed factor
@@ -1025,8 +1027,13 @@ function player_char:update_ground_run_speed_by_intention()
         if abs(new_ground_speed) > pc_data.ground_accel_frame2 then
           new_ground_speed = sgn(new_ground_speed) * pc_data.ground_accel_frame2
         end
+        -- Below really the same code as in acceleration case since we are in the case where move input X
+        --  matches new ground speed. Both blocks could be factorized, but since we're already checking
+        --  this case for other things, we just added the same lines of code in both.
         -- turn around
         self.orientation = signed_speed_to_dir(self.move_intention.x)
+        -- if character was playing brake animation, stop now asi it turned around
+        self.should_play_brake_anim = false
       -- check if character was fast enough, and on quadrant down, to play brake anim
       --  (it certainly wasn't the case if we changed sign)
       elseif self.quadrant == directions.down and abs(self.ground_speed) >= pc_data.brake_anim_min_speed_frame then

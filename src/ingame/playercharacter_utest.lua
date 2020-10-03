@@ -3287,13 +3287,14 @@ describe('player_char', function ()
             {pc.orientation, pc.ground_speed})
         end)
 
-        it('should accelerate and set direction when character is facing left, has ground speed > 0 and move intention x > 0', function ()
+        it('should accelerate and set orientation + reset should_play_brake_anim flag when character is facing left, has ground speed > 0 and move intention x > 0', function ()
           pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after landing on a steep ascending slope and walking backward
+          pc.should_play_brake_anim = true
           pc.ground_speed = 1.5
           pc.move_intention.x = 1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.right, 1.5 + pc_data.ground_accel_frame2},
-            {pc.orientation, pc.ground_speed})
+          assert.are_same({horizontal_dirs.right, false, 1.5 + pc_data.ground_accel_frame2},
+            {pc.orientation, pc.should_play_brake_anim, pc.ground_speed})
         end)
 
         it('should accelerate and preserve direction when character is facing left, has ground speed < 0 and move intention x < 0', function ()
@@ -3351,27 +3352,29 @@ describe('player_char', function ()
 
         -- bugfix history:
         -- _ missing tests that check the change of sign of ground speed
-        it('should decelerate, turn and start moving to the left when character is facing right, '..
+        it('should decelerate, turn + reset should_play_brake_anim flag and start moving to the left when character is facing right, '..
           'has low ground speed > 0 but < ground accel * 1 frame and move intention x < 0 '..
           'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
           pc.orientation = horizontal_dirs.right
+          pc.should_play_brake_anim = true
           -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.24
           pc.move_intention.x = -1
           pc:update_ground_run_speed_by_intention()
-          assert.are_equal(horizontal_dirs.left, pc.orientation)
+          assert.are_same({horizontal_dirs.left, false}, {pc.orientation, pc.should_play_brake_anim})
           assert.is_true(almost_eq_with_message(-0.01, pc.ground_speed, 1e-16))
         end)
 
-        it('should decelerate, turn and start moving to the left, and clamp to the max ground speed in the opposite sign '..
+        it('should decelerate, turn + reset should_play_brake_anim flag and start moving to the left, and clamp to the max ground speed in the opposite sign '..
           'when character is facing right, has low ground speed > 0 and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
+          pc.should_play_brake_anim = true
           -- start with speed < -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.12
           pc.move_intention.x = -1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.left, -pc_data.ground_accel_frame2},
-            {pc.orientation, pc.ground_speed})
+          assert.are_same({horizontal_dirs.left, false, -pc_data.ground_accel_frame2},
+            {pc.orientation, pc.should_play_brake_anim, pc.ground_speed})
         end)
 
         -- tests below seem symmetrical, but as a twist we have the character running backward (e.g. after being hit by a horizontal spring)

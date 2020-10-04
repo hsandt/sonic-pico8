@@ -451,7 +451,7 @@ function player_char:get_ground_sensor_position_from(center_position, quadrant_h
   -- using a ground_sensor_extent_x in .5 and flooring +/- this value allows us to get the checked column x (the x corresponds to the left of that column)
   --  rotate proper vector (initially horizontal) for quadrant compatibility, but make sure to apply coord flooring
   --  *afterward* so it applies to the final coord and we don't rotate a +2.5 -> +2 into a -2 instead of having -3
-  local offset_qx_vector = self:quadrant_rotated(vector(horizontal_dir_signs[quadrant_horizontal_dir] * pc_data.ground_sensor_extent_x, 0))
+  local offset_qx_vector = self:quadrant_rotated(pc_data.ground_sensor_extent_x * horizontal_dir_vectors[quadrant_horizontal_dir])
   -- brutal way to floor coordinates are rotation, without having to extract qx, recreating (qx, 0) vector and rotating again
   offset_qx_vector = vector(flr(offset_qx_vector.x), flr(offset_qx_vector.y))
 

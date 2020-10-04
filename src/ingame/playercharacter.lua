@@ -86,8 +86,8 @@ local player_char = new_class()
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when standing, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
--- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
--- should_play_brake_anim   bool            Set to true when braking to play braking animation (then revert to usual anim)
+-- should_play_spring_jump         bool     Set to true when sent upward in the air thanks to spring, and not falling down yet
+-- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
 function player_char:init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -134,7 +134,7 @@ function player_char:setup()
   self.anim_run_speed = 0.
   self.continuous_sprite_angle = 0.
   self.should_play_spring_jump = false
-  self.should_play_brake_anim = false
+  self.brake_anim_phase = 0
 end
 
 -- return true iff character is grounded
@@ -739,7 +739,7 @@ function player_char:enter_motion_state(next_motion_state)
     self:set_slope_angle_with_quadrant(nil)
     self.ground_speed = 0
     self.should_jump = false
-    -- don't reset should_play_brake_anim, Sonic can play brake anim while falling!
+    -- don't reset brake_anim_phase, Sonic can play brake anim while falling!
   elseif next_motion_state == motion_states.air_spin then
     -- we have just jumped, enter air_spin state
     --  and since ground speed is now unused, reset it for clarity
@@ -748,7 +748,7 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_speed = 0
     self.should_jump = false
     self.should_play_spring_jump = false
-    self.should_play_brake_anim = false
+    self.brake_anim_phase = 0
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
@@ -771,7 +771,7 @@ function player_char:enter_motion_state(next_motion_state)
       self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
       self.can_interrupt_jump = false
       self.should_play_spring_jump = false
-      self.should_play_brake_anim = false
+      self.brake_anim_phase = 0
     end
   end
 end
@@ -1001,8 +1001,12 @@ function player_char:update_ground_run_speed_by_intention()
       --  direction of the faced on from idle, and when character is already running backward
       --  e.g. after a reverse jump, and player presses actual forward direction)
       self.orientation = signed_speed_to_dir(self.move_intention.x)
-      -- if character started braking then moved forward again, we should stop braking animation
-      self.should_play_brake_anim = false
+      -- if character started braking (phase 1) then moved forward again, we should stop braking animation
+      -- don't interrupt the brake reverse anim (phase 2) though, since it will naturally chain with
+      --  a forward acceleration after reverse
+      if self.brake_anim_phase == 1 then
+        self.brake_anim_phase = 0
+      end
     else
       -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
       --  Apply a fixed factor
@@ -1020,40 +1024,69 @@ function player_char:update_ground_run_speed_by_intention()
       -- decelerate
       new_ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
       -- check if speed has switched sign this frame, i.e. character has turned around
-      local has_changed_sign = new_ground_speed ~= 0 and sgn(new_ground_speed) == sgn(self.move_intention.x)
+      -- since adding brake_reverse we slightly change edge case handling: if ground speed reaches 0 this frame
+      --  we consider the turn around is complete and switch orientation
+      -- this makes it easier when brake_start is played to immediately chain with brake_reverse
+      -- otherwise, we would enter the neutral case next frame (ground speed starts at 0, always accelerate)
+      --  and would need a special condition in accel code (sgn(self.move_intention_x) ~= horizontal_dir_signs[self.orientation] sign)
+      --  to detect entering brake reverse phase after going by accident through ground speed 0
+      -- we prefer centralizing that code in the decel, hence considering sign reversal at 0 too
+      -- of course, clamping will never be applied in that case
+      local has_changed_sign = new_ground_speed == 0 or sgn(new_ground_speed) == sgn(self.move_intention.x)
       if has_changed_sign then
         -- clamp speed after turn around by ground accel in absolute value to prevent exploit of
         --  moving back 1 frame then forward to gain an initial speed boost (mentioned in Sonic Physics Guide as a bug)
         if abs(new_ground_speed) > pc_data.ground_accel_frame2 then
           new_ground_speed = sgn(new_ground_speed) * pc_data.ground_accel_frame2
         end
-        -- Below really the same code as in acceleration case since we are in the case where move input X
-        --  matches new ground speed. Both blocks could be factorized, but since we're already checking
-        --  this case for other things, we just added the same lines of code in both.
         -- turn around
         self.orientation = signed_speed_to_dir(self.move_intention.x)
-        -- if character was playing brake animation, stop now asi it turned around
-        self.should_play_brake_anim = false
+        -- only when changing sign via decel after brake start anim:
+        --  finalize brake anim with brake reverse phase
+        --  it will stop naturally after its full anim duration, or if jumping, etc.
+        --  and stopping at exactly ground speed 0 will not reset this to idle, we'll just finish the anim first
+        -- This differs from Sonic 3 which plays brake_reverse automatically at the end of brake_start
+        --  while still with the same orientation, but the brake3 sprite itself has been flipped X
+        --  but in practice, it only shows when you brake and release input, showing a sprite in the wrong direction
+        --  for a few frames as you continue going forward; this is because as soon as you change orientation
+        --  (or if you press forward input again), intention matches ground speed again so the normal walk/run anim
+        --  is played, and brake_reverse is essentially skipped. So I prefer my 2-phase implementation.
+        if self.brake_anim_phase == 1 then
+          self.brake_anim_phase = 2
+        end
       -- check if character was fast enough, and on quadrant down, to play brake anim
       --  (it certainly wasn't the case if we changed sign)
       elseif self.quadrant == directions.down and abs(self.ground_speed) >= pc_data.brake_anim_min_speed_frame then
-        self.should_play_brake_anim = true
+        -- this will be entered many frames if decelerating from a very high speed,
+        --  but the anim_spr:play() will know not to restart the animation
+        -- flip subtlety: to make sense, the brake_start animation must be oriented toward
+        --  ground speed, so in case Sonic was running backward (e.g. after fast reverse jump)
+        --  and is braking, we must flip it back to ground speed dir
+        self.orientation = signed_speed_to_dir(self.ground_speed)
+        self.brake_anim_phase = 1
+      end
+    end
+  else
+    if self.ground_speed ~= 0 then
+      -- no move intention, character is passive
+
+      -- Original feature (not in SPG): No Friction on Steep Descending Slope
+      --  Do not apply friction when character is descending a steep slope passively;
+      --  In other words, apply it only on flat ground, low slope and only steep slopes if ascending
+      -- Effect: the character will automatically run down a steep slope and accumulate acceleration downward
+      --  without friction
+      -- Resolves: the character was moving down a steep slope very slowly because of friction
+      -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
+      --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
+      if abs(sin(self.slope_angle)) <= sin(-pc_data.steep_slope_min_angle) or sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
+        new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
       end
     end
 
-  elseif self.ground_speed ~= 0 then
-    -- no move intention, character is passive
-
-    -- Original feature (not in SPG): No Friction on Steep Descending Slope
-    --  Do not apply friction when character is descending a steep slope passively;
-    --  In other words, apply it only on flat ground, low slope and only steep slopes if ascending
-    -- Effect: the character will automatically run down a steep slope and accumulate acceleration downward
-    --  without friction
-    -- Resolves: the character was moving down a steep slope very slowly because of friction
-    -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
-    --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
-    if abs(sin(self.slope_angle)) <= sin(-pc_data.steep_slope_min_angle) or sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
-      new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+    -- whether still in friction or completely stopped, if the brake_start anim has finished
+    --  and player stopped inputting on x, we should stop the brake_start anim
+    if self.brake_anim_phase == 1 and not self.anim_spr.playing then
+      self.brake_anim_phase = 0
     end
   end
 
@@ -2000,20 +2033,34 @@ end
 
 -- play appropriate sprite animation based on current state
 function player_char:check_play_anim()
-  -- brake anim can be played during standing but also falling, so make a global check
-  --  giving priority to it
-  if self.should_play_brake_anim then
-    self.anim_spr:play("brake")
+  -- brake anims can be played during standing but also falling, so make a global check
+  --  giving priority to them
+  if self.brake_anim_phase == 1 then
+    self.anim_spr:play("brake_start")
+
+    -- unlike Sonic 3:
+    -- as long as brake anim has started, it gets priority over standing and falling
+    -- brake anim ends with freeze_last and will stay in this state until:
+    --  - character completes decel and reverses (phase 2)
+    --  - player inputs forward motion again (reset to phase 0 immediately)
+    --  - player stops inputting motion and anim is over (reset to phase 0 if anim is over)
+    --  - character enters air_spin or rolling state (reset to phase 0 immediately)
+    -- therefore, we should now return is any case, as even if self.anim_spr.playing is now false,
+    --  we should let update_ground_run_speed_by_intention reset the phase when detecting
+    --  no input and anim is over
+    return
+  elseif self.brake_anim_phase == 2 then
+    self.anim_spr:play("brake_reverse")
 
     -- as long as brake anim is playing, it gets priority over standing and falling
     -- brake anim ends with freeze_last, just to give us an extra frame to check
-    --  if it has ended and switch to another anim
-    -- we may be standing or falling at this point, if not playing anymore,
-    --  simply do not return and fallback to the general case below
+    --  if it has ended and switch to default anim for this state (often walk)
+    -- we may be standing or falling at this point, though, so if not playing anymore,
+    --  reset brake phase and fallback to the general case below to delegate state check
     if self.anim_spr.playing then
       return
     else
-      self.should_play_brake_anim = false
+      self.brake_anim_phase = 0
     end
   end
 

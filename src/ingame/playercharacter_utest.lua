@@ -163,7 +163,7 @@ describe('player_char', function ()
           0,
           0,
           false,
-          false,
+          0,
         },
         {
           pc.control_mode,
@@ -192,7 +192,7 @@ describe('player_char', function ()
           pc.anim_run_speed,
           pc.continuous_sprite_angle,
           pc.should_play_spring_jump,
-          pc.should_play_brake_anim,
+          pc.brake_anim_phase,
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -2023,7 +2023,7 @@ describe('player_char', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
-          pc.should_play_brake_anim = true
+          pc.brake_anim_phase = 1
 
           -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
@@ -2033,14 +2033,14 @@ describe('player_char', function ()
               0,
               false,
               false,
-              false
+              0,
             },
             {
               pc.motion_state,
               pc.ground_speed,
               pc.should_jump,
               pc.should_play_spring_jump,
-              pc.should_play_brake_anim
+              pc.brake_anim_phase,
             })
         end)
 
@@ -2063,7 +2063,6 @@ describe('player_char', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
-          pc.should_play_brake_anim = true
 
           pc.motion_state = motion_states.falling
 
@@ -2087,7 +2086,7 @@ describe('player_char', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
-          pc.should_play_brake_anim = true
+          pc.brake_anim_phase = 1
 
           pc.motion_state = motion_states.falling
 
@@ -2098,14 +2097,14 @@ describe('player_char', function ()
               false,
               false,
               false,
-              false
+              0,
             },
             {
               pc.motion_state,
               pc.has_jumped_this_frame,
               pc.can_interrupt_jump,
               pc.should_play_spring_jump,
-              pc.should_play_brake_anim
+              pc.brake_anim_phase,
             })
         end)
 
@@ -3287,14 +3286,14 @@ describe('player_char', function ()
             {pc.orientation, pc.ground_speed})
         end)
 
-        it('should accelerate and set orientation + reset should_play_brake_anim flag when character is facing left, has ground speed > 0 and move intention x > 0', function ()
+        it('should accelerate and set orientation + reset brake_anim_phase when character is facing left, has ground speed > 0 and move intention x > 0', function ()
           pc.orientation = horizontal_dirs.left  -- rare to oppose ground speed sense, but possible when running backward e.g. after landing on a steep ascending slope and walking backward
-          pc.should_play_brake_anim = true
+          pc.brake_anim_phase = 1
           pc.ground_speed = 1.5
           pc.move_intention.x = 1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.right, false, 1.5 + pc_data.ground_accel_frame2},
-            {pc.orientation, pc.should_play_brake_anim, pc.ground_speed})
+          assert.are_same({horizontal_dirs.right, 0, 1.5 + pc_data.ground_accel_frame2},
+            {pc.orientation, pc.brake_anim_phase, pc.ground_speed})
         end)
 
         it('should accelerate and preserve direction when character is facing left, has ground speed < 0 and move intention x < 0', function ()
@@ -3340,53 +3339,176 @@ describe('player_char', function ()
 
         -- End Original feature
 
-        it('should decelerate and stop exactly at speed 0, preserving direction, when character has ground speed = ground accel * 1 frame and move intention x < 0', function ()
+        it('should decelerate and stop exactly at speed 0, when character has ground speed = ground decel * 1 frame and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
-          pc.ground_speed = 0.25
+          pc.ground_speed = pc_data.ground_decel_frame2
           pc.move_intention.x = -1
           pc:update_ground_run_speed_by_intention()
-          -- ground_decel_frame2 = 0.25, subtract it from ground_speed
-          assert.are_same({horizontal_dirs.right, 0},
-            {pc.orientation, pc.ground_speed})
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        -- test orientation and brake anim phase together as they are related to visuals
+
+        it('should set orientation to move intention dir (here, *change orientation*) and preserve brake_anim_phase when character decelerates exactly to 0 but no brake anim started', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.ground_decel_frame2
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.left, 0}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should set orientation to move intention dir (here, *change orientation*) and advance brake_anim_phase to 2 when character decelerates exactly to 0 but and brake_start is playing', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.ground_decel_frame2
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 1
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.left, 2}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should preserve orientation and brake anim phase when quadrant down and abs ground speed is too low', function ()
+          pc.quadrant = directions.down
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.brake_anim_min_speed_frame - 0.01
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should preserve orientation and brake anim phase when quadrant right and abs ground speed is high enough', function ()
+          pc.quadrant = directions.right
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.brake_anim_min_speed_frame
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should set orientation to ground speed dir (here, no change) and brake anim phase to 1 when quadrant down and abs ground speed is high enough', function ()
+          pc.quadrant = directions.down
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.brake_anim_min_speed_frame
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 1}, {pc.orientation, pc.brake_anim_phase})
         end)
 
         -- bugfix history:
         -- _ missing tests that check the change of sign of ground speed
-        it('should decelerate, turn + reset should_play_brake_anim flag and start moving to the left when character is facing right, '..
+        it('should decelerate and start moving to the left when character is facing right, '..
           'has low ground speed > 0 but < ground accel * 1 frame and move intention x < 0 '..
           'but the ground speed is high enough so that the new speed wouldn\'t be over the max ground speed', function ()
           pc.orientation = horizontal_dirs.right
-          pc.should_play_brake_anim = true
-          -- start with speed >= -ground_accel_frame2 + ground_decel_frame2
+          pc.brake_anim_phase = true
+          -- start with speed >= -ground_accel_frame2 + ground_decel_frame2 but still < ground_decel_frame2
           pc.ground_speed = 0.24
           pc.move_intention.x = -1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.left, false}, {pc.orientation, pc.should_play_brake_anim})
           assert.is_true(almost_eq_with_message(-0.01, pc.ground_speed, 1e-16))
         end)
 
-        it('should decelerate, turn + reset should_play_brake_anim flag and start moving to the left, and clamp to the max ground speed in the opposite sign '..
+        it('should decelerate and start moving to the left, and clamp to the max ground speed in the opposite sign '..
           'when character is facing right, has low ground speed > 0 and move intention x < 0', function ()
           pc.orientation = horizontal_dirs.right
-          pc.should_play_brake_anim = true
+          pc.should_play_brake_start_anim = true
           -- start with speed < -ground_accel_frame2 + ground_decel_frame2
           pc.ground_speed = 0.12
           pc.move_intention.x = -1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.left, false, -pc_data.ground_accel_frame2},
-            {pc.orientation, pc.should_play_brake_anim, pc.ground_speed})
+          assert.are_equal(-pc_data.ground_accel_frame2, pc.ground_speed)
         end)
 
-        -- tests below seem symmetrical, but as a twist we have the character running backward (e.g. after being hit by a horizontal spring)
+        it('should should set orientation to move intention dir (here, change orientation) and preserve brake_anim_phase when character decelerates to opposite sign but no brake anim started', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.ground_decel_frame2 - pc_data.ground_accel_frame2
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.left, 0}, {pc.orientation, pc.brake_anim_phase})
+          assert.are_equal(0, pc.brake_anim_phase)
+        end)
+
+        it('should should set orientation to move intention dir (here, change orientation) and advance brake_anim_phase to 2 when character decelerates to opposite sign but and brake_start is playing', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = pc_data.ground_decel_frame2 - pc_data.ground_accel_frame2
+          pc.move_intention.x = -1
+          pc.brake_anim_phase = 1
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_equal(2, pc.brake_anim_phase)
+        end)
+
+        -- tests below seem symmetrical, but as a twist we have the character running backward (e.g. after a reverse jump)
         -- so he's facing the opposite direction of the run, so we can test direction update
 
-        it('should decelerate keeping same sign and orientation when character is facing right, has high ground speed < 0 and move intention x > 0', function ()
+        -- in addition, character faces ground speed dir again when brake_start anim is played,
+        --  which can only be tested when running backward
+
+        it('should decelerate keeping same sign when character is facing right, has mid ground speed < 0 but not abs higher than brake_anim_min_speed_frame and move intention x > 0', function ()
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = -1.5
           pc.move_intention.x = 1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.right, -1.25},
-            {pc.orientation, pc.ground_speed})
+          assert.are_equal(-1.25, pc.ground_speed)
+        end)
+
+        it('should when character has ground speed = ground decel * 1 frame and move intention x < 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2
+          pc.move_intention.x = 1
+          pc:update_ground_run_speed_by_intention()
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        it('should decelerate and stop exactly at speed 0 when character has ground speed = ground decel * 1 frame and move intention x < 0', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2
+          pc.move_intention.x = 1
+          pc:update_ground_run_speed_by_intention()
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        it('should set orientation to move intention dir (here, no change) and preserve brake_anim_phase when character decelerates to 0 but no brake anim started', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2
+          pc.move_intention.x = 1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+          assert.are_equal(0, pc.brake_anim_phase)
+        end)
+
+        it('should set orientation to move intention dir (here, no change) and advance brake_anim_phase to 2 when character decelerates to 0 and brake_start is playing', function ()
+          -- in practice, this case doesn't happen, because if you were running backward and started brake anim
+          --  by decelerating in the orientation dir, you must have changed dir to the ground speed dir when the brake anim
+          --  started so the brake sprite could make sense, so we should be oriented left at this point
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2
+          pc.move_intention.x = 1
+          pc.brake_anim_phase = 1
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
         end)
 
         it('should decelerate and change sign when character has low ground speed < 0 and move intention x > 0 '..
@@ -3407,32 +3529,69 @@ describe('player_char', function ()
           pc.ground_speed = -0.12
           pc.move_intention.x = 1
           pc:update_ground_run_speed_by_intention()
-          assert.are_same({horizontal_dirs.right, pc_data.ground_accel_frame2},
-            {pc.orientation, pc.ground_speed})
+          assert.are_equal(pc_data.ground_accel_frame2, pc.ground_speed)
         end)
 
-        it('should not set play brake anim flag when quadrant down and abs ground speed is too low', function ()
+        it('should set orientation to move intention dir (here, no change) and preserve brake_anim_phase when character decelerates to opposite sign but no brake anim started', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2 + pc_data.ground_accel_frame2
+          pc.move_intention.x = 1
+          pc.brake_anim_phase = 0
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+          assert.are_equal(0, pc.brake_anim_phase)
+        end)
+
+        it('should set orientation to move intention dir (here, no change) and advance brake_anim_phase to 2 when character decelerates to opposite sign and brake_start is playing', function ()
+          -- in practice, this case doesn't happen, because if you were running backward and started brake anim
+          --  by decelerating in the orientation dir, you must have changed dir to the ground speed dir when the brake anim
+          --  started so the brake sprite could make sense, so we should be oriented left at this point
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = -pc_data.ground_decel_frame2 + pc_data.ground_accel_frame2
+          pc.move_intention.x = 1
+          pc.brake_anim_phase = 1
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should preserve orientation and brake anim phase when quadrant down and abs ground speed is too low', function ()
           pc.quadrant = directions.down
+          pc.orientation = horizontal_dirs.right
           pc.ground_speed = -pc_data.brake_anim_min_speed_frame + 0.01
           pc.move_intention.x = 1
+          pc.brake_anim_phase = 0
+
           pc:update_ground_run_speed_by_intention()
-          assert.is_false(pc.should_play_brake_anim)
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
         end)
 
-        it('should not set play brake anim flag when quadrant right and abs ground speed is high enough', function ()
+        it('should preserve orientation and brake anim phase when quadrant right and abs ground speed is high enough', function ()
           pc.quadrant = directions.right
+          pc.orientation = horizontal_dirs.right
           pc.ground_speed = -pc_data.brake_anim_min_speed_frame
           pc.move_intention.x = 1
+          pc.brake_anim_phase = 0
+
           pc:update_ground_run_speed_by_intention()
-          assert.is_false(pc.should_play_brake_anim)
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
         end)
 
-        it('should set play brake anim flag when quadrant down and abs ground speed is high enough', function ()
+        it('should set orientation to ground speed dir (here, change direction) and brake anim phase to 1 when quadrant down and abs ground speed is high enough', function ()
           pc.quadrant = directions.down
+          pc.orientation = horizontal_dirs.right
           pc.ground_speed = -pc_data.brake_anim_min_speed_frame
           pc.move_intention.x = 1
+          pc.brake_anim_phase = 0
+
           pc:update_ground_run_speed_by_intention()
-          assert.is_true(pc.should_play_brake_anim)
+
+          assert.are_same({horizontal_dirs.left, 1}, {pc.orientation, pc.brake_anim_phase})
         end)
 
         it('should apply friction and preserve direction when character has ground speed > 0 and move intention x is 0', function ()
@@ -3475,13 +3634,46 @@ describe('player_char', function ()
         -- End Original feature
 
         -- bugfix history: missing tests that check the change of sign of ground speed
-        it(' should apply friction and preserve direction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
+        it('should apply friction and preserve direction but stop at 0 without changing ground speed sign when character has low ground speed > 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.right
           -- must be < friction
           pc.ground_speed = 0.01
           pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.right, 0},
             {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should reset brake_anim_phase from 1 to 0 when character has ground speed > 0, move intention x is 0 and animation has finished', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0.01
+          pc.brake_anim_phase = 1
+          pc.anim_spr.playing = false
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should *not* reset brake_anim_phase from 1 to 0 when character has ground speed > 0 and move intention x is 0, but animation is still playing', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0.01
+          pc.brake_anim_phase = 2
+          pc.anim_spr.playing = true
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should *not* reset brake_anim_phase from 2 to 0 when character has ground speed > 0 and move intention x is 0, even if animation has finished', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0.01
+          pc.brake_anim_phase = 2
+          pc.anim_spr.playing = false
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
         end)
 
         -- tests below seem symmetrical, but the character is actually running backward
@@ -3504,11 +3696,47 @@ describe('player_char', function ()
             {pc.orientation, pc.ground_speed})
         end)
 
+        -- in principle we should also check brake anim phases backward running + friction
+        -- but there's not much extra change, even orientation simply doesn't change on friction
+
         it('should not change ground speed nor direction when ground speed is 0 and move intention x is 0', function ()
           pc.orientation = horizontal_dirs.left
           pc:update_ground_run_speed_by_intention()
           assert.are_same({horizontal_dirs.left, 0},
             {pc.orientation, pc.ground_speed})
+        end)
+
+        it('should preserve orientation and reset brake_anim_phase from 1 to 0 when character has ground speed 0, move intention x is 0 and animation has finished', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0
+          pc.brake_anim_phase = 1
+          pc.anim_spr.playing = false
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should preserve orientation and *not* reset brake_anim_phase from 1 to 0 when character has ground speed 0 and move intention x is 0, but animation is still playing', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0
+          pc.brake_anim_phase = 2
+          pc.anim_spr.playing = true
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
+        end)
+
+        it('should preserve orientation and *not* reset brake_anim_phase from 2 to 0 when character has ground speed 0 and move intention x is 0, even if animation has finished', function ()
+          pc.orientation = horizontal_dirs.right
+          pc.ground_speed = 0
+          pc.brake_anim_phase = 2
+          pc.anim_spr.playing = false
+
+          pc:update_ground_run_speed_by_intention()
+
+          assert.are_same({horizontal_dirs.right, 2}, {pc.orientation, pc.brake_anim_phase})
         end)
 
       end)  -- update_ground_run_speed_by_intention
@@ -7224,11 +7452,25 @@ describe('player_char', function ()
         animated_sprite.play:clear()
       end)
 
-      it('should play brake animation (and preserve should_play_brake_anim) when should_play_brake_anim: true and return immediately if animation is still playing', function ()
+      it('should play brake start animation (and preserve brake_anim_phase) when brake_anim_phase: 1 and return immediately', function ()
         -- works in any state; in practice, only standing and falling can have it
         --  as other states will reset the flag
         pc.motion_state = motion_states.falling
-        pc.should_play_brake_anim = true
+        pc.brake_anim_phase = 1
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_start")
+
+        assert.are_equal(1, pc.brake_anim_phase)
+      end)
+
+      it('should play brake reverse animation (and preserve brake_anim_phase) when brake_anim_phase: 2 and return immediately if anim is still playing', function ()
+        -- works in any state; in practice, only standing and falling can have it
+        --  as other states will reset the flag
+        pc.motion_state = motion_states.falling
+        pc.brake_anim_phase = 2
 
         -- this will simulate that the animation is already playing (or starts playing with the next call)
         --  without having to stub check_play_anim, or even more complicated to spy.on it but set
@@ -7238,16 +7480,16 @@ describe('player_char', function ()
         pc:check_play_anim()
 
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake")
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_reverse")
 
-        assert.is_true(pc.should_play_brake_anim)
+        assert.are_equal(2, pc.brake_anim_phase)
       end)
 
-      it('should try to play brake animation one last time and reset should_play_brake_anim. then fallback to general case when should_play_brake_anim: true but animation has stopped playing', function ()
+      it('should try to play brake animation one last time and reset brake_anim_phase, then fallback to general case when brake_anim_phase: 2 but animation has stopped playing', function ()
         -- works in any state; in practice, only standing and falling can have it
         --  as other states will reset the flag
         pc.motion_state = motion_states.standing
-        pc.should_play_brake_anim = true
+        pc.brake_anim_phase = 2
 
         -- this is the default, but to make it clear the the animation has stopped playing
         -- as we stub check_play_anim, we don't have to set anim_spr.current_anim_key to
@@ -7258,11 +7500,11 @@ describe('player_char', function ()
 
         assert.spy(animated_sprite.play).was_called(2)
         -- tentative play -> not playing anymore
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake")
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_reverse")
         -- fallback based on motion_state
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
 
-        assert.is_false(pc.should_play_brake_anim)
+        assert.are_equal(0, pc.brake_anim_phase)
       end)
 
       it('should play idle anim when standing and ground speed is 0', function ()

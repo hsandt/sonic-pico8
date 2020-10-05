@@ -115,12 +115,12 @@ function stage_state:on_enter()
 
   -- randomize background data on stage start so it's stable during the stage
   self:randomize_background_data()
-  -- reload background sprites by copying spritesheet top from background data
+  -- reload runtime background+HUD sprites by copying spritesheet top from background data
   --  cartridge to the top of the current spritesheet, just to overwrite
   -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
   --  so 512 = 0x200 bytes per row,
   --  so 1536 = 0x600 bytes
-  reload(0x0, 0x0, 0x600, "data_stage"..self.curr_stage_id.."_background.p8")
+  reload(0x0, 0x0, 0x600, "data_stage"..self.curr_stage_id.."_runtime.p8")
 end
 
 function stage_state:on_exit()
@@ -1296,8 +1296,12 @@ function stage_state:render_hud()
   -- draw emeralds obtained at top-left of screen, in order from left to right,
   --  with the right color
   for i = 1, #self.spawned_emerald_locations do
+    local draw_position = vector(-4 + 10 * i, 6)
     if self.picked_emerald_numbers_set[i] then
-      emerald.draw(i, vector(-4 + 10 * i, 6))
+      emerald.draw(i, draw_position)
+    else
+      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
+      emerald.draw(-1, draw_position)
     end
   end
 end

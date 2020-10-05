@@ -1835,6 +1835,41 @@ describe('stage_state', function ()
 
           end)
 
+          describe('render_hud', function ()
+
+            setup(function ()
+              spy.on(emerald, "draw")
+            end)
+
+            teardown(function ()
+              emerald.draw:revert()
+            end)
+
+            after_each(function ()
+              emerald.draw:clear()
+            end)
+
+            it('should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
+              state.spawned_emerald_locations = {
+                -- dummy values just to have correct count (3, counting hole on 2)
+                location(1, 1), location(2, 2), location(3, 3)
+              }
+              state.picked_emerald_numbers_set = {
+                [1] = true,
+                [3] = true
+              }
+
+              state:render_hud()
+
+              assert.spy(emerald.draw).was_called(3)
+              assert.spy(emerald.draw).was_called_with(1, vector(6, 6))
+              -- silhouette only
+              assert.spy(emerald.draw).was_called_with(-1, vector(16, 6))
+              assert.spy(emerald.draw).was_called_with(3, vector(26, 6))
+            end)
+
+          end)
+
           describe('(region at (2, 3))', function ()
 
             setup(function ()

@@ -51,6 +51,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
+            {},
             vector.zero(),
             overlay(0),
             nil,
@@ -65,6 +66,7 @@ describe('stage_state', function ()
             state.has_reached_goal,
             state.spawned_emerald_locations,
             state.emeralds,
+            state.picked_emerald_numbers_set,
             state.palm_tree_leaves_core_global_locations,
             state.camera_pos,
             state.title_overlay,
@@ -1357,18 +1359,21 @@ describe('stage_state', function ()
             setup(function ()
               stub(stage_state, "render_background")
               stub(stage_state, "render_stage_elements")
+              stub(stage_state, "render_hud")
               stub(stage_state, "render_title_overlay")
             end)
 
             teardown(function ()
               stage_state.render_background:revert()
               stage_state.render_stage_elements:revert()
+              stage_state.render_hud:revert()
               stage_state.render_title_overlay:revert()
             end)
 
             after_each(function ()
               stage_state.render_background:clear()
               stage_state.render_stage_elements:clear()
+              stage_state.render_hud:clear()
               stage_state.render_title_overlay:clear()
             end)
 
@@ -1379,6 +1384,8 @@ describe('stage_state', function ()
               assert.spy(stage_state.render_background).was_called_with(match.ref(state))
               assert.spy(stage_state.render_stage_elements).was_called(1)
               assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_hud).was_called(1)
+              assert.spy(stage_state.render_hud).was_called_with(match.ref(state))
               assert.spy(stage_state.render_title_overlay).was_called(1)
               assert.spy(stage_state.render_title_overlay).was_called_with(match.ref(state))
             end)
@@ -1437,6 +1444,19 @@ describe('stage_state', function ()
                 emerald(2, location(1, 0)),
                 emerald(3, location(0, 1)),
               }
+            end)
+
+            it('should add an emerald number to the picked set', function ()
+              state.picked_emerald_numbers_set = {
+                [4] = true
+              }
+              state.emeralds = {
+                emerald(1, location(0, 0)),
+                emerald(2, location(1, 0)),
+                emerald(3, location(0, 1)),
+              }
+              state:character_pick_emerald(state.emeralds[2])
+              assert.are_same({[2] = true, [4] = true}, state.picked_emerald_numbers_set)
             end)
 
             it('should remove an emerald from the sequence', function ()
@@ -1763,7 +1783,7 @@ describe('stage_state', function ()
               assert.spy(overlay.draw_labels).was_called_with(match.ref(state.title_overlay))
             end)
 
-            it('#solo render_background should reset camera position', function ()
+            it('render_background should reset camera position', function ()
               -- set a value so that 156 - 0.5 * self.camera_pos.y is between -32 and 58,
               --  just so we try to draw both background sea at the top, and forest bottom
               state.camera_pos = vector(24, 220)

@@ -44,8 +44,11 @@ function stage_state:init()
   --  actual objects list (we remove objects when picked up)
   -- DEPRECATED: remove spawned_emerald_locations, they shouldn't be needed since we now
   --  spawn all objects on stage start
+  -- but replace it with total_emeralds_count since render_hud uses its length
   self.spawned_emerald_locations = {}
   self.emeralds = {}
+  -- set of number of emeralds picked, with format: {[number] = true} (no entry if not picked)
+  self.picked_emerald_numbers_set = {}
 
   -- palm trees: list of global locations of palm tree leaves core sprites detected
   -- used to draw the palm tree extension sprites on foreground
@@ -152,6 +155,7 @@ function stage_state:render()
 
   self:render_background()
   self:render_stage_elements()
+  self:render_hud()
   self:render_title_overlay()
 end
 
@@ -600,6 +604,9 @@ function stage_state:check_emerald_pick_area(position)
 end
 
 function stage_state:character_pick_emerald(em)
+  -- add emerald number to picked set
+  self.picked_emerald_numbers_set[em.number] = true
+
   -- remove emerald from sequence (use del to make sure
   --  later object indices are decremented)
   del(self.emeralds, em)
@@ -1282,9 +1289,22 @@ function stage_state:render_emeralds()
   end
 end
 
+-- render the hud:
+--  - emeralds obtained
+function stage_state:render_hud()
+  camera()
+  -- draw emeralds obtained at top-left of screen, in order from left to right,
+  --  with the right color
+  for i = 1, #self.spawned_emerald_locations do
+    if self.picked_emerald_numbers_set[i] then
+      emerald.draw(i, vector(-4 + 10 * i, 6))
+    end
+  end
+end
+
 -- render the title overlay with a fixed ui camera
 function stage_state:render_title_overlay()
-  camera(0, 0)
+  camera()
   self.title_overlay:draw_labels()
 end
 

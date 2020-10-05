@@ -1,7 +1,7 @@
 require("engine/core/fun_helper")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
@@ -49,19 +49,19 @@ function credits:draw_credits_text()
   -- top
   local y = 2
 
-  ui.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
+  text_helper.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
   y = y + line_dy + paragraph_margin + 2
 
   api.print("sonic team", margin_x, y, text_color)
-  ui.print_aligned("original games", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("original games", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
   api.print("leyn", margin_x, y, text_color)
-  ui.print_aligned("programming", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("programming", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
-  ui.print_aligned("sprites and sfx", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("sprites and sfx", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
-  ui.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
   api.print("original 8-bit bgm by danooct1\n  thx to midi2pico by gamax92", margin_x, y, text_color)

@@ -2,7 +2,7 @@ require("engine/core/fun_helper")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
@@ -42,9 +42,9 @@ end
 
 function titlemenu:draw_title()
   local y = 14
-  ui.print_centered("* pico-sonic *", 64, y, colors.white)
+  text_helper.print_centered("* pico-sonic *", 64, y, colors.white)
   y = y + 8
-  ui.print_centered("by leyn", 64, y, colors.white)
+  text_helper.print_centered("by leyn", 64, y, colors.white)
 end
 
 return titlemenu

@@ -21,7 +21,7 @@ local vlogger = require("engine/debug/visual_logger")
 --#endif
 
 --#if mouse
-local ui = require("engine/ui/ui")
+local mouse = require("engine/ui/mouse")
 --#endif
 
 local visual = require("resources/visual")
@@ -36,13 +36,13 @@ end
 function picosonic_app_base:on_post_start() -- override
   -- enable mouse devkit
   input:toggle_mouse(true)
-  ui:set_cursor_sprite_data(visual.sprite_data_t.cursor)
+  mouse:set_cursor_sprite_data(visual.sprite_data_t.cursor)
 end
 --#endif
 
 function picosonic_app_base:on_reset() -- override
 --#if mouse
-  ui:set_cursor_sprite_data(nil)
+  mouse:set_cursor_sprite_data(nil)
 --#endif
 end
 
@@ -75,7 +75,7 @@ function picosonic_app_base:on_render() -- override
 
 --#if mouse
   -- always draw cursor on top
-  ui:render_mouse()
+  mouse:render()
 --#endif
 end
 

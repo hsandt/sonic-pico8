@@ -1,7 +1,7 @@
 require("engine/test/bustedhelper")
 local titlemenu = require("menu/titlemenu")
 
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
 local menu = require("menu/menu")
 
@@ -76,7 +76,7 @@ describe('titlemenu', function ()
 
         setup(function ()
           stub(titlemenu, "draw_title")
-          -- stub menu.draw completely to avoid altering the count of ui.print_centered calls
+          -- stub menu.draw completely to avoid altering the count of text_helper.print_centered calls
           stub(menu, "draw")
         end)
 
@@ -109,21 +109,21 @@ describe('titlemenu', function ()
       describe('draw_title', function ()
 
         setup(function ()
-          stub(ui, "print_centered")
+          stub(text_helper, "print_centered")
         end)
 
         teardown(function ()
-          ui.print_centered:revert()
+          text_helper.print_centered:revert()
         end)
 
         after_each(function ()
-          ui.print_centered:clear()
+          text_helper.print_centered:clear()
         end)
 
         it('should print "pico-sonic by leyn" centered, in white', function ()
           tm:draw_title()
 
-          assert.spy(ui.print_centered).was_called(2)
+          assert.spy(text_helper.print_centered).was_called(2)
           -- no need to check what exactly is printed
         end)
 

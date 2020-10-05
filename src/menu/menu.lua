@@ -4,7 +4,7 @@
 -- for now only the page arrows are not drawn, and related data doesn't exist
 
 local input = require("engine/input/input")
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
 local visual = require("resources/visual")
 
@@ -211,7 +211,7 @@ function menu:draw(x, top)
        end
     end
 
-    ui.print_aligned(label, item_x, y, self.alignment, self.text_color)
+    text_helper.print_aligned(label, item_x, y, self.alignment, self.text_color)
     y = y + character_height
   end
 

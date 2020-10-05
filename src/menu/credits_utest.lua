@@ -1,8 +1,6 @@
 require("engine/test/bustedhelper")
 local credits = require("menu/credits")
 
-local ui = require("engine/ui/ui")
-
 local menu = require("menu/menu")
 
 describe('credits', function ()
@@ -76,7 +74,6 @@ describe('credits', function ()
 
         setup(function ()
           stub(credits, "draw_credits_text")
-          -- stub menu.draw completely to avoid altering the count of ui.print_centered calls
           stub(menu, "draw")
         end)
 

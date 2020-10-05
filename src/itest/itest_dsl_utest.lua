@@ -25,6 +25,19 @@ local tile_test_data = require("test_data/tile_test_data")
 
 describe('itest_dsl', function ()
 
+  -- stub very slow functions called on stage state enter
+  --  so utests calling flow:change_gamestate_by_type(':stage') in before_each
+  --  don't have a big overhead on start
+  setup(function ()
+    stub(stage_state, "spawn_new_emeralds")
+    stub(stage_state, "spawn_palm_tree_leaves")
+  end)
+
+  teardown(function ()
+    stage_state.spawn_new_emeralds:revert()
+    stage_state.spawn_palm_tree_leaves:revert()
+  end)
+
   local state
 
   before_each(function ()
@@ -194,17 +207,6 @@ describe('itest_dsl', function ()
   end)
 
   describe('execute_', function ()
-
-    -- stub very slow functions called on stage state enter
-    setup(function ()
-      stub(stage_state, "spawn_new_emeralds")
-      stub(stage_state, "spawn_palm_tree_leaves")
-    end)
-
-    teardown(function ()
-      stage_state.spawn_new_emeralds:revert()
-      stage_state.spawn_palm_tree_leaves:revert()
-    end)
 
     before_each(function ()
       flow:add_gamestate(state)

@@ -1941,6 +1941,9 @@ function player_char:trigger_spring(spring_left_loc)
   local curr_stage_state = flow.curr_state
   assert(curr_stage_state.type == ':stage')
   curr_stage_state:extend_spring(spring_left_loc)
+
+  -- audio
+  sfx(audio.sfx_ids.spring_jump)
 end
 
 function player_char:check_emerald()

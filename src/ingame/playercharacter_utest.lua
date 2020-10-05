@@ -7195,16 +7195,19 @@ describe('player_char', function ()
       setup(function ()
         stub(stage_state, "extend_spring")
         spy.on(player_char, "enter_motion_state")
+        stub(_G, "sfx")
       end)
 
       teardown(function ()
         stage_state.extend_spring:revert()
         player_char.enter_motion_state:revert()
+        sfx:revert()
       end)
 
       after_each(function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
+        sfx:clear()
       end)
 
       it('should set upward velocity on character', function ()
@@ -7227,6 +7230,13 @@ describe('player_char', function ()
         pc:trigger_spring(location(2, 0))
         assert.spy(stage_state.extend_spring).was_called(1)
         assert.spy(stage_state.extend_spring).was_called_with(match.ref(flow.curr_state), location(2, 0))
+      end)
+
+      it('should play spring jump sfx', function ()
+        pc:trigger_spring(location(2, 0))
+
+        assert.spy(sfx).was_called(1)
+        assert.spy(sfx).was_called_with(audio.sfx_ids.spring_jump)
       end)
 
     end)

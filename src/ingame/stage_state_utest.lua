@@ -159,7 +159,7 @@ describe('stage_state', function ()
 
         it('should reload background sprites to overwrite collision mask sprites (spritesheet top part)', function ()
           assert.spy(reload).was_called(1)
-          assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_background.p8")
+          assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
         end)
 
       end)

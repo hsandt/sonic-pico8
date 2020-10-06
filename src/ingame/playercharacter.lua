@@ -1,6 +1,3 @@
---#if log
-local _logging = require("engine/debug/logging")
---#endif
 local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")

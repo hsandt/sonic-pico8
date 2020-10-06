@@ -10,10 +10,6 @@ require("engine/common")
 -- if tuner symbol is defined, then we also initialize it in init
 local codetuner = require("engine/debug/codetuner")
 
---#if log
-local logging = require("engine/debug/logging")
---#endif
-
 --#if visual_logger
 local vlogger = require("engine/debug/visual_logger")
 --#endif

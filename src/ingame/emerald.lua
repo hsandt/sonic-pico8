@@ -48,7 +48,7 @@ function emerald:init(number, location)
   self.location = location
 end
 
---#if log
+--#if tostring
 function emerald:_tostring()
  return "emerald("..joinstr(', ', self.number, self.location)..")"
 end

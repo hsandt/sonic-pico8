@@ -8,10 +8,6 @@ local input = require("engine/input/input")
 local codetuner = require("engine/debug/codetuner")
 --#endif
 
---#if log
-local logging = require("engine/debug/logging")
---#endif
-
 --#if profiler
 local profiler = require("engine/debug/profiler")
 --#endif

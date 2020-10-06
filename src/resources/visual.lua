@@ -1,3 +1,4 @@
+local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 
 local visual = {
@@ -25,6 +26,7 @@ local visual = {
 }
 
 local sprite_data_t = {
+  -- COMMON INITIAL SPRITES
 --#if mouse
   cursor = sprite_data(sprite_id_location(15, 4), nil, nil, colors.pink),
 --#endif
@@ -36,9 +38,32 @@ local sprite_data_t = {
   -- right side pivot is located at top-right of core
   -- left side is a mirror of right side, and must be placed just on the left of the core
   palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), colors.pink),
+
+  -- RUNTIME SPRITES (stage-specific and common runtime)
   -- below need runtime sprites to be reloaded, overwriting collision masks
   background_forest_bottom_hole = sprite_data(sprite_id_location(1, 0), tile_vector(2, 3), vector(0, 0), colors.pink),
   emerald_silhouette = sprite_data(sprite_id_location(10, 0), tile_vector(2, 1), vector(4, 4), colors.pink),
+  emerald_pick_fx1 = sprite_data(sprite_id_location(12, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+  emerald_pick_fx2 = sprite_data(sprite_id_location(13, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+  emerald_pick_fx3 = sprite_data(sprite_id_location(14, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+  emerald_pick_fx4 = sprite_data(sprite_id_location(15, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+}
+
+visual.animated_sprite_data_t = {
+  emerald_pick_fx = {
+    -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
+    --  but this will actually be minified and therefore very compact (as names are not protected)
+    ["once"] = animated_sprite_data(
+      {
+        sprite_data_t.emerald_pick_fx1,
+        sprite_data_t.emerald_pick_fx2,
+        sprite_data_t.emerald_pick_fx3,
+        sprite_data_t.emerald_pick_fx4
+      },
+      5,
+      2  -- anim_loop_modes.freeze_last (just to sport forgotten fx clear easily)
+    )
+  }
 }
 
 visual.sprite_data_t = sprite_data_t

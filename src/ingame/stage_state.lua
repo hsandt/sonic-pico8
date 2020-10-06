@@ -4,6 +4,7 @@ local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 
 local emerald = require("ingame/emerald")
+local fx = require("ingame/fx")
 local player_char = require("ingame/playercharacter")
 local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
@@ -49,6 +50,8 @@ function stage_state:init()
   self.emeralds = {}
   -- set of number of emeralds picked, with format: {[number] = true} (no entry if not picked)
   self.picked_emerald_numbers_set = {}
+  -- list of emerald pick fxs playing (currently no pooling, just add and delete)
+  self.emerald_pick_fxs = {}
 
   -- palm trees: list of global locations of palm tree leaves core sprites detected
   -- used to draw the palm tree extension sprites on foreground
@@ -144,6 +147,10 @@ function stage_state:on_exit()
 end
 
 function stage_state:update()
+  -- common in case we picked some emerald near the goal line, as we'd still want
+  --  to see the animation end
+  self:update_fx()
+
   if self.current_substate == stage_state.substates.play then
     self.player_char:update()
     self:check_reached_goal()
@@ -159,6 +166,7 @@ function stage_state:render()
 
   self:render_background()
   self:render_stage_elements()
+  self:render_fx()
   self:render_hud()
   self:render_title_overlay()
 end
@@ -611,6 +619,10 @@ function stage_state:character_pick_emerald(em)
   -- add emerald number to picked set
   self.picked_emerald_numbers_set[em.number] = true
 
+  -- add emerald pick FX at emerald position and play it immediately
+  local pfx = fx(em.location:to_center_position(), visual.animated_sprite_data_t.emerald_pick_fx)
+  add(self.emerald_pick_fxs, pfx)
+
   -- remove emerald from sequence (use del to make sure
   --  later object indices are decremented)
   del(self.emeralds, em)
@@ -720,6 +732,31 @@ end
 
 function stage_state:back_to_titlemenu()
   load('picosonic_titlemenu.p8')
+end
+
+
+-- fx
+
+function stage_state:update_fx()
+  local to_delete = {}
+
+  for pfx in all(self.emerald_pick_fxs) do
+    pfx:update()
+
+    if not pfx:is_active() then
+      add(to_delete, pfx)
+    end
+  end
+
+  for pfx in all(to_delete) do
+    del(self.emerald_pick_fxs, pfx)
+  end
+end
+
+function stage_state:render_fx()
+  for pfx in all(self.emerald_pick_fxs) do
+    pfx:render()
+  end
 end
 
 

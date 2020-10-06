@@ -13,6 +13,7 @@ local picosonic_app = require("application/picosonic_app_ingame")
 local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local emerald = require("ingame/emerald")
+local fx = require("ingame/fx")
 local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
@@ -53,6 +54,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
+            {},
             vector.zero(),
             overlay(0),
             nil,
@@ -68,6 +70,7 @@ describe('stage_state', function ()
             state.spawned_emerald_locations,
             state.emeralds,
             state.picked_emerald_numbers_set,
+            state.emerald_pick_fxs,
             state.palm_tree_leaves_core_global_locations,
             state.camera_pos,
             state.title_overlay,
@@ -877,6 +880,88 @@ describe('stage_state', function ()
 
           end)
 
+          describe('update_fx', function ()
+
+            setup(function ()
+              stub(fx, "update", function (self)
+                -- just a trick to force fx deactivation without going through
+                --  the full animated sprite logic (nor stubbing is_active itself,
+                --  as we really want to deactivate on update only to make sure it was called)
+                if self.position.x == 999 then
+                  self.anim_spr.playing = false
+                end
+              end)
+            end)
+
+            teardown(function ()
+              fx.update:revert()
+            end)
+
+            after_each(function ()
+              fx.update:clear()
+            end)
+
+            it('should call update on each emerald fx', function ()
+              state.emerald_pick_fxs = {
+                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+                fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+              }
+
+              state:update_fx()
+
+              assert.spy(fx.update).was_called(2)
+              assert.spy(fx.update).was_called_with(match.ref(state.emerald_pick_fxs[1]))
+              assert.spy(fx.update).was_called_with(match.ref(state.emerald_pick_fxs[2]))
+            end)
+
+            it('should call delete on each emerald fx inactive *after* update', function ()
+              -- add fx to delete on first and last position, to make sure
+              --  we don't make the mistake or deleting fx during iteration, which tends
+              --  to make us miss the last elements
+              state.emerald_pick_fxs = {
+                fx(vector(999, 1), visual.animated_sprite_data_t.emerald_pick_fx),
+                fx(vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx),
+                fx(vector(999, 3), visual.animated_sprite_data_t.emerald_pick_fx)
+              }
+
+              state:update_fx()
+
+              assert.are_same({
+                fx(vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx)
+              }, state.emerald_pick_fxs)
+            end)
+
+          end)
+
+          describe('render_fx', function ()
+
+            setup(function ()
+              stub(fx, "render")
+            end)
+
+            teardown(function ()
+              fx.render:revert()
+            end)
+
+            after_each(function ()
+              fx.render:clear()
+            end)
+
+            it('should call render on each emerald fx', function ()
+              state.emerald_pick_fxs = {
+                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+                fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+              }
+
+              state:render_fx()
+
+              assert.spy(fx.render).was_called(2)
+              assert.spy(fx.render).was_called_with(match.ref(state.emerald_pick_fxs[1]))
+              assert.spy(fx.render).was_called_with(match.ref(state.emerald_pick_fxs[2]))
+            end)
+
+          end)
+
           describe('update_camera', function ()
 
             before_each(function ()
@@ -1303,12 +1388,14 @@ describe('stage_state', function ()
           describe('update', function ()
 
             setup(function ()
+              stub(stage_state, "update_fx")
               stub(player_char, "update")
               stub(stage_state, "check_reached_goal")
               stub(stage_state, "update_camera")
             end)
 
             teardown(function ()
+              stage_state.update_fx:revert()
               player_char.update:revert()
               stage_state.check_reached_goal:revert()
               stage_state.update_camera:revert()
@@ -1325,6 +1412,7 @@ describe('stage_state', function ()
             end)
 
             after_each(function ()
+              stage_state.update_fx:clear()
               player_char.update:clear()
               stage_state.check_reached_goal:clear()
               stage_state.update_camera:clear()
@@ -1336,7 +1424,12 @@ describe('stage_state', function ()
 
               it('should call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.play
+
                 state:update()
+
+                assert.spy(stage_state.update_fx).was_called(1)
+                assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
+
                 assert.spy(player_char.update).was_called(1)
                 assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
                 assert.spy(stage_state.check_reached_goal).was_called(1)
@@ -1352,7 +1445,12 @@ describe('stage_state', function ()
 
               it('should not call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.result
+
                 state:update()
+
+                assert.spy(stage_state.update_fx).was_called(1)
+                assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
+
                 assert.spy(player_char.update).was_not_called()
                 assert.spy(stage_state.check_reached_goal).was_not_called()
                 assert.spy(stage_state.update_camera).was_not_called()
@@ -1368,6 +1466,7 @@ describe('stage_state', function ()
             setup(function ()
               stub(stage_state, "render_background")
               stub(stage_state, "render_stage_elements")
+              stub(stage_state, "render_fx")
               stub(stage_state, "render_hud")
               stub(stage_state, "render_title_overlay")
             end)
@@ -1375,6 +1474,7 @@ describe('stage_state', function ()
             teardown(function ()
               stage_state.render_background:revert()
               stage_state.render_stage_elements:revert()
+              stage_state.render_fx:revert()
               stage_state.render_hud:revert()
               stage_state.render_title_overlay:revert()
             end)
@@ -1382,17 +1482,20 @@ describe('stage_state', function ()
             after_each(function ()
               stage_state.render_background:clear()
               stage_state.render_stage_elements:clear()
+              stage_state.render_fx:clear()
               stage_state.render_hud:clear()
               stage_state.render_title_overlay:clear()
             end)
 
-            it('should reset camera, call render_background, render_stage_elements, render_title_overlay', function ()
+            it('should reset camera, call render_background, render_stage_elements, render_fx, render_hud, render_title_overlay', function ()
               state:render()
               assert.are_same({0, 0}, {pico8.camera_x, pico8.camera_y})
               assert.spy(stage_state.render_background).was_called(1)
               assert.spy(stage_state.render_background).was_called_with(match.ref(state))
               assert.spy(stage_state.render_stage_elements).was_called(1)
               assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_fx).was_called(1)
+              assert.spy(stage_state.render_fx).was_called_with(match.ref(state))
               assert.spy(stage_state.render_hud).was_called(1)
               assert.spy(stage_state.render_hud).was_called_with(match.ref(state))
               assert.spy(stage_state.render_title_overlay).was_called(1)
@@ -1483,6 +1586,22 @@ describe('stage_state', function ()
               }
               state:character_pick_emerald(state.emeralds[2])
               assert.are_same({[2] = true, [4] = true}, state.picked_emerald_numbers_set)
+            end)
+
+            it('should create a pick FX and play it', function ()
+              state.emerald_pick_fxs = {
+                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx)
+              }
+
+              state:character_pick_emerald(state.emeralds[2])
+
+              -- emerald 2 was at location (1, 0),
+              --  so its center was at (12, 4)
+              assert.are_same({
+                  fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+                  fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+                },
+                state.emerald_pick_fxs)
             end)
 
             it('should remove an emerald from the sequence', function ()

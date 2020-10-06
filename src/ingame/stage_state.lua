@@ -111,6 +111,10 @@ function stage_state:on_enter()
   self.has_reached_goal = false
 
   self.app:start_coroutine(self.show_stage_title_async, self)
+
+  -- reload bgm only once, then we can play bgm whenever we want for this stage
+  self:reload_bgm()
+  -- initial play bgm
   self:play_bgm()
 
   -- randomize background data on stage start so it's stable during the stage
@@ -611,7 +615,31 @@ function stage_state:character_pick_emerald(em)
   --  later object indices are decremented)
   del(self.emeralds, em)
 
+  self.app:start_coroutine(self.play_pick_emerald_jingle_async, self)
+end
+
+-- pause bgm, play pick emerald jingle and resume bgm
+function stage_state:play_pick_emerald_jingle_async()
+  -- remember bgm pattern we were at so we can restart from it
+  --  it won't exactly resume bgm where we were, but resume from the start of
+  --  the current pattern = group of 4 measures
+  --  (for bgm at SPD 7, we may backtrack up to 1.866s)
+  -- thx to dw817 https://www.lexaloffle.com/bbs/?pid=35493
+  local pause_music_pattern = stat(24)
+
+  -- fade out current bgm
+  music(-1, 500)
+
+  -- start jingle
   sfx(audio.sfx_ids.pick_emerald)
+
+  -- wait for jingle to end
+  -- 1 measure (1 column = 8 notes in SFX editor) at SPD 16 lasts 16/15 = 1.0666s
+  --  or to be more exact with frames, 16 * 60/15 = 16*4 = 64 frames
+  yield_delay(64)
+
+  -- resume bgm at last pattern (like self:play_bgm(), but with previous pattern)
+  music(pause_music_pattern, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 -- return (top_left, bottom_right) positions from an entrance area: location_rect
@@ -1317,7 +1345,7 @@ end
 
 -- audio
 
-function stage_state:play_bgm()
+function stage_state:reload_bgm()
   -- reload music sfx and patterns from bgm cartridge memory
   -- we guarantee that:
   -- the bgm will take maximum 40 patterns (out of 64)
@@ -1331,7 +1359,9 @@ function stage_state:play_bgm()
   reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
   -- copy music sfx
   reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+end
 
+function stage_state:play_bgm()
   -- only 4 channels at a time in PICO-8
   -- Angel Island BGM currently uses only 3 channels so t's pretty safe
   --  as there is always a channel left for SFX, but in case we add a 4th one

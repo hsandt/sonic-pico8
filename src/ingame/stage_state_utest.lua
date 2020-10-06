@@ -1,6 +1,7 @@
 require("test/bustedhelper")
 local stage_state = require("ingame/stage_state")
 
+local gameapp = require("engine/application/gameapp")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local location_rect = require("engine/core/location_rect")
@@ -82,6 +83,7 @@ describe('stage_state', function ()
           stub(stage_state, "spawn_player_char")
           stub(picosonic_app, "start_coroutine")
           stub(stage_state, "play_bgm")
+          stub(stage_state, "reload_bgm")
           stub(stage_state, "randomize_background_data")
           stub(stage_state, "spawn_objects_in_all_map_regions")
           stub(stage_state, "check_reload_map_region")
@@ -92,6 +94,7 @@ describe('stage_state', function ()
           stage_state.spawn_player_char:revert()
           picosonic_app.start_coroutine:revert()
           stage_state.play_bgm:revert()
+          stage_state.reload_bgm:revert()
           stage_state.randomize_background_data:revert()
           stage_state.spawn_objects_in_all_map_regions:revert()
           stage_state.check_reload_map_region:revert()
@@ -102,6 +105,7 @@ describe('stage_state', function ()
           stage_state.spawn_player_char:clear()
           picosonic_app.start_coroutine:clear()
           stage_state.play_bgm:clear()
+          stage_state.reload_bgm:clear()
           stage_state.randomize_background_data:clear()
           stage_state.spawn_objects_in_all_map_regions:clear()
           stage_state.check_reload_map_region:clear()
@@ -145,6 +149,11 @@ describe('stage_state', function ()
           local s = assert.spy(picosonic_app.start_coroutine)
           s.was_called(1)
           s.was_called_with(match.ref(state.app), stage_state.show_stage_title_async, match.ref(state))
+        end)
+
+        it('should call reload_bgm', function ()
+          assert.spy(state.reload_bgm).was_called(1)
+          assert.spy(state.reload_bgm).was_called_with(match.ref(state))
         end)
 
         it('should call play_bgm', function ()
@@ -1438,16 +1447,21 @@ describe('stage_state', function ()
 
           describe('character_pick_emerald', function ()
 
+            -- we need to stub start_coroutine on the child class
+            --  not gameapp or calls won't be monitored
+
             setup(function ()
-              stub(_G, "sfx")
+              stub(picosonic_app, "start_coroutine")
             end)
 
             teardown(function ()
-              sfx:revert()
+              picosonic_app.start_coroutine:revert()
             end)
 
-            after_each(function ()
-              sfx:clear()
+            -- clear in before_each as stage_state on_enter
+            --  will start some coroutune already
+            before_each(function ()
+              picosonic_app.start_coroutine:clear()
             end)
 
             before_each(function ()
@@ -1483,8 +1497,8 @@ describe('stage_state', function ()
 
             it('should play character_pick_emerald sfx', function ()
               state:character_pick_emerald(state.emeralds[2])
-              assert.spy(sfx).was_called(1)
-              assert.spy(sfx).was_called_with(audio.sfx_ids.pick_emerald)
+              assert.spy(picosonic_app.start_coroutine).was_called(1)
+              assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.play_pick_emerald_jingle_async, match.ref(state))
             end)
 
           end)
@@ -2121,12 +2135,16 @@ describe('stage_state', function ()
               pico8.current_music = nil
             end)
 
-            it('play_bgm should start level bgm', function ()
-              state:play_bgm()
+            it('reload_bgm should start level bgm', function ()
+              state:reload_bgm()
 
               assert.spy(reload).was_called(2)
               assert.spy(reload).was_called_with(0x3100, 0x3100, 0xa0, "data_bgm1.p8")
               assert.spy(reload).was_called_with(0x3200, 0x3200, 0xd48, "data_bgm1.p8")
+            end)
+
+            it('play_bgm should start level bgm', function ()
+              state:play_bgm()
 
               assert.are_same({music=state.curr_stage_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
             end)

@@ -210,10 +210,12 @@ function player_char:warp_to(position)
   self:check_escape_from_ground()
 end
 
+--#if itest
 -- same as warp_to, but with bottom position
 function player_char:warp_bottom_to(bottom_position)
   self:warp_to(bottom_position - vector(0, self:get_center_height()))
 end
+--#endif
 
 -- move the player character so that the bottom center is at the given position
 --#if itest

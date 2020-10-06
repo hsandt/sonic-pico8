@@ -24,7 +24,6 @@ end
 
 -- update the fx animated sprite
 function fx:update()
-  printh("update self.anim_spr: "..nice_dump(self.anim_spr))
   self.anim_spr:update()
 end
 

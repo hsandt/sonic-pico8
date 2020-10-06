@@ -151,6 +151,7 @@ describe('player_char', function ()
           directions.down,
           horizontal_dirs.right,
           1,
+          0,
 
           location(-1, -1),
           vector(-1, -1),
@@ -180,6 +181,7 @@ describe('player_char', function ()
           pc.quadrant,
           pc.orientation,
           pc.active_loop_layer,
+          pc.ignore_launch_ramp_timer,
 
           pc.ground_tile_location,
           pc.position,
@@ -1003,31 +1005,37 @@ describe('player_char', function ()
 
     describe('update_motion', function ()
 
-      local update_platformer_motion_stub
-      local update_debug_stub
-
       setup(function ()
-        update_platformer_motion_stub = stub(player_char, "update_platformer_motion")
-        update_debug_stub = stub(player_char, "update_debug")
+        player_char.update_collision_timer = stub(player_char, "update_collision_timer")
+        player_char.update_platformer_motion = stub(player_char, "update_platformer_motion")
+        player_char.update_debug = stub(player_char, "update_debug")
       end)
 
       teardown(function ()
-        update_platformer_motion_stub:revert()
-        update_debug_stub:revert()
+        player_char.update_collision_timer:revert()
+        player_char.update_platformer_motion:revert()
+        player_char.update_debug:revert()
       end)
 
       after_each(function ()
-        update_platformer_motion_stub:clear()
-        update_debug_stub:clear()
+        player_char.update_collision_timer:clear()
+        player_char.update_platformer_motion:clear()
+        player_char.update_debug:clear()
+      end)
+
+      it('should call update_collision_timer', function ()
+        pc:update_motion()
+        assert.spy(player_char.update_collision_timer).was_called()
+        assert.spy(player_char.update_collision_timer).was_called_with(match.ref(pc))
       end)
 
       describe('(when motion mode is platformer)', function ()
 
         it('should call _update_platformer_motion', function ()
           pc:update_motion()
-          assert.spy(update_platformer_motion_stub).was_called(1)
-          assert.spy(update_platformer_motion_stub).was_called_with(match.ref(pc))
-          assert.spy(update_debug_stub).was_not_called()
+          assert.spy(player_char.update_platformer_motion).was_called(1)
+          assert.spy(player_char.update_platformer_motion).was_called_with(match.ref(pc))
+          assert.spy(player_char.update_debug).was_not_called()
         end)
 
       end)
@@ -1043,9 +1051,9 @@ describe('player_char', function ()
         -- * the test revealed a missing return, as _update_platformer_motion was called but shouldn't
         it('should call _update_debug', function ()
           pc:update_motion()
-          assert.spy(update_platformer_motion_stub).was_not_called()
-          assert.spy(update_debug_stub).was_called(1)
-          assert.spy(update_debug_stub).was_called_with(match.ref(pc))
+          assert.spy(player_char.update_platformer_motion).was_not_called()
+          assert.spy(player_char.update_debug).was_called(1)
+          assert.spy(player_char.update_debug).was_called_with(match.ref(pc))
         end)
 
       end)
@@ -1880,6 +1888,25 @@ describe('player_char', function ()
 
         end)
 
+        describe('with ramp tile', function ()
+
+          before_each(function ()
+            mock_mset(0, 0, visual.launch_ramp_last_tile_id)
+          end)
+
+          it('(not ignoring ramp) position on ramp should return actual ground_query_info() as it would be detected', function ()
+            pc.ignore_launch_ramp_timer = 0
+            -- same shape as visual_loop_bottomright, so expect same signed distance
+            assert.are_same(ground_query_info(location(0, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(4, 4)))
+          end)
+
+          it('(ignoring ramp) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
+            pc.ignore_launch_ramp_timer = 1
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(4, 4)))
+          end)
+
+        end)
+
       end)
 
       describe('check_escape_from_ground', function ()
@@ -2289,6 +2316,26 @@ describe('player_char', function ()
           pc:enter_motion_state(motion_states.standing)
 
           assert.are_same(vector(10, 20 - pc_data.center_height_standing + pc_data.center_height_compact), pc.position)
+        end)
+
+      end)
+
+      describe('update_collision_timer', function ()
+
+        it('should do nothing when timer is 0 (or negative)', function ()
+          pc.ignore_launch_ramp_timer = 0
+
+          pc:update_collision_timer()
+
+          assert.are_equal(0, pc.ignore_launch_ramp_timer)
+        end)
+
+        it('should decrease timer by 1/60 s when timer is positive', function ()
+          pc.ignore_launch_ramp_timer = 1
+
+          pc:update_collision_timer()
+
+          assert.are_equal(0, pc.ignore_launch_ramp_timer)
         end)
 
       end)
@@ -7365,7 +7412,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('trigger_launch_ramp', function ()
+    describe('trigger_launch_ramp_effect', function ()
 
       setup(function ()
         spy.on(player_char, "enter_motion_state")
@@ -7379,26 +7426,40 @@ describe('player_char', function ()
         player_char.enter_motion_state:clear()
       end)
 
-      it('should set launch ramp velocity (right-up) on character if below launch speed X', function ()
-        pc:trigger_launch_ramp_effect()
-        assert.are_same(vector(pc_data.launch_ramp_velocity_x, -pc_data.launch_ramp_velocity_y), pc.velocity)
-      end)
+      it('should velocity to (ground_speed + extra) along launch_ramp_velocity_angle', function ()
+        pc.ground_speed = 2
 
-      it('should set launch ramp velocity Y up, but preserve velocity X on character if above launch speed X', function ()
-        pc.velocity.x = pc_data.launch_ramp_velocity_x + 1
         pc:trigger_launch_ramp_effect()
-        assert.are_same(vector(pc_data.launch_ramp_velocity_x + 1, -pc_data.launch_ramp_velocity_y), pc.velocity)
+
+        assert.are_same((2 + pc_data.launch_ramp_extra_speed) * vector(
+          cos(pc_data.launch_ramp_velocity_angle),
+          sin(pc_data.launch_ramp_velocity_angle)
+        ), pc.velocity)
       end)
 
       it('should enter motion state: falling', function ()
+        pc.ground_speed = 2
+
         pc:trigger_launch_ramp_effect()
+
         assert.spy(player_char.enter_motion_state).was_called(1)
         assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
       end)
 
       it('should set should_play_spring_jump to true', function ()
+        pc.ground_speed = 2
+
         pc:trigger_launch_ramp_effect()
+
         assert.is_true(pc.should_play_spring_jump)
+      end)
+
+      it('should set ignore_launch_ramp_timer to ignore_launch_ramp_duration', function ()
+        pc.ground_speed = 2
+
+        pc:trigger_launch_ramp_effect()
+
+        assert.are_equal(pc_data.ignore_launch_ramp_duration, pc.ignore_launch_ramp_timer)
       end)
 
     end)

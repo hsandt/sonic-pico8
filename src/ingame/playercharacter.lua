@@ -62,11 +62,12 @@ local player_char = new_class()
 -- quadrant                 directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
 -- orientation              horizontal_dirs direction faced by character
 -- active_loop_layer        int             currently active loop layer (1 for entrance, 2 for exit)
+-- ignore_launch_ramp_timer int             time left before we stop ignoring launch ramp last tile (0 if not ignoring) (frames)
 
 -- ground_tile_location     location|nil    location of current ground tile character is on (nil if airborne)
 -- position                 vector          current position (character center "between" pixels)
 -- ground_speed             float           current speed along the ground (~px/frame)
--- horizontal_control_lock_timer    float   time left before regaining horizontal control after fall/slide off
+-- horizontal_control_lock_timer    int     time left before regaining horizontal control after fall/slide off (frames)
 -- velocity                 vector          current velocity in platformer mode (px/frame)
 -- debug_velocity           vector          current velocity in debug mode (m/s)
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
@@ -112,6 +113,7 @@ function player_char:setup()
   self.quadrant = directions.down
   self.orientation = horizontal_dirs.right
   self.active_loop_layer = 1
+  self.ignore_launch_ramp_timer = 0
 
   -- impossible value makes sure that first set_ground_tile_location
   --  will trigger change event
@@ -394,6 +396,8 @@ end
 
 -- update player position
 function player_char:update_motion()
+  self:update_collision_timer()
+
 --#if cheat
   if self.motion_mode == motion_modes.debug then
     self:update_debug()
@@ -555,8 +559,13 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
     local ignore_tile = false
 
-    -- we now check loop layer belonging directly from stage data
-    if pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
+    -- convert to region location before using mget
+    local tile_region_loc = curr_stage_state:global_to_region_location(curr_global_tile_loc)
+    local visual_tile_id = mget(tile_region_loc.i, tile_region_loc.j)
+
+    -- we now check for ignored tiles, ramp or loop
+    if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
+        pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
         pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) then
       ignore_tile = true
     end
@@ -810,6 +819,13 @@ function player_char:enter_motion_state(next_motion_state)
       self.should_play_spring_jump = false
       self.brake_anim_phase = 0
     end
+  end
+end
+
+function player_char:update_collision_timer()
+  if self.ignore_launch_ramp_timer > 0 then
+    printh("self.ignore_launch_ramp_timer: "..nice_dump(self.ignore_launch_ramp_timer))
+    self.ignore_launch_ramp_timer = self.ignore_launch_ramp_timer - 1
   end
 end
 
@@ -1986,9 +2002,11 @@ function player_char:trigger_spring(spring_left_loc)
 end
 
 function player_char:check_launch_ramp()
-  -- only trigger launch ramp if ground speed is high enough
+  -- only detect launch ramp if ground speed is high enough
   --  (we only have a launch ramp to the right in Angel Island, so we check only positive ground speed,
   --   the absence of abs() is not a mistake)
+  -- (we are not checking self.ignore_launch_ramp_timer here, it would be too late as we would
+  --  still hit the ramp as a normal collider, only ignore its launch behavior)
   if self.ground_tile_location and self.ground_speed >= pc_data.launch_ramp_min_ground_speed then
     -- get stage state for global to region location conversion
     local curr_stage_state = flow.curr_state
@@ -2012,17 +2030,18 @@ function player_char:trigger_launch_ramp_effect()
 
   local new_speed = self.ground_speed + tuned("launch", pc_data.launch_ramp_extra_speed)
 
-  -- we only have a right launch ramp in Angel Island so use +x. but -y to go upward
-  -- in addition, do not reduce speed X if already above launch speed X
-  -- self.velocity.x = self.velocity.x + pc_data.launch_ramp_velocity_x
-  -- self.velocity.y = - pc_data.launch_ramp_velocity_y
-
-  self.velocity = new_speed * vector.unit_from_angle(pc_data.launch_ramp_velocity_angle)
+  self.velocity = new_speed * vector.unit_from_angle(tuned("angle", pc_data.launch_ramp_velocity_angle), 0.003)
   self:enter_motion_state(motion_states.falling)
 
   -- just reuse spring jump animation since in Sonic 3, launch ramp also uses 3D animation
   --  that we don't have anyway
   self.should_play_spring_jump = true
+
+  -- disable collision with any ramp for a few frames to avoid hitting it and landing again
+  --  (even though character would be fast enough to trigger it again immediately,
+  --   on landing character is standing so ground speed is clamped to max_ground_speed and
+  --   character may lose momentum if he was rolling)
+  self.ignore_launch_ramp_timer = pc_data.ignore_launch_ramp_duration
 end
 
 function player_char:check_emerald()

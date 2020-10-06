@@ -104,10 +104,13 @@ local playercharacter_data = {
   -- ground speed required to trigger launch ramp
   launch_ramp_min_ground_speed = 2,
 
-  -- velocity set by launch ramp if character has enough speed when walking on it
-  -- make sure to use proper signs (-x for left launch, and always -y to go upward)
+  -- speed and angle set by launch ramp on trigger
   launch_ramp_extra_speed = 4,
-  launch_ramp_velocity_angle = atan2(5, -4),
+  launch_ramp_velocity_angle = atan2(5, -3),
+
+  -- duration to ignore launch ramp after trigger to avoid hitting it and landing again
+  --  (frames)
+  ignore_launch_ramp_duration = 3,
 
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,  -- 7/64

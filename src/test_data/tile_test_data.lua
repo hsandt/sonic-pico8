@@ -8,6 +8,10 @@ local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
 require("test_data/tile_representation")
 
+-- some tiles are defined in visual for use in real game, but they not in tile_representation.lua
+--  to avoid redundancy or because we didn't need them in itests yet
+local visual = require("resources/visual")
+
 local mock_raw_tile_collision_data = {
   -- collision_data values + PICO-8 spritesheet must match our mockup data
   -- REFACTOR: put all common data (collision mask id/location and slope angle) in common
@@ -38,6 +42,7 @@ local mock_raw_tile_collision_data = {
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
   [spring_left_id] = {flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
   [spring_left_id + 1] = {flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
+  [visual.launch_ramp_last_tile_id] = {mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
 }
 
 -- process data above to generate interior_v/h automatically, so we don't have to add them manually
@@ -95,6 +100,9 @@ function tile_test_data.setup()
   -- visual sprites
   fset(spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
   fset(spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
+
+  -- ramp
+  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.midground)
 
   fset(grass_top_decoration1, sprite_masks.foreground)
 

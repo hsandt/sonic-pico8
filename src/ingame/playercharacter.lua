@@ -75,6 +75,7 @@ local player_char = new_class()
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 
+-- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- move_intention           vector          current move intention (normalized)
 -- jump_intention           bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
@@ -96,6 +97,11 @@ function player_char:init()
   self.debug_move_friction = pc_data.debug_move_friction
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
+
+--#if cheat
+  -- exceptionally not in setup, because this member but be persistent persist after warping
+  self.last_emerald_warp_nb = 0
+--#endif
 
   self:setup()
 end
@@ -214,6 +220,30 @@ end
 -- same as warp_to, but with bottom position
 function player_char:warp_bottom_to(bottom_position)
   self:warp_to(bottom_position - vector(0, self:get_center_height()))
+end
+--#endif
+
+--#if cheat
+-- same as warp_to, but with bottom position
+function player_char:warp_to_emerald_by(delta)
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+
+  -- -1/+1 to loop from 1, not 0
+  -- clamping to 0 after delta is only for the edge case where your first warp is previous (-1)
+  --  since you want to reach the last emerald, no the penultimate one
+  self.last_emerald_warp_nb = (max(0, self.last_emerald_warp_nb + delta) - 1) % #curr_stage_state.spawned_emerald_locations + 1
+
+  -- spawned_emerald_locations is deprecated and may be removed in the future,
+  --  but it's convenient to get a stable sequence of locations to warp to
+  -- if removed we can still use curr_stage_state.emeralds, but note that emeralds are deleted on pick
+  --  and therefore the last_emerald_warp_nb would be invalid (the modulo would ensure we always
+  --  fall on a correct index but we wouldn't fall where we think we should since array length would change)
+  -- alternatively you could replace picked emeralds with some dummy value like false (but not nil)
+  --  to keep a stable index, and skip them on warp; or you could just keep the emerald objects around
+  --  but deactivate them pooling style, so we can still locate them and warp to their original positions
+  local target_pos = curr_stage_state.spawned_emerald_locations[self.last_emerald_warp_nb]:to_center_position()
+  self:warp_to(target_pos)
 end
 --#endif
 
@@ -1973,6 +2003,16 @@ end
 
 -- update the velocity and position of the character following debug motion rules
 function player_char:update_debug()
+  -- while still holding x, perform warp actions instead of continuous motion
+  if input:is_down(button_ids.x) then
+    if input:is_just_pressed(button_ids.left) then
+      self:warp_to_emerald_by(-1)
+    elseif input:is_just_pressed(button_ids.right) then
+      self:warp_to_emerald_by(1)
+    end
+    return
+  end
+
   self:update_velocity_debug()
   -- it's much more complicated to access app from here (e.g. via flow.curr_state)
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS

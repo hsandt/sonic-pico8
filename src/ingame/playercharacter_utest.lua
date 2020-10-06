@@ -82,7 +82,7 @@ describe('player_char', function ()
   describe('init', function ()
 
     setup(function ()
-      spy.on(player_char, "setup")
+      stub(player_char, "setup")
     end)
 
     teardown(function ()
@@ -110,13 +110,21 @@ describe('player_char', function ()
           pc_data.sonic_sprite_data,
           pc_data.debug_move_max_speed,
           pc_data.debug_move_accel,
-          pc_data.debug_move_decel
+          pc_data.debug_move_decel,
+          pc_data.debug_move_friction,
+          -- setup will modify anim_spr state, but we stubbed it so it's still
+          --  has the value on init now
+          animated_sprite(pc_data.sonic_animated_sprite_data_table),
+          0,  -- cheat
         },
         {
           pc.spr_data,
           pc.debug_move_max_speed,
           pc.debug_move_accel,
-          pc.debug_move_decel
+          pc.debug_move_decel,
+          pc.debug_move_friction,
+          pc.anim_spr,
+          pc.last_emerald_warp_nb,  -- cheat
         }
       )
     end)
@@ -138,7 +146,7 @@ describe('player_char', function ()
       assert.are_same(
         {
           control_modes.human,
-          motion_modes.platformer,
+          motion_modes.platformer,  -- cheat
           motion_states.standing,
           directions.down,
           horizontal_dirs.right,
@@ -167,7 +175,7 @@ describe('player_char', function ()
         },
         {
           pc.control_mode,
-          pc.motion_mode,
+          pc.motion_mode,  -- cheat
           pc.motion_state,
           pc.quadrant,
           pc.orientation,
@@ -505,6 +513,77 @@ describe('player_char', function ()
         pc:warp_bottom_to(vector(56, 12))
         assert.spy(player_char.warp_to).was_called(1)
         assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(56, 12 - 11))
+      end)
+
+    end)
+
+    describe('warp_to_emerald_by', function ()
+
+      setup(function ()
+        spy.on(player_char, "warp_to")
+      end)
+
+      teardown(function ()
+        player_char.warp_to:revert()
+      end)
+
+      before_each(function ()
+        player_char.warp_to:clear()
+
+        flow.curr_state.spawned_emerald_locations = {
+          location(1, 1),
+          location(2, 2),
+        }
+      end)
+
+      it('should call warp_to with the center position of the previous emerald', function ()
+        pc.last_emerald_warp_nb = 2
+
+        -- warp to previous one, so index 1
+        pc:warp_to_emerald_by(-1)
+
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
+      end)
+
+      it('should call warp_to with the center position of the previous emerald (looped)', function ()
+        pc.last_emerald_warp_nb = 1
+
+        -- warp to previous one looped, so index 2
+        pc:warp_to_emerald_by(-1)
+
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+      end)
+
+      it('should call warp_to with the center position of the previous emerald (looped on start from 0)', function ()
+        pc.last_emerald_warp_nb = 0
+
+        -- warp to previous one looped, so index 2
+        pc:warp_to_emerald_by(-1)
+
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+      end)
+
+      it('should call warp_to with the center position of the next emerald', function ()
+        pc.last_emerald_warp_nb = 1
+
+        -- warp to next one looped, so index 2
+        pc:warp_to_emerald_by(1)
+
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+      end)
+
+      it('should call warp_to with the center position of the next emerald (looped)', function ()
+        pc.last_emerald_warp_nb = 2
+
+        -- warp to next one looped, so index 1
+        pc:warp_to_emerald_by(1)
+
+        assert.spy(player_char.warp_to).was_called(1)
+        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
       end)
 
     end)
@@ -7246,6 +7325,7 @@ describe('player_char', function ()
       local update_velocity_debug_stub
 
       setup(function ()
+        stub(player_char, "warp_to_emerald_by")
         update_velocity_debug_mock = stub(player_char, "update_velocity_debug", function (self)
           self.debug_velocity = vector(4, -3)
         end)
@@ -7253,6 +7333,7 @@ describe('player_char', function ()
       end)
 
       teardown(function ()
+        player_char.warp_to_emerald_by:revert()
         update_velocity_debug_mock:revert()
         move_stub:revert()
       end)
@@ -7265,11 +7346,45 @@ describe('player_char', function ()
       end)
 
       after_each(function ()
+        player_char.warp_to_emerald_by:clear()
         update_velocity_debug_mock:clear()
         move_stub:clear()
+
+        input:init()
       end)
 
-      it('should call update_velocity_debug, then move using the new velocity', function ()
+      it('(still holding x) should not call anything if not pressing left/right', function ()
+        input.players_btn_states[0][button_ids.x] = btn_states.pressed
+
+        pc:update_debug()
+
+        assert.spy(player_char.warp_to_emerald_by).was_not_called()
+        assert.spy(update_velocity_debug_mock).was_not_called()
+      end)
+
+      it('(still holding x) should call warp_to_emerald_by(-1) ie previous if pressing left', function ()
+        input.players_btn_states[0][button_ids.x] = btn_states.pressed
+        input.players_btn_states[0][button_ids.left] = btn_states.just_pressed
+
+        pc:update_debug()
+
+        assert.spy(player_char.warp_to_emerald_by).was_called(1)
+        assert.spy(player_char.warp_to_emerald_by).was_called_with(match.ref(pc), -1)
+        assert.spy(update_velocity_debug_mock).was_not_called()
+      end)
+
+      it('(still holding x) should call warp_to_emerald_by(1) ie next if pressing right', function ()
+        input.players_btn_states[0][button_ids.x] = btn_states.pressed
+        input.players_btn_states[0][button_ids.right] = btn_states.just_pressed
+
+        pc:update_debug()
+
+        assert.spy(player_char.warp_to_emerald_by).was_called(1)
+        assert.spy(player_char.warp_to_emerald_by).was_called_with(match.ref(pc), 1)
+        assert.spy(update_velocity_debug_mock).was_not_called()
+      end)
+
+      it('(not holding x) should call update_velocity_debug, then move using the new velocity', function ()
         pc.position = vector(10, 20)
         pc:update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)
@@ -7277,7 +7392,7 @@ describe('player_char', function ()
         assert.are_same(vector(10, 20) + vector(4, -3), pc.position)
       end)
 
-      it('should call update_velocity_debug, then move using the new velocity and clamp to level edges', function ()
+      it('(not holding x) should call update_velocity_debug, then move using the new velocity and clamp to level edges', function ()
         pc.position = vector(20 * 8 - 9, 2)
         pc:update_debug()
         assert.spy(update_velocity_debug_mock).was_called(1)

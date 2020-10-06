@@ -610,6 +610,8 @@ function stage_state:character_pick_emerald(em)
   -- remove emerald from sequence (use del to make sure
   --  later object indices are decremented)
   del(self.emeralds, em)
+
+  sfx(audio.sfx_ids.pick_emerald)
 end
 
 -- return (top_left, bottom_right) positions from an entrance area: location_rect

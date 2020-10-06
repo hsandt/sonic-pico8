@@ -1438,6 +1438,18 @@ describe('stage_state', function ()
 
           describe('character_pick_emerald', function ()
 
+            setup(function ()
+              stub(_G, "sfx")
+            end)
+
+            teardown(function ()
+              sfx:revert()
+            end)
+
+            after_each(function ()
+              sfx:clear()
+            end)
+
             before_each(function ()
               state.emeralds = {
                 emerald(1, location(0, 0)),
@@ -1467,6 +1479,12 @@ describe('stage_state', function ()
               }
               state:character_pick_emerald(state.emeralds[2])
               assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
+            end)
+
+            it('should play character_pick_emerald sfx', function ()
+              state:character_pick_emerald(state.emeralds[2])
+              assert.spy(sfx).was_called(1)
+              assert.spy(sfx).was_called_with(audio.sfx_ids.pick_emerald)
             end)
 
           end)
@@ -1634,25 +1652,24 @@ describe('stage_state', function ()
 
           end)
 
-          describe('state.feedback_reached_goal', function ()
-            local sfx_stub
+          describe('feedback_reached_goal', function ()
 
             setup(function ()
-              sfx_stub = stub(_G, "sfx")
+              stub(_G, "sfx")
             end)
 
             teardown(function ()
-              sfx_stub:revert()
+              sfx:revert()
             end)
 
             after_each(function ()
-              sfx_stub:clear()
+              sfx:clear()
             end)
 
             it('should play goal_reached sfx', function ()
               state:feedback_reached_goal()
-              assert.spy(sfx_stub).was_called(1)
-              assert.spy(sfx_stub).was_called_with(audio.sfx_ids.goal_reached)
+              assert.spy(sfx).was_called(1)
+              assert.spy(sfx).was_called_with(audio.sfx_ids.goal_reached)
             end)
 
           end)

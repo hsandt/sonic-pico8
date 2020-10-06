@@ -273,6 +273,11 @@ function player_char:set_ground_tile_location(global_tile_loc)
     local curr_stage_state = flow.curr_state
     assert(curr_stage_state.type == ':stage')
 
+    -- new convention is to check ground location at the end of update_platformer_motion
+    --  like check_spring, because changing state to airborne in the middle of ground motion
+    --  may cause issues
+    -- but loops were added before springs and they keep the character grounded, so we kept
+    --  this behavior here
     if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
       -- note that active loop layer may already be 1
       log("internal trigger detected, set active loop layer: 1", 'loop')
@@ -832,6 +837,7 @@ function player_char:update_platformer_motion()
   end
 
   self:check_spring()
+  self:check_launch_ramp()
   self:check_emerald()
   self:check_loop_external_triggers()
 end
@@ -1935,6 +1941,7 @@ function player_char:next_air_step(direction, ref_motion_result)
 end
 
 -- item and trigger checks
+
 function player_char:check_spring()
   if self.ground_tile_location then
     -- get stage state for global to region location conversion
@@ -1942,8 +1949,8 @@ function player_char:check_spring()
     assert(curr_stage_state.type == ':stage')
 
     -- convert to region location before using mget
-    local ground_tile_region_location = curr_stage_state:global_to_region_location(self.ground_tile_location)
-    local ground_visual_tile_id = mget(ground_tile_region_location.i, ground_tile_region_location.j)
+    local ground_tile_region_loc = curr_stage_state:global_to_region_location(self.ground_tile_location)
+    local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
 
     -- follow new convention of putting flags on the visual sprite
     -- of course since we know visual.spring_left_id we could check if tile id is
@@ -1976,6 +1983,34 @@ function player_char:trigger_spring(spring_left_loc)
 
   -- audio
   sfx(audio.sfx_ids.spring_jump)
+end
+
+function player_char:check_launch_ramp()
+  if self.ground_tile_location then
+    -- get stage state for global to region location conversion
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == ':stage')
+
+    -- convert to region location before using mget
+    local ground_tile_region_loc = curr_stage_state:global_to_region_location(self.ground_tile_location)
+    local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
+
+    if ground_visual_tile_id == visual.launch_ramp_last_tile_id then
+      self:trigger_launch_ramp_effect()
+    end
+  end
+end
+
+function player_char:trigger_launch_ramp_effect()
+  -- we only have a right launch ramp in Angel Island so use +x. but -y to go upward
+  -- in addition, do not reduce speed X if already above launch speed X
+  self.velocity.x = self.velocity.x + pc_data.launch_ramp_velocity_x
+  self.velocity.y = - pc_data.launch_ramp_velocity_y
+  self:enter_motion_state(motion_states.falling)
+
+  -- just reuse spring jump animation since in Sonic 3, launch ramp also uses 3D animation
+  --  that we don't have anyway
+  self.should_play_spring_jump = true
 end
 
 function player_char:check_emerald()

@@ -1090,6 +1090,12 @@ describe('player_char', function ()
           assert.are_same(location(0, 0), pc.ground_tile_location)
         end)
 
+        it('should set ground tile location if different value is passed', function ()
+          pc.ground_tile_location = location(0, 0)
+          pc:set_ground_tile_location(location(1, 0))
+          assert.are_same(location(1, 0), pc.ground_tile_location)
+        end)
+
         it('should *not* set active_loop_layer if loop_entrance_trigger tile is detected, but didn\'t change', function ()
           pc.active_loop_layer = -1
           pc.ground_tile_location = location(0, 0)
@@ -1097,12 +1103,6 @@ describe('player_char', function ()
           pc:set_ground_tile_location(location(0, 0))
 
           assert.are_equal(-1, pc.active_loop_layer)
-        end)
-
-        it('should set ground tile location if different value is passed', function ()
-          pc.ground_tile_location = location(0, 0)
-          pc:set_ground_tile_location(location(1, 0))
-          assert.are_same(location(1, 0), pc.ground_tile_location)
         end)
 
         it('should set active_loop_layer to 1 if loop_entrance_trigger tile is detected and new', function ()
@@ -2299,6 +2299,7 @@ describe('player_char', function ()
           stub(player_char, "check_roll_start")
           stub(player_char, "check_roll_end")
           stub(player_char, "check_spring")
+          stub(player_char, "check_launch_ramp")
           stub(player_char, "check_emerald")
           stub(player_char, "check_loop_external_triggers")
         end)
@@ -2307,6 +2308,7 @@ describe('player_char', function ()
           player_char.check_roll_start:revert()
           player_char.check_roll_end:revert()
           player_char.check_spring:revert()
+          player_char.check_launch_ramp:revert()
           player_char.check_emerald:revert()
           player_char.check_loop_external_triggers:revert()
         end)
@@ -2315,6 +2317,7 @@ describe('player_char', function ()
           player_char.check_roll_start:clear()
           player_char.check_roll_end:clear()
           player_char.check_spring:clear()
+          player_char.check_launch_ramp:clear()
           player_char.check_emerald:clear()
           player_char.check_loop_external_triggers:clear()
         end)
@@ -2358,6 +2361,13 @@ describe('player_char', function ()
             pc:update_platformer_motion()
             assert.spy(player_char.check_spring).was_called()
             assert.spy(player_char.check_spring).was_called_with(match.ref(pc))
+          end)
+
+          it('should call check_launch_ramp (after motion)', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_launch_ramp).was_called()
+            assert.spy(player_char.check_launch_ramp).was_called_with(match.ref(pc))
           end)
 
           it('should call check_emerald (after motion)', function ()
@@ -6160,18 +6170,41 @@ describe('player_char', function ()
           player_char.trigger_spring:clear()
         end)
 
-        it('should call trigger_spring when ground tile location points to a spring tile', function ()
+        it('should call trigger_spring when ground tile location points to a spring tile (left)', function ()
           pc.ground_tile_location = location(2, 0)
           pc:check_spring()
           assert.spy(player_char.trigger_spring).was_called(1)
           assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
         end)
 
-        it('should call trigger_spring when ground tile location points to a spring tile', function ()
+        it('should call trigger_spring when ground tile location points to a spring tile (right)', function ()
           pc.ground_tile_location = location(3, 0)
           pc:check_spring()
           assert.spy(player_char.trigger_spring).was_called(1)
           assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        end)
+
+      end)
+
+      describe('check_launch_ramp', function ()
+
+        setup(function ()
+          stub(player_char, "trigger_launch_ramp_effect")
+        end)
+
+        teardown(function ()
+          player_char.trigger_launch_ramp_effect:revert()
+        end)
+
+        before_each(function ()
+          mock_mset(2, 0, visual.launch_ramp_last_tile_id)
+        end)
+
+        it('should call trigger_launch_ramp_effect when ground tile location points to a launch_ramp tile', function ()
+          pc.ground_tile_location = location(2, 0)
+          pc:check_launch_ramp()
+          assert.spy(player_char.trigger_launch_ramp_effect).was_called(1)
+          assert.spy(player_char.trigger_launch_ramp_effect).was_called_with(match.ref(pc))
         end)
 
       end)
@@ -6438,7 +6471,7 @@ describe('player_char', function ()
 
     describe('advance_in_air_along', function ()
 
-      describe('(when _next_air_step moves motion_result.position.x/y by 1px in the given direction, ' ..
+      describe('(when next_air_step moves motion_result.position.x/y by 1px in the given direction, ' ..
         'unless moving along x from x >= 5, where it is blocking by wall)', function ()
 
         local next_air_step_mock
@@ -7169,7 +7202,7 @@ describe('player_char', function ()
             -- this test specifically, however, is to check that is_landing: true and slope_angle: 0.5
             --  are reset when arrive just above ground, as it's not considered landing
             -- (if you change signed_distance_to_closest_ground >= 0 to ... > 0)
-            --  in _next_air_step it won't pass
+            --  in next_air_step it won't pass
 
             pc.velocity.x = 1
             pc.velocity.y = 0
@@ -7267,7 +7300,7 @@ describe('player_char', function ()
 
       end)  -- (with mock tiles data setup)
 
-    end)  -- _next_air_step
+    end)  -- next_air_step
 
     describe('trigger_spring', function ()
 
@@ -7316,6 +7349,44 @@ describe('player_char', function ()
 
         assert.spy(sfx).was_called(1)
         assert.spy(sfx).was_called_with(audio.sfx_ids.spring_jump)
+      end)
+
+    end)
+
+    describe('trigger_launch_ramp', function ()
+
+      setup(function ()
+        spy.on(player_char, "enter_motion_state")
+      end)
+
+      teardown(function ()
+        player_char.enter_motion_state:revert()
+      end)
+
+      after_each(function ()
+        player_char.enter_motion_state:clear()
+      end)
+
+      it('should set launch ramp velocity (right-up) on character if below launch speed X', function ()
+        pc:trigger_launch_ramp_effect()
+        assert.are_same(vector(pc_data.launch_ramp_velocity_x, -pc_data.launch_ramp_velocity_y), pc.velocity)
+      end)
+
+      it('should set launch ramp velocity Y up, but preserve velocity X on character if above launch speed X', function ()
+        pc.velocity.x = pc_data.launch_ramp_velocity_x + 1
+        pc:trigger_launch_ramp_effect()
+        assert.are_same(vector(pc_data.launch_ramp_velocity_x + 1, -pc_data.launch_ramp_velocity_y), pc.velocity)
+      end)
+
+      it('should enter motion state: falling', function ()
+        pc:trigger_launch_ramp_effect()
+        assert.spy(player_char.enter_motion_state).was_called(1)
+        assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
+      end)
+
+      it('should set should_play_spring_jump to true', function ()
+        pc:trigger_launch_ramp_effect()
+        assert.is_true(pc.should_play_spring_jump)
       end)
 
     end)

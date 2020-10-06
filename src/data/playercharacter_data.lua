@@ -101,6 +101,11 @@ local playercharacter_data = {
   -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
   spring_jump_speed_frame = 5,
 
+  -- velocity set by launch ramp if character has enough speed when walking on it
+  -- make sure to use proper signs (-x for left launch, and always -y to go upward)
+  launch_ramp_velocity_x = 5,
+  launch_ramp_velocity_y = 3,
+
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,  -- 7/64
 

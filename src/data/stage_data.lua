@@ -39,6 +39,8 @@ return {
       tile_height = 32 * 2,
 
       -- where the player character spawns on stage start (region (0, 1))
+      -- ! structs are still accessed by ref in Lua, OK but make sure to always copy
+      -- or apply a conversion method, never assign them directly to a variable that may change
       spawn_location = location(7, 32+15),
 
       -- the x to reach to finish the stage

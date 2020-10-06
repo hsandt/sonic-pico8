@@ -97,7 +97,7 @@ elif [[ $config == 'cheat' ]]; then
   # symbols='assert,cheat,log,dump'
   # symbols='cheat,log,dump,debug_trigger'
 elif [[ $config == 'tuner' ]]; then
-  symbols='tuner,mouse'
+  symbols='tuner,mouse,cheat'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='assert,deprecated,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then

@@ -289,6 +289,9 @@ local mask_tile_ids = {
   [105] = 25,
   [121] = 41,
 
+  -- launch ramp
+  [251] = 21,
+
 -- decorative tiles (no collision, but kept commented for tracking purpose)
 --[[
   [234] = 0,  -- hiding leaves

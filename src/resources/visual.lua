@@ -11,6 +11,9 @@ local visual = {
   --  for extension sprites drawn around it, see sprite_data_t.palm_tree_leaves*
   palm_tree_leaves_core_id = 236,
 
+  -- launch ramp last tile (triggers launch velocity)
+  launch_ramp_last_tile_id = 251,
+
   -- emerald color palettes (apply to red emerald sprite to get them all)
   emerald_colors = {
     -- light color, dark color

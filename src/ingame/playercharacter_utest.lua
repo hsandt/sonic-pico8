@@ -6200,9 +6200,21 @@ describe('player_char', function ()
           mock_mset(2, 0, visual.launch_ramp_last_tile_id)
         end)
 
-        it('should call trigger_launch_ramp_effect when ground tile location points to a launch_ramp tile', function ()
+        it('should not call trigger_launch_ramp_effect when ground tile location points to a launch_ramp tile but ground speed is too low', function ()
           pc.ground_tile_location = location(2, 0)
+          pc.ground_speed = pc_data.launch_ramp_min_ground_speed - 0.1
+
           pc:check_launch_ramp()
+
+          assert.spy(player_char.trigger_launch_ramp_effect).was_not_called()
+        end)
+
+        it('should call trigger_launch_ramp_effect when ground tile location points to a launch_ramp tile and ground speed is high enough', function ()
+          pc.ground_tile_location = location(2, 0)
+          pc.ground_speed = pc_data.launch_ramp_min_ground_speed
+
+          pc:check_launch_ramp()
+
           assert.spy(player_char.trigger_launch_ramp_effect).was_called(1)
           assert.spy(player_char.trigger_launch_ramp_effect).was_called_with(match.ref(pc))
         end)

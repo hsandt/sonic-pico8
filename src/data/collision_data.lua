@@ -42,8 +42,8 @@ local mask_tile_angles = transform(
     [7]  = {8, 2},
 
     -- low slope ascending every 4px
-    [9]  = {8, -2},
     [8]  = {8, -2},
+    [9]  = {8, -2},
     [10] = {8, -2},
     [11] = {8, -2},
 
@@ -126,8 +126,8 @@ local mask_tile_ids = {
   [7]  = 7,
 
 -- low slope ascending every 4px
-  [9]  = 9,
   [8]  = 8,
+  [9]  = 9,
   [10] = 10,
   [11] = 11,
 
@@ -289,8 +289,20 @@ local mask_tile_ids = {
   [105] = 25,
   [121] = 41,
 
-  -- launch ramp
-  [251] = 21,
+-- launch ramp
+  -- note that the edge is one-way in Sonic 3, but we only have solid platforms for now,
+  --  so we need to define colliders even for the edge of the lower row (244, 245)
+
+  -- lower row
+  [240] = 8,
+  [241] = 9,
+  [242] = 10,
+  [243] = 11,
+  [244] = 29,
+  [245] = 32,
+  -- upper row
+  [228] = 19,
+  [229] = 20,
 
 -- decorative tiles (no collision, but kept commented for tracking purpose)
 --[[

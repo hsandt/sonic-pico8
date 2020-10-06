@@ -101,10 +101,13 @@ local playercharacter_data = {
   -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
   spring_jump_speed_frame = 5,
 
+  -- ground speed required to trigger launch ramp
+  launch_ramp_min_ground_speed = 2,
+
   -- velocity set by launch ramp if character has enough speed when walking on it
   -- make sure to use proper signs (-x for left launch, and always -y to go upward)
-  launch_ramp_velocity_x = 5,
-  launch_ramp_velocity_y = 3,
+  launch_ramp_extra_speed = 4,
+  launch_ramp_velocity_angle = atan2(5, -4),
 
   -- gravity acceleration (px/frame^2)
   gravity_frame2 = 0.109375,  -- 7/64
@@ -179,9 +182,9 @@ local playercharacter_data = {
       walk4  = {{8,  8}, {2, 2}, { 9, 8}, 14},
       walk5  = {{10, 8}, {2, 2}, { 9, 8}, 14},
       walk6  = {{12, 8}, {2, 2}, { 9, 8}, 14},
-      brake1 = {{2, 14}, {2, 2}, { 9, 8}, 14},
-      brake2 = {{4, 14}, {2, 2}, { 9, 8}, 14},
-      brake3 = {{6, 14}, {2, 2}, {11, 8}, 14},
+      brake1 = {{10, 1}, {2, 2}, { 9, 8}, 14},
+      brake2 = {{12, 1}, {2, 2}, { 9, 8}, 14},
+      brake3 = {{14, 1}, {2, 2}, {11, 8}, 14},
       spring_jump = {{14, 8}, {2, 3}, {9, 8}, 14},
       run1   = {{0, 10}, {2, 2}, { 8, 8}, 14},
       run2   = {{2, 10}, {2, 2}, { 8, 8}, 14},

@@ -770,6 +770,7 @@ function player_char:enter_motion_state(next_motion_state)
   -- when landing, we set the slope angle *before* calling this method,
   --  so quadrant is also correct when quadrant_rotated is called
   if next_motion_state == motion_states.falling then
+    printh("fall at self.velocity: "..self.velocity)
     -- we have just left the ground without jumping, enter falling state
     --  and since ground speed is now unused, reset it for clarity
     self.ground_tile_location = nil
@@ -787,6 +788,7 @@ function player_char:enter_motion_state(next_motion_state)
     self.should_play_spring_jump = false
     self.brake_anim_phase = 0
   elseif next_motion_state == motion_states.standing then
+    printh("stand at self.velocity: "..self.velocity)
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
@@ -799,6 +801,7 @@ function player_char:enter_motion_state(next_motion_state)
       self.should_play_spring_jump = false
     end
   else  -- next_motion_state == motion_states.rolling
+    printh("roll at self.velocity: "..self.velocity)
     -- we don't have code to preserve airborne tangential velocity here because we cannot really land and immediately roll
     --  without going through the standing state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
     --  and Sonic Mania's Drop Dash would probably ignore previous velocity anyway
@@ -1986,7 +1989,10 @@ function player_char:trigger_spring(spring_left_loc)
 end
 
 function player_char:check_launch_ramp()
-  if self.ground_tile_location then
+  -- only trigger launch ramp if ground speed is high enough
+  --  (we only have a launch ramp to the right in Angel Island, so we check only positive ground speed,
+  --   the absence of abs() is not a mistake)
+  if self.ground_tile_location and self.ground_speed >= pc_data.launch_ramp_min_ground_speed then
     -- get stage state for global to region location conversion
     local curr_stage_state = flow.curr_state
     assert(curr_stage_state.type == ':stage')
@@ -2002,10 +2008,19 @@ function player_char:check_launch_ramp()
 end
 
 function player_char:trigger_launch_ramp_effect()
+  -- we only handle launch ramp toward right
+  assert(self.ground_speed > 0)
+  printh("self.ground_speed: "..nice_dump(self.ground_speed))
+  printh("self.velocity.x: "..nice_dump(self.velocity.x))
+
+  local new_speed = self.ground_speed + tuned("launch", pc_data.launch_ramp_extra_speed)
+
   -- we only have a right launch ramp in Angel Island so use +x. but -y to go upward
   -- in addition, do not reduce speed X if already above launch speed X
-  self.velocity.x = self.velocity.x + pc_data.launch_ramp_velocity_x
-  self.velocity.y = - pc_data.launch_ramp_velocity_y
+  -- self.velocity.x = self.velocity.x + pc_data.launch_ramp_velocity_x
+  -- self.velocity.y = - pc_data.launch_ramp_velocity_y
+
+  self.velocity = new_speed * vector.unit_from_angle(pc_data.launch_ramp_velocity_angle)
   self:enter_motion_state(motion_states.falling)
 
   -- just reuse spring jump animation since in Sonic 3, launch ramp also uses 3D animation

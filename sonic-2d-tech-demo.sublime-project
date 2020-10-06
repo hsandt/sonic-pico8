@@ -122,6 +122,10 @@
 					"cmd": ["./build_single_cartridge.sh ingame cheat"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./build_single_cartridge.sh ingame tuner"]
+				},
+				{
 					"name": "ultrafast",
 					"cmd": ["./build_single_cartridge.sh ingame ultrafast"]
 				},
@@ -193,6 +197,10 @@
 					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge.sh ingame tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame tuner)"]
+				},
+				{
 					"name": "ultrafast",
 					"cmd": ["./build_and_install_single_cartridge.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
 				},
@@ -234,6 +242,10 @@
 				{
 					"name": "cheat",
 					"cmd": ["./build_and_install_single_cartridge.sh titlemenu cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge.sh titlemenu tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
 				},
 				{
 					"name": "release",
@@ -303,6 +315,10 @@
 				{
 					"name": "ingame cheat",
 					"cmd": ["./run_cartridge.sh ingame cheat"]
+				},
+				{
+					"name": "ingame tuner",
+					"cmd": ["./run_cartridge.sh ingame tuner"]
 				},
 				{
 					"name": "ingame ultrafast",
@@ -395,6 +411,10 @@
 				{
 					"name": "cheat",
 					"cmd": ["./install_single_cartridge.sh ingame cheat"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./install_single_cartridge.sh ingame tuner"]
 				},
 				{
 					"name": "ultrafast",

@@ -25,7 +25,7 @@ end
 -- update the fx animated sprite
 function fx:update()
   printh("update self.anim_spr: "..nice_dump(self.anim_spr))
-  return self.anim_spr:update()
+  self.anim_spr:update()
 end
 
 -- render the fx at its current location
@@ -34,7 +34,7 @@ function fx:render()
   --  but we could also pass flip and angle to spare spritesheet memory
   --  (e.g. the pick FX anim can be constructed from a mix of flip and angles),
   --  providing animated_sprite supported flip/angle change per key frame
-  return self.anim_spr:render(self.position)
+  self.anim_spr:render(self.position)
 end
 
 return fx

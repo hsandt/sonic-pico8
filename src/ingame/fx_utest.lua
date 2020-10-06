@@ -1,10 +1,7 @@
 require("test/bustedhelper")
 local fx = require("ingame/fx")
 
--- local sprite_data = require("engine/render/sprite_data")
 local animated_sprite = require("engine/render/animated_sprite")
-
--- local visual = require("resources/visual")
 
 describe('fx', function ()
 

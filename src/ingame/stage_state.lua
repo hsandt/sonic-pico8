@@ -4,6 +4,7 @@ local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 
 local emerald = require("ingame/emerald")
+local emerald_fx = require("ingame/emerald_fx")
 local fx = require("ingame/fx")
 local player_char = require("ingame/playercharacter")
 local camera_data = require("data/camera_data")
@@ -620,7 +621,7 @@ function stage_state:character_pick_emerald(em)
   self.picked_emerald_numbers_set[em.number] = true
 
   -- add emerald pick FX at emerald position and play it immediately
-  local pfx = fx(em.location:to_center_position(), visual.animated_sprite_data_t.emerald_pick_fx)
+  local pfx = emerald_fx(em.number, em.location:to_center_position())
   add(self.emerald_pick_fxs, pfx)
 
   -- remove emerald from sequence (use del to make sure

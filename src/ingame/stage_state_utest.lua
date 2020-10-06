@@ -13,7 +13,7 @@ local picosonic_app = require("application/picosonic_app_ingame")
 local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local emerald = require("ingame/emerald")
-local fx = require("ingame/fx")
+local emerald_fx = require("ingame/emerald_fx")
 local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
@@ -883,7 +883,7 @@ describe('stage_state', function ()
           describe('update_fx', function ()
 
             setup(function ()
-              stub(fx, "update", function (self)
+              stub(emerald_fx, "update", function (self)
                 -- just a trick to force fx deactivation without going through
                 --  the full animated sprite logic (nor stubbing is_active itself,
                 --  as we really want to deactivate on update only to make sure it was called)
@@ -894,24 +894,24 @@ describe('stage_state', function ()
             end)
 
             teardown(function ()
-              fx.update:revert()
+              emerald_fx.update:revert()
             end)
 
             after_each(function ()
-              fx.update:clear()
+              emerald_fx.update:clear()
             end)
 
             it('should call update on each emerald fx', function ()
               state.emerald_pick_fxs = {
-                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
-                fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+                emerald_fx(1, vector(0, 0)),
+                emerald_fx(2, vector(12, 4))
               }
 
               state:update_fx()
 
-              assert.spy(fx.update).was_called(2)
-              assert.spy(fx.update).was_called_with(match.ref(state.emerald_pick_fxs[1]))
-              assert.spy(fx.update).was_called_with(match.ref(state.emerald_pick_fxs[2]))
+              assert.spy(emerald_fx.update).was_called(2)
+              assert.spy(emerald_fx.update).was_called_with(match.ref(state.emerald_pick_fxs[1]))
+              assert.spy(emerald_fx.update).was_called_with(match.ref(state.emerald_pick_fxs[2]))
             end)
 
             it('should call delete on each emerald fx inactive *after* update', function ()
@@ -919,15 +919,15 @@ describe('stage_state', function ()
               --  we don't make the mistake or deleting fx during iteration, which tends
               --  to make us miss the last elements
               state.emerald_pick_fxs = {
-                fx(vector(999, 1), visual.animated_sprite_data_t.emerald_pick_fx),
-                fx(vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx),
-                fx(vector(999, 3), visual.animated_sprite_data_t.emerald_pick_fx)
+                emerald_fx(1, vector(999, 1)),
+                emerald_fx(2, vector(2, 2)),
+                emerald_fx(3, vector(999, 3))
               }
 
               state:update_fx()
 
               assert.are_same({
-                fx(vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx)
+                emerald_fx(2, vector(2, 2))
               }, state.emerald_pick_fxs)
             end)
 
@@ -936,28 +936,28 @@ describe('stage_state', function ()
           describe('render_fx', function ()
 
             setup(function ()
-              stub(fx, "render")
+              stub(emerald_fx, "render")
             end)
 
             teardown(function ()
-              fx.render:revert()
+              emerald_fx.render:revert()
             end)
 
             after_each(function ()
-              fx.render:clear()
+              emerald_fx.render:clear()
             end)
 
             it('should call render on each emerald fx', function ()
               state.emerald_pick_fxs = {
-                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
-                fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+                emerald_fx(1, vector(0, 0)),
+                emerald_fx(2, vector(12, 4))
               }
 
               state:render_fx()
 
-              assert.spy(fx.render).was_called(2)
-              assert.spy(fx.render).was_called_with(match.ref(state.emerald_pick_fxs[1]))
-              assert.spy(fx.render).was_called_with(match.ref(state.emerald_pick_fxs[2]))
+              assert.spy(emerald_fx.render).was_called(2)
+              assert.spy(emerald_fx.render).was_called_with(match.ref(state.emerald_pick_fxs[1]))
+              assert.spy(emerald_fx.render).was_called_with(match.ref(state.emerald_pick_fxs[2]))
             end)
 
           end)
@@ -1590,7 +1590,7 @@ describe('stage_state', function ()
 
             it('should create a pick FX and play it', function ()
               state.emerald_pick_fxs = {
-                fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx)
+                emerald_fx(1, vector(0, 0))
               }
 
               state:character_pick_emerald(state.emeralds[2])
@@ -1598,8 +1598,8 @@ describe('stage_state', function ()
               -- emerald 2 was at location (1, 0),
               --  so its center was at (12, 4)
               assert.are_same({
-                  fx(vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
-                  fx(vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
+                  emerald_fx(1, vector(0, 0)),
+                  emerald_fx(2, vector(12, 4))
                 },
                 state.emerald_pick_fxs)
             end)

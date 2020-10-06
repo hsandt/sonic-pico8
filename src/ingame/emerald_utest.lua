@@ -34,20 +34,50 @@ describe('emerald', function ()
 
   end)
 
+  describe('set_color_palette (static)', function ()
+
+    setup(function ()
+      stub(_G, "pal")
+    end)
+
+    teardown(function ()
+      pal:revert()
+    end)
+
+    after_each(function ()
+      pal:clear()
+    end)
+
+    it('should call pal with emerald colors matching number, then clear palette change', function ()
+      emerald.draw(3, vector(20, 12))
+
+      -- unfortunately we cannot really test call order between pal and render,
+      --  so at least we check the call arguments
+      assert.spy(pal).was_called(3)
+      assert.spy(pal).was_called_with(colors.red, visual.emerald_colors[3][1])
+      assert.spy(pal).was_called_with(colors.dark_purple, visual.emerald_colors[3][2])
+      assert.spy(pal).was_called_with()
+    end)
+
+  end)
+
   describe('draw (static)', function ()
 
     setup(function ()
       stub(sprite_data, "render")
+      stub(emerald, "set_color_palette")
       stub(_G, "pal")
     end)
 
     teardown(function ()
       sprite_data.render:revert()
+      emerald.set_color_palette:revert()
       pal:revert()
     end)
 
     after_each(function ()
       sprite_data.render:clear()
+      emerald.set_color_palette:clear()
       pal:clear()
     end)
 
@@ -58,14 +88,12 @@ describe('emerald', function ()
       assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.emerald), vector(20, 12))
     end)
 
-    it('should call pal with emerald colors matcing number, then clear palette change', function ()
+    it('should call set_color_palette with number, then clear palette change', function ()
       emerald.draw(3, vector(20, 12))
 
-      -- unfortunately we cannot really test call order between pal and render,
-      --  so at least we check the call arguments
-      assert.spy(pal).was_called(3)
-      assert.spy(pal).was_called_with(colors.red, visual.emerald_colors[3][1])
-      assert.spy(pal).was_called_with(colors.dark_purple, visual.emerald_colors[3][2])
+      assert.spy(emerald.set_color_palette).was_called(1)
+      assert.spy(emerald.set_color_palette).was_called_with(3)
+      assert.spy(pal).was_called(1)
       assert.spy(pal).was_called_with()
     end)
 

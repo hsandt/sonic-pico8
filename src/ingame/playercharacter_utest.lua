@@ -2610,14 +2610,17 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
+          stub(_G, "sfx")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
+          sfx:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
+          sfx:clear()
         end)
 
         before_each(function ()
@@ -2695,6 +2698,17 @@ describe('player_char', function ()
 
           assert.spy(player_char.enter_motion_state).was_called(1)
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
+        end)
+
+        it('should play sfx when conditions to start rolling are met', function ()
+          pc.ground_speed = pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_roll_start()
+
+          assert.spy(sfx).was_called(1)
+          assert.spy(sfx).was_called_with(audio.sfx_ids.roll)
         end)
 
       end)

@@ -863,6 +863,7 @@ function player_char:check_roll_start()
     -- currently enter_motion_state from standing to rolling will do nothing more than set the state
     --  but we call it so we have a centralized place to add other side effects or cleanup if needed
     self:enter_motion_state(motion_states.rolling)
+    sfx(audio.sfx_ids.roll)
   end
 end
 

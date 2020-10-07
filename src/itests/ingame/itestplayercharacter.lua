@@ -850,6 +850,8 @@ expect pc_motion_state grounded
 expect pc_velocity 0 0.984375
 ]])
 
+--[=[
+
 -- variant after discovering:
 --  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
 -- WIP
@@ -869,6 +871,8 @@ expect pc_motion_state grounded
 expect pc_velocity 0 0.984375
 ]])
 --#endif
+
+--]=]
 
 --[=[
 

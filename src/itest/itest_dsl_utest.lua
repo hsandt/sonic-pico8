@@ -404,26 +404,26 @@ describe('itest_dsl', function ()
   end)
 
 
-  describe('set_', function ()
+  describe('_set_', function ()
 
     before_each(function ()
       flow:add_gamestate(state)
       flow:change_gamestate_by_type(':stage')
     end)
 
-    describe('set_pc_velocity', function ()
+    describe('_set_pc_velocity', function ()
 
       it('should return the velocity the current player character', function ()
-        itest_dsl.set_pc_velocity(vector(1, -4))
+        itest_dsl._set_pc_velocity(vector(1, -4))
         assert.are_same(vector(1, -4), state.player_char.velocity)
       end)
 
     end)
 
-    describe('set_pc_ground_spd', function ()
+    describe('_set_pc_ground_spd', function ()
 
       it('should return the ground speed current player character', function ()
-        itest_dsl.set_pc_ground_spd(3.5)
+        itest_dsl._set_pc_ground_spd(3.5)
         assert.are_equal(3.5, state.player_char.ground_speed)
       end)
 

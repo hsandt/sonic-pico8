@@ -319,8 +319,8 @@ end
 function itest_dsl._execute_set(args)
   local gp_value_type_str, new_gp_value = unpack(args)
 
-  local setter = itest_dsl["set_"..gp_value_type_str]
-  assert(setter, "itest_dsl.set_"..gp_value_type_str.." is not defined")
+  local setter = itest_dsl["_set_"..gp_value_type_str]
+  assert(setter, "itest_dsl._set_"..gp_value_type_str.." is not defined")
   setter(new_gp_value)
 end
 
@@ -411,12 +411,12 @@ itest_dsl.evaluators = evaluators
 
 -- gameplay value setters (only when setting value directly makes sense and is used by some itests)
 
-function itest_dsl.set_pc_velocity(value)
+function itest_dsl._set_pc_velocity(value)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.velocity = value
 end
 
-function itest_dsl.set_pc_ground_spd(value)
+function itest_dsl._set_pc_ground_spd(value)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.ground_speed = value
 end

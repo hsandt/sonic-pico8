@@ -8,6 +8,10 @@ require("common_ingame")
 local integrationtest = require("engine/test/integrationtest")
 local itest_manager = integrationtest.itest_manager
 
+--#if log
+local logging = require("engine/debug/logging")
+--#endif
+
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 
 -- set app immediately so during itest registration by require,

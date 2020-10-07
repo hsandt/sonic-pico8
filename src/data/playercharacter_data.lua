@@ -181,31 +181,31 @@ local playercharacter_data = {
 
   -- stand right
   -- colors.pink: 14
-  sonic_sprite_data_table = serialization.parse_expression(
+  sonic_sprite_data_table = transform(
     --anim_name = sprite_data(
     --          id_loc,  span,   pivot,   transparent_color (14: pink))
-    [[{
-      idle   = {{0,  8}, {2, 2}, {10, 8}, 14},
-      walk1  = {{2,  8}, {2, 2}, { 9, 8}, 14},
-      walk2  = {{4,  8}, {2, 2}, { 8, 8}, 14},
-      walk3  = {{6,  8}, {2, 2}, { 9, 8}, 14},
-      walk4  = {{8,  8}, {2, 2}, { 9, 8}, 14},
-      walk5  = {{10, 8}, {2, 2}, { 9, 8}, 14},
-      walk6  = {{12, 8}, {2, 2}, { 9, 8}, 14},
-      brake1 = {{10, 1}, {2, 2}, { 9, 8}, 14},
-      brake2 = {{12, 1}, {2, 2}, { 9, 8}, 14},
-      brake3 = {{14, 1}, {2, 2}, {11, 8}, 14},
-      spring_jump = {{14, 8}, {2, 3}, {9, 8}, 14},
-      run1   = {{0, 10}, {2, 2}, { 8, 8}, 14},
-      run2   = {{2, 10}, {2, 2}, { 8, 8}, 14},
-      run3   = {{4, 10}, {2, 2}, { 8, 8}, 14},
-      run4   = {{6, 10}, {2, 2}, { 8, 8}, 14},
-      spin_full_ball = {{0, 12}, {2, 2}, { 6, 6}, 14},
-      spin1  = {{2, 12}, {2, 2}, { 6, 6}, 14},
-      spin2  = {{4, 12}, {2, 2}, { 6, 6}, 14},
-      spin3  = {{6, 12}, {2, 2}, { 6, 6}, 14},
-      spin4  = {{8, 12}, {2, 2}, { 6, 6}, 14},
-    }]], function (t)
+    {
+      ["idle"]   = {{0,  8}, {2, 2}, {10, 8}, 14},
+      ["walk1"]  = {{2,  8}, {2, 2}, { 9, 8}, 14},
+      ["walk2"]  = {{4,  8}, {2, 2}, { 8, 8}, 14},
+      ["walk3"]  = {{6,  8}, {2, 2}, { 9, 8}, 14},
+      ["walk4"]  = {{8,  8}, {2, 2}, { 9, 8}, 14},
+      ["walk5"]  = {{10, 8}, {2, 2}, { 9, 8}, 14},
+      ["walk6"]  = {{12, 8}, {2, 2}, { 9, 8}, 14},
+      ["brake1"] = {{10, 1}, {2, 2}, { 9, 8}, 14},
+      ["brake2"] = {{12, 1}, {2, 2}, { 9, 8}, 14},
+      ["brake3"] = {{14, 1}, {2, 2}, {11, 8}, 14},
+      ["spring_jump"] = {{14, 8}, {2, 3}, {9, 8}, 14},
+      ["run1"]   = {{0, 10}, {2, 2}, { 8, 8}, 14},
+      ["run2"]   = {{2, 10}, {2, 2}, { 8, 8}, 14},
+      ["run3"]   = {{4, 10}, {2, 2}, { 8, 8}, 14},
+      ["run4"]   = {{6, 10}, {2, 2}, { 8, 8}, 14},
+      ["spin_full_ball"] = {{0, 12}, {2, 2}, { 6, 6}, 14},
+      ["spin1"]  = {{2, 12}, {2, 2}, { 6, 6}, 14},
+      ["spin2"]  = {{4, 12}, {2, 2}, { 6, 6}, 14},
+      ["spin3"]  = {{6, 12}, {2, 2}, { 6, 6}, 14},
+      ["spin4"]  = {{8, 12}, {2, 2}, { 6, 6}, 14},
+    }, function (t)
       return sprite_data(
         sprite_id_location(t[1][1], t[1][2]),  -- id_loc
         tile_vector(t[2][1], t[2][2]),         -- span
@@ -236,24 +236,24 @@ local playercharacter_data = {
 -- note that we do not split spin_slow and spin_fast as distinguished by SPG anymore
 --  in addition, while spin_slow was defined to have 1 spin_full_ball frame and
 --  spin_fast had 2, our spin has 4, once every other frame, to match Sonic 3 more closely
-playercharacter_data.sonic_animated_sprite_data_table = serialization.parse_expression(
+playercharacter_data.sonic_animated_sprite_data_table = transform(
   -- see animated_sprite_data.lua for anim_loop_modes values
   --[anim_name] = animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table,
   --        sprite_keys,   step_frames, loop_mode as int)
-  [[{
-    idle = {{"idle"},               10,                2},
-    walk  = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6"},
-                                    10,                4},
-    brake_start   = {{"brake1", "brake2"},
-                                    10,                2},
-    brake_reverse = {{"brake3"},
-                                    15,                2},
-    run  = {{"run1", "run2", "run3", "run4"},
-                                     5,                4},
-    spin = {{"spin_full_ball", "spin1", "spin_full_ball", "spin2", "spin_full_ball", "spin3", "spin_full_ball", "spin4"},
-                                     5,                4},
-    spring_jump = {{"spring_jump"}, 10,                2}
-}]], function (t)
+  {
+    ["idle"] = {{"idle"},               10,                2},
+    ["walk"] = {{"walk1", "walk2", "walk3", "walk4", "walk5", "walk6"},
+                                        10,                4},
+    ["brake_start"]   = {{"brake1", "brake2"},
+                                        10,                2},
+    ["brake_reverse"] = {{"brake3"},
+                                        15,                2},
+    ["run"]  = {{"run1", "run2", "run3", "run4"},
+                                         5,                4},
+    ["spin"] = {{"spin_full_ball", "spin1", "spin_full_ball", "spin2", "spin_full_ball", "spin3", "spin_full_ball", "spin4"},
+                                         5,                4},
+    ["spring_jump"] = {{"spring_jump"}, 10,                2}
+}, function (t)
   return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])
 end)
 

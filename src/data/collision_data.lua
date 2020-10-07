@@ -332,6 +332,7 @@ local mask_tile_ids = {
 -- doing this later, after background data cartridge reload (in stage on_enter)
 --  would fail, as the collision mask sprites would be overwritten by the runtime background
 --  sprites (only meant to be drawn programmatically)
+-- could probably be done via transform too
 local tiles_collision_data = {}
 for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
   tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])

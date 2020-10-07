@@ -776,7 +776,6 @@ function player_char:enter_motion_state(next_motion_state)
   -- when landing, we set the slope angle *before* calling this method,
   --  so quadrant is also correct when quadrant_rotated is called
   if next_motion_state == motion_states.falling then
-    printh("fall at self.velocity: "..self.velocity)
     -- we have just left the ground without jumping, enter falling state
     --  and since ground speed is now unused, reset it for clarity
     self.ground_tile_location = nil
@@ -794,7 +793,6 @@ function player_char:enter_motion_state(next_motion_state)
     self.should_play_spring_jump = false
     self.brake_anim_phase = 0
   elseif next_motion_state == motion_states.standing then
-    printh("stand at self.velocity: "..self.velocity)
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
       -- do not clamp ground speed! this allows us to spin dash, fall a bit, land and run at high speed!
@@ -807,7 +805,6 @@ function player_char:enter_motion_state(next_motion_state)
       self.should_play_spring_jump = false
     end
   else  -- next_motion_state == motion_states.rolling
-    printh("roll at self.velocity: "..self.velocity)
     -- we don't have code to preserve airborne tangential velocity here because we cannot really land and immediately roll
     --  without going through the standing state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
     --  and Sonic Mania's Drop Dash would probably ignore previous velocity anyway
@@ -824,7 +821,6 @@ end
 
 function player_char:update_collision_timer()
   if self.ignore_launch_ramp_timer > 0 then
-    printh("self.ignore_launch_ramp_timer: "..nice_dump(self.ignore_launch_ramp_timer))
     self.ignore_launch_ramp_timer = self.ignore_launch_ramp_timer - 1
   end
 end
@@ -2044,10 +2040,9 @@ end
 function player_char:trigger_launch_ramp_effect()
   -- we only handle launch ramp toward right
   assert(self.ground_speed > 0)
-  printh("self.ground_speed: "..nice_dump(self.ground_speed))
-  printh("self.velocity.x: "..nice_dump(self.velocity.x))
 
-  local new_speed = self.ground_speed + tuned("launch", pc_data.launch_ramp_extra_speed)
+  -- local new_speed = self.ground_speed + tuned("launch", pc_data.launch_ramp_extra_speed)
+  local new_speed = self.ground_speed * tuned("launch mult", pc_data.launch_ramp_speed_multiplier, 0.1)
 
   self.velocity = new_speed * vector.unit_from_angle(tuned("angle", pc_data.launch_ramp_velocity_angle), 0.003)
   self:enter_motion_state(motion_states.falling)

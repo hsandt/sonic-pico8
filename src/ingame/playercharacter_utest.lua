@@ -7509,12 +7509,12 @@ describe('player_char', function ()
         player_char.enter_motion_state:clear()
       end)
 
-      it('should velocity to (ground_speed + extra) along launch_ramp_velocity_angle', function ()
+      it('should velocity to (ground_speed * multiplier) along launch_ramp_velocity_angle', function ()
         pc.ground_speed = 2
 
         pc:trigger_launch_ramp_effect()
 
-        assert.are_same((2 + pc_data.launch_ramp_extra_speed) * vector(
+        assert.are_same((2 * pc_data.launch_ramp_speed_multiplier) * vector(
           cos(pc_data.launch_ramp_velocity_angle),
           sin(pc_data.launch_ramp_velocity_angle)
         ), pc.velocity)

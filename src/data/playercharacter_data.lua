@@ -111,9 +111,9 @@ local playercharacter_data = {
   -- ground speed required to trigger launch ramp
   launch_ramp_min_ground_speed = 2,
 
-  -- speed and angle set by launch ramp on trigger
-  launch_ramp_extra_speed = 4,
-  launch_ramp_velocity_angle = atan2(5, -3),
+  -- speed multiplier and angle for launch ramp
+  launch_ramp_speed_multiplier = 2.7,
+  launch_ramp_velocity_angle = atan2(8, -5),
 
   -- duration to ignore launch ramp after trigger to avoid hitting it and landing again
   --  (frames)

@@ -398,8 +398,18 @@ describe('itest_dsl', function ()
 
     describe('set_pc_velocity', function ()
 
-      it('should return the velocity the current player character', function ()
+      it('should set the velocity of the current player character', function ()
         itest_dsl.set_pc_velocity(vector(1, -4))
+        assert.are_same(vector(1, -4), state.player_char.velocity)
+      end)
+
+    end)
+
+    describe('set_pc_velocity_y', function ()
+
+      it('should set the velocity of the current player character', function ()
+        state.player_char.velocity = vector(1, 10)
+        itest_dsl.set_pc_velocity_y(-4)
         assert.are_same(vector(1, -4), state.player_char.velocity)
       end)
 
@@ -407,7 +417,7 @@ describe('itest_dsl', function ()
 
     describe('set_pc_ground_spd', function ()
 
-      it('should return the ground speed current player character', function ()
+      it('should set the ground of speed current player character', function ()
         itest_dsl.set_pc_ground_spd(3.5)
         assert.are_equal(3.5, state.player_char.ground_speed)
       end)
@@ -1024,7 +1034,7 @@ expect
 
     end)
 
-    describe('#solo define_final_assertion', function ()
+    describe('define_final_assertion', function ()
 
       local original_evaluators
 

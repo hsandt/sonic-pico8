@@ -431,10 +431,14 @@ itest_dsl.evaluators = evaluators
 
 function itest_dsl.set_pc_velocity(value)
   local current_stage_state = get_current_state_as_stage()
-  printh("current_stage_state.player_char.velocity before set: "..current_stage_state.player_char.velocity)
-  current_stage_state.player_char.velocity = value
-  printh("value: "..value)
-  printh("current_stage_state.player_char.velocity after set: "..current_stage_state.player_char.velocity)
+  -- value comes directly from the itest definition, make sure to copy assign
+  --  or you will modify the value to set on further itests with actual pc velocity!
+  current_stage_state.player_char.velocity:copy_assign(value)
+end
+
+function itest_dsl.set_pc_velocity_y(value)
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.velocity.y = value
 end
 
 function itest_dsl.set_pc_ground_spd(value)
@@ -459,7 +463,7 @@ gp_value_types = enum {
 setters = {
   nil,  -- pc_bottom_pos
   itest_dsl.set_pc_velocity,
-  nil,  -- pc_velocity_y
+  itest_dsl.set_pc_velocity_y,
   itest_dsl.set_pc_ground_spd,
   nil,  -- pc_motion_state
   nil,  -- pc_slope
@@ -717,6 +721,8 @@ function itest_dsl_parser.create_itest(name, dsli)
     else
       -- common action, store callback for execution during
       itest_dsl_parser:act(function ()
+        -- in Lua the cmd below is really the cmd for this iteration, don't worry about it
+        --  changing in the loop as it won't affect the one of the callback when called later
         local executor = executors[cmd.type]
         assert(executor, "executors["..cmd.type.."] (for '"..command_type_strings[cmd.type].."') is not defined")
         executor(cmd.args)

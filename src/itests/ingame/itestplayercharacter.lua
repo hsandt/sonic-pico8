@@ -849,10 +849,10 @@ expect pc_bottom_pos 15 8
 expect pc_motion_state grounded
 expect pc_velocity 0 0.984375
 ]])
---#endif
 
 -- variant after discovering:
 --  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
+-- WIP
 itest_dsl_parser.register(
   'fall inside curve top after rising', [[
 @stage #
@@ -868,6 +868,7 @@ expect pc_bottom_pos 15 8
 expect pc_motion_state grounded
 expect pc_velocity 0 0.984375
 ]])
+--#endif
 
 --[=[
 

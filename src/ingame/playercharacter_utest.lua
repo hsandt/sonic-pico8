@@ -2081,7 +2081,7 @@ describe('player_char', function ()
 
       end)  -- check_escape_from_ground
 
-      describe('#solo enter_motion_state', function ()
+      describe('enter_motion_state', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
@@ -2224,7 +2224,7 @@ describe('player_char', function ()
           assert.are_equal(0, pc.ground_speed)
         end)
 
-        it('#solo (falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
+        it('(falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = 2
           pc.velocity.y = 5
@@ -3233,7 +3233,7 @@ describe('player_char', function ()
 
       end)  -- update_platformer_motion_grounded
 
-      describe('#solo update_ground_speed', function ()
+      describe('update_ground_speed', function ()
 
         setup(function ()
           -- the only reason we spy and not stub is to test the interface in the first test below
@@ -3998,6 +3998,12 @@ describe('player_char', function ()
           pc.ground_speed = pc_data.max_running_ground_speed + 2
           pc:clamp_ground_speed(pc_data.max_running_ground_speed + 1)
           assert.are_equal(pc_data.max_running_ground_speed + 1, pc.ground_speed)
+        end)
+
+        it('should allow decreasing ground speed in absolute value if previous speed was higher than max running speed in abs', function ()
+          pc.ground_speed = pc_data.max_running_ground_speed + 5
+          pc:clamp_ground_speed(pc_data.max_running_ground_speed + 10)
+          assert.are_equal(pc_data.max_running_ground_speed + 5, pc.ground_speed)
         end)
 
       end)
@@ -5957,13 +5963,47 @@ describe('player_char', function ()
             assert.are_same({-3 + pc_data.gravity_frame2, false}, {pc.velocity.y, pc.has_jumped_this_frame})
           end)
 
+          -- unfortunately it's hard to stub clamp_air_velocity_x properly
+          --  so we test the content of clamp_air_velocity_x below, which is redundant with its
+          --  own utests
+          -- it is *possible* to stub clamp_air_velocity_x completely and test that pure air accel x is applied,
+          --  and that clamp_air_velocity_x is called with previous velocity x,
+          --  although semantically a bit weird as the latter affects velocity.x
+
           it('should apply air accel x', function ()
-            pc.velocity.x = 4
+            pc.velocity.x = 2
             pc.move_intention.x = -1
 
             pc:update_platformer_motion_airborne()
 
-            assert.are_equal(4 - pc_data.air_accel_x_frame2, pc.velocity.x)
+            assert.are_equal(2 - pc_data.air_accel_x_frame2, pc.velocity.x)
+          end)
+
+          it('should apply air accel x but clamp at max air velocity x in abs if not already beyond', function ()
+            pc.velocity.x = -pc_data.max_air_velocity_x
+            pc.move_intention.x = -1
+
+            pc:update_platformer_motion_airborne()
+
+            assert.are_equal(- pc_data.max_air_velocity_x, pc.velocity.x)
+          end)
+
+          it('should apply air accel x but clamp at previous air velocity x in abs if already beyond', function ()
+            pc.velocity.x = -pc_data.max_air_velocity_x - 1
+            pc.move_intention.x = -1
+
+            pc:update_platformer_motion_airborne()
+
+            assert.are_equal(- pc_data.max_air_velocity_x - 1, pc.velocity.x)
+          end)
+
+          it('should apply air accel x and allow decreasing air velocity x in abs if already beyond', function ()
+            pc.velocity.x = -pc_data.max_air_velocity_x - 10
+            pc.move_intention.x = 1
+
+            pc:update_platformer_motion_airborne()
+
+            assert.are_equal(- pc_data.max_air_velocity_x - 10 + pc_data.air_accel_x_frame2, pc.velocity.x)
           end)
 
           it('should set horizontal direction to intended motion direction: left', function ()
@@ -6482,16 +6522,29 @@ describe('player_char', function ()
 
       it('should preserve velocity x when it is not over max speed in absolute value (positive)', function ()
         pc.motion_state = motion_states.falling  -- to avoid assert
-        pc.velocity.x = pc_data.max_air_velocity_x - 0.1
-        pc:clamp_air_velocity_x()
-        assert.are_equal(pc_data.max_air_velocity_x - 0.1, pc.velocity.x)
+        pc.velocity.x = pc_data.max_air_velocity_x - 0.01
+
+        pc:clamp_air_velocity_x(0)
+
+        assert.are_equal(pc_data.max_air_velocity_x - 0.01, pc.velocity.x)
       end)
 
-      it('should clamp velocity x to signed max speed if over max speed in absolute value (negative)', function ()
+      it('should clamp at previous air velocity x in abs if already beyond', function ()
         pc.motion_state = motion_states.air_spin  -- to avoid assert
-        pc.velocity.x = - pc_data.max_air_velocity_x - 1
-        pc:clamp_air_velocity_x()
-        assert.are_equal(- pc_data.max_air_velocity_x, pc.velocity.x)
+        pc.velocity.x = -pc_data.max_air_velocity_x - 1
+
+        pc:clamp_air_velocity_x(-pc_data.max_air_velocity_x - 1)
+
+        assert.are_equal(- pc_data.max_air_velocity_x - 1, pc.velocity.x)
+      end)
+
+      it('should allow decreasing air velocity x in abs if already beyond', function ()
+        pc.motion_state = motion_states.air_spin  -- to avoid assert
+        pc.velocity.x = -pc_data.max_air_velocity_x - 10
+
+        pc:clamp_air_velocity_x(-pc_data.max_air_velocity_x - 9)
+
+        assert.are_equal(-pc_data.max_air_velocity_x - 9, pc.velocity.x)
       end)
 
     end)

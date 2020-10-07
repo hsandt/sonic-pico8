@@ -1570,7 +1570,9 @@ function player_char:update_platformer_motion_airborne()
 
   if self.move_intention.x ~= 0 then
     -- apply x acceleration via intention (if not 0)
+    local previous_velocity_x = self.velocity.x
     self.velocity.x = self.velocity.x + self.move_intention.x * pc_data.air_accel_x_frame2
+    self:clamp_air_velocity_x(previous_velocity_x)
 
     -- in the air, apply intended motion to direction immediately
     self.orientation = signed_speed_to_dir(self.move_intention.x)
@@ -1662,10 +1664,13 @@ function player_char:apply_air_drag()
 end
 
 -- clamp air velocity x to max
-function player_char:clamp_air_velocity_x()
+function player_char:clamp_air_velocity_x(previous_velocity_x)
   assert(not self:is_grounded())
-  if abs(self.velocity.x) > pc_data.max_air_velocity_x then
-    self.velocity.x = sgn(self.velocity.x) * pc_data.max_air_velocity_x
+  -- like clamp_ground_speed, keep any speed already above the max, but allow decreasing in abs
+  -- and it's unlikely character switches velocity x sign at high speed so only consider abs, not sign
+  local max_velocity_x = max(abs(previous_velocity_x), pc_data.max_air_velocity_x)
+  if abs(self.velocity.x) > max_velocity_x then
+    self.velocity.x = sgn(self.velocity.x) * max_velocity_x
   end
 end
 

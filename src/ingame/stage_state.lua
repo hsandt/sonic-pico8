@@ -890,8 +890,14 @@ local function draw_full_line(y, c)
   line(0, y, 127, y, c)
 end
 
+-- below is stripped from itests to spare characters as we don't test aesthetics
+-- we only strip body of render_background and randomize_background_data so we don't
+--  have to strip their calls too
+
 -- render the stage background
 function stage_state:render_background()
+--#ifn itest
+
   -- always draw full sky background to be safe
   camera()
   rectfill_(0, 0, 127, 127, colors.dark_blue)
@@ -921,7 +927,37 @@ function stage_state:render_background()
   end
 
   self:draw_background_forest_top()
+--#endif
 end
+
+function stage_state:randomize_background_data()
+--#ifn itest
+  self.tree_dheight_array_list = {}
+  for j = 1, 4 do
+    self.tree_dheight_array_list[j] = {}
+    -- longer periods on closer tree rows (also removes the need for offset
+    --  to avoid tree rows sin in sync, although parallax will offset anyway)
+    local period = 20 + 10 * (j-1)
+    for i = 1, 64 do
+      -- shape of trees are a kind of sin min threshold with random peaks
+      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
+    end
+  end
+
+  self.leaves_dheight_array_list = {}
+  for j = 1, 2 do
+    self.leaves_dheight_array_list[j] = {}
+    -- longer periods on closer leaves
+    local period = 70 + 35 * (j-1)
+    for i = 1, 64 do
+      -- shape of trees are a kind of broad sin random peaks
+      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
+    end
+  end
+--#endif
+end
+
+--#ifn itest
 
 function stage_state:draw_background_sea()
   -- blue line above horizon line
@@ -1148,31 +1184,6 @@ function stage_state:draw_water_reflections(parallax_offset, x, y, period)
   pset((x - parallax_offset + 1) % screen_width, y, c2)
 end
 
-function stage_state:randomize_background_data()
-  self.tree_dheight_array_list = {}
-  for j = 1, 4 do
-    self.tree_dheight_array_list[j] = {}
-    -- longer periods on closer tree rows (also removes the need for offset
-    --  to avoid tree rows sin in sync, although parallax will offset anyway)
-    local period = 20 + 10 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of sin min threshold with random peaks
-      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
-    end
-  end
-
-  self.leaves_dheight_array_list = {}
-  for j = 1, 2 do
-    self.leaves_dheight_array_list[j] = {}
-    -- longer periods on closer leaves
-    local period = 70 + 35 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of broad sin random peaks
-      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
-    end
-  end
-end
-
 function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
   local size = #dheight_array
   for x = 0, 127 do
@@ -1190,6 +1201,9 @@ function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_ar
     line(x, y, x, y + height, color)
   end
 end
+
+-- itest stripping end
+--#endif
 
 -- render the stage elements with the main camera:
 -- - environment

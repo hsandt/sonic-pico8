@@ -833,6 +833,8 @@ expect pc_velocity -0x000.9aba -1.609375
 --  but even without them the issue appears, which makes us think the issue is the same as
 --  #128 BUG MOTION edgy_rising_curve_sonic_stuck and possibly
 --  #131 BUG MOTION fall_on_curve_to_death
+
+--#if busted
 itest_dsl_parser.register(
   'fall on curve top', [[
 @stage #
@@ -841,6 +843,25 @@ itest_dsl_parser.register(
 .i#
 
 warp 13 12
+wait 9
+
+expect pc_bottom_pos 15 8
+expect pc_motion_state grounded
+expect pc_velocity 0 0.984375
+]])
+--#endif
+
+-- variant after discovering:
+--  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
+itest_dsl_parser.register(
+  'fall inside curve top after rising', [[
+@stage #
+..#
+..#
+.i#
+
+warp 8 18
+set pc_velocity 2 -2
 wait 9
 
 expect pc_bottom_pos 15 8

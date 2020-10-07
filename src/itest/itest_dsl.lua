@@ -466,13 +466,13 @@ end
 
 
 -- itest dsl parser singleton, with parser context state
--- _itest               integration_test  current integration test in construction
--- _last_time_trigger   time_trigger      last time trigger registered with wait command
--- _final_expectations  {expectation}     sequence of expectations to verify
+-- itest               integration_test  current integration test in construction
+-- last_time_trigger   time_trigger      last time trigger registered with wait command
+-- final_expectations  {expectation}     sequence of expectations to verify
 local itest_dsl_parser = singleton(function (self)
-  self._itest = nil
-  self._last_time_trigger = nil
-  self._final_expectations = {}
+  self.itest = nil
+  self.last_time_trigger = nil
+  self.final_expectations = {}
 end)
 itest_dsl.itest_dsl_parser = itest_dsl_parser
 
@@ -619,9 +619,9 @@ end
 
 -- create and return an itest from a dsli, providing a name
 function itest_dsl_parser.create_itest(name, dsli)
-  itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
+  itest_dsl_parser.itest = integration_test(name, {dsli.gamestate_type})
 
-  itest_dsl_parser._itest.setup = function (app)
+  itest_dsl_parser.itest.setup = function (app)
     -- disable object scan + spawn as it's very slow to iterate on the whole map
     --  at the beginning of each test
     -- if later you add a test to specifically test objects, just add a flag in the DSL
@@ -648,7 +648,7 @@ function itest_dsl_parser.create_itest(name, dsli)
     end
   end
 
-  itest_dsl_parser._itest.teardown = function ()
+  itest_dsl_parser.itest.teardown = function ()
     -- clear map
     -- no need to "unload" the game state, the next test will reset the flow anyway
     if dsli.gamestate_type == ':stage' then
@@ -664,16 +664,16 @@ function itest_dsl_parser.create_itest(name, dsli)
 
   for cmd in all(dsli.commands) do
     if cmd.type == command_types["wait"] then
-      itest_dsl_parser:_wait(cmd.args[1])
+      itest_dsl_parser:wait(cmd.args[1])
 
     elseif cmd.type == command_types["expect"] then
       -- we currently don't support live assertions, but we support multiple
       -- final expectations
-      add(itest_dsl_parser._final_expectations, expectation(cmd.args[1], cmd.args[2]))
+      add(itest_dsl_parser.final_expectations, expectation(cmd.args[1], cmd.args[2]))
 
     else
       -- common action, store callback for execution during
-      itest_dsl_parser:_act(function ()
+      itest_dsl_parser:act(function ()
         local executor = executors[cmd.type]
         assert(executor, "executors["..cmd.type.."] (for '"..command_type_strings[cmd.type].."') is not defined")
         executor(cmd.args)
@@ -683,16 +683,16 @@ function itest_dsl_parser.create_itest(name, dsli)
 
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
-  if itest_dsl_parser._last_time_trigger then
-    itest_dsl_parser._itest:add_action(itest_dsl_parser._last_time_trigger, nil)
-    itest_dsl_parser._last_time_trigger = nil  -- consume and cleanup for next itest
+  if itest_dsl_parser.last_time_trigger then
+    itest_dsl_parser.itest:add_action(itest_dsl_parser.last_time_trigger, nil)
+    itest_dsl_parser.last_time_trigger = nil  -- consume and cleanup for next itest
   end
 
   -- glue code to remain retro-compatible with function-based final assertion
-  itest_dsl_parser:_define_final_assertion()
+  itest_dsl_parser:define_final_assertion()
 
-  local test = itest_dsl_parser._itest
-  itest_dsl_parser._itest = nil  -- consume and cleanup for next itest
+  local test = itest_dsl_parser.itest
+  itest_dsl_parser.itest = nil  -- consume and cleanup for next itest
 
   return test
 end
@@ -705,23 +705,23 @@ end
 --  changes or waiting. when waiting, just skip frames until waiting ends,
 --  at which point you can apply all further actions immediately, until
 --  a new wait action is found.
-function itest_dsl_parser:_act(callback)
-  if self._last_time_trigger then
-    self._itest:add_action(self._last_time_trigger, callback)
-    self._last_time_trigger = nil  -- consume so we know no final wait-action is needed
+function itest_dsl_parser:act(callback)
+  if self.last_time_trigger then
+    self.itest:add_action(self.last_time_trigger, callback)
+    self.last_time_trigger = nil  -- consume so we know no final wait-action is needed
   else
     -- no wait since last action (or this is the first action), so use immediate trigger
-    self._itest:add_action(integrationtest.immediate_trigger, callback)
+    self.itest:add_action(integrationtest.immediate_trigger, callback)
   end
 end
 
-function itest_dsl_parser:_wait(interval)
-  if self._last_time_trigger then
+function itest_dsl_parser:wait(interval)
+  if self.last_time_trigger then
     -- we were already waiting, so finish last wait with empty action
-    self._itest:add_action(self._last_time_trigger, nil)
+    self.itest:add_action(self.last_time_trigger, nil)
   end
   -- we only support frame unit in the dsl
-  self._last_time_trigger = integrationtest.time_trigger(interval, true)
+  self.last_time_trigger = integrationtest.time_trigger(interval, true)
 end
 
 
@@ -729,17 +729,17 @@ end
 -- this is a glue method to make it retro-compatible with the function-based final assertion
 -- eventually, the itest will only hold expectations (possibly predefined functions for currying)
 --  to avoid creating lambda
-function itest_dsl_parser:_define_final_assertion()
+function itest_dsl_parser:define_final_assertion()
   -- define an intermediate local variable to avoid the "local variable closure issue"
-  --  i.e. if we access "self._final_expectations" directly from inside the function
-  --  constructed below, it would get the actual value of self._final_expectations
+  --  i.e. if we access "self.final_expectations" directly from inside the function
+  --  constructed below, it would get the actual value of self.final_expectations
   --  at evaluation time (too late, the temporary table reference would have been lost
   --  and the table gc-ed). So we either need to copy the table content (then clear table)
   --  or store the reference in an intermediate variable like this one (then create new table)
-  local final_expectations_proxy = self._final_expectations
-  self._final_expectations = {}  -- consume and cleanup for next itest
+  local final_expectations_proxy = self.final_expectations
+  self.final_expectations = {}  -- consume and cleanup for next itest
 
-  self._itest.final_assertion = function ()
+  self.itest.final_assertion = function ()
     local success = true
     local full_message = ""
 

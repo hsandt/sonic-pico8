@@ -498,9 +498,9 @@ describe('itest_dsl', function ()
           {}
         },
         {
-          itest_dsl_parser._itest,
-          itest_dsl_parser._last_time_trigger,
-          itest_dsl_parser._final_expectations
+          itest_dsl_parser.itest,
+          itest_dsl_parser.last_time_trigger,
+          itest_dsl_parser.final_expectations
         })
     end)
 
@@ -916,9 +916,9 @@ expect
             {}
           },
           {
-            itest_dsl_parser._itest,
-            itest_dsl_parser._last_time_trigger,
-            itest_dsl_parser._final_expectations
+            itest_dsl_parser.itest,
+            itest_dsl_parser.last_time_trigger,
+            itest_dsl_parser.final_expectations
           })
       end)
 
@@ -992,12 +992,12 @@ expect
 
     end)
 
-    describe('_act', function ()
+    describe('act', function ()
 
       local function f() end
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test("test 1", {})
+        itest_dsl_parser.itest = integration_test("test 1", {})
       end)
 
       after_each(function ()
@@ -1005,41 +1005,41 @@ expect
       end)
 
       it('should add an action after an existing time trigger, and clear the last time trigger', function ()
-        itest_dsl_parser._last_time_trigger = time_trigger(3, true)
-        itest_dsl_parser:_act(f)
-        assert.are_equal(1, #itest_dsl_parser._itest.action_sequence)
-        local action = itest_dsl_parser._itest.action_sequence[1]
+        itest_dsl_parser.last_time_trigger = time_trigger(3, true)
+        itest_dsl_parser:act(f)
+        assert.are_equal(1, #itest_dsl_parser.itest.action_sequence)
+        local action = itest_dsl_parser.itest.action_sequence[1]
         assert.are_same({time_trigger(3, true), f,
             nil},
           {action.trigger, action.callback,
-            itest_dsl_parser._last_time_trigger})
+            itest_dsl_parser.last_time_trigger})
       end)
 
     end)
 
-    describe('_wait', function ()
+    describe('wait', function ()
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
       end)
 
       it('should set the current time_trigger of the parser to one with the passed interval, in frames', function ()
-        itest_dsl_parser:_wait(12)
-        assert.are_same(time_trigger(12, true), itest_dsl_parser._last_time_trigger)
+        itest_dsl_parser:wait(12)
+        assert.are_same(time_trigger(12, true), itest_dsl_parser.last_time_trigger)
       end)
 
       it('should add a dummy action with any previous time trigger, then set the last time trigger to the new one', function ()
-        itest_dsl_parser._last_time_trigger = time_trigger(4, true)
-        itest_dsl_parser:_wait(8)
-        assert.are_equal(1, #itest_dsl_parser._itest.action_sequence)
-        local action = itest_dsl_parser._itest.action_sequence[1]
+        itest_dsl_parser.last_time_trigger = time_trigger(4, true)
+        itest_dsl_parser:wait(8)
+        assert.are_equal(1, #itest_dsl_parser.itest.action_sequence)
+        local action = itest_dsl_parser.itest.action_sequence[1]
         assert.are_same({time_trigger(4, true), nil}, {action.trigger, action.callback})
-        assert.are_same(time_trigger(8, true), itest_dsl_parser._last_time_trigger)
+        assert.are_same(time_trigger(8, true), itest_dsl_parser.last_time_trigger)
       end)
 
     end)
 
-    describe('_define_final_assertion', function ()
+    describe('define_final_assertion', function ()
 
       setup(function ()
         -- mock evaluators
@@ -1057,36 +1057,36 @@ expect
       end)
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
       end)
 
       it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
-        itest_dsl_parser._final_expectations = {
+        itest_dsl_parser.final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),
           expectation("pc_velocity", vector(-3, 2.5))
         }
-        itest_dsl_parser:_define_final_assertion()
-        assert.are_same({true, ""}, {itest_dsl_parser._itest.final_assertion()})
+        itest_dsl_parser:define_final_assertion()
+        assert.are_same({true, ""}, {itest_dsl_parser.itest.final_assertion()})
       end)
 
       it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
-        itest_dsl_parser._final_expectations = {
+        itest_dsl_parser.final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),  -- ok
           expectation("pc_velocity", vector(-3, 7.5))    -- different from actual
         }
-        itest_dsl_parser:_define_final_assertion()
+        itest_dsl_parser:define_final_assertion()
         -- local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
         -- "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
         -- short version in assertions.lua
         local expected_message = "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
         "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
-        assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
+        assert.are_same({false, expected_message}, {itest_dsl_parser.itest.final_assertion()})
       end)
 
       it('should assert when the passed gameplay value type is invalid', function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
         assert.has_error(function ()
-          itest_dsl_parser._itest.final_assertion()
+          itest_dsl_parser.itest.final_assertion()
         end)
       end)
 

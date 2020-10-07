@@ -41,7 +41,7 @@ local input = require("engine/input/input")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 
-require("test_data/tile_representation")
+local tile_repr = require("test_data/tile_representation")
 --#if busted
 local tile_test_data = require("test_data/tile_test_data")
 --#endif
@@ -578,7 +578,7 @@ function itest_dsl_parser.parse_tilemap(lines)
 
     for j = 1, width do
       local tile_symbol = sub(trimmed_line_str, j, j)
-      local tile_id = tile_symbol_to_ids[tile_symbol]
+      local tile_id = tile_repr.tile_symbol_to_ids[tile_symbol]
       assert(tile_id, "unknown tile symbol: "..tile_symbol)
       add(current_row, tile_id)
     end

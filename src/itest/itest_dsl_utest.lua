@@ -21,6 +21,7 @@ local stage_state = require("ingame/stage_state")
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
+local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('itest_dsl', function ()
@@ -722,7 +723,7 @@ expect
           "(ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
-        local full = full_tile_id
+        local full = tile_repr.full_tile_id
         assert.is_true(are_same_with_message(
           {
             tilemap({

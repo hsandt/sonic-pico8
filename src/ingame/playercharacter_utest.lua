@@ -14,6 +14,7 @@ local ground_query_info = motion.ground_query_info
 local world = require("platformer/world")
 local audio = require("resources/audio")
 local visual = require("resources/visual")
+local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('player_char', function ()
@@ -1080,8 +1081,8 @@ describe('player_char', function ()
           -- add tiles usually placed at loop entrance/exit triggers
           -- but new system doesn't flag triggers, so remember to define loop areas manually
           -- ZR
-          mock_mset(0, 0, visual_loop_toptopleft)
-          mock_mset(1, 0, visual_loop_toptopright)
+          mock_mset(0, 0, tile_repr.visual_loop_toptopleft)
+          mock_mset(1, 0, tile_repr.visual_loop_toptopright)
 
           -- customize loop areas locally. We are redefining a table so that won't affect
           --  the original data table in stage_data.lua. To simplify we don't redefine everything,
@@ -1337,7 +1338,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-            mock_mset(1, 1, full_tile_id)
+            mock_mset(1, 1, tile_repr.full_tile_id)
           end)
 
           -- on the sides
@@ -1504,8 +1505,8 @@ describe('player_char', function ()
         describe('with 2 full flat tiles', function ()
 
           before_each(function ()
-            mock_mset(0, 0, full_tile_id)
-            mock_mset(0, 1, full_tile_id)
+            mock_mset(0, 0, tile_repr.full_tile_id)
+            mock_mset(0, 1, tile_repr.full_tile_id)
           end)
 
           -- test below verifies that I check 1 extra px above max_ground_escape_height (see snap_zone_qtop definition)
@@ -1523,7 +1524,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a half-tile at (1, 1), top-left at (8, 12), top-right at (15, 16) included
-            mock_mset(1, 1, half_tile_id)
+            mock_mset(1, 1, tile_repr.half_tile_id)
           end)
 
           -- just above
@@ -1613,7 +1614,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create an ascending slope at (1, 1), i.e. (8, 15) to (15, 8) px
-            mock_mset(1, 1, asc_slope_45_id)
+            mock_mset(1, 1, tile_repr.asc_slope_45_id)
           end)
 
           it('should return ground_query_info(location(1, 1), 0.0625, 45/360) if just above slope column 0', function ()
@@ -1694,7 +1695,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
-            mock_mset(1, 1, desc_slope_45_id)
+            mock_mset(1, 1, tile_repr.desc_slope_45_id)
           end)
 
           it('should return ground_query_info(location(1, 1), 0.0625, 1-45/360) if right sensors are just a little above column 0', function ()
@@ -1759,7 +1760,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-            mock_mset(1, 1, asc_slope_22_id)
+            mock_mset(1, 1, tile_repr.asc_slope_22_id)
           end)
 
           it('should return -4, 22.5/360 if below column 7 by 4px)', function ()
@@ -1778,7 +1779,7 @@ describe('player_char', function ()
           before_each(function ()
             -- .
             -- =
-            mock_mset(0, 1, half_tile_id)
+            mock_mset(0, 1, tile_repr.half_tile_id)
           end)
 
           it('should return ground_query_info(location(0, 1), 1, 0) when 1px above the half-tile', function ()
@@ -1796,7 +1797,7 @@ describe('player_char', function ()
           before_each(function ()
             -- create a quarter-tile at (1, 1), i.e. (12, 12) to (15, 15) px
             -- note that the quarter-tile is made of 2 subtiles of slope 0, hence overall slope is considered 0, not an average slope between min and max height
-            mock_mset(1, 1, bottom_right_quarter_tile_id)
+            mock_mset(1, 1, tile_repr.bottom_right_quarter_tile_id)
           end)
 
           it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if just at the bottom of the tile, on the left part, so in the air (and not 0 just because it is at height 0)', function ()
@@ -1831,8 +1832,8 @@ describe('player_char', function ()
             -- 11111111
             -- 11111111  23
 
-            mock_mset(1, 1, flat_low_tile_id)
-            mock_mset(1, 2, full_tile_id)
+            mock_mset(1, 1, tile_repr.flat_low_tile_id)
+            mock_mset(1, 2, tile_repr.full_tile_id)
           end)
 
           it('should return -4, 0 if below top by 4px, with character crossing 2 tiles', function ()
@@ -1846,8 +1847,8 @@ describe('player_char', function ()
 
           before_each(function ()
             -- place loop tiles, but remember the loop areas give them meaning
-            mock_mset(0, 0, visual_loop_bottomleft)
-            mock_mset(1, 0, visual_loop_bottomright)
+            mock_mset(0, 0, tile_repr.visual_loop_bottomleft)
+            mock_mset(1, 0, tile_repr.visual_loop_bottomright)
 
             -- customize loop areas locally. We are redefining a table so that won't affect
             --  the original data table in stage_data.lua. To simplify we don't redefine everything,
@@ -1896,7 +1897,7 @@ describe('player_char', function ()
 
           it('(not ignoring ramp) position on ramp should return actual ground_query_info() as it would be detected', function ()
             pc.ignore_launch_ramp_timer = 0
-            -- same shape as visual_loop_bottomright, so expect same signed distance
+            -- same shape as tile_repr.visual_loop_bottomright, so expect same signed distance
             assert.are_same(ground_query_info(location(0, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(4, 4)))
           end)
 
@@ -1935,7 +1936,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
-            mock_mset(1, 1, full_tile_id)
+            mock_mset(1, 1, tile_repr.full_tile_id)
           end)
 
           it('should reset state vars to airborne convention when character is not touching ground at all, and enter state falling', function ()
@@ -2024,7 +2025,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- create a descending slope at (1, 1), i.e. (8, 8) to (15, 15) px
-            mock_mset(1, 1, desc_slope_45_id)
+            mock_mset(1, 1, tile_repr.desc_slope_45_id)
           end)
 
           it('should reset state vars to airborne convention when character is not touching ground at all, and return false', function ()
@@ -4959,7 +4960,7 @@ describe('player_char', function ()
           before_each(function ()
             -- .
             -- #
-            mock_mset(0, 1, full_tile_id)  -- full tile
+            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile
           end)
 
           -- in the tests below, we can use pc_data.center_height_standing directly instead
@@ -5258,11 +5259,11 @@ describe('player_char', function ()
           before_each(function ()
             -- # #
             -- ###
-            mock_mset(0, 0, full_tile_id)  -- full tile (left wall)
-            mock_mset(0, 1, full_tile_id)  -- full tile
-            mock_mset(1, 1, full_tile_id)  -- full tile
-            mock_mset(2, 0, full_tile_id)  -- full tile
-            mock_mset(2, 1, full_tile_id)  -- full tile (right wall)
+            mock_mset(0, 0, tile_repr.full_tile_id)  -- full tile (left wall)
+            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile
+            mock_mset(1, 1, tile_repr.full_tile_id)  -- full tile
+            mock_mset(2, 0, tile_repr.full_tile_id)  -- full tile
+            mock_mset(2, 1, tile_repr.full_tile_id)  -- full tile (right wall)
           end)
 
           it('when stepping left and hitting the wall, preserve x and block', function ()
@@ -5318,8 +5319,8 @@ describe('player_char', function ()
           before_each(function ()
             --  #
             -- #
-            mock_mset(0, 1, full_tile_id)  -- full tile (ground)
-            mock_mset(1, 0, full_tile_id)  -- full tile (wall without ground below)
+            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (ground)
+            mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (wall without ground below)
           end)
 
           -- it will fail until _compute_closest_ground_query_info
@@ -5354,8 +5355,8 @@ describe('player_char', function ()
           before_each(function ()
             --  #
             -- =
-            mock_mset(0, 1, half_tile_id)  -- bottom half-tile
-            mock_mset(1, 0, full_tile_id)  -- full tile (head wall)
+            mock_mset(0, 1, tile_repr.half_tile_id)  -- bottom half-tile
+            mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (head wall)
           end)
 
           -- it will fail until _compute_closest_ground_query_info
@@ -5393,8 +5394,8 @@ describe('player_char', function ()
           before_each(function ()
             --  /
             -- #
-            mock_mset(0, 1, full_tile_id)  -- full tile (ground)
-            mock_mset(1, 0, asc_slope_45_id)  -- ascending slope 45
+            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (ground)
+            mock_mset(1, 0, tile_repr.asc_slope_45_id)  -- ascending slope 45
           end)
 
           it('when stepping right from the bottom of the ascending slope, increment x and adjust y', function ()
@@ -5427,10 +5428,10 @@ describe('player_char', function ()
           before_each(function ()
             -- # #
             -- #/#
-            mock_mset(0, 0, full_tile_id)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
-            mock_mset(0, 1, full_tile_id)  -- full tile (wall)
-            mock_mset(1, 1, asc_slope_45_id)  -- ascending slope 45
-            mock_mset(2, 0, full_tile_id)  -- full tile (wall)
+            mock_mset(0, 0, tile_repr.full_tile_id)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
+            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (wall)
+            mock_mset(1, 1, tile_repr.asc_slope_45_id)  -- ascending slope 45
+            mock_mset(2, 0, tile_repr.full_tile_id)  -- full tile (wall)
           end)
 
           it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
@@ -5531,8 +5532,8 @@ describe('player_char', function ()
 
           before_each(function ()
             -- ##
-            mock_mset(0, 0, full_tile_id)
-            mock_mset(1, 0, full_tile_id)
+            mock_mset(0, 0, tile_repr.full_tile_id)
+            mock_mset(1, 0, tile_repr.full_tile_id)
           end)
 
           it('when stepping right on a new tile, increment x and update tile location to new tile', function ()
@@ -5632,7 +5633,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- .#
-            mock_mset(1, 0, full_tile_id)  -- full tile (act like a full ceiling if position is at bottom)
+            mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
           it('should return true for sensor position just above the bottom of the tile', function ()
@@ -5680,7 +5681,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- =
-            mock_mset(0, 0, half_tile_id)
+            mock_mset(0, 0, tile_repr.half_tile_id)
           end)
 
           it('should return false for sensor position in the middle of the tile', function ()
@@ -5739,7 +5740,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- /
-            mock_mset(0, 0, asc_slope_45_id)
+            mock_mset(0, 0, tile_repr.asc_slope_45_id)
           end)
 
           it('should return false for sensor position on the left of the tile', function ()
@@ -6273,10 +6274,10 @@ describe('player_char', function ()
 
         before_each(function ()
           -- ..sS
-          -- note that spring_left_id is only accessible for utests,
-          --  runtime script should use visual.spring_left_id
-          mock_mset(2, 0, spring_left_id)
-          mock_mset(3, 0, spring_left_id + 1)
+          -- tile_representation also has a copy of spring_left_id
+          --  but we prefer using visual.spring_left_id since this is the one used at runtime
+          mock_mset(2, 0, visual.spring_left_id)
+          mock_mset(3, 0, visual.spring_left_id + 1)
         end)
 
         after_each(function ()
@@ -6923,7 +6924,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- #
-            mock_mset(0, 0, full_tile_id)  -- full tile
+            mock_mset(0, 0, tile_repr.full_tile_id)  -- full tile
           end)
 
           -- in the tests below, we can use pc_data.full/center_height_standing directly instead
@@ -7419,7 +7420,7 @@ describe('player_char', function ()
 
           before_each(function ()
             -- i
-            mock_mset(0, 0, visual_loop_bottomright_steepest)
+            mock_mset(0, 0, tile_repr.visual_loop_bottomright_steepest)
           end)
 
           -- added to identify #129 BUG MOTION curve_run_up_fall_in_wall

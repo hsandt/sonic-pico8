@@ -3,7 +3,7 @@ local sprite_data = require("engine/render/sprite_data")
 
 local visual = {
   -- springs are drawn directly via tilemap, so id is enough to play extend anim
-  spring_left_id = 74,                   -- add 1 to get right
+  spring_left_id = 74,                   -- add 1 to get right, must match value in tile_representation
   spring_extended_bottom_left_id = 106,  -- add 1 to get right
   spring_extended_top_left_id = 90,      -- add 1 to get right
 

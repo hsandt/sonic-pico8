@@ -2081,7 +2081,7 @@ describe('player_char', function ()
 
       end)  -- check_escape_from_ground
 
-      describe('enter_motion_state', function ()
+      describe('#solo enter_motion_state', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
@@ -2224,7 +2224,7 @@ describe('player_char', function ()
           assert.are_equal(0, pc.ground_speed)
         end)
 
-        it('(falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
+        it('#solo (falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = 2
           pc.velocity.y = 5
@@ -2234,14 +2234,14 @@ describe('player_char', function ()
           assert.are_equal(2, pc.ground_speed)
         end)
 
-        it('(falling -> standing, velocity X = 5 (over max) on flat ground) should transfer velocity X clamped to ground speed', function ()
+        it('(falling -> standing, velocity X = 5 (over max) on flat ground) should transfer velocity X *unclamped* to ground speed', function ()
           pc.motion_state = motion_states.falling
-          pc.velocity.x = pc_data.max_ground_speed + 2
+          pc.velocity.x = pc_data.max_running_ground_speed + 2
           pc.velocity.y = 5
 
           pc:enter_motion_state(motion_states.standing)
 
-          assert.are_equal(pc_data.max_ground_speed, pc.ground_speed)
+          assert.are_equal(pc_data.max_running_ground_speed + 2, pc.ground_speed)
         end)
 
         it('(falling -> standing, velocity (sqrt(3)/2, 0.5) tangent to slope 30 deg desc) should transfer velocity norm (1) completely to ground speed', function ()
@@ -3233,7 +3233,7 @@ describe('player_char', function ()
 
       end)  -- update_platformer_motion_grounded
 
-      describe('update_ground_speed', function ()
+      describe('#solo update_ground_speed', function ()
 
         setup(function ()
           -- the only reason we spy and not stub is to test the interface in the first test below
@@ -3285,7 +3285,7 @@ describe('player_char', function ()
           assert.spy(player_char.update_ground_run_speed_by_intention).was_called(1)
           assert.spy(player_char.update_ground_run_speed_by_intention).was_called_with(match.ref(pc))
           assert.spy(player_char.clamp_ground_speed).was_called(1)
-          assert.spy(player_char.clamp_ground_speed).was_called_with(match.ref(pc))
+          assert.spy(player_char.clamp_ground_speed).was_called_with(match.ref(pc), 2.5)
         end)
 
         it('(rolling) should call update_ground_roll_speed_by_intention (instead of _run_)', function ()
@@ -3976,16 +3976,28 @@ describe('player_char', function ()
 
       describe('clamp_ground_speed', function ()
 
-        it('should preserve ground speed when it is not over max speed in absolute value', function ()
-          pc.ground_speed = pc_data.max_ground_speed / 2
-          pc:clamp_ground_speed()
-          assert.are_equal(pc_data.max_ground_speed / 2, pc.ground_speed)
+        it('should preserve ground speed when it is not over max running speed in absolute value', function ()
+          pc.ground_speed = pc_data.max_running_ground_speed - 0.1
+          pc:clamp_ground_speed(0)
+          assert.are_equal(pc_data.max_running_ground_speed - 0.1, pc.ground_speed)
         end)
 
-        it('should clamp ground speed to signed max speed if over max speed in absolute value', function ()
-          pc.ground_speed = pc_data.max_ground_speed + 1
-          pc:clamp_ground_speed()
-          assert.are_equal(pc_data.max_ground_speed, pc.ground_speed)
+        it('should clamp ground speed to signed max speed if over max running speed in absolute value, and previous speed was 0', function ()
+          pc.ground_speed = pc_data.max_running_ground_speed + 1
+          pc:clamp_ground_speed(0)
+          assert.are_equal(pc_data.max_running_ground_speed, pc.ground_speed)
+        end)
+
+        it('should clamp ground speed to signed max speed if over max running speed in absolute value, and previous speed was also max running speed', function ()
+          pc.ground_speed = pc_data.max_running_ground_speed + 1
+          pc:clamp_ground_speed(pc_data.max_running_ground_speed)
+          assert.are_equal(pc_data.max_running_ground_speed, pc.ground_speed)
+        end)
+
+        it('should clamp ground speed to previous speed in absolute value if previous speed was higher than max running speed in abs', function ()
+          pc.ground_speed = pc_data.max_running_ground_speed + 2
+          pc:clamp_ground_speed(pc_data.max_running_ground_speed + 1)
+          assert.are_equal(pc_data.max_running_ground_speed + 1, pc.ground_speed)
         end)
 
       end)
@@ -6462,6 +6474,24 @@ describe('player_char', function ()
         pc:apply_air_drag()
 
         assert.are_same(vector(0.25, -8), pc.velocity)
+      end)
+
+    end)
+
+    describe('clamp_air_velocity_x', function ()
+
+      it('should preserve velocity x when it is not over max speed in absolute value (positive)', function ()
+        pc.motion_state = motion_states.falling  -- to avoid assert
+        pc.velocity.x = pc_data.max_air_velocity_x - 0.1
+        pc:clamp_air_velocity_x()
+        assert.are_equal(pc_data.max_air_velocity_x - 0.1, pc.velocity.x)
+      end)
+
+      it('should clamp velocity x to signed max speed if over max speed in absolute value (negative)', function ()
+        pc.motion_state = motion_states.air_spin  -- to avoid assert
+        pc.velocity.x = - pc_data.max_air_velocity_x - 1
+        pc:clamp_air_velocity_x()
+        assert.are_equal(- pc_data.max_air_velocity_x, pc.velocity.x)
       end)
 
     end)

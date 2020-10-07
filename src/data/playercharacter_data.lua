@@ -73,8 +73,15 @@ local playercharacter_data = {
   -- the actual range is ] -air_drag_max_abs_velocity_y, 0 [
   air_drag_max_abs_velocity_y = 8,  -- 512/64
 
-  -- ground acceleration (px/frame)
-  max_ground_speed = 3,  -- 192/64
+  -- maximum absolute ground speed when running (standing) (px/frame)
+  -- do not force clamping if character is already above (horizontal spring, spin dash + landing...)
+  max_running_ground_speed = 3,  -- 192/64
+
+  -- maximum absolute air velocity x (px/frame)
+  -- should be the same as max_running_ground_speed to avoid slow-down/speed-up
+  --  just by jumping while running on flat ground (on slope, it will slow down air motion on X though)
+  -- do not force clamping if character is already above (horizontal spring + jump, spin dash + jump...)
+  max_air_velocity_x = 3,  -- 192/64
 
   -- ground speed threshold under which character will fall/slide off when walking at more
   --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)

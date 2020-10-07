@@ -797,8 +797,8 @@ function player_char:enter_motion_state(next_motion_state)
     printh("stand at self.velocity: "..self.velocity)
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
+      -- do not clamp ground speed! this allows us to spin dash, fall a bit, land and run at high speed!
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
-      self:clamp_ground_speed()
 
       -- we have just reached the ground (and possibly escaped),
       --  reset values airborne vars
@@ -990,11 +990,13 @@ function player_char:update_ground_speed()
   --  Progressive Ascending Steep Slope Factor feature won't be applied the first frame.
   -- But it should be OK overall.
   -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
-  self:update_ground_speed_by_slope()
   if self.motion_state == motion_states.standing then
+    local previous_ground_speed = self.ground_speed
+    self:update_ground_speed_by_slope()
     self:update_ground_run_speed_by_intention()
-    self:clamp_ground_speed()
+    self:clamp_ground_speed(previous_ground_speed)
   else
+    self:update_ground_speed_by_slope()
     self:update_ground_roll_speed_by_intention()
     -- There is some particular clamping based on speed X in the original game,
     --  with max speed 8 (in PICO-8 scale). SPG suggests to apply clamping to ground speed instead,
@@ -1171,10 +1173,14 @@ function player_char:update_ground_roll_speed_by_intention()
   self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - abs_decel)
 end
 
--- clamp ground speed to max
-function player_char:clamp_ground_speed()
-  if abs(self.ground_speed) > pc_data.max_ground_speed then
-    self.ground_speed = sgn(self.ground_speed) * pc_data.max_ground_speed
+-- clamp ground speed to max (standing only, not rolling), or to previous ground speed
+--  in absolute value if it was already above max
+function player_char:clamp_ground_speed(previous_ground_speed)
+  -- it's unlikely that the character switched ground speed sign at a very high magnitude,
+  --  so simply consider the previous abs ground speed as the new limit, if higher than usual limit
+  local max_ground_speed = max(abs(previous_ground_speed), pc_data.max_running_ground_speed)
+  if abs(self.ground_speed) > max_ground_speed then
+    self.ground_speed = sgn(self.ground_speed) * max_ground_speed
   end
 end
 
@@ -1652,6 +1658,14 @@ function player_char:apply_air_drag()
     --  than PICO-8, messing up with tests (in particular itests as they accumulate over frames)
     vel.x = to_fixed_point(vel.x)
 --#endif
+  end
+end
+
+-- clamp air velocity x to max
+function player_char:clamp_air_velocity_x()
+  assert(not self:is_grounded())
+  if abs(self.velocity.x) > pc_data.max_air_velocity_x then
+    self.velocity.x = sgn(self.velocity.x) * pc_data.max_air_velocity_x
   end
 end
 

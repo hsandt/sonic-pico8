@@ -3467,6 +3467,18 @@ describe('player_char', function ()
 
       describe('update_ground_run_speed_by_intention', function ()
 
+        setup(function ()
+          stub(_G, "sfx")
+        end)
+
+        teardown(function ()
+          sfx:revert()
+        end)
+
+        after_each(function ()
+          sfx:clear()
+        end)
+
         it('should accelerate and set direction based on new speed when character is facing left, has ground speed 0 and move intention x > 0', function ()
           pc.orientation = horizontal_dirs.left
           pc.move_intention.x = 1
@@ -3584,7 +3596,7 @@ describe('player_char', function ()
           assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
         end)
 
-        it('should set orientation to ground speed dir (here, no change) and brake anim phase to 1 when quadrant down and abs ground speed is high enough', function ()
+        it('should set orientation to ground speed dir (here, no change) and brake anim phase to 1 then play brake sfx when quadrant down and abs ground speed is high enough', function ()
           pc.quadrant = directions.down
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = pc_data.brake_anim_min_speed_frame
@@ -3594,6 +3606,9 @@ describe('player_char', function ()
           pc:update_ground_run_speed_by_intention()
 
           assert.are_same({horizontal_dirs.right, 1}, {pc.orientation, pc.brake_anim_phase})
+
+          assert.spy(sfx).was_called(1)
+          assert.spy(sfx).was_called_with(audio.sfx_ids.brake)
         end)
 
         -- bugfix history:
@@ -3771,7 +3786,7 @@ describe('player_char', function ()
           assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
         end)
 
-        it('should set orientation to ground speed dir (here, change direction) and brake anim phase to 1 when quadrant down and abs ground speed is high enough', function ()
+        it('should set orientation to ground speed dir (here, change direction) and brake anim phase to 1 then play brake sfx when quadrant down and abs ground speed is high enough', function ()
           pc.quadrant = directions.down
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = -pc_data.brake_anim_min_speed_frame

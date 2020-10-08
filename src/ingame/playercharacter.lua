@@ -1151,6 +1151,8 @@ function player_char:update_ground_run_speed_by_intention()
         --  and is braking, we must flip it back to ground speed dir
         self.orientation = signed_speed_to_dir(self.ground_speed)
         self.brake_anim_phase = 1
+
+        sfx(audio.sfx_ids.brake)
       end
     end
   else

@@ -6,6 +6,7 @@ local sfx_ids = {
   jump = 59,
   spring_jump = 60,
   roll = 61,
+  brake = 62,
   -- menu_select = ??,
   -- menu_confirm = ??,
 }

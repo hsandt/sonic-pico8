@@ -85,27 +85,21 @@ symbols=''
 if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
-  symbols='assert,dump,tostring,deprecated,log,cheat,sandbox'
+  symbols='assert,tostring,dump,log,debug_menu,debug_character'
 elif [[ $config == 'debug-ultrafast' ]]; then
-  symbols='assert,dump,tostring,deprecated,log,cheat,sandbox,ultrafast'
+  symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  # a weird bug makes game very slow when dump is defined but not log
-  # this must be related to the new dump symbol used in dump.lua,
-  # but I don't see how adding more lines makes the game faster
-  # symbols='cheat'
-  symbols='cheat,tostring'
-  # symbols='assert,cheat,log,dump'
-  # symbols='cheat,log,dump,debug_trigger'
+  symbols='cheat,tostring,dump,log,debug_menu,debug_character'
 elif [[ $config == 'tuner' ]]; then
   symbols='tuner,mouse,cheat'
 elif [[ $config == 'ultrafast' ]]; then
-  symbols='assert,deprecated,ultrafast'
+  symbols='assert,ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
-  symbols='assert,deprecated,cheat,ultrafast'
+  symbols='assert,cheat,ultrafast'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,log,dump'
+  symbols='assert,tostring,dump,log'
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler,cheat'
 fi

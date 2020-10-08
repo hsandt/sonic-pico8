@@ -73,7 +73,6 @@ local player_char = new_class()
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 
--- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- move_intention           vector          current move intention (normalized)
 -- jump_intention           bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
@@ -87,6 +86,9 @@ local player_char = new_class()
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 -- should_play_spring_jump         bool     Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
+
+-- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
+-- debug_rays (debug_character)     {...}   rays to draw for debug render this frame
 function player_char:init()
   self.spr_data = pc_data.sonic_sprite_data
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -140,6 +142,10 @@ function player_char:setup()
   self.continuous_sprite_angle = 0.
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
+
+--#if debug_character
+  self.debug_rays = {}
+--#endif
 end
 
 -- return true iff character is grounded
@@ -613,6 +619,13 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- we cannot 2x return from a called function directly, so instead, we check if a result was returned
       --  if so, we return from the caller
       if result then
+--#if debug_character
+        -- ceiling only returns true, and we are only interested in debugging ground sensor rays anyway,
+        --  so only consider ground sensor result which should be a proper ground_query_info
+        if type(result) == "table" then
+          add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
+        end
+--#endif
         return result
       end
 
@@ -623,6 +636,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       assert(curr_global_tile_loc == last_global_tile_loc)
     end
 
+    -- check fo end of iteration (reached last tile)
     -- we do a simple check in PICO-8 release:
 --[[#pico8
 --#ifn assert
@@ -640,11 +654,22 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     --  crazy escape values, but otherwise stick to the version above to reduce char count
 --#if assert
     local curr_qj = world.get_quadrant_j_coord(curr_global_tile_loc, collision_check_quadrant)
-    if world.sub_qy(curr_qj, last_qj, collision_check_quadrant) >= 0  then
+    if world.sub_qy(curr_qj, last_qj, collision_check_quadrant) >= 0 then
 --#endif
       assert(curr_global_tile_loc == last_global_tile_loc, "see comment in iterate_over_collision_tiles")
       -- let caller decide how to handle the end of iteration without finding any collider
-      return no_collider_callback()
+      local result = no_collider_callback()
+
+--#if debug_character
+        -- see similar code above with collider_distance_callback call
+        if type(result) == "table" then
+          add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
+        end
+--#endif
+
+      -- ground check returns query info while ceiling check returns bool
+      -- in any case, this is the final check so return the result whatever it is
+      return result
     end
 
     curr_global_tile_loc = curr_global_tile_loc + tile_loc_step
@@ -715,9 +740,10 @@ function player_char:check_escape_from_ground()
   local query_info = self:compute_ground_sensors_query_info(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
   if signed_distance_to_closest_ground <= 0 then
+    -- character is either just touching ground (signed_distance_to_closest_ground == 0)
+    --  or inside ground, so check how deep he is inside ground
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
-      -- character is either just touching ground (signed_distance_to_closest_ground == 0)
-      --  or inside ground, so:
+      -- close to surface enough to escape
       -- snap character q-upward to ground q-top (it does nothing if already touching ground)
       -- (we currently only check_escape_from_ground after a warp where quadrant is down,
       --  but this can prove useful if using this for ceiling adherence later; currently
@@ -731,6 +757,7 @@ function player_char:check_escape_from_ground()
       -- set slope angle to new ground
       self:set_slope_angle_with_quadrant(next_slope_angle)
     else
+      -- too deep to escape, stay there
       -- by convention, set ground tile location to nil (see ground_check_collider_distance_callback)
       -- by slope angle to 0 to stand upward
       self.ground_tile_location = nil
@@ -1861,6 +1888,7 @@ function player_char:next_air_step(direction, ref_motion_result)
           -- if this step is blocked by landing, there is no extra motion,
           --  but character will enter standing state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, query_info.slope_angle
+          -- WALL LANDING ADJUSTMENT OFFSET
           -- as part of the bigger adherence system, but for now very simplified
           --  to fix #129 BUG MOTION curve_run_up_fall_in_wall:
           --  if the quadrant changed (from the air default, down), we must adjust the character
@@ -2262,5 +2290,36 @@ function player_char:render()
   local floored_position = vector(flr(self.position.x), flr(self.position.y))
   self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
 end
+
+--#if debug_character
+function player_char:debug_draw_rays()
+  -- debug "raycasts"
+  for debug_ray in all(self.debug_rays) do
+    local start = debug_ray.start
+    local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction
+    if debug_ray.distance <= 0 then
+      -- inside ground, ray will be all read up to surface
+      line(start.x, start.y, end_pos.x, end_pos.y, colors.red)
+    else
+      -- q-above ground, ray will be blue except the last pixel (subtract direction which is
+      --  a cardinal unit vector to get the penultimate pixel)
+      local before_end_pos = end_pos - debug_ray.direction
+      line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.blue)
+      mset(end_pos.x, end_pos.y, colors.red)
+    end
+  end
+
+  -- OPTIMIZE: pool the rays (you can even make them proper structs)
+  clear_table(self.debug_rays)
+end
+
+function player_char:debug_print_info()
+  -- debug info
+  api.print("state: "..self.motion_state, 8, 100, colors.white)
+  api.print("quadrant: "..tostr(self.quadrant), 8, 106, colors.white)
+  api.print("x: "..self.position.x, 8, 112, colors.white)
+  api.print("y: "..self.position.y, 8, 118, colors.white)
+end
+--#endif
 
 return player_char

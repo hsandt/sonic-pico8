@@ -174,6 +174,8 @@ describe('player_char', function ()
           0,
           false,
           0,
+
+          {},  -- debug_character
         },
         {
           pc.control_mode,
@@ -204,6 +206,8 @@ describe('player_char', function ()
           pc.continuous_sprite_angle,
           pc.should_play_spring_jump,
           pc.brake_anim_phase,
+
+          pc.debug_rays,  -- debug_character
         }
       )
       assert.spy(animated_sprite.play).was_called(1)
@@ -1353,7 +1357,7 @@ describe('player_char', function ()
 
           -- above
 
-          it('should return ground_query_info(nil, max_ground_snap_height+1, nil) if above the tile by 8 max_ground_snap_height+2)', function ()
+          it('should return ground_query_info(nil, max_ground_snap_height+1, nil) if above the tile by max_ground_snap_height+2)', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height+1, nil), pc:compute_closest_ground_query_info(vector(12, 8 - (pc_data.max_ground_snap_height + 2))))
           end)
 
@@ -1498,6 +1502,32 @@ describe('player_char', function ()
             pc.quadrant = directions.left
 
             assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(10, 12)))
+          end)
+
+          -- #debug_character below
+
+          it('(#debug_character) should add debug ray (no hit, no_collider_callback) for later draw (for query info ground_query_info(nil, max_ground_snap_height+1, nil) as above tile by max_ground_snap_height+2)', function ()
+            pc.quadrant = directions.down
+            pc:compute_closest_ground_query_info(vector(12, 8 - (pc_data.max_ground_snap_height + 2)))
+
+            assert.are_same({{
+              start = vector(12, 8 - (pc_data.max_ground_snap_height + 2)),
+              direction = vector(0, 1),  -- unit down
+              distance = pc_data.max_ground_escape_height + 1,
+              hit = false
+            }}, pc.debug_rays)
+          end)
+
+          it('(#debug_character) should add debug ray (hit, inside) for later draw (for query info ground_query_info(location(1, 1), 2, 0.25) as 2px from the right wall)', function ()
+            pc.quadrant = directions.right
+            pc:compute_closest_ground_query_info(vector(6, 12))
+
+            assert.are_same({{
+              start = vector(6, 12),
+              direction = vector(1, 0),  -- unit right
+              distance = 2,
+              hit = true
+            }}, pc.debug_rays)
           end)
 
         end)
@@ -7424,7 +7454,8 @@ describe('player_char', function ()
           end)
 
           -- added to identify #129 BUG MOTION curve_run_up_fall_in_wall
-          -- and accompany itest "fall on curve top"
+          --  and accompany itest "fall on curve top"
+          -- it was fixed by WALL LANDING ADJUSTMENT OFFSET
           it('direction down into steep curve should move, flag is_landing with slope_angle atan2(3, -8) but above all adjust position X to the left so feet just stand on the slope', function ()
             pc.velocity.x = 0
             pc.velocity.y = 3

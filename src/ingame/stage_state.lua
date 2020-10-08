@@ -163,8 +163,6 @@ function stage_state:update()
 end
 
 function stage_state:render()
-  camera()
-
   self:render_background()
   self:render_stage_elements()
   self:render_fx()
@@ -755,6 +753,8 @@ function stage_state:update_fx()
 end
 
 function stage_state:render_fx()
+  self:set_camera_with_origin()
+
   for pfx in all(self.emerald_pick_fxs) do
     pfx:render()
   end
@@ -1216,6 +1216,9 @@ function stage_state:render_stage_elements()
 --#if debug_trigger
   self:debug_render_trigger()
 --#endif
+--#if debug_character
+  self.player_char:debug_draw_rays()
+--#endif
 end
 
 -- global <-> region location converters
@@ -1349,7 +1352,6 @@ end
 function stage_state:debug_render_trigger()
   self:set_camera_with_origin()
 
-
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
     rect(ext_entrance_trigger_top_left.x, ext_entrance_trigger_top_left.y, ext_entrance_bottom_right.x, ext_entrance_bottom_right.y, colors.red)
@@ -1373,8 +1375,11 @@ end
 
 -- render the hud:
 --  - emeralds obtained
+--  - character debug info (#debug_character only)
 function stage_state:render_hud()
+  -- HUD is drawn directly in screen coordinates
   camera()
+
   -- draw emeralds obtained at top-left of screen, in order from left to right,
   --  with the right color
   for i = 1, #self.spawned_emerald_locations do
@@ -1386,6 +1391,10 @@ function stage_state:render_hud()
       emerald.draw(-1, draw_position)
     end
   end
+
+--#if debug_character
+  self.player_char:debug_print_info()
+--#endif
 end
 
 -- render the title overlay with a fixed ui camera

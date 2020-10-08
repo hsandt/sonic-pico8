@@ -855,15 +855,18 @@ expect pc_velocity 0 0.984375
 --  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
 -- WIP
 itest_dsl_parser.register(
-  'fall inside curve top after rising', [[
+  '#mute fall inside curve top after rising', [[
 @stage #
+..#
+..#
 ..#
 ..#
 .i#
 
-warp 8 18
-set pc_velocity 2 -2
-wait 9
+warp 11 42
+set pc_velocity 1 -2
+move right
+wait 60
 
 expect pc_bottom_pos 15 8
 expect pc_motion_state grounded

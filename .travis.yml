@@ -63,16 +63,16 @@ script:
   # - ./build_all_cartridges.sh debug
   - ./build_all_cartridges.sh release
 
-  # disabled build_itest.sh in Travis until strings are compressed
-  # because character count is over 65536 and that systematically failed the build
-  # while build release works fine
+  # disabled build_itest.sh in Travis for the same reason as debug
   # - ./build_itest.sh
+  # in the tests below, we don't pass `-m all` anymore because
+  #  we *do* want to ignore WIP tests flagged #mute
   # test: all utests
   - ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh
   # test: all headless itests for titlemenu (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests -m all
+  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests
   # test: all headless itests for stage (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests -m all
+  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests
   # coverage
   - bash <(curl -s https://codecov.io/bash)
 

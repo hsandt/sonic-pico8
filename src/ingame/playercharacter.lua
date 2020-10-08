@@ -854,6 +854,13 @@ end
 
 -- update velocity, position and state based on current motion state
 function player_char:update_platformer_motion()
+--#if debug_character
+  -- clear the debug rays to start anew for this frame (don't clear them after rendering
+  --  so you can continue seeing them during debug pause)
+  -- OPTIMIZE: pool the rays instead (you can also make them proper structs)
+  clear_table(self.debug_rays)
+--#endif
+
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
@@ -2308,9 +2315,6 @@ function player_char:debug_draw_rays()
       mset(end_pos.x, end_pos.y, colors.red)
     end
   end
-
-  -- OPTIMIZE: pool the rays (you can even make them proper structs)
-  clear_table(self.debug_rays)
 end
 
 function player_char:debug_print_info()

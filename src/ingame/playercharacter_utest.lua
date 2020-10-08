@@ -2400,6 +2400,14 @@ describe('player_char', function ()
           player_char.check_loop_external_triggers:clear()
         end)
 
+        it('(#debug_character) should clear debug rays from previous frame', function ()
+          pc.debug_rays = {"dummy"}
+
+          pc:update_platformer_motion()
+
+          assert.are_same({}, pc.debug_rays)
+        end)
+
         describe('(check_jump stubbed)', function ()
 
           setup(function ()

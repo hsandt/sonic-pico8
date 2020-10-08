@@ -2304,7 +2304,7 @@ function player_char:debug_draw_rays()
       -- q-above ground, ray will be blue except the last pixel (subtract direction which is
       --  a cardinal unit vector to get the penultimate pixel)
       local before_end_pos = end_pos - debug_ray.direction
-      line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.blue)
+      line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.pink)
       mset(end_pos.x, end_pos.y, colors.red)
     end
   end

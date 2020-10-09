@@ -5,9 +5,11 @@ local camera_data = {
   --  on screen in original game, it is slightly up and the camera shows more things
   --  below the character than above
   -- we tried to adjust this value to PICO-8 scale with a law of three: 96×128/224 ~= 55
-  --  hence the offset 55 - 64 = -9
+  --  so the original game offset would scale to 55 - 64 = -9
+  -- however, even with scaling PICO-8 shows fewer tiles vertically so we tend to miss interesting
+  --  things above the character, so we moved it closer to 0
   -- set to 0 if you want to recenter window vertically
-  window_center_offset_y = -9,
+  window_center_offset_y = -4,
 
   -- half width of the camera window (px)
   -- According to SPG, window left and right are dissymmetrical,
@@ -18,6 +20,7 @@ local camera_data = {
   window_half_width = 4,
 
   -- half height of the camera window (px)
+  -- only used during air motion
   -- ((128 - 64) / 2) / 2 (PICO-8 scaling)
   window_half_height = 16,
 

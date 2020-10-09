@@ -10,7 +10,8 @@ describe('camera', function ()
 
     it('should init members to defaults', function ()
       local cam = camera_class()
-      assert.are_same({nil, vector.zero(), 0}, {cam.target_pc, cam.position, cam.forward_offset})
+      assert.are_same({nil, vector.zero(), 0, horizontal_dirs.right},
+        {cam.target_pc, cam.position, cam.forward_offset, cam.last_grounded_orientation})
     end)
 
   end)
@@ -62,6 +63,26 @@ describe('camera', function ()
       assert.are_same(vector(140, 100), cam.position)
     end)
 
+    it('(pc grounded) should update last_grounded_orientation', function ()
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.orientation = horizontal_dirs.left
+      cam.target_pc.motion_state = motion_states.standing
+
+      cam:update()
+
+      assert.are_same(horizontal_dirs.left, cam.last_grounded_orientation)
+    end)
+
+    it('(pc not grounded) should not update last_grounded_orientation', function ()
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.orientation = horizontal_dirs.left
+      cam.target_pc.motion_state = motion_states.falling
+
+      cam:update()
+
+      assert.are_same(horizontal_dirs.right, cam.last_grounded_orientation)
+    end)
+
     -- below, make sure to test base_position_x instead of cam.position.x if you want to ignore the forward offset,
     --  and in particular the base forward offset which is always present due to orientation
 
@@ -108,7 +129,12 @@ describe('camera', function ()
       cam.forward_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.target_pc.orientation = horizontal_dirs.right
+      -- we try to set state to falling to make sure we don't update
+      --  last_grounded_orientation and use the stored one
+      -- for the same reason we don't care about cam.target_pc.orientation here,
+      --  but set last_grounded_orientation instead
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -121,7 +147,8 @@ describe('camera', function ()
       cam.forward_offset = camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -136,7 +163,8 @@ describe('camera', function ()
       cam.forward_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.target_pc.orientation = horizontal_dirs.left
+      cam.last_grounded_orientation = horizontal_dirs.left
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -149,7 +177,8 @@ describe('camera', function ()
       cam.forward_offset = - camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.target_pc.orientation = horizontal_dirs.left
+      cam.last_grounded_orientation = horizontal_dirs.left
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -166,7 +195,8 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -180,7 +210,8 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -199,7 +230,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -218,7 +250,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -234,7 +267,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -250,7 +284,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -266,7 +301,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -282,7 +318,8 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
@@ -300,7 +337,8 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
-      cam.target_pc.orientation = horizontal_dirs.right
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 

@@ -15,6 +15,9 @@ function camera_class:init()
   -- position of the camera, at the center of the view
   self.position = vector.zero()
 
+  -- store last grounded orientation of character to keep using it while it is airborne
+  self.last_grounded_orientation = horizontal_dirs.right
+
   -- camera forward offset (px, signed)
   -- this intermediate value needs to be stored because it follows its own catchup over time
   self.forward_offset = 0
@@ -49,6 +52,10 @@ function camera_class:update()
     -- else: self.motion_mode == motion_modes.platformer
 --#endif
 
+  if self.target_pc:is_grounded() then
+    self.last_grounded_orientation = self.target_pc.orientation
+  end
+
   -- Window system: most of the time, only move camera when character
   --  is leaving the central window
 
@@ -72,7 +79,7 @@ function camera_class:update()
 
   -- # Base
 
-  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.target_pc.orientation]
+  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.last_grounded_orientation]
 
   -- # Extension
 

@@ -2079,10 +2079,9 @@ function player_char:trigger_launch_ramp_effect()
   -- we only handle launch ramp toward right
   assert(self.ground_speed > 0)
 
-  -- local new_speed = self.ground_speed + tuned("launch", pc_data.launch_ramp_extra_speed)
-  local new_speed = self.ground_speed * tuned("launch mult", pc_data.launch_ramp_speed_multiplier, 0.1)
+  local new_speed = min(pc_data.launch_ramp_speed_max_launch_speed, self.ground_speed * pc_data.launch_ramp_speed_multiplier)
 
-  self.velocity = new_speed * vector.unit_from_angle(tuned("angle", pc_data.launch_ramp_velocity_angle), 0.003)
+  self.velocity = new_speed * vector.unit_from_angle(pc_data.launch_ramp_velocity_angle)
   self:enter_motion_state(motion_states.falling)
 
   -- just reuse spring jump animation since in Sonic 3, launch ramp also uses 3D animation
@@ -2094,6 +2093,8 @@ function player_char:trigger_launch_ramp_effect()
   --   on landing character is standing so ground speed is clamped to max_ground_speed and
   --   character may lose momentum if he was rolling)
   self.ignore_launch_ramp_timer = pc_data.ignore_launch_ramp_duration
+
+  log("trigger launch ramp at new speed: "..new_speed, "ramp")
 end
 
 function player_char:check_emerald()

@@ -7589,6 +7589,18 @@ describe('player_char', function ()
         ), pc.velocity)
       end)
 
+      it('should velocity to (ground_speed * multiplier), clamped to launch_ramp_speed_max_launch_speed, along launch_ramp_velocity_angle', function ()
+        -- something that, when multiplied by multiplier, will get over data max
+        pc.ground_speed = (pc_data.launch_ramp_speed_max_launch_speed + 1) / pc_data.launch_ramp_speed_multiplier
+
+        pc:trigger_launch_ramp_effect()
+
+        assert.are_same(pc_data.launch_ramp_speed_max_launch_speed * vector(
+          cos(pc_data.launch_ramp_velocity_angle),
+          sin(pc_data.launch_ramp_velocity_angle)
+        ), pc.velocity)
+      end)
+
       it('should enter motion state: falling', function ()
         pc.ground_speed = 2
 

@@ -78,6 +78,11 @@ local playercharacter_data = {
 
   -- maximum absolute ground speed when running (standing) (px/frame)
   -- do not force clamping if character is already above (horizontal spring, spin dash + landing...)
+  -- from this and the ground acceleration we can deduce the time and distance required to reach
+  --  max speed on flat ground:
+  -- it takes 3/0.0234375 = 128 frames (~2.1s) to reach max speed
+  --  over a distance of 192px (perfect integration) / 193.5px (discrete series sum)
+  --  ~ 24 tiles
   max_running_ground_speed = 3,  -- 192/64
 
   -- maximum absolute air velocity x (px/frame)
@@ -115,11 +120,19 @@ local playercharacter_data = {
   -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
   spring_jump_speed_frame = 5,
 
-  -- ground speed required to trigger launch ramp
+  -- ground speed required to trigger launch ramp (px/frame)
   launch_ramp_min_ground_speed = 2,
 
-  -- speed multiplier and angle for launch ramp
+  -- speed multiplier for launch ramp effect (px/frame)
   launch_ramp_speed_multiplier = 2.7,
+
+  -- abs maximum of launch speed after applying multiplier (px/frame)
+  -- this was added after finding a very rare case of rolling so fast toward the slope
+  --  that Sonic was launched above the emerald and almost reached the upper level
+  --  (could not repro, but safer esp. considering we may add spin dash later)
+  launch_ramp_speed_max_launch_speed = 9.7,
+
+  -- launch angle of ramp (PICO-8 angle)
   launch_ramp_velocity_angle = atan2(8, -5),
 
   -- duration to ignore launch ramp after trigger to avoid hitting it and landing again
@@ -184,6 +197,7 @@ local playercharacter_data = {
 
   -- speed at which the character sprite angle falls back toward 0 (upward)
   --  when character is airborne (typically after falling from ceiling)
+  --  (px/frame)
   sprite_angle_airborne_reset_speed_frame = 0.0095,  -- 0.5/(7/8×60) ie character moves from upside down to upward in 7/8 s
 
   -- stand right

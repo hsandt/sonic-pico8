@@ -52,6 +52,7 @@ function _init()
     ['loop'] = true,
     ['emerald'] = true,
     ['palm'] = true,
+    ['ramp'] = true,
     ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,

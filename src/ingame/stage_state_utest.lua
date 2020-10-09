@@ -2006,17 +2006,17 @@ describe('stage_state', function ()
 
             setup(function ()
               spy.on(emerald, "draw")
-              stub(player_char, "debug_render")
+              stub(player_char, "debug_print_info")
             end)
 
             teardown(function ()
               emerald.draw:revert()
-              player_char.debug_render:revert()
+              player_char.debug_print_info:revert()
             end)
 
             after_each(function ()
               emerald.draw:clear()
-              player_char.debug_render:clear()
+              player_char.debug_print_info:clear()
             end)
 
             it('should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
@@ -2041,8 +2041,8 @@ describe('stage_state', function ()
             it('should debug render character info (#debug_character only)', function ()
               state:render_hud()
 
-              assert.spy(player_char.debug_render).was_called(1)
-              assert.spy(player_char.debug_render).was_called_with(match.ref(state.player_char))
+              assert.spy(player_char.debug_print_info).was_called(1)
+              assert.spy(player_char.debug_print_info).was_called_with(match.ref(state.player_char))
             end)
 
           end)

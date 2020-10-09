@@ -57,6 +57,10 @@ local playercharacter_data = {
   progressive_ascending_slope_duration = 0.5,
 
   -- air acceleration on x axis (px/frame^2)
+  -- from this, air_drag_factor_per_frame, initial_var_jump_speed_frame and gravity,
+  --  we can deduce the jump distance X on flat ground when jumping and starting to move
+  --  horizontally at the same time (jump without run-up)
+  --  air drag makes calculation a bit complicated but observation gives ~9.5 tiles
   air_accel_x_frame2 = 0.046875,  -- 3/64
 
   -- air drag factor applied every frame, at 60 FPS (no unit)
@@ -80,6 +84,9 @@ local playercharacter_data = {
   -- should be the same as max_running_ground_speed to avoid slow-down/speed-up
   --  just by jumping while running on flat ground (on slope, it will slow down air motion on X though)
   -- do not force clamping if character is already above (horizontal spring + jump, spin dash + jump...)
+  -- from this, initial_var_jump_speed_frame and gravity you can deduce the max jump distance on X
+  --  on a flat ground: we know that we land after ~60 frames, so:
+  --  max distance X = max_air_velocity_x * 60 = 180 (22.5 tiles)
   max_air_velocity_x = 3,  -- 192/64
 
   -- ground speed threshold under which character will fall/slide off when walking at more
@@ -94,8 +101,9 @@ local playercharacter_data = {
   max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
-  -- from this and gravity we can deduce the max jump height: 49.921875 (6+ tiles) at frame 31
-  -- when hopping, you'll reach jump height: 19.296875 (2+ tiles) at frame 20
+  -- from this and gravity we can deduce the max jump height: 49.921875 (6.2 tiles) at frame 31 (~0.5s)
+  --  you land with 2x the time, after ~60 frames
+  -- when hopping, you'll reach jump height: 19.296875 (2.4 tiles) at frame 20
   initial_var_jump_speed_frame = 3.25,  -- 208/64 = 3 + 16/64
 
   -- initial hop vertical speed and new speed when jump is interrupted by releasing jump button (px/frame)

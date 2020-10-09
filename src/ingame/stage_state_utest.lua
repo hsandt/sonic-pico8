@@ -12,6 +12,7 @@ local label = require("engine/ui/label")
 local picosonic_app = require("application/picosonic_app_ingame")
 local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
+local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local player_char = require("ingame/playercharacter")
@@ -56,7 +57,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
-            vector.zero(),
+            camera_class(),
             overlay(0),
             nil,
             -- itest only
@@ -73,7 +74,7 @@ describe('stage_state', function ()
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
             state.palm_tree_leaves_core_global_locations,
-            state.camera_pos,
+            state.camera,
             state.title_overlay,
             state.loaded_map_region_coords,
             -- itest only
@@ -90,6 +91,7 @@ describe('stage_state', function ()
           stub(stage_state, "reload_bgm")
           stub(stage_state, "randomize_background_data")
           stub(stage_state, "spawn_objects_in_all_map_regions")
+          stub(camera_class, "setup_for_stage")
           stub(stage_state, "check_reload_map_region")
           stub(_G, "reload")
         end)
@@ -101,6 +103,7 @@ describe('stage_state', function ()
           stage_state.reload_bgm:revert()
           stage_state.randomize_background_data:revert()
           stage_state.spawn_objects_in_all_map_regions:revert()
+          camera_class.setup_for_stage:revert()
           stage_state.check_reload_map_region:revert()
           reload:revert()
         end)
@@ -112,6 +115,7 @@ describe('stage_state', function ()
           stage_state.reload_bgm:clear()
           stage_state.randomize_background_data:clear()
           stage_state.spawn_objects_in_all_map_regions:clear()
+          camera_class.setup_for_stage:clear()
           stage_state.check_reload_map_region:clear()
           reload:clear()
         end)
@@ -125,9 +129,9 @@ describe('stage_state', function ()
           assert.spy(state.spawn_objects_in_all_map_regions).was_called_with(match.ref(state))
         end)
 
-        it('should initialize camera at future character spawn position', function ()
-          local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
-          assert.are_same(spawn_position, state.camera_pos)
+        it('should call setup_for_stage on camera with current stage data', function ()
+          assert.spy(camera_class.setup_for_stage).was_called(1)
+          assert.spy(camera_class.setup_for_stage).was_called_with(match.ref(state.camera), state.curr_stage_data)
         end)
 
         it('should call check_reload_map_region', function ()
@@ -140,9 +144,12 @@ describe('stage_state', function ()
         end)
 
         it('should call spawn_player_char', function ()
-          local s = assert.spy(stage_state.spawn_player_char)
-          s.was_called(1)
-          s.was_called_with(match.ref(state))
+          assert.spy(stage_state.spawn_player_char).was_called(1)
+          assert.spy(stage_state.spawn_player_char).was_called_with(match.ref(state))
+        end)
+
+        it('should assign spawned player char to camera target', function ()
+          assert.are_equal(state.player_char, state.camera.target_pc)
         end)
 
         it('should set has_reached_goal to false', function ()
@@ -726,8 +733,12 @@ describe('stage_state', function ()
       describe('check_reload_map_region', function ()
 
         setup(function ()
-          stub(stage_state, "get_map_region_coords", function (self)
-            return vector(1, 0.5)
+          stub(stage_state, "get_map_region_coords", function (self, position)
+            -- see before_each below
+            if position == vector(200, 64) then
+              return vector(1, 0.5)
+            end
+            return vector(0, 0)
           end)
           stub(stage_state, "reload_map_region")
         end)
@@ -740,6 +751,9 @@ describe('stage_state', function ()
         before_each(function ()
           -- dummy PC so it doesn't error, the stub above really decides of the result
           state.player_char = {position = vector(0, 0)}
+          -- at least set some camera position used in get_map_region_coords stub
+          --  so we can verify we are passing it correctly
+          state.camera.position = vector(200, 64)
         end)
 
         after_each(function ()
@@ -973,443 +987,20 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo update_camera', function ()
-
-            before_each(function ()
-              -- required for stage edge clamping
-              -- we only need to mock width and height,
-              --  normally we'd get full stage data as in stage_data.lua
-              state.curr_stage_data = {
-                tile_width = 100,
-                tile_height = 20
-              }
-            end)
-
-            it('(debug motion) should track the player 1:1', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_mode = motion_modes.debug
-              state.player_char.position = vector(140, 100)
-
-              state:update_camera()
-
-              assert.are_same(vector(140, 100), state.camera_pos)
-            end)
-
-            it('should move the camera X so player X is on left edge if he goes beyond left edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120 - camera_data.window_half_width - 1, 80)
-
-              state:update_camera()
-
-              assert.are_equal(120 - 1, state.camera_pos.x)
-            end)
-
-            it('should not move the camera on X if player X remains in window X (left edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120 - camera_data.window_half_width, 80)
-
-              state:update_camera()
-
-              assert.are_equal(120, state.camera_pos.x)
-            end)
-
-            it('should not move the camera on X if player X remains in window X (right edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120 + camera_data.window_half_width, 80)
-
-              state:update_camera()
-
-              assert.are_equal(120, state.camera_pos.x)
-            end)
-
-            it('should move the camera X so player X is on right edge if he goes beyond right edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120 + camera_data.window_half_width + 1, 80)
-
-              state:update_camera()
-
-              assert.are_equal(120 + 1, state.camera_pos.x)
-            end)
-
-            -- forward extension, positive X
-            -- at forward_ext_min_speed_x the ratio is still 0, so we need a little more to test actual change
-
-            it('forward extension: should increase forward extension by catch up speed when character reaches (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_catchup_speed_x, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
-            end)
-
-            it('forward extension: should increase forward extension toward max by catch up speed when character reaches max_forward_ext_speed_x', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_catchup_speed_x, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
-            end)
-
-            it('forward extension: should increase forward extension by catch up speed until half max when character stays at (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2 for long', function ()
-              -- simulate a camera that has already been moving toward half max offset and close to reaching it
-              state.camera_forward_offset = camera_data.forward_ext_max_distance / 2 - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
-              -- to reproduce the fast that the camera is more forward that it should be with window only,
-              --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_max_distance / 2, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_max_distance / 2, state.camera_pos.x)
-            end)
-
-            it('forward extension: should increase forward extension by catch up speed until max when character stays at max_forward_ext_speed_x for long', function ()
-              -- simulate a camera that has already been moving toward max offset and close to reaching it
-              state.camera_forward_offset = camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
-              -- to reproduce the fast that the camera is more forward that it should be with window only,
-              --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_max_distance, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_max_distance, state.camera_pos.x)
-            end)
-
-            it('forward extension: should increase forward extension by catch up speed until max (and not more) even when character stays *above* max_forward_ext_speed_x for long', function ()
-              state.camera_forward_offset = camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_max_distance, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_max_distance, state.camera_pos.x)
-            end)
-
-            it('forward extension: should decrease forward extension by catch up speed until half max when character goes at (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2 again', function ()
-              state.camera_forward_offset = camera_data.forward_ext_max_distance / 2 + 0.1  -- just add something lower than camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_max_distance / 2, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_max_distance / 2, state.camera_pos.x)
-            end)
-
-            it('forward extension: should decrease forward extension by catch up speed when character goes below max_forward_ext_speed_x again (and low enough to be perceptible)', function ()
-              state.camera_forward_offset = camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-
-              state:update_camera()
-
-              assert.are_equal(camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, state.camera_forward_offset)
-              assert.are_equal(120 + camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
-            end)
-
-            it('forward extension: should decrease forward extension back to 0 when character goes below forward_ext_min_speed_x for long', function ()
-              state.camera_forward_offset = 0.1  -- just something lower than camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
-
-              state:update_camera()
-
-              assert.are_equal(0, state.camera_forward_offset)
-              assert.are_equal(120, state.camera_pos.x)
-            end)
-
-            -- same, but forward is negative X
-
-            it('forward extension: should increase forward extension toward NEGATIVE by catch up speed when character reaches -max_forward_ext_speed_x', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
-
-              state:update_camera()
-
-              assert.are_equal(-camera_data.forward_ext_catchup_speed_x, state.camera_forward_offset)
-              assert.are_equal(120 - camera_data.forward_ext_catchup_speed_x, state.camera_pos.x)
-            end)
-
-            it('forward extension: should increase forward extension toward NEGATIVE by catch up speed until max when character stays above -max_forward_ext_speed_x for long', function ()
-              state.camera_forward_offset = -(camera_data.forward_ext_max_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_max_distance
-              -- to reproduce the fast that the camera is more forward that it should be with window only,
-              --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
-
-              state:update_camera()
-
-              assert.are_equal(-camera_data.forward_ext_max_distance, state.camera_forward_offset)
-              assert.are_equal(120 - camera_data.forward_ext_max_distance, state.camera_pos.x)
-            end)
-
-            it('forward extension: should decrease forward extension (in abs) by catch up speed when character goes below max_forward_ext_speed_x (in abs) again', function ()
-              state.camera_forward_offset = -camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
-
-              state:update_camera()
-
-              assert.are_equal(-(camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), state.camera_forward_offset)
-              assert.are_equal(120 - (camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), state.camera_pos.x)
-            end)
-
-            it('forward extension: should decrease forward extension (in abs) back to 0 when character goes below max_forward_ext_speed_x (in abs) for long', function ()
-              state.camera_forward_offset = -0.1  -- just something lower (in abs) than camera_data.forward_ext_max_distance
-              state.camera_pos = vector(120 + state.camera_forward_offset, 80)
-              state.player_char.position = vector(120, 80)
-              state.player_char.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
-
-              state:update_camera()
-
-              assert.are_equal(0, state.camera_forward_offset)
-              assert.are_equal(120, state.camera_pos.x)
-            end)
-
-            -- Y
-
-            it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              -- alternative +/- ground speed to check abs logic
-              state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
-              -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
-              --  fast vertically... but it should be possible on a very high slope. Here we imagine a wall where we move
-              --  at ground speed 3.5, 100% vertically!
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y + 0.5))
-
-              state:update_camera()
-
-              -- extra 0.5 was cut
-              assert.are_equal(80 - camera_data.slow_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
-              -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y + 0.5))
-
-              state:update_camera()
-
-              -- extra 0.5 was cut
-              assert.are_equal(80 - camera_data.fast_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than low catchup speed', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y - 0.5))
-
-              state:update_camera()
-
-              assert.are_equal(80 - (camera_data.slow_catchup_speed_y - 0.5), state.camera_pos.y)
-            end)
-
-            it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than fast catchup speed', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = -camera_data.fast_catchup_min_ground_speed
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y - 0.5))
-
-              state:update_camera()
-
-              assert.are_equal(80 - (camera_data.fast_catchup_speed_y - 0.5), state.camera_pos.y)
-            end)
-
-            it('(standing) should not move the camera Y if player Y remains in window Y (top edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y)
-
-              state:update_camera()
-
-              assert.are_equal(80, state.camera_pos.y)
-            end)
-
-            it('(standing) should not move the camera Y if player Y remains in window Y (bottom edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y)
-
-              state:update_camera()
-
-              assert.are_equal(80, state.camera_pos.y)
-            end)
-
-            it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y - 0.5))
-
-              state:update_camera()
-
-              assert.are_equal(80 + (camera_data.slow_catchup_speed_y - 0.5), state.camera_pos.y)
-            end)
-
-            it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = -camera_data.fast_catchup_min_ground_speed
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y - 0.5))
-
-              state:update_camera()
-
-              assert.are_equal(80 + (camera_data.fast_catchup_speed_y - 0.5), state.camera_pos.y)
-            end)
-
-            it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
-              -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
-              --  fast vertically... but it should be possible on a very high slope. Here we imagine a wall where we move
-              --  at ground speed 3.5, 100% vertically!
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y + 0.5))
-
-              state:update_camera()
-
-              -- extra 0.5 was cut
-              assert.are_equal(80 + camera_data.slow_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.standing
-              state.player_char.ground_speed = camera_data.fast_catchup_min_ground_speed
-              -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
-              state.player_char.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y + 0.5))
-
-              state:update_camera()
-
-              -- extra 0.5 was cut
-              assert.are_equal(80 + camera_data.fast_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to top edge) if player Y goes beyond top edge faster than fast_catchup_speed_y', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - (camera_data.fast_catchup_speed_y + 5))
-
-              state:update_camera()
-
-              -- extra 5 was cut
-              assert.are_equal(80 - camera_data.fast_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('(airborne) should move the camera Y so player Y is on top edge if he goes beyond top edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - 1)
-
-              state:update_camera()
-
-              assert.are_equal(80 - 1, state.camera_pos.y)
-            end)
-
-            it('(airborne) should not move the camera on Y if player Y remains in window Y (top edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height)
-
-              state:update_camera()
-
-              assert.are_equal(80, state.camera_pos.y)
-            end)
-
-            it('(airborne) should not move the camera on X if player X remains in window X (bottom edge)', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height)
-
-              state:update_camera()
-
-              assert.are_equal(80, state.camera_pos.y)
-            end)
-
-            it('(airborne) should move the camera X so player X is on bottom edge if he goes beyond bottom edge', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + 1)
-
-              state:update_camera()
-
-              assert.are_equal(80 + 1, state.camera_pos.y)
-            end)
-
-            it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to bottom edge) if player Y goes beyond bottom edge faster than fast_catchup_speed_y', function ()
-              state.camera_pos = vector(120, 80)
-              state.player_char.motion_state = motion_states.air_spin
-              state.player_char.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + (camera_data.fast_catchup_speed_y + 5))
-
-              state:update_camera()
-
-              -- extra 5 was cut
-              assert.are_equal(80 + camera_data.fast_catchup_speed_y, state.camera_pos.y)
-            end)
-
-            it('should move the camera to player position, clamped (top-left)', function ()
-              -- start near/at the edge already, if you're too far the camera won't have
-              --  time to reach the edge in one update due to smooth motion (in y)
-              state.camera_pos = vector(64 + 3, 64 + 8)
-              state.player_char.position = vector(12, 24)
-
-              state:update_camera()
-
-              assert.are_same(vector(64, 64), state.camera_pos)
-            end)
-
-            it('should move the camera to player position, clamped (bottom-right)', function ()
-              -- start near/at the edge already, if you're too far the camera won't have
-              --  time to reach the edge in one update due to smooth motion (in y)
-              state.camera_pos = vector(800-64, 160-64)
-              state.player_char.position = vector(2000, 1000)
-
-              state:update_camera()
-
-              assert.are_same(vector(800-64, 160-64), state.camera_pos)
-            end)
-
-          end)
-
           describe('update', function ()
 
             setup(function ()
               stub(stage_state, "update_fx")
               stub(player_char, "update")
               stub(stage_state, "check_reached_goal")
-              stub(stage_state, "update_camera")
+              stub(camera_class, "update")
             end)
 
             teardown(function ()
               stage_state.update_fx:revert()
               player_char.update:revert()
               stage_state.check_reached_goal:revert()
-              stage_state.update_camera:revert()
+              camera_class.update:revert()
             end)
 
             before_each(function ()
@@ -1426,14 +1017,14 @@ describe('stage_state', function ()
               stage_state.update_fx:clear()
               player_char.update:clear()
               stage_state.check_reached_goal:clear()
-              stage_state.update_camera:clear()
+              camera_class.update:clear()
 
               stage_state.check_reload_map_region:revert()
             end)
 
             describe('(current substate is play)', function ()
 
-              it('should call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
+              it('should call player_char:update, check_reached_goal, update, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.play
 
                 state:update()
@@ -1445,8 +1036,8 @@ describe('stage_state', function ()
                 assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
                 assert.spy(stage_state.check_reached_goal).was_called(1)
                 assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
-                assert.spy(stage_state.update_camera).was_called(1)
-                assert.spy(stage_state.update_camera).was_called_with(match.ref(state))
+                assert.spy(camera_class.update).was_called(1)
+                assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
                 assert.spy(stage_state.check_reload_map_region).was_called(1)
                 assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
               end)
@@ -1454,7 +1045,7 @@ describe('stage_state', function ()
 
             describe('(current substate is result)', function ()
 
-              it('should not call player_char:update, check_reached_goal, update_camera, check_reload_map_region', function ()
+              it('should not call player_char:update, check_reached_goal, update, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.result
 
                 state:update()
@@ -1464,7 +1055,7 @@ describe('stage_state', function ()
 
                 assert.spy(player_char.update).was_not_called()
                 assert.spy(stage_state.check_reached_goal).was_not_called()
-                assert.spy(stage_state.update_camera).was_not_called()
+                assert.spy(camera_class.update).was_not_called()
                 assert.spy(stage_state.check_reload_map_region).was_not_called()
               end)
 
@@ -1866,13 +1457,13 @@ describe('stage_state', function ()
           describe('set_camera_with_origin', function ()
 
             it('should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
-              state.camera_pos = vector(24, 13)
+              state.camera.position = vector(24, 13)
               state:set_camera_with_origin()
               assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
             end)
 
             it('should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
-              state.camera_pos = vector(24, 13)
+              state.camera.position = vector(24, 13)
               state:set_camera_with_origin(vector(10, 20))
               assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
             end)
@@ -1904,7 +1495,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo misc state render methods', function ()
+          describe('misc state render methods', function ()
 
             setup(function ()
               spy.on(stage_state, "set_camera_with_origin")
@@ -1947,9 +1538,9 @@ describe('stage_state', function ()
             end)
 
             it('render_background should reset camera position', function ()
-              -- set a value so that 156 - 0.5 * self.camera_pos.y is between -32 and 58,
+              -- set a value so that 156 - 0.5 * self.camera.position.y is between -32 and 58,
               --  just so we try to draw both background sea at the top, and forest bottom
-              state.camera_pos = vector(24, 220)
+              state.camera.position = vector(24, 220)
 
               state:render_background()
 
@@ -2145,7 +1736,7 @@ describe('stage_state', function ()
             -- draw_onscreen_tiles is DEPRECATED
             it('draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 0))', function ()
               state.loaded_map_region_coords = vector(0, 0)
-              state.camera_pos = vector(0, 0)
+              state.camera.position = vector(0, 0)
 
               state:draw_onscreen_tiles()
 
@@ -2160,7 +1751,7 @@ describe('stage_state', function ()
 
             it('draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 0))', function ()
               state.loaded_map_region_coords = vector(0, 0)
-              state.camera_pos = vector(0, 0)
+              state.camera.position = vector(0, 0)
 
               state:draw_onscreen_tiles(function (i, j)
                 -- just a condition that will only show first tile
@@ -2180,7 +1771,7 @@ describe('stage_state', function ()
               --  but for this test, don't go too far as we must have the test tiles on-screen,
               --  and since there were originally placed for (0, 0) as in the test above,
               --  for the lower region everything is offset by 32 on y so we should be around (0, 32)
-              state.camera_pos = vector(0, tile_size * 40)
+              state.camera.position = vector(0, tile_size * 40)
 
               state:draw_onscreen_tiles()
 
@@ -2195,7 +1786,7 @@ describe('stage_state', function ()
 
             it('draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 1))', function ()
               state.loaded_map_region_coords = vector(0, 1)
-              state.camera_pos = vector(0, tile_size * 40)
+              state.camera.position = vector(0, tile_size * 40)
               state:draw_onscreen_tiles(function (i, j)
                 -- just a condition that will only show first tile
                 return i == 0 and j == 0
@@ -2211,7 +1802,7 @@ describe('stage_state', function ()
             it('render_environment_midground should call map for all midground sprites', function ()
               -- note that we reverted to using map for performance, so this test doesn't need to be
               --  in the tile test data setup context anymore
-              state.camera_pos = vector(0, 0)
+              state.camera.position = vector(0, 0)
               state.loaded_map_region_coords = vector(0, 0)
 
               state:render_environment_midground()
@@ -2228,7 +1819,7 @@ describe('stage_state', function ()
             it('render_environment_foreground should call spr on tiles present on screen', function ()
               -- this test was not written before extracting draw_onscreen_tiles
               --  but it was copy-pasted from render_environment_midground
-              state.camera_pos = vector(0, 0)
+              state.camera.position = vector(0, 0)
               state.loaded_map_region_coords = vector(2, 1)
 
               state:render_environment_foreground()

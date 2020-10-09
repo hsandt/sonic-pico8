@@ -3,11 +3,10 @@ local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local overlay = require("engine/ui/overlay")
 
+local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
-local fx = require("ingame/fx")
 local player_char = require("ingame/playercharacter")
-local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual")
@@ -58,10 +57,9 @@ function stage_state:init()
   -- used to draw the palm tree extension sprites on foreground
   self.palm_tree_leaves_core_global_locations = {}
 
-  -- position of the main camera, at the center of the view
-  self.camera_pos = vector.zero()
-  -- camera forward offset (px, signed)
-  self.camera_forward_offset = 0
+  -- create camera, but wait for player character to spawn before assigning it a target
+  -- see on_enter for how we warp it to a good place first
+  self.camera = camera_class()
 
   -- title overlay
   self.title_overlay = overlay(0)
@@ -107,11 +105,15 @@ function stage_state:on_enter()
   -- region being based on camera, we need to set the camera position first
   -- anywhere near the spawning location is good (worst case, it's too far and the character
   --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
-  self.camera_pos = self.curr_stage_data.spawn_location:to_center_position()
+  -- this is currently done as part of setup_for_stage, which also stores stage data for later clamping
+  self.camera:setup_for_stage(self.curr_stage_data)
   self:check_reload_map_region()
 
   self.current_substate = stage_state.substates.play
+
   self:spawn_player_char()
+  self.camera.target_pc = self.player_char
+
   self.has_reached_goal = false
 
   self.app:start_coroutine(self.show_stage_title_async, self)
@@ -155,7 +157,7 @@ function stage_state:update()
   if self.current_substate == stage_state.substates.play then
     self.player_char:update()
     self:check_reached_goal()
-    self:update_camera()
+    self.camera:update()
     self:check_reload_map_region()
   else
     -- add stage ending logic here
@@ -540,7 +542,7 @@ function stage_state:check_reload_map_region()
   --    know where to search tile data with correct region origin
   -- 2. if camera moves away from player a bit too much, we are sure never to discover empty tiles
   --    in unloaded areas as the regions would be loaded by tracking camera movement
-  local new_map_region_coords = self:get_map_region_coords(self.camera_pos)
+  local new_map_region_coords = self:get_map_region_coords(self.camera.position)
 
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
@@ -763,113 +765,6 @@ end
 
 -- camera
 
--- update camera position based on player character position
-function stage_state:update_camera()
---#if cheat
-    if self.player_char.motion_mode == motion_modes.debug then
-      -- in debug motion, just track the character (otherwise he may move too fast vertically
-      --  and lost the camera)
-      self.camera_pos = self.player_char.position
-      return
-    end
-    -- else: self.motion_mode == motion_modes.platformer
---#endif
-
-  -- Window system: most of the time, only move camera when character
-  --  is leaving the central window
-
-  -- X tracking
-
-  -- Window system
-  -- clamp to required window
-  -- Be sure to use the non-forward-offset camera position X by subtracting the old
-  --  self.camera_forward_offset
-  -- (if you subtract self.camera_forward_offset after its update below,
-  --  result will change slightly)
-  local windowed_camera_x = mid(self.camera_pos.x - self.camera_forward_offset,
-    self.player_char.position.x - camera_data.window_half_width,
-    self.player_char.position.x + camera_data.window_half_width)
-
-  -- Forward offset system
-
-  -- # Base
-
-  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.player_char.orientation]
-
-  -- # Extension
-
-  -- When character is moving fast on X, the camera moves slightly forward
-  -- When moving slowly again, the forward offset is gradually reduced back to zero
-  -- The rest of the time, camera X is just set to where it should be, using the window system
-  -- To make window and extension system independent, and avoid having the window
-  --  system clamp immediately the extension when character suddenly changes direction,
-  --  we track the extension offset independently.
-  -- This means that when checking if character X is inside the window,
-  --  we must mentally subtract the offset back to get the non-extended camera position
-  --  (or we could store some self.base_camera_pos if we didn't mind the extra member)
-
-  -- running fast enough activate forward extension (if below forward_ext_min_speed_x, ratio will be 0)
-  -- unlike original game, we prefer a gradual increase toward the max extension distance to avoid
-  --  jittering when running on a bumpy ground that makes character oscillates between 2.9 and 3 (the threshold
-  --  at which they activate forward extension)
-  --  (the original game uses ground speed not velocity X so it doesn't have this issue)
-  local range = camera_data.max_forward_ext_speed_x - camera_data.forward_ext_min_speed_x
-  local ratio = mid(0, 1, (abs(self.player_char.velocity.x) - camera_data.forward_ext_min_speed_x) / range)
-  -- remember that our offset is signed to allow left/right transitions
-  local forward_ext_offset = sgn(self.player_char.velocity.x) * ratio * camera_data.forward_ext_max_distance
-
-  -- Combine both
-  local target_forward_offset = forward_base_offset + forward_ext_offset
-
-  -- compute delta to target
-  local forward_dx = target_forward_offset - self.camera_forward_offset
-
-  -- clamp abs forward_dx with catchup speed
-  forward_dx = sgn(forward_dx) * min(abs(forward_dx), camera_data.forward_ext_catchup_speed_x)
-
-  -- apply delta
-  self.camera_forward_offset = self.camera_forward_offset + forward_dx
-
-  -- combine Window and Forward extension
-  self.camera_pos.x = windowed_camera_x + self.camera_forward_offset
-
-  -- Y tracking
-  -- unlike original game we simply use the current center position even when compact (curled)
-  --  instead of the ghost standing center position
-  if self.player_char:is_grounded() then
-    -- on the ground, stick to y as much as possible
-    local target_y = self.player_char.position.y - camera_data.window_center_offset_y
-    local dy = target_y - self.camera_pos.y
-
-    -- clamp abs dy with catchup speed (which depends on ground speed)
-    local catchup_speed_y = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
-      camera_data.slow_catchup_speed_y or camera_data.fast_catchup_speed_y
-    dy = sgn(dy) * min(abs(dy), catchup_speed_y)
-
-    -- apply move
-    self.camera_pos.y = self.camera_pos.y + dy
-  else
-    -- in the air apply vertical window (stick to top and bottom edges)
-    local target_y = mid(self.camera_pos.y,
-      self.player_char.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
-      self.player_char.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
-    local dy = target_y - self.camera_pos.y
-
-    -- clamp abs dy with fast catchup speed
-    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed_y)
-
-    -- apply move
-    self.camera_pos.y = self.camera_pos.y + dy
-  end
-
-  -- clamp on level edges (we are handling the center so need offset by screen_width/height)
-  self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  self.camera_pos.y = mid(screen_height / 2, self.camera_pos.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
-
-  printh("self.player_char.position: "..nice_dump(self.player_char.position))
-  printh("self.camera_pos: "..nice_dump(self.camera_pos))
-end
-
 -- set the camera offset to draw stage elements with optional origin (default (0, 0))
 -- tilemap should be drawn with region map topleft (in px) as origin
 -- characters and items should be drawn with extended map topleft (0, 0) as origin
@@ -878,7 +773,7 @@ function stage_state:set_camera_with_origin(origin)
   -- the camera position is used to render the stage. it represents the screen center
   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
   -- finally subtract the origin to place tiles correctly
-  camera(self.camera_pos.x - screen_width / 2 - origin.x, self.camera_pos.y - screen_height / 2 - origin.y)
+  camera(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
 end
 
 -- set the camera offset to draw stage elements with region origin
@@ -917,7 +812,7 @@ function stage_state:render_background()
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_dy = 156 - 0.5 * self.camera_pos.y
+  local horizon_line_dy = 156 - 0.5 * self.camera.position.y
   camera(0, -horizon_line_dy)
 
   -- only draw sky and sea if camera is high enough
@@ -1017,7 +912,7 @@ function stage_state:draw_background_sea()
     -- we have speed 0 at the horizon line, so no need to compute min
     -- note that real optics would give some 1 / tan(distance) factor but linear is enough for us
     local parallax_speed = water_parallax_speed_max * min(6, dy) / 6
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    local parallax_offset = flr(parallax_speed * self.camera.position.x)
     self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
   end
 end
@@ -1044,7 +939,7 @@ function stage_state:draw_background_forest_top()
   -- leaves (before trees so trees can hide some leaves with base height too long if needed)
   for j = 0, 1 do
     local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j  -- actually j / 1 where 1 is max j
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    local parallax_offset = flr(parallax_speed * self.camera.position.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
     self:draw_leaves_row(parallax_offset, 31 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
@@ -1054,7 +949,7 @@ function stage_state:draw_background_forest_top()
   for j = 0, 3 do
     -- elements farther from camera have slower parallax speed, closest has base parallax speed
     local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+    local parallax_offset = flr(parallax_speed * self.camera.position.x)
     -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
     self:draw_tree_row(parallax_offset, 31 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
       self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
@@ -1080,7 +975,7 @@ function stage_state:draw_background_forest_bottom(horizon_line_dy)
   -- put value slightly lower than leaves_row_parallax_speed_min (0.36) since holes are supposed to be yet
   --  a bit farther, so slightly slower in parallax
   local parallax_speed = 0.3
-  local parallax_offset = flr(parallax_speed * self.camera_pos.x)
+  local parallax_offset = flr(parallax_speed * self.camera.position.x)
 
   -- place holes at different levels for more variety
   local tile_offset_j_cycle = {0, 1, 3}
@@ -1267,8 +1162,8 @@ end
 --  where (i, j) is the location of the tile to possibly draw
 function stage_state:draw_onscreen_tiles(condition_callback)
   -- get screen corners
-  local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
-  local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
+  local screen_topleft = self.camera.position - vector(screen_width / 2, screen_height / 2)
+  local screen_bottomright = self.camera.position + vector(screen_width / 2, screen_height / 2)
 
   local region_topleft_loc = self:get_region_topleft_location()
 

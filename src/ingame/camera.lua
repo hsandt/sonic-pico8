@@ -16,7 +16,14 @@ function camera_class:init()
   self.position = vector.zero()
 
   -- camera forward offset (px, signed)
+  -- this intermediate value needs to be stored because it follows its own catchup over time
   self.forward_offset = 0
+
+--#if busted
+  -- intermediate values that are much easier to test when isolated, but don't need to be stored
+  --  at runtime (only set in update, not in setup)
+  self.base_position_x = 0
+--#endif
 end
 
 -- setup camera for stage data
@@ -56,6 +63,10 @@ function camera_class:update()
   local windowed_camera_x = mid(self.position.x - self.forward_offset,
     self.target_pc.position.x - camera_data.window_half_width,
     self.target_pc.position.x + camera_data.window_half_width)
+
+--#if busted
+  self.base_position_x = windowed_camera_x
+--#endif
 
   -- Forward offset system
 

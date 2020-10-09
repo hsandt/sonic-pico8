@@ -42,7 +42,7 @@ local camera_data = {
   --  the fact that PICO-8 screen has a much shorter width, being a square)
 
   -- base forward offset following character orientation (px)
-  forward_distance = 0,
+  forward_distance = 8,
 
   -- Extension: When character is moving fast on X, the camera moves even farther forward
   --  so the player can see what's incoming (Sonic CD only, but common in modern speed platformers)

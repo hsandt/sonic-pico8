@@ -60,8 +60,8 @@ function stage_state:init()
 
   -- position of the main camera, at the center of the view
   self.camera_pos = vector.zero()
-  -- camera forward extension offset (px, signed)
-  self.camera_forward_ext_offset = 0
+  -- camera forward offset (px, signed)
+  self.camera_forward_offset = 0
 
   -- title overlay
   self.title_overlay = overlay(0)
@@ -782,15 +782,22 @@ function stage_state:update_camera()
 
   -- Window system
   -- clamp to required window
-  -- Be sure to use the non-extended camera position X by subtracting the old
-  --  self.camera_forward_ext_offset
-  -- (if you subtract self.camera_forward_ext_offset after its update below,
+  -- Be sure to use the non-forward-offset camera position X by subtracting the old
+  --  self.camera_forward_offset
+  -- (if you subtract self.camera_forward_offset after its update below,
   --  result will change slightly)
-  local windowed_camera_x = mid(self.camera_pos.x - self.camera_forward_ext_offset,
+  local windowed_camera_x = mid(self.camera_pos.x - self.camera_forward_offset,
     self.player_char.position.x - camera_data.window_half_width,
     self.player_char.position.x + camera_data.window_half_width)
 
-  -- Forward extension system:
+  -- Forward offset system
+
+  -- # Base
+
+  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.player_char.orientation]
+
+  -- # Extension
+
   -- When character is moving fast on X, the camera moves slightly forward
   -- When moving slowly again, the forward offset is gradually reduced back to zero
   -- The rest of the time, camera X is just set to where it should be, using the window system
@@ -809,19 +816,22 @@ function stage_state:update_camera()
   local range = camera_data.max_forward_ext_speed_x - camera_data.forward_ext_min_speed_x
   local ratio = mid(0, 1, (abs(self.player_char.velocity.x) - camera_data.forward_ext_min_speed_x) / range)
   -- remember that our offset is signed to allow left/right transitions
-  local target_forward_ext_offset = sgn(self.player_char.velocity.x) * ratio * camera_data.forward_ext_max_distance
+  local forward_ext_offset = sgn(self.player_char.velocity.x) * ratio * camera_data.forward_ext_max_distance
+
+  -- Combine both
+  local target_forward_offset = forward_base_offset + forward_ext_offset
 
   -- compute delta to target
-  local ext_dx = target_forward_ext_offset - self.camera_forward_ext_offset
+  local forward_dx = target_forward_offset - self.camera_forward_offset
 
-  -- clamp abs ext_dx with catchup speed
-  ext_dx = sgn(ext_dx) * min(abs(ext_dx), camera_data.forward_ext_catchup_speed_x)
+  -- clamp abs forward_dx with catchup speed
+  forward_dx = sgn(forward_dx) * min(abs(forward_dx), camera_data.forward_ext_catchup_speed_x)
 
   -- apply delta
-  self.camera_forward_ext_offset = self.camera_forward_ext_offset + ext_dx
+  self.camera_forward_offset = self.camera_forward_offset + forward_dx
 
   -- combine Window and Forward extension
-  self.camera_pos.x = windowed_camera_x + self.camera_forward_ext_offset
+  self.camera_pos.x = windowed_camera_x + self.camera_forward_offset
 
   -- Y tracking
   -- unlike original game we simply use the current center position even when compact (curled)
@@ -855,6 +865,9 @@ function stage_state:update_camera()
   -- clamp on level edges (we are handling the center so need offset by screen_width/height)
   self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
   self.camera_pos.y = mid(screen_height / 2, self.camera_pos.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
+
+  printh("self.player_char.position: "..nice_dump(self.player_char.position))
+  printh("self.camera_pos: "..nice_dump(self.camera_pos))
 end
 
 -- set the camera offset to draw stage elements with optional origin (default (0, 0))

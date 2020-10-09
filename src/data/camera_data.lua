@@ -35,9 +35,19 @@ local camera_data = {
   --  fast_catchup_min_ground_speed or more (e.g. when rolling fast)
   fast_catchup_speed_y = 8,
 
-  -- Forward extension system:
-  -- When character is moving fast on X, the camera moves slightly forward
+  -- Forward offset system
+
+  -- Base: When character is looking forward a horizontal direction for a certain time
+  --  or on landing, the camera moves slightly forward (original feature to counter
+  --  the fact that PICO-8 screen has a much shorter width, being a square)
+
+  -- base forward offset following character orientation (px)
+  forward_distance = 0,
+
+  -- Extension: When character is moving fast on X, the camera moves even farther forward
   --  so the player can see what's incoming (Sonic CD only, but common in modern speed platformers)
+  -- If orientation is opposed to velocity X (backward running / jumping),
+  --  both offsets oppose each other
   -- As suggested by the SPG, we apply this to airborne motion instead of only ground speed in Sonic CD
   -- In counterpart, because we don't apply this to ground speed anymore,
   --  running on a slope will be considered slower in X and will require an even higher ground speed

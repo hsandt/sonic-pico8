@@ -1086,7 +1086,11 @@ function stage_state:draw_background_forest_bottom(horizon_line_dy)
     --  so the offset per i is the same as the area width
     local area_width = 8 * tile_size
     local x0 = (80 - parallax_offset) + area_width * i
-    x0 = (x0 + area_width) % 192 - area_width
+    -- x0 is actually the left of the hole itself, but the full hole patch with light shaft starts
+    --  2 tiles more on the left, so we should work with x0 - 2 * tile_size, which gives the true
+    --  offset:
+    local modulo_offset = area_width - 2 * tile_size
+    x0 = (x0 + modulo_offset) % 192 - modulo_offset
     local y0 = 102
     -- sprite topleft is placed at (x0, y0), and we program graphics around sprite from that position
     -- dark green patch around the hole

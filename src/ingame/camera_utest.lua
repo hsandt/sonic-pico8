@@ -18,7 +18,7 @@ describe('camera', function ()
 
   describe('setup_for_stage', function ()
 
-    it('should initialize camera at future character spawn position', function ()
+    it('should initialize camera at future character spawn position (+ estimated future forward base offset)', function ()
       local mock_curr_stage_data = {
         spawn_location = location(1, 2)
       }
@@ -28,6 +28,18 @@ describe('camera', function ()
 
       local spawn_position = mock_curr_stage_data.spawn_location:to_center_position()
       assert.are_same(spawn_position, cam.position)
+    end)
+
+    it('should initialize forward_offset to + camera_data.forward_distance ', function ()
+      local mock_curr_stage_data = {
+        -- doesn't matter for this test
+        spawn_location = location(1, 2)
+      }
+
+      local cam = camera_class()
+      cam:setup_for_stage(mock_curr_stage_data)
+
+      assert.are_same(camera_data.forward_distance, cam.forward_offset)
     end)
 
   end)

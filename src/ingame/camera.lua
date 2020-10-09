@@ -38,6 +38,14 @@ function camera_class:setup_for_stage(data)
   --  so the tilemap region is loaded properly for collision detection; but centering it
   --  on the character first makes sense, since with the window system several positions are possible)
   self.position = data.spawn_location:to_center_position()
+
+  -- prepare forward base offset set for future character (we assume it will be facing right)
+  --  just so camera doesn't move just on start (this is quick, would probably
+  --  be covered by stage splash screen eventually)
+  -- note that we don't need to also add this offset (as a vector) to self.position,
+  --  since it will be updated with forward_offset next frame (right now, position is really
+  --  set just for the initial region loading, so only the approx. location matters)
+  self.forward_offset = camera_data.forward_distance
 end
 
 -- update camera position based on player character position

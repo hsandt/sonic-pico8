@@ -68,7 +68,7 @@ You can directly download a released version of the game on the [releases](Relea
 
 However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
 
-1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 carts folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
+1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 *carts* folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
 
 2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
 
@@ -108,8 +108,12 @@ where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.
 To play the release version (no debugging features, but more compact code and more likely to fit into a PICO-8 cartridge):
 
 * `cd path/to/sonic-pico8-repo`
-* `./build_game.sh` release
-* `./run_game_release.sh`
+* `./build_and_install_all_cartridges.sh` release
+* `./run_cartridge.sh titlemenu release`
+
+This will build and install all cartridges into the PICO-8 *carts* folder, then run the entry cartridge (`titlemenu`) from there. Replace `titlemenu` with `ingame` to directly start in the Angel Island stage.
+
+As explained in the *Releases* section, playing the game in the *carts* folders is required because the project uses multiple cartridges, and PICO-8 can only load appendix cartridges from there.
 
 ### Run integration tests
 
@@ -123,7 +127,7 @@ Integration tests consists in game simulations in predetermined scenarios, and a
 
 `sonic-2d-tech-demo.sublime-project` contains the most used commands for building the game. If you don't use Sublime Text, you won't be able to run the commands directly, but you can still read this project file to understand how the scripts are used, and do the same in a terminal. You can also copy-paste the commands to the project configuration of your favorite code editor instead.
 
-All the build and run commands revolve around the scripts `build_game.sh` / `build_itest.sh` and `run_game.sh` / `run_itest.sh`. Once you understand them, you can create your own build and run commands for your specific needs.
+All the build and run commands revolve around the scripts `build_single_cartridge.sh` / `build_itest.sh` and `run_cartridge.sh` / `run_itest.sh`. Once you understand them, you can create your own build and run commands for your specific needs.
 
 ## Test
 

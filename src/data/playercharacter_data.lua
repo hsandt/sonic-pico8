@@ -117,7 +117,8 @@ local playercharacter_data = {
   jump_interrupt_speed_frame = 2,
 
   -- absolute vertical speed given by spring bounce (px/frame)
-  -- from this and gravity we can deduce the max jump height: 116.71875 (14+ tiles) at frame 45
+  -- from this and gravity we can deduce the max jump height: 116.71875
+  --  (measurement with debug step: 112) ~ 14+ tiles at frame 45
   spring_jump_speed_frame = 5,
 
   -- ground speed required to trigger launch ramp (px/frame)

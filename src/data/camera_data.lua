@@ -44,6 +44,9 @@ local camera_data = {
   -- base forward offset following character orientation (px)
   forward_distance = 8,
 
+  -- time before grounded orientation effectively changes base forward offset direction (frames)
+  grounded_orientation_confirmation_duration = 30,
+
   -- Extension: When character is moving fast on X, the camera moves even farther forward
   --  so the player can see what's incoming (Sonic CD only, but common in modern speed platformers)
   -- If orientation is opposed to velocity X (backward running / jumping),
@@ -68,7 +71,7 @@ local camera_data = {
   forward_ext_max_distance = 32,
 
   -- catchup speed on X to reach maximum forward extension (px/frame)
-  forward_ext_catchup_speed_x = 1,
+  forward_ext_catchup_speed_x = 0.5,
 }
 
 return camera_data

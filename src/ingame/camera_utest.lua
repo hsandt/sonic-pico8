@@ -10,8 +10,8 @@ describe('camera', function ()
 
     it('should init members to defaults', function ()
       local cam = camera_class()
-      assert.are_same({nil, vector.zero(), 0, horizontal_dirs.right},
-        {cam.target_pc, cam.position, cam.forward_offset, cam.last_grounded_orientation})
+      assert.are_same({nil, vector.zero(), 0, true, horizontal_dirs.right, 0},
+        {cam.target_pc, cam.position, cam.forward_offset, cam.was_pc_grounded, cam.last_grounded_orientation, cam.time_since_grounded_orientation_change})
     end)
 
   end)
@@ -75,24 +75,92 @@ describe('camera', function ()
       assert.are_same(vector(140, 100), cam.position)
     end)
 
-    it('(pc grounded) should update last_grounded_orientation', function ()
+    it('(pc grounded, last orientation is not current) should change last_grounded_orientation and reset frames_since_grounded_orientation_change', function ()
+      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.left
+      cam.frames_since_grounded_orientation_change = 1
       cam.target_pc.orientation = horizontal_dirs.left
       cam.target_pc.motion_state = motion_states.standing
 
       cam:update()
 
-      assert.are_same(horizontal_dirs.left, cam.last_grounded_orientation)
+      assert.are_same({horizontal_dirs.left, 0}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
     end)
 
-    it('(pc not grounded) should not update last_grounded_orientation', function ()
+    it('(pc grounded, last orientation is current, but not confirmed and timer has just started) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change, keep confirmed orientation', function ()
+      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
-      cam.target_pc.orientation = horizontal_dirs.left
+      cam.confirmed_orientation = horizontal_dirs.left
+      cam.frames_since_grounded_orientation_change = 1
+      cam.target_pc.orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.standing
+
+      cam:update()
+
+      assert.are_same({horizontal_dirs.right, 2, horizontal_dirs.left}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change, cam.confirmed_orientation})
+    end)
+
+    it('(pc grounded, last orientation is current, but not confirmed and timer is just before the end) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change and change confirmed_orientation', function ()
+      cam.was_pc_grounded = false
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.left
+      cam.frames_since_grounded_orientation_change = camera_data.grounded_orientation_confirmation_duration - 1
+      cam.target_pc.orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.standing
+
+      cam:update()
+
+      assert.are_same({horizontal_dirs.right, camera_data.grounded_orientation_confirmation_duration, horizontal_dirs.right}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change, cam.confirmed_orientation})
+    end)
+
+    it('(pc grounded, last orientation is current, and confirmed) should keep last_grounded_orientation and keep frames_since_grounded_orientation_change', function ()
+      cam.was_pc_grounded = false
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
+      cam.frames_since_grounded_orientation_change = 1
+      cam.target_pc.orientation = horizontal_dirs.right
+      cam.target_pc.motion_state = motion_states.standing
+
+      cam:update()
+
+      assert.are_same({horizontal_dirs.right, 1}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
+    end)
+
+    it('(pc not grounded, last orientation is not confirmed) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change, keep confirmed orientation', function ()
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.left
+      cam.frames_since_grounded_orientation_change = 1
+      cam.target_pc.orientation = horizontal_dirs.left  -- ignored in the air
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
 
-      assert.are_same(horizontal_dirs.right, cam.last_grounded_orientation)
+      assert.are_same({horizontal_dirs.right, 2, horizontal_dirs.left}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change, cam.confirmed_orientation})
+    end)
+
+    it('(pc not grounded, last orientation is not confirmed) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change, change confirmed orientation', function ()
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.left
+      cam.frames_since_grounded_orientation_change = camera_data.grounded_orientation_confirmation_duration - 1
+      cam.target_pc.orientation = horizontal_dirs.left  -- ignored in the air
+      cam.target_pc.motion_state = motion_states.falling
+
+      cam:update()
+
+      assert.are_same({horizontal_dirs.right, camera_data.grounded_orientation_confirmation_duration, horizontal_dirs.right}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change, cam.confirmed_orientation})
+    end)
+
+    it('(pc not grounded, last orientation is confirmed) should keep last_grounded_orientation and keep frames_since_grounded_orientation_change', function ()
+      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
+      cam.frames_since_grounded_orientation_change = 1
+      cam.target_pc.orientation = horizontal_dirs.left  -- ignored in the air
+      cam.target_pc.motion_state = motion_states.falling
+
+      cam:update()
+
+      assert.are_same({horizontal_dirs.right, 1}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
     end)
 
     -- below, make sure to test base_position_x instead of cam.position.x if you want to ignore the forward offset,
@@ -142,10 +210,10 @@ describe('camera', function ()
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
       -- we try to set state to falling to make sure we don't update
-      --  last_grounded_orientation and use the stored one
+      --  confirmed_orientation and use the stored one
       -- for the same reason we don't care about cam.target_pc.orientation here,
-      --  but set last_grounded_orientation instead
-      cam.last_grounded_orientation = horizontal_dirs.right
+      --  but set confirmed_orientation instead
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -159,7 +227,7 @@ describe('camera', function ()
       cam.forward_offset = camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -175,7 +243,7 @@ describe('camera', function ()
       cam.forward_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.last_grounded_orientation = horizontal_dirs.left
+      cam.confirmed_orientation = horizontal_dirs.left
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -189,7 +257,7 @@ describe('camera', function ()
       cam.forward_offset = - camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
-      cam.last_grounded_orientation = horizontal_dirs.left
+      cam.confirmed_orientation = horizontal_dirs.left
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -207,7 +275,7 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -222,7 +290,7 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -242,7 +310,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -262,7 +330,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -279,7 +347,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -296,7 +364,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -313,7 +381,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -330,7 +398,7 @@ describe('camera', function ()
       cam.position = vector(120 + cam.forward_offset, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()
@@ -349,7 +417,7 @@ describe('camera', function ()
       cam.position = vector(120, 80)
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
-      cam.last_grounded_orientation = horizontal_dirs.right
+      cam.confirmed_orientation = horizontal_dirs.right
       cam.target_pc.motion_state = motion_states.falling
 
       cam:update()

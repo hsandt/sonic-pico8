@@ -15,12 +15,19 @@ function camera_class:init()
   -- position of the camera, at the center of the view
   self.position = vector.zero()
 
-  -- store last grounded orientation of character to keep using it while it is airborne
-  self.last_grounded_orientation = horizontal_dirs.right
-
   -- camera forward offset (px, signed)
   -- this intermediate value needs to be stored because it follows its own catchup over time
   self.forward_offset = 0
+
+  -- store last grounded orientation of character to keep using it while it is airborne
+  self.last_grounded_orientation = horizontal_dirs.right
+
+  -- time elapsed since last grounded orientation change (frames)
+  self.frames_since_grounded_orientation_change = 0
+
+  -- when a last grounded orientation has last enough time (including during airborne time)
+  --  it is confirmed and can be applied to forward base offset
+  self.confirmed_orientation = horizontal_dirs.right
 
 --#if busted
   -- intermediate values that are much easier to test when isolated, but don't need to be stored
@@ -60,8 +67,21 @@ function camera_class:update()
     -- else: self.motion_mode == motion_modes.platformer
 --#endif
 
+  local should_reset_ground_orientation_timer = false
   if self.target_pc:is_grounded() then
-    self.last_grounded_orientation = self.target_pc.orientation
+    if self.last_grounded_orientation ~= self.target_pc.orientation then
+      self.last_grounded_orientation = self.target_pc.orientation
+      should_reset_ground_orientation_timer = true
+    end
+  end
+
+  if should_reset_ground_orientation_timer then
+    self.frames_since_grounded_orientation_change = 0
+  elseif self.confirmed_orientation ~= self.last_grounded_orientation then
+    self.frames_since_grounded_orientation_change = self.frames_since_grounded_orientation_change + 1
+    if self.frames_since_grounded_orientation_change >= camera_data.grounded_orientation_confirmation_duration then
+      self.confirmed_orientation = self.last_grounded_orientation
+    end
   end
 
   -- Window system: most of the time, only move camera when character
@@ -87,7 +107,7 @@ function camera_class:update()
 
   -- # Base
 
-  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.last_grounded_orientation]
+  local forward_base_offset = camera_data.forward_distance * horizontal_dir_signs[self.confirmed_orientation]
 
   -- # Extension
 

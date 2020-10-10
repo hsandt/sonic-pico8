@@ -10,8 +10,8 @@ describe('camera', function ()
 
     it('should init members to defaults', function ()
       local cam = camera_class()
-      assert.are_same({nil, vector.zero(), 0, true, horizontal_dirs.right, 0},
-        {cam.target_pc, cam.position, cam.forward_offset, cam.was_pc_grounded, cam.last_grounded_orientation, cam.time_since_grounded_orientation_change})
+      assert.are_same({nil, vector.zero(), 0, horizontal_dirs.right, 0},
+        {cam.target_pc, cam.position, cam.forward_offset, cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
     end)
 
   end)
@@ -76,7 +76,6 @@ describe('camera', function ()
     end)
 
     it('(pc grounded, last orientation is not current) should change last_grounded_orientation and reset frames_since_grounded_orientation_change', function ()
-      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
       cam.confirmed_orientation = horizontal_dirs.left
       cam.frames_since_grounded_orientation_change = 1
@@ -89,7 +88,6 @@ describe('camera', function ()
     end)
 
     it('(pc grounded, last orientation is current, but not confirmed and timer has just started) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change, keep confirmed orientation', function ()
-      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
       cam.confirmed_orientation = horizontal_dirs.left
       cam.frames_since_grounded_orientation_change = 1
@@ -102,7 +100,6 @@ describe('camera', function ()
     end)
 
     it('(pc grounded, last orientation is current, but not confirmed and timer is just before the end) should keep last_grounded_orientation, increment frames_since_grounded_orientation_change and change confirmed_orientation', function ()
-      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
       cam.confirmed_orientation = horizontal_dirs.left
       cam.frames_since_grounded_orientation_change = camera_data.grounded_orientation_confirmation_duration - 1
@@ -115,7 +112,6 @@ describe('camera', function ()
     end)
 
     it('(pc grounded, last orientation is current, and confirmed) should keep last_grounded_orientation and keep frames_since_grounded_orientation_change', function ()
-      cam.was_pc_grounded = false
       cam.last_grounded_orientation = horizontal_dirs.right
       cam.confirmed_orientation = horizontal_dirs.right
       cam.frames_since_grounded_orientation_change = 1

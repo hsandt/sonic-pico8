@@ -64,6 +64,10 @@ local sprite_data_t = {
   goal_plate_rotating_45_cw = sprite_data(sprite_id_location(8, 14), tile_vector(2, 2), vector(8, 16), colors.pink),
 }
 
+-- derived data: the representative sprite of an emerald (the one placed on the tilemap)
+--  in the left part of the sprite, so convert id location (which is at top-left) to sprite ID
+visual.emerald_repr_sprite_id = sprite_data_t.emerald.id_loc:to_sprite_id()
+
 visual.animated_sprite_data_t = {
   emerald_pick_fx = {
     -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,

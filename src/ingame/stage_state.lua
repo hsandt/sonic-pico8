@@ -238,10 +238,6 @@ end
 -- alternatively, you may bake stage data (esp. emerald positions) in a separate object
 --  (that doesn't get reset with stage_state) and reuse it whenever you want
 function stage_state:spawn_new_emeralds()
-  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
-  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
-  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
-  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
   for i = 0, map_region_tile_width - 1 do
     for j = 0, map_region_tile_height - 1 do
       -- here we already have region (i, j), so no need to convert for mget
@@ -250,30 +246,33 @@ function stage_state:spawn_new_emeralds()
       -- we do need to convert for spawn global locations tracking though
       local region_loc = location(i, j)
       local global_loc = self:region_to_global_location(region_loc)
-
-      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
-        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
-        --  and won't be drawn at all
-        -- besides, the emerald tiles would come back on next region reload anyway
-        --  (hence the importance of tracking emeralds already spawned)
-
-        -- remember where you spawned that emerald, in global location so that we can keep track
-        --  of all emeralds across the extended map
-        add(self.spawned_emerald_locations, global_loc)
-
-        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
-        --  when changing region)
-        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
-        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
-
-        -- aesthetics note: the number depends on the order in which emeralds are discovered
-        -- but regions are always preloaded for object spawning in the same order, so
-        -- for given emerald locations, their colors are deterministic
-        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
-
-        log("added emerald #"..#self.emeralds, "emerald")
-      end
+      self:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
     end
+  end
+end
+
+function stage_state:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
+  if tile_sprite_id == visual.emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
+    -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+    --  and won't be drawn at all
+    -- besides, the emerald tiles would come back on next region reload anyway
+    --  (hence the importance of tracking emeralds already spawned)
+
+    -- remember where you spawned that emerald, in global location so that we can keep track
+    --  of all emeralds across the extended map
+    add(self.spawned_emerald_locations, global_loc)
+
+    -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+    --  when changing region)
+    -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+    --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+    -- aesthetics note: the number depends on the order in which emeralds are discovered
+    -- but regions are always preloaded for object spawning in the same order, so
+    -- for given emerald locations, their colors are deterministic
+    add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+    log("added emerald #"..#self.emeralds, "emerald")
   end
 end
 
@@ -284,16 +283,19 @@ function stage_state:spawn_palm_tree_leaves()
       -- we already have region location (i, j), so no need to convert to global for mget
       local tile_sprite_id = mget(i, j)
 
-      if tile_sprite_id == visual.palm_tree_leaves_core_id then
-        -- we do need to convert for spawn global locations
-        local region_loc = location(i, j)
-        local global_loc = self:region_to_global_location(region_loc)
-
-        -- remember where we found palm tree leaves core tile, to draw extension sprites around later
-        add(self.palm_tree_leaves_core_global_locations, global_loc)
-        log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
-      end
+      -- we do need to convert for spawn global locations tracking though
+      local region_loc = location(i, j)
+      local global_loc = self:region_to_global_location(region_loc)
+      self:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)
     end
+  end
+end
+
+function stage_state:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)
+  if tile_sprite_id == visual.palm_tree_leaves_core_id then
+    -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+    add(self.palm_tree_leaves_core_global_locations, global_loc)
+    log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
   end
 end
 

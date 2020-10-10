@@ -262,12 +262,11 @@ describe('stage_state', function ()
         --  and its on_enter will call spawn_new_emeralds, making it hard
         --  to test in isolation. Hence before_each.
         before_each(function ()
-          local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
           -- we're not using tile_test_data.setup here (since emeralds are checked
           --  directly by id, not using collision data) so don't use mock_mset
-          mset(1, 1, emerald_repr_sprite_id)
-          mset(2, 2, emerald_repr_sprite_id)
-          mset(3, 3, emerald_repr_sprite_id)
+          mset(1, 1, visual.emerald_repr_sprite_id)
+          mset(2, 2, visual.emerald_repr_sprite_id)
+          mset(3, 3, visual.emerald_repr_sprite_id)
 
           state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
         end)
@@ -1368,7 +1367,7 @@ describe('stage_state', function ()
               assert.spy(stage_state.back_to_titlemenu).was_not_called()
             end)
 
-            it('#solo should query gamestate ":titlemenu" after 1.0s', function ()
+            it('should query gamestate ":titlemenu" after 1.0s', function ()
               -- hold back 1 frame to make sure function will be called exactly next frame
               -- I had to adapt this test to make it pass with new bgm_fade_out_duration and stage_clear_duration,
               --  but considering the effort and the fact that async are evolve a lot based on feel,

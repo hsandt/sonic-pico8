@@ -1368,12 +1368,16 @@ describe('stage_state', function ()
               assert.spy(stage_state.back_to_titlemenu).was_not_called()
             end)
 
-            it('should query gamestate ":titlemenu" after 1.0s', function ()
+            it('#solo should query gamestate ":titlemenu" after 1.0s', function ()
               -- hold back 1 frame to make sure function will be called exactly next frame
-              for i = 1, stage_data.back_to_titlemenu_delay * state.app.fps - 1 do
-                coresume(on_reached_goal_async_coroutine, state)
+              -- I had to adapt this test to make it pass with new bgm_fade_out_duration and stage_clear_duration,
+              --  but considering the effort and the fact that async are evolve a lot based on feel,
+              --  I'll probably not go further and even remove this test if it becomes too complicated
+              -- in addition, I needed to add assert() to detect issues in coroutine, else it dies
+              --  and stops updating without warning
+              for i = 1, (stage_data.bgm_fade_out_duration - 1/60 + stage_data.back_to_titlemenu_delay) * state.app.fps + stage_data.stage_clear_duration - 1 - 1 do
+                assert(coresume(on_reached_goal_async_coroutine, state))
               end
-
               -- not called yet
               assert.spy(stage_state.back_to_titlemenu).was_not_called()
 
@@ -1383,6 +1387,9 @@ describe('stage_state', function ()
               assert.spy(stage_state.back_to_titlemenu).was_called(1)
               assert.spy(stage_state.back_to_titlemenu).was_called_with(match.ref(state))
             end)
+
+            -- I could test more things like playing stage clear single, but this evolves quickly and requires
+            --  precise coresume timing
 
           end)
 

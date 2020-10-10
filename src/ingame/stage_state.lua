@@ -723,6 +723,9 @@ function stage_state:on_reached_goal_async()
   self:feedback_reached_goal()
   self.current_substate = stage_state.substates.result
   self:stop_bgm(stage_data.bgm_fade_out_duration)
+  self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
+  music(audio.jingle_ids.stage_clear)
+  yield_delay(stage_data.stage_clear_duration)
   self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end

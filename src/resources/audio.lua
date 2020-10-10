@@ -11,6 +11,12 @@ local sfx_ids = {
   -- menu_confirm = ??,
 }
 
+local jingle_ids = {
+  pick_emerald = 40,  -- unused
+  stage_clear = 41,
+}
+
 audio.sfx_ids = sfx_ids
+audio.jingle_ids = jingle_ids
 
 return audio

@@ -14,6 +14,9 @@ local visual = {
   -- launch ramp last tile
   launch_ramp_last_tile_id = 229,
 
+  -- goal plate base id (representative tile used to generate animated sprite)
+  goal_plate_base_id = 226,
+
   -- emerald color palettes (apply to red emerald sprite to get them all)
   emerald_colors = {
     -- light color, dark color
@@ -50,6 +53,15 @@ local sprite_data_t = {
   emerald_pick_fx2 = sprite_data(sprite_id_location(13, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
   emerald_pick_fx3 = sprite_data(sprite_id_location(14, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
   emerald_pick_fx4 = sprite_data(sprite_id_location(15, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+
+  goal_plate_goal = sprite_data(sprite_id_location(3, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
+  goal_plate_sonic = sprite_data(sprite_id_location(6, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
+  goal_plate_rotating_90 = sprite_data(sprite_id_location(0, 1), tile_vector(1, 2), vector(4, 16), colors.pink),
+
+  -- rotating goal plates at 45 degrees are exceptions and placed in the common area despite only being used at runtime
+  --  this is simply because there was no space left for sprites 2-tile high in the runtime area; hence the high location j
+  goal_plate_rotating_45_ccw = sprite_data(sprite_id_location(6, 14), tile_vector(2, 2), vector(7, 16), colors.pink),
+  goal_plate_rotating_45_cw = sprite_data(sprite_id_location(8, 14), tile_vector(2, 2), vector(8, 16), colors.pink),
 }
 
 visual.animated_sprite_data_t = {

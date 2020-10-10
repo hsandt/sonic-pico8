@@ -41,12 +41,9 @@ function stage_state:init()
   -- has the player character already reached the goal once?
   self.has_reached_goal = false
 
-  -- emeralds: spawned global locations list (to remember not to respawn on region reload) and
-  --  actual objects list (we remove objects when picked up)
-  -- DEPRECATED: remove spawned_emerald_locations, they shouldn't be needed since we now
-  --  spawn all objects on stage start
-  -- but replace it with total_emeralds_count since render_hud uses its length
+  -- emeralds: spawned global locations list
   self.spawned_emerald_locations = {}
+  -- actual emerald objects list (we remove objects when picked up)
   self.emeralds = {}
   -- set of number of emeralds picked, with format: {[number] = true} (no entry if not picked)
   self.picked_emerald_numbers_set = {}
@@ -259,7 +256,7 @@ function stage_state:scan_current_region_with_callback(method_callback)
 end
 
 function stage_state:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
-  if tile_sprite_id == visual.emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
+  if tile_sprite_id == visual.emerald_repr_sprite_id then
     -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
     --  and won't be drawn at all
     -- besides, the emerald tiles would come back on next region reload anyway
@@ -267,6 +264,11 @@ function stage_state:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
 
     -- remember where you spawned that emerald, in global location so that we can keep track
     --  of all emeralds across the extended map
+    -- note that release only uses the length of this sequence for render_hud
+    --  but the actual locations are used for #cheat warp_to_emerald_by
+    --  and it's not worth keeping just the count on release and the locations besides on #cheat,
+    --  so we just keep the locations (if pooling/deactivating emeralds on pick up instead of
+    --  destroying them, we'd have a single list with all the information + active bool)
     add(self.spawned_emerald_locations, global_loc)
 
     -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded

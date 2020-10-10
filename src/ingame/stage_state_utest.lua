@@ -275,7 +275,7 @@ describe('stage_state', function ()
           pico8:clear_map()
         end)
 
-        it('should store new emerald global location to remember not to spawn it again', function ()
+        it('should store emerald global location to remember not to spawn it again', function ()
           state:spawn_new_emeralds()
 
           assert.are_same({
@@ -285,36 +285,12 @@ describe('stage_state', function ()
           }, state.spawned_emerald_locations)
         end)
 
-        it('should spawn and store new emerald objects for each emerald tile', function ()
+        it('should spawn and store emerald objects for each emerald tile', function ()
           state:spawn_new_emeralds()
 
           assert.are_same({
             emerald(1, location(1, 1 + 32)),
             emerald(2, location(2, 2 + 32)),
-            emerald(3, location(3, 3 + 32)),
-          }, state.emeralds)
-        end)
-
-        it('should ignore emeralds already spawned ((2, 2 + 32) here)', function ()
-          state.loaded_map_region_coords = vector(0, 1)
-          state.spawned_emerald_locations = {
-            location(2, 2 + 32),
-          }
-
-          state:spawn_new_emeralds()
-
-          -- we'll still add 1 and 3, so result will be the same as above, but in different order
-          assert.are_same({
-            location(2, 2 + 32),
-            location(1, 1 + 32),
-            location(3, 3 + 32),
-          }, state.spawned_emerald_locations)
-
-          -- note that in our example we didn't have emerald object 2
-          -- so supposedly we spawned it but also picked it earlier
-          -- this means the emerald at (1, 1 + 32) starts at number 2 already
-          assert.are_same({
-            emerald(2, location(1, 1 + 32)),
             emerald(3, location(3, 3 + 32)),
           }, state.emeralds)
         end)

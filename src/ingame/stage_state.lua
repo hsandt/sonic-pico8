@@ -257,32 +257,36 @@ end
 
 function stage_state:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
   if tile_sprite_id == visual.emerald_repr_sprite_id then
-    -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
-    --  and won't be drawn at all
-    -- besides, the emerald tiles would come back on next region reload anyway
-    --  (hence the importance of tracking emeralds already spawned)
-
-    -- remember where you spawned that emerald, in global location so that we can keep track
-    --  of all emeralds across the extended map
-    -- note that release only uses the length of this sequence for render_hud
-    --  but the actual locations are used for #cheat warp_to_emerald_by
-    --  and it's not worth keeping just the count on release and the locations besides on #cheat,
-    --  so we just keep the locations (if pooling/deactivating emeralds on pick up instead of
-    --  destroying them, we'd have a single list with all the information + active bool)
-    add(self.spawned_emerald_locations, global_loc)
-
-    -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
-    --  when changing region)
-    -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
-    --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
-
-    -- aesthetics note: the number depends on the order in which emeralds are discovered
-    -- but regions are always preloaded for object spawning in the same order, so
-    -- for given emerald locations, their colors are deterministic
-    add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
-
-    log("added emerald #"..#self.emeralds, "emerald")
+    self:spawn_emerald_at(global_loc)
   end
+end
+
+function stage_state:spawn_emerald_at(global_loc)
+  -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+  --  and won't be drawn at all
+  -- besides, the emerald tiles would come back on next region reload anyway
+  --  (hence the importance of tracking emeralds already spawned)
+
+  -- remember where you spawned that emerald, in global location so that we can keep track
+  --  of all emeralds across the extended map
+  -- note that release only uses the length of this sequence for render_hud
+  --  but the actual locations are used for #cheat warp_to_emerald_by
+  --  and it's not worth keeping just the count on release and the locations besides on #cheat,
+  --  so we just keep the locations (if pooling/deactivating emeralds on pick up instead of
+  --  destroying them, we'd have a single list with all the information + active bool)
+  add(self.spawned_emerald_locations, global_loc)
+
+  -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+  --  when changing region)
+  -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+  --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+  -- aesthetics note: the number depends on the order in which emeralds are discovered
+  -- but regions are always preloaded for object spawning in the same order, so
+  -- for given emerald locations, their colors are deterministic
+  add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+  log("added emerald #"..#self.emeralds, "emerald")
 end
 
 -- scan current map region and generate a palm tree leaves object for every palm tree leaves core tile
@@ -292,10 +296,14 @@ end
 
 function stage_state:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)
   if tile_sprite_id == visual.palm_tree_leaves_core_id then
-    -- remember where we found palm tree leaves core tile, to draw extension sprites around later
-    add(self.palm_tree_leaves_core_global_locations, global_loc)
-    log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
+    self:spawn_palm_tree_leaves_at(global_loc)
   end
+end
+
+function stage_state:spawn_palm_tree_leaves_at(global_loc)
+  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+  add(self.palm_tree_leaves_core_global_locations, global_loc)
+  log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
 end
 
 -- extended map system: to allow game to display more than the standard 128x32 PICO-8 map

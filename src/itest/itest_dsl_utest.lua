@@ -29,13 +29,11 @@ describe('itest_dsl', function ()
   --  so utests calling flow:change_gamestate_by_type(':stage') in before_each
   --  don't have a big overhead on start
   setup(function ()
-    stub(stage_state, "spawn_new_emeralds")
-    stub(stage_state, "spawn_palm_tree_leaves")
+    stub(stage_state, "spawn_objects_in_all_map_regions")
   end)
 
   teardown(function ()
-    stage_state.spawn_new_emeralds:revert()
-    stage_state.spawn_palm_tree_leaves:revert()
+    stage_state.spawn_objects_in_all_map_regions:revert()
   end)
 
   local state

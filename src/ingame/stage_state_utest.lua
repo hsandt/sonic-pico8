@@ -256,72 +256,86 @@ describe('stage_state', function ()
 
       end)
 
-      describe('#solo spawn_new_emeralds', function ()
+      describe('spawn_emerald_at', function ()
 
-        -- setup is too early, stage state will start afterward in before_each,
-        --  and its on_enter will call spawn_new_emeralds, making it hard
-        --  to test in isolation. Hence before_each.
-        before_each(function ()
-          -- we're not using tile_test_data.setup here (since emeralds are checked
-          --  directly by id, not using collision data) so don't use mock_mset
-          mset(1, 1, visual.emerald_repr_sprite_id)
-          mset(2, 2, visual.emerald_repr_sprite_id)
-          mset(3, 3, visual.emerald_repr_sprite_id)
-
-          state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
-        end)
-
-        after_each(function ()
-          pico8:clear_map()
-        end)
-
-        it('should store emerald global location to remember not to spawn it again', function ()
-          state:spawn_new_emeralds()
+        it('should store emerald global location', function ()
+          state:spawn_emerald_at(location(1, 33))
 
           assert.are_same({
-            location(1, 1 + 32),
-            location(2, 2 + 32),
-            location(3, 3 + 32),
+            location(1, 33),
           }, state.spawned_emerald_locations)
         end)
 
         it('should spawn and store emerald objects for each emerald tile', function ()
-          state:spawn_new_emeralds()
+          state:spawn_emerald_at(location(1, 33))
 
           assert.are_same({
-            emerald(1, location(1, 1 + 32)),
-            emerald(2, location(2, 2 + 32)),
-            emerald(3, location(3, 3 + 32)),
+            emerald(1, location(1, 33)),
           }, state.emeralds)
         end)
 
       end)
 
-      describe('#solo spawn_palm_tree_leaves', function ()
+      describe('spawn_palm_tree_leaves', function ()
+
+        it('should store palm tree leaves core global location', function ()
+          state:spawn_palm_tree_leaves_at(location(1, 33))
+
+          assert.are_same({
+            location(1, 33),
+          }, state.palm_tree_leaves_core_global_locations)
+        end)
+
+      end)
+
+      describe('scan_current_region_to_spawn_objects', function ()
+
+        local dummy_callback = spy.new(function (self, global_loc) end)
+
+        setup(function ()
+          stub(stage_state, "get_spawn_object_callback", function (self, tile_id)
+            if tile_id == 21 then
+              return dummy_callback
+            end
+          end)
+        end)
+
+        teardown(function ()
+          stage_state.get_spawn_object_callback:revert()
+        end)
 
         -- setup is too early, stage state will start afterward in before_each,
-        --  and its on_enter will call spawn_palm_tree_leaves, making it hard
+        --  and its on_enter will call scan_current_region_to_spawn_objects, making it hard
         --  to test in isolation. Hence before_each.
         before_each(function ()
-          -- we're not using tile_test_data.setup here (since palm trees are checked
-          --  directly by id, not using collision data) so don't use mock_mset
-          mset(1, 1, visual.palm_tree_leaves_core_id)
-          mset(20, 2, visual.palm_tree_leaves_core_id)
+          -- we're not using tile_test_data.setup here
+          --  (since objects are checked directly by id, not using collision data)
+          --  so don't use mock_mset
+          mset(1, 1, 21)
+          mset(2, 2, 21)
+          mset(3, 3, 21)
+
+          -- mock stage dimensions, not too big to avoid test too long
+          --  (just 2 regions so we can check that location conversion works)
+          state.curr_stage_data = {
+            tile_width = 128,     -- 1 region per row
+            tile_height = 32 * 2  -- 2 regions per column
+          }
 
           state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
         end)
 
         after_each(function ()
+          dummy_callback:clear()
+
           pico8:clear_map()
         end)
 
-        it('should store palm tree leaves core global location', function ()
-          state:spawn_palm_tree_leaves()
+        it('should call spawn object callbacks for recognized representative tiles', function ()
+          state:scan_current_region_to_spawn_objects()
 
-          assert.are_same({
-            location(1, 1 + 32),
-            location(20, 2 + 32),
-          }, state.palm_tree_leaves_core_global_locations)
+          assert.spy(dummy_callback).was_called(3)
+          assert.spy(dummy_callback).was_called_with(match.ref(state), location(1, 1 + 32), 21)
         end)
 
       end)
@@ -758,23 +772,20 @@ describe('stage_state', function ()
 
         setup(function ()
           stub(stage_state, "reload_map_region")
-          stub(stage_state, "spawn_new_emeralds")
-          stub(stage_state, "spawn_palm_tree_leaves")
+          stub(stage_state, "scan_current_region_to_spawn_objects")
         end)
 
         teardown(function ()
           stage_state.reload_map_region:revert()
-          stage_state.spawn_new_emeralds:revert()
-          stage_state.spawn_palm_tree_leaves:revert()
+          stage_state.scan_current_region_to_spawn_objects:revert()
         end)
 
         after_each(function ()
           stage_state.reload_map_region:clear()
-          stage_state.spawn_new_emeralds:clear()
-          stage_state.spawn_palm_tree_leaves:clear()
+          stage_state.scan_current_region_to_spawn_objects:clear()
         end)
 
-        it('should call reload every map on the 2x3 grid = 6 calls, spawning emeralds and palm tree leaves at the same time', function ()
+        it('should call reload every map on the 2x3 grid = 6 calls, calling scan_current_region_to_spawn_objects as many times', function ()
           state.curr_stage_data = {
             tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
             tile_height = 32 * 3  -- 3 regions per column
@@ -791,11 +802,7 @@ describe('stage_state', function ()
           assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(0, 2))
           assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 2))
 
-          assert.spy(stage_state.spawn_new_emeralds).was_called(6)
-          assert.spy(stage_state.spawn_new_emeralds).was_called_with(match.ref(state))
-
-          assert.spy(stage_state.spawn_palm_tree_leaves).was_called(6)
-          assert.spy(stage_state.spawn_palm_tree_leaves).was_called_with(match.ref(state))
+          assert.spy(stage_state.scan_current_region_to_spawn_objects).was_called(6)
         end)
 
       end)
@@ -818,7 +825,7 @@ describe('stage_state', function ()
             --  but we do not want to spend several seconds finding all of them
             --  in before_each every time due to on_enter just for tests,
             --  so we stub this
-            stub(stage_state, "spawn_objects_in_all_map_regions")
+              stub(stage_state, "spawn_objects_in_all_map_regions")
           end)
 
           teardown(function ()
@@ -1901,7 +1908,7 @@ describe('stage_state', function ()
 
               -- should be each
               before_each(function ()
-                -- spawn_new_emeralds has been stubbed in this context,
+                -- spawn_objects_in_all_map_regions has been stubbed in this context,
                 --  so this won't slow down every test
                 flow:change_state(state)
               end)
@@ -1930,27 +1937,24 @@ describe('stage_state', function ()
               stub(overlay, "clear_labels")
               stub(picosonic_app, "stop_all_coroutines")
               stub(stage_state, "stop_bgm")
-              -- we don't really mind spying on spawn_new_emeralds
+              -- we don't really mind spying on spawn_objects_in_all_map_regions
               --  but we do not want to spend 0.5s finding all of them
               --  in before_each every time due to on_enter,
               --  so we stub this
-              stub(stage_state, "spawn_new_emeralds")
-              stub(stage_state, "spawn_palm_tree_leaves")
+              stub(stage_state, "spawn_objects_in_all_map_regions")
             end)
 
             teardown(function ()
               overlay.clear_labels:revert()
               picosonic_app.stop_all_coroutines:revert()
               stage_state.stop_bgm:revert()
-              stage_state.spawn_new_emeralds:revert()
-              stage_state.spawn_palm_tree_leaves:revert()
+              stage_state.spawn_objects_in_all_map_regions:revert()
             end)
 
             after_each(function ()
               overlay.clear_labels:clear()
               stage_state.stop_bgm:clear()
-              stage_state.spawn_new_emeralds:clear()
-              stage_state.spawn_palm_tree_leaves:clear()
+              stage_state.spawn_objects_in_all_map_regions:clear()
             end)
 
             before_each(function ()

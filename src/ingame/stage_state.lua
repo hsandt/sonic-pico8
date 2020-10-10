@@ -227,40 +227,6 @@ function stage_state:spawn_player_char()
   self.player_char:spawn_at(spawn_position)
 end
 
--- replace emerald representative sprite (the left part with most of the pixels)
---  with an actual emerald object, to make it easier to recolor and pick up
--- ! VERY SLOW !
--- it's not perceptible at runtime, but consider stubbing it when unit testing
---  while entering stage state in before_each, or you'll waste around 0.5s each time
--- alternatively, you may bake stage data (esp. emerald positions) in a separate object
---  (that doesn't get reset with stage_state) and reuse it whenever you want
-function stage_state:spawn_new_emeralds()
-  self:scan_current_region_with_callback(stage_state.check_emerald_spawn_tile_at)
-end
-
--- iterate over each tile of the current region
---  and apply method callback for each of them (to spawn objects, etc.)
---  the method callback but take self, a global tile location and the sprite id at this location
-function stage_state:scan_current_region_with_callback(method_callback)
-  for i = 0, map_region_tile_width - 1 do
-    for j = 0, map_region_tile_height - 1 do
-      -- here we already have region (i, j), so no need to convert for mget
-      local tile_sprite_id = mget(i, j)
-
-      -- we do need to convert for spawn global locations tracking though
-      local region_loc = location(i, j)
-      local global_loc = self:region_to_global_location(region_loc)
-      method_callback(self, global_loc, tile_sprite_id)
-    end
-  end
-end
-
-function stage_state:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
-  if tile_sprite_id == visual.emerald_repr_sprite_id then
-    self:spawn_emerald_at(global_loc)
-  end
-end
-
 function stage_state:spawn_emerald_at(global_loc)
   -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
   --  and won't be drawn at all
@@ -289,22 +255,48 @@ function stage_state:spawn_emerald_at(global_loc)
   log("added emerald #"..#self.emeralds, "emerald")
 end
 
--- scan current map region and generate a palm tree leaves object for every palm tree leaves core tile
-function stage_state:spawn_palm_tree_leaves()
-  self:scan_current_region_with_callback(stage_state.check_palm_tree_leaves_spawn_tile_at)
-end
-
-function stage_state:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)
-  if tile_sprite_id == visual.palm_tree_leaves_core_id then
-    self:spawn_palm_tree_leaves_at(global_loc)
-  end
-end
-
 function stage_state:spawn_palm_tree_leaves_at(global_loc)
   -- remember where we found palm tree leaves core tile, to draw extension sprites around later
   add(self.palm_tree_leaves_core_global_locations, global_loc)
   log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
 end
+
+-- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
+stage_state.spawn_object_callbacks_by_tile_id = {
+  [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
+  [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
+  -- [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+}
+
+-- proxy for table above, mostly to ease testing
+function stage_state:get_spawn_object_callback(tile_id)
+  return stage_state.spawn_object_callbacks_by_tile_id[tile_sprite_id]
+end
+
+-- iterate over each tile of the current region
+--  and apply method callback for each of them (to spawn objects, etc.)
+--  the method callback but take self, a global tile location and the sprite id at this location
+function stage_state:scan_current_region_to_spawn_objects()
+  for i = 0, map_region_tile_width - 1 do
+    for j = 0, map_region_tile_height - 1 do
+      -- here we already have region (i, j), so no need to convert for mget
+      local tile_sprite_id = mget(i, j)
+
+      local spawn_object_callback = self:get_spawn_object_callback(tile_sprite_id)
+
+      if spawn_object_callback then
+        -- tile has been recognized as a representative tile for object spawning
+        --  apply callback now
+
+        -- we do need to convert location now since spawn methods work in global coordinates
+        local region_loc = location(i, j)
+        local global_loc = self:region_to_global_location(region_loc)
+        spawn_object_callback(self, global_loc, tile_sprite_id)
+      end
+    end
+  end
+end
+
 
 -- extended map system: to allow game to display more than the standard 128x32 PICO-8 map
 --  (as we need shared data for extra sprites and it wouldn't work for horizontal extension),
@@ -566,13 +558,9 @@ function stage_state:spawn_objects_in_all_map_regions()
   -- only load full regions not transition regions, that will be enough to cover all tiles
   for u = 0, region_count_per_row - 1 do
     for v = 0, region_count_per_column - 1 do
+      -- load region and scan it for any object to spawn
       self:reload_map_region(vector(u, v))
-      -- load any *new* items detected in this region
-      -- TODO OPTIMIZE: instead of scanning the region once per object type,
-      --  we should really scan the region once, and call one callback per object type
-      --  to check if there is anything to do on each tile
-      self:spawn_new_emeralds()
-      self:spawn_palm_tree_leaves()
+      self:scan_current_region_to_spawn_objects()
     end
   end
 end

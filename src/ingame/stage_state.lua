@@ -6,6 +6,7 @@ local overlay = require("engine/ui/overlay")
 local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
+local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
@@ -261,11 +262,18 @@ function stage_state:spawn_palm_tree_leaves_at(global_loc)
   log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
 end
 
+function stage_state:spawn_goal_plate_at(global_loc)
+  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+  assert(self.goal_plate == nil, "stage_state:spawn_goal_plate_at: goal plate already spawned!")
+  self.goal_plate = goal_plate(global_loc)
+  log("added goal plate at "..global_loc, "goal")
+end
+
 -- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
 stage_state.spawn_object_callbacks_by_tile_id = {
   [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
   [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
-  -- [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+  [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
 }
 
 -- proxy for table above, mostly to ease testing
@@ -1123,6 +1131,7 @@ end
 function stage_state:render_stage_elements()
   self:render_environment_midground()
   self:render_emeralds()
+  self:render_goal_plate()
   self:render_player_char()
   self:render_environment_foreground()
 --#if debug_trigger
@@ -1282,6 +1291,14 @@ function stage_state:render_emeralds()
 
   for em in all(self.emeralds) do
     em:render()
+  end
+end
+
+-- render the goal plate upper body
+function stage_state:render_goal_plate()
+  if self.goal_plate then
+    self:set_camera_with_origin()
+    self.goal_plate:render()
   end
 end
 

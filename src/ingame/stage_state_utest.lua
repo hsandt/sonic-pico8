@@ -15,6 +15,7 @@ local stage_data = require("data/stage_data")
 local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
+local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
@@ -778,9 +779,9 @@ describe('stage_state', function ()
           assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual.palm_tree_leaves_core_id))
         end)
 
-        -- it('should return stage_state.spawn_goal_plate_at for visual.goal_plate_base_id', function ()
-        --   assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual.goal_plate_base_id))
-        -- end)
+        it('should return stage_state.spawn_goal_plate_at for visual.goal_plate_base_id', function ()
+          assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual.goal_plate_base_id))
+        end)
 
       end)
 
@@ -1500,66 +1501,48 @@ describe('stage_state', function ()
 
           end)
 
-          describe('misc state render methods', function ()
+          describe('#solo render_stage_elements', function ()
 
             setup(function ()
-              spy.on(stage_state, "set_camera_with_origin")
-              spy.on(stage_state, "render_environment_midground")
-              stub(player_char, "render")
-              spy.on(stage_state, "render_environment_foreground")
+              stub(stage_state, "render_environment_midground")
+              stub(stage_state, "render_emeralds")
+              stub(stage_state, "render_goal_plate")
+              stub(stage_state, "render_player_char")
+              stub(stage_state, "render_environment_foreground")
               stub(stage_state, "debug_render_trigger")
               stub(player_char, "debug_draw_rays")
-              stub(emerald, "render")
-              stub(overlay, "draw_labels")
             end)
 
             teardown(function ()
-              stage_state.set_camera_with_origin:revert()
               stage_state.render_environment_midground:revert()
-              player_char.render:revert()
+              stage_state.render_emeralds:revert()
+              stage_state.render_goal_plate:revert()
+              stage_state.render_player_char:revert()
               stage_state.render_environment_foreground:revert()
               stage_state.debug_render_trigger:revert()
               player_char.debug_draw_rays:revert()
-              emerald.render:revert()
-              overlay.draw_labels:revert()
             end)
 
             after_each(function ()
-              stage_state.set_camera_with_origin:clear()
               stage_state.render_environment_midground:clear()
-              player_char.render:clear()
+              stage_state.render_emeralds:clear()
+              stage_state.render_goal_plate:clear()
+              stage_state.render_player_char:clear()
               stage_state.render_environment_foreground:clear()
               stage_state.debug_render_trigger:clear()
               player_char.debug_draw_rays:clear()
-              emerald.render:clear()
-              overlay.draw_labels:clear()
             end)
 
-            it('render_title_overlay should call title_overlay:draw_labels', function ()
-              state:render_title_overlay()
-              assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(overlay.draw_labels).was_called(1)
-              assert.spy(overlay.draw_labels).was_called_with(match.ref(state.title_overlay))
-            end)
-
-            it('render_background should reset camera position', function ()
-              -- set a value so that 156 - 0.5 * self.camera.position.y is between -32 and 58,
-              --  just so we try to draw both background sea at the top, and forest bottom
-              state.camera.position = vector(24, 220)
-
-              state:render_background()
-
-              -- calls include rectfill and MANY line calls but we don't check background details, human tests are better for this
-              -- otherwise we'd have something like:
-              -- assert.spy(line).was_called(771)
-            end)
-
-            it('render_stage_elements should call render_environment methods for environment and player_char:render', function ()
+            it('should call render methods on everything in the stage', function ()
               state:render_stage_elements()
               assert.spy(state.render_environment_midground).was_called(1)
               assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
-              assert.spy(player_char.render).was_called(1)
-              assert.spy(player_char.render).was_called_with(match.ref(state.player_char))
+              assert.spy(state.render_emeralds).was_called(1)
+              assert.spy(state.render_emeralds).was_called_with(match.ref(state))
+              assert.spy(state.render_goal_plate).was_called(1)
+              assert.spy(state.render_goal_plate).was_called_with(match.ref(state))
+              assert.spy(state.render_player_char).was_called(1)
+              assert.spy(state.render_player_char).was_called_with(match.ref(state))
               assert.spy(state.render_environment_foreground).was_called(1)
               assert.spy(state.render_environment_foreground).was_called_with(match.ref(state))
               -- #debug_trigger only
@@ -1572,7 +1555,66 @@ describe('stage_state', function ()
               -- #debug_character only end
             end)
 
-            it('render_player_char should call set_camera_with_origin and player_char:render', function ()
+          end)
+
+          describe('#solo render_title_overlay', function ()
+
+            setup(function ()
+              stub(overlay, "draw_labels")
+            end)
+
+            teardown(function ()
+              overlay.draw_labels:revert()
+            end)
+
+            after_each(function ()
+              overlay.draw_labels:clear()
+            end)
+
+
+            it('should call title_overlay:draw_labels', function ()
+              state:render_title_overlay()
+              assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
+              assert.spy(overlay.draw_labels).was_called(1)
+              assert.spy(overlay.draw_labels).was_called_with(match.ref(state.title_overlay))
+            end)
+
+          end)
+
+          describe('#solo render_background', function ()
+
+            it('should reset camera position', function ()
+              -- set a value so that 156 - 0.5 * self.camera.position.y is between -32 and 58,
+              --  just so we try to draw both background sea at the top, and forest bottom
+              state.camera.position = vector(24, 220)
+
+              state:render_background()
+
+              -- calls include rectfill and MANY line calls but we don't check background details, human tests are better for this
+              -- otherwise we'd have something like:
+              -- assert.spy(line).was_called(771)
+            end)
+
+          end)
+
+          describe('#solo render_player_char', function ()
+
+            setup(function ()
+              stub(stage_state, "set_camera_with_origin")
+              stub(player_char, "render")
+            end)
+
+            teardown(function ()
+              stage_state.set_camera_with_origin:revert()
+              player_char.render:revert()
+            end)
+
+            after_each(function ()
+              stage_state.set_camera_with_origin:clear()
+              player_char.render:clear()
+            end)
+
+            it('should call set_camera_with_origin and player_char:render', function ()
               state:render_player_char()
 
               assert.spy(stage_state.set_camera_with_origin).was_called(1)
@@ -1581,7 +1623,26 @@ describe('stage_state', function ()
               assert.spy(player_char.render).was_called_with(match.ref(state.player_char))
             end)
 
-            it('render_emeralds should call set_camera_with_origin and player_char:render', function ()
+          end)
+
+          describe('#solo render_emeralds', function ()
+
+            setup(function ()
+              stub(stage_state, "set_camera_with_origin")
+              stub(emerald, "render")
+            end)
+
+            teardown(function ()
+              stage_state.set_camera_with_origin:revert()
+              emerald.render:revert()
+            end)
+
+            after_each(function ()
+              stage_state.set_camera_with_origin:clear()
+              emerald.render:clear()
+            end)
+
+            it('should call set_camera_with_origin and emerald:render', function ()
               state.emeralds = {
                 emerald(1, location(1, 1)),
                 emerald(2, location(2, 2)),
@@ -1598,10 +1659,47 @@ describe('stage_state', function ()
 
           end)
 
+          describe('#solo render_goal_plate', function ()
+
+            setup(function ()
+              stub(stage_state, "set_camera_with_origin")
+              stub(goal_plate, "render")
+            end)
+
+            teardown(function ()
+              stage_state.set_camera_with_origin:revert()
+              goal_plate.render:revert()
+            end)
+
+            after_each(function ()
+              stage_state.set_camera_with_origin:clear()
+              goal_plate.render:clear()
+            end)
+
+            it('(no goal plate found) should do nothing', function ()
+              state:render_goal_plate()
+
+              assert.spy(stage_state.set_camera_with_origin).was_not_called()
+              assert.spy(goal_plate.render).was_not_called()
+            end)
+
+            it('(goal plate found) should call set_camera_with_origin and goal_plate:render', function ()
+              state.goal_plate = goal_plate(location(2, 33))
+
+              state:render_goal_plate()
+
+              assert.spy(stage_state.set_camera_with_origin).was_called(1)
+              assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+              assert.spy(goal_plate.render).was_called(1)
+              assert.spy(goal_plate.render).was_called_with(match.ref(state.goal_plate))
+            end)
+
+          end)
+
           describe('render_hud', function ()
 
             setup(function ()
-              spy.on(emerald, "draw")
+              stub(emerald, "draw")
               stub(player_char, "debug_print_info")
             end)
 

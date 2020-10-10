@@ -47,7 +47,8 @@ return {
       spawn_location = location(7, 32+15),
 
       -- the x to reach to finish the stage
-      goal_x = (3*128 + 24)*8,  -- after 3 regions of 128 tiles, in the middle of the partial final region
+      -- remove it with new goal soon
+      goal_x = (3*128 + 48)*8,  -- after 3 regions of 128 tiles, in the middle of the partial final region
 
       -- bgm id
       -- with the new dynamic bgm cartridge reload system,

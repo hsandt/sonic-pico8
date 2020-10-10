@@ -9,7 +9,7 @@ describe('emerald', function ()
 
   describe('init', function ()
 
-    it('should create an emerald with a number', function ()
+    it('should create an emerald with a number and global location', function ()
       local em = emerald(7, location(2, 1))
       assert.are_same({7, location(2, 1)}, {em.number, em.location})
     end)

@@ -256,7 +256,7 @@ describe('stage_state', function ()
 
       end)
 
-      describe('spawn_new_emeralds', function ()
+      describe('#solo spawn_new_emeralds', function ()
 
         -- setup is too early, stage state will start afterward in before_each,
         --  and its on_enter will call spawn_new_emeralds, making it hard
@@ -321,7 +321,7 @@ describe('stage_state', function ()
 
       end)
 
-      describe('spawn_palm_tree_leaves', function ()
+      describe('#solo spawn_palm_tree_leaves', function ()
 
         -- setup is too early, stage state will start afterward in before_each,
         --  and its on_enter will call spawn_palm_tree_leaves, making it hard

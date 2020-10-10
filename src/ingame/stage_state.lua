@@ -238,6 +238,13 @@ end
 -- alternatively, you may bake stage data (esp. emerald positions) in a separate object
 --  (that doesn't get reset with stage_state) and reuse it whenever you want
 function stage_state:spawn_new_emeralds()
+  self:scan_current_region_with_callback(stage_state.check_emerald_spawn_tile_at)
+end
+
+-- iterate over each tile of the current region
+--  and apply method callback for each of them (to spawn objects, etc.)
+--  the method callback but take self, a global tile location and the sprite id at this location
+function stage_state:scan_current_region_with_callback(method_callback)
   for i = 0, map_region_tile_width - 1 do
     for j = 0, map_region_tile_height - 1 do
       -- here we already have region (i, j), so no need to convert for mget
@@ -246,7 +253,7 @@ function stage_state:spawn_new_emeralds()
       -- we do need to convert for spawn global locations tracking though
       local region_loc = location(i, j)
       local global_loc = self:region_to_global_location(region_loc)
-      self:check_emerald_spawn_tile_at(global_loc, tile_sprite_id)
+      method_callback(self, global_loc, tile_sprite_id)
     end
   end
 end
@@ -278,17 +285,7 @@ end
 
 -- scan current map region and generate a palm tree leaves object for every palm tree leaves core tile
 function stage_state:spawn_palm_tree_leaves()
-  for i = 0, map_region_tile_width - 1 do
-    for j = 0, map_region_tile_height - 1 do
-      -- we already have region location (i, j), so no need to convert to global for mget
-      local tile_sprite_id = mget(i, j)
-
-      -- we do need to convert for spawn global locations tracking though
-      local region_loc = location(i, j)
-      local global_loc = self:region_to_global_location(region_loc)
-      self:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)
-    end
-  end
+  self:scan_current_region_with_callback(stage_state.check_palm_tree_leaves_spawn_tile_at)
 end
 
 function stage_state:check_palm_tree_leaves_spawn_tile_at(global_loc, tile_sprite_id)

@@ -270,7 +270,7 @@ stage_state.spawn_object_callbacks_by_tile_id = {
 
 -- proxy for table above, mostly to ease testing
 function stage_state:get_spawn_object_callback(tile_id)
-  return stage_state.spawn_object_callbacks_by_tile_id[tile_sprite_id]
+  return stage_state.spawn_object_callbacks_by_tile_id[tile_id]
 end
 
 -- iterate over each tile of the current region

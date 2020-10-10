@@ -768,6 +768,22 @@ describe('stage_state', function ()
 
       end)
 
+      describe('#solo get_spawn_object_callback', function ()
+
+        it('should return stage_state.spawn_emerald_at for visual.emerald_repr_sprite_id', function ()
+          assert.are_equal(stage_state.spawn_emerald_at, state:get_spawn_object_callback(visual.emerald_repr_sprite_id))
+        end)
+
+        it('should return stage_state.spawn_palm_tree_leaves_at for visual.palm_tree_leaves_core_id', function ()
+          assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual.palm_tree_leaves_core_id))
+        end)
+
+        -- it('should return stage_state.spawn_goal_plate_at for visual.goal_plate_base_id', function ()
+        --   assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual.goal_plate_base_id))
+        -- end)
+
+      end)
+
       describe('spawn_objects_in_all_map_regions', function ()
 
         setup(function ()

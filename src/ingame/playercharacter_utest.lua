@@ -534,63 +534,73 @@ describe('player_char', function ()
         player_char.warp_to:revert()
       end)
 
-      before_each(function ()
-        player_char.warp_to:clear()
-
-        flow.curr_state.spawned_emerald_locations = {
-          location(1, 1),
-          location(2, 2),
-        }
-      end)
-
-      it('should call warp_to with the center position of the previous emerald', function ()
-        pc.last_emerald_warp_nb = 2
-
-        -- warp to previous one, so index 1
-        pc:warp_to_emerald_by(-1)
-
-        assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
-      end)
-
-      it('should call warp_to with the center position of the previous emerald (looped)', function ()
-        pc.last_emerald_warp_nb = 1
-
-        -- warp to previous one looped, so index 2
-        pc:warp_to_emerald_by(-1)
-
-        assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
-      end)
-
-      it('should call warp_to with the center position of the previous emerald (looped on start from 0)', function ()
-        pc.last_emerald_warp_nb = 0
-
-        -- warp to previous one looped, so index 2
-        pc:warp_to_emerald_by(-1)
-
-        assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
-      end)
-
-      it('should call warp_to with the center position of the next emerald', function ()
-        pc.last_emerald_warp_nb = 1
-
-        -- warp to next one looped, so index 2
+      it('should do nothing if no emeralds have been spawned', function ()
         pc:warp_to_emerald_by(1)
 
-        assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+        assert.spy(player_char.warp_to).was_not_called()
       end)
 
-      it('should call warp_to with the center position of the next emerald (looped)', function ()
-        pc.last_emerald_warp_nb = 2
+      describe('(with emeralds spawned)', function ()
 
-        -- warp to next one looped, so index 1
-        pc:warp_to_emerald_by(1)
+        before_each(function ()
+          player_char.warp_to:clear()
 
-        assert.spy(player_char.warp_to).was_called(1)
-        assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
+          flow.curr_state.spawned_emerald_locations = {
+            location(1, 1),
+            location(2, 2),
+          }
+        end)
+
+        it('should call warp_to with the center position of the previous emerald', function ()
+          pc.last_emerald_warp_nb = 2
+
+          -- warp to previous one, so index 1
+          pc:warp_to_emerald_by(-1)
+
+          assert.spy(player_char.warp_to).was_called(1)
+          assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
+        end)
+
+        it('should call warp_to with the center position of the previous emerald (looped)', function ()
+          pc.last_emerald_warp_nb = 1
+
+          -- warp to previous one looped, so index 2
+          pc:warp_to_emerald_by(-1)
+
+          assert.spy(player_char.warp_to).was_called(1)
+          assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+        end)
+
+        it('should call warp_to with the center position of the previous emerald (looped on start from 0)', function ()
+          pc.last_emerald_warp_nb = 0
+
+          -- warp to previous one looped, so index 2
+          pc:warp_to_emerald_by(-1)
+
+          assert.spy(player_char.warp_to).was_called(1)
+          assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+        end)
+
+        it('should call warp_to with the center position of the next emerald', function ()
+          pc.last_emerald_warp_nb = 1
+
+          -- warp to next one looped, so index 2
+          pc:warp_to_emerald_by(1)
+
+          assert.spy(player_char.warp_to).was_called(1)
+          assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(20, 20))
+        end)
+
+        it('should call warp_to with the center position of the next emerald (looped)', function ()
+          pc.last_emerald_warp_nb = 2
+
+          -- warp to next one looped, so index 1
+          pc:warp_to_emerald_by(1)
+
+          assert.spy(player_char.warp_to).was_called(1)
+          assert.spy(player_char.warp_to).was_called_with(match.ref(pc), vector(12, 12))
+        end)
+
       end)
 
     end)

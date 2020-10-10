@@ -234,6 +234,11 @@ function player_char:warp_to_emerald_by(delta)
   local curr_stage_state = flow.curr_state
   assert(curr_stage_state.type == ':stage')
 
+  -- safety if no emeralds found (test stage or emerald spawning disabled for some reason)
+  if #curr_stage_state.spawned_emerald_locations == 0 then
+    return
+  end
+
   -- -1/+1 to loop from 1, not 0
   -- clamping to 0 after delta is only for the edge case where your first warp is previous (-1)
   --  since you want to reach the last emerald, no the penultimate one

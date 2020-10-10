@@ -73,6 +73,14 @@
 					"name": "21",
 					"cmd": ["pico8 data/data_stage1_21.p8"],
 				},
+				{
+					"name": "30",
+					"cmd": ["pico8 data/data_stage1_30.p8"],
+				},
+				{
+					"name": "31",
+					"cmd": ["pico8 data/data_stage1_31.p8"],
+				},
 			]
 		},
 		{

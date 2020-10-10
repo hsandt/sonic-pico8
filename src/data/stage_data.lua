@@ -35,9 +35,10 @@ return {
       -- stage title
       title = "angel island",
 
-      -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column)
+      -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column,
+      --  extra tiles on width for goal area)
       -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
-      tile_width = 128 * 3,
+      tile_width = 128 * 3 + 48,
       tile_height = 32 * 2,
 
       -- where the player character spawns on stage start (region (0, 1))
@@ -46,7 +47,7 @@ return {
       spawn_location = location(7, 32+15),
 
       -- the x to reach to finish the stage
-      goal_x = 3*128*8,  -- 3072, after 3 regions of 128 tiles (goal is at stage right edge unlike classic Sonic)
+      goal_x = (3*128 + 24)*8,  -- after 3 regions of 128 tiles, in the middle of the partial final region
 
       -- bgm id
       -- with the new dynamic bgm cartridge reload system,

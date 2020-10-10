@@ -69,7 +69,7 @@ describe('stage_state', function ()
             state.curr_stage_id,
             state.current_substate,
             state.player_char,
-            state.has_reached_goal,
+            state.has_player_char_reached_goal,
             state.spawned_emerald_locations,
             state.emeralds,
             state.picked_emerald_numbers_set,
@@ -153,8 +153,8 @@ describe('stage_state', function ()
           assert.are_equal(state.player_char, state.camera.target_pc)
         end)
 
-        it('should set has_reached_goal to false', function ()
-          assert.is_false(state.has_reached_goal)
+        it('should set has_player_char_reached_goal to false', function ()
+          assert.is_false(state.has_player_char_reached_goal)
         end)
 
         it('should call start_coroutine_method on show_stage_title_async', function ()
@@ -769,7 +769,7 @@ describe('stage_state', function ()
 
       end)
 
-      describe('#solo get_spawn_object_callback', function ()
+      describe('get_spawn_object_callback', function ()
 
         it('should return stage_state.spawn_emerald_at for visual.emerald_repr_sprite_id', function ()
           assert.are_equal(stage_state.spawn_emerald_at, state:get_spawn_object_callback(visual.emerald_repr_sprite_id))
@@ -1273,16 +1273,35 @@ describe('stage_state', function ()
               picosonic_app.start_coroutine:clear()
             end)
 
+            describe('(no goal)', function ()
+
+              -- should be each
+              before_each(function ()
+                state.player_char.position = vector(1000, 0)
+                state:check_reached_goal()
+              end)
+
+              it('should not set has_player_char_reached_goal to true', function ()
+                assert.is_false(state.has_player_char_reached_goal)
+              end)
+
+              it('should not start on_reached_goal_async', function ()
+                assert.spy(picosonic_app.start_coroutine).was_not_called()
+              end)
+
+            end)
+
             describe('(before the goal)', function ()
 
               -- should be each
               before_each(function ()
-                state.player_char.position = vector(state.curr_stage_data.goal_x - 1, 0)
+                state.goal_plate = goal_plate(location(100, 0))
+                state.player_char.position = vector(804 - 1, 0)
                 state:check_reached_goal()
               end)
 
-              it('should not set has_reached_goal to true', function ()
-                assert.is_false(state.has_reached_goal)
+              it('should not set has_player_char_reached_goal to true', function ()
+                assert.is_false(state.has_player_char_reached_goal)
               end)
 
               it('should not start on_reached_goal_async', function ()
@@ -1294,12 +1313,13 @@ describe('stage_state', function ()
             describe('(just on the goal)', function ()
 
               before_each(function ()
-                state.player_char.position = vector(state.curr_stage_data.goal_x, 0)
+                state.goal_plate = goal_plate(location(100, 0))
+                state.player_char.position = vector(804, 0)
                 state:check_reached_goal()
               end)
 
-              it('should set has_reached_goal to true', function ()
-                assert.is_true(state.has_reached_goal)
+              it('should set has_player_char_reached_goal to true', function ()
+                assert.is_true(state.has_player_char_reached_goal)
               end)
 
               it('should start on_reached_goal_async', function ()
@@ -1309,20 +1329,21 @@ describe('stage_state', function ()
 
             end)
 
-            describe('(after the goal)', function ()
+            describe('(just on the goal, but already reached once)', function ()
 
               before_each(function ()
-                state.player_char.position = vector(state.curr_stage_data.goal_x + 1, 0)
+                state.goal_plate = goal_plate(location(100, 0))
+                state.player_char.position = vector(804, 0)
+                state.has_player_char_reached_goal = true
                 state:check_reached_goal()
               end)
 
-              it('should set has_reached_goal to true', function ()
-                assert.is_true(state.has_reached_goal)
+              it('should keep has_player_char_reached_goal as true', function ()
+                assert.is_true(state.has_player_char_reached_goal)
               end)
 
-              it('should start on_reached_goal_async', function ()
-                assert.spy(picosonic_app.start_coroutine).was_called(1)
-                assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.on_reached_goal_async, match.ref(state))
+              it('should not call on_reached_goal_async again', function ()
+                assert.spy(picosonic_app.start_coroutine).was_not_called()
               end)
 
             end)
@@ -1501,7 +1522,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_stage_elements', function ()
+          describe('render_stage_elements', function ()
 
             setup(function ()
               stub(stage_state, "render_environment_midground")
@@ -1557,7 +1578,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_title_overlay', function ()
+          describe('render_title_overlay', function ()
 
             setup(function ()
               stub(overlay, "draw_labels")
@@ -1581,7 +1602,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_background', function ()
+          describe('render_background', function ()
 
             it('should reset camera position', function ()
               -- set a value so that 156 - 0.5 * self.camera.position.y is between -32 and 58,
@@ -1597,7 +1618,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_player_char', function ()
+          describe('render_player_char', function ()
 
             setup(function ()
               stub(stage_state, "set_camera_with_origin")
@@ -1625,7 +1646,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_emeralds', function ()
+          describe('render_emeralds', function ()
 
             setup(function ()
               stub(stage_state, "set_camera_with_origin")
@@ -1659,7 +1680,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_goal_plate', function ()
+          describe('render_goal_plate', function ()
 
             setup(function ()
               stub(stage_state, "set_camera_with_origin")
@@ -1915,8 +1936,6 @@ describe('stage_state', function ()
 
               assert.spy(map).was_called(1)
               assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-
-              -- we also draw the goal line, but it's prototype so we don't test it
             end)
 
             it('render_environment_foreground should call spr on tiles present on screen', function ()
@@ -2037,7 +2056,7 @@ describe('stage_state', function ()
               end)
 
               it('should not have reached goal', function ()
-                assert.is_false(state.has_reached_goal)
+                assert.is_false(state.has_player_char_reached_goal)
               end)
 
             end)

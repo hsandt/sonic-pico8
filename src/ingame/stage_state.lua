@@ -40,7 +40,7 @@ function stage_state:init()
   -- player character
   self.player_char = nil
   -- has the player character already reached the goal once?
-  self.has_reached_goal = false
+  self.has_player_char_reached_goal = false
 
   -- emeralds: spawned global locations list
   self.spawned_emerald_locations = {}
@@ -112,7 +112,7 @@ function stage_state:on_enter()
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
 
-  self.has_reached_goal = false
+  self.has_player_char_reached_goal = false
 
   self.app:start_coroutine(self.show_stage_title_async, self)
 
@@ -717,9 +717,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
 end
 
 function stage_state:check_reached_goal()
-  if not self.has_reached_goal and
-      self.player_char.position.x >= self.curr_stage_data.goal_x then
-    self.has_reached_goal = true
+  if not self.has_player_char_reached_goal and self.goal_plate and
+      self.player_char.position.x >= self.goal_plate.global_loc:to_center_position().x then
+    self.has_player_char_reached_goal = true
     self.app:start_coroutine(self.on_reached_goal_async, self)
   end
 end
@@ -1222,9 +1222,6 @@ function stage_state:render_environment_midground()
   --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-
-  -- goal as vertical line
-  rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
 end
 
 function stage_state:render_environment_foreground()

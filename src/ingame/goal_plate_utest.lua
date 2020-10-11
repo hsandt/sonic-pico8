@@ -1,7 +1,7 @@
 require("test/bustedhelper")
 local goal_plate = require("ingame/goal_plate")
 
-local sprite_data = require("engine/render/sprite_data")
+local animated_sprite = require("engine/render/animated_sprite")
 
 local visual = require("resources/visual")
 
@@ -9,9 +9,20 @@ describe('goal_plate', function ()
 
   describe('init', function ()
 
-    it('should create an goal_plate with a location', function ()
+    setup(function ()
+      spy.on(animated_sprite, "play")
+    end)
+
+    teardown(function ()
+      animated_sprite.play:revert()
+    end)
+
+    it('should create an goal_plate with a location, a sprite anim, and play "goal" anim', function ()
       local goal = goal_plate(location(2, 33))
       assert.are_same({location(2, 33)}, {goal.global_loc})
+
+      assert.spy(animated_sprite.play).was_called(1)
+      assert.spy(animated_sprite.play).was_called_with(match.ref(goal.anim_spr), "goal")
     end)
 
   end)
@@ -25,18 +36,43 @@ describe('goal_plate', function ()
 
   end)
 
-  describe('render', function ()
+  describe('update', function ()
 
     setup(function ()
-      stub(sprite_data, "render")
+      stub(animated_sprite, "update")
     end)
 
     teardown(function ()
-      sprite_data.render:revert()
+      animated_sprite.update:revert()
     end)
 
     after_each(function ()
-      sprite_data.render:clear()
+      animated_sprite.update:clear()
+    end)
+
+    it('should draw goal_plate sprite data at tile center', function ()
+      local goal = goal_plate(location(2, 33))
+
+      goal:update()
+
+      assert.spy(animated_sprite.update).was_called(1)
+      assert.spy(animated_sprite.update).was_called_with(match.ref(goal.anim_spr))
+    end)
+
+  end)
+
+  describe('render', function ()
+
+    setup(function ()
+      stub(animated_sprite, "render")
+    end)
+
+    teardown(function ()
+      animated_sprite.render:revert()
+    end)
+
+    after_each(function ()
+      animated_sprite.render:clear()
     end)
 
     it('should draw goal_plate sprite data at tile center', function ()
@@ -44,8 +80,8 @@ describe('goal_plate', function ()
 
       goal:render()
 
-      assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.goal_plate_goal), vector(2 * 8 + 4, 33 * 8))
+      assert.spy(animated_sprite.render).was_called(1)
+      assert.spy(animated_sprite.render).was_called_with(match.ref(goal.anim_spr), vector(2 * 8 + 4, 33 * 8))
     end)
 
   end)

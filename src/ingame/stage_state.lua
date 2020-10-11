@@ -155,6 +155,7 @@ function stage_state:update()
   if self.current_substate == stage_state.substates.play then
     self.player_char:update()
     self:check_reached_goal()
+    self.goal_plate:update()
     self.camera:update()
     self:check_reload_map_region()
   else

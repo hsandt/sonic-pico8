@@ -82,6 +82,26 @@ visual.animated_sprite_data_t = {
       5,
       2  -- anim_loop_modes.freeze_last (just to sport forgotten fx clear easily)
     )
+  },
+  goal_plate = {
+    -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
+    --  but this will actually be minified and therefore very compact (as names are not protected)
+    ["goal"] = animated_sprite_data.create_static(sprite_data_t.goal_plate_goal),
+    ["sonic"] = animated_sprite_data.create_static(sprite_data_t.goal_plate_sonic),
+    ["rotating"] = animated_sprite_data(
+      {
+        sprite_data_t.goal_plate_goal,
+        sprite_data_t.goal_plate_rotating_45_ccw,
+        sprite_data_t.goal_plate_rotating_90,
+        sprite_data_t.goal_plate_rotating_45_cw,
+        sprite_data_t.goal_plate_sonic,
+        sprite_data_t.goal_plate_rotating_45_ccw,
+        sprite_data_t.goal_plate_rotating_90,
+        sprite_data_t.goal_plate_rotating_45_cw,
+      },
+      5,
+      4  -- anim_loop_modes.loop (will be stopped from code)
+    )
   }
 }
 

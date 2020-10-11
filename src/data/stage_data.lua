@@ -15,6 +15,8 @@ return {
 
   -- delay between stage enter and showing stage title (s)
   show_stage_title_delay = 4.0,
+  -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)
+  goal_rotating_anim_duration = 100,
   -- duration of stage clear jingle, including blank at the end (frames)
   stage_clear_duration = 448,
   -- delay between reaching goal and going back to title menu (s)

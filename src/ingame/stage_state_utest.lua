@@ -992,6 +992,7 @@ describe('stage_state', function ()
               stub(stage_state, "update_fx")
               stub(player_char, "update")
               stub(stage_state, "check_reached_goal")
+              stub(goal_plate, "update")
               stub(camera_class, "update")
             end)
 
@@ -999,6 +1000,7 @@ describe('stage_state', function ()
               stage_state.update_fx:revert()
               player_char.update:revert()
               stage_state.check_reached_goal:revert()
+              goal_plate.update:revert()
               camera_class.update:revert()
             end)
 
@@ -1016,6 +1018,7 @@ describe('stage_state', function ()
               stage_state.update_fx:clear()
               player_char.update:clear()
               stage_state.check_reached_goal:clear()
+              goal_plate.update:clear()
               camera_class.update:clear()
 
               stage_state.check_reload_map_region:revert()
@@ -1023,8 +1026,9 @@ describe('stage_state', function ()
 
             describe('(current substate is play)', function ()
 
-              it('should call player_char:update, check_reached_goal, update, check_reload_map_region', function ()
+              it('should call player_char update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.play
+                state.goal_plate = goal_plate(location(100, 0))
 
                 state:update()
 
@@ -1035,6 +1039,8 @@ describe('stage_state', function ()
                 assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
                 assert.spy(stage_state.check_reached_goal).was_called(1)
                 assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
+                assert.spy(goal_plate.update).was_called(1)
+                assert.spy(goal_plate.update).was_called_with(match.ref(state.goal_plate))
                 assert.spy(camera_class.update).was_called(1)
                 assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
                 assert.spy(stage_state.check_reload_map_region).was_called(1)
@@ -1044,7 +1050,7 @@ describe('stage_state', function ()
 
             describe('(current substate is result)', function ()
 
-              it('should not call player_char:update, check_reached_goal, update, check_reload_map_region', function ()
+              it('should not call play element updates', function ()
                 state.current_substate = stage_state.substates.result
 
                 state:update()

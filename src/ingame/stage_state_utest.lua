@@ -47,7 +47,7 @@ describe('stage_state', function ()
 
     describe('state', function ()
 
-      it('init', function ()
+      it('#solo init', function ()
         assert.are_same({
             ':stage',
             1,
@@ -60,7 +60,8 @@ describe('stage_state', function ()
             {},
             {},
             camera_class(),
-            overlay(0),
+            overlay(),
+            overlay(),
             nil,
             -- itest only
             true,
@@ -78,6 +79,7 @@ describe('stage_state', function ()
             state.palm_tree_leaves_core_global_locations,
             state.camera,
             state.title_overlay,
+            state.result_overlay,
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,
@@ -1080,14 +1082,15 @@ describe('stage_state', function ()
 
           end)  -- update
 
-          describe('render', function ()
+          describe('#solo render', function ()
 
             setup(function ()
               stub(stage_state, "render_background")
               stub(stage_state, "render_stage_elements")
               stub(stage_state, "render_fx")
               stub(stage_state, "render_hud")
-              stub(stage_state, "render_title_overlay")
+              stub(stage_state, "render_overlay")
+              stub(stage_state, "render_emerald_cross")
             end)
 
             teardown(function ()
@@ -1095,7 +1098,8 @@ describe('stage_state', function ()
               stage_state.render_stage_elements:revert()
               stage_state.render_fx:revert()
               stage_state.render_hud:revert()
-              stage_state.render_title_overlay:revert()
+              stage_state.render_overlay:revert()
+              stage_state.render_emerald_cross:revert()
             end)
 
             after_each(function ()
@@ -1103,10 +1107,11 @@ describe('stage_state', function ()
               stage_state.render_stage_elements:clear()
               stage_state.render_fx:clear()
               stage_state.render_hud:clear()
-              stage_state.render_title_overlay:clear()
+              stage_state.render_overlay:clear()
+              stage_state.render_emerald_cross:clear()
             end)
 
-            it('should call render_background, render_stage_elements, render_fx, render_hud, render_title_overlay', function ()
+            it('should call render_background, render_stage_elements, render_fx, render_hud, render_overlay', function ()
               state:render()
               assert.spy(stage_state.render_background).was_called(1)
               assert.spy(stage_state.render_background).was_called_with(match.ref(state))
@@ -1116,8 +1121,25 @@ describe('stage_state', function ()
               assert.spy(stage_state.render_fx).was_called_with(match.ref(state))
               assert.spy(stage_state.render_hud).was_called(1)
               assert.spy(stage_state.render_hud).was_called_with(match.ref(state))
-              assert.spy(stage_state.render_title_overlay).was_called(1)
-              assert.spy(stage_state.render_title_overlay).was_called_with(match.ref(state))
+              assert.spy(stage_state.render_overlay).was_called(1)
+              assert.spy(stage_state.render_overlay).was_called_with(match.ref(state))
+            end)
+
+            it('(play) should not call render_emerald_cross', function ()
+              state.current_substate = stage_state.substates.play
+
+              state:render()
+
+              assert.spy(stage_state.render_emerald_cross).was_not_called()
+            end)
+
+            it('(result) should call render_emerald_cross', function ()
+              state.current_substate = stage_state.substates.result
+
+              state:render()
+
+              assert.spy(stage_state.render_emerald_cross).was_called(1)
+              assert.spy(stage_state.render_emerald_cross).was_called_with(match.ref(state))
             end)
 
           end)  -- state.render
@@ -1555,7 +1577,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('render_title_overlay', function ()
+          describe('render_overlay', function ()
 
             setup(function ()
               stub(overlay, "draw_labels")
@@ -1569,12 +1591,16 @@ describe('stage_state', function ()
               overlay.draw_labels:clear()
             end)
 
-
-            it('should call title_overlay:draw_labels', function ()
-              state:render_title_overlay()
+            it('should reset camera', function ()
+              state:render_overlay()
               assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
-              assert.spy(overlay.draw_labels).was_called(1)
+            end)
+
+            it('should call title_overlay:draw_labels and result_overlay:draw_labels', function ()
+              state:render_overlay()
+              assert.spy(overlay.draw_labels).was_called(2)
               assert.spy(overlay.draw_labels).was_called_with(match.ref(state.title_overlay))
+              assert.spy(overlay.draw_labels).was_called_with(match.ref(state.result_overlay))
             end)
 
           end)
@@ -1694,7 +1720,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('render_hud', function ()
+          describe('#solo render_hud', function ()
 
             setup(function ()
               stub(emerald, "draw")
@@ -1711,7 +1737,9 @@ describe('stage_state', function ()
               player_char.debug_print_info:clear()
             end)
 
-            it('should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
+            it('(play) should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
+              state.current_substate = stage_state.substates.play
+
               state.spawned_emerald_locations = {
                 -- dummy values just to have correct count (3, counting hole on 2)
                 location(1, 1), location(2, 2), location(3, 3)
@@ -1728,6 +1756,23 @@ describe('stage_state', function ()
               -- silhouette only
               assert.spy(emerald.draw).was_called_with(-1, vector(16, 6))
               assert.spy(emerald.draw).was_called_with(3, vector(26, 6))
+            end)
+
+            it('(result) should not draw emeralds on the top-left hud', function ()
+              state.current_substate = stage_state.substates.result
+
+              state.spawned_emerald_locations = {
+                -- dummy values just to have correct count (3, counting hole on 2)
+                location(1, 1), location(2, 2), location(3, 3)
+              }
+              state.picked_emerald_numbers_set = {
+                [1] = true,
+                [3] = true
+              }
+
+              state:render_hud()
+
+              assert.spy(emerald.draw).was_not_called()
             end)
 
             it('should debug render character info (#debug_character only)', function ()

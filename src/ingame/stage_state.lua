@@ -60,7 +60,10 @@ function stage_state:init()
   self.camera = camera_class()
 
   -- title overlay
-  self.title_overlay = overlay(0)
+  self.title_overlay = overlay()
+
+  -- result (stage clear) overlay
+  self.result_overlay = overlay()
 
   -- list of background tree delta heights (i.e. above base height),
   --  per row, from farthest (top) to closest
@@ -169,7 +172,11 @@ function stage_state:render()
   self:render_stage_elements()
   self:render_fx()
   self:render_hud()
-  self:render_title_overlay()
+  self:render_overlay()
+
+  if self.current_substate == stage_state.substates.result then
+    self:render_emerald_cross()
+  end
 end
 
 
@@ -727,19 +734,34 @@ function stage_state:check_reached_goal()
 end
 
 function stage_state:on_reached_goal_async()
+  -- make character move right to exit the screen
   self.player_char:force_move_right()
 
+  -- play goal plate animation and wait for it to end
   self:feedback_reached_goal()
   yield_delay(stage_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
+  -- now we can enter result substate which does fewer updates (e.g. no camera update)
+  --  and does not render some elements (e.g. no redundant emerald HUD)
+  -- we assume the character has landed and camera is properly centered on goal plate
+  --  at this point
   self.current_substate = stage_state.substates.result
 
+  -- show result UI
+  self:show_result_async()
+
+  -- stop BGM and play stage clear jingle
   self:stop_bgm(stage_data.bgm_fade_out_duration)
   self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
   music(audio.jingle_ids.stage_clear)
   yield_delay(stage_data.stage_clear_duration)
 
+  -- play result UI "calculation" (we don't have score so it's just checking
+  --  if we have all the emeralds)
+  self:assess_result_async()
+
+  -- wait a moment and go back to titlemenu
   self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
@@ -808,6 +830,17 @@ function stage_state:show_stage_title_async()
   self.title_overlay:add_label("title", self.curr_stage_data.title, vector(50, 30), colors.white)
   self.app:yield_delay_s(stage_data.show_stage_title_delay)
   self.title_overlay:remove_label("title")
+end
+
+function stage_state:show_result_async()
+  self.result_overlay:add_label("through", "sonic got through\nangel island", vector(24, 14), colors.white)
+end
+
+function stage_state:assess_result_async()
+  -- check if player got all emeralds
+  if #self.emeralds == #self.spawned_emerald_locations then
+    -- TODO
+  end
 end
 
 
@@ -1316,15 +1349,17 @@ function stage_state:render_hud()
   -- HUD is drawn directly in screen coordinates
   camera()
 
-  -- draw emeralds obtained at top-left of screen, in order from left to right,
-  --  with the right color
-  for i = 1, #self.spawned_emerald_locations do
-    local draw_position = vector(-4 + 10 * i, 6)
-    if self.picked_emerald_numbers_set[i] then
-      emerald.draw(i, draw_position)
-    else
-      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
-      emerald.draw(-1, draw_position)
+  if self.current_substate == stage_state.substates.play then
+    -- draw emeralds obtained at top-left of screen, in order from left to right,
+    --  with the right color
+    for i = 1, #self.spawned_emerald_locations do
+      local draw_position = vector(-4 + 10 * i, 6)
+      if self.picked_emerald_numbers_set[i] then
+        emerald.draw(i, draw_position)
+      else
+        -- display silhouette for unpicked emeralds (code is based on emerald.draw)
+        emerald.draw(-1, draw_position)
+      end
     end
   end
 
@@ -1334,9 +1369,34 @@ function stage_state:render_hud()
 end
 
 -- render the title overlay with a fixed ui camera
-function stage_state:render_title_overlay()
+function stage_state:render_overlay()
   camera()
   self.title_overlay:draw_labels()
+  self.result_overlay:draw_labels()
+end
+
+
+-- render the emerald cross base and every picked emeralds
+function stage_state:render_emerald_cross()
+  camera()
+
+  -- for now, copy-paste render_hud, but draw lower
+  -- draw emeralds obtained at top-left of screen, in order from left to right,
+  --  with the right color
+  for i = 1, #self.spawned_emerald_locations do
+    local draw_position = vector(14 + 10 * i, 57)
+    if self.picked_emerald_numbers_set[i] then
+      emerald.draw(i, draw_position)
+    else
+      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
+      emerald.draw(-1, draw_position)
+    end
+  end
+end
+
+-- render the emerald cross base and every picked emeralds
+function stage_state:draw_emerald_cross_base()
+  -- TODO
 end
 
 

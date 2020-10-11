@@ -1027,7 +1027,7 @@ describe('stage_state', function ()
 
             describe('(current substate is play)', function ()
 
-              it('should call player_char update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
+              it('should call fx and character update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
                 state.current_substate = stage_state.substates.play
                 state.goal_plate = goal_plate(location(100, 0))
 
@@ -1035,9 +1035,9 @@ describe('stage_state', function ()
 
                 assert.spy(stage_state.update_fx).was_called(1)
                 assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
-
                 assert.spy(player_char.update).was_called(1)
                 assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
+
                 assert.spy(stage_state.check_reached_goal).was_called(1)
                 assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
                 assert.spy(goal_plate.update).was_called(1)
@@ -1047,19 +1047,30 @@ describe('stage_state', function ()
                 assert.spy(stage_state.check_reload_map_region).was_called(1)
                 assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
               end)
+
+              it('should not try to update goal if no goal plate found (safety check for itests)', function ()
+                state.current_substate = stage_state.substates.play
+                state.goal_plate = nil
+
+                state:update()
+
+                assert.spy(goal_plate.update).was_not_called()
+              end)
+
             end)
 
             describe('(current substate is result)', function ()
 
-              it('should not call play element updates', function ()
+              it('should call fx and character update, not other element updates', function ()
                 state.current_substate = stage_state.substates.result
 
                 state:update()
 
                 assert.spy(stage_state.update_fx).was_called(1)
                 assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
+                assert.spy(player_char.update).was_called(1)
+                assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
 
-                assert.spy(player_char.update).was_not_called()
                 assert.spy(stage_state.check_reached_goal).was_not_called()
                 assert.spy(camera_class.update).was_not_called()
                 assert.spy(stage_state.check_reload_map_region).was_not_called()

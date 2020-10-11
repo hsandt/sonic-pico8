@@ -151,15 +151,16 @@ function stage_state:update()
   -- common in case we picked some emerald near the goal line, as we'd still want
   --  to see the animation end
   self:update_fx()
+  -- same, we want to update character during result in case it didn't leave screen yet
+  self.player_char:update()
 
   if self.current_substate == stage_state.substates.play then
-    self.player_char:update()
     self:check_reached_goal()
-    self.goal_plate:update()
+    if self.goal_plate then
+      self.goal_plate:update()
+    end
     self.camera:update()
     self:check_reload_map_region()
-  else
-    self.player_char:update()
   end
 end
 

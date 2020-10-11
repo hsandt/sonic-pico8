@@ -175,9 +175,34 @@ function camera_class:update()
     self.position.y = self.position.y + dy
   end
 
-  -- clamp on level edges (we are handling the center so need offset by screen_width/height)
+  -- clamp on level edges
+  -- we are handling the center so we need to offset by screen_width/height
   self.position.x = mid(screen_width / 2, self.position.x, self.stage_data.tile_width * tile_size - screen_width / 2)
-  self.position.y = mid(screen_height / 2, self.position.y, self.stage_data.tile_height * tile_size - screen_height / 2)
+
+  -- Y has dynamic clamping so compute it from camera_bottom_limit_margin_keypoints
+  local dynamic_bottom_limit = self:get_bottom_limit_at_x(self.position.x)
+  self.position.y = mid(screen_height / 2, self.position.y, dynamic_bottom_limit - screen_height / 2)
+end
+
+function camera_class:get_bottom_limit_at_x(x)
+  local bottom_limit_tile_margin = 0
+
+  -- first, evaluate piecewise constant curve, considering each keypoint is placed
+  --  at the *end* of a constant region
+  -- iterate from left to right
+  for keypoint in all(self.stage_data.camera_bottom_limit_margin_keypoints) do
+    -- check if X is before next keypoint X since it indicates the end
+    if x < keypoint.x * tile_size then
+      -- we are in the right region since we iterated from left to right
+      -- we can immediately break with the value for this region
+      bottom_limit_tile_margin = keypoint.y
+      break
+    end
+  end
+
+  -- whether we reached the end and kept margin 0 or found a specific margin,
+  --  return the complemented value at pixel scale for the bottom limit as Y
+  return (self.stage_data.tile_height - bottom_limit_tile_margin) * tile_size
 end
 
 return camera_class

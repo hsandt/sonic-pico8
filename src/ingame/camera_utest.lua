@@ -4,7 +4,7 @@ local camera_class = require("ingame/camera")
 local camera_data = require("data/camera_data")
 local player_char = require("ingame/playercharacter")
 
-describe('camera', function ()
+describe('camera_class', function ()
 
   describe('init', function ()
 
@@ -48,6 +48,24 @@ describe('camera', function ()
 
     local cam
     local pc
+
+    setup(function ()
+      stub(camera_class, "get_bottom_limit_at_x", function (self, x)
+        if x < 50 * tile_size then
+          return 18 * tile_size  -- margin of 2 -> 144
+        else
+          return 20 * tile_size  -- 160, to match tile_height below, means bottom limit offset is 0
+        end
+      end)
+    end)
+
+    teardown(function ()
+      camera_class.get_bottom_limit_at_x:revert()
+    end)
+
+    after_each(function ()
+      camera_class.get_bottom_limit_at_x:clear()
+    end)
 
     before_each(function ()
       -- required for stage edge clamping
@@ -680,8 +698,65 @@ describe('camera', function ()
       assert.are_same(vector(800-64, 160-64), cam.position)
     end)
 
+    it('should move the camera to player position, clamped (bottom-right, bottom limit offset 0)', function ()
+      -- start near/at the edge already, if you're too far the camera won't have
+      --  time to reach the edge in one update due to smooth motion (in y)
+      cam.position = vector(800-64, 160-64)
+      cam.target_pc.position = vector(2000, 1000)
+
+      cam:update()
+
+      assert.are_same(vector(800-64, 160-64), cam.position)
+    end)
+
+    it('should move the camera to player position, clamped (bottom-left, bottom limit offset 2)', function ()
+      -- start near/at the edge already, if you're too far the camera won't have
+      --  time to reach the edge in one update due to smooth motion (in y)
+      cam.position = vector(64, 144-64)
+      cam.target_pc.position = vector(0, 1000)
+
+      cam:update()
+
+      assert.are_same(vector(64, 144-64), cam.position)
+    end)
+
   end)
 
+  describe('get_bottom_limit_at_x', function ()
 
+    local cam
+
+    before_each(function ()
+      local mock_curr_stage_data = {
+        tile_width = 200,  -- not needed for this test, but helps us imagine
+        tile_height = 100,
+        camera_bottom_limit_margin_keypoints = {
+          vector(10, 50),  -- margin 50, reaches tile 50 so y = 400
+          vector(30, 20),  -- margin 20, reaches tile 80 so y = 640
+          -- no margin from tile 20 until the end
+        }
+      }
+
+      cam = camera_class()
+      cam.stage_data = mock_curr_stage_data
+    end)
+
+    it('should return complement of margin 50 for pixel scale for x = 9 * tile_size + .9', function ()
+      assert.are_equal((100 - 50) * tile_size, cam:get_bottom_limit_at_x(9 * tile_size + .9))
+    end)
+
+    it('should return complement of margin 20 for pixel scale for x = 10 * tile_size', function ()
+      assert.are_equal((100 - 20) * tile_size, cam:get_bottom_limit_at_x(10 * tile_size))
+    end)
+
+    it('should return complement of margin 20 for pixel scale for x = 29 * tile_size', function ()
+      assert.are_equal((100 - 20) * tile_size, cam:get_bottom_limit_at_x(29 * tile_size))
+    end)
+
+    it('should return complement of margin 0 (reaches end of curve) for pixel scale for x = 30 * tile_size', function ()
+      assert.are_equal(100 * tile_size, cam:get_bottom_limit_at_x(30 * tile_size))
+    end)
+
+  end)
 
 end)

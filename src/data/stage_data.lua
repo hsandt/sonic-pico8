@@ -59,6 +59,30 @@ return {
       --  (to guarantee space for SFX)
       bgm_id = 0,
 
+      -- camera data
+
+      -- camera bottom limit margin piecewise constant curve keypoints
+      -- it is made of horizontal segments defined by key points at their *end*,
+      --  and mostly useful because we don't want the camera to show too much of the bottom at some places,
+      --  so the player can see more of the top and feel that they have reached the (local) bottom of the stage
+      -- keypoint X represents the tile i coordinate that camera X must reach (must * tile_size)
+      -- because it is simpler to count tiles from the bottom, we define keypoint Y as the number of tiles
+      --  from the real stage bottom, that are hidden and from where the camera will be clamped
+      -- (note that they are only hidden in the middle of the segments they belong to; crouching, if implemented, just on the left/right
+      --  of a keypoint would reveal suddenly more or less tiles, but we don't mind because the sudden changes
+      --  are done when the ground is at a high level, so they can't be experienced when running normally)
+      -- keypoints must be defined in order, from left to right, at each segment end
+      --  a keypoint = vector(camera_x, camera_bottom_limit_offset)
+      -- they have been deduced from playing Sonic 3 (& K) and crouching to see how far I can look down
+      camera_bottom_limit_margin_keypoints = {
+        vector(47, 11),
+        vector(104, 8),
+        -- normal stage bottom limit from tile 104
+        -- there is actually yet another level in the original game, but it is to reveal the water area
+        --  and since we cut the bottom of it for our adaptation, the last bottom limit, which matches
+        --  our lowest region bottom exactly, is the ultimate limit for us
+      },
+
       -- layer data
       -- all tile locations are global
 

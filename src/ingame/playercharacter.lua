@@ -383,6 +383,10 @@ function player_char:handle_input()
       self:toggle_debug_motion()
     end
 --#endif
+  else
+    self.move_intention = vector.zero()
+    self.jump_intention = false
+    self.hold_jump_intention = false
   end
 end
 

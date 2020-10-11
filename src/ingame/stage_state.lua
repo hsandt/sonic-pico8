@@ -159,7 +159,7 @@ function stage_state:update()
     self.camera:update()
     self:check_reload_map_region()
   else
-    -- add stage ending logic here
+    self.player_char:update()
   end
 end
 
@@ -729,11 +729,14 @@ function stage_state:on_reached_goal_async()
   self:feedback_reached_goal()
   yield_delay(stage_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
-  self.current_substate = stage_state.substates.result
+
+  self:enter_result_state()
+
   self:stop_bgm(stage_data.bgm_fade_out_duration)
   self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
   music(audio.jingle_ids.stage_clear)
   yield_delay(stage_data.stage_clear_duration)
+
   self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
   self:back_to_titlemenu()
 end
@@ -741,6 +744,13 @@ end
 function stage_state:feedback_reached_goal()
   self.goal_plate.anim_spr:play("rotating")
   sfx(audio.sfx_ids.goal_reached)
+end
+
+function stage_state:enter_result_state()
+  self.current_substate = stage_state.substates.result
+
+  -- prevent player from controlling character further
+  self.player_char.control_mode = control_modes.ai
 end
 
 function stage_state:back_to_titlemenu()

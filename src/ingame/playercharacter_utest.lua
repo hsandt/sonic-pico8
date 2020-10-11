@@ -818,13 +818,16 @@ describe('player_char', function ()
           pc.control_mode = control_modes.ai  -- or puppet
         end)
 
-        it('should do nothing', function ()
+        it('should ignore inputs, and reset all intentions to 0/false', function ()
+          pc.move_intention = vector(-1, 1)
+          pc.jump_intention = true
+          pc.hold_jump_intention = true
           input.players_btn_states[0][button_ids.left] = btn_states.pressed
-          pc:handle_input()
-          assert.are_same(vector:zero(), pc.move_intention)
           input.players_btn_states[0][button_ids.up] = btn_states.pressed
+
           pc:handle_input()
-          assert.are_same(vector:zero(), pc.move_intention)
+
+          assert.are_same({vector.zero(), false, false}, {pc.move_intention, pc.jump_intention, pc.hold_jump_intention})
         end)
 
       end)

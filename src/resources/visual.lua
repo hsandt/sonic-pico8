@@ -99,7 +99,7 @@ visual.animated_sprite_data_t = {
         sprite_data_t.goal_plate_rotating_90,
         sprite_data_t.goal_plate_rotating_45_cw,
       },
-      5,
+      3,
       4  -- anim_loop_modes.loop (will be stopped from code)
     )
   }

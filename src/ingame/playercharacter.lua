@@ -12,8 +12,8 @@ local visual = require("resources/visual")
 -- enum for character control
 control_modes = {
   human = 1,      -- player controls character
-  ai = 2,         -- ai controls character
-  puppet = 3      -- itest script controls character
+  ai = 2,         -- ai controls character (precise behavior)
+  puppet = 3      -- external code controls character (stop updating and use the last intentions set)
 }
 
 -- motion_modes and motion_states are accessed dynamically via variant name in itest_dsl
@@ -383,11 +383,22 @@ function player_char:handle_input()
       self:toggle_debug_motion()
     end
 --#endif
-  else
+  elseif self.control_mode == control_modes.ai then
+    -- for now, ai just resets intention
+    -- it is now actually used, as puppet is more convienent for itests,
+    --  post-goal behavior, attract mode, etc. (like a scripted behavior)
     self.move_intention = vector.zero()
     self.jump_intention = false
     self.hold_jump_intention = false
   end
+end
+
+function player_char:force_move_right()
+  -- force player to move to the right
+  self.control_mode = control_modes.puppet
+  self.move_intention = vector(1, 0)
+  self.jump_intention = false
+  self.hold_jump_intention = false
 end
 
 --#if cheat

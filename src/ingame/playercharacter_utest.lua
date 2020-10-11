@@ -952,6 +952,19 @@ describe('player_char', function ()
 
     end)
 
+    describe('force_move_right', function ()
+
+      it('should set control mode to puppet with intention to move to the right', function ()
+        pc.control_mode = control_modes.human
+
+        pc:force_move_right()
+
+        assert.are_same({control_modes.puppet, vector(1, 0), false, false},
+          {pc.control_mode, pc.move_intention, pc.jump_intention, pc.hold_jump_intention})
+      end)
+
+    end)
+
     describe('toggle_debug_motion', function ()
 
       setup(function ()

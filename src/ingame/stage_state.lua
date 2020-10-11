@@ -726,11 +726,13 @@ function stage_state:check_reached_goal()
 end
 
 function stage_state:on_reached_goal_async()
+  self.player_char:force_move_right()
+
   self:feedback_reached_goal()
   yield_delay(stage_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
-  self:enter_result_state()
+  self.current_substate = stage_state.substates.result
 
   self:stop_bgm(stage_data.bgm_fade_out_duration)
   self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
@@ -744,13 +746,6 @@ end
 function stage_state:feedback_reached_goal()
   self.goal_plate.anim_spr:play("rotating")
   sfx(audio.sfx_ids.goal_reached)
-end
-
-function stage_state:enter_result_state()
-  self.current_substate = stage_state.substates.result
-
-  -- prevent player from controlling character further
-  self.player_char.control_mode = control_modes.ai
 end
 
 function stage_state:back_to_titlemenu()

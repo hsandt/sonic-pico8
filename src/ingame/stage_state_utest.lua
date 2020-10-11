@@ -1401,26 +1401,6 @@ describe('stage_state', function ()
 
           end)
 
-          describe('enter_result_state', function ()
-
-            it('should set current substate to result', function ()
-              state.current_substate = stage_state.substates.play
-
-              state:enter_result_state()
-
-              assert.are_equal(stage_state.substates.result, state.current_substate)
-            end)
-
-            it('should set player character control mode to ai', function ()
-              state.player_char.control_mode = control_modes.human
-
-              state:enter_result_state()
-
-              assert.are_equal(control_modes.ai, state.player_char.control_mode)
-            end)
-
-          end)
-
           describe('back_to_titlemenu', function ()
 
             setup(function ()

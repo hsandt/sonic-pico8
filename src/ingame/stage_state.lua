@@ -1380,6 +1380,13 @@ end
 function stage_state:render_emerald_cross()
   camera()
 
+  visual.draw_emerald_cross_base(64, 64)
+  self:draw_emeralds_around_cross(64, 64)
+end
+
+-- render the emerald cross base and every picked emeralds
+-- (x, y) is at cross center
+function stage_state:draw_emeralds_around_cross(x, y)
   -- for now, copy-paste render_hud, but draw lower
   -- draw emeralds obtained at top-left of screen, in order from left to right,
   --  with the right color
@@ -1392,11 +1399,6 @@ function stage_state:render_emerald_cross()
       emerald.draw(-1, draw_position)
     end
   end
-end
-
--- render the emerald cross base and every picked emeralds
-function stage_state:draw_emerald_cross_base()
-  -- TODO
 end
 
 

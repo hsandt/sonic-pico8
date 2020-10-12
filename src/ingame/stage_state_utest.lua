@@ -47,7 +47,7 @@ describe('stage_state', function ()
 
     describe('state', function ()
 
-      it('#solo init', function ()
+      it('init', function ()
         assert.are_same({
             ':stage',
             1,
@@ -1082,7 +1082,7 @@ describe('stage_state', function ()
 
           end)  -- update
 
-          describe('#solo render', function ()
+          describe('render', function ()
 
             setup(function ()
               stub(stage_state, "render_background")
@@ -1720,7 +1720,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo render_hud', function ()
+          describe('render_hud', function ()
 
             setup(function ()
               stub(emerald, "draw")
@@ -1995,7 +1995,15 @@ describe('stage_state', function ()
               assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 10, 8 * 2), true)
             end)
 
-          end)  -- state render methods
+          end)  -- (with tile_test_data)
+
+          describe('#solo extra render methods (no-crash only)', function ()
+
+            it('render_emerald_cross should not crash', function ()
+              state:render_emerald_cross()
+            end)
+
+          end)
 
           describe('state audio methods', function ()
 

@@ -23,11 +23,13 @@ control_modes = {
 --  parsable types like motion_states that are only used for expectations (and cheat actions)
 --  as opposed to actions, we should keep this in the release build
 
+--#if cheat
 -- enum for character motion mode
 motion_modes = {
   platformer = 1, -- normal in-game
   debug = 2       -- debug "fly" mode
 }
+--#endif
 
 -- enum for character motion state in platformer mode
 motion_states = {

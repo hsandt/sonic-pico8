@@ -35,8 +35,6 @@ end
 -- optional brightness affects palette, see set_color_palette
 function emerald.draw(number, position, brightness)
   if number >= 0 then
-    printh("number: "..nice_dump(number))
-    printh("brightness: "..nice_dump(brightness))
     emerald.set_color_palette(number, brightness)
 
     -- pass center of tile, so emerald is represented with pivot at the center

@@ -841,9 +841,27 @@ function stage_state:show_stage_title_async()
 end
 
 function stage_state:show_result_async()
-  self.result_overlay:add_label("sonic", "sonic", vector(24, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_label("through", "got through", vector(48, 14), colors.white, colors.black)
-  self.result_overlay:add_label("stage", "angel island", vector(38, 26), colors.white, colors.black)
+  -- "sonic got through": 17 characters, so 17*4 = 68 px wide
+  -- so to enter from left, offset by -68 (we even get an extra margin pixel)
+  local sonic_label = self.result_overlay:add_label("sonic", "sonic", vector(-68, 14), colors.dark_blue, colors.orange)
+  -- "got through" is 6 chars after the string start so 24px after , -68+24=-44
+  local through_label = self.result_overlay:add_label("through", "got through", vector(-44, 14), colors.white, colors.black)
+
+  for frame = 1, 60 do
+    yield()
+    local alpha = frame / 60
+    sonic_label.position.x = (1 - alpha) * -68 + alpha * 24
+    through_label.position.x = (1 - alpha) * -44 + alpha * 48
+  end
+
+  -- enter from screen right so offset is 128
+  local result_label = self.result_overlay:add_label("stage", "angel island", vector(128, 26), colors.white, colors.black)
+
+  for frame = 1, 60 do
+    yield()
+    local alpha = frame / 60
+    result_label.position.x = (1 - alpha) * 128 + alpha * 38
+  end
 end
 
 function stage_state:assess_result_async()

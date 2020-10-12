@@ -846,6 +846,19 @@ function stage_state:show_stage_title_async()
   self.title_overlay:remove_label("title")
 end
 
+-- helper: move label linearly along X from a to b over n frames
+-- x_offsets allow to offset labels relatively to a and b (while keeping label motions in sync)
+local function move_label_on_x_async(labels, x_offsets, a, b, n)
+  for frame = 1, n do
+    yield()
+    local alpha = frame / n
+
+    for i, lab in ipairs(labels) do
+      lab.position.x = (1 - alpha) * (a + x_offsets[i]) + alpha * (b + x_offsets[i])
+    end
+  end
+end
+
 function stage_state:show_result_async()
   -- "sonic got through": 17 characters, so 17*4 = 68 px wide
   -- so to enter from left, offset by -68 (we even get an extra margin pixel)
@@ -854,22 +867,13 @@ function stage_state:show_result_async()
   local through_label = self.result_overlay:add_label("through", "got through", vector(-44, 14), colors.white, colors.black)
 
   -- move text from left to right
-  for frame = 1, 20 do
-    yield()
-    local alpha = frame / 20
-    sonic_label.position.x = (1 - alpha) * -68 + alpha * 30
-    through_label.position.x = (1 - alpha) * -44 + alpha * 54  -- 30 + 24 = 54
-  end
+  move_label_on_x_async({sonic_label, through_label}, {0, 24}, -68, 30, 20)
 
   -- enter from screen right so offset is 128
   local result_label = self.result_overlay:add_label("stage", "angel island", vector(128, 26), colors.white, colors.black)
 
   -- move text from right to left
-  for frame = 1, 20 do
-    yield()
-    local alpha = frame / 20
-    result_label.position.x = (1 - alpha) * 128 + alpha * 40
-  end
+  move_label_on_x_async({result_label}, {0}, 128, 40, 20)
 
   yield_delay(15)
 
@@ -924,12 +928,7 @@ function stage_state:assess_result_async()
   local emerald_label = self.result_overlay:add_label("emerald", emerald_text, vector(-64, 14), colors.white, colors.black)
 
   -- move text from left to right
-  for frame = 1, 20 do
-    yield()
-    local alpha = frame / 20
-    sonic_label2.position.x = (1 - alpha) * -88 + alpha * 48
-    sonic_label2.position.x = (1 - alpha) * -64 + alpha * 48
-  end
+  move_label_on_x_async({sonic_label2, emerald_label}, {0, 24}, -88, 20, 20)
 end
 
 

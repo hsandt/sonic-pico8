@@ -69,7 +69,7 @@ function stage_state:init()
   self.result_show_emerald_cross_base = false
   self.result_emerald_cross_palette_swap_table = {}  -- for emerald cross bright animation
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
-  self.result_emerald_palette_swap_table_by_number = {}  -- for emerald bright animation
+  self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
   -- list of background tree delta heights (i.e. above base height),
   --  per row, from farthest (top) to closest
@@ -893,10 +893,19 @@ function stage_state:assess_result_async()
   for num = 1, 8 do
     self.result_show_emerald_set_by_number[num] = true
     for step = 1, 2 do
-      self.result_emerald_palette_swap_table_by_number[num] = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
+      -- instead of setting self.result_emerald_palette_swap_table_by_number[num] = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
+      -- after defining bright color for every color, we manually pick the bright-dark mapping of this emerald
+      --  since it helps us distinguish nuances (e.g. dark_purple from red emerald is red when brighter, while
+      --  dark_purple from pink emerald is pink when brighter... subtle nuance, but allows us to have a smaller table
+      --  for bright_to_normal_palette_swap_sequence_by_original_color)
+      local light_color, dark_color = unpack(visual.emerald_colors[num])
+      -- brightness level is: step 1 => 2, step 2 => 1, step 3 => 0 (or nil)
+      self.result_emerald_brightness_levels[num] = 3 - step
       yield_delay(10)  -- duration of a step
     end
-    clear_table(self.result_emerald_palette_swap_table_by_number[num])
+    -- clear table will reset brightness level to nil, interpreted as 0
+    clear_table(self.result_emerald_brightness_levels)
+    yield_delay(10)  -- pause between emeralds
   end
 
   yield_delay(30)
@@ -1497,13 +1506,11 @@ function stage_state:draw_emeralds_around_cross(x, y)
   -- usually we iterate from 1 to #self.spawned_emerald_locations
   -- but here we obviously only defined 8 relative positions,
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
-  for i = 1, 8 do
-    if self.result_show_emerald_set_by_number[i] then
-      local draw_position = vector(x, y) + emerald_relative_positions[i]
-      if self.picked_emerald_numbers_set[i] then
-        pal(self.result_emerald_palette_swap_table_by_number[i])
-        emerald.draw(i, draw_position)
-        pal()
+  for num = 1, 8 do
+    if self.result_show_emerald_set_by_number[num] then
+      local draw_position = vector(x, y) + emerald_relative_positions[num]
+      if self.picked_emerald_numbers_set[num] then
+        emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])
       end
     end
   end

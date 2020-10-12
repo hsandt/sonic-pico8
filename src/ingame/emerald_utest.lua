@@ -59,6 +59,28 @@ describe('emerald', function ()
       assert.spy(pal).was_called_with()
     end)
 
+    it('(brightness 1) should call pal with emerald brighter colors matching number, then clear palette change', function ()
+      emerald.draw(3, vector(20, 12), 1)
+
+      -- unfortunately we cannot really test call order between pal and render,
+      --  so at least we check the call arguments
+      assert.spy(pal).was_called(3)
+      assert.spy(pal).was_called_with(colors.red, colors.white)
+      assert.spy(pal).was_called_with(colors.dark_purple, visual.emerald_colors[3][1])
+      assert.spy(pal).was_called_with()
+    end)
+
+    it('(brightness 2) should call pal with white colors, then clear palette change', function ()
+      emerald.draw(3, vector(20, 12), 2)
+
+      -- unfortunately we cannot really test call order between pal and render,
+      --  so at least we check the call arguments
+      assert.spy(pal).was_called(3)
+      assert.spy(pal).was_called_with(colors.red, colors.white)
+      assert.spy(pal).was_called_with(colors.dark_purple, colors.white)
+      assert.spy(pal).was_called_with()
+    end)
+
   end)
 
   describe('draw (static)', function ()
@@ -92,7 +114,17 @@ describe('emerald', function ()
       emerald.draw(3, vector(20, 12))
 
       assert.spy(emerald.set_color_palette).was_called(1)
-      assert.spy(emerald.set_color_palette).was_called_with(3)
+      -- was_called_with can see optional argument brightness passed as nil, we must mention it!
+      assert.spy(emerald.set_color_palette).was_called_with(3, nil)
+      assert.spy(pal).was_called(1)
+      assert.spy(pal).was_called_with()
+    end)
+
+    it('should call set_color_palette with number, optional brightness, then clear palette change', function ()
+      emerald.draw(3, vector(20, 12), 2)
+
+      assert.spy(emerald.set_color_palette).was_called(1)
+      assert.spy(emerald.set_color_palette).was_called_with(3, 2)
       assert.spy(pal).was_called(1)
       assert.spy(pal).was_called_with()
     end)

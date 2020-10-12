@@ -44,6 +44,8 @@ local visual = {
     [colors.green] = {colors.white, colors.white},
     [colors.yellow] = {colors.white, colors.white},
     [colors.orange] = {colors.white, colors.white},
+    -- we don't define mappings for emerald darker colors, as we want custom
+    --  dark to bright mapping ware of the original emerald color (see assess_result_async)
   }
 }
 

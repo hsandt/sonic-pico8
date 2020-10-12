@@ -833,7 +833,7 @@ function stage_state:show_stage_title_async()
 end
 
 function stage_state:show_result_async()
-  self.result_overlay:add_label("through", "sonic got through\nangel island", vector(24, 14), colors.white)
+  self.result_overlay:add_label("through", "sonic got through\nangel island", vector(24, 14), colors.white, colors.black)
 end
 
 function stage_state:assess_result_async()

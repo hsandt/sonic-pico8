@@ -833,19 +833,22 @@ function stage_state:show_stage_title_async()
 end
 
 function stage_state:show_result_async()
-  self.result_overlay:add_label("through", "sonic got through\nangel island", vector(24, 14), colors.white, colors.black)
+  self.result_overlay:add_label("sonic", "sonic", vector(24, 14), colors.dark_blue, colors.orange)
+  self.result_overlay:add_label("through", "got through", vector(48, 14), colors.white, colors.black)
+  self.result_overlay:add_label("stage", "angel island", vector(38, 26), colors.white, colors.black)
 end
 
 function stage_state:assess_result_async()
   self.result_overlay:remove_label("through")
+  self.result_overlay:remove_label("stage")
   yield_delay(30)
 
   -- check how many emeralds player got
   local picked_emerald_count = #self.spawned_emerald_locations - #self.emeralds
   if picked_emerald_count < #self.spawned_emerald_locations then
-    self.result_overlay:add_label("emerald", "sonic got "..picked_emerald_count.." emeralds out of "..#self.spawned_emerald_locations, vector(24, 14), colors.white)
+    self.result_overlay:add_label("emerald", "got "..picked_emerald_count.." emeralds", vector(48, 14), colors.white, colors.black)
   else
-    self.result_overlay:add_label("emerald", "sonic got all "..#self.spawned_emerald_locations.." emeralds", vector(24, 14), colors.white)
+    self.result_overlay:add_label("emerald", "got all emeralds", vector(48, 14), colors.white, colors.black)
   end
 end
 

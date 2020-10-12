@@ -727,7 +727,15 @@ end
 
 function stage_state:check_reached_goal()
   if not self.has_player_char_reached_goal and self.goal_plate and
+--[[#pico8
+--#if ultrafast
+      -- ultrafast to immediately finish stage and test stage clear routine
+      true then
+--#endif
+--#pico8]]
+--#ifn ultrafast
       self.player_char.position.x >= self.goal_plate.global_loc:to_center_position().x then
+--#endif
     self.has_player_char_reached_goal = true
     self.app:start_coroutine(stage_state.on_reached_goal_async, self)
   end

@@ -89,17 +89,17 @@ if [[ $config == 'debug' ]]; then
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  symbols='cheat,tostring,dump,log,debug_menu,debug_character'
+  symbols='cheat,tostring,dump,log,debug_menu'
 elif [[ $config == 'tuner' ]]; then
   symbols='tuner,mouse'
 elif [[ $config == 'ultrafast' ]]; then
-  symbols='assert,ultrafast'
+  symbols='ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
   symbols='assert,cheat,ultrafast'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,tostring,dump,log'
+  symbols='assert,tostring,dump'
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler,cheat'
 fi

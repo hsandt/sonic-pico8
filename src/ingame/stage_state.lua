@@ -729,7 +729,7 @@ function stage_state:check_reached_goal()
   if not self.has_player_char_reached_goal and self.goal_plate and
       self.player_char.position.x >= self.goal_plate.global_loc:to_center_position().x then
     self.has_player_char_reached_goal = true
-    self.app:start_coroutine(self.on_reached_goal_async, self)
+    self.app:start_coroutine(stage_state.on_reached_goal_async, self)
   end
 end
 
@@ -837,9 +837,15 @@ function stage_state:show_result_async()
 end
 
 function stage_state:assess_result_async()
-  -- check if player got all emeralds
-  if #self.emeralds == #self.spawned_emerald_locations then
-    -- TODO
+  self.result_overlay:remove_label("through")
+  yield_delay(30)
+
+  -- check how many emeralds player got
+  local picked_emerald_count = #self.spawned_emerald_locations - #self.emeralds
+  if picked_emerald_count < #self.spawned_emerald_locations then
+    self.result_overlay:add_label("emerald", "sonic got "..picked_emerald_count.." emeralds out of "..#self.spawned_emerald_locations, vector(24, 14), colors.white)
+  else
+    self.result_overlay:add_label("emerald", "sonic got all "..#self.spawned_emerald_locations.." emeralds", vector(24, 14), colors.white)
   end
 end
 
@@ -1387,16 +1393,26 @@ end
 -- render the emerald cross base and every picked emeralds
 -- (x, y) is at cross center
 function stage_state:draw_emeralds_around_cross(x, y)
-  -- for now, copy-paste render_hud, but draw lower
-  -- draw emeralds obtained at top-left of screen, in order from left to right,
-  --  with the right color
+  -- indexed by emerald number
+  -- numbers would be more consistent (0, 11, 20 everywhere)
+  --  if pivot was at (4, 3) instead of (4, 4)
+  --  but we need to make this work with the stage too
+  local emerald_relative_positions = {
+    vector(0, -19),
+    vector(11, -10),
+    vector(20, 1),
+    vector(11, 12),
+    vector(0, 21),
+    vector(-11, 12),
+    vector(-20, 1),
+    vector(-11, -10)
+  }
+
+  -- draw emeralds around the cross, from top, CW
   for i = 1, #self.spawned_emerald_locations do
-    local draw_position = vector(14 + 10 * i, 57)
+    local draw_position = vector(x, y) + emerald_relative_positions[i]
     if self.picked_emerald_numbers_set[i] then
       emerald.draw(i, draw_position)
-    else
-      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
-      emerald.draw(-1, draw_position)
     end
   end
 end

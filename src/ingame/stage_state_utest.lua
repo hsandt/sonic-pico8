@@ -1,6 +1,7 @@
 require("test/bustedhelper")
 local stage_state = require("ingame/stage_state")
 
+local coroutine_runner = require("engine/application/coroutine_runner")
 local gameapp = require("engine/application/gameapp")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
@@ -1390,9 +1391,38 @@ describe('stage_state', function ()
 
           end)
 
-          describe('on_reached_goal_async', function ()
+          describe('#solo on_reached_goal_async', function ()
 
-            -- removed tests, too hard to maintain
+            -- removed actual tests, too hard to maintain
+            -- instead, just run it and see if it crashes
+
+            local corunner
+
+            before_each(function ()
+              state.goal_plate = goal_plate(location(100, 0))
+              state.spawned_emerald_locations = {1, 2, 3, 4, 5, 6, 7, 8}
+
+              corunner = coroutine_runner()
+              corunner:start_coroutine(stage_state.on_reached_goal_async, state)
+            end)
+
+            it('should not crash with a few emeralds', function ()
+              state.emeralds = {5, 6, 7, 8}
+
+              -- a time long enough to cover other async methods like assess_result_async
+              for i = 1, 1000 do
+                corunner:update_coroutines()
+              end
+            end)
+
+            it('should not crash with all emeralds', function ()
+              state.emeralds = {}
+
+              -- a time long enough to cover other async methods like assess_result_async
+              for i = 1, 1000 do
+                corunner:update_coroutines()
+              end
+            end)
 
           end)
 

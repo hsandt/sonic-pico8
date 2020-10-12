@@ -77,10 +77,20 @@ return {
       camera_bottom_limit_margin_keypoints = {
         vector(47, 11),
         vector(104, 8),
-        -- normal stage bottom limit from tile 104
-        -- there is actually yet another level in the original game, but it is to reveal the water area
-        --  and since we cut the bottom of it for our adaptation, the last bottom limit, which matches
-        --  our lowest region bottom exactly, is the ultimate limit for us
+        vector(384, 0),  -- normal stage bottom limit from tile 104 to tile (the original game limit there matches our true stage bottom)
+        -- 128 * 3 = 384 which is the start of region 31 (it's an approx of the original game since we cut the spiral tree)
+        vector(513, 15)
+        -- 128 * 4 + 1 = 513 which covers the whole region 31 (overkill as we don't use it completely, but safe)
+        -- 15 has been chosen to see 4 tiles below the ground level
+        -- usually it's 3 in Sonic 3, but because PICO-8 has a slightly bigger relative screen height,
+        --  only 3 would show a sudden 4px clamp when passing tile 384
+        -- of course we imitate Sonic 3 but adding tiles descending progressively from much higher than the bottom limit
+        --  to hide the sudden change of limit, but while Sonic 3 is fine with 7 tiles, PICO-8 can see up to 8 tiles below (without crouching)
+        --  so we need 8 tiles of margin from the highest platform in region 31, and that corresponds to 4 tiles under the lowest ground
+
+        -- there is actually yet another level in the original game, vector(188, -8) but it is to reveal the water area
+        --  which is below our stage bottom (hence negative -8),
+        --  so, since it was cut bottom for our adaptationate limit for us
       },
 
       -- layer data

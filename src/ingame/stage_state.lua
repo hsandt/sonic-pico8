@@ -67,7 +67,9 @@ function stage_state:init()
 
   -- emerald cross variables for result UI animation
   self.result_show_emerald_cross_base = false
-  self.result_emerald_cross_palette_swap_table = {}
+  self.result_emerald_cross_palette_swap_table = {}  -- for emerald cross bright animation
+  self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
+  self.result_emerald_palette_swap_table_by_number = {}  -- for emerald bright animation
 
   -- list of background tree delta heights (i.e. above base height),
   --  per row, from farthest (top) to closest
@@ -851,6 +853,7 @@ function stage_state:show_result_async()
   -- "got through" is 6 chars after the string start so 24px after , -68+24=-44
   local through_label = self.result_overlay:add_label("through", "got through", vector(-44, 14), colors.white, colors.black)
 
+  -- move text from left to right
   for frame = 1, 20 do
     yield()
     local alpha = frame / 20
@@ -861,6 +864,7 @@ function stage_state:show_result_async()
   -- enter from screen right so offset is 128
   local result_label = self.result_overlay:add_label("stage", "angel island", vector(128, 26), colors.white, colors.black)
 
+  -- move text from right to left
   for frame = 1, 20 do
     yield()
     local alpha = frame / 20
@@ -872,31 +876,8 @@ function stage_state:show_result_async()
   -- show emerald cross
   self.result_show_emerald_cross_base = true
 
-  -- make it appear in a flash anim using palette swap (holy effect)
-  -- each color will evolve from white toward its true color over time
-  local palette_swap_sequence_by_original_color = {
-    [colors.dark_gray] = {colors.white, colors.light_gray},
-    [colors.light_gray] = {colors.white, colors.white},
-    [colors.red] = {colors.white, colors.white},
-    [colors.peach] = {colors.white, colors.white},
-    [colors.pink] = {colors.white, colors.white},
-    [colors.indigo] = {colors.white, colors.white},
-    [colors.blue] = {colors.white, colors.white},
-    [colors.green] = {colors.white, colors.white},
-    [colors.yellow] = {colors.white, colors.white},
-    [colors.orange] = {colors.white, colors.white},
-  }
-  -- transform this table of sequence of new color per original color
-  --  into a sequence (over steps 1, 2) of color palette swap (usable with pal)
-  --  by extracting new color i for each original color, for each step
-  local palette_swap_by_original_color_sequence = transform({1, 2}, function (step)
-    return transform(palette_swap_sequence_by_original_color, function (color_sequence)
-      return color_sequence[step]
-    end)
-  end)
-
   for step = 1, 2 do
-    self.result_emerald_cross_palette_swap_table = palette_swap_by_original_color_sequence[step]
+    self.result_emerald_cross_palette_swap_table = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
     yield_delay(10)  -- duration of a step
   end
 
@@ -905,16 +886,49 @@ function stage_state:show_result_async()
 end
 
 function stage_state:assess_result_async()
-  self.result_overlay:remove_label("through")
-  self.result_overlay:remove_label("stage")
+  for num = 1, 8 do
+    self.result_show_emerald_set_by_number[num] = true
+    for step = 1, 2 do
+      self.result_emerald_palette_swap_table_by_number[num] = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
+      yield_delay(10)  -- duration of a step
+    end
+    clear_table(self.result_emerald_palette_swap_table_by_number[num])
+  end
+
   yield_delay(30)
 
+  self.result_overlay:remove_label("sonic")
+  self.result_overlay:remove_label("through")
+  self.result_overlay:remove_label("stage")
+
+  yield_delay(30)
+
+  -- OPTIMIZE: to avoid recreating sonic label, we could either add some enabled flag
+  --  to disable it temporarily instead of removing it above,
+  --  or we could re-add the same label by splitting add_label into add_label(label) and emplace_label(label args...)
+  --  and directly adding the label from sonic_label variable this time
+  local sonic_label2 = self.result_overlay:add_label("sonic", "sonic", vector(-88, 14), colors.dark_blue, colors.orange)
+  local emerald_text
+
   -- check how many emeralds player got
+  -- "sonic got all emeralds" (the longest sentence) has 22 chars so is 22*4 88 px wide
+  -- it comes from the left again, so offset negatively on start
+  -- "got ..." is 6 chars after the string start so 24px after , -88+24=-64
   local picked_emerald_count = #self.spawned_emerald_locations - #self.emeralds
   if picked_emerald_count < #self.spawned_emerald_locations then
-    self.result_overlay:add_label("emerald", "got "..picked_emerald_count.." emeralds", vector(48, 14), colors.white, colors.black)
+    emerald_text = "got "..picked_emerald_count.." emeralds"
   else
-    self.result_overlay:add_label("emerald", "got all emeralds", vector(48, 14), colors.white, colors.black)
+    emerald_text = "got all emeralds"
+  end
+
+  local emerald_label = self.result_overlay:add_label("emerald", emerald_text, vector(-64, 14), colors.white, colors.black)
+
+  -- move text from left to right
+  for frame = 1, 20 do
+    yield()
+    local alpha = frame / 20
+    sonic_label2.position.x = (1 - alpha) * -88 + alpha * 48
+    sonic_label2.position.x = (1 - alpha) * -64 + alpha * 48
   end
 end
 
@@ -1481,10 +1495,17 @@ function stage_state:draw_emeralds_around_cross(x, y)
   }
 
   -- draw emeralds around the cross, from top, CW
-  for i = 1, #self.spawned_emerald_locations do
-    local draw_position = vector(x, y) + emerald_relative_positions[i]
-    if self.picked_emerald_numbers_set[i] then
-      emerald.draw(i, draw_position)
+  -- usually we iterate from 1 to #self.spawned_emerald_locations
+  -- but here we obviously only defined 8 relative positions,
+  --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
+  for i = 1, 8 do
+    if self.result_show_emerald_set_by_number[i] then
+      local draw_position = vector(x, y) + emerald_relative_positions[i]
+      if self.picked_emerald_numbers_set[i] then
+        pal(self.result_emerald_palette_swap_table_by_number[i])
+        emerald.draw(i, draw_position)
+        pal()
+      end
     end
   end
 end

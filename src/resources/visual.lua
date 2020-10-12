@@ -28,8 +28,34 @@ local visual = {
     {colors.green, colors.dark_green},
     {colors.yellow, colors.orange},
     {colors.orange, colors.brown},
+  },
+
+  -- for flash appearance animations, we need a palette that maps colors to their bright equivalent
+  -- since we need an animation we define one per step
+  -- we only use 2 steps: very bright and bright (use nor color swap to revert to original colors)
+  bright_to_normal_palette_swap_sequence_by_original_color = {
+    [colors.dark_gray] = {colors.white, colors.light_gray},
+    [colors.light_gray] = {colors.white, colors.white},
+    [colors.red] = {colors.white, colors.white},
+    [colors.peach] = {colors.white, colors.white},
+    [colors.pink] = {colors.white, colors.white},
+    [colors.indigo] = {colors.white, colors.white},
+    [colors.blue] = {colors.white, colors.white},
+    [colors.green] = {colors.white, colors.white},
+    [colors.yellow] = {colors.white, colors.white},
+    [colors.orange] = {colors.white, colors.white},
   }
 }
+
+-- transform bright_to_normal_palette_swap_sequence_by_original_color, a table of sequence of new color per original color
+--  into a sequence (over steps 1, 2) of color palette swap (usable with pal)
+--  by extracting new color i for each original color, for each step
+visual.bright_to_normal_palette_swap_by_original_color_sequence = transform({1, 2}, function (step)
+  return transform(visual.bright_to_normal_palette_swap_sequence_by_original_color, function (color_sequence)
+    return color_sequence[step]
+  end)
+end)
+
 
 local sprite_data_t = {
   -- COMMON INITIAL SPRITES

@@ -135,7 +135,13 @@ end
 
 -- render the emerald cross base and every picked emeralds
 -- (x, y) is at cross center
-function visual.draw_emerald_cross_base(x, y)
+function visual.draw_emerald_cross_base(x, y, palette_swap_table)
+  -- we prefer using pal() to manually assign  palette_swap_table[c] to internal colors
+  --  because when we want implicit default colors and the swap table is empty,
+  --  the former will preserve colors, while the latter will interpret nil as 0
+  -- also, it allows us to swap other colors than gray too
+  pal(palette_swap_table)
+
   local internal_color1 = colors.dark_gray
   local internal_color2 = colors.light_gray
 
@@ -186,6 +192,8 @@ function visual.draw_emerald_cross_base(x, y)
   pset(x - 1, y + 1, colors.green)
   pset(x - 2, y    , colors.yellow)
   pset(x - 1, y - 1, colors.orange)
+
+  pal()
 end
 
 return visual

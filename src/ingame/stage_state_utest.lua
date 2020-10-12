@@ -62,7 +62,11 @@ describe('stage_state', function ()
             {},
             camera_class(),
             overlay(),
+            -- result UI animation only (async methods changing this won't be fully tested)
             overlay(),
+            false,
+            {},
+            -- result UI animation end
             nil,
             -- itest only
             true,
@@ -80,7 +84,11 @@ describe('stage_state', function ()
             state.palm_tree_leaves_core_global_locations,
             state.camera,
             state.title_overlay,
+            -- result UI animation only (async methods changing this won't be fully tested)
             state.result_overlay,
+            state.result_show_emerald_cross_base,
+            state.result_emerald_cross_palette_swap_table,
+            -- result UI animation end
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,

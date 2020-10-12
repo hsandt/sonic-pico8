@@ -65,6 +65,10 @@ function stage_state:init()
   -- result (stage clear) overlay
   self.result_overlay = overlay()
 
+  -- emerald cross variables for result UI animation
+  self.result_show_emerald_cross_base = false
+  self.result_emerald_cross_palette_swap_table = {}
+
   -- list of background tree delta heights (i.e. above base height),
   --  per row, from farthest (top) to closest
   --  (added for doc, commented out since nil does nothing)
@@ -862,6 +866,42 @@ function stage_state:show_result_async()
     local alpha = frame / 20
     result_label.position.x = (1 - alpha) * 128 + alpha * 40
   end
+
+  yield_delay(15)
+
+  -- show emerald cross
+  self.result_show_emerald_cross_base = true
+
+  -- make it appear in a flash anim using palette swap (holy effect)
+  -- each color will evolve from white toward its true color over time
+  local palette_swap_sequence_by_original_color = {
+    [colors.dark_gray] = {colors.white, colors.light_gray},
+    [colors.light_gray] = {colors.white, colors.white},
+    [colors.red] = {colors.white, colors.white},
+    [colors.peach] = {colors.white, colors.white},
+    [colors.pink] = {colors.white, colors.white},
+    [colors.indigo] = {colors.white, colors.white},
+    [colors.blue] = {colors.white, colors.white},
+    [colors.green] = {colors.white, colors.white},
+    [colors.yellow] = {colors.white, colors.white},
+    [colors.orange] = {colors.white, colors.white},
+  }
+  -- transform this table of sequence of new color per original color
+  --  into a sequence (over steps 1, 2) of color palette swap (usable with pal)
+  --  by extracting new color i for each original color, for each step
+  local palette_swap_by_original_color_sequence = transform({1, 2}, function (step)
+    return transform(palette_swap_sequence_by_original_color, function (color_sequence)
+      return color_sequence[step]
+    end)
+  end)
+
+  for step = 1, 2 do
+    self.result_emerald_cross_palette_swap_table = palette_swap_by_original_color_sequence[step]
+    yield_delay(10)  -- duration of a step
+  end
+
+  -- finish with normal colors
+  clear_table(self.result_emerald_cross_palette_swap_table)
 end
 
 function stage_state:assess_result_async()
@@ -1415,7 +1455,10 @@ end
 function stage_state:render_emerald_cross()
   camera()
 
-  visual.draw_emerald_cross_base(64, 64)
+  if self.result_show_emerald_cross_base then
+    visual.draw_emerald_cross_base(64, 64, self.result_emerald_cross_palette_swap_table)
+  end
+
   self:draw_emeralds_around_cross(64, 64)
 end
 

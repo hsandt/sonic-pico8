@@ -52,9 +52,9 @@ describe('camera_class', function ()
     setup(function ()
       stub(camera_class, "get_bottom_limit_at_x", function (self, x)
         if x < 50 * tile_size then
-          return 18 * tile_size  -- margin of 2 -> 144
+          return 28 * tile_size  -- margin of 2 -> 224
         else
-          return 20 * tile_size  -- 160, to match tile_height below, means bottom limit offset is 0
+          return 30 * tile_size  -- 240, to match tile_height below, means bottom limit offset is 0
         end
       end)
     end)
@@ -690,34 +690,34 @@ describe('camera_class', function ()
     it('should move the camera to player position, clamped (bottom-right)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(800-64, 160-64)
+      cam.position = vector(800-64, 240-64)
       cam.target_pc.position = vector(2000, 1000)
 
       cam:update()
 
-      assert.are_same(vector(800-64, 160-64), cam.position)
+      assert.are_same(vector(800-64, 240-64), cam.position)
     end)
 
     it('should move the camera to player position, clamped (bottom-right, bottom limit offset 0)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(800-64, 160-64)
+      cam.position = vector(800-64, 240-64)
       cam.target_pc.position = vector(2000, 1000)
 
       cam:update()
 
-      assert.are_same(vector(800-64, 160-64), cam.position)
+      assert.are_same(vector(800-64, 240-64), cam.position)
     end)
 
     it('should move the camera to player position, clamped (bottom-left, bottom limit offset 2)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(64, 144-64)
+      cam.position = vector(64, 224-64)
       cam.target_pc.position = vector(0, 1000)
 
       cam:update()
 
-      assert.are_same(vector(64, 144-64), cam.position)
+      assert.are_same(vector(64, 224-64), cam.position)
     end)
 
   end)

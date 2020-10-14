@@ -15,6 +15,11 @@ External references
 Instance parameters
   items_count_per_page      int         number of items displayed per page
   alignment                 alignments  text alignment to use for item display
+  interval_y                int         number of extra pixels added to separate items vertically,
+                                          after character height (which already contains an extra pixel of margin
+                                          between text insides)
+                                        note that this doesn't take the outline into account, so 2 means
+                                          you actually want 1 px or margin between the *outlines*
   text_color                colors      item text color
   prev_page_arrow_offset    vector      where to draw previous/next page arrow
                                         from top-left (in left alignment) or
@@ -37,7 +42,7 @@ Instance state
 --]]
 
 local menu = new_class()
-function menu:init(app--[[, items_count_per_page]], alignment, text_color--[[, prev_page_arrow_offset]], left_cursor_sprite_data, left_cursor_half_width)
+function menu:init(app--[[, items_count_per_page]], alignment, interval_y, text_color--[[, prev_page_arrow_offset]], left_cursor_sprite_data, left_cursor_half_width)
   -- external references
   self.app = app
 
@@ -46,6 +51,7 @@ function menu:init(app--[[, items_count_per_page]], alignment, text_color--[[, p
   self.items_count_per_page = items_count_per_page
   --]]
   self.alignment = alignment
+  self.interval_y = interval_y
   self.text_color = text_color
   --[[
   self.prev_page_arrow_offset = prev_page_arrow_offset or vector.zero()
@@ -234,7 +240,7 @@ function menu:draw(x, top)
     end
 
     text_helper.print_aligned(label, item_x, y, self.alignment, self.text_color, colors.black)
-    y = y + character_height + 2
+    y = y + character_height + self.interval_y
   end
 
   -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway

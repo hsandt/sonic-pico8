@@ -27,7 +27,7 @@ titlemenu.items = transform({
   }, unpacking(menu_item))
 
 function titlemenu:on_enter()
-  self.menu = menu(self.app--[[, 2]], alignments.left, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
+  self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
   self.menu:show_items(titlemenu.items)
 end
 
@@ -41,7 +41,7 @@ end
 function titlemenu:render()
   self:draw_background()
   self:draw_title()
-  self.menu:draw(55, 107)
+  self.menu:draw(55, 101)
 end
 
 function titlemenu:draw_background()
@@ -51,7 +51,7 @@ end
 function titlemenu:draw_title()
   -- logo should be placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
-  visual.sprite_data_t.title_logo:render(vector(8, 24))
+  visual.sprite_data_t.title_logo:render(vector(8, 16))
 end
 
 return titlemenu

@@ -27,7 +27,8 @@ symbols='assert,tostring,dump,log,p8utest'
 # So just set minify-level to 0-2 depending on your needs
 "$picoboots_scripts_path/build_cartridge.sh"               \
   "$game_src_path" utest_main.lua utests                   \
-  -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
+  -d "$data_path/builtin_data_ingame.p8" -M                \
+  "$data_path/metadata.p8"                                 \
   -a "$author" -t "$title"                                 \
   -p "$build_output_path"                                  \
   -o "${cartridge_stem}_v${version}"                       \

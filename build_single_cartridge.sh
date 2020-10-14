@@ -89,13 +89,14 @@ if [[ $config == 'debug' ]]; then
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  symbols='cheat,tostring,dump,log,debug_menu'
+  # symbols='cheat,tostring,dump,log,debug_menu'
+  symbols='cheat,debug_menu'
 elif [[ $config == 'tuner' ]]; then
   symbols='tuner,mouse'
 elif [[ $config == 'ultrafast' ]]; then
   symbols='ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
-  symbols='assert,cheat,ultrafast'
+  symbols='cheat,ultrafast,debug_menu'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
@@ -112,7 +113,8 @@ fi
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \
-  -d "$data_path/data.p8" -M "$data_path/metadata.p8" \
+  -d "$data_path/builtin_data_${cartridge_suffix}.p8" \
+  -M "$data_path/metadata.p8"                         \
   -a "$author" -t "$title"                            \
   -p "$build_output_path"                             \
   -o "${cartridge_stem}_${cartridge_suffix}"          \

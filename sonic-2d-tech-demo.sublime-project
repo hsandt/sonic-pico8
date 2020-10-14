@@ -25,9 +25,15 @@
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
 		{
-			"name": "Game: edit data: common",
+			"name": "Game: edit built-in data: titlemenu",
 			"shell": true,
-			"cmd": ["./edit_data.sh"],
+			"cmd": ["pico8 data/builtin_data_titlemenu.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit built-in data: ingame",
+			"shell": true,
+			"cmd": ["pico8 data/builtin_data_ingame.p8"],
 			"working_dir": "${project_path}"
 		},
 		{

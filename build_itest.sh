@@ -34,7 +34,8 @@ cartridge_suffix="$1"; shift
 "$picoboots_scripts_path/build_cartridge.sh"               \
   "$game_src_path" itest_main_${cartridge_suffix}.lua      \
   itests/${cartridge_suffix}                               \
-  -d "$data_path/data.p8" -M "$data_path/metadata.p8"      \
+  -d "$data_path/builtin_data_${cartridge_suffix}.p8"      \
+  -M "$data_path/metadata.p8"                              \
   -a "$author" -t "$title"                                 \
   -p "$build_output_path"                                  \
   -o "${cartridge_stem}_${cartridge_suffix}_v${version}"   \

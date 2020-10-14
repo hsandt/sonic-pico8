@@ -227,12 +227,12 @@ local playercharacter_data = {
       ["spin2"]  = {{4, 12}, {2, 2}, { 6, 6}, 14},
       ["spin3"]  = {{6, 12}, {2, 2}, { 6, 6}, 14},
       ["spin4"]  = {{8, 12}, {2, 2}, { 6, 6}, 14},
-    }, function (t)
+    }, function (raw_data)
       return sprite_data(
-        sprite_id_location(t[1][1], t[1][2]),  -- id_loc
-        tile_vector(t[2][1], t[2][2]),         -- span
-        vector(t[3][1], t[3][2]),              -- pivot
-        t[4]                                   -- transparent_color
+        sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc
+        tile_vector(raw_data[2][1], raw_data[2][2]),         -- span
+        vector(raw_data[3][1], raw_data[3][2]),              -- pivot
+        raw_data[4]                                   -- transparent_color
       )
   end),
 
@@ -275,8 +275,8 @@ playercharacter_data.sonic_animated_sprite_data_table = transform(
     ["spin"] = {{"spin_full_ball", "spin1", "spin_full_ball", "spin2", "spin_full_ball", "spin3", "spin_full_ball", "spin4"},
                                          5,                4},
     ["spring_jump"] = {{"spring_jump"}, 10,                2}
-}, function (t)
-  return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, t[1], t[2], t[3])
+}, function (raw_data)
+  return animated_sprite_data.create(playercharacter_data.sonic_sprite_data_table, raw_data[1], raw_data[2], raw_data[3])
 end)
 
 return playercharacter_data

@@ -7,6 +7,9 @@ local text_helper = require("engine/ui/text_helper")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 
+local visual = require("resources/visual_common")  -- just to use titlemenu add-on
+require("resources/visual_titlemenu_addon")
+
 local titlemenu = derived_class(gamestate)
 
 titlemenu.type = ':titlemenu'
@@ -41,10 +44,9 @@ function titlemenu:render()
 end
 
 function titlemenu:draw_title()
-  local y = 14
-  text_helper.print_centered("* pico-sonic *", 64, y, colors.white)
-  y = y + 8
-  text_helper.print_centered("by leyn", 64, y, colors.white)
+  -- logo should be placed 1 tile to the right, 3 tiles to the bottom,
+  --  with its pivot at top-left
+  visual.sprite_data_t.title_logo:render(vector(8, 24))
 end
 
 return titlemenu

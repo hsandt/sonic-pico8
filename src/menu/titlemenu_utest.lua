@@ -108,23 +108,23 @@ describe('titlemenu', function ()
 
       describe('draw_title', function ()
 
+        -- we don't mind what intermediate render methods are called,
+        -- we just stub PICO-8 API in case it causes side effects
+        --  (but it will only change things like draw color which
+        --  should be reset before any test on draw color itself anyway)
+
         setup(function ()
-          stub(text_helper, "print_centered")
+          stub(_G, "spr")
+          stub(_G, "pset")
         end)
 
         teardown(function ()
-          text_helper.print_centered:revert()
+          spr:revert()
+          pset:revert()
         end)
 
-        after_each(function ()
-          text_helper.print_centered:clear()
-        end)
-
-        it('should print "pico-sonic by leyn" centered, in white', function ()
+        it('should not crash', function ()
           tm:draw_title()
-
-          assert.spy(text_helper.print_centered).was_called(2)
-          -- no need to check what exactly is printed
         end)
 
       end)

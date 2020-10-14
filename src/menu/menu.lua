@@ -233,8 +233,8 @@ function menu:draw(x, top)
        end
     end
 
-    text_helper.print_aligned(label, item_x, y, self.alignment, self.text_color)
-    y = y + character_height
+    text_helper.print_aligned(label, item_x, y, self.alignment, self.text_color, colors.black)
+    y = y + character_height + 2
   end
 
   -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway

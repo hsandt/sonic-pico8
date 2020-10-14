@@ -39,8 +39,13 @@ function titlemenu:update()
 end
 
 function titlemenu:render()
+  self:draw_background()
   self:draw_title()
-  self.menu:draw(screen_width / 2, 72)
+  self.menu:draw(screen_width / 2, 107)
+end
+
+function titlemenu:draw_background()
+  rectfill(0, 0, 128, 128, colors.dark_blue)
 end
 
 function titlemenu:draw_title()

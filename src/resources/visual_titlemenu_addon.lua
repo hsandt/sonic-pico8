@@ -10,7 +10,7 @@ local sprite_data = require("engine/render/sprite_data")
 local titlemenu_sprite_data_t = {
   -- TO DRAW
   menu_cursor = sprite_data(sprite_id_location(0, 1), nil, nil, colors.pink),
-  title_logo = sprite_data(sprite_id_location(1, 0), tile_vector(14, 10), nil, colors.pink),
+  title_logo = sprite_data(sprite_id_location(0, 3), tile_vector(14, 10), nil, colors.pink),
 }
 
 merge(visual.sprite_data_t, titlemenu_sprite_data_t)

@@ -51,7 +51,7 @@ local sprite_data_t = {
 --#if mouse
   cursor = sprite_data(sprite_id_location(15, 4), nil, nil, colors.pink),
 --#endif
-  emerald = sprite_data(sprite_id_location(10, 7), tile_vector(2, 1), vector(4, 4), colors.pink),
+  emerald = sprite_data(sprite_id_location(10, 15), tile_vector(2, 1), vector(4, 4), colors.pink),
 
   -- ANIMATION SPRITES
   emerald_pick_fx1 = sprite_data(sprite_id_location(12, 0), tile_vector(1, 1), vector(4, 4), colors.pink),

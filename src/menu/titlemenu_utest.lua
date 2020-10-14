@@ -5,6 +5,9 @@ local text_helper = require("engine/ui/text_helper")
 
 local menu = require("menu/menu")
 
+local visual = require("resources/visual_common")  -- just to use titlemenu add-on
+require("resources/visual_titlemenu_addon")
+
 describe('titlemenu', function ()
 
   describe('(with instance)', function ()
@@ -35,7 +38,9 @@ describe('titlemenu', function ()
         tm:on_enter()
 
         assert.are_equal(fake_app, tm.menu.app)
-        assert.are_same({alignments.horizontal_center, colors.white}, {tm.menu.alignment, tm.menu.text_color})
+        assert.are_same({alignments.left, colors.white}, {tm.menu.alignment, tm.menu.text_color})
+        assert.are_equal(visual.sprite_data_t.menu_cursor, tm.menu.left_cursor_sprite_data)
+        assert.are_equal(7, tm.menu.left_cursor_half_width)
       end)
 
       it('should show text menu', function ()
@@ -75,19 +80,29 @@ describe('titlemenu', function ()
       describe('render', function ()
 
         setup(function ()
+          stub(titlemenu, "draw_background")
           stub(titlemenu, "draw_title")
           -- stub menu.draw completely to avoid altering the count of text_helper.print_centered calls
           stub(menu, "draw")
         end)
 
         teardown(function ()
+          titlemenu.draw_background:revert()
           titlemenu.draw_title:revert()
           menu.draw:revert()
         end)
 
         after_each(function ()
+          titlemenu.draw_background:clear()
           titlemenu.draw_title:clear()
           menu.draw:clear()
+        end)
+
+        it('should draw background', function ()
+          tm:render()
+
+          assert.spy(titlemenu.draw_background).was_called(1)
+          assert.spy(titlemenu.draw_background).was_called_with(match.ref(tm))
         end)
 
         it('should draw title', function ()

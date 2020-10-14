@@ -27,7 +27,7 @@ titlemenu.items = transform({
   }, unpacking(menu_item))
 
 function titlemenu:on_enter()
-  self.menu = menu(self.app, 2, alignments.horizontal_center, colors.white)
+  self.menu = menu(self.app--[[, 2]], alignments.left, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
   self.menu:show_items(titlemenu.items)
 end
 
@@ -41,7 +41,7 @@ end
 function titlemenu:render()
   self:draw_background()
   self:draw_title()
-  self.menu:draw(screen_width / 2, 107)
+  self.menu:draw(55, 107)
 end
 
 function titlemenu:draw_background()

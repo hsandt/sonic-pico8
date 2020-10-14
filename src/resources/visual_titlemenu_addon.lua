@@ -8,8 +8,7 @@ local sprite_data = require("engine/render/sprite_data")
 --  but only get the return value of visual_common named `visual` here
 -- it will automatically add extra information to `visual`
 local titlemenu_sprite_data_t = {
-  -- TO DRAW
-  menu_cursor = sprite_data(sprite_id_location(0, 1), nil, nil, colors.pink),
+  menu_cursor = sprite_data(sprite_id_location(1, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
   title_logo = sprite_data(sprite_id_location(0, 3), tile_vector(14, 10), nil, colors.pink),
 }
 

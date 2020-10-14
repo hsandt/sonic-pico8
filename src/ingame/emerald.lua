@@ -1,4 +1,4 @@
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")
 
 local emerald = new_class()
 emerald.emerald = emerald

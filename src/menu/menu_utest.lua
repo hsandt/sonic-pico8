@@ -8,7 +8,8 @@ local sprite_data = require("engine/render/sprite_data")
 local text_helper = require("engine/ui/text_helper")
 
 local menu_item = require("menu/menu_item")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- just to use titlemenu add-on
+require("resources/visual_titlemenu_addon")
 
 describe('menu', function ()
 

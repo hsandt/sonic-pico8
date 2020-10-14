@@ -8,9 +8,10 @@ local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
 local tile_repr = require("test_data/tile_representation")
 
--- some tiles are defined in visual for use in real game, but they not in tile_representation.lua
+-- some tiles are defined in visual_ingame_addon for use in real game, but they not in tile_representation.lua
 --  to avoid redundancy or because we didn't need them in itests yet
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- just to use ingame add-on
+require("resources/visual_ingame_addon")
 
 local mock_raw_tile_collision_data = {
   -- collision_data values + PICO-8 spritesheet must match our mockup data

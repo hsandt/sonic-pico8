@@ -7,7 +7,7 @@ local profiler = require("engine/debug/profiler")
 local vlogger = require("engine/debug/visual_logger")
 local input = require("engine/input/input")
 local mouse = require("engine/ui/mouse")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")
 
 describe('picosonic_app_base', function ()
 

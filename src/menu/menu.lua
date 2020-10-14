@@ -6,7 +6,8 @@
 local input = require("engine/input/input")
 local text_helper = require("engine/ui/text_helper")
 
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- just to use titlemenu add-on
+require("resources/visual_titlemenu_addon")
 
 --[[
 Class representing a menu with labels and arrow-based scrolling navigation

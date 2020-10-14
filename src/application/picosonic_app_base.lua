@@ -20,7 +20,7 @@ local vlogger = require("engine/debug/visual_logger")
 local mouse = require("engine/ui/mouse")
 --#endif
 
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")
 
 local picosonic_app_base = derived_class(gameapp)
 

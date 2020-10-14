@@ -3,7 +3,7 @@ local fx = require("ingame/fx")
 local emerald_fx = derived_class(fx)
 
 local emerald = require("ingame/emerald")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")
 
 -- a simple entity with 2 components: position and animated_sprite
 -- position    vector

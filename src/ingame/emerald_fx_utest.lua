@@ -5,7 +5,7 @@ local sprite_data = require("engine/render/sprite_data")
 
 local emerald = require("ingame/emerald")
 local fx = require("ingame/fx")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")
 
 describe('emerald_fx', function ()
 

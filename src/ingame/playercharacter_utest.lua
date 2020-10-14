@@ -13,7 +13,8 @@ local motion = require("platformer/motion")
 local ground_query_info = motion.ground_query_info
 local world = require("platformer/world")
 local audio = require("resources/audio")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- just to use ingame add-on
+require("resources/visual_ingame_addon")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 

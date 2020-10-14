@@ -3,7 +3,8 @@ local goal_plate = require("ingame/goal_plate")
 
 local animated_sprite = require("engine/render/animated_sprite")
 
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- just to use ingame add-on
+require("resources/visual_ingame_addon")
 
 describe('goal_plate', function ()
 

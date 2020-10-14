@@ -3,7 +3,7 @@ local audio = {}
 local sfx_ids = {
   -- builtin_data_titlemenu only
   menu_select = 50,
-  -- menu_confirm = ??,
+  menu_confirm = 51,
 
   -- builtin_data_ingame only
   pick_emerald = 57,

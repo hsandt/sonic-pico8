@@ -16,7 +16,7 @@ end)
 check('sprite_id_location(1, 2) (loop top-left) should have collision arrays of loop top-left, angle atan2(-4, 4), interior up-left', function (utest_name)
   local sprite_id = sprite_id_location(1, 2):to_sprite_id()
   local tcd = collision_data.get_tile_collision_data(sprite_id)
-  assert_log(utest_name, are_same_with_message(tcd, tile_collision_data(sprite_id_location(12, 0), {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5), vertical_dirs.up, horizontal_dirs.left)))
+  assert_log(utest_name, are_same_with_message(tcd, tile_collision_data(sprite_id_location(1, 2), {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5), vertical_dirs.up, horizontal_dirs.left)))
 end)
 
 check('tile_collision_data.read_height_array on sprite_id_location(13, 1) should return an array with tile mask data: full', function (utest_name)

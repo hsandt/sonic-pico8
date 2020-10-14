@@ -6,7 +6,7 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
-require("common")
+require("common_ingame")
 
 local p8utest = require("engine/test/p8utest")
 -- tag to add require for pico8 utests files (should be in utests/)

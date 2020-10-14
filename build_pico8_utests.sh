@@ -18,7 +18,7 @@ title="pico-sonic pico8 utests (all)"
 cartridge_stem="picosonic_pico8_utests_all"
 version="4.2"
 config='debug'
-symbols='assert,dump,log,p8utest'
+symbols='assert,tostring,dump,log,p8utest'
 
 # Build from itest main for all pico8 utests
 # Note that a pico8 utest_main build is much smaller than a normal build,

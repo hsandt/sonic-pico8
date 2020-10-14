@@ -1,4 +1,6 @@
 local visual = require("resources/visual_common")
+
+require("engine/core/table_helper")
 local sprite_data = require("engine/render/sprite_data")
 
 -- visuals for titlemenu only
@@ -11,6 +13,4 @@ local titlemenu_sprite_data_t = {
   title_logo = sprite_data(sprite_id_location(1, 0), tile_vector(14, 10), nil, colors.pink),
 }
 
-for key, value in pairs(titlemenu_sprite_data_t) do
-  visual.sprite_data_t[key] = value
-end
+merge(visual.sprite_data_t, titlemenu_sprite_data_t)

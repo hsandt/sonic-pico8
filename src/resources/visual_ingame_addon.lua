@@ -1,5 +1,6 @@
 local visual = require("resources/visual_common")
 
+require("engine/core/table_helper")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 
@@ -69,16 +70,6 @@ local ingame_animated_sprite_data_t = {
   }
 }
 
-for key, value in pairs(ingame_visual) do
-  visual[key] = value
-end
-
-for key, value in pairs(ingame_sprite_data_t) do
-  visual.sprite_data_t[key] = value
-end
-
-for key, value in pairs(ingame_animated_sprite_data_t) do
-  visual.animated_sprite_data_t[key] = value
-end
-
-return visual_ingame
+merge(visual, ingame_visual)
+merge(visual.sprite_data_t, ingame_sprite_data_t)
+merge(visual.animated_sprite_data_t, ingame_animated_sprite_data_t)

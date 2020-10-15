@@ -27,6 +27,7 @@ local titlemenu_visual = {
 -- it will automatically add extra information to `visual`
 local titlemenu_sprite_data_t = {
   menu_cursor = sprite_data(sprite_id_location(1, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
+  menu_cursor_shoe = sprite_data(sprite_id_location(3, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
   title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
   angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
   -- true emerald is located where emerald silhouette is in visual_ingame_addon

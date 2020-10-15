@@ -27,7 +27,7 @@ titlemenu.items = transform({
   }, unpacking(menu_item))
 
 function titlemenu:on_enter()
-  self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
+  self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor_shoe, 7)
   self.menu:show_items(titlemenu.items)
 end
 

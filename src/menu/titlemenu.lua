@@ -46,6 +46,7 @@ end
 
 function titlemenu:draw_background()
   rectfill(0, 0, 128, 128, colors.dark_blue)
+  visual.sprite_data_t.angel_island_bg:render(vector(0, 88))
 end
 
 function titlemenu:draw_title()

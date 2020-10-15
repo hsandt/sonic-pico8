@@ -39,7 +39,7 @@ describe('titlemenu', function ()
 
         assert.are_equal(fake_app, tm.menu.app)
         assert.are_same({alignments.left, colors.white}, {tm.menu.alignment, tm.menu.text_color})
-        assert.are_equal(visual.sprite_data_t.menu_cursor, tm.menu.left_cursor_sprite_data)
+        assert.are_equal(visual.sprite_data_t.menu_cursor_shoe, tm.menu.left_cursor_sprite_data)
         assert.are_equal(7, tm.menu.left_cursor_half_width)
       end)
 

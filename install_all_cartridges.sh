@@ -37,8 +37,8 @@ fi
 # note that we don't add the data/data_stage*.p8 cartridges because
 # install_single_cartridge.sh for ingame will install all data cartridges anyway
 # (and said script is really meant for built cartridges as it refers to build path)
-cartridge_list="picosonic_titlemenu.p8 picosonic_ingame.p8"
+cartridge_list="titlemenu ingame"
 
-for cartridge in cartridge_list; do
+for cartridge in $cartridge_list; do
 	"$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
 done

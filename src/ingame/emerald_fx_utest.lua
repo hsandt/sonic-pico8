@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local emerald_fx = require("ingame/emerald_fx")
 
 local sprite_data = require("engine/render/sprite_data")

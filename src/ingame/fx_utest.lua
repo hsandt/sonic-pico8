@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local fx = require("ingame/fx")
 
 local animated_sprite = require("engine/render/animated_sprite")

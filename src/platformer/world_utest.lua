@@ -1,4 +1,6 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
+require("resources/visual_ingame_addon")
+
 local world = require("platformer/world")
 
 local collision_data = require("data/collision_data")

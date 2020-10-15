@@ -1,4 +1,6 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
+require("resources/visual_ingame_addon")
+
 local stage_state = require("ingame/stage_state")
 
 local coroutine_runner = require("engine/application/coroutine_runner")
@@ -22,7 +24,6 @@ local player_char = require("ingame/playercharacter")
 local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
-require("resources/visual_ingame_addon")  -- add-on for visual_common
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 

@@ -1,7 +1,7 @@
 local animated_sprite = require("engine/render/animated_sprite")
 
-local visual = require("resources/visual_common")  -- just to use ingame add-on
-require("resources/visual_ingame_addon")
+local visual = require("resources/visual_common")
+-- we should require ingameadd-on in main
 
 -- goal plate object, spawned when a goal plate base tile has been scanned
 --  it adds goal plate rotating behavior and actually only draws the upper part,

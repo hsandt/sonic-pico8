@@ -1,3 +1,6 @@
+-- visual requires either ingame or titlemenu add-on, as each cartridge contains
+--  its own copy of the emerald sprite at different location
+-- the main (or the utest) decides what add-on to use from the outside
 local visual = require("resources/visual_common")
 
 local emerald = new_class()

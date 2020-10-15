@@ -1,4 +1,7 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper_titlemenu")
+-- no pagination, no need for arrow sprites
+-- require("resources/visual_titlemenu_addon")
+
 local menu = require("menu/menu")
 
 local flow = require("engine/application/flow")
@@ -8,8 +11,9 @@ local sprite_data = require("engine/render/sprite_data")
 local text_helper = require("engine/ui/text_helper")
 
 local menu_item = require("menu/menu_item")
-local visual = require("resources/visual_common")  -- just to use titlemenu add-on
-require("resources/visual_titlemenu_addon")
+
+-- no pagination, no need for arrow sprites
+-- local visual = require("resources/visual_common")
 
 describe('menu', function ()
 

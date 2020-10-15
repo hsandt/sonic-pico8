@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 
 local stage_state = require("ingame/stage_state")

@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_titlemenu")
 local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
 
 local titlemenu = require("menu/titlemenu")

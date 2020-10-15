@@ -6,6 +6,10 @@ require("engine/pico8/api")
 require("engine/common")
 -- don't require game common.lua which really contains extensions for ingame
 
+-- require visual add-on for titlemenu, so any require visual_common
+--  in this cartridge will get both common data and titlemenu data
+require("resources/visual_titlemenu_addon")
+
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
 local codetuner = require("engine/debug/codetuner")

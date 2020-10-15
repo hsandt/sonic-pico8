@@ -6,6 +6,10 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_ingame")
 
+-- require visual add-on for ingame, so any require visual_common
+--  in this cartridge will get both common data and ingame data
+require("resources/visual_ingame_addon")
+
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
 local codetuner = require("engine/debug/codetuner")

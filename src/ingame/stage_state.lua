@@ -11,7 +11,7 @@ local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
-require("resources/visual_ingame_addon")  -- add-on for visual_common
+-- we should require ingameadd-on in main
 
 local stage_state = derived_class(gamestate)
 

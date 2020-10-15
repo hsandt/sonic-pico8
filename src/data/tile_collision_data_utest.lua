@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local tile_collision_data = require("data/tile_collision_data")
 
 -- when we have to mock tile sprite data in PICO-8,

@@ -23,6 +23,8 @@ local ingame_visual = {
 
   -- goal plate base id (representative tile used to generate animated sprite)
   goal_plate_base_id = 226,
+
+  -- emerald_repr_sprite_id will be derived from sprite data, see below
 }
 
 local ingame_sprite_data_t = {
@@ -45,7 +47,14 @@ local ingame_sprite_data_t = {
   --  this is simply because there was no space left for sprites 2-tile high in the runtime area; hence the high location j
   goal_plate_rotating_45_ccw = sprite_data(sprite_id_location(6, 14), tile_vector(2, 2), vector(7, 16), colors.pink),
   goal_plate_rotating_45_cw = sprite_data(sprite_id_location(8, 14), tile_vector(2, 2), vector(8, 16), colors.pink),
+
+  -- emerald representation tile (left part) and object sprite (both parts)
+  emerald = sprite_data(sprite_id_location(10, 15), tile_vector(2, 1), vector(4, 4), colors.pink),
 }
+
+-- derived data: the representative sprite of an emerald (the one placed on the tilemap)
+--  in the left part of the sprite, so convert id location (which is at top-left) to sprite ID
+ingame_visual.emerald_repr_sprite_id = ingame_sprite_data_t.emerald.id_loc:to_sprite_id()
 
 local ingame_animated_sprite_data_t = {
   goal_plate = {

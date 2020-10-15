@@ -7,8 +7,8 @@ local pc_data = require("data/playercharacter_data")
 local motion = require("platformer/motion")
 local world = require("platformer/world")
 local audio = require("resources/audio")
-local visual = require("resources/visual_common")  -- just to use ingame add-on
-require("resources/visual_ingame_addon")
+local visual = require("resources/visual_common")
+-- we should require ingameadd-on in main, as early as possible
 
 -- enum for character control
 control_modes = {

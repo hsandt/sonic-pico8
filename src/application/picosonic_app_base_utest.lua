@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("engine/test/bustedhelper")  -- no specific cartridge, so just use the engine version
 local picosonic_app_base = require("application/picosonic_app_base")
 
 local flow = require("engine/application/flow")

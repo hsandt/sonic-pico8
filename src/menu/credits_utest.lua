@@ -1,4 +1,4 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper_titlemenu")
 local credits = require("menu/credits")
 
 local menu = require("menu/menu")

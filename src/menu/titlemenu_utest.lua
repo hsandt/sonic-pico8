@@ -1,12 +1,12 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper_titlemenu")
+require("resources/visual_titlemenu_addon")
+
 local titlemenu = require("menu/titlemenu")
 
 local text_helper = require("engine/ui/text_helper")
 
 local menu = require("menu/menu")
-
-local visual = require("resources/visual_common")  -- just to use titlemenu add-on
-require("resources/visual_titlemenu_addon")
+local visual = require("resources/visual_common")
 
 describe('titlemenu', function ()
 

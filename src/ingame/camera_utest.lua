@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local camera_class = require("ingame/camera")
 
 local camera_data = require("data/camera_data")

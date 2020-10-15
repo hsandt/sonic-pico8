@@ -46,7 +46,18 @@ end
 
 function titlemenu:draw_background()
   rectfill(0, 0, 128, 128, colors.dark_blue)
+  -- water shimmer color cycle (in red and yellow in the original sprite)
+  local period = visual.water_shimmer_period
+  local ratio = (t() % period) / period
+  local step_count = #visual.water_shimmer_color_cycle
+  -- compute step from ratio (normally ratio should be < 1
+  --  just in case, max to step_count)
+  local step = min(flr(ratio * step_count) + 1, step_count)
+  local new_colors = visual.water_shimmer_color_cycle[step]
+  pal(colors.red, new_colors[1])
+  pal(colors.yellow, new_colors[2])
   visual.sprite_data_t.angel_island_bg:render(vector(0, 88))
+  pal()
 end
 
 function titlemenu:draw_title()

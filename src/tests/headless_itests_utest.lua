@@ -1,12 +1,10 @@
--- todo: use busted --helper=.../bustedhelper instead of all the bustedhelper requires!
-require("test/bustedhelper_ingame")
-require("engine/test/headless_itest")
-require("engine/test/integrationtest")
-local logging = require("engine/debug/logging")
+-- I suggested to use busted --helper=.../bustedhelper instead of all the bustedhelper requires
+-- but with the new cartridge-specific helper it's not that interesting, as you'd need a different command
+--  for a different script depending on whether it's mostly used in ingame or titlemenu
 
 -- in PICO-8, itests can be run entirely on either cartridge
 -- to reproduce this behavior, we set the cartridge suffix as env variable
---  and require the right app and itest folder based on this
+--  and require the right bustedhelper, app and itest folder based on this
 local cartridge_suffix = os.getenv('ITEST_CARTRIDGE_SUFFIX')
 if cartridge_suffix == 'ignore' then
   -- All: test are running all the utests excluding the headless itests first
@@ -15,6 +13,12 @@ if cartridge_suffix == 'ignore' then
   --  doesn't have a parameter to exclude roots
   return
 end
+
+require("test/bustedhelper_"..cartridge_suffix)
+
+require("engine/test/headless_itest")
+require("engine/test/integrationtest")
+local logging = require("engine/debug/logging")
 
 assert(cartridge_suffix, "env variable ITEST_CARTRIDGE_SUFFIX not set")
 

@@ -33,7 +33,7 @@ describe('credits', function ()
         c:on_enter()
 
         assert.are_equal(fake_app, c.menu.app)
-        assert.are_same({alignments.horizontal_center, colors.white}, {c.menu.alignment, c.menu.text_color})
+        assert.are_same({alignments.left, colors.white}, {c.menu.alignment, c.menu.text_color})
       end)
 
       it('should show text menu', function ()

@@ -6,6 +6,9 @@ local text_helper = require("engine/ui/text_helper")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 
+local visual = require("resources/visual_common")
+-- we should require titlemenu add-on in main
+
 local credits = derived_class(gamestate)
 
 credits.type = ':credits'
@@ -22,7 +25,7 @@ credits.items = transform({
   }, unpacking(menu_item))
 
 function credits:on_enter()
-  self.menu = menu(self.app, 2, alignments.horizontal_center, colors.white)
+  self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
   self.menu:show_items(credits.items)
 end
 

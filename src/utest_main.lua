@@ -8,6 +8,11 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_ingame")
 
+-- utest_main is kinda neutral, but right now we're testing ingame tiles
+--  so if we have to use visual at some point, requiring the ingame add-on
+--  is probably more useful than the titlemenu add-on
+require("resources/visual_ingame_addon")
+
 local p8utest = require("engine/test/p8utest")
 -- tag to add require for pico8 utests files (should be in utests/)
 --[[add_require]]

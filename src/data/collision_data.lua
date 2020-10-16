@@ -1,26 +1,5 @@
 local tile_collision_data = require("data/tile_collision_data")
 
-sprite_flags = {
-  collision = 0,              -- collision flag set on VISIBLE sprite (and MASK sprite for testing with proto tiles)
-  unused1 = 1,
-  unused2 = 2,
-  unused3 = 3,
-  unused4 = 4,
-  spring = 5,                 -- spring
-  midground = 6,              -- midground sprite (should be drawn after programmatical background)
-  foreground = 7,             -- foreground sprite (should be drawn last)
-}
-
-sprite_masks = {
-  collision = 1,     -- 1 << 0
-  unused1 = 2,       -- 1 << 1
-  unused2 = 4,       -- 1 << 2
-  unused3 = 8,       -- 1 << 3
-  unused4 = 16,      -- 1 << 4
-  spring = 32,       -- 1 << 5
-  midground = 64,    -- 1 << 6
-  foreground = 128,  -- 1 << 7
-}
 
 -- below, we are not using serialization.parse_expression anymore
 --  because we want to insert inline comments and have unlimited tokens anyway

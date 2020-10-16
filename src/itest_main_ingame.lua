@@ -5,8 +5,11 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_ingame")
 
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager = integrationtest.itest_manager
+-- require visual add-on for ingame, so any require visual_common
+--  in this cartridge will get both common data and ingame data
+require("resources/visual_ingame_addon")
+
+local itest_manager = require("engine/test/itest_manager")
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -17,7 +20,7 @@ local picosonic_app_ingame = require("application/picosonic_app_ingame")
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
 local app = picosonic_app_ingame()
-itest_runner.app = app
+itest_manager.itest_run.app = app
 
 -- tag to add require for itest files here
 --[[add_require]]
@@ -58,9 +61,9 @@ end
 
 function _update60()
   itest_manager:handle_input()
-  itest_runner:update_game_and_test()
+  itest_manager:update()
 end
 
 function _draw()
-  itest_runner:draw_game_and_test()
+  itest_manager:draw()
 end

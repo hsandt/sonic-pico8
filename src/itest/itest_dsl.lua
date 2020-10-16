@@ -29,8 +29,9 @@ expect gp_value_type  expect a gameplay value to be equal to (...)
 require("engine/core/enum")
 require("engine/core/string_split")
 require("engine/test/assertions")
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
+local integration_test = require("engine/test/integration_test")
+local itest_manager = require("engine/test/itest_manager")
+local time_trigger = require("engine/test/time_trigger")
 
 local tilemap = require("engine/data/tilemap")
 
@@ -760,7 +761,7 @@ function itest_dsl_parser:act(callback)
     self.last_time_trigger = nil  -- consume so we know no final wait-action is needed
   else
     -- no wait since last action (or this is the first action), so use immediate trigger
-    self.itest:add_action(integrationtest.immediate_trigger, callback)
+    self.itest:add_action(time_trigger.immediate(), callback)
   end
 end
 
@@ -770,7 +771,7 @@ function itest_dsl_parser:wait(interval)
     self.itest:add_action(self.last_time_trigger, nil)
   end
   -- we only support frame unit in the dsl
-  self.last_time_trigger = integrationtest.time_trigger(interval, true)
+  self.last_time_trigger = time_trigger(interval, true)
 end
 
 

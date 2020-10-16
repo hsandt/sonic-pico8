@@ -4,9 +4,10 @@ require("resources/visual_ingame_addon")
 local flow = require("engine/application/flow")
 local tilemap = require("engine/data/tilemap")
 local input = require("engine/input/input")
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
-     "itest_manager", "time_trigger", "integration_test")
+local integration_test = require("engine/test/integration_test")
+local itest_manager = require("engine/test/itest_manager")
+local scripted_action = require("engine/test/scripted_action")
+local time_trigger = require("engine/test/time_trigger")
 
 local itest_dsl = require("itest/itest_dsl")
 local gameplay_value_data = get_members(itest_dsl, "gameplay_value_data")

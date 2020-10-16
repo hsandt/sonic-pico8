@@ -1,6 +1,5 @@
 -- gamestates: titlemenu
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
+local itest_manager = require("engine/test/itest_manager")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 

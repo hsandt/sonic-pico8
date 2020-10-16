@@ -17,7 +17,8 @@ end
 require("test/bustedhelper_"..cartridge_suffix)
 
 require("engine/test/headless_itest")
-require("engine/test/integrationtest")
+local itest_manager = require("engine/test/itest_manager")
+
 local logging = require("engine/debug/logging")
 
 assert(cartridge_suffix, "env variable ITEST_CARTRIDGE_SUFFIX not set")
@@ -63,7 +64,7 @@ logging.logger.active_categories = {
 
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
-itest_runner.app = app
+itest_manager.itest_run.app = app
 
 -- require *_itest.lua files to automatically register them in the integration test manager
 require_all_scripts_in('src', 'itests/'..cartridge_suffix)

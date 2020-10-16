@@ -40,7 +40,6 @@ config='debug'
 
 # Read arguments
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
-roots=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     -h | --help )
@@ -121,7 +120,7 @@ fi
   -c "$config"                                        \
   --no-append-config                                  \
   -s "$symbols"                                       \
-  --minify-level 2
+  --minify-level 3
 
 if [[ $? -ne 0 ]]; then
   echo ""

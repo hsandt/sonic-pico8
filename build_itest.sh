@@ -41,4 +41,4 @@ cartridge_suffix="$1"; shift
   -o "${cartridge_stem}_${cartridge_suffix}_v${version}"   \
   -c "$config"                                             \
   -s "$symbols"                                            \
-  --minify-level 2
+  --minify-level 3

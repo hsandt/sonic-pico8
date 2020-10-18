@@ -6,9 +6,11 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
+-- utest_main is neutral, but we might as well require common_ingame which has
+--  more stuff than common_titlemenu
 require("common_ingame")
 
--- utest_main is kinda neutral, but right now we're testing ingame tiles
+-- same, utest_main is neutral, but right now we're testing ingame tiles
 --  so if we have to use visual at some point, requiring the ingame add-on
 --  is probably more useful than the titlemenu add-on
 require("resources/visual_ingame_addon")

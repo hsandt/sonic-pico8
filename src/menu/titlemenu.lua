@@ -1,4 +1,3 @@
-require("engine/core/fun_helper")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")

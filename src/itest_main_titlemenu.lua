@@ -3,6 +3,7 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
+require("common_titlemenu")
 
 -- require visual add-on for titlemenu, so any require visual_common
 --  in this cartridge will get both common data and titlemenu data

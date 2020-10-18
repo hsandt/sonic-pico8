@@ -1,6 +1,5 @@
 local visual = require("resources/visual_common")
 
-require("engine/core/table_helper")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 

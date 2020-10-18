@@ -1,5 +1,5 @@
 -- engine bustedhelper equivalent for game project
--- it adds game common module, since the original bustedhelper.lua
+-- it adds ingame common module, since the original bustedhelper.lua
 --  is part of engine and therefore cannot reference game modules
 -- it also adds visual ingame add-on to simulate main providing it to any ingame scripts
 --  this is useful even when the utest doesn't test visual data usage directly,

@@ -27,7 +27,6 @@ expect gp_value_type  expect a gameplay value to be equal to (...)
 --]]
 
 require("engine/core/enum")
-require("engine/core/string_split")
 require("engine/test/assertions")
 local integration_test = require("engine/test/integration_test")
 local itest_manager = require("engine/test/itest_manager")

@@ -9,5 +9,12 @@ require("engine/core/vector_ext")
 require("engine/core/seq_helper")
 require("engine/core/table_helper")
 
+--#if minify_level3
+-- early declaration of spr_r for minification by -G
+-- see comment on strspl in common_titlemenu, except it replaces
+-- require("engine/render/sprite")
+spr_r = 0
+--#endif
+
 require("data/sprite_flags")
 require("ingame/playercharacter_enums")

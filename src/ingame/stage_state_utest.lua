@@ -1919,72 +1919,6 @@ describe('stage_state', function ()
               map:clear()
             end)
 
-            -- draw_onscreen_tiles is DEPRECATED
-            it('draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 0))', function ()
-              state.loaded_map_region_coords = vector(0, 0)
-              state.camera.position = vector(0, 0)
-
-              state:draw_onscreen_tiles()
-
-              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-              assert.spy(spr).was_called(4)
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 0, 0)
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 3 * 8, 0)
-              assert.spy(spr).was_called_with(46, 5 * 8, 0)
-              assert.spy(spr).was_called_with(tile_repr.grass_top_decoration1, 0, 8)
-            end)
-
-            it('draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 0))', function ()
-              state.loaded_map_region_coords = vector(0, 0)
-              state.camera.position = vector(0, 0)
-
-              state:draw_onscreen_tiles(function (i, j)
-                -- just a condition that will only show first tile
-                return i == 0 and j == 0
-              end)
-
-              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-              assert.spy(spr).was_called(1)
-              -- spring at (0, 0) on-screen
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 0, 0)
-            end)
-
-            it('draw_onscreen_tiles should call spr on tiles present on screen (no condition, region (0, 1))', function ()
-              state.loaded_map_region_coords = vector(0, 1)
-              -- camera pos doesn't need to be at tile_size * 32, it could be anywhere in the region (0, 1)
-              --  but for this test, don't go too far as we must have the test tiles on-screen,
-              --  and since there were originally placed for (0, 0) as in the test above,
-              --  for the lower region everything is offset by 32 on y so we should be around (0, 32)
-              state.camera.position = vector(0, tile_size * 40)
-
-              state:draw_onscreen_tiles()
-
-              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-              assert.spy(spr).was_called(4)
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 0, 0)
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 3 * 8, 0)
-              assert.spy(spr).was_called_with(46, 5 * 8, 0)
-              assert.spy(spr).was_called_with(tile_repr.grass_top_decoration1, 0, 8)
-            end)
-
-            it('draw_onscreen_tiles should call spr on tiles present on screen (with condition, region (0, 1))', function ()
-              state.loaded_map_region_coords = vector(0, 1)
-              state.camera.position = vector(0, tile_size * 40)
-              state:draw_onscreen_tiles(function (i, j)
-                -- just a condition that will only show first tile
-                return i == 0 and j == 0
-              end)
-
-              assert.spy(stage_state.set_camera_with_region_origin).was_called(1)
-              assert.spy(stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-              assert.spy(spr).was_called(1)
-              -- spring at (0, 0) on-screen
-              assert.spy(spr).was_called_with(tile_repr.spring_left_id, 0, 0)
-            end)
-
             it('render_environment_midground should call map for all midground sprites', function ()
               -- note that we reverted to using map for performance, so this test doesn't need to be
               --  in the tile test data setup context anymore
@@ -2001,8 +1935,7 @@ describe('stage_state', function ()
             end)
 
             it('render_environment_foreground should call spr on tiles present on screen', function ()
-              -- this test was not written before extracting draw_onscreen_tiles
-              --  but it was copy-pasted from render_environment_midground
+              -- this test was copy-pasted from render_environment_midground
               state.camera.position = vector(0, 0)
               state.loaded_map_region_coords = vector(2, 1)
 

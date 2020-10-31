@@ -13,8 +13,8 @@ data_path="$(dirname "$0")/data"
 build_output_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
-author="hsandt"
-title="pico-sonic pico8 utests (all)"
+author="leyn"
+title="pico sonic - pico8 utests (all)"
 cartridge_stem="picosonic_pico8_utests_all"
 version="4.2"
 config='debug'

@@ -13,8 +13,8 @@ data_path="$(dirname "$0")/data"
 build_output_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
-author="hsandt"
-title="pico-sonic itests (all)"
+author="leyn"
+title="pico sonic itests (all)"
 cartridge_stem="picosonic_itest_all"
 version="4.2"
 config='itest'

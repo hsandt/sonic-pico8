@@ -11,8 +11,8 @@ game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
 
 # Configuration: cartridge
-author="hsandt"
-title="pico-sonic"
+author="leyn"
+title="pico sonic"
 cartridge_stem="picosonic"
 version="4.2"
 

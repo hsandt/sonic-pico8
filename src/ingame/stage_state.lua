@@ -71,14 +71,6 @@ function stage_state:init()
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
-  -- list of background tree delta heights (i.e. above base height),
-  --  per row, from farthest (top) to closest
-  --  (added for doc, commented out since nil does nothing)
-  -- self.tree_dheight_array_list = nil
-
-  -- list of falling leaves heights per row, from farthest (bottom) to closest
-  -- self.leaves_dheight_array_list = nil
-
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
   self.enable_spawn_objects = true
@@ -130,8 +122,6 @@ function stage_state:on_enter()
   -- initial play bgm
   self:play_bgm()
 
-  -- randomize background data on stage start so it's stable during the stage
-  self:randomize_background_data()
   -- reload runtime background+HUD sprites by copying spritesheet top from background data
   --  cartridge to the top of the current spritesheet, just to overwrite
   -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
@@ -948,7 +938,7 @@ local function draw_full_line(y, c)
 end
 
 -- below is stripped from itests to spare characters as we don't test aesthetics
--- we only strip body of render_background and randomize_background_data so we don't
+-- we only strip body of render_background so we don't
 --  have to strip their calls too
 
 -- render the stage background
@@ -984,33 +974,6 @@ function stage_state:render_background()
   end
 
   self:draw_background_forest_top()
---#endif
-end
-
-function stage_state:randomize_background_data()
---#ifn itest
-  self.tree_dheight_array_list = {}
-  for j = 1, 4 do
-    self.tree_dheight_array_list[j] = {}
-    -- longer periods on closer tree rows (also removes the need for offset
-    --  to avoid tree rows sin in sync, although parallax will offset anyway)
-    local period = 20 + 10 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of sin min threshold with random peaks
-      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
-    end
-  end
-
-  self.leaves_dheight_array_list = {}
-  for j = 1, 2 do
-    self.leaves_dheight_array_list[j] = {}
-    -- longer periods on closer leaves
-    local period = 70 + 35 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of broad sin random peaks
-      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
-    end
-  end
 --#endif
 end
 
@@ -1091,17 +1054,18 @@ function stage_state:draw_background_forest_top()
     local parallax_offset = flr(parallax_speed * self.camera.position.x)
     -- first patch of leaves chains from closest trees, so no base height
     --  easier to connect and avoid hiding closest trees
-    self:draw_leaves_row(parallax_offset, 31 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_leaves_row(parallax_offset, 31 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 19, j,
+      j % 2 == 1 and colors.green or colors.dark_green)
   end
 
   -- tree rows
-  for j = 0, 3 do
+  for j = 0, 2 do
     -- elements farther from camera have slower parallax speed, closest has base parallax speed
     local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
     local parallax_offset = flr(parallax_speed * self.camera.position.x)
     -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
-    self:draw_tree_row(parallax_offset, 31 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
-      self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
+    self:draw_tree_row(parallax_offset, 31 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10, j,
+      j % 2 == 0 and colors.green or colors.dark_green)
   end
 end
 
@@ -1181,7 +1145,7 @@ end
 function stage_state:draw_background_forest_bottom_hole_transition_x(x0, y0, extra_tile_j, dir_mult)
   for dy = - tile_size, (5 + extra_tile_j) * tile_size - 1 do
     local y = y0 + dy
-    line(x0 + dir_mult * flr(2.5 * (1 + sin(dy/abs(1.7)) * sin(dy/1.41))), y, x0, y, colors.dark_green)
+    line(x0 + dir_mult * flr(2.5 * (1 + sin(dy/1.7) * sin(dy/1.41))), y, x0, y, colors.dark_green)
   end
 end
 
@@ -1189,7 +1153,7 @@ end
 function stage_state:draw_background_forest_bottom_hole_transition_y(x0, y0, dir_mult)
   for dx = 0, 4 * tile_size - 1 do
     local x = x0 + dx
-    line(x, y0 + dir_mult * flr(3.7 * (1 + sin(dx/abs(1.65)) * sin(dx/1.45))), x, y0, colors.dark_green)
+    line(x, y0 + dir_mult * flr(3.7 * (1 + sin(dx/1.65) * sin(dx/1.45))), x, y0, colors.dark_green)
   end
 end
 
@@ -1245,21 +1209,21 @@ function stage_state:draw_water_reflections(parallax_offset, x, y, period)
   pset((x - parallax_offset + 1) % screen_width, y, c2)
 end
 
-function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
-  local size = #dheight_array
-  for x = 0, 127 do
-    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
+function stage_state:draw_tree_row(parallax_offset, y, base_height, row_index0, color)
+  for x0 = 0, 127 do
+    local x = x0 + parallax_offset
+    local height = base_height + flr((3 + 0.5 * row_index0) * (1 + sin(x/(1.7 + 0.2 * row_index0)) * sin(x/1.41)))
     -- draw vertical line from bottom to (variable) top
-    line(x, y, x, y - height, color)
+    line(x0, y, x0, y - height, color)
   end
 end
 
-function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
-  local size = #dheight_array
-  for x = 0, 127 do
-    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
+function stage_state:draw_leaves_row(parallax_offset, y, base_height, row_index0, color)
+  for x0 = 0, 127 do
+    local x = x0 + parallax_offset
+    local height = base_height + flr((4.5 - 0.3 * row_index0) * (1 + sin(x/(41.4 - 9.1 * row_index0))) + 1.8 * sin(x/1.41))
     -- draw vertical line from top to (variable) bottom
-    line(x, y, x, y + height, color)
+    line(x0, y, x0, y + height, color)
   end
 end
 
@@ -1448,16 +1412,16 @@ function stage_state:draw_emeralds_around_cross(x, y)
   -- numbers would be more consistent (0, 11, 20 everywhere)
   --  if pivot was at (4, 3) instead of (4, 4)
   --  but we need to make this work with the stage too
-  local emerald_relative_positions = {
-    vector(0, -19),
-    vector(11, -10),
-    vector(20, 1),
-    vector(11, 12),
-    vector(0, 21),
-    vector(-11, 12),
-    vector(-20, 1),
-    vector(-11, -10)
-  }
+  -- local emerald_relative_positions = {
+  --   vector(0, -19),
+  --   vector(11, -10),
+  --   vector(20, 1),
+  --   vector(11, 12),
+  --   vector(0, 21),
+  --   vector(-11, 12),
+  --   vector(-20, 1),
+  --   vector(-11, -10)
+  -- }
 
   -- draw emeralds around the cross, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations

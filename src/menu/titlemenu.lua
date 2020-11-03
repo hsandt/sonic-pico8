@@ -6,6 +6,7 @@ local text_helper = require("engine/ui/text_helper")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 
+local audio = require("resources/audio")
 local visual = require("resources/visual_common")
 -- we should require titlemenu add-on in main
 
@@ -26,21 +27,55 @@ titlemenu.items = transform({
   }, unpacking(menu_item))
 
 function titlemenu:on_enter()
+  self.app:start_coroutine(self.opening_sequence_async, self)
+end
+
+function titlemenu:opening_sequence_async()
+  -- start title BGM
+  music(audio.music_ids.title)
+
+  -- show menu after short intro of 2 columns
+  -- title bgm is at SPD 12 so that makes
+  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+  yield_delay(96)
+  self:show_menu()
+
+  -- fade out current bgm during the last half-measure (we have a decreasing volume
+  --   in the music itself but there is still a gap between volume 1 and 0 in PICO-8
+  --   and using a custom instrument just to decrease volume is cumbersome, hence the
+  --   additional fade-out by code)
+  -- the fast piano track ends with SFX 16 after 4 patterns (repeating one of the SFX once)
+  -- and 2 columns, over 1 columns, which makes the fade out start at:
+  --   12 SPD * 4 frames/SPD/column * (4 patterns * 4 columns + 2 columns) = 864 frames
+  -- and lasts:
+  --   12 SPD * 4 frames/SPD/column * 1 column = 48 frames = 48 * 1000 / 60 = 800 ms
+  -- we've already waited 96 frames so only wait 864 - 96 = 768 frames now
+  yield_delay(768)
+  music(-1, 800)
+end
+
+function titlemenu:show_menu()
   self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor_shoe, 7)
   self.menu:show_items(titlemenu.items)
 end
 
 function titlemenu:on_exit()
+  -- clear menu completely (will call GC, but fine)
+  self.menu = nil
 end
 
 function titlemenu:update()
-  self.menu:update()
+  if self.menu then
+    self.menu:update()
+  end
 end
 
 function titlemenu:render()
   self:draw_background()
   self:draw_title()
-  self.menu:draw(55, 101)
+  if self.menu then
+    self.menu:draw(55, 101)
+  end
 end
 
 function titlemenu:draw_background()

@@ -9,7 +9,6 @@ require("resources/visual_ingame_addon")
 local stage_state = require("ingame/stage_state")
 
 local coroutine_runner = require("engine/application/coroutine_runner")
-local gameapp = require("engine/application/gameapp")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local location_rect = require("engine/core/location_rect")
@@ -49,7 +48,7 @@ describe('stage_state', function ()
     before_each(function ()
       local app = picosonic_app()
       state = stage_state()
-        -- no need to register gamestate properly, just add app member to pass tests
+      -- no need to register gamestate properly, just add app member to pass tests
       state.app = app
     end)
 
@@ -1193,8 +1192,8 @@ describe('stage_state', function ()
 
           describe('character_pick_emerald', function ()
 
-            -- we need to stub start_coroutine on the child class
-            --  not gameapp or calls won't be monitored
+            -- we need to stub start_coroutine on the child class,
+            --  not gameapp, or calls won't be monitored
 
             setup(function ()
               stub(picosonic_app, "start_coroutine")

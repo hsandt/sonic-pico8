@@ -1,6 +1,6 @@
 local audio = {}
 
-local sfx_ids = {
+audio.sfx_ids = {
   -- builtin_data_titlemenu only
   menu_select = 50,
   menu_confirm = 51,
@@ -14,12 +14,14 @@ local sfx_ids = {
   brake = 62,
 }
 
-local jingle_ids = {
+audio.jingle_ids = {
   pick_emerald = 40,  -- unused
   stage_clear = 41,
 }
 
-audio.sfx_ids = sfx_ids
-audio.jingle_ids = jingle_ids
+audio.music_ids = {
+  -- builtin_data_titlemenu only (overlaps stage bgm in data_bgm1.p8)
+  title = 0,
+}
 
 return audio

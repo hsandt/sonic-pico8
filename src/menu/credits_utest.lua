@@ -10,24 +10,39 @@ describe('credits', function ()
     local fake_app = {}
     local c
 
-    setup(function ()
-      stub(menu, "show_items")
-    end)
-
-    teardown(function ()
-      menu.show_items:revert()
-    end)
-
     before_each(function ()
       c = credits()
       c.app = fake_app
     end)
 
-    after_each(function ()
-      menu.show_items:clear()
-    end)
-
     describe('on_enter', function ()
+
+      setup(function ()
+        stub(_G, "music")
+        stub(menu, "show_items")
+      end)
+
+      teardown(function ()
+        music:revert()
+        menu.show_items:revert()
+      end)
+
+      before_each(function ()
+        c = credits()
+        c.app = fake_app
+      end)
+
+      after_each(function ()
+        music:clear()
+        menu.show_items:clear()
+      end)
+
+      it('should stop music', function ()
+        c:on_enter()
+
+        assert.spy(music).was_called(1)
+        assert.spy(music).was_called_with(-1)
+      end)
 
       it('should create text menu with app', function ()
         c:on_enter()

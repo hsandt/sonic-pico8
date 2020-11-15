@@ -44,12 +44,17 @@ describe('stage_state', function ()
   describe('(with instance)', function ()
 
     local state
+    local titlemenu_state
 
     before_each(function ()
       local app = picosonic_app()
       state = stage_state()
       -- no need to register gamestate properly, just add app member to pass tests
       state.app = app
+
+      -- exceptionally we also need titlemenu state
+      titlemenu_state = titlemenu()
+      titlemenu_state.app = app
     end)
 
     describe('state', function ()
@@ -833,7 +838,7 @@ describe('stage_state', function ()
 
         before_each(function ()
           flow:add_gamestate(state)
-          flow:add_gamestate(titlemenu)  -- for transition on reached goal
+          flow:add_gamestate(titlemenu_state)  -- for transition on reached goal
         end)
 
         after_each(function ()
@@ -2018,7 +2023,7 @@ describe('stage_state', function ()
           describe('on exit stage state to enter titlemenu state', function ()
 
             before_each(function ()
-              flow:change_state(titlemenu)
+              flow:change_state(titlemenu_state)
             end)
 
             it('player character should be nil', function ()

@@ -137,8 +137,8 @@ function stage_state:on_exit()
 
   -- clear object state vars
   self.player_char = nil
-  self.title_overlay:clear_labels()
-  self.result_overlay:clear_labels()
+  self.title_overlay:clear_drawables()
+  self.result_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -847,7 +847,8 @@ end
 function stage_state:show_stage_title_async()
   self.app:yield_delay_s(stage_data.show_stage_title_delay)
 
-  local zone_label = self.title_overlay:add_label("zone", self.curr_stage_data.title, vector(128, 42), colors.white)
+  local zone_label = label(self.curr_stage_data.title, vector(128, 42), colors.white)
+  self.title_overlay:add_drawable("zone", zone_label)
 
   -- make text enter from the right
   move_label_on_x_async({zone_label}, {0}, 128, 73, 14)
@@ -858,21 +859,24 @@ function stage_state:show_stage_title_async()
   -- make text exit to the right
   move_label_on_x_async({zone_label}, {0}, 73, 128, 14)
 
-  self.title_overlay:remove_label("zone")
+  self.title_overlay:remove_drawable("zone")
 end
 
 function stage_state:show_result_async()
   -- "sonic got through": 17 characters, so 17*4 = 68 px wide
   -- so to enter from left, offset by -68 (we even get an extra margin pixel)
-  local sonic_label = self.result_overlay:add_label("sonic", "sonic", vector(-68, 14), colors.dark_blue, colors.orange)
+  local sonic_label = label("sonic", vector(-68, 14), colors.dark_blue, colors.orange)
+  self.result_overlay:add_drawable("sonic", sonic_label)
   -- "got through" is 6 chars after the string start so 24px after , -68+24=-44
-  local through_label = self.result_overlay:add_label("through", "got through", vector(-44, 14), colors.white, colors.black)
+  local through_label = label("got through", vector(-44, 14), colors.white, colors.black)
+  self.result_overlay:add_drawable("through", through_label)
 
   -- move text from left to right
   move_label_on_x_async({sonic_label, through_label}, {0, 24}, -68, 30, 20)
 
   -- enter from screen right so offset is 128
-  local result_label = self.result_overlay:add_label("stage", "angel island", vector(128, 26), colors.white, colors.black)
+  local result_label = label("angel island", vector(128, 26), colors.white, colors.black)
+  self.result_overlay:add_drawable("stage", result_label)
 
   -- move text from right to left
   move_label_on_x_async({result_label}, {0}, 128, 40, 20)
@@ -913,17 +917,15 @@ function stage_state:assess_result_async()
 
   yield_delay(30)
 
-  self.result_overlay:remove_label("sonic")
-  self.result_overlay:remove_label("through")
-  self.result_overlay:remove_label("stage")
+  self.result_overlay:remove_drawable("sonic")
+  self.result_overlay:remove_drawable("through")
+  self.result_overlay:remove_drawable("stage")
 
   yield_delay(30)
 
-  -- OPTIMIZE: to avoid recreating sonic label, we could either add some enabled flag
-  --  to disable it temporarily instead of removing it above,
-  --  or we could re-add the same label by splitting add_label into add_label(label) and emplace_label(label args...)
-  --  and directly adding the label from sonic_label variable this time
-  local sonic_label2 = self.result_overlay:add_label("sonic", "sonic", vector(-88, 14), colors.dark_blue, colors.orange)
+  -- reuse sonic label, just place it at the right start position
+  sonic_label.position = vector(-88, 14)
+  self.result_overlay:add_drawable("sonic", sonic_label)
   local emerald_text
 
   -- check how many emeralds player got
@@ -937,10 +939,11 @@ function stage_state:assess_result_async()
     emerald_text = "got all emeralds"
   end
 
-  local emerald_label = self.result_overlay:add_label("emerald", emerald_text, vector(-64, 14), colors.white, colors.black)
+  local emerald_label = label(emerald_text, vector(-64, 14), colors.white, colors.black)
+  self.result_overlay:add_drawable("emerald", emerald_label)
 
   -- move text from left to right
-  move_label_on_x_async({sonic_label2, emerald_label}, {0, 24}, -88, 20, 20)
+  move_label_on_x_async({sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
 end
 
 

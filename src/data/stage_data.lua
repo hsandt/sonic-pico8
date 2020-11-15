@@ -14,7 +14,7 @@ return {
   -- UI
 
   -- delay between stage enter and showing stage title (s)
-  show_stage_title_delay = 4.0,
+  show_stage_title_delay = 0.2,
   -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)
   goal_rotating_anim_duration = 120,
   -- duration of stage clear jingle (frames)
@@ -36,7 +36,7 @@ return {
 
     [1] = {
       -- stage title
-      title = "angel island",
+      title = "pico island",
 
       -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column,
       --  extra tiles on width for goal area)

@@ -1397,7 +1397,7 @@ describe('stage_state', function ()
 
           end)
 
-          describe('#solo on_reached_goal_async', function ()
+          describe('on_reached_goal_async', function ()
 
             -- removed actual tests, too hard to maintain
             -- instead, just run it and see if it crashes
@@ -1488,30 +1488,21 @@ describe('stage_state', function ()
 
           end)
 
-          describe('(no overlay labels)', function ()
+          describe('show_stage_title_async', function ()
 
-            local on_show_stage_title_async
+            local corunner
 
             before_each(function ()
-              on_show_stage_title_async = cocreate(state.show_stage_title_async)
+              corunner = coroutine_runner()
+              corunner:start_coroutine(stage_state.show_stage_title_async, state)
             end)
 
-            after_each(function ()
-              -- we don't stub overlay.add_label here, so we must clear any side effects
-              clear_table(state.title_overlay.labels)
-            end)
-
-            it('show_stage_title_async should add a title label and remove it after stage_data.show_stage_title_delay seconds', function ()
-              -- hold back last frame to check that label was added and didn't disappear yet
-              for i = 1, stage_data.show_stage_title_delay * state.app.fps - 1 do
-                coresume(on_show_stage_title_async, state)
+            -- this coroutine become more complex, so only test it doesn't crash
+            it('#solo show_stage_title_async should not crash', function ()
+              -- a time long enough to cover initial delay then full animation
+              for i = 1, stage_data.show_stage_title_delay * state.app.fps - 1 + 160 do
+                corunner:update_coroutines()
               end
-              assert.are_same(label(state.curr_stage_data.title, vector(50, 30), colors.white), state.title_overlay.labels["title"])
-
-              -- reach last frame now to check if label just disappeared
-              coresume(on_show_stage_title_async, state)
-
-              assert.is_nil(state.title_overlay.labels["title"])
             end)
 
           end)
@@ -1966,7 +1957,7 @@ describe('stage_state', function ()
 
           end)  -- (with tile_test_data)
 
-          describe('#solo extra render methods (no-crash only)', function ()
+          describe('extra render methods (no-crash only)', function ()
 
             it('render_emerald_cross should not crash', function ()
               state:render_emerald_cross()
@@ -2106,10 +2097,11 @@ describe('stage_state', function ()
               assert.is_nil(state.player_char)
             end)
 
-            it('should call title_overlay:clear_labels', function ()
+            it('should call clear all labels', function ()
               local s = assert.spy(overlay.clear_labels)
-              s.was_called(1)
+              s.was_called(2)
               s.was_called_with(match.ref(state.title_overlay))
+              s.was_called_with(match.ref(state.result_overlay))
             end)
 
             it('should reset pico8 camera', function ()

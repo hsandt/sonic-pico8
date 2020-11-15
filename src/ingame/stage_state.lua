@@ -138,6 +138,7 @@ function stage_state:on_exit()
   -- clear object state vars
   self.player_char = nil
   self.title_overlay:clear_labels()
+  self.result_overlay:clear_labels()
 
   -- reinit camera offset for other states
   camera()
@@ -830,12 +831,6 @@ end
 
 -- ui
 
-function stage_state:show_stage_title_async()
-  self.title_overlay:add_label("title", self.curr_stage_data.title, vector(50, 30), colors.white)
-  self.app:yield_delay_s(stage_data.show_stage_title_delay)
-  self.title_overlay:remove_label("title")
-end
-
 -- helper: move label linearly along X from a to b over n frames
 -- x_offsets allow to offset labels relatively to a and b (while keeping label motions in sync)
 local function move_label_on_x_async(labels, x_offsets, a, b, n)
@@ -847,6 +842,23 @@ local function move_label_on_x_async(labels, x_offsets, a, b, n)
       lab.position.x = (1 - alpha) * (a + x_offsets[i]) + alpha * (b + x_offsets[i])
     end
   end
+end
+
+function stage_state:show_stage_title_async()
+  self.app:yield_delay_s(stage_data.show_stage_title_delay)
+
+  local zone_label = self.title_overlay:add_label("zone", self.curr_stage_data.title, vector(128, 42), colors.white)
+
+  -- make text enter from the right
+  move_label_on_x_async({zone_label}, {0}, 128, 73, 14)
+
+  -- keep zone displayed for a moment
+  yield_delay(102)
+
+  -- make text exit to the right
+  move_label_on_x_async({zone_label}, {0}, 73, 128, 14)
+
+  self.title_overlay:remove_label("zone")
 end
 
 function stage_state:show_result_async()

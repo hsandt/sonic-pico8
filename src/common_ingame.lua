@@ -6,7 +6,6 @@
 
 require("engine/core/direction_ext")
 require("engine/core/vector_ext")
-require("engine/core/seq_helper")
 require("engine/core/table_helper")
 
 --#if minify_level3

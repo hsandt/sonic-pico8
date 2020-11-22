@@ -2,6 +2,7 @@ local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
+local rectangle = require("engine/ui/rectangle")
 
 local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
@@ -116,7 +117,7 @@ function stage_state:on_enter()
 
   self.has_player_char_reached_goal = false
 
-  self.app:start_coroutine(self.show_stage_title_async, self)
+  self.app:start_coroutine(self.show_stage_splash_async, self)
 
   -- reload bgm only once, then we can play bgm whenever we want for this stage
   self:reload_bgm()
@@ -832,34 +833,54 @@ end
 
 -- ui
 
--- helper: move label linearly along X from a to b over n frames
--- x_offsets allow to offset labels relatively to a and b (while keeping label motions in sync)
-local function move_label_on_x_async(labels, x_offsets, a, b, n)
+-- helper: move drawable (position member, draw method) linearly along coord ("x" or "y")
+--  from a to b over n frames
+-- coord_offsets allow to offset drawables relatively to a and b while keeping drawable motions in sync
+--  (coord_offsets list is indexed by index of drawable in drawables)
+local function move_drawables_on_coord_async(coord, drawables, coord_offsets, a, b, n)
   for frame = 1, n do
     yield()
     local alpha = frame / n
 
-    for i, lab in ipairs(labels) do
-      lab.position.x = (1 - alpha) * (a + x_offsets[i]) + alpha * (b + x_offsets[i])
+    for i, dr in ipairs(drawables) do
+      dr.position:set(coord, (1 - alpha) * a + alpha * b + coord_offsets[i])
     end
   end
 end
 
-function stage_state:show_stage_title_async()
-  self.app:yield_delay_s(stage_data.show_stage_title_delay)
+function stage_state:show_stage_splash_async()
+  self.app:yield_delay_s(stage_data.show_stage_splash_delay)
+
+  -- FIXME: draw iteration order not guaranteed, pico-sonic may be hidden "below" banner
+
+  -- init position y is -height so it starts just at the screen top edge
+  local banner = rectangle(vector(9, -106), 32, 106, colors.red)
+  self.title_overlay:add_drawable("banner", banner)
+
+  -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
+  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
+  self.title_overlay:add_drawable("banner_text", banner_text)
+
+  -- make banner enter from the top
+  move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
 
   local zone_label = label(self.curr_stage_data.title, vector(128, 42), colors.white)
   self.title_overlay:add_drawable("zone", zone_label)
 
   -- make text enter from the right
-  move_label_on_x_async({zone_label}, {0}, 128, 73, 14)
+  move_drawables_on_coord_async("x", {zone_label}, {0}, 128, 73, 14)
 
   -- keep zone displayed for a moment
   yield_delay(102)
 
-  -- make text exit to the right
-  move_label_on_x_async({zone_label}, {0}, 73, 128, 14)
+  -- make banner exit to the top
+  move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 
+  -- make text exit to the right
+  move_drawables_on_coord_async("x", {zone_label}, {0}, 73, 128, 14)
+
+  self.title_overlay:remove_drawable("banner")
+  self.title_overlay:remove_drawable("banner_text")
   self.title_overlay:remove_drawable("zone")
 end
 
@@ -873,14 +894,14 @@ function stage_state:show_result_async()
   self.result_overlay:add_drawable("through", through_label)
 
   -- move text from left to right
-  move_label_on_x_async({sonic_label, through_label}, {0, 24}, -68, 30, 20)
+  move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
 
   -- enter from screen right so offset is 128
   local result_label = label("angel island", vector(128, 26), colors.white, colors.black)
   self.result_overlay:add_drawable("stage", result_label)
 
   -- move text from right to left
-  move_label_on_x_async({result_label}, {0}, 128, 40, 20)
+  move_drawables_on_coord_async("x", {result_label}, {0}, 128, 40, 20)
 
   -- show emerald cross
   self.result_show_emerald_cross_base = true
@@ -944,7 +965,7 @@ function stage_state:assess_result_async()
   self.result_overlay:add_drawable("emerald", emerald_label)
 
   -- move text from left to right
-  move_label_on_x_async({sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
+  move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
 end
 
 

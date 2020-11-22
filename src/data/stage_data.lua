@@ -14,7 +14,7 @@ return {
   -- UI
 
   -- delay between stage enter and showing stage title (s)
-  show_stage_title_delay = 0.2,
+  show_stage_splash_delay = 0.2,
   -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)
   goal_rotating_anim_duration = 120,
   -- duration of stage clear jingle (frames)

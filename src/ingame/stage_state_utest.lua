@@ -176,10 +176,10 @@ describe('stage_state', function ()
           assert.is_false(state.has_player_char_reached_goal)
         end)
 
-        it('should call start_coroutine_method on show_stage_title_async', function ()
+        it('should call start_coroutine_method on show_stage_splash_async', function ()
           local s = assert.spy(picosonic_app.start_coroutine)
           s.was_called(1)
-          s.was_called_with(match.ref(state.app), stage_state.show_stage_title_async, match.ref(state))
+          s.was_called_with(match.ref(state.app), stage_state.show_stage_splash_async, match.ref(state))
         end)
 
         it('should call reload_bgm', function ()
@@ -864,7 +864,7 @@ describe('stage_state', function ()
 
           before_each(function ()
             flow:change_state(state)
-            -- entering stage currently starts coroutine show_stage_title_async
+            -- entering stage currently starts coroutine show_stage_splash_async
             -- which will cause side effects when updating coroutines to test other
             -- async functions, so clear that now
             state.app:stop_all_coroutines()
@@ -1160,7 +1160,7 @@ describe('stage_state', function ()
               picosonic_app.start_coroutine:revert()
             end)
 
-            -- start_coroutine is also called on stage enter (with show_stage_title_async)
+            -- start_coroutine is also called on stage enter (with show_stage_splash_async)
             -- so we must clear call count *before* the first test
             before_each(function ()
               picosonic_app.start_coroutine:clear()
@@ -1313,7 +1313,7 @@ describe('stage_state', function ()
               picosonic_app.start_coroutine:revert()
             end)
 
-            -- start_coroutine is also called on stage enter (with show_stage_title_async)
+            -- start_coroutine is also called on stage enter (with show_stage_splash_async)
             -- so we must clear call count *before* the first test
             before_each(function ()
               picosonic_app.start_coroutine:clear()
@@ -1487,19 +1487,19 @@ describe('stage_state', function ()
 
           end)
 
-          describe('show_stage_title_async', function ()
+          describe('show_stage_splash_async', function ()
 
             local corunner
 
             before_each(function ()
               corunner = coroutine_runner()
-              corunner:start_coroutine(stage_state.show_stage_title_async, state)
+              corunner:start_coroutine(stage_state.show_stage_splash_async, state)
             end)
 
             -- this coroutine become more complex, so only test it doesn't crash
-            it('#solo show_stage_title_async should not crash', function ()
+            it('#solo show_stage_splash_async should not crash', function ()
               -- a time long enough to cover initial delay then full animation
-              for i = 1, stage_data.show_stage_title_delay * state.app.fps - 1 + 160 do
+              for i = 1, stage_data.show_stage_splash_delay * state.app.fps - 1 + 160 do
                 corunner:update_coroutines()
               end
             end)

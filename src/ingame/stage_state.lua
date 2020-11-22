@@ -864,11 +864,14 @@ function stage_state:show_stage_splash_async()
   -- make banner enter from the top
   move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
 
-  local zone_label = label(self.curr_stage_data.title, vector(128, 42), colors.white)
+  local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
+  self.title_overlay:add_drawable("zone_rect", zone_rectangle)
+
+  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
   self.title_overlay:add_drawable("zone", zone_label)
 
   -- make text enter from the right
-  move_drawables_on_coord_async("x", {zone_label}, {0}, 128, 73, 14)
+  move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
 
   -- keep zone displayed for a moment
   yield_delay(102)
@@ -877,7 +880,7 @@ function stage_state:show_stage_splash_async()
   move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 
   -- make text exit to the right
-  move_drawables_on_coord_async("x", {zone_label}, {0}, 73, 128, 14)
+  move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
 
   self.title_overlay:remove_drawable("banner")
   self.title_overlay:remove_drawable("banner_text")

@@ -1,5 +1,6 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 
 local camera_class = require("ingame/camera")
@@ -923,8 +924,8 @@ function stage_state:assess_result_async()
 
   yield_delay(30)
 
-  -- reuse sonic label, just place it at the right start position
-  sonic_label.position = vector(-88, 14)
+  -- create another sonic label (previous one was also local var, so can't access it from here)
+  local sonic_label = label("sonic", vector(-88, 14), colors.dark_blue, colors.orange)
   self.result_overlay:add_drawable("sonic", sonic_label)
   local emerald_text
 
@@ -1404,8 +1405,8 @@ end
 -- render the title overlay with a fixed ui camera
 function stage_state:render_overlay()
   camera()
-  self.title_overlay:draw_labels()
-  self.result_overlay:draw_labels()
+  self.title_overlay:draw()
+  self.result_overlay:draw()
 end
 
 

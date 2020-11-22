@@ -1452,16 +1452,16 @@ function stage_state:draw_emeralds_around_cross(x, y)
   -- numbers would be more consistent (0, 11, 20 everywhere)
   --  if pivot was at (4, 3) instead of (4, 4)
   --  but we need to make this work with the stage too
-  -- local emerald_relative_positions = {
-  --   vector(0, -19),
-  --   vector(11, -10),
-  --   vector(20, 1),
-  --   vector(11, 12),
-  --   vector(0, 21),
-  --   vector(-11, 12),
-  --   vector(-20, 1),
-  --   vector(-11, -10)
-  -- }
+  local emerald_relative_positions = {
+    vector(0, -19),
+    vector(11, -10),
+    vector(20, 1),
+    vector(11, 12),
+    vector(0, 21),
+    vector(-11, 12),
+    vector(-20, 1),
+    vector(-11, -10)
+  }
 
   -- draw emeralds around the cross, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations

@@ -124,12 +124,74 @@ function stage_state:on_enter()
   -- initial play bgm
   self:play_bgm()
 
+  self:reload_runtime_data()
+end
+
+-- reload background, HUD and character sprites from runtime data
+-- also store non-rotated and rotated sprites into general memory for swapping later
+function stage_state:reload_runtime_data()
   -- reload runtime background+HUD sprites by copying spritesheet top from background data
   --  cartridge to the top of the current spritesheet, just to overwrite
+  -- spritesheet starts at 0x0 in memory
   -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
   --  so 512 = 0x200 bytes per row,
   --  so 1536 = 0x600 bytes
-  reload(0x0, 0x0, 0x600, "data_stage"..self.curr_stage_id.."_runtime.p8")
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
+  reload(0x0, 0x0, 0x600, runtime_data_path)
+
+  -- the runtime spritesheet also contains 45-degree rotated sprite variants
+  --  for Sonic walk and run cycle, meant to replace the non-rotated equivalents
+  --  in the built-in spritesheet
+  -- we don't want to reload data files (neither the built-in nor the runtime)
+  --  every time Sonic changes 1/8 rotation, so we copy both the non-rotated
+  --  and rotated variants now into in general memory, so we can swap them later
+
+  -- 1st argument of memcpy is destination, and is always general memory address
+  --  (0x4300) + some offset
+  -- first, we need to spare 0x1000 for reload_..._map_region methods
+  --  which use the general memory as temporary storage for patching operations
+  -- second, we prefer keeping memory compact by copying the sprites one after
+  --  the other in general memory, rather than following the spritesheet layout
+  --  (even if there is a hole after a rotated sprite because it made sprite
+  --  alignment look better, we don't have a similar hole in general memory)
+  -- so, we start at 0x5300 and then simply add the length of the previous memcpy
+  --  operation to get the next dest address
+
+  -- the non-rotated variants are already in current memory, so just copy them
+
+  -- the walk cycle sprites are located at row 8, column 2 (counting from 0),
+  --  that makes upper row src = 8 * 0x200 + 2 * 0x20 = 0x1040
+  -- unfortunately we don't cover the whole row so we cannot just copy contiguous
+  --  rows as above, and need a separate operation for the lower row src located
+  --  at 0x1040 + 0x200 = 0x1240
+  -- there are 6 walk sprites of span 2x2, which makes 12 * 0x20 = 0x180 of length
+  --  for each row
+  memcpy(0x5300, 0x1040, 0x180)
+  memcpy(0x5480, 0x1240, 0x180)
+
+  -- run cycle starts at row 0, column 0, so upper row src = 10 * 0x200 = 0x1400
+  -- lower row is 0x1400 + 0x200 = 0x1600
+  -- there are 4 sprites of span 2x2, so length on each row is 8 * 0x20 = 0x100
+  memcpy(0x5600, 0x1400, 0x100)
+  memcpy(0x5700, 0x1600, 0x100)
+
+  -- the rotated variants are in the runtime data, so reload them
+  -- the dest addresses start from 0x5700 + 0x100, while the src addresses
+  --  are the same as above since we arranged the runtime spritesheet to place
+  --  the rotated sprites at the same location as their non-rotated equivalents
+  -- since we start at 0x5800 instead of 0x5300 but the lengths are the same,
+  --  dest addresses are simply offset by 0x500 compared to above
+
+  -- walk (rotated)
+  reload(0x5800, 0x1040, 0x180, runtime_data_path)
+  reload(0x5980, 0x1240, 0x180, runtime_data_path)
+
+  -- run (rotated)
+  reload(0x5b00, 0x1400, 0x100, runtime_data_path)
+  reload(0x5c00, 0x1600, 0x100, runtime_data_path)
+
+  -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
+  --  so we just have a little margin!
 end
 
 function stage_state:on_exit()

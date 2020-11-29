@@ -2279,6 +2279,20 @@ function player_char:check_update_sprite_angle()
   end
 end
 
+-- replace all Sonic sprites that have a 45-degree rotation variant
+--  with either the non-rotated or the 45-degree rotation variant
+-- requirement: stage_state:reload_runtime_data must have been called
+function player_char:reload_rotated_sprites(rotated_by_45)
+  -- see stage_state:reload_runtime_data for address explanation
+  -- basically we are copying sprites general memory (with the correct
+  --  address offset if rotated), back into the current spritesheet memory
+  local addr_offset = rotated_by_45 and 0x500 or 0
+  memcpy(0x1040, 0x5300 + addr_offset, 0x180)
+  memcpy(0x1240, 0x5480 + addr_offset, 0x180)
+  memcpy(0x1400, 0x5600 + addr_offset, 0x100)
+  memcpy(0x1600, 0x5700 + addr_offset, 0x100)
+end
+
 -- render the player character sprite at its current position
 function player_char:render()
   local flip_x = self.orientation == horizontal_dirs.left
@@ -2290,6 +2304,21 @@ function player_char:render()
   -- floor position to avoid jittering when running on ceiling due to
   --  partial pixel position being sometimes one more pixel on the right due after 180-deg rotation
   local floored_position = vector(flr(self.position.x), flr(self.position.y))
+
+  -- an computed rotation of 45 degrees would result in an ugly sprite
+  --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
+  --  sprites when we want a better angle resolution
+  if sprite_angle % 0.25 == 0 then
+    -- closest 45-degree angle is already cardinal, we can safely rotate
+    -- still make sure we use non-rotated sprites in case we changed them earlier
+    self:reload_rotated_sprites(--[[rotated_by_45: nil]])
+  else
+    -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
+    --  and remember to only rotate by angle - 45 degrees since sprite already has it
+    self:reload_rotated_sprites(--[[rotated_by_45: ]] true)
+    sprite_angle = sprite_angle - 0.125
+  end
+
   self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
 end
 

@@ -8190,43 +8190,116 @@ describe('player_char', function ()
 
     end)
 
-    describe('render', function ()
-
-      local anim_spr_render_stub
+    describe('reload_rotated_sprites', function ()
 
       setup(function ()
-        -- create a generic stub at struct level so it works with any particular sprite
-        anim_spr_render_stub = stub(animated_sprite, "render")
+        stub(_G, "memcpy")
       end)
 
       teardown(function ()
-        anim_spr_render_stub:revert()
+        memcpy:revert()
       end)
 
       after_each(function ()
-        anim_spr_render_stub:clear()
+        memcpy:clear()
       end)
 
-      it('(when character is facing left) should call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
+      it('should copy non-rotated sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_sprites()
+
+        assert.spy(memcpy).was_called(4)
+        assert.spy(memcpy).was_called_with(0x1040, 0x5300, 0x180)
+        assert.spy(memcpy).was_called_with(0x1240, 0x5480, 0x180)
+        assert.spy(memcpy).was_called_with(0x1400, 0x5600, 0x100)
+        assert.spy(memcpy).was_called_with(0x1600, 0x5700, 0x100)
+      end)
+
+      it('should copy rotated sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_sprites(true)
+
+        assert.spy(memcpy).was_called(4)
+        assert.spy(memcpy).was_called_with(0x1040, 0x5800, 0x180)
+        assert.spy(memcpy).was_called_with(0x1240, 0x5980, 0x180)
+        assert.spy(memcpy).was_called_with(0x1400, 0x5b00, 0x100)
+        assert.spy(memcpy).was_called_with(0x1600, 0x5c00, 0x100)
+      end)
+
+    end)
+
+    describe('render', function ()
+
+      setup(function ()
+        stub(animated_sprite, "render")
+        stub(player_char, "reload_rotated_sprites")
+      end)
+
+      teardown(function ()
+        animated_sprite.render:revert()
+        player_char.reload_rotated_sprites:revert()
+      end)
+
+      after_each(function ()
+        animated_sprite.render:clear()
+        player_char.reload_rotated_sprites:clear()
+      end)
+
+      it('(when character is facing left, closer to cardinal angle) should reload non-rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
         pc.position = vector(12.5, 8.2)
         pc.orientation = horizontal_dirs.left
-        pc.continuous_sprite_angle = 0.063
+        pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
 
         pc:render()
 
-        assert.spy(anim_spr_render_stub).was_called(1)
-        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.125)
+        assert.spy(player_char.reload_rotated_sprites).was_called(1)
+        assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc))
+
+        assert.spy(animated_sprite.render).was_called(1)
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
       end)
 
-      it('(when character is facing right) should call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
+      it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
         pc.position = vector(12.5, 8.2)
-        pc.orientation = horizontal_dirs.right
-        pc.continuous_sprite_angle = 1-0.063
+        pc.orientation = horizontal_dirs.left
+        pc.continuous_sprite_angle = 0.0626  -- closer to 0.125 than 0
 
         pc:render()
 
-        assert.spy(anim_spr_render_stub).was_called(1)
-        assert.spy(anim_spr_render_stub).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 1-0.125)
+        assert.spy(player_char.reload_rotated_sprites).was_called(1)
+        assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc), true)
+
+        assert.spy(animated_sprite.render).was_called(1)
+        -- sprite is already rotated by 45, so the additional angle is 0
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0)
+      end)
+
+      it('(when character is facing right, closer to cardinal angle) should reload non-rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
+        pc.position = vector(12.5, 8.2)
+        pc.orientation = horizontal_dirs.right
+        pc.continuous_sprite_angle = 1 - 0.0624  -- closer to 1 (i.e. 0 modulo 1) than 0.875
+
+        pc:render()
+
+        assert.spy(player_char.reload_rotated_sprites).was_called(1)
+        assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc))
+
+        assert.spy(animated_sprite.render).was_called(1)
+        -- note that we don't apply modulo and count on render to detect that 1 == 0 [1], so we effectively pass 1
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 1)
+      end)
+
+      it('(when character is facing right, closer to diagonal angle) should reload 45-degree rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
+        pc.position = vector(12.5, 8.2)
+        pc.orientation = horizontal_dirs.right
+        pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
+
+        pc:render()
+
+        assert.spy(player_char.reload_rotated_sprites).was_called(1)
+        assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc), true)
+
+        assert.spy(animated_sprite.render).was_called(1)
+        -- sprite is already rotated by 45, so the additional angle is only 0.75
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0.75)
       end)
 
     end)

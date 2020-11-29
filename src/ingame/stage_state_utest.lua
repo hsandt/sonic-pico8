@@ -115,7 +115,7 @@ describe('stage_state', function ()
           stub(stage_state, "spawn_objects_in_all_map_regions")
           stub(camera_class, "setup_for_stage")
           stub(stage_state, "check_reload_map_region")
-          stub(_G, "reload")
+          stub(stage_state, "reload_runtime_data")
         end)
 
         teardown(function ()
@@ -126,7 +126,7 @@ describe('stage_state', function ()
           stage_state.spawn_objects_in_all_map_regions:revert()
           camera_class.setup_for_stage:revert()
           stage_state.check_reload_map_region:revert()
-          reload:revert()
+          stage_state.reload_runtime_data:revert()
         end)
 
         after_each(function ()
@@ -137,7 +137,7 @@ describe('stage_state', function ()
           stage_state.spawn_objects_in_all_map_regions:clear()
           camera_class.setup_for_stage:clear()
           stage_state.check_reload_map_region:clear()
-          reload:clear()
+          stage_state.reload_runtime_data:clear()
         end)
 
         before_each(function ()
@@ -190,6 +190,51 @@ describe('stage_state', function ()
         it('should call play_bgm', function ()
           assert.spy(state.play_bgm).was_called(1)
           assert.spy(state.play_bgm).was_called_with(match.ref(state))
+        end)
+
+        it('should call reload_runtime_data', function ()
+          assert.spy(state.reload_runtime_data).was_called(1)
+          assert.spy(state.reload_runtime_data).was_called_with(match.ref(state))
+        end)
+
+      end)
+
+      describe('reload_runtime_data', function ()
+
+        setup(function ()
+          stub(_G, "memcpy")
+          stub(_G, "reload")
+        end)
+
+        teardown(function ()
+          reload:revert()
+          memcpy:revert()
+        end)
+
+        after_each(function ()
+          reload:clear()
+          memcpy:clear()
+        end)
+
+        it('should reload stage runtime data into spritesheet top, and rotated sprite variants into general memory', function ()
+          state:reload_runtime_data()
+
+          assert.spy(reload).was_called(5)
+          assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5800, 0x1040, 0x180, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5980, 0x1240, 0x180, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x100, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5c00, 0x1600, 0x100, "data_stage1_runtime.p8")
+        end)
+
+        it('should copy non-rotated sprite variants into general memory', function ()
+          state:reload_runtime_data()
+
+          assert.spy(memcpy).was_called(4)
+          assert.spy(memcpy).was_called_with(0x5300, 0x1040, 0x180)
+          assert.spy(memcpy).was_called_with(0x5480, 0x1240, 0x180)
+          assert.spy(memcpy).was_called_with(0x5600, 0x1400, 0x100)
+          assert.spy(memcpy).was_called_with(0x5700, 0x1600, 0x100)
         end)
 
       end)
@@ -1497,7 +1542,7 @@ describe('stage_state', function ()
             end)
 
             -- this coroutine become more complex, so only test it doesn't crash
-            it('#solo show_stage_splash_async should not crash', function ()
+            it('show_stage_splash_async should not crash', function ()
               -- a time long enough to cover initial delay then full animation
               for i = 1, stage_data.show_stage_splash_delay * state.app.fps - 1 + 160 do
                 corunner:update_coroutines()

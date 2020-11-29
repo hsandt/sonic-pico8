@@ -2067,8 +2067,8 @@ describe('stage_state', function ()
 
             it('title overlay should be empty', function ()
               assert.is_not_nil(state.title_overlay)
-              assert.is_not_nil(state.title_overlay.drawables)
-              assert.is_true(is_empty(state.title_overlay.drawables))
+              assert.is_not_nil(state.title_overlay.named_drawables)
+              assert.is_true(is_empty(state.title_overlay.named_drawables))
             end)
 
             describe('reenter stage state', function ()

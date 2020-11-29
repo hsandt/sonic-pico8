@@ -15,8 +15,8 @@ itest_manager:register_itest('player select credits, confirm',
     flow:change_gamestate_by_type(':titlemenu')
   end)
 
-  -- just for visualization
-  wait(1.0)
+  -- menu should appear within 2 seconds
+  wait(2.0)
 
   -- player presses down 1 frame to select 'credits'
   short_press(button_ids.down)

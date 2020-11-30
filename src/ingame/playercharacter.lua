@@ -2286,11 +2286,16 @@ function player_char:reload_rotated_sprites(rotated_by_45)
   -- see stage_state:reload_runtime_data for address explanation
   -- basically we are copying sprites general memory (with the correct
   --  address offset if rotated), back into the current spritesheet memory
+  -- consider extracting a common helper function from both methods
   local addr_offset = rotated_by_45 and 0x500 or 0
-  memcpy(0x1040, 0x5300 + addr_offset, 0x180)
-  memcpy(0x1240, 0x5480 + addr_offset, 0x180)
-  memcpy(0x1400, 0x5600 + addr_offset, 0x100)
-  memcpy(0x1600, 0x5700 + addr_offset, 0x100)
+
+  for i = 0, 15 do
+    -- 6 walk cycle sprites
+    memcpy(0x1008 + i * 0x40, 0x5300 + addr_offset + i * 0x30, 0x30)
+
+    -- 4 run cycle sprites
+    memcpy(0x1400 + i * 0x40, 0x5600 + addr_offset + i * 0x20, 0x20)
+  end
 end
 
 -- render the player character sprite at its current position

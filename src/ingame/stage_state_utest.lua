@@ -219,22 +219,26 @@ describe('stage_state', function ()
         it('should reload stage runtime data into spritesheet top, and rotated sprite variants into general memory', function ()
           state:reload_runtime_data()
 
-          assert.spy(reload).was_called(5)
+          assert.spy(reload).was_called(33)
           assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
-          assert.spy(reload).was_called_with(0x5800, 0x1040, 0x180, "data_stage1_runtime.p8")
-          assert.spy(reload).was_called_with(0x5980, 0x1240, 0x180, "data_stage1_runtime.p8")
-          assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x100, "data_stage1_runtime.p8")
-          assert.spy(reload).was_called_with(0x5c00, 0x1600, 0x100, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5800, 0x1008, 0x30, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5830, 0x1048, 0x30, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x20, "data_stage1_runtime.p8")
+          assert.spy(reload).was_called_with(0x5b20, 0x1440, 0x20, "data_stage1_runtime.p8")
+          -- this has become too long since we copy line by line, so we stopped checking
+          --  individual calls, except the first ones
         end)
 
         it('should copy non-rotated sprite variants into general memory', function ()
           state:reload_runtime_data()
 
-          assert.spy(memcpy).was_called(4)
-          assert.spy(memcpy).was_called_with(0x5300, 0x1040, 0x180)
-          assert.spy(memcpy).was_called_with(0x5480, 0x1240, 0x180)
-          assert.spy(memcpy).was_called_with(0x5600, 0x1400, 0x100)
-          assert.spy(memcpy).was_called_with(0x5700, 0x1600, 0x100)
+          assert.spy(memcpy).was_called(32)
+          -- this has become too long since we copy line by line, so we stopped checking
+          --  individual calls, except the first ones
+          assert.spy(memcpy).was_called_with(0x5300, 0x1008, 0x30)
+          assert.spy(memcpy).was_called_with(0x5330, 0x1048, 0x30)
+          assert.spy(memcpy).was_called_with(0x5600, 0x1400, 0x20)
+          assert.spy(memcpy).was_called_with(0x5620, 0x1440, 0x20)
         end)
 
       end)

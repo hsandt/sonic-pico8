@@ -8207,21 +8207,25 @@ describe('player_char', function ()
       it('should copy non-rotated sprites in general memory back to spritesheet', function ()
         pc:reload_rotated_sprites()
 
-        assert.spy(memcpy).was_called(4)
-        assert.spy(memcpy).was_called_with(0x1040, 0x5300, 0x180)
-        assert.spy(memcpy).was_called_with(0x1240, 0x5480, 0x180)
-        assert.spy(memcpy).was_called_with(0x1400, 0x5600, 0x100)
-        assert.spy(memcpy).was_called_with(0x1600, 0x5700, 0x100)
+        assert.spy(memcpy).was_called(32)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1008, 0x5300, 0x30)
+        assert.spy(memcpy).was_called_with(0x1048, 0x5330, 0x30)
+        assert.spy(memcpy).was_called_with(0x1400, 0x5600, 0x20)
+        assert.spy(memcpy).was_called_with(0x1440, 0x5620, 0x20)
       end)
 
       it('should copy rotated sprites in general memory back to spritesheet', function ()
         pc:reload_rotated_sprites(true)
 
-        assert.spy(memcpy).was_called(4)
-        assert.spy(memcpy).was_called_with(0x1040, 0x5800, 0x180)
-        assert.spy(memcpy).was_called_with(0x1240, 0x5980, 0x180)
-        assert.spy(memcpy).was_called_with(0x1400, 0x5b00, 0x100)
-        assert.spy(memcpy).was_called_with(0x1600, 0x5c00, 0x100)
+        assert.spy(memcpy).was_called(32)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1008, 0x5800, 0x30)
+        assert.spy(memcpy).was_called_with(0x1048, 0x5830, 0x30)
+        assert.spy(memcpy).was_called_with(0x1400, 0x5b00, 0x20)
+        assert.spy(memcpy).was_called_with(0x1440, 0x5b20, 0x20)
       end)
 
     end)

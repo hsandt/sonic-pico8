@@ -159,36 +159,58 @@ function stage_state:reload_runtime_data()
 
   -- the non-rotated variants are already in current memory, so just copy them
 
-  -- the walk cycle sprites are located at row 8, column 2 (counting from 0),
-  --  that makes upper row src = 8 * 0x200 + 2 * 0x20 = 0x1040
-  -- unfortunately we don't cover the whole row so we cannot just copy contiguous
-  --  rows as above, and need a separate operation for the lower row src located
-  --  at 0x1040 + 0x200 = 0x1240
-  -- there are 6 walk sprites of span 2x2, which makes 12 * 0x20 = 0x180 of length
-  --  for each row
-  memcpy(0x5300, 0x1040, 0x180)
-  memcpy(0x5480, 0x1240, 0x180)
+  -- the walk cycle sprites start at row 8, column 2 (counting from 0)
+  -- sprites are stored in memory line by line, 1 cell being 8x8 px, and
+  --  8px are represented by 4 bytes, so top-left address is at:
+  --  8 * 0x200 + 2 * 0x4 = 0x1008
+  -- there are 6 walk sprites of span 2x2, which don't cover the whole row of 16 cells of 8x8
+  --  and need to copy 8 * 2 = 16 partial lines over 6 * 2 = 12 cells of 8x8, which makes
+  --  12 * 4 = 48 = 0x30 bytes per line
+  -- to go to the next line, advance px by px over 16 cells (number of cells in a row)
+  --  of 8x8, which makes 16 * 4 = 64 = 0x40 (it's also 0x200 / 8 since 0x200 advances
+  --  by 1 full row of sprites, each sprite containing 8 lines)
 
-  -- run cycle starts at row 0, column 0, so upper row src = 10 * 0x200 = 0x1400
-  -- lower row is 0x1400 + 0x200 = 0x1600
-  -- there are 4 sprites of span 2x2, so length on each row is 8 * 0x20 = 0x100
-  memcpy(0x5600, 0x1400, 0x100)
-  memcpy(0x5700, 0x1600, 0x100)
+  -- we don't have to keep the same structure in general memory, as we don't debug it
+  --  visually, which means we can just paste partial lines of 0x30 one after the other
+  --  for the most compact memory (but represented with line breaks every 0x40 like
+  --  the spritesheet, it would look garbage due to the offset of 0x10 every line)
+  -- we could also keep the structure aligned by pasting every 0x40, then to fill the holes
+  --  (2 sprites of span 2x2 left at the end), we could place 2 run cycle sprites
+  --  but we'd still need to place the remaining 2 run cycle sprites 2 rows below,
+  --  occupying 2 partial lines, and if we want to use general memory for non-sprite
+  --  data later then we don't have the most compact memory as we'd have holes for each
+  --  partial line but the last one
 
-  -- the rotated variants are in the runtime data, so reload them
-  -- the dest addresses start from 0x5700 + 0x100, while the src addresses
-  --  are the same as above since we arranged the runtime spritesheet to place
-  --  the rotated sprites at the same location as their non-rotated equivalents
-  -- since we start at 0x5800 instead of 0x5300 but the lengths are the same,
-  --  dest addresses are simply offset by 0x500 compared to above
+  -- the run cycle sprites follow the same logic, but they start at row 10, column 0,
+  --  and there are 4 sprites of span 2x2, so their topleft address is at:
+  --  10 * 0x200 = 0x1400
+  -- and we need 8 * 2 = 16 partial lines over 4 * 2 = 8 cells of 8x8,
+  --  so 8 * 4 = 32 = 0x20 bytes per line
 
-  -- walk (rotated)
-  reload(0x5800, 0x1040, 0x180, runtime_data_path)
-  reload(0x5980, 0x1240, 0x180, runtime_data_path)
+  -- to make code shorter, let's copy in parallel the 16 lines for the walk and run sprites
+  -- each time, we advance dest address by the same value as copied length, so 0x30 and 0x20
+  --  resp.
+  for i = 0, 15 do
+    -- 6 walk cycle sprites
+    memcpy(0x5300 + i * 0x30, 0x1008 + i * 0x40, 0x30)
 
-  -- run (rotated)
-  reload(0x5b00, 0x1400, 0x100, runtime_data_path)
-  reload(0x5c00, 0x1600, 0x100, runtime_data_path)
+    -- 4 run cycle sprites
+    memcpy(0x5600 + i * 0x20, 0x1400 + i * 0x40, 0x20)
+  end
+
+  -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
+  -- the dest addresses start just after the last memcpy above, at 0x5800
+  -- from here, the same principle applies, but the dest addresses are offset by 0x300
+  --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
+  --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
+
+  for i = 0, 15 do
+    -- 6 walk cycle sprites (rotated)
+    reload(0x5800 + i * 0x30, 0x1008 + i * 0x40, 0x30, runtime_data_path)
+
+    -- 4 run cycle sprites (rotated)
+    reload(0x5b00 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)
+  end
 
   -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
   --  so we just have a little margin!

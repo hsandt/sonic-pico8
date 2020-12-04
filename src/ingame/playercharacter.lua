@@ -2323,9 +2323,11 @@ function player_char:render()
       self:reload_rotated_sprites(--[[rotated_by_45: nil]])
     else
       -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
-      --  and remember to only rotate by angle - 45 degrees since sprite already has it
       self:reload_rotated_sprites(--[[rotated_by_45: ]] true)
-      sprite_angle = sprite_angle - 0.125
+
+      -- rotated sprite embeds a rotation of 45 degrees, so if not flipped, rotate by angle - 45 degrees
+      -- if flipped, the sprite is 45 degrees *behind* the horizontal left, so we must add 45 degrees instead
+      sprite_angle = sprite_angle + (flip_x and 1 or -1) * 0.125
     end
   end
 

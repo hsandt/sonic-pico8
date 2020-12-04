@@ -8247,7 +8247,7 @@ describe('player_char', function ()
         player_char.reload_rotated_sprites:clear()
       end)
 
-      describe('#solo (brake_start)', function ()
+      describe('(brake_start)', function ()
 
         before_each(function ()
           pc.anim_spr.current_anim_key = "brake_start"
@@ -8315,7 +8315,7 @@ describe('player_char', function ()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- sprite is already rotated by 45, so the additional angle is 0
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0)
+          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
         end)
 
         it('(when character is facing right, closer to cardinal angle) should reload non-rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()

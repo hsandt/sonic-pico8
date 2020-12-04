@@ -2300,28 +2300,33 @@ end
 
 -- render the player character sprite at its current position
 function player_char:render()
-  local flip_x = self.orientation == horizontal_dirs.left
-  -- snap render angle to a few set of values (45 degrees steps), classic style
-  --  (unlike Freedom Planet and Sonic Mania)
-  -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
-  --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
-  local sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
   -- floor position to avoid jittering when running on ceiling due to
   --  partial pixel position being sometimes one more pixel on the right due after 180-deg rotation
   local floored_position = vector(flr(self.position.x), flr(self.position.y))
+  local flip_x = self.orientation == horizontal_dirs.left
+  local sprite_angle = 0
 
-  -- an computed rotation of 45 degrees would result in an ugly sprite
-  --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
-  --  sprites when we want a better angle resolution
-  if sprite_angle % 0.25 == 0 then
-    -- closest 45-degree angle is already cardinal, we can safely rotate
-    -- still make sure we use non-rotated sprites in case we changed them earlier
-    self:reload_rotated_sprites(--[[rotated_by_45: nil]])
-  else
-    -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
-    --  and remember to only rotate by angle - 45 degrees since sprite already has it
-    self:reload_rotated_sprites(--[[rotated_by_45: ]] true)
-    sprite_angle = sprite_angle - 0.125
+  -- only walk and run can use rotated sprite
+  if contains({"walk", "run"}, self.anim_spr.current_anim_key) then
+    -- snap render angle to a few set of values (45 degrees steps), classic style
+    --  (unlike Freedom Planet and Sonic Mania)
+    -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
+    --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
+    sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
+
+    -- an computed rotation of 45 degrees would result in an ugly sprite
+    --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
+    --  sprites when we want a better angle resolution
+    if sprite_angle % 0.25 == 0 then
+      -- closest 45-degree angle is already cardinal, we can safely rotate
+      -- still make sure we use non-rotated sprites in case we changed them earlier
+      self:reload_rotated_sprites(--[[rotated_by_45: nil]])
+    else
+      -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
+      --  and remember to only rotate by angle - 45 degrees since sprite already has it
+      self:reload_rotated_sprites(--[[rotated_by_45: ]] true)
+      sprite_angle = sprite_angle - 0.125
+    end
   end
 
   self.anim_spr:render(floored_position, flip_x, false, sprite_angle)

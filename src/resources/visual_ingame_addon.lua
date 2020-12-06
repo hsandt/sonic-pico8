@@ -32,7 +32,7 @@ local ingame_sprite_data_t = {
   palm_tree_leaves_top = sprite_data(sprite_id_location(12, 12), tile_vector(1, 2), vector(0, 16), colors.pink),
   -- right side pivot is located at top-right of core
   -- left side is a mirror of right side, and must be placed just on the left of the core
-  palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), colors.pink),
+  palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), {colors.pink, colors.black, colors.dark_blue, colors.indigo, colors.white}),
 
   -- RUNTIME SPRITES (stage-specific and common runtime)
   -- below need runtime sprites to be reloaded, overwriting collision masks

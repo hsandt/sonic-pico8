@@ -233,10 +233,22 @@ local mask_tile_ids = {
 --]]
 
 -- rock
-  [92]  = 28,  -- rock (small left or big top-left part)
-  [93]  = 29,  -- rock (small right or big top-right part)
-  [108] = 28,  -- rock (big bottom-left part)
-  [109] = 29,  -- rock (big bottom-right part)
+-- (only left parts have partial colliders)
+  [168] = 28,  -- rock (top-left part)
+  [92]  = 29,  -- rock (top-middle part)
+  [93]  = 29,  -- rock (top-right part)
+  [184] = 28,  -- rock (small rock bottom-left part, can be connected to medium rock extension)
+  [108] = 29,  -- rock (small rock bottom-middle part, can be connected to medium rock extension)
+  [109] = 29,  -- rock (small rock bottom-right part, can be connected to medium rock extension)
+  [169] = 28,  -- rock (medium rock bottom-left part, can be connected to big rock extension)
+  [190] = 29,  -- rock (medium rock bottom-middle part, can be connected to big rock extension)
+  [191] = 29,  -- rock (medium rock bottom-right part, can be connected to big rock extension)
+  [185] = 28,  -- rock (big rock extension top-left part)
+  [206] = 29,  -- rock (big rock extension top-middle part)
+  [207] = 29,  -- rock (big rock extension top-right part)
+  [186] = 28,  -- rock (big rock bottom-left part)
+  [122] = 29,  -- rock (big rock bottom-middle part)
+  [123] = 29,  -- rock (big rock bottom-right part)
 
 -- loop (collider only)
 

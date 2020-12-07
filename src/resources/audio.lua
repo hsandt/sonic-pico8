@@ -6,7 +6,7 @@ audio.sfx_ids = {
   menu_confirm = 51,
 
   -- builtin_data_ingame only
-  pick_emerald = 57,
+  -- pick_emerald = 57,  -- unused
   goal_reached = 58,
   jump = 59,
   spring_jump = 60,
@@ -15,7 +15,7 @@ audio.sfx_ids = {
 }
 
 audio.jingle_ids = {
-  pick_emerald = 40,  -- unused
+  pick_emerald = 40,
   stage_clear = 41,
 }
 

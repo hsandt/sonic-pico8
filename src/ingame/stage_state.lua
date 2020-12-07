@@ -737,11 +737,26 @@ function stage_state:play_pick_emerald_jingle_async()
   -- thx to dw817 https://www.lexaloffle.com/bbs/?pid=35493
   local pause_music_pattern = stat(24)
 
-  -- fade out current bgm
-  music(-1, 500)
+  -- ! Angel Island specific data here (but OK as we only have one stage in the game)
+  -- the aim is to resume music after the pick emerald jingle to the closest place it would be
+  --  if we had continued playing the music in the background (but we can't because we want to reserve
+  --  4th channel to SFX and therefore jingle is a music that occupies the BGM channels)
+  -- the jingle lasts 64 frames (see calculation below above yield_delay)
+  -- angel island plays at SPD 7 so 1 pattern lasts SPD * 16 = 7 * 16 = 112 frames
+  --  therefore, during the jingle, the BGM advances by ~0.5 pattern
+  -- when the jingle starts, the BGM may be at the start, in the middle or near the end of a pattern
+  --  (stat(24) only provides the current pattern not the exact position in time)
+  -- so in average, after the jingle played, we are on the next music pattern (looped over 36 patterns,
+  --  from 0 to 35)
+  -- another advantage of resuming on a later pattern is that you never run the risk of pausing near the end
+  --  of a pattern and replaying the whole pattern after the jingle, which sounds weird
+  local resume_music_pattern = (pause_music_pattern + 1) % 36
+
+  -- fade out current bgm instantly to allow pick emerald jingle to start
+  music(-1)
 
   -- start jingle
-  sfx(audio.sfx_ids.pick_emerald)
+  music(audio.jingle_ids.pick_emerald)
 
   -- wait for jingle to end
   -- 1 measure (1 column = 8 notes in SFX editor) at SPD 16 lasts 16/15 = 1.0666s
@@ -749,7 +764,7 @@ function stage_state:play_pick_emerald_jingle_async()
   yield_delay(64)
 
   -- resume bgm at last pattern (like self:play_bgm(), but with previous pattern)
-  music(pause_music_pattern, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
+  music(resume_music_pattern, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 -- return (top_left, bottom_right) positions from an entrance area: location_rect

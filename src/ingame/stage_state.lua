@@ -745,9 +745,21 @@ function stage_state:play_pick_emerald_jingle_async()
   -- wait for jingle to end
   -- 1 measure (1 column = 8 notes in SFX editor) at SPD 16 lasts 16/15 = 1.0666s
   --  or to be more exact with frames, 16 * 60/15 = 16*4 = 64 frames
-  yield_delay(64)
+  -- however, we want at the same time to start resetting bgm volume to normal (since player
+  --  won't hear the step-by-step volume transition too much during the end of the jingle),
+  --  so only wait 48 frames for now, then the remaining 16 frames after we incremented bgm
+  --  volume once
+  yield_delay(48)
 
-  -- reset bgm volume to normal by reloading just the bgm sfx
+  -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
+  --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
+  --  then reset without decrementing to retrieve the original volume
+  self:reload_bgm_tracks()
+  volume.decrease_volume_for_track_range(0, 49, 1)
+
+  -- wait the remaining 16 frames, the jingle should have ended just after that
+  yield_delay(16)
+
   self:reload_bgm_tracks()
 end
 

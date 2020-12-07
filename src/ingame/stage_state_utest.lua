@@ -2032,11 +2032,35 @@ describe('stage_state', function ()
               pico8.current_music = nil
             end)
 
-            it('reload_bgm should start level bgm', function ()
-              state:reload_bgm()
+            describe('state audio methods', function ()
 
-              assert.spy(reload).was_called(2)
-              assert.spy(reload).was_called_with(0x3100, 0x3100, 0xa0, "data_bgm1.p8")
+              setup(function ()
+                stub(stage_state, "reload_bgm_tracks")
+              end)
+
+              teardown(function ()
+                stage_state.reload_bgm_tracks:revert()
+              end)
+
+              before_each(function ()
+                stage_state.reload_bgm_tracks:clear()
+              end)
+
+              it('reload_bgm should reload music memory from bgm cartridge and call reload_bgm_tracks', function ()
+                state:reload_bgm()
+
+                assert.spy(reload).was_called(1)
+                assert.spy(reload).was_called_with(0x3100, 0x3100, 0xa0, "data_bgm1.p8")
+                assert.spy(stage_state.reload_bgm_tracks).was_called(1)
+                assert.spy(stage_state.reload_bgm_tracks).was_called_with(match.ref(state))
+              end)
+
+            end)
+
+            it('reload_bgm_tracks should reload sfx from bgm cartridge', function ()
+              state:reload_bgm_tracks()
+
+              assert.spy(reload).was_called(1)
               assert.spy(reload).was_called_with(0x3200, 0x3200, 0xd48, "data_bgm1.p8")
             end)
 

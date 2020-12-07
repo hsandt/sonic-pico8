@@ -1,5 +1,6 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local volume = require("engine/audio/volume")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
@@ -730,41 +731,24 @@ end
 
 -- pause bgm, play pick emerald jingle and resume bgm
 function stage_state:play_pick_emerald_jingle_async()
-  -- remember bgm pattern we were at so we can restart from it
-  --  it won't exactly resume bgm where we were, but resume from the start of
-  --  the current pattern = group of 4 measures
-  --  (for bgm at SPD 7, we may backtrack up to 1.866s)
-  -- thx to dw817 https://www.lexaloffle.com/bbs/?pid=35493
-  local pause_music_pattern = stat(24)
+  -- reduce bgm volume by half (notes have volume from 0 to 4, so decrement all sound volumes by 2)
+  --  to make the pick emerald jingle stand out
+  -- the music sfx take maximum 50 entries (out of 64), so cover all tracks from 0 to 49
+  volume.decrease_volume_for_track_range(0, 49, 2)
 
-  -- ! Angel Island specific data here (but OK as we only have one stage in the game)
-  -- the aim is to resume music after the pick emerald jingle to the closest place it would be
-  --  if we had continued playing the music in the background (but we can't because we want to reserve
-  --  4th channel to SFX and therefore jingle is a music that occupies the BGM channels)
-  -- the jingle lasts 64 frames (see calculation below above yield_delay)
-  -- angel island plays at SPD 7 so 1 pattern lasts SPD * 16 = 7 * 16 = 112 frames
-  --  therefore, during the jingle, the BGM advances by ~0.5 pattern
-  -- when the jingle starts, the BGM may be at the start, in the middle or near the end of a pattern
-  --  (stat(24) only provides the current pattern not the exact position in time)
-  -- so in average, after the jingle played, we are on the next music pattern (looped over 36 patterns,
-  --  from 0 to 35)
-  -- another advantage of resuming on a later pattern is that you never run the risk of pausing near the end
-  --  of a pattern and replaying the whole pattern after the jingle, which sounds weird
-  local resume_music_pattern = (pause_music_pattern + 1) % 36
+  -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
+  sfx(audio.sfx_ids.pick_emerald)
 
-  -- fade out current bgm instantly to allow pick emerald jingle to start
-  music(-1)
-
-  -- start jingle
-  music(audio.jingle_ids.pick_emerald)
+  -- TODO: add a flag that protect the jingle as top-priority SFX
+  --  or check stat(19) before playing an SFX so no minor SFX covers it
 
   -- wait for jingle to end
   -- 1 measure (1 column = 8 notes in SFX editor) at SPD 16 lasts 16/15 = 1.0666s
   --  or to be more exact with frames, 16 * 60/15 = 16*4 = 64 frames
   yield_delay(64)
 
-  -- resume bgm at last pattern (like self:play_bgm(), but with previous pattern)
-  music(resume_music_pattern, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
+  -- reset bgm volume to normal by reloading just the bgm sfx
+  self:reload_bgm_tracks()
 end
 
 -- return (top_left, bottom_right) positions from an entrance area: location_rect
@@ -1580,18 +1564,23 @@ end
 -- audio
 
 function stage_state:reload_bgm()
-  -- reload music sfx and patterns from bgm cartridge memory
-  -- we guarantee that:
-  -- the bgm will take maximum 40 patterns (out of 64)
+  -- reload music patterns from bgm cartridge memory
+  -- we guarantee that the bgm will take maximum 40 patterns (out of 64)
   --  => 40 * 4 = 160 = 0xa0 bytes
-  -- the music sfx will take maximum 50 entries (out of 64)
-  --  => 50 * 68 = 3400 = 0xd48 bytes
-  -- the bgm should start at pattern 0, and bgm sfx at index 0 on both source and
-  --  current cartridge, so use copy memory from the start of each section
-
-  -- copy music patterns
+  -- the bgm should start at pattern 0 on both source and
+  --  current cartridge, so use copy memory from the start of music section
   reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
-  -- copy music sfx
+
+  -- we also need the music sfx referenced by the patterns
+  self:reload_bgm_tracks()
+end
+
+function stage_state:reload_bgm_tracks()
+  -- reload sfx from bgm cartridge memory
+  -- we guarantee that the music sfx will take maximum 50 entries (out of 64)
+  --  => 50 * 68 = 3400 = 0xd48 bytes
+  -- the bgm sfx should start at index 0 on both source and
+  --  current cartridge, so use copy memory from the start of sfx section
   reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
 end
 

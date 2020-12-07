@@ -99,18 +99,18 @@
 			"name": "Game: build cartridge titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_single_cartridge.sh titlemenu debug"],
+			"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_single_cartridge.sh titlemenu debug"]
+					"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_single_cartridge.sh titlemenu release"]
+					"cmd": ["./build_and_install_single_cartridge.sh titlemenu release"]
 				}
 			]
 		},
@@ -118,50 +118,50 @@
 			"name": "Game: build cartridge ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_single_cartridge.sh ingame debug"],
+			"cmd": ["./build_and_install_single_cartridge.sh ingame debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_single_cartridge.sh ingame debug"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame debug"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame debug-ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame debug-ultrafast"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_single_cartridge.sh ingame cheat"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat"]
 				},
 				{
 					"name": "tuner",
-					"cmd": ["./build_single_cartridge.sh ingame tuner"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame tuner"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame ultrafast"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./build_single_cartridge.sh ingame cheat-ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat-ultrafast"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./build_single_cartridge.sh ingame sandbox"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame sandbox"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./build_single_cartridge.sh ingame assert"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame assert"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_single_cartridge.sh ingame profiler"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame profiler"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_single_cartridge.sh ingame release"]
+					"cmd": ["./build_and_install_single_cartridge.sh ingame release"]
 				}
 			]
 		},

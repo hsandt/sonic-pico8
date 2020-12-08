@@ -1,5 +1,4 @@
 local flow = require("engine/application/flow")
-local sound = require("engine/audio/sound")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
@@ -890,7 +889,7 @@ function player_char:check_roll_start()
     -- currently enter_motion_state from standing to rolling will do nothing more than set the state
     --  but we call it so we have a centralized place to add other side effects or cleanup if needed
     self:enter_motion_state(motion_states.rolling)
-    sound.play_low_priority_sfx(audio.sfx_ids.roll, 3)
+    self:play_low_priority_sfx(audio.sfx_ids.roll, 3)
   end
 end
 
@@ -1145,7 +1144,7 @@ function player_char:update_ground_run_speed_by_intention()
         self.orientation = signed_speed_to_dir(self.ground_speed)
         self.brake_anim_phase = 1
 
-        sound.play_low_priority_sfx(audio.sfx_ids.brake, 3)
+        self:play_low_priority_sfx(audio.sfx_ids.brake, 3)
       end
     end
   else
@@ -1569,7 +1568,7 @@ function player_char:check_jump()
     self.has_jumped_this_frame = true
     self.can_interrupt_jump = true
 
-    sound.play_low_priority_sfx(audio.sfx_ids.jump, 3)
+    self:play_low_priority_sfx(audio.sfx_ids.jump, 3)
 
     return true
   end
@@ -2044,7 +2043,7 @@ function player_char:trigger_spring(spring_left_loc)
   curr_stage_state:extend_spring(spring_left_loc)
 
   -- audio
-  sound.play_low_priority_sfx(audio.sfx_ids.spring_jump, 3)
+  self:play_low_priority_sfx(audio.sfx_ids.spring_jump, 3)
 end
 
 function player_char:check_launch_ramp()
@@ -2333,6 +2332,17 @@ function player_char:render()
   end
 
   self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
+end
+
+-- play sfx on channel 3, only if a jingle is not already playing there
+-- this is an adaptation of sound.play_low_priority_sfx for this game specifically,
+--  because it allows us to specify the jingle sfx id directly
+--  (using sound.play_low_priority_sfx prevents new character sfx from covering previous one)
+-- note that unlike sfx(), you *must* pass a channel
+function player_char:play_low_priority_sfx(n)
+  if stat(19) ~= audio.sfx_ids.pick_emerald then
+    sfx(n)
+  end
 end
 
 --#if debug_character

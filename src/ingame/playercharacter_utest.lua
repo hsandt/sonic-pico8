@@ -4,7 +4,6 @@ require("resources/visual_ingame_addon")
 local player_char = require("ingame/playercharacter")
 
 local flow = require("engine/application/flow")
-local sound = require("engine/audio/sound")
 local location_rect = require("engine/core/location_rect")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
@@ -8349,6 +8348,51 @@ describe('player_char', function ()
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0.75)
         end)
 
+      end)
+
+    end)
+
+    describe('play_low_priority_sfx', function ()
+
+      local channel3_sfx = -1
+
+      setup(function ()
+        stub(_G, "stat", function (n)
+          return channel3_sfx
+        end)
+        stub(_G, "sfx")
+      end)
+
+      teardown(function ()
+        stat:revert()
+        sfx:revert()
+      end)
+
+      after_each(function ()
+        stat:clear()
+        sfx:clear()
+        channel3_sfx = -1
+      end)
+
+      it('should play sfx when nothing in played on target channel', function ()
+        pc:play_low_priority_sfx(5)
+        assert.spy(sfx).was_called(1)
+        assert.spy(sfx).was_called_with(5)
+      end)
+
+      it('should play sfx when another low-prio sfx is played target channel', function ()
+        channel3_sfx = audio.sfx_ids.jump
+
+        pc:play_low_priority_sfx(5)
+        assert.spy(sfx).was_called(1)
+        assert.spy(sfx).was_called_with(5)
+      end)
+
+      it('should not play sfx when jingle is played on target channel', function ()
+        channel3_sfx = audio.sfx_ids.pick_emerald
+
+        pc:play_low_priority_sfx(5)
+        assert.spy(sfx).was_not_called()
       end)
 
     end)

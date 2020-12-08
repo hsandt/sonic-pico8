@@ -4,6 +4,7 @@ require("resources/visual_ingame_addon")
 local player_char = require("ingame/playercharacter")
 
 local flow = require("engine/application/flow")
+local sound = require("engine/audio/sound")
 local location_rect = require("engine/core/location_rect")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
@@ -2677,17 +2678,17 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
-          stub(_G, "sfx")
+          stub(sound, "play_low_priority_sfx")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
-          sfx:revert()
+          sound.play_low_priority_sfx:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
-          sfx:clear()
+          sound.play_low_priority_sfx:clear()
         end)
 
         before_each(function ()
@@ -2767,15 +2768,15 @@ describe('player_char', function ()
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
         end)
 
-        it('should play sfx when conditions to start rolling are met', function ()
+        it('should play low priority sfx when conditions to start rolling are met', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
           pc:check_roll_start()
 
-          assert.spy(sfx).was_called(1)
-          assert.spy(sfx).was_called_with(audio.sfx_ids.roll)
+          assert.spy(sound.play_low_priority_sfx).was_called(1)
+          assert.spy(sound.play_low_priority_sfx).was_called_with(audio.sfx_ids.roll, 3)
         end)
 
       end)
@@ -3496,15 +3497,15 @@ describe('player_char', function ()
       describe('update_ground_run_speed_by_intention', function ()
 
         setup(function ()
-          stub(_G, "sfx")
+          stub(sound, "play_low_priority_sfx")
         end)
 
         teardown(function ()
-          sfx:revert()
+          sound.play_low_priority_sfx:revert()
         end)
 
         after_each(function ()
-          sfx:clear()
+          sound.play_low_priority_sfx:clear()
         end)
 
         it('should accelerate and set direction based on new speed when character is facing left, has ground speed 0 and move intention x > 0', function ()
@@ -3624,7 +3625,7 @@ describe('player_char', function ()
           assert.are_same({horizontal_dirs.right, 0}, {pc.orientation, pc.brake_anim_phase})
         end)
 
-        it('should set orientation to ground speed dir (here, no change) and brake anim phase to 1 then play brake sfx when quadrant down and abs ground speed is high enough', function ()
+        it('should set orientation to ground speed dir (here, no change) and brake anim phase to 1 then play brake low priority sfx when quadrant down and abs ground speed is high enough', function ()
           pc.quadrant = directions.down
           pc.orientation = horizontal_dirs.right
           pc.ground_speed = pc_data.brake_anim_min_speed_frame
@@ -3635,8 +3636,8 @@ describe('player_char', function ()
 
           assert.are_same({horizontal_dirs.right, 1}, {pc.orientation, pc.brake_anim_phase})
 
-          assert.spy(sfx).was_called(1)
-          assert.spy(sfx).was_called_with(audio.sfx_ids.brake)
+          assert.spy(sound.play_low_priority_sfx).was_called(1)
+          assert.spy(sound.play_low_priority_sfx).was_called_with(audio.sfx_ids.brake, 3)
         end)
 
         -- bugfix history:
@@ -5855,15 +5856,15 @@ describe('player_char', function ()
       describe('check_jump', function ()
 
         setup(function ()
-          stub(_G, "sfx")
+          stub(sound, "play_low_priority_sfx")
         end)
 
         teardown(function ()
-          sfx:revert()
+          sound.play_low_priority_sfx:revert()
         end)
 
         after_each(function ()
-          sfx:clear()
+          sound.play_low_priority_sfx:clear()
         end)
 
         it('should not set jump members and return false when should_jump is false', function ()
@@ -5894,13 +5895,13 @@ describe('player_char', function ()
           assert.is_true(almost_eq_with_message(-2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.y))
         end)
 
-        it('should play jump sfx when character should jump', function ()
+        it('should play jump low priority sfx when character should jump', function ()
           pc.should_jump = true
 
           pc:check_jump()
 
-          assert.spy(sfx).was_called(1)
-          assert.spy(sfx).was_called_with(audio.sfx_ids.jump)
+          assert.spy(sound.play_low_priority_sfx).was_called(1)
+          assert.spy(sound.play_low_priority_sfx).was_called_with(audio.sfx_ids.jump, 3)
         end)
 
       end)
@@ -7546,19 +7547,19 @@ describe('player_char', function ()
       setup(function ()
         stub(stage_state, "extend_spring")
         spy.on(player_char, "enter_motion_state")
-        stub(_G, "sfx")
+        stub(sound, "play_low_priority_sfx")
       end)
 
       teardown(function ()
         stage_state.extend_spring:revert()
         player_char.enter_motion_state:revert()
-        sfx:revert()
+        sound.play_low_priority_sfx:revert()
       end)
 
       after_each(function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
-        sfx:clear()
+        sound.play_low_priority_sfx:clear()
       end)
 
       it('should set upward velocity on character', function ()
@@ -7583,11 +7584,11 @@ describe('player_char', function ()
         assert.spy(stage_state.extend_spring).was_called_with(match.ref(flow.curr_state), location(2, 0))
       end)
 
-      it('should play spring jump sfx', function ()
+      it('should play low priority spring jump sfx', function ()
         pc:trigger_spring(location(2, 0))
 
-        assert.spy(sfx).was_called(1)
-        assert.spy(sfx).was_called_with(audio.sfx_ids.spring_jump)
+        assert.spy(sound.play_low_priority_sfx).was_called(1)
+        assert.spy(sound.play_low_priority_sfx).was_called_with(audio.sfx_ids.spring_jump, 3)
       end)
 
     end)

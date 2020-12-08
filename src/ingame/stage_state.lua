@@ -737,6 +737,8 @@ function stage_state:play_pick_emerald_jingle_async()
   volume.decrease_volume_for_track_range(0, 49, 2)
 
   -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
+  -- this has high priority so we don't use sound.play_low_priority_sfx unlike PC SFX,
+  --  and music occupies channels 0-2 so it will automatically pick channel 3
   sfx(audio.sfx_ids.pick_emerald)
 
   -- TODO: add a flag that protect the jingle as top-priority SFX
@@ -870,6 +872,8 @@ end
 
 function stage_state:feedback_reached_goal()
   self.goal_plate.anim_spr:play("rotating")
+
+  -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
 

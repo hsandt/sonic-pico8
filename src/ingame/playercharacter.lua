@@ -1,4 +1,5 @@
 local flow = require("engine/application/flow")
+local sound = require("engine/audio/sound")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
@@ -889,7 +890,7 @@ function player_char:check_roll_start()
     -- currently enter_motion_state from standing to rolling will do nothing more than set the state
     --  but we call it so we have a centralized place to add other side effects or cleanup if needed
     self:enter_motion_state(motion_states.rolling)
-    sfx(audio.sfx_ids.roll)
+    sound.play_low_priority_sfx(audio.sfx_ids.roll, 3)
   end
 end
 
@@ -1144,7 +1145,7 @@ function player_char:update_ground_run_speed_by_intention()
         self.orientation = signed_speed_to_dir(self.ground_speed)
         self.brake_anim_phase = 1
 
-        sfx(audio.sfx_ids.brake)
+        sound.play_low_priority_sfx(audio.sfx_ids.brake, 3)
       end
     end
   else
@@ -1568,7 +1569,7 @@ function player_char:check_jump()
     self.has_jumped_this_frame = true
     self.can_interrupt_jump = true
 
-    sfx(audio.sfx_ids.jump)
+    sound.play_low_priority_sfx(audio.sfx_ids.jump, 3)
 
     return true
   end
@@ -2043,7 +2044,7 @@ function player_char:trigger_spring(spring_left_loc)
   curr_stage_state:extend_spring(spring_left_loc)
 
   -- audio
-  sfx(audio.sfx_ids.spring_jump)
+  sound.play_low_priority_sfx(audio.sfx_ids.spring_jump, 3)
 end
 
 function player_char:check_launch_ramp()

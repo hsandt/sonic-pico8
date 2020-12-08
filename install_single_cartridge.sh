@@ -53,9 +53,7 @@ echo "Installing ${cartridge_filepath} in ${install_dirpath} ..."
 # trailing slash just to make sure we copy to a directory
 cp "${cartridge_filepath}" "${install_dirpath}/"
 
-# Also copy data stage and bgm cartridges for extended map
-# Of course it should really be done together with the ingame cartridge,
-# but since copy is very fast, we do this even when installing titlemenu cartridge to simplify
+# Also copy data stage and bgm cartridges for extended map, when installing ingame cartridge
 if [[ "$cartridge_suffix" == "ingame" ]]; then
 	echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."
 	cp data/data_*.p8 "${install_dirpath}/"

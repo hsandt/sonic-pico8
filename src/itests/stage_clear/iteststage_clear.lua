@@ -12,6 +12,10 @@ itest_manager:register_itest('player waits',
 
   -- enter title menu
   setup_callback(function (app)
+    -- simulate having stored picked emeralds bitset from ingame cartridge
+    -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
+    poke(0x4300, 73)
+
     flow:change_gamestate_by_type(':stage_clear')
   end)
 

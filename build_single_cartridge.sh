@@ -26,7 +26,7 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu' or 'ingame'
+                            'titlemenu', 'ingame' or 'stage_clear'
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
@@ -108,7 +108,7 @@ fi
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
 
-# Build cartridge (titlemenu or ingame)
+# Build cartridge (titlemenu, ingame or stage_clear)
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \

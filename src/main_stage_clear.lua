@@ -1,14 +1,14 @@
--- main entry file for the titlemenu cartridge (the first one)
---  game states: titlemenu, credits
+-- main entry file for the stage_clear cartridge
+--  game states: stage_clear
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
-require("common_titlemenu")
+require("common_stage_clear")
 
--- require visual add-on for titlemenu, so any require visual_common
---  in this cartridge will get both common data and titlemenu data
-require("resources/visual_titlemenu_addon")
+-- require ingame visual add-on for stage clear since we still show the stage
+-- any require visual_common in this cartridge will get both common data and ingame data
+require("resources/visual_ingame_addon")
 
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
@@ -26,9 +26,9 @@ local vlogger = require("engine/debug/visual_logger")
 local profiler = require("engine/debug/profiler")
 --#endif
 
-local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
+local picosonic_app_stage_clear = require("application/picosonic_app_stage_clear")
 
-local app = picosonic_app_titlemenu()
+local app = picosonic_app_stage_clear()
 
 function _init()
 --#if log
@@ -39,7 +39,7 @@ function _init()
   logging.logger:register_stream(vlogger.vlog_stream)
 --#endif
 
-  logging.file_log_stream.file_prefix = "picosonic_titlemenu"
+  logging.file_log_stream.file_prefix = "picosonic_stage_clear"
 
   -- clear log file on new game session (or to preserve the previous log,
   -- you could add a newline and some "[SESSION START]" tag instead)
@@ -52,13 +52,14 @@ function _init()
     ['flow'] = true,
     ['itest'] = true,
     ['log'] = true,
-    ['ui'] = true,
+    -- ['ui'] = true,
+    -- ['goal'] = true,
+    -- ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
 
     -- game
-    -- ['loop'] = true,
     -- ['...'] = true,
   }
 --#endif
@@ -70,7 +71,7 @@ function _init()
 
 --#if profiler
   -- uncomment to enable profiler
-  -- profiler.window:show(colors.orange)
+  profiler.window:show(colors.orange)
 --#endif
 
 --#if tuner
@@ -78,7 +79,7 @@ function _init()
   codetuner.active = true
 --#endif
 
-  app.initial_gamestate = ':titlemenu'
+  app.initial_gamestate = ':stage_clear'
   app:start()
 end
 

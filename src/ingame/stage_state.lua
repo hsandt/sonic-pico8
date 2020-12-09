@@ -1,4 +1,3 @@
-local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local volume = require("engine/audio/volume")
 local label = require("engine/ui/label")
@@ -12,33 +11,22 @@ local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
-local visual = require("resources/visual_common")
--- we should require ingameadd-on in main
+local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_stage = require("resources/visual_stage")
+local ui_animation = require("ui/ui_animation")
 
 local stage_state = derived_class(gamestate)
 
--- aliases (they don't need to be short, as they will be minified)
-local rectfill_ = rectfill
-
 stage_state.type = ':stage'
 
--- enums
-stage_state.substates = {
-  play = "play",     -- playing and moving around
-  result = "result"  -- result screen
-}
-
 function stage_state:init()
-  gamestate.init(self)
+  -- gamestate.init(self)  -- kept for expliciteness, but does nothing
 
   -- stage id
   self.curr_stage_id = 1
 
   -- reference to current stage data (derived from curr_stage_id)
   self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
-
-  -- substate
-  self.current_substate = stage_state.substates.play
 
   -- player character
   self.player_char = nil
@@ -64,15 +52,6 @@ function stage_state:init()
 
   -- title overlay
   self.title_overlay = overlay()
-
-  -- result (stage clear) overlay
-  self.result_overlay = overlay()
-
-  -- emerald cross variables for result UI animation
-  self.result_show_emerald_cross_base = false
-  self.result_emerald_cross_palette_swap_table = {}  -- for emerald cross bright animation
-  self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
-  self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
@@ -110,8 +89,6 @@ function stage_state:on_enter()
   -- this is currently done as part of setup_for_stage, which also stores stage data for later clamping
   self.camera:setup_for_stage(self.curr_stage_data)
   self:check_reload_map_region()
-
-  self.current_substate = stage_state.substates.play
 
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
@@ -225,7 +202,6 @@ function stage_state:on_exit()
   -- clear object state vars
   self.player_char = nil
   self.title_overlay:clear_drawables()
-  self.result_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -235,32 +211,25 @@ function stage_state:on_exit()
 end
 
 function stage_state:update()
-  -- common in case we picked some emerald near the goal line, as we'd still want
-  --  to see the animation end
   self:update_fx()
-  -- same, we want to update character during result in case it didn't leave screen yet
   self.player_char:update()
 
-  if self.current_substate == stage_state.substates.play then
-    self:check_reached_goal()
-    if self.goal_plate then
-      self.goal_plate:update()
-    end
-    self.camera:update()
-    self:check_reload_map_region()
+  self:check_reached_goal()
+
+  if self.goal_plate then
+    self.goal_plate:update()
   end
+
+  self.camera:update()
+  self:check_reload_map_region()
 end
 
 function stage_state:render()
-  self:render_background()
+  visual_stage.render_background(self.camera.position)
   self:render_stage_elements()
   self:render_fx()
   self:render_hud()
   self:render_overlay()
-
-  if self.current_substate == stage_state.substates.result then
-    self:render_emerald_cross()
-  end
 end
 
 
@@ -833,6 +802,8 @@ function stage_state:check_reached_goal()
       self.player_char.position.x >= self.goal_plate.global_loc:to_center_position().x then
 --#endif
     self.has_player_char_reached_goal = true
+
+
     self.app:start_coroutine(stage_state.on_reached_goal_async, self)
   end
 end
@@ -846,28 +817,42 @@ function stage_state:on_reached_goal_async()
   yield_delay(stage_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
-  -- now we can enter result substate which does fewer updates (e.g. no camera update)
-  --  and does not render some elements (e.g. no redundant emerald HUD)
-  -- we assume the character has landed and camera is properly centered on goal plate
-  --  at this point
-  self.current_substate = stage_state.substates.result
-
-  -- show result UI
-  self:show_result_async()
-
-  -- stop BGM and play stage clear jingle
   self:stop_bgm(stage_data.bgm_fade_out_duration)
   self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
-  music(audio.jingle_ids.stage_clear)
-  yield_delay(stage_data.stage_clear_duration)
 
-  -- play result UI "calculation" (we don't have score so it's just checking
-  --  if we have all the emeralds)
-  self:assess_result_async()
+  -- take advantage of the dead time to load the stage_clear cartridge,
+  --  which is a super-stripped version of ingame that doesn't know about
+  --  player character, dynamic camera, stage items (except goal plate), etc.
+  --  and only renders the stage clear sequence with the stage environment still visible
+  -- we assume the character has exited the screen and camera is properly centered on goal plate
+  --  at this point, so the player won't notice a glitch during the transition
 
-  -- wait a moment and go back to titlemenu
-  self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
-  self:back_to_titlemenu()
+  -- just before the load the new cartridge, we just need to store the player progress
+  --  in some memory address that is not reset on cartridge loading
+  self:store_picked_emerald_data()
+
+  -- finally advance to stage clear sequence on new cartridge
+  load('picosonic_stage_clear.p8')
+end
+
+function stage_state:store_picked_emerald_data()
+  -- general memory is a good fit to store data across cartridges,
+  --  although this behavior is undocumented
+  -- we could also use persistent memory, considering we may save emeralds collected by player
+  --  on next run (but for now we don't, so player always starts game from zero)
+  -- note that Sonic is not visible so we don't mind overwriting the memory at 0x4300
+  --  which during ingame contains rotated and non-rotated sprite variants
+  -- convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
+  -- there are 8 emeralds so we need 1 bytes, but we can combine them in one
+  --  2-byte value and store it at once with length 2
+  local picked_emerald_bytes = 0
+  for i = 1, 8 do
+    if self.picked_emerald_numbers_set[i] then
+      -- technically we want bor (|), but + is shorter to write and equivalent in this case
+      picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
+    end
+  end
+  poke(0x4300, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()
@@ -876,11 +861,6 @@ function stage_state:feedback_reached_goal()
   -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
-
-function stage_state:back_to_titlemenu()
-  load('picosonic_titlemenu.p8')
-end
-
 
 -- fx
 
@@ -932,21 +912,6 @@ end
 
 -- ui
 
--- helper: move drawable (position member, draw method) linearly along coord ("x" or "y")
---  from a to b over n frames
--- coord_offsets allow to offset drawables relatively to a and b while keeping drawable motions in sync
---  (coord_offsets list is indexed by index of drawable in drawables)
-local function move_drawables_on_coord_async(coord, drawables, coord_offsets, a, b, n)
-  for frame = 1, n do
-    yield()
-    local alpha = frame / n
-
-    for i, dr in ipairs(drawables) do
-      dr.position:set(coord, (1 - alpha) * a + alpha * b + coord_offsets[i])
-    end
-  end
-end
-
 function stage_state:show_stage_splash_async()
   self.app:yield_delay_s(stage_data.show_stage_splash_delay)
 
@@ -961,7 +926,7 @@ function stage_state:show_stage_splash_async()
   self.title_overlay:add_drawable("banner_text", banner_text)
 
   -- make banner enter from the top
-  move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
 
   local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
   self.title_overlay:add_drawable("zone_rect", zone_rectangle)
@@ -970,404 +935,24 @@ function stage_state:show_stage_splash_async()
   self.title_overlay:add_drawable("zone", zone_label)
 
   -- make text enter from the right
-  move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
 
   -- keep zone displayed for a moment
   yield_delay(102)
 
   -- make banner exit to the top
-  move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 
   -- make text exit to the right
-  move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
 
   self.title_overlay:remove_drawable("banner")
   self.title_overlay:remove_drawable("banner_text")
   self.title_overlay:remove_drawable("zone")
 end
 
-function stage_state:show_result_async()
-  -- "sonic got through": 17 characters, so 17*4 = 68 px wide
-  -- so to enter from left, offset by -68 (we even get an extra margin pixel)
-  local sonic_label = label("sonic", vector(-68, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_drawable("sonic", sonic_label)
-  -- "got through" is 6 chars after the string start so 24px after , -68+24=-44
-  local through_label = label("got through", vector(-44, 14), colors.white, colors.black)
-  self.result_overlay:add_drawable("through", through_label)
-
-  -- move text from left to right
-  move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
-
-  -- enter from screen right so offset is 128
-  local result_label = label("angel island", vector(128, 26), colors.white, colors.black)
-  self.result_overlay:add_drawable("stage", result_label)
-
-  -- move text from right to left
-  move_drawables_on_coord_async("x", {result_label}, {0}, 128, 40, 20)
-
-  -- show emerald cross
-  self.result_show_emerald_cross_base = true
-
-  for step = 1, 2 do
-    self.result_emerald_cross_palette_swap_table = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
-    yield_delay(10)  -- duration of a step
-  end
-
-  -- finish with normal colors
-  clear_table(self.result_emerald_cross_palette_swap_table)
-end
-
-function stage_state:assess_result_async()
-  for num = 1, 8 do
-    -- only display and yield wait for picked emeralds
-    if self.picked_emerald_numbers_set[num] then
-      self.result_show_emerald_set_by_number[num] = true
-      for step = 1, 2 do
-        -- instead of setting self.result_emerald_palette_swap_table_by_number[num] = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
-        -- after defining bright color for every color, we manually pick the bright-dark mapping of this emerald
-        --  since it helps us distinguish nuances (e.g. dark_purple from red emerald is red when brighter, while
-        --  dark_purple from pink emerald is pink when brighter... subtle nuance, but allows us to have a smaller table
-        --  for bright_to_normal_palette_swap_sequence_by_original_color)
-        local light_color, dark_color = unpack(visual.emerald_colors[num])
-        -- brightness level is: step 1 => 2, step 2 => 1, step 3 => 0 (or nil)
-        self.result_emerald_brightness_levels[num] = 3 - step
-        yield_delay(10)  -- duration of a step
-      end
-    end
-    -- clear table will reset brightness level to nil, interpreted as 0
-    clear_table(self.result_emerald_brightness_levels)
-    yield_delay(10)  -- pause between emeralds
-  end
-
-  yield_delay(30)
-
-  self.result_overlay:remove_drawable("sonic")
-  self.result_overlay:remove_drawable("through")
-  self.result_overlay:remove_drawable("stage")
-
-  yield_delay(30)
-
-  -- create another sonic label (previous one was also local var, so can't access it from here)
-  local sonic_label = label("sonic", vector(-88, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_drawable("sonic", sonic_label)
-  local emerald_text
-
-  -- check how many emeralds player got
-  -- "sonic got all emeralds" (the longest sentence) has 22 chars so is 22*4 88 px wide
-  -- it comes from the left again, so offset negatively on start
-  -- "got ..." is 6 chars after the string start so 24px after , -88+24=-64
-  local picked_emerald_count = #self.spawned_emerald_locations - #self.emeralds
-  if picked_emerald_count < #self.spawned_emerald_locations then
-    emerald_text = "got "..picked_emerald_count.." emeralds"
-  else
-    emerald_text = "got all emeralds"
-  end
-
-  local emerald_label = label(emerald_text, vector(-64, 14), colors.white, colors.black)
-  self.result_overlay:add_drawable("emerald", emerald_label)
-
-  -- move text from left to right
-  move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
-end
-
 
 -- render
-local function draw_full_line(y, c)
-  line(0, y, 127, y, c)
-end
-
--- below is stripped from itests to spare characters as we don't test aesthetics
--- we only strip body of render_background so we don't
---  have to strip their calls too
-
--- render the stage background
-function stage_state:render_background()
---#ifn itest
-
-  -- always draw full sky background to be safe
-  camera()
-  rectfill_(0, 0, 127, 127, colors.dark_blue)
-
-  -- horizon line serves as a reference for the background
-  --  and moves down slowly when camera moves up
-  local horizon_line_dy = 156 - 0.5 * self.camera.position.y
-  camera(0, -horizon_line_dy)
-
-  -- only draw sky and sea if camera is high enough
-
-  -- -31 is based on the offset y 31 of the highest trees
-  -- basically, when the top of the trees goes lower than the top of the screen,
-  --  you start seeing the sea, so you can start drawing the sea decorations
-  --  (note that the sea background itself is always rendered above, so it's quite safe at the border)
-  if horizon_line_dy >= -31 then
-    self:draw_background_sea()
-  end
-
-  -- draw forest bottom first as it contains the big uniform background that may
-  --  cover forest top if it was drawn before
-
-  -- 58 was tuned to start showing forest bottom when the lowest forest leaf starts going
-  --  higher than the screen bottom
-  if horizon_line_dy <= 58 then
-    self:draw_background_forest_bottom(horizon_line_dy)
-  end
-
-  self:draw_background_forest_top()
---#endif
-end
-
---#ifn itest
-
-function stage_state:draw_background_sea()
-  -- blue line above horizon line
-  draw_full_line(- 1, colors.blue)
-  -- white horizon line
-  draw_full_line(0, colors.white)
-  draw_full_line(1, colors.indigo)
-
-  -- clouds in the sky, from lowest to highest (and biggest)
-  local cloud_dx_list_per_j = {
-    {0, 60, 140, 220},
-    {30, 150, 240},
-    {10, 90, 210},
-    {50, 130}
-  }
-  local dy_list_per_j = {
-    {0, 0, -1, 0},
-    {0, -1, -1, 0},
-    {0, -1, 1, 0},
-    {0, 1, -1, 1}
-  }
-  for j = 0, 3 do
-    for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
-      self:draw_cloud(cloud_dx, - --[[dy0]] 8.9 - --[[dy_mult]] 14.7 * j,
-        dy_list_per_j[j + 1], --[[r0]] 2 + --[[r_mult]] 0.9 * j,
-        --[[speed0]] 3 + --[[speed_mult]] 3.5 * j)
-    end
-  end
-
-  -- shiny reflections in water
-  -- vary y
-  local reflection_dy_list = {4, 3, 6, 2, 1, 5}
-  local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
-  -- parallax speed of (relatively) close reflection (dy = 6)
-  local water_parallax_speed_max = 0.015
-  -- to cover up to ~127 with intervals of 6,
-  --  we need i up to 21 since 21*6 = 126
-  for i = 0, 21 do
-    local dy = reflection_dy_list[i % 6 + 1]
-    local y = 2 + dy
-    -- elements farther from camera have slower parallax speed, closest has base parallax speed
-    -- clamp in case some y are bigger than 6, but it's better if you can adjust to max of
-    --  reflection_dy_list so max is still max and different dy give different speeds
-    -- we have speed 0 at the horizon line, so no need to compute min
-    -- note that real optics would give some 1 / tan(distance) factor but linear is enough for us
-    local parallax_speed = water_parallax_speed_max * min(6, dy) / 6
-    local parallax_offset = flr(parallax_speed * self.camera.position.x)
-    self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
-  end
-end
-
-function stage_state:draw_background_forest_top()
-  -- tree/leaves data
-
-  -- parallax speed of farthest row
-  local tree_row_parallax_speed_min = 0.3
-  -- parallax speed of closest row
-  local tree_row_parallax_speed_max = 0.42
-  local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
-
-  -- for max parallax speed, reuse the one of trees
-  -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
-  --  is actually the same sprite as the closest tree top (which is really just a big green patch)
-  -- due to a small calculation error the final speeds end slightly different, so if you really
-  --  want both elements to move exactly together, prefer drawing a long line from tree top to leaf bottom
-  --  in a single draw_tree_and_leaves function
-  -- however we use different speeds for farther leaves
-  local leaves_row_parallax_speed_min = 0.36
-  local leaves_row_parallax_speed_range = tree_row_parallax_speed_max - leaves_row_parallax_speed_min
-
-  -- leaves (before trees so trees can hide some leaves with base height too long if needed)
-  for j = 0, 1 do
-    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j  -- actually j / 1 where 1 is max j
-    local parallax_offset = flr(parallax_speed * self.camera.position.x)
-    -- first patch of leaves chains from closest trees, so no base height
-    --  easier to connect and avoid hiding closest trees
-    self:draw_leaves_row(parallax_offset, 31 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 19, j,
-      j % 2 == 1 and colors.green or colors.dark_green)
-  end
-
-  -- tree rows
-  for j = 0, 2 do
-    -- elements farther from camera have slower parallax speed, closest has base parallax speed
-    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
-    local parallax_offset = flr(parallax_speed * self.camera.position.x)
-    -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
-    self:draw_tree_row(parallax_offset, 31 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10, j,
-      j % 2 == 0 and colors.green or colors.dark_green)
-  end
-end
-
-function stage_state:draw_background_forest_bottom(horizon_line_dy)
-  -- under the trees background (since we set camera y to - horizon_line_dy previously,
-  --  a rectfill down to 127 - horizon_line_dy will effectively cover the bottom of the screen)
-  --  to the screen bottom to cover anything left)
-
-  -- for very dark green we dither between dark green and black using fill pattern:
-  --  pure Lua and picotool don't allow 0b notation unlike PICO-8, so pass the hex value directly
-  --  grid pattern: 0b0101101001011010 -> 0x5A5A
-  -- the Stan shirt effect will cause slight eye distraction around the hole patch edges
-  --  as the grid pattern won't be moving while the patches are, but this is less worse
-  --  than trying to move the pattern by alternating with 0xA5A5 when parallax_offset % 2 == 1
-  -- so we kept it like this
-  fillp(0x5a5a)
-  rectfill_(0, 50, 127, 127 - horizon_line_dy, colors.dark_green * 0x10 + colors.black)
-  fillp()
-
-  -- put value slightly lower than leaves_row_parallax_speed_min (0.36) since holes are supposed to be yet
-  --  a bit farther, so slightly slower in parallax
-  local parallax_speed = 0.3
-  local parallax_offset = flr(parallax_speed * self.camera.position.x)
-
-  -- place holes at different levels for more variety
-  local tile_offset_j_cycle = {0, 1, 3}
-  local patch_extra_tile_j_cycle = {0, 0, 2}
-
-  for i = 0, 2 do
-    -- like clouds, the extra margin beyond screen_width of 128 and the +16/-16 are because sprites
-    --  cannot be cut and looped around the screen, and the full background is wider than the screen too
-    --  (contains too many elements to be displayed at once)
-    -- 8 * tile_size the width of a hole graphics area (the hole sprite and some programmed transition
-    --  tiles around)
-    -- for 3 times a hole sequence spanning over 8 tiles on X, we get 3 * 8 * 8 = 192
-    -- or if we considering offset from screen width: 128 + 8 * tile_size = 192 so perfectly fits
-    -- hole areas are placed at different X and follow parallax X
-    -- in our case, there is no "space" between what we consider hole areas
-    --  so the offset per i is the same as the area width
-    local area_width = 8 * tile_size
-    local x0 = (80 - parallax_offset) + area_width * i
-    -- x0 is actually the left of the hole itself, but the full hole patch with light shaft starts
-    --  2 tiles more on the left, so we should work with x0 - 2 * tile_size, which gives the true
-    --  offset:
-    local modulo_offset = area_width - 2 * tile_size
-    x0 = (x0 + modulo_offset) % 192 - modulo_offset
-    local y0 = 102
-    -- sprite topleft is placed at (x0, y0), and we program graphics around sprite from that position
-    -- dark green patch around the hole
-    local extra_tile_j = patch_extra_tile_j_cycle[i + 1]
-
-    rectfill_(x0, y0 - tile_size, x0 + 4 * tile_size, y0 + (5 + extra_tile_j) * tile_size, colors.dark_green)
-    -- transitional zigzagging lines between dark green and black to avoid "squary" patch
-    self:draw_background_forest_bottom_hole_transition_x(x0 - 1, y0, extra_tile_j, -1)
-    self:draw_background_forest_bottom_hole_transition_x(x0 + 4 * tile_size, y0, extra_tile_j, 1)
-    self:draw_background_forest_bottom_hole_transition_y(x0, y0 - tile_size - 1, -1)
-    self:draw_background_forest_bottom_hole_transition_y(x0, y0 + (5 + extra_tile_j) * tile_size, 1)
-    -- actual hole sprite
-    local hole_y0 = y0 + tile_offset_j_cycle[i + 1] * tile_size
-    visual.sprite_data_t.background_forest_bottom_hole:render(vector(x0, hole_y0))
-    -- light shaft
-    local light_shaft_start = vector(x0 - 1, hole_y0 + 2 * tile_size + 4)
-    line(light_shaft_start.x, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 7, colors.dark_green)
-    line(light_shaft_start.x + 1, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 8, colors.green)
-    -- add bits of yellow to make the ray shinier
-    for k = 0, 2 do
-      pset(light_shaft_start.x - 3 - 6 * k, light_shaft_start.y + 2 + 3 * k, colors.yellow)
-    end
-    line(light_shaft_start.x, light_shaft_start.y + 1, light_shaft_start.x - 14, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 2, light_shaft_start.x - 13, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x + 1, light_shaft_start.y + 2, light_shaft_start.x - 11, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 3, light_shaft_start.x - 10, light_shaft_start.y + 9, colors.dark_green)
-  end
-end
-
--- dir_mult: -1 for transition toward left, +1 for transition toward right
-function stage_state:draw_background_forest_bottom_hole_transition_x(x0, y0, extra_tile_j, dir_mult)
-  for dy = - tile_size, (5 + extra_tile_j) * tile_size - 1 do
-    local y = y0 + dy
-    line(x0 + dir_mult * flr(2.5 * (1 + sin(dy/1.7) * sin(dy/1.41))), y, x0, y, colors.dark_green)
-  end
-end
-
--- dir_mult: -1 for transition toward up, +1 for transition toward down
-function stage_state:draw_background_forest_bottom_hole_transition_y(x0, y0, dir_mult)
-  for dx = 0, 4 * tile_size - 1 do
-    local x = x0 + dx
-    line(x, y0 + dir_mult * flr(3.7 * (1 + sin(dx/1.65) * sin(dx/1.45))), x, y0, colors.dark_green)
-  end
-end
-
-function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
-  -- indigo outline (prefer circfill to circ to avoid gaps
-  --  between inside and outline for some values)
-  local offset_x = t() * speed
-  -- we make clouds cycle horizontally but we don't want to
-  --  make them disappear as soon as they reach the left edge of the screen
-  --  so we take a margin of 100px (must be at least cloud width)
-  --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
-  --  where extra margin is to avoid having cloud spawning immediately on screen right
-  --  edge)
-
-  -- clouds move to the left
-  x0 = (x - offset_x + 100) % 300 - 100
-
-  local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
-  local r_mult_list = {0.8, 1.4, 1.1, 0.7}
-
-  -- indigo outline
-  for i=1,4 do
-    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius + 1, colors.indigo)
-  end
-
-  -- white inside
-  for i=1,4 do
-    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius, colors.white)
-  end
-end
-
-function stage_state:draw_water_reflections(parallax_offset, x, y, period)
-  -- animate reflections by switching colors over time
-  local ratio = (t() % period) / period
-  local c1, c2
-  if ratio < 0.2 then
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  elseif ratio < 0.4 then
-    c1 = colors.white
-    c2 = colors.blue
-  elseif ratio < 0.6 then
-    c1 = colors.blue
-    c2 = colors.dark_blue
-  elseif ratio < 0.8 then
-    c1 = colors.blue
-    c2 = colors.white
-  else
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  end
-  pset((x - parallax_offset) % screen_width, y, c1)
-  pset((x - parallax_offset + 1) % screen_width, y, c2)
-end
-
-function stage_state:draw_tree_row(parallax_offset, y, base_height, row_index0, color)
-  for x0 = 0, 127 do
-    local x = x0 + parallax_offset
-    local height = base_height + flr((3 + 0.5 * row_index0) * (1 + sin(x/(1.7 + 0.2 * row_index0)) * sin(x/1.41)))
-    -- draw vertical line from bottom to (variable) top
-    line(x0, y, x0, y - height, color)
-  end
-end
-
-function stage_state:draw_leaves_row(parallax_offset, y, base_height, row_index0, color)
-  for x0 = 0, 127 do
-    local x = x0 + parallax_offset
-    local height = base_height + flr((4.5 - 0.3 * row_index0) * (1 + sin(x/(41.4 - 9.1 * row_index0))) + 1.8 * sin(x/1.41))
-    -- draw vertical line from top to (variable) bottom
-    line(x0, y, x0, y + height, color)
-  end
-end
-
--- itest stripping end
---#endif
 
 -- render the stage elements with the main camera:
 -- - environment
@@ -1506,17 +1091,15 @@ function stage_state:render_hud()
   -- HUD is drawn directly in screen coordinates
   camera()
 
-  if self.current_substate == stage_state.substates.play then
-    -- draw emeralds obtained at top-left of screen, in order from left to right,
-    --  with the right color
-    for i = 1, #self.spawned_emerald_locations do
-      local draw_position = vector(-4 + 10 * i, 6)
-      if self.picked_emerald_numbers_set[i] then
-        emerald.draw(i, draw_position)
-      else
-        -- display silhouette for unpicked emeralds (code is based on emerald.draw)
-        emerald.draw(-1, draw_position)
-      end
+  -- draw emeralds obtained at top-left of screen, in order from left to right,
+  --  with the right color
+  for i = 1, #self.spawned_emerald_locations do
+    local draw_position = vector(-4 + 10 * i, 6)
+    if self.picked_emerald_numbers_set[i] then
+      emerald.draw(i, draw_position)
+    else
+      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
+      emerald.draw(-1, draw_position)
     end
   end
 
@@ -1529,53 +1112,7 @@ end
 function stage_state:render_overlay()
   camera()
   self.title_overlay:draw()
-  self.result_overlay:draw()
 end
-
-
--- render the emerald cross base and every picked emeralds
-function stage_state:render_emerald_cross()
-  camera()
-
-  if self.result_show_emerald_cross_base then
-    visual.draw_emerald_cross_base(64, 64, self.result_emerald_cross_palette_swap_table)
-  end
-
-  self:draw_emeralds_around_cross(64, 64)
-end
-
--- render the emerald cross base and every picked emeralds
--- (x, y) is at cross center
-function stage_state:draw_emeralds_around_cross(x, y)
-  -- indexed by emerald number
-  -- numbers would be more consistent (0, 11, 20 everywhere)
-  --  if pivot was at (4, 3) instead of (4, 4)
-  --  but we need to make this work with the stage too
-  local emerald_relative_positions = {
-    vector(0, -19),
-    vector(11, -10),
-    vector(20, 1),
-    vector(11, 12),
-    vector(0, 21),
-    vector(-11, 12),
-    vector(-20, 1),
-    vector(-11, -10)
-  }
-
-  -- draw emeralds around the cross, from top, CW
-  -- usually we iterate from 1 to #self.spawned_emerald_locations
-  -- but here we obviously only defined 8 relative positions,
-  --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
-  for num = 1, 8 do
-    -- result_show_emerald_set_by_number[num] is only set to true when
-    --  we have picked emerald, so no need to check picked_emerald_numbers_set again
-    if self.result_show_emerald_set_by_number[num] then
-      local draw_position = vector(x, y) + emerald_relative_positions[num]
-      emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])
-    end
-  end
-end
-
 
 -- audio
 
@@ -1617,8 +1154,5 @@ function stage_state:stop_bgm(fade_duration)
   end
   music(-1, fade_duration_ms)
 end
-
-
--- export
 
 return stage_state

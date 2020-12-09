@@ -10,7 +10,6 @@ local stage_state = require("ingame/stage_state")
 
 local coroutine_runner = require("engine/application/coroutine_runner")
 local flow = require("engine/application/flow")
-local gamestate = require("engine/application/gamestate")
 local location_rect = require("engine/core/location_rect")
 local animated_sprite = require("engine/render/animated_sprite")
 local sprite_data = require("engine/render/sprite_data")
@@ -24,9 +23,9 @@ local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
-local titlemenu = require("menu/titlemenu")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
+local visual_stage = require("resources/visual_stage")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
@@ -43,17 +42,12 @@ describe('stage_state', function ()
   describe('(with instance)', function ()
 
     local state
-    local titlemenu_state
 
     before_each(function ()
       local app = picosonic_app()
       state = stage_state()
       -- no need to register gamestate properly, just add app member to pass tests
       state.app = app
-
-      -- exceptionally we also need titlemenu state
-      titlemenu_state = titlemenu()
-      titlemenu_state.app = app
     end)
 
     describe('state', function ()
@@ -62,7 +56,6 @@ describe('stage_state', function ()
         assert.are_same({
             ':stage',
             1,
-            stage_state.substates.play,
             nil,
             false,
             {},
@@ -72,11 +65,6 @@ describe('stage_state', function ()
             {},
             camera_class(),
             overlay(),
-            -- result UI animation only (async methods changing this won't be fully tested)
-            overlay(),
-            false,
-            {},
-            -- result UI animation end
             nil,
             -- itest only
             true,
@@ -84,7 +72,6 @@ describe('stage_state', function ()
           {
             state.type,
             state.curr_stage_id,
-            state.current_substate,
             state.player_char,
             state.has_player_char_reached_goal,
             state.spawned_emerald_locations,
@@ -94,11 +81,6 @@ describe('stage_state', function ()
             state.palm_tree_leaves_core_global_locations,
             state.camera,
             state.title_overlay,
-            -- result UI animation only (async methods changing this won't be fully tested)
-            state.result_overlay,
-            state.result_show_emerald_cross_base,
-            state.result_emerald_cross_palette_swap_table,
-            -- result UI animation end
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,
@@ -159,10 +141,6 @@ describe('stage_state', function ()
           assert.spy(state.check_reload_map_region).was_called_with(match.ref(state))
         end)
 
-        it('should enter the play substates', function ()
-          assert.are_equal(stage_state.substates.play, state.current_substate)
-        end)
-
         it('should call spawn_player_char', function ()
           assert.spy(stage_state.spawn_player_char).was_called(1)
           assert.spy(stage_state.spawn_player_char).was_called_with(match.ref(state))
@@ -202,8 +180,8 @@ describe('stage_state', function ()
       describe('reload_runtime_data', function ()
 
         setup(function ()
-          stub(_G, "memcpy")
           stub(_G, "reload")
+          stub(_G, "memcpy")
         end)
 
         teardown(function ()
@@ -337,12 +315,22 @@ describe('stage_state', function ()
 
       describe('spawn_palm_tree_leaves', function ()
 
-        it('should store palm tree leaves core global location', function ()
+        it('should spawn and store palm tree leaves core at global location', function ()
           state:spawn_palm_tree_leaves_at(location(1, 33))
 
           assert.are_same({
             location(1, 33),
           }, state.palm_tree_leaves_core_global_locations)
+        end)
+
+      end)
+
+      describe('spawn_goal_plate_at', function ()
+
+        it('should spawn and store goal plate core at global location', function ()
+          state:spawn_goal_plate_at(location(1, 33))
+
+          assert.are_same(goal_plate(location(1, 33)), state.goal_plate)
         end)
 
       end)
@@ -886,7 +874,6 @@ describe('stage_state', function ()
 
         before_each(function ()
           flow:add_gamestate(state)
-          flow:add_gamestate(titlemenu_state)  -- for transition on reached goal
         end)
 
         after_each(function ()
@@ -1082,57 +1069,32 @@ describe('stage_state', function ()
               stage_state.check_reload_map_region:revert()
             end)
 
-            describe('(current substate is play)', function ()
+            it('should call fx and character update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
+              state.goal_plate = goal_plate(location(100, 0))
 
-              it('should call fx and character update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
-                state.current_substate = stage_state.substates.play
-                state.goal_plate = goal_plate(location(100, 0))
+              state:update()
 
-                state:update()
+              assert.spy(stage_state.update_fx).was_called(1)
+              assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
+              assert.spy(player_char.update).was_called(1)
+              assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
 
-                assert.spy(stage_state.update_fx).was_called(1)
-                assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
-                assert.spy(player_char.update).was_called(1)
-                assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
-
-                assert.spy(stage_state.check_reached_goal).was_called(1)
-                assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
-                assert.spy(goal_plate.update).was_called(1)
-                assert.spy(goal_plate.update).was_called_with(match.ref(state.goal_plate))
-                assert.spy(camera_class.update).was_called(1)
-                assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
-                assert.spy(stage_state.check_reload_map_region).was_called(1)
-                assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
-              end)
-
-              it('should not try to update goal if no goal plate found (safety check for itests)', function ()
-                state.current_substate = stage_state.substates.play
-                state.goal_plate = nil
-
-                state:update()
-
-                assert.spy(goal_plate.update).was_not_called()
-              end)
-
+              assert.spy(stage_state.check_reached_goal).was_called(1)
+              assert.spy(stage_state.check_reached_goal).was_called_with(match.ref(state))
+              assert.spy(goal_plate.update).was_called(1)
+              assert.spy(goal_plate.update).was_called_with(match.ref(state.goal_plate))
+              assert.spy(camera_class.update).was_called(1)
+              assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
+              assert.spy(stage_state.check_reload_map_region).was_called(1)
+              assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
             end)
 
-            describe('(current substate is result)', function ()
+            it('should not try to update goal if no goal plate found (safety check for itests)', function ()
+              state.goal_plate = nil
 
-              it('should call fx and character update, not other element updates', function ()
-                state.current_substate = stage_state.substates.result
+              state:update()
 
-                state:update()
-
-                assert.spy(stage_state.update_fx).was_called(1)
-                assert.spy(stage_state.update_fx).was_called_with(match.ref(state))
-                assert.spy(player_char.update).was_called(1)
-                assert.spy(player_char.update).was_called_with(match.ref(state.player_char))
-
-                assert.spy(stage_state.check_reached_goal).was_not_called()
-                assert.spy(camera_class.update).was_not_called()
-                assert.spy(stage_state.check_reload_map_region).was_not_called()
-              end)
-
+              assert.spy(goal_plate.update).was_not_called()
             end)
 
           end)  -- update
@@ -1140,7 +1102,7 @@ describe('stage_state', function ()
           describe('render', function ()
 
             setup(function ()
-              stub(stage_state, "render_background")
+              stub(visual_stage, "render_background")
               stub(stage_state, "render_stage_elements")
               stub(stage_state, "render_fx")
               stub(stage_state, "render_hud")
@@ -1149,7 +1111,7 @@ describe('stage_state', function ()
             end)
 
             teardown(function ()
-              stage_state.render_background:revert()
+              visual_stage.render_background:revert()
               stage_state.render_stage_elements:revert()
               stage_state.render_fx:revert()
               stage_state.render_hud:revert()
@@ -1158,7 +1120,7 @@ describe('stage_state', function ()
             end)
 
             after_each(function ()
-              stage_state.render_background:clear()
+              visual_stage.render_background:clear()
               stage_state.render_stage_elements:clear()
               stage_state.render_fx:clear()
               stage_state.render_hud:clear()
@@ -1168,8 +1130,8 @@ describe('stage_state', function ()
 
             it('should call render_background, render_stage_elements, render_fx, render_hud, render_overlay', function ()
               state:render()
-              assert.spy(stage_state.render_background).was_called(1)
-              assert.spy(stage_state.render_background).was_called_with(match.ref(state))
+              assert.spy(visual_stage.render_background).was_called(1)
+              assert.spy(visual_stage.render_background).was_called_with(state.camera.position)
               assert.spy(stage_state.render_stage_elements).was_called(1)
               assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
               assert.spy(stage_state.render_fx).was_called(1)
@@ -1178,23 +1140,6 @@ describe('stage_state', function ()
               assert.spy(stage_state.render_hud).was_called_with(match.ref(state))
               assert.spy(stage_state.render_overlay).was_called(1)
               assert.spy(stage_state.render_overlay).was_called_with(match.ref(state))
-            end)
-
-            it('(play) should not call render_emerald_cross', function ()
-              state.current_substate = stage_state.substates.play
-
-              state:render()
-
-              assert.spy(stage_state.render_emerald_cross).was_not_called()
-            end)
-
-            it('(result) should call render_emerald_cross', function ()
-              state.current_substate = stage_state.substates.result
-
-              state:render()
-
-              assert.spy(stage_state.render_emerald_cross).was_called(1)
-              assert.spy(stage_state.render_emerald_cross).was_called_with(match.ref(state))
             end)
 
           end)  -- state.render
@@ -1463,7 +1408,7 @@ describe('stage_state', function ()
             it('should not crash with a few emeralds', function ()
               state.emeralds = {5, 6, 7, 8}
 
-              -- a time long enough to cover other async methods like assess_result_async
+              -- a time long enough to cover everything until load()
               for i = 1, 1000 do
                 corunner:update_coroutines()
               end
@@ -1472,10 +1417,25 @@ describe('stage_state', function ()
             it('should not crash with all emeralds', function ()
               state.emeralds = {}
 
-              -- a time long enough to cover other async methods like assess_result_async
+              -- a time long enough to cover everything until load()
               for i = 1, 1000 do
                 corunner:update_coroutines()
               end
+            end)
+
+          end)
+
+          describe('store_picked_emerald_data', function ()
+
+            it('should store 2 bytes in general memory representing picked emeralds bitset', function ()
+              state.picked_emerald_numbers_set = {
+                [1] = true,
+                [4] = true,
+                [7] = true,
+              }
+              -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
+              state:store_picked_emerald_data()
+              assert.are_equal(73, peek(0x4300))
             end)
 
           end)
@@ -1514,24 +1474,6 @@ describe('stage_state', function ()
               state:feedback_reached_goal()
               assert.spy(animated_sprite.play).was_called(1)
               assert.spy(animated_sprite.play).was_called_with(match.ref(state.goal_plate.anim_spr), "rotating")
-            end)
-
-          end)
-
-          describe('back_to_titlemenu', function ()
-
-            setup(function ()
-              stub(_G, "load")
-            end)
-
-            teardown(function ()
-              load:revert()
-            end)
-
-            it('should load cartridge: picosonic_titlemenu.p8', function ()
-              state:back_to_titlemenu()
-              assert.spy(load).was_called(1)
-              assert.spy(load).was_called_with('picosonic_titlemenu.p8')
             end)
 
           end)
@@ -1671,27 +1613,10 @@ describe('stage_state', function ()
               assert.are_same(vector.zero(), vector(pico8.camera_x, pico8.camera_y))
             end)
 
-            it('should call title_overlay:draw and result_overlay:draw', function ()
+            it('should call title_overlay:draw', function ()
               state:render_overlay()
-              assert.spy(overlay.draw).was_called(2)
+              assert.spy(overlay.draw).was_called(1)
               assert.spy(overlay.draw).was_called_with(match.ref(state.title_overlay))
-              assert.spy(overlay.draw).was_called_with(match.ref(state.result_overlay))
-            end)
-
-          end)
-
-          describe('render_background', function ()
-
-            it('should reset camera position', function ()
-              -- set a value so that 156 - 0.5 * self.camera.position.y is between -32 and 58,
-              --  just so we try to draw both background sea at the top, and forest bottom
-              state.camera.position = vector(24, 220)
-
-              state:render_background()
-
-              -- calls include rectfill and MANY line calls but we don't check background details, human tests are better for this
-              -- otherwise we'd have something like:
-              -- assert.spy(line).was_called(771)
             end)
 
           end)
@@ -1812,9 +1737,7 @@ describe('stage_state', function ()
               player_char.debug_print_info:clear()
             end)
 
-            it('(play) should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
-              state.current_substate = stage_state.substates.play
-
+            it('should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
               state.spawned_emerald_locations = {
                 -- dummy values just to have correct count (3, counting hole on 2)
                 location(1, 1), location(2, 2), location(3, 3)
@@ -1831,23 +1754,6 @@ describe('stage_state', function ()
               -- silhouette only
               assert.spy(emerald.draw).was_called_with(-1, vector(16, 6))
               assert.spy(emerald.draw).was_called_with(3, vector(26, 6))
-            end)
-
-            it('(result) should not draw emeralds on the top-left hud', function ()
-              state.current_substate = stage_state.substates.result
-
-              state.spawned_emerald_locations = {
-                -- dummy values just to have correct count (3, counting hole on 2)
-                location(1, 1), location(2, 2), location(3, 3)
-              }
-              state.picked_emerald_numbers_set = {
-                [1] = true,
-                [3] = true
-              }
-
-              state:render_hud()
-
-              assert.spy(emerald.draw).was_not_called()
             end)
 
             it('should debug render character info (#debug_character only)', function ()
@@ -2005,14 +1911,6 @@ describe('stage_state', function ()
 
           end)  -- (with tile_test_data)
 
-          describe('extra render methods (no-crash only)', function ()
-
-            it('render_emerald_cross should not crash', function ()
-              state:render_emerald_cross()
-            end)
-
-          end)
-
           describe('state audio methods', function ()
 
             setup(function ()
@@ -2083,48 +1981,6 @@ describe('stage_state', function ()
 
           end)  -- state audio methods
 
-          describe('on exit stage state to enter titlemenu state', function ()
-
-            before_each(function ()
-              flow:change_state(titlemenu_state)
-            end)
-
-            it('player character should be nil', function ()
-              assert.is_nil(state.player_char)
-            end)
-
-            it('title overlay should be empty', function ()
-              assert.is_not_nil(state.title_overlay)
-              assert.is_not_nil(state.title_overlay.named_drawables)
-              assert.is_true(is_empty(state.title_overlay.named_drawables))
-            end)
-
-            describe('reenter stage state', function ()
-
-              -- should be each
-              before_each(function ()
-                -- spawn_objects_in_all_map_regions has been stubbed in this context,
-                --  so this won't slow down every test
-                flow:change_state(state)
-              end)
-
-              it('current substate should be play', function ()
-                assert.are_equal(stage_state.substates.play, state.current_substate)
-              end)
-
-              it('player character should not be nil and respawned at the spawn location', function ()
-                assert.is_not_nil(state.player_char)
-                assert.are_equal(state.curr_stage_data.spawn_location:to_center_position(), state.player_char.position)
-              end)
-
-              it('should not have reached goal', function ()
-                assert.is_false(state.has_player_char_reached_goal)
-              end)
-
-            end)
-
-          end)  -- on exit stage state to enter titlemenu state
-
           -- unlike above, we test on_exit method itself here
           describe('on_exit', function ()
 
@@ -2132,24 +1988,17 @@ describe('stage_state', function ()
               stub(overlay, "clear_drawables")
               stub(picosonic_app, "stop_all_coroutines")
               stub(stage_state, "stop_bgm")
-              -- we don't really mind spying on spawn_objects_in_all_map_regions
-              --  but we do not want to spend 0.5s finding all of them
-              --  in before_each every time due to on_enter,
-              --  so we stub this
-              stub(stage_state, "spawn_objects_in_all_map_regions")
             end)
 
             teardown(function ()
               overlay.clear_drawables:revert()
               picosonic_app.stop_all_coroutines:revert()
               stage_state.stop_bgm:revert()
-              stage_state.spawn_objects_in_all_map_regions:revert()
             end)
 
             after_each(function ()
               overlay.clear_drawables:clear()
               stage_state.stop_bgm:clear()
-              stage_state.spawn_objects_in_all_map_regions:clear()
             end)
 
             before_each(function ()
@@ -2170,10 +2019,8 @@ describe('stage_state', function ()
             end)
 
             it('should call clear all drawables', function ()
-              local s = assert.spy(overlay.clear_drawables)
-              s.was_called(2)
-              s.was_called_with(match.ref(state.title_overlay))
-              s.was_called_with(match.ref(state.result_overlay))
+              assert.spy(overlay.clear_drawables).was_called(1)
+              assert.spy(overlay.clear_drawables).was_called_with(match.ref(state.title_overlay))
             end)
 
             it('should reset pico8 camera', function ()

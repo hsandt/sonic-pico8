@@ -3,9 +3,9 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
-require("common_ingame")
+require("common_stage_clear")
 
--- require visual add-on for ingame, so any require visual_common
+-- require visual add-on for ingame (also used for stage_clear), so any require visual_common
 --  in this cartridge will get both common data and ingame data
 require("resources/visual_ingame_addon")
 
@@ -15,11 +15,11 @@ local itest_manager = require("engine/test/itest_manager")
 local logging = require("engine/debug/logging")
 --#endif
 
-local picosonic_app_ingame = require("application/picosonic_app_ingame")
+local picosonic_app_stage_clear = require("application/picosonic_app_stage_clear")
 
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
-local app = picosonic_app_ingame()
+local app = picosonic_app_stage_clear()
 itest_manager.itest_run.app = app
 
 -- tag to add require for itest files here
@@ -30,7 +30,7 @@ function _init()
   -- register log streams to output logs to both the console and the file log
   logging.logger:register_stream(logging.console_log_stream)
   logging.logger:register_stream(logging.file_log_stream)
-  logging.file_log_stream.file_prefix = "picosonic_itest_ingame"
+  logging.file_log_stream.file_prefix = "picosonic_itest_stage_clear"
 
   -- clear log file on new itest session
   logging.file_log_stream:clear()
@@ -53,7 +53,7 @@ function _init()
   }
 --#endif
 
-  picosonic_app_ingame.initial_gamestate = ':stage'
+  picosonic_app_stage_clear.initial_gamestate = ':stage_clear'
 
   -- start first itest
   itest_manager:init_game_and_start_next_itest()

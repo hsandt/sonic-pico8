@@ -7,8 +7,7 @@ local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 
 local audio = require("resources/audio")
-local visual = require("resources/visual_common")
--- we should require titlemenu add-on in main
+local visual = require("resources/visual_common")  -- we should require titlemenu add-on in main
 
 local titlemenu = derived_class(gamestate)
 

@@ -4,7 +4,7 @@
 # This is essentially a proxy script for pico-boots/scripts/build_cartridge.sh with the right parameters.
 
 # Usage: build_itest.sh cartridge_suffix
-#   cartridge_suffix  'titlemenu' or 'ingame'
+#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"

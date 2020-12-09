@@ -18,7 +18,7 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu' or 'ingame'
+                            'titlemenu', 'ingame' or 'stage_clear'
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')

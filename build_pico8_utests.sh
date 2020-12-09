@@ -20,7 +20,7 @@ version="4.2"
 config='debug'
 symbols='assert,tostring,dump,log,p8utest'
 
-# Build from itest main for all pico8 utests
+# Build from itest main for all pico8 utests using ingame (which has the most data)
 # Note that a pico8 utest_main build is much smaller than a normal build,
 # so minification is not required in general; however it is useful to spot
 # issues in the real build like unprotected sprite animation keys being minified

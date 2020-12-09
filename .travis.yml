@@ -73,6 +73,8 @@ script:
   - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests
   # test: all headless itests for stage (ENABLE_RENDER set in env)
   - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests
+  # test: all headless itests for stage_clear (ENABLE_RENDER set in env)
+  - ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests
   # coverage
   - bash <(curl -s https://codecov.io/bash)
 

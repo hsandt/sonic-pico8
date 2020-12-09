@@ -1,5 +1,5 @@
 -- main entry file for the ingame cartridge
---  game states: titlemenu, credits
+--  game states: stage
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
@@ -53,17 +53,17 @@ function _init()
     ['itest'] = true,
     ['log'] = true,
     ['ui'] = true,
-    ['loop'] = true,
-    ['emerald'] = true,
-    ['palm'] = true,
-    ['ramp'] = true,
-    ['goal'] = true,
     ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
 
     -- game
+    -- ['loop'] = true,
+    -- ['emerald'] = true,
+    -- ['palm'] = true,
+    -- ['ramp'] = true,
+    -- ['goal'] = true,
     -- ['...'] = true,
   }
 --#endif

@@ -31,8 +31,12 @@ local app = picosonic_app()
 local initial_gamestate
 if cartridge_suffix == 'titlemenu' then
   initial_gamestate = ':titlemenu'
-else
+elseif cartridge_suffix == 'ingame' then
   initial_gamestate = ':stage'
+elseif cartridge_suffix == 'stage_clear' then
+  initial_gamestate = ':stage_clear'
+else
+  assert(false, "unknown cartridge_suffix "..cartridge_suffix)
 end
 
 app.initial_gamestate = initial_gamestate

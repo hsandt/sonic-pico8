@@ -687,8 +687,23 @@
 					}
 				},
 				{
+					"name": "headless_itests titlemenu (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu"
+					}
+				},
+				{
 					"name": "headless_itests titlemenu (render)",
 					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests titlemenu (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
 					"env": {
 						"ITEST_CARTRIDGE_SUFFIX": "titlemenu",
 						"ENABLE_RENDER": "1"
@@ -717,8 +732,23 @@
 					}
 				},
 				{
+					"name": "headless_itests ingame (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame"
+					}
+				},
+				{
 					"name": "headless_itests ingame (render)",
 					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "ingame",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests ingame (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
 					"env": {
 						"ITEST_CARTRIDGE_SUFFIX": "ingame",
 						"ENABLE_RENDER": "1"
@@ -747,8 +777,23 @@
 					}
 				},
 				{
+					"name": "headless_itests stage_clear (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_clear"
+					}
+				},
+				{
 					"name": "headless_itests stage_clear (render)",
 					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_clear",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests stage_clear (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
 					"env": {
 						"ITEST_CARTRIDGE_SUFFIX": "stage_clear",
 						"ENABLE_RENDER": "1"

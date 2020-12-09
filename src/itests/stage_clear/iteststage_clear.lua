@@ -2,7 +2,7 @@
 local itest_manager = require("engine/test/itest_manager")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-
+local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 
 -- testing credits is easier than entering stage
 --  because stage in on another cartridge (ingame),
@@ -15,6 +15,9 @@ itest_manager:register_itest('player waits',
     -- simulate having stored picked emeralds bitset from ingame cartridge
     -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
     poke(0x4300, 73)
+
+    -- simulate goal plate in level (which starts empty) so render doesn't fail
+    mset(64, 16, visual.goal_plate_base_id)
 
     flow:change_gamestate_by_type(':stage_clear')
   end)

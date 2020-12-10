@@ -19,4 +19,22 @@ describe('picosonic_app_ingame', function ()
 
   end)
 
+  describe('on_post_start', function ()
+
+    setup(function ()
+      stub(_G, "menuitem")
+    end)
+
+    teardown(function ()
+      menuitem:revert()
+    end)
+
+    it('should load cartridge: picosonic_titlemenu.p8', function ()
+      app:on_post_start()
+      assert.spy(menuitem).was_called(1)
+      -- no reference to lambda passed to menuitem, so don't test was_called_with
+    end)
+
+  end)
+
 end)

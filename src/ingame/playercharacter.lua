@@ -177,11 +177,6 @@ function player_char:spawn_at(position)
   self:warp_to(position)
 end
 
--- spawn character at given bottom position, with same post-process as spawn_at
-function player_char:spawn_bottom_at(bottom_position)
-  self:spawn_at(bottom_position - vector(0, self:get_center_height()))
-end
-
 -- warp character to specific position, and update motion state (standing/falling)
 -- while escaping from ground if needed
 --  use this when you don't want to reset the character state as spawn_at does
@@ -385,6 +380,8 @@ function player_char:set_motion_mode(val)
   if val == motion_modes.platformer then
     -- respawn character at current position
     -- this will detect ground and update the motion state correctly
+    -- prefer warp_at if you want to preserve previous state vars
+    --  and resume Sonic motion from here
     self:spawn_at(self.position)
   else  -- self.motion_mode == motion_modes.debug
     self.debug_velocity = vector.zero()

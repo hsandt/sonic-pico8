@@ -413,28 +413,6 @@ describe('player_char', function ()
 
     end)
 
-    describe('spawn_bottom_at', function ()
-
-      setup(function ()
-        spy.on(player_char, "spawn_at")
-        stub(player_char, "get_center_height", function ()
-          return 11
-        end)
-      end)
-
-      teardown(function ()
-        player_char.spawn_at:revert()
-        player_char.get_center_height:revert()
-      end)
-
-      it('should call spawn_at with the position offset by -(character center height)', function ()
-        pc:spawn_bottom_at(vector(56, 12))
-        assert.spy(player_char.spawn_at).was_called(1)
-        assert.spy(player_char.spawn_at).was_called_with(match.ref(pc), vector(56, 12 - 11))
-      end)
-
-    end)
-
     describe('warp_to', function ()
 
       setup(function ()

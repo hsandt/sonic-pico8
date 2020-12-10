@@ -629,8 +629,8 @@ describe('stage_clear_state', function ()
 
             it('result overlay should be empty', function ()
               assert.is_not_nil(state.result_overlay)
-              assert.is_not_nil(state.result_overlay.named_drawables)
-              assert.is_true(is_empty(state.result_overlay.named_drawables))
+              assert.is_not_nil(state.result_overlay.drawables_seq)
+              assert.is_true(is_empty(state.result_overlay.drawables_seq))
             end)
 
           end)  -- on exit stage state to enter titlemenu state

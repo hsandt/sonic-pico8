@@ -45,7 +45,7 @@ local player_char = new_class()
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 
--- move_intention           vector          current move intention (normalized)
+-- move_intention           vector          current move intention (binary cardinal)
 -- jump_intention           bool            current intention to start jump (consumed on jump)
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame

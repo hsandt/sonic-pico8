@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0] - 2020-12-10
+### Added
+- Title: added title background showing "Pico Island" with water shimmer animation, pico-sonic logo, Sonic 3 (not 3 & Knuckles) intro jingle, and title menu showing after a short time
+- Title: added stylized menu cursor, and confirm SFX (title uses Sonic 3 shoe, credits use Sonic 2 emblem as cursor)
+- Splash screen: added zone splash overlay on stage start (Sonic 3 style)
+- System: added "Back to title" menuitem to ingame phase
+- Character: added roll (physics, animation, SFX): characters spins on the ground when pressing down while running. Physics is similar to original game, with more freedom (low friction, no clamping)
+- Character physics: increased center height compact by 2, full height compact by 4 to match new, bigger spin sprites
+- Character sprite: added brake (animation, SFX). Animation is similar to original game but swapped sprite order for better look
+- Character sprite: added handmade 45-degree-rotated sprites to replace ugly computed rotated sprites on slopes
+- Camera: gradually move camera forward when character is running fast to show more things ahead (forward extension system)
+- Camera: gradually move camera forward when character facing a direction for a certain time
+- Camera: clamps camera to different bottom limit defined in stage data, to match Sonic 3's dynamic camera limit
+- HUD: display picked emeralds at top-left of screen, unpicked emeralds as silhouettes
+- Background: completed forest bottom with holes, light shafts and dark green dithered texture
+- SFX: added pick emerald star FX
+- Audio: added 8-bit version of Angel Island BGM
+- Audio: added pick emerald jingle (BGM volume is halved while it's played). It covers other SFX
+- Audio: added spring jump SFX
+- Tilemap: added regions 30 and 31 to place new goal plate
+- Tilemap: added palm tree tiles (leaves are generated on stage loading)
+- Tilemap: added launch ramp similar to the one in the original Angel Island. It sends the character diagonally with a speed multiplier, if arriving at certain speed
+- Tilemap: added platform to reach spring that leads to upper level at the beginning
+- Tilemap: added platforms in region (1, 1) to replace the grabbable ropes of the original game
+- Tilemap: added platform in region (2, 1) to simulate log falling in waterfall of the original game
+- Goal: when Sonic goes through the goal plate, it plays a rotation animation and Sonic is forced to move right and leave the screen
+- Stage clear: added stage clear sequence after reaching goal, in its own cartridge. The result screen shows with graphics translations, including picked emeralds, and the stage clear jingle is played
+
+### Changed
+- Character physics: do not clamp ground speed nor air velocity X if already running/flying at higher speed
+- Character physics: fixed hop (shortest jump)
+- Character physics: fixed diagonal jump going through ceiling corner
+- Character physics: fixed character landing into wall when angle is slightly lower than 90 degrees
+- Character sprite: streamlined spin anim to a single animation (also used for rolling, but at higher speed)
+- Character sprite: changed walk sprites pivot to make Sonic move ahead a bit during the animation
+- Slope: fixed slope orientation for mid slopes causing Sonic to run them up too easily
+- Slope: adjusted mid-slope to lower slope angle for better feel (closer to Sonic 3 Angel Island)
+- Tilemap: fixed missing grass tiles at the beginning
+- Tilemap: fixed incorrect tiles at the edge of some regions
+- Tilemap: fixed last loop
+- Tilemap: rearranged loops to provide extra momentum at the end
+- Tilemap: replaced rock hiding spring in Sonic 3 with just a spring
+- Tilemap: made emerald 2 accessible via a hidden passage from the right
+- Tilemap: higher ceiling in region (0, 0) to avoid hitting it with the 3rd spring
+- Sprite: made bigger rocks
+- Meta: changed author name to Leyn
+
 ## [4.2] - 2020-09-27
 ### Added
 - Tilemap: switch to extended map system. Angel Island is now split is 3x2 regions of 128x32 tiles, defined in separate PICO-8 cartrdiges and reloaded into memory at runtime when approaching those regions. When close to 2-4 regions, an transition region is created from 2-4 patches of existing map data. Item collision and render also support this new system.
@@ -150,7 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v4.2...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.0...HEAD
+[5.0]: https://github.com/hsandt/sonic-pico8/compare/v4.2...v4.3
 [4.2]: https://github.com/hsandt/sonic-pico8/compare/v4.1...v4.2
 [4.1]: https://github.com/hsandt/sonic-pico8/compare/v4.0...v4.1
 [4.0]: https://github.com/hsandt/sonic-pico8/compare/v3.1...v4.0

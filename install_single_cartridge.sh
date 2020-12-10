@@ -26,7 +26,7 @@ fi
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="4.2"
+version="5.0"
 cartridge_suffix="$1"; shift
 config="$1"; shift
 

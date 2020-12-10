@@ -16,7 +16,7 @@ build_output_path="$(dirname "$0")/build"
 author="leyn"
 title="pico sonic - pico8 utests (all)"
 cartridge_stem="picosonic_pico8_utests_all"
-version="4.2"
+version="5.0"
 config='debug'
 symbols='assert,tostring,dump,log,p8utest'
 

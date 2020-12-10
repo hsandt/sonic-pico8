@@ -16,7 +16,7 @@ build_output_path="$(dirname "$0")/build"
 author="leyn"
 title="pico sonic itests (all)"
 cartridge_stem="picosonic_itest_all"
-version="4.2"
+version="5.0"
 config='itest'
 # symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
 # cheat needed to set debug motion mode

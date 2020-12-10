@@ -9,7 +9,7 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
-cd("picosonic/v4.2_release")
+cd("picosonic/v5.0_release")
 
 local entry_cartridge = "picosonic_titlemenu.p8"
 
@@ -47,5 +47,5 @@ end
 --  with top-left at sprite 160 (run1) => -i 160
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass ingame, stage_clear and data files as additional cartridges
-export("picosonic_v4.2_release.bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
-export("picosonic_v4.2_release.html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+export("picosonic_v5.0_release.bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+export("picosonic_v5.0_release.html "..additional_cartridges_string.." -i 160 -s 2 -c 14")

@@ -140,7 +140,7 @@ end
 
 -- return quadrant tangent right (forward) unit vector
 function player_char:get_quadrant_right()
-  return dir_vectors[rotate_dir_90_ccw(self.quadrant)]
+  return dir_vectors[(self.quadrant - 1) % 4]
 end
 
 -- return quadrant normal down (interior) unit vector

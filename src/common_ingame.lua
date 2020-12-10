@@ -4,7 +4,6 @@
 -- Usage: add require("common_ingame") at the top of each of your ingame main scripts
 --  (along with "engine/common") and in bustedhelper_ingame
 
-require("engine/core/direction_ext")
 require("engine/core/vector_ext")
 require("engine/core/table_helper")
 

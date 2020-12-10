@@ -1,6 +1,7 @@
 require("test/bustedhelper_ingame")
 require("resources/visual_ingame_addon")
 
+require("engine/core/seq_helper")
 local flow = require("engine/application/flow")
 local tilemap = require("engine/data/tilemap")
 local input = require("engine/input/input")

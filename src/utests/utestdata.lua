@@ -6,7 +6,7 @@ local collision_data = require("data/collision_data")
 -- this one is not checked although we could verify that sprites are not empty or something
 -- but it's useful to check definition sanity (e.g. animation with 0 sprites, in particular
 -- after minification if keys are not protected with ["key"] syntax)
-local playercharacter_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_data")
 
 check('sprite_id_location(1, 2) (loop top-left) should have collision flag set', function (utest_name)
   local sprite_id = sprite_id_location(1, 2):to_sprite_id()
@@ -37,10 +37,6 @@ check('tile_collision_data.read_height_array on sprite_id_location(4, 0) return 
   assert_log(utest_name, are_same_with_message({4, 4, 4, 4, 4, 4, 4, 4}, array))
 end)
 
-check('sonic_sprite_data_table preserved key "idle"', function (utest_name)
-  assert_log(utest_name, playercharacter_data.sonic_sprite_data_table["idle"] ~= nil, 'Expected playercharacter_data.sonic_sprite_data_table["idle"] to not be nil')
-end)
-
 check('sonic_animated_sprite_data_table preserved key "idle"', function (utest_name)
-  assert_log(utest_name, playercharacter_data.sonic_animated_sprite_data_table["idle"] ~= nil, 'Expected playercharacter_data.sonic_animated_sprite_data_table["idle"] to not be nil')
+  assert_log(utest_name, pc_data.sonic_animated_sprite_data_table["idle"] ~= nil, 'Expected pc_data.sonic_animated_sprite_data_table["idle"] to not be nil')
 end)

@@ -1,18 +1,28 @@
 local audio = {}
 
-local sfx_ids = {
+audio.sfx_ids = {
+  -- builtin_data_titlemenu only
+  menu_select = 50,
+  menu_confirm = 51,
+
+  -- builtin_data_ingame only
+  -- because it plays on 4th channel over low-volume bgm,
+  --  pick emerald jingle is considered an sfx
+  pick_emerald = 57,
   goal_reached = 58,
   jump = 59,
   spring_jump = 60,
-  menu_select = 61,
-  menu_confirm = 62,
+  roll = 61,
+  brake = 62,
 }
 
-local music_pattern_ids = {
-  green_hill = 0
+audio.jingle_ids = {
+  stage_clear = 41,
 }
 
-audio.sfx_ids = sfx_ids
-audio.music_pattern_ids = music_pattern_ids
+audio.music_ids = {
+  -- builtin_data_titlemenu only (overlaps stage bgm in data_bgm1.p8)
+  title = 0,
+}
 
 return audio

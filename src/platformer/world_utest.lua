@@ -1,8 +1,11 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
+require("resources/visual_ingame_addon")
+
 local world = require("platformer/world")
 
 local collision_data = require("data/collision_data")
 local tile_test_data = require("test_data/tile_test_data")
+local tile_repr = require("test_data/tile_representation")
 
 describe('world (with mock tiles data setup)', function ()
 
@@ -134,6 +137,26 @@ describe('world (with mock tiles data setup)', function ()
 
   end)
 
+  describe('get_quadrant_j_coord', function ()
+
+    it('should return loc.j when quadrant is down', function ()
+      assert.are_equal(2, world.get_quadrant_j_coord(location(1, 2), directions.down))
+    end)
+
+    it('should return loc.j when quadrant is up', function ()
+      assert.are_equal(2, world.get_quadrant_j_coord(location(1, 2), directions.up))
+    end)
+
+    it('should return loc.j when quadrant is right', function ()
+      assert.are_equal(1, world.get_quadrant_j_coord(location(1, 2), directions.right))
+    end)
+
+    it('should return loc.j when quadrant is left', function ()
+      assert.are_equal(1, world.get_quadrant_j_coord(location(1, 2), directions.left))
+    end)
+
+  end)
+
   describe('set_position_quadrant_x', function ()
 
     it('should set pos.x when quadrant is down', function ()
@@ -240,11 +263,11 @@ describe('world (with mock tiles data setup)', function ()
 
     -- this unrealistic tile is useful to check all-or-nothing in both horizontal and vertical dirs
     -- more realistically, you could have an ascending slope that only occupies the bottom-right corner of the tile
-    describe('with bottom_right_quarter_tile_id offset by 2', function ()
+    describe('with tile_repr.bottom_right_quarter_tile_id offset by 2', function ()
 
       before_each(function ()
         -- create an ascending slope 22.5 at (1, 1), i.e. (8, 14) to (15, 11) px
-        mock_mset(1, 1, bottom_right_quarter_tile_id)
+        mock_mset(1, 1, tile_repr.bottom_right_quarter_tile_id)
       end)
 
       it('should return 0 on column 3 (quadrant down)', function ()
@@ -300,7 +323,7 @@ describe('world (with mock tiles data setup)', function ()
     describe('with loop top-left tile', function ()
 
       before_each(function ()
-        mock_mset(1, 1, visual_loop_topleft)
+        mock_mset(1, 1, tile_repr.visual_loop_topleft)
       end)
 
       it('should return 8 on column 6 (quadrant down)', function ()
@@ -324,7 +347,7 @@ describe('world (with mock tiles data setup)', function ()
     describe('with half-tile', function ()
 
       before_each(function ()
-        mock_mset(1, 1, half_tile_id)
+        mock_mset(1, 1, tile_repr.half_tile_id)
       end)
 
       -- half-tile allows us to test is_rectangle case

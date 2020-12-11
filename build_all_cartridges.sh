@@ -57,5 +57,8 @@ if [[ ${#positional_args[@]} -ge 1 ]]; then
   config="${positional_args[0]}"
 fi
 
-"$game_scripts_path/build_single_cartridge.sh" titlemenu "$config"
-"$game_scripts_path/build_single_cartridge.sh" ingame "$config"
+cartridge_list="titlemenu ingame stage_clear"
+
+for cartridge in $cartridge_list; do
+  "$game_scripts_path/build_single_cartridge.sh" "$cartridge" "$config"
+done

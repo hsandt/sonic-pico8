@@ -18,7 +18,7 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu' or 'ingame'
+                            'titlemenu', 'ingame' or 'stage_clear'
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
@@ -32,7 +32,6 @@ config='debug'
 
 # Read arguments
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
-roots=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     -h | --help )

@@ -1,30 +1,26 @@
-require("engine/core/coroutine")
-local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local volume = require("engine/audio/volume")
+local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
+local rectangle = require("engine/ui/rectangle")
 
+local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
+local emerald_fx = require("ingame/emerald_fx")
+local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
-local camera_data = require("data/camera_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
-local visual = require("resources/visual")
+local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_stage = require("resources/visual_stage")
+local ui_animation = require("ui/ui_animation")
 
 local stage_state = derived_class(gamestate)
 
--- aliases (they don't need to be short, as they will be minified)
-local rectfill_ = rectfill
-
 stage_state.type = ':stage'
 
--- enums
-stage_state.substates = {
-  play = "play",     -- playing and moving around
-  result = "result"  -- result screen
-}
-
 function stage_state:init()
-  gamestate.init(self)
+  -- gamestate.init(self)  -- kept for expliciteness, but does nothing
 
   -- stage id
   self.curr_stage_id = 1
@@ -32,34 +28,35 @@ function stage_state:init()
   -- reference to current stage data (derived from curr_stage_id)
   self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
 
-  -- substate
-  self.current_substate = stage_state.substates.play
-
   -- player character
   self.player_char = nil
   -- has the player character already reached the goal once?
-  self.has_reached_goal = false
+  self.has_player_char_reached_goal = false
 
-  -- emeralds: spawned global locations list (to remember not to respawn on region reload) and
-  --  actual objects list (we remove objects when picked up)
-  -- DEPRECATED: remove spawned_emerald_locations, they shouldn't be needed since we now
-  --  spawn all objects on stage start
+  -- emeralds: spawned global locations list
   self.spawned_emerald_locations = {}
+  -- actual emerald objects list (we remove objects when picked up)
   self.emeralds = {}
+  -- set of number of emeralds picked, with format: {[number] = true} (no entry if not picked)
+  self.picked_emerald_numbers_set = {}
+  -- list of emerald pick fxs playing (currently no pooling, just add and delete)
+  self.emerald_pick_fxs = {}
 
-  -- position of the main camera, at the center of the view
-  self.camera_pos = vector.zero()
+  -- palm trees: list of global locations of palm tree leaves core sprites detected
+  -- used to draw the palm tree extension sprites on foreground
+  self.palm_tree_leaves_core_global_locations = {}
+
+  -- create camera, but wait for player character to spawn before assigning it a target
+  -- see on_enter for how we warp it to a good place first
+  self.camera = camera_class()
 
   -- title overlay
-  self.title_overlay = overlay(0)
+  self.title_overlay = overlay()
 
-  -- list of background tree delta heights (i.e. above base height),
-  --  per row, from farthest (top) to closest
-  --  (added for doc, commented out since nil does nothing)
-  -- self.tree_dheight_array_list = nil
-
-  -- list of falling leaves heights per row, from farthest (bottom) to closest
-  -- self.leaves_dheight_array_list = nil
+--#if itest
+  -- set to false in itest setup to disable object spawning, which relies on very slow map scan
+  self.enable_spawn_objects = true
+--#endif
 end
 
 function stage_state:on_enter()
@@ -69,25 +66,132 @@ function stage_state:on_enter()
 
   -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
   --  we preload all map regions on stage start and spawn
+
+--#if itest
+  -- skip this step during itests unless you specifically need to test objects e.g. picking an emerald,
+  --  as it's slow and will add considerable overhead on test start
+  if self.enable_spawn_objects then
+    self:spawn_objects_in_all_map_regions()
+  end
+--#endif
+
+--[[#pico8
+--#ifn itest
   self:spawn_objects_in_all_map_regions()
+--#endif
+--#pico8]]
 
   -- make sure to reload map region where player character will be before spawning player character,
   --  as he will need it for initial collision check
   -- region being based on camera, we need to set the camera position first
   -- anywhere near the spawning location is good (worst case, it's too far and the character
   --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
-  self.camera_pos = self.curr_stage_data.spawn_location:to_center_position()
+  -- this is currently done as part of setup_for_stage, which also stores stage data for later clamping
+  self.camera:setup_for_stage(self.curr_stage_data)
   self:check_reload_map_region()
 
-  self.current_substate = stage_state.substates.play
   self:spawn_player_char()
-  self.has_reached_goal = false
+  self.camera.target_pc = self.player_char
 
-  self.app:start_coroutine(self.show_stage_title_async, self)
+  self.has_player_char_reached_goal = false
+
+  self.app:start_coroutine(self.show_stage_splash_async, self)
+
+  -- reload bgm only once, then we can play bgm whenever we want for this stage
+  self:reload_bgm()
+  -- initial play bgm
   self:play_bgm()
 
-  -- randomize background data on stage start so it's stable during the stage
-  self:randomize_background_data()
+  self:reload_runtime_data()
+end
+
+-- reload background, HUD and character sprites from runtime data
+-- also store non-rotated and rotated sprites into general memory for swapping later
+function stage_state:reload_runtime_data()
+  -- reload runtime background+HUD sprites by copying spritesheet top from background data
+  --  cartridge to the top of the current spritesheet, just to overwrite
+  -- spritesheet starts at 0x0 in memory
+  -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
+  --  so 512 = 0x200 bytes per row,
+  --  so 1536 = 0x600 bytes
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
+  reload(0x0, 0x0, 0x600, runtime_data_path)
+
+  -- the runtime spritesheet also contains 45-degree rotated sprite variants
+  --  for Sonic walk and run cycle, meant to replace the non-rotated equivalents
+  --  in the built-in spritesheet
+  -- we don't want to reload data files (neither the built-in nor the runtime)
+  --  every time Sonic changes 1/8 rotation, so we copy both the non-rotated
+  --  and rotated variants now into in general memory, so we can swap them later
+
+  -- 1st argument of memcpy is destination, and is always general memory address
+  --  (0x4300) + some offset
+  -- first, we need to spare 0x1000 for reload_..._map_region methods
+  --  which use the general memory as temporary storage for patching operations
+  -- second, we prefer keeping memory compact by copying the sprites one after
+  --  the other in general memory, rather than following the spritesheet layout
+  --  (even if there is a hole after a rotated sprite because it made sprite
+  --  alignment look better, we don't have a similar hole in general memory)
+  -- so, we start at 0x5300 and then simply add the length of the previous memcpy
+  --  operation to get the next dest address
+
+  -- the non-rotated variants are already in current memory, so just copy them
+
+  -- the walk cycle sprites start at row 8, column 2 (counting from 0)
+  -- sprites are stored in memory line by line, 1 cell being 8x8 px, and
+  --  8px are represented by 4 bytes, so top-left address is at:
+  --  8 * 0x200 + 2 * 0x4 = 0x1008
+  -- there are 6 walk sprites of span 2x2, which don't cover the whole row of 16 cells of 8x8
+  --  and need to copy 8 * 2 = 16 partial lines over 6 * 2 = 12 cells of 8x8, which makes
+  --  12 * 4 = 48 = 0x30 bytes per line
+  -- to go to the next line, advance px by px over 16 cells (number of cells in a row)
+  --  of 8x8, which makes 16 * 4 = 64 = 0x40 (it's also 0x200 / 8 since 0x200 advances
+  --  by 1 full row of sprites, each sprite containing 8 lines)
+
+  -- we don't have to keep the same structure in general memory, as we don't debug it
+  --  visually, which means we can just paste partial lines of 0x30 one after the other
+  --  for the most compact memory (but represented with line breaks every 0x40 like
+  --  the spritesheet, it would look garbage due to the offset of 0x10 every line)
+  -- we could also keep the structure aligned by pasting every 0x40, then to fill the holes
+  --  (2 sprites of span 2x2 left at the end), we could place 2 run cycle sprites
+  --  but we'd still need to place the remaining 2 run cycle sprites 2 rows below,
+  --  occupying 2 partial lines, and if we want to use general memory for non-sprite
+  --  data later then we don't have the most compact memory as we'd have holes for each
+  --  partial line but the last one
+
+  -- the run cycle sprites follow the same logic, but they start at row 10, column 0,
+  --  and there are 4 sprites of span 2x2, so their topleft address is at:
+  --  10 * 0x200 = 0x1400
+  -- and we need 8 * 2 = 16 partial lines over 4 * 2 = 8 cells of 8x8,
+  --  so 8 * 4 = 32 = 0x20 bytes per line
+
+  -- to make code shorter, let's copy in parallel the 16 lines for the walk and run sprites
+  -- each time, we advance dest address by the same value as copied length, so 0x30 and 0x20
+  --  resp.
+  for i = 0, 15 do
+    -- 6 walk cycle sprites
+    memcpy(0x5300 + i * 0x30, 0x1008 + i * 0x40, 0x30)
+
+    -- 4 run cycle sprites
+    memcpy(0x5600 + i * 0x20, 0x1400 + i * 0x40, 0x20)
+  end
+
+  -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
+  -- the dest addresses start just after the last memcpy above, at 0x5800
+  -- from here, the same principle applies, but the dest addresses are offset by 0x300
+  --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
+  --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
+
+  for i = 0, 15 do
+    -- 6 walk cycle sprites (rotated)
+    reload(0x5800 + i * 0x30, 0x1008 + i * 0x40, 0x30, runtime_data_path)
+
+    -- 4 run cycle sprites (rotated)
+    reload(0x5b00 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)
+  end
+
+  -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
+  --  so we just have a little margin!
 end
 
 function stage_state:on_exit()
@@ -97,7 +201,7 @@ function stage_state:on_exit()
 
   -- clear object state vars
   self.player_char = nil
-  self.title_overlay:clear_labels()
+  self.title_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -107,22 +211,25 @@ function stage_state:on_exit()
 end
 
 function stage_state:update()
-  if self.current_substate == stage_state.substates.play then
-    self.player_char:update()
-    self:check_reached_goal()
-    self:update_camera()
-    self:check_reload_map_region()
-  else
-    -- add stage ending logic here
+  self:update_fx()
+  self.player_char:update()
+
+  self:check_reached_goal()
+
+  if self.goal_plate then
+    self.goal_plate:update()
   end
+
+  self.camera:update()
+  self:check_reload_map_region()
 end
 
 function stage_state:render()
-  camera()
-
-  self:render_background()
+  visual_stage.render_background(self.camera.position)
   self:render_stage_elements()
-  self:render_title_overlay()
+  self:render_fx()
+  self:render_hud()
+  self:render_overlay()
 end
 
 
@@ -183,48 +290,78 @@ function stage_state:spawn_player_char()
   self.player_char:spawn_at(spawn_position)
 end
 
--- replace emerald representative sprite (the left part with most of the pixels)
---  with an actual emerald object, to make it easier to recolor and pick up
--- ! VERY SLOW !
--- it's not perceptible at runtime, but consider stubbing it when unit testing
---  while entering stage state in before_each, or you'll waste around 0.5s each time
--- alternatively, you may bake stage data (esp. emerald positions) in a separate object
---  (that doesn't get reset with stage_state) and reuse it whenever you want
-function stage_state:spawn_new_emeralds()
-  -- to be precise, visual.sprite_data_t.emerald is the full sprite data of the emerald
-  --  (with a span of (2, 1)), but in our case the representative sprite of emeralds used
-  --  in the tilemap is at the topleft of the full sprite, hence also the id_loc
-  local emerald_repr_sprite_id = visual.sprite_data_t.emerald.id_loc:to_sprite_id()
+function stage_state:spawn_emerald_at(global_loc)
+  -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
+  --  and won't be drawn at all
+  -- besides, the emerald tiles would come back on next region reload anyway
+  --  (hence the importance of tracking emeralds already spawned)
+
+  -- remember where you spawned that emerald, in global location so that we can keep track
+  --  of all emeralds across the extended map
+  -- note that release only uses the length of this sequence for render_hud
+  --  but the actual locations are used for #cheat warp_to_emerald_by
+  --  and it's not worth keeping just the count on release and the locations besides on #cheat,
+  --  so we just keep the locations (if pooling/deactivating emeralds on pick up instead of
+  --  destroying them, we'd have a single list with all the information + active bool)
+  add(self.spawned_emerald_locations, global_loc)
+
+  -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
+  --  when changing region)
+  -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
+  --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
+
+  -- aesthetics note: the number depends on the order in which emeralds are discovered
+  -- but regions are always preloaded for object spawning in the same order, so
+  -- for given emerald locations, their colors are deterministic
+  add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+  log("added emerald #"..#self.emeralds, "emerald")
+end
+
+function stage_state:spawn_palm_tree_leaves_at(global_loc)
+  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+  add(self.palm_tree_leaves_core_global_locations, global_loc)
+  log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
+end
+
+function stage_state:spawn_goal_plate_at(global_loc)
+  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+  assert(self.goal_plate == nil, "stage_state:spawn_goal_plate_at: goal plate already spawned!")
+  self.goal_plate = goal_plate(global_loc)
+  log("added goal plate at "..global_loc, "goal")
+end
+
+-- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
+stage_state.spawn_object_callbacks_by_tile_id = {
+  [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
+  [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
+  [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+}
+
+-- proxy for table above, mostly to ease testing
+function stage_state:get_spawn_object_callback(tile_id)
+  return stage_state.spawn_object_callbacks_by_tile_id[tile_id]
+end
+
+-- iterate over each tile of the current region
+--  and apply method callback for each of them (to spawn objects, etc.)
+--  the method callback but take self, a global tile location and the sprite id at this location
+function stage_state:scan_current_region_to_spawn_objects()
   for i = 0, map_region_tile_width - 1 do
     for j = 0, map_region_tile_height - 1 do
       -- here we already have region (i, j), so no need to convert for mget
       local tile_sprite_id = mget(i, j)
 
-      -- we do need to convert for spawn global locations tracking though
-      local region_loc = location(i, j)
-      local global_loc = self:region_to_global_location(region_loc)
+      local spawn_object_callback = self:get_spawn_object_callback(tile_sprite_id)
 
-      if tile_sprite_id == emerald_repr_sprite_id and not seq_contains(self.spawned_emerald_locations, global_loc) then
-        -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
-        --  and won't be drawn at all
-        -- besides, the emerald tiles would come back on next region reload anyway
-        --  (hence the importance of tracking emeralds already spawned)
+      if spawn_object_callback then
+        -- tile has been recognized as a representative tile for object spawning
+        --  apply callback now
 
-        -- remember where you spawned that emerald, in global location so that we can keep track
-        --  of all emeralds across the extended map
-        add(self.spawned_emerald_locations, global_loc)
-
-        -- spawn emerald object and store it is sequence member (unlike tiles, objects are not unloaded
-        --  when changing region)
-        -- since self.emeralds may shrink when we pick emeralds, don't count on its length,
-        --  use #self.spawned_emerald_locations instead (no +1 since we've just added an element)
-
-        -- aesthetics note: the number depends on the order in which emeralds are discovered
-        -- but regions are always preloaded for object spawning in the same order, so
-        -- for given emerald locations, their colors are deterministic
-        add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
-
-        log("added emerald #"..#self.emeralds, "emerald")
+        -- we do need to convert location now since spawn methods work in global coordinates
+        local region_loc = location(i, j)
+        local global_loc = self:region_to_global_location(region_loc)
+        spawn_object_callback(self, global_loc, tile_sprite_id)
       end
     end
   end
@@ -430,12 +567,12 @@ function stage_state:reload_map_region(new_map_region_coords)
 
   if new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 == 0 then
     -- integer coordinates => solo region
-    log("reload map region: single", "reload")
+    log("reload map region: "..new_map_region_coords.." (single)", "reload")
 
     reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(u_left, v_upper))
   elseif new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 ~= 0 then
     -- fractional y => vertically overlapping region (2 patches)
-    log("reload map region: Y overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (Y overlap)", "reload")
 
     -- copy lower part of map region above to upper part of map memory
     self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
@@ -443,7 +580,7 @@ function stage_state:reload_map_region(new_map_region_coords)
     self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
   elseif new_map_region_coords.x % 1 ~= 0 and new_map_region_coords.y % 1 == 0 then
     -- fractional x => horizontally overlapping region (2 patches)
-    log("reload map region: X overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (X overlap)", "reload")
 
     -- copy right part of left map region to left part of map memory
     self:reload_horizontal_half_of_map_region(horizontal_dirs.left, self:get_map_region_filename(u_left, v_upper))
@@ -451,7 +588,7 @@ function stage_state:reload_map_region(new_map_region_coords)
     self:reload_horizontal_half_of_map_region(horizontal_dirs.right, self:get_map_region_filename(u_left + 1, v_upper))
   else
     -- fractional x & y => cross overlapping region (4 patches)
-    log("reload map region: cross overlap", "reload")
+    log("reload map region: "..new_map_region_coords.." (cross overlap)", "reload")
     -- copy to temp memory, but with 4 files this time
 
     -- copy bottom-right quarter of top-left map to top-left
@@ -476,7 +613,7 @@ function stage_state:check_reload_map_region()
   --    know where to search tile data with correct region origin
   -- 2. if camera moves away from player a bit too much, we are sure never to discover empty tiles
   --    in unloaded areas as the regions would be loaded by tracking camera movement
-  local new_map_region_coords = self:get_map_region_coords(self.camera_pos)
+  local new_map_region_coords = self:get_map_region_coords(self.camera.position)
 
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
@@ -491,9 +628,9 @@ function stage_state:spawn_objects_in_all_map_regions()
   -- only load full regions not transition regions, that will be enough to cover all tiles
   for u = 0, region_count_per_row - 1 do
     for v = 0, region_count_per_column - 1 do
+      -- load region and scan it for any object to spawn
       self:reload_map_region(vector(u, v))
-      -- load any *new* items detected in this region
-      self:spawn_new_emeralds()
+      self:scan_current_region_to_spawn_objects()
     end
   end
 end
@@ -547,9 +684,54 @@ function stage_state:check_emerald_pick_area(position)
 end
 
 function stage_state:character_pick_emerald(em)
+  -- add emerald number to picked set
+  self.picked_emerald_numbers_set[em.number] = true
+
+  -- add emerald pick FX at emerald position and play it immediately
+  local pfx = emerald_fx(em.number, em.location:to_center_position())
+  add(self.emerald_pick_fxs, pfx)
+
   -- remove emerald from sequence (use del to make sure
   --  later object indices are decremented)
   del(self.emeralds, em)
+
+  self.app:start_coroutine(self.play_pick_emerald_jingle_async, self)
+end
+
+-- pause bgm, play pick emerald jingle and resume bgm
+function stage_state:play_pick_emerald_jingle_async()
+  -- reduce bgm volume by half (notes have volume from 0 to 4, so decrement all sound volumes by 2)
+  --  to make the pick emerald jingle stand out
+  -- the music sfx take maximum 50 entries (out of 64), so cover all tracks from 0 to 49
+  volume.decrease_volume_for_track_range(0, 49, 2)
+
+  -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
+  -- this has high priority so we don't use sound.play_low_priority_sfx unlike PC SFX,
+  --  and music occupies channels 0-2 so it will automatically pick channel 3
+  sfx(audio.sfx_ids.pick_emerald)
+
+  -- TODO: add a flag that protect the jingle as top-priority SFX
+  --  or check stat(19) before playing an SFX so no minor SFX covers it
+
+  -- wait for jingle to end
+  -- 1 measure (1 column = 8 notes in SFX editor) at SPD 16 lasts 16/15 = 1.0666s
+  --  or to be more exact with frames, 16 * 60/15 = 16*4 = 64 frames
+  -- however, we want at the same time to start resetting bgm volume to normal (since player
+  --  won't hear the step-by-step volume transition too much during the end of the jingle),
+  --  so only wait 48 frames for now, then the remaining 16 frames after we incremented bgm
+  --  volume once
+  yield_delay(48)
+
+  -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
+  --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
+  --  then reset without decrementing to retrieve the original volume
+  self:reload_bgm_tracks()
+  volume.decrease_volume_for_track_range(0, 49, 1)
+
+  -- wait the remaining 16 frames, the jingle should have ended just after that
+  yield_delay(16)
+
+  self:reload_bgm_tracks()
 end
 
 -- return (top_left, bottom_right) positions from an entrance area: location_rect
@@ -609,72 +791,105 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
 end
 
 function stage_state:check_reached_goal()
-  if not self.has_reached_goal and
-      self.player_char.position.x >= self.curr_stage_data.goal_x then
-    self.has_reached_goal = true
-    self.app:start_coroutine(self.on_reached_goal_async, self)
+  if not self.has_player_char_reached_goal and self.goal_plate and
+--[[#pico8
+--#if ultrafast
+      -- ultrafast to immediately finish stage and test stage clear routine
+      true then
+--#endif
+--#pico8]]
+--#ifn ultrafast
+      self.player_char.position.x >= self.goal_plate.global_loc:to_center_position().x then
+--#endif
+    self.has_player_char_reached_goal = true
+
+
+    self.app:start_coroutine(stage_state.on_reached_goal_async, self)
   end
 end
 
 function stage_state:on_reached_goal_async()
+  -- make character move right to exit the screen
+  self.player_char:force_move_right()
+
+  -- play goal plate animation and wait for it to end
   self:feedback_reached_goal()
-  self.current_substate = stage_state.substates.result
+  yield_delay(stage_data.goal_rotating_anim_duration)
+  self.goal_plate.anim_spr:play("sonic")
+
   self:stop_bgm(stage_data.bgm_fade_out_duration)
-  self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
-  self:back_to_titlemenu()
+  self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
+
+  -- take advantage of the dead time to load the stage_clear cartridge,
+  --  which is a super-stripped version of ingame that doesn't know about
+  --  player character, dynamic camera, stage items (except goal plate), etc.
+  --  and only renders the stage clear sequence with the stage environment still visible
+  -- we assume the character has exited the screen and camera is properly centered on goal plate
+  --  at this point, so the player won't notice a glitch during the transition
+
+  -- just before the load the new cartridge, we just need to store the player progress
+  --  in some memory address that is not reset on cartridge loading
+  self:store_picked_emerald_data()
+
+  -- finally advance to stage clear sequence on new cartridge
+  load('picosonic_stage_clear.p8')
+end
+
+function stage_state:store_picked_emerald_data()
+  -- general memory is a good fit to store data across cartridges,
+  --  although this behavior is undocumented
+  -- we could also use persistent memory, considering we may save emeralds collected by player
+  --  on next run (but for now we don't, so player always starts game from zero)
+  -- note that Sonic is not visible so we don't mind overwriting the memory at 0x4300
+  --  which during ingame contains rotated and non-rotated sprite variants
+  -- convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
+  -- there are 8 emeralds so we need 1 bytes, but we can combine them in one
+  --  2-byte value and store it at once with length 2
+  local picked_emerald_bytes = 0
+  for i = 1, 8 do
+    if self.picked_emerald_numbers_set[i] then
+      -- technically we want bor (|), but + is shorter to write and equivalent in this case
+      picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
+    end
+  end
+  poke(0x4300, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()
+  self.goal_plate.anim_spr:play("rotating")
+
+  -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
 
-function stage_state:back_to_titlemenu()
-  load('picosonic_titlemenu.p8')
+-- fx
+
+function stage_state:update_fx()
+  local to_delete = {}
+
+  for pfx in all(self.emerald_pick_fxs) do
+    pfx:update()
+
+    if not pfx:is_active() then
+      add(to_delete, pfx)
+    end
+  end
+
+  for pfx in all(to_delete) do
+    del(self.emerald_pick_fxs, pfx)
+  end
+end
+
+function stage_state:render_fx()
+  self:set_camera_with_origin()
+
+  for pfx in all(self.emerald_pick_fxs) do
+    pfx:render()
+  end
 end
 
 
 -- camera
-
--- update camera position based on player character position
-function stage_state:update_camera()
-  -- windowed motion: only move camera when character is leaving the central window
-  -- unlike original game we simply use the current center position even when compact (curled)
-  --  instead of the ghost standing center position
-  -- instead of using if/else-if with boundaries, just clamp with mid to the required window
-  self.camera_pos.x = mid(self.camera_pos.x,
-    self.player_char.position.x - camera_data.window_half_width,
-    self.player_char.position.x + camera_data.window_half_width)
-
-  if self.player_char:is_grounded() then
-    -- on the ground, stick to y as much as possible
-    local target_y = self.player_char.position.y - camera_data.window_center_offset_y
-    local dy = target_y - self.camera_pos.y
-
-    -- clamp abs dy with catchup speed (which depends on ground speed)
-    local catchup_speed = abs(self.player_char.ground_speed) < camera_data.fast_catchup_min_ground_speed and
-      camera_data.slow_catchup_speed or camera_data.fast_catchup_speed
-    dy = sgn(dy) * min(abs(dy), catchup_speed)
-
-    -- apply move
-    self.camera_pos.y = self.camera_pos.y + dy
-  else
-    -- in the air apply vertical window (stick to top and bottom edges)
-    local target_y = mid(self.camera_pos.y,
-      self.player_char.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
-      self.player_char.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
-    local dy = target_y - self.camera_pos.y
-
-    -- clamp abs dy with fast catchup speed
-    dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed)
-
-    -- apply move
-    self.camera_pos.y = self.camera_pos.y + dy
-  end
-
-  -- clamp on level edges (we are handling the center so need offset by screen_width/height)
-  self.camera_pos.x = mid(screen_width / 2, self.camera_pos.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  self.camera_pos.y = mid(screen_height / 2, self.camera_pos.y, self.curr_stage_data.tile_height * tile_size - screen_height / 2)
-end
 
 -- set the camera offset to draw stage elements with optional origin (default (0, 0))
 -- tilemap should be drawn with region map topleft (in px) as origin
@@ -684,218 +899,60 @@ function stage_state:set_camera_with_origin(origin)
   -- the camera position is used to render the stage. it represents the screen center
   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
   -- finally subtract the origin to place tiles correctly
-  camera(self.camera_pos.x - screen_width / 2 - origin.x, self.camera_pos.y - screen_height / 2 - origin.y)
+  camera(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
+end
+
+-- set the camera offset to draw stage elements with region origin
+--  use this to draw tiles with relative location
+function stage_state:set_camera_with_region_origin()
+  local region_topleft_loc = self:get_region_topleft_location()
+  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
 end
 
 
 -- ui
 
-function stage_state:show_stage_title_async()
-  self.title_overlay:add_label("title", self.curr_stage_data.title, vector(50, 30), colors.white)
-  self.app:yield_delay_s(stage_data.show_stage_title_delay)
-  self.title_overlay:remove_label("title")
+function stage_state:show_stage_splash_async()
+  self.app:yield_delay_s(stage_data.show_stage_splash_delay)
+
+  -- FIXME: draw iteration order not guaranteed, pico-sonic may be hidden "below" banner
+
+  -- init position y is -height so it starts just at the screen top edge
+  local banner = rectangle(vector(9, -106), 32, 106, colors.red)
+  self.title_overlay:add_drawable("banner", banner)
+
+  -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
+  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
+  self.title_overlay:add_drawable("banner_text", banner_text)
+
+  -- make banner enter from the top
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
+
+  local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
+  self.title_overlay:add_drawable("zone_rect", zone_rectangle)
+
+  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
+  self.title_overlay:add_drawable("zone", zone_label)
+
+  -- make text enter from the right
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
+
+  -- keep zone displayed for a moment
+  yield_delay(102)
+
+  -- make banner exit to the top
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
+
+  -- make text exit to the right
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
+
+  self.title_overlay:remove_drawable("banner")
+  self.title_overlay:remove_drawable("banner_text")
+  self.title_overlay:remove_drawable("zone")
 end
 
 
 -- render
-local function draw_full_line(y, c)
-  line(0, y, 127, y, c)
-end
-
--- render the stage background
-function stage_state:render_background()
-  camera()
-
-  -- dark blue sky + sea
-  -- (in stage data, but actually the code below only makes sense
-  --  for stage with jungle/sea background)
-  rectfill_(0, 0, 127, 127, colors.dark_blue)
-
-  -- horizon line is very bright
-  local horizon_line_y = 90 - 0.5 * self.camera_pos.y
-  -- blue line above horizon line
-  draw_full_line(horizon_line_y - 1, colors.blue)
-  -- white horizon line
-  draw_full_line(horizon_line_y, colors.white)
-  draw_full_line(horizon_line_y + 1, colors.indigo)
-
-  -- clouds in the sky, from lowest to highest (and biggest)
-  local cloud_dx_list_per_j = {
-    {0, 60, 140, 220},
-    {30, 150, 240},
-    {10, 90, 210},
-    {50, 130}
-  }
-  local dy_list_per_j = {
-    {0, 0, -1, 0},
-    {0, -1, -1, 0},
-    {0, -1, 1, 0},
-    {0, 1, -1, 1}
-  }
-  for j = 0, 3 do
-    for cloud_dx in all(cloud_dx_list_per_j[j + 1]) do
-      self:draw_cloud(cloud_dx, horizon_line_y - --[[dy0]] 8.9 - --[[dy_mult]] 14.7 * j,
-        dy_list_per_j[j + 1], --[[r0]] 2 + --[[r_mult]] 0.9 * j,
-        --[[speed0]] 3 + --[[speed_mult]] 3.5 * j)
-    end
-  end
-
-  -- shiny reflections in water
-  -- vary y
-  local reflection_dy_list = {4, 3, 6, 2, 1, 5}
-  local period_list = {0.7, 1.5, 1.2, 1.7, 1.1}
-  -- parallax speed of (relatively) close reflection (dy = 6)
-  local water_parallax_speed_max = 0.015
-  -- to cover up to ~127 with intervals of 6,
-  --  we need i up to 21 since 21*6 = 126
-  for i = 0, 21 do
-    local dy = reflection_dy_list[i % 6 + 1]
-    local y = horizon_line_y + 2 + dy
-    -- elements farther from camera have slower parallax speed, closest has base parallax speed
-    -- clamp in case some y are bigger than 6, but it's better if you can adjust to max of
-    --  reflection_dy_list so max is still max and different dy give different speeds
-    -- we have speed 0 at the horizon line, so no need to compute min
-    -- note that real optics would give some 1 / tan(distance) factor but linear is enough for us
-    local parallax_speed = water_parallax_speed_max * min(6, dy) / 6
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    self:draw_water_reflections(parallax_offset, 6 * i, y, period_list[i % 5 + 1])
-  end
-
-  -- under the trees background
-  rectfill_(0, horizon_line_y + 50, 127, horizon_line_y + 50 + screen_height, colors.dark_green)
-
-  -- tree/leaves data
-
-  -- parallax speed of farthest row
-  local tree_row_parallax_speed_min = 0.3
-  -- parallax speed of closest row
-  local tree_row_parallax_speed_max = 0.42
-  local tree_row_parallax_speed_range = tree_row_parallax_speed_max - tree_row_parallax_speed_min
-
-  -- for max parallax speed, reuse the one of trees
-  -- indeed, if you play S3 Angel Island, you'll notice that the highest falling leave row
-  --  is actually the same sprite as the closest tree top (which is really just a big green patch)
-  -- due to a small calculation error the final speeds end slightly different, so if you really
-  --  want both elements to move exactly together, prefer drawing a long line from tree top to leaf bottom
-  --  in a single draw_tree_and_leaves function
-  -- however we use different speeds for farther leaves
-  local leaves_row_parallax_speed_min = 0.36
-  local leaves_row_parallax_speed_range = tree_row_parallax_speed_max - leaves_row_parallax_speed_min
-
-  -- leaves (before trees so trees can hide some leaves with base height too long if needed)
-  for j = 0, 1 do
-    local parallax_speed = leaves_row_parallax_speed_min + leaves_row_parallax_speed_range * j  -- actually j / 1 where 1 is max j
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    -- first patch of leaves chains from closest trees, so no base height
-    --  easier to connect and avoid hiding closest trees
-    self:draw_leaves_row(parallax_offset, horizon_line_y + 33 + --[[leaves_row_dy_mult]] 18 * (1 - j), --[[leaves_base_height]] 21, self.leaves_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
-  end
-
-  -- tree rows
-  for j = 0, 3 do
-    -- elements farther from camera have slower parallax speed, closest has base parallax speed
-    local parallax_speed = tree_row_parallax_speed_min + tree_row_parallax_speed_range * j / 3
-    local parallax_offset = flr(parallax_speed * self.camera_pos.x)
-    -- tree_base_height ensures that trees have a bottom part long enough to cover the gap with the trees below
-    self:draw_tree_row(parallax_offset, horizon_line_y + 29 + --[[tree_row_dy_mult]] 8 * j, --[[tree_base_height]] 10,
-      self.tree_dheight_array_list[j + 1], j % 2 == 0 and colors.green or colors.dark_green)
-  end
-end
-
-function stage_state:draw_cloud(x, y, dy_list, base_radius, speed)
-  -- indigo outline (prefer circfill to circ to avoid gaps
-  --  between inside and outline for some values)
-  local offset_x = t() * speed
-  -- we make clouds cycle horizontally but we don't want to
-  --  make them disappear as soon as they reach the left edge of the screen
-  --  so we take a margin of 100px (must be at least cloud width)
-  --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
-  --  where extra margin is to avoid having cloud spawning immediately on screen right
-  --  edge)
-
-  -- clouds move to the left
-  x0 = (x - offset_x + 100) % 300 - 100
-
-  local dx_rel_to_r_list = {0, 1.5, 3, 4.5}
-  local r_mult_list = {0.8, 1.4, 1.1, 0.7}
-
-  -- indigo outline
-  for i=1,4 do
-    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius + 1, colors.indigo)
-  end
-
-  -- white inside
-  for i=1,4 do
-    circfill(x0 + flr(dx_rel_to_r_list[i] * base_radius), y + dy_list[i], r_mult_list[i] * base_radius, colors.white)
-  end
-end
-
-function stage_state:draw_water_reflections(parallax_offset, x, y, period)
-  -- animate reflections by switching colors over time
-  local ratio = (t() % period) / period
-  local c1, c2
-  if ratio < 0.2 then
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  elseif ratio < 0.4 then
-    c1 = colors.white
-    c2 = colors.blue
-  elseif ratio < 0.6 then
-    c1 = colors.blue
-    c2 = colors.dark_blue
-  elseif ratio < 0.8 then
-    c1 = colors.blue
-    c2 = colors.white
-  else
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  end
-  pset((x - parallax_offset) % screen_width, y, c1)
-  pset((x - parallax_offset + 1) % screen_width, y, c2)
-end
-
-function stage_state:randomize_background_data()
-  self.tree_dheight_array_list = {}
-  for j = 1, 4 do
-    self.tree_dheight_array_list[j] = {}
-    -- longer periods on closer tree rows (also removes the need for offset
-    --  to avoid tree rows sin in sync, although parallax will offset anyway)
-    local period = 20 + 10 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of sin min threshold with random peaks
-      self.tree_dheight_array_list[j][i] = flr(3 * abs(sin(i/period)) + rnd(8))
-    end
-  end
-
-  self.leaves_dheight_array_list = {}
-  for j = 1, 2 do
-    self.leaves_dheight_array_list[j] = {}
-    -- longer periods on closer leaves
-    local period = 70 + 35 * (j-1)
-    for i = 1, 64 do
-      -- shape of trees are a kind of broad sin random peaks
-      self.leaves_dheight_array_list[j][i] = flr(9 * abs(sin(i/period)) + rnd(4))
-    end
-  end
-end
-
-function stage_state:draw_tree_row(parallax_offset, y, base_height, dheight_array, color)
-  local size = #dheight_array
-  for x = 0, 127 do
-    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
-    -- draw vertical line from bottom to (variable) top
-    line(x, y, x, y - height, color)
-  end
-end
-
-function stage_state:draw_leaves_row(parallax_offset, y, base_height, dheight_array, color)
-  local size = #dheight_array
-  for x = 0, 127 do
-    local height = base_height + dheight_array[(x + parallax_offset) % size + 1]
-    -- draw vertical line from top to (variable) bottom
-    line(x, y, x, y + height, color)
-  end
-end
 
 -- render the stage elements with the main camera:
 -- - environment
@@ -903,76 +960,38 @@ end
 function stage_state:render_stage_elements()
   self:render_environment_midground()
   self:render_emeralds()
+  self:render_goal_plate()
   self:render_player_char()
   self:render_environment_foreground()
 --#if debug_trigger
   self:debug_render_trigger()
+--#endif
+--#if debug_character
+  self.player_char:debug_draw_rays()
 --#endif
 end
 
 -- global <-> region location converters
 
 function stage_state:global_to_region_location(global_loc)
-  return global_loc - self:get_region_topleft_uv()
+  return global_loc - self:get_region_topleft_location()
 end
 
 function stage_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_uv()
+  return region_loc + self:get_region_topleft_location()
 end
 
 -- same kind of helper, but for mset
 function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
-  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_uv()
+  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_location()
   mset(region_loc.i, region_loc.j, sprite_id)
 end
 
-function stage_state:get_region_topleft_uv()
-  -- compute map region topleft in world tile coordinates so we draw tiles for this region
-  --  with the right offset
+-- return current region topleft as location (convert uv to ij)
+function stage_state:get_region_topleft_location()
   -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
   --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
   return location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
-end
-
--- draw all tiles entirely or partially on-screen if they verify condition_callback: function(i, j) -> bool
---  where (i, j) is the location of the tile to possibly draw
-function stage_state:draw_onscreen_tiles(condition_callback)
-  -- get screen corners
-  local screen_topleft = self.camera_pos - vector(screen_width / 2, screen_height / 2)
-  local screen_bottomright = self.camera_pos + vector(screen_width / 2, screen_height / 2)
-
-  local region_topleft_uv = self:get_region_topleft_uv()
-
-  -- set camera offset to take region topleft into account
-  -- this way we don't have to add that offset to spr() on every call
-  self:set_camera_with_origin(vector(tile_size * region_topleft_uv.i, tile_size * region_topleft_uv.j))
-
-  -- find which tiles are bordering the screen and define boundary locations
-  -- camera is not supposed to show things beyond the map
-  --  but just in case, clamp tiles to defined map to avoid avoid shared sprite data
-  local screen_left_i = flr(screen_topleft.x / tile_size) - region_topleft_uv.i
-  screen_left_i = max(0, screen_left_i)
-
-  local screen_right_i = flr((screen_bottomright.x - 1) / tile_size) - region_topleft_uv.i
-  screen_left_i = min(screen_left_i, 127)
-
-  local screen_top_j = flr(screen_topleft.y / tile_size) - region_topleft_uv.j
-  screen_top_j = max(0, screen_top_j)
-
-  local screen_bottom_j = flr((screen_bottomright.y - 1) / tile_size) - region_topleft_uv.j
-  screen_bottom_j = min(screen_bottom_j, 32)
-
-  -- only draw tiles that are inside or partially on screen,
-  --  and on midground layer
-  for i = screen_left_i, screen_right_i do
-    for j = screen_top_j, screen_bottom_j do
-      local sprite_id = mget(i, j)
-      -- don't bother checking empty tile 0, otherwise delegate check to condition callback, if any
-      if sprite_id ~= 0 and (condition_callback == nil or condition_callback(i, j)) then
-        spr(sprite_id, tile_size * i, tile_size * j)
-      end
-    end
-  end
 end
 
 -- render the stage environment (tiles)
@@ -984,28 +1003,44 @@ function stage_state:render_environment_midground()
   --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
 
-  -- only draw onscreen midground tiles that are not loop entrance (they'll be drawn on foreground later)
-  self:draw_onscreen_tiles(function (i, j)
-    local sprite_id = mget(i, j)
-    local global_tile_location = self:region_to_global_location(location(i, j))
-    return fget(sprite_id, sprite_flags.midground) and not self:is_tile_in_loop_entrance(global_tile_location)
-  end)
-
-  -- goal as vertical line
-  rectfill_(self.curr_stage_data.goal_x, 0, self.curr_stage_data.goal_x + 5, 15*8, colors.yellow)
+  -- only draw midground tiles
+  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
+  self:set_camera_with_region_origin()
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
 end
 
 function stage_state:render_environment_foreground()
   set_unique_transparency(colors.pink)
 
-  -- draw tiles always on foreground and alsotiles normally on midground
-  --  but put to foreground as part of loop entrance
-  self:draw_onscreen_tiles(function (i, j)
-    local sprite_id = mget(i, j)
-    local global_tile_location = self:region_to_global_location(location(i, j))
-    return fget(sprite_id, sprite_flags.foreground) or
-      fget(sprite_id, sprite_flags.midground) and self:is_tile_in_loop_entrance(global_tile_location)
-  end)
+  -- draw tiles always on foreground first
+  self:set_camera_with_region_origin()
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
+
+  local region_topleft_loc = self:get_region_topleft_location()
+
+  -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
+  --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
+  --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
+  self:set_camera_with_origin()
+  for area in all(self.curr_stage_data.loop_entrance_areas) do
+    -- draw map subset just for the loop entrance
+    -- if this is out-of-screen, map will know it should draw nothing so this is very performant already
+    map(area.left - region_topleft_loc.i, area.top - region_topleft_loc.j,
+        tile_size * area.left, tile_size * area.top,
+        area.right - area.left + 1, area.bottom - area.top + 1,
+        sprite_masks.midground)
+  end
+
+  -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
+  for global_loc in all(self.palm_tree_leaves_core_global_locations) do
+    -- top has pivot at its bottom-left = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_top:render(global_loc:to_topleft_position())
+    -- right has pivot at is bottom-left = the top-right of the core
+    local right_global_loc = global_loc + location(1, 0)
+    visual.sprite_data_t.palm_tree_leaves_right:render(right_global_loc:to_topleft_position())
+    -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
+  end
 end
 
 -- render the player character at its current position
@@ -1019,7 +1054,6 @@ end
 -- render the stage triggers
 function stage_state:debug_render_trigger()
   self:set_camera_with_origin()
-
 
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     local ext_entrance_trigger_top_left, ext_entrance_bottom_right = stage_state.compute_external_entrance_trigger_corners(area)
@@ -1042,20 +1076,73 @@ function stage_state:render_emeralds()
   end
 end
 
--- render the title overlay with a fixed ui camera
-function stage_state:render_title_overlay()
-  camera(0, 0)
-  self.title_overlay:draw_labels()
+-- render the goal plate upper body
+function stage_state:render_goal_plate()
+  if self.goal_plate then
+    self:set_camera_with_origin()
+    self.goal_plate:render()
+  end
 end
 
+-- render the hud:
+--  - emeralds obtained
+--  - character debug info (#debug_character only)
+function stage_state:render_hud()
+  -- HUD is drawn directly in screen coordinates
+  camera()
+
+  -- draw emeralds obtained at top-left of screen, in order from left to right,
+  --  with the right color
+  for i = 1, #self.spawned_emerald_locations do
+    local draw_position = vector(-4 + 10 * i, 6)
+    if self.picked_emerald_numbers_set[i] then
+      emerald.draw(i, draw_position)
+    else
+      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
+      emerald.draw(-1, draw_position)
+    end
+  end
+
+--#if debug_character
+  self.player_char:debug_print_info()
+--#endif
+end
+
+-- render the title overlay with a fixed ui camera
+function stage_state:render_overlay()
+  camera()
+  self.title_overlay:draw()
+end
 
 -- audio
 
+function stage_state:reload_bgm()
+  -- reload music patterns from bgm cartridge memory
+  -- we guarantee that the bgm will take maximum 40 patterns (out of 64)
+  --  => 40 * 4 = 160 = 0xa0 bytes
+  -- the bgm should start at pattern 0 on both source and
+  --  current cartridge, so use copy memory from the start of music section
+  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
+
+  -- we also need the music sfx referenced by the patterns
+  self:reload_bgm_tracks()
+end
+
+function stage_state:reload_bgm_tracks()
+  -- reload sfx from bgm cartridge memory
+  -- we guarantee that the music sfx will take maximum 50 entries (out of 64)
+  --  => 50 * 68 = 3400 = 0xd48 bytes
+  -- the bgm sfx should start at index 0 on both source and
+  --  current cartridge, so use copy memory from the start of sfx section
+  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+end
+
 function stage_state:play_bgm()
   -- only 4 channels at a time in PICO-8
-  -- set music channel mask (priority over SFX) to everything but 1,
-  --  which is a nice bass (at least with current GHZ BGM)
-  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 2) + shl(1, 3))
+  -- Angel Island BGM currently uses only 3 channels so t's pretty safe
+  --  as there is always a channel left for SFX, but in case we add a 4th one
+  --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
+  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 function stage_state:stop_bgm(fade_duration)
@@ -1067,8 +1154,5 @@ function stage_state:stop_bgm(fade_duration)
   end
   music(-1, fade_duration_ms)
 end
-
-
--- export
 
 return stage_state

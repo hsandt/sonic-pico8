@@ -1,10 +1,14 @@
 -- main entry file for the ingame cartridge
---  game states: titlemenu, credits
+--  game states: stage
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
 require("common_ingame")
+
+-- require visual add-on for ingame, so any require visual_common
+--  in this cartridge will get both common data and ingame data
+require("resources/visual_ingame_addon")
 
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
@@ -49,14 +53,17 @@ function _init()
     ['itest'] = true,
     ['log'] = true,
     ['ui'] = true,
-    ['loop'] = true,
-    ['emerald'] = true,
     ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
 
     -- game
+    -- ['loop'] = true,
+    -- ['emerald'] = true,
+    -- ['palm'] = true,
+    -- ['ramp'] = true,
+    -- ['goal'] = true,
     -- ['...'] = true,
   }
 --#endif

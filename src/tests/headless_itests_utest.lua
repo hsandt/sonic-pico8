@@ -1,12 +1,10 @@
--- todo: use busted --helper=.../bustedhelper instead of all the bustedhelper requires!
-require("test/bustedhelper")
-require("engine/test/headless_itest")
-require("engine/test/integrationtest")
-local logging = require("engine/debug/logging")
+-- I suggested to use busted --helper=.../bustedhelper instead of all the bustedhelper requires
+-- but with the new cartridge-specific helper it's not that interesting, as you'd need a different command
+--  for a different script depending on whether it's mostly used in ingame or titlemenu
 
 -- in PICO-8, itests can be run entirely on either cartridge
 -- to reproduce this behavior, we set the cartridge suffix as env variable
---  and require the right app and itest folder based on this
+--  and require the right bustedhelper, app and itest folder based on this
 local cartridge_suffix = os.getenv('ITEST_CARTRIDGE_SUFFIX')
 if cartridge_suffix == 'ignore' then
   -- All: test are running all the utests excluding the headless itests first
@@ -15,6 +13,13 @@ if cartridge_suffix == 'ignore' then
   --  doesn't have a parameter to exclude roots
   return
 end
+
+require("test/bustedhelper_"..cartridge_suffix)
+
+require("engine/test/headless_itest")
+local itest_manager = require("engine/test/itest_manager")
+
+local logging = require("engine/debug/logging")
 
 assert(cartridge_suffix, "env variable ITEST_CARTRIDGE_SUFFIX not set")
 
@@ -26,8 +31,12 @@ local app = picosonic_app()
 local initial_gamestate
 if cartridge_suffix == 'titlemenu' then
   initial_gamestate = ':titlemenu'
-else
+elseif cartridge_suffix == 'ingame' then
   initial_gamestate = ':stage'
+elseif cartridge_suffix == 'stage_clear' then
+  initial_gamestate = ':stage_clear'
+else
+  assert(false, "unknown cartridge_suffix "..cartridge_suffix)
 end
 
 app.initial_gamestate = initial_gamestate
@@ -59,7 +68,7 @@ logging.logger.active_categories = {
 
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
-itest_runner.app = app
+itest_manager.itest_run.app = app
 
 -- require *_itest.lua files to automatically register them in the integration test manager
 require_all_scripts_in('src', 'itests/'..cartridge_suffix)

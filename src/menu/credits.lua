@@ -1,10 +1,12 @@
-require("engine/core/fun_helper")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
+
+local visual = require("resources/visual_common")
+-- we should require titlemenu add-on in main
 
 local credits = derived_class(gamestate)
 
@@ -22,7 +24,9 @@ credits.items = transform({
   }, unpacking(menu_item))
 
 function credits:on_enter()
-  self.menu = menu(self.app, 2, alignments.horizontal_center, colors.white)
+  music(-1)
+
+  self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
   self.menu:show_items(credits.items)
 end
 
@@ -49,19 +53,19 @@ function credits:draw_credits_text()
   -- top
   local y = 2
 
-  ui.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
+  text_helper.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
   y = y + line_dy + paragraph_margin + 2
 
   api.print("sonic team", margin_x, y, text_color)
-  ui.print_aligned("original games", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("original games", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
   api.print("leyn", margin_x, y, text_color)
-  ui.print_aligned("programming", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("programming", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
-  ui.print_aligned("sprites and sfx", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("sprites and sfx", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
-  ui.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
   api.print("original 8-bit bgm by danooct1\n  thx to midi2pico by gamax92", margin_x, y, text_color)

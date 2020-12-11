@@ -24,31 +24,49 @@ Works with PICO-8 0.2.0i and 0.2.1b.
 
 ## Features
 
-Version: 4.2
+Version: 5.0
 
 ### Physics
 
-* Character runs on flat ground, slopes, and through loops
+* Character runs on flat ground, slopes, and through loops. Accelerates, decelerates and brakes.
+* Character falls from steep slopes and ceiling if running speed is too low.
 * Character is blocked by walls when running, walls and ceiling when jumping
 * Character jumps with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
+* Character can roll
 * Spring bounce
 
 ### Rendering
 
-* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle
+* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle, *brake* animation
 * Foreground plane: grass and leaves, loop entrance
 * Midground plane: general collision tiles, loop exit, some decorations
-* Background planes: sky, ocean and trees moving with parallax
+* Background planes: sky, ocean, trees and forest holes moving with parallax
 * Camera window and smoothing system
+* Custom camera forward extension system to show more elements ahead of Sonic when he runs fast or faces a direction for some time
+
+### UI
+
+* Title logo, animated background and menu
+* Zone splash screen on stage start
+* Ingame HUD: list of picked emeralds shown in top-left corner
+* Result screen on stage clear
 
 ### Audio
 
-* Stage BGM and jump SFX
+* BGM: Sonic 3 Angel Island BGM demake
+* Jingles: Sonic 3 intro, stage clear
+* SFX: brake, roll, jump, spring jump
 
 ### Content
 
-One demo stage, a reproduction of Angel Island Act 1 at scale 1:1 (but using tiles of 8x8) thanks to a custom map streaming system. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected.
+One demo stage, a reproduction of the environment of the first part of Angel Island Act 1 (before it is set on fire) almost at scale 1:1, but using tiles of 8x8. It uses a custom map streaming system to allow a bigger map than PICO-8 standard tilemap. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected to make the stage more interesting.
+
+Gimmicks:
+
+* Spring
+* Loop
+* Launch ramp
 
 ## Known technical issues
 
@@ -68,7 +86,7 @@ You can directly download a released version of the game on the [releases](Relea
 
 However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
 
-1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 carts folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
+1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 *carts* folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
 
 2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
 
@@ -97,19 +115,18 @@ First, make sure the `pico8` executable is in your path.
 The most straightforward way to build and run the game on Unix platforms is:
 
 * `cd path/to/sonic-pico8-repo`
-* `./build_game.sh`
-* `./run_game_debug.sh`
+* `./build_and_install_all_cartridges.sh [config]`
+* `./run_cartridge.sh titlemenu [config]`
 
-Instead of the last instruction, you can also enter directly:
-* `pico8 -run build/picosonic_v${BUILD_VERSION}_debug.p8`
+This will build and install all cartridges into the PICO-8 *carts* folder, with the passed config (debug by default), then run the entry cartridge (`titlemenu`). The cartridges are installed in *carts/picosonic/v\[version]\_\[config]*. Replace `titlemenu` with `ingame` to directly start in the Pico Island stage.
 
-where BUILD_VERSION is set in `sonic-2d-tech-demo.sublime-project` as well as `.travis.yml`.
-
-To play the release version (no debugging features, but more compact code and more likely to fit into a PICO-8 cartridge):
+For instance, to play the release version (no debugging features, but more compact and faster):
 
 * `cd path/to/sonic-pico8-repo`
-* `./build_game.sh` release
-* `./run_game_release.sh`
+* `./build_and_install_all_cartridges.sh release`
+* `./run_cartridge.sh titlemenu release`
+
+As explained in the *Releases* section, playing the game in the *carts* folders is required because the project uses multiple cartridges, and PICO-8 can only load appendix cartridges from there.
 
 ### Run integration tests
 
@@ -123,7 +140,7 @@ Integration tests consists in game simulations in predetermined scenarios, and a
 
 `sonic-2d-tech-demo.sublime-project` contains the most used commands for building the game. If you don't use Sublime Text, you won't be able to run the commands directly, but you can still read this project file to understand how the scripts are used, and do the same in a terminal. You can also copy-paste the commands to the project configuration of your favorite code editor instead.
 
-All the build and run commands revolve around the scripts `build_game.sh` / `build_itest.sh` and `run_game.sh` / `run_itest.sh`. Once you understand them, you can create your own build and run commands for your specific needs.
+All the build and run commands revolve around the scripts `build_single_cartridge.sh` / `build_itest.sh` and `run_cartridge.sh` / `run_itest.sh`. Once you understand them, you can create your own build and run commands for your specific needs.
 
 ## Test
 
@@ -174,6 +191,12 @@ Alternatively, to edit the spritesheet in your favorite editor:
 * [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide)
 * [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
 
+## Tools
+
+* Tilemap and audio editing made with PICO-8
+* Sprites made with Aseprite
+* Code written with Sublime Text
+
 ## License
 
 ### Code
@@ -188,6 +211,14 @@ The `npm` folder has its own MIT license because I adapted a script from the `lu
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose. I drew the sprites based on the Mega Drive and GBA games, while the BGMs have been converted from Master System midi rips to PICO-8 format with [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter.
+Most assets are derivative works of Sonic the Hedgehog, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose.
 
-Assets that are not derivative works are under CC BY 4.0.
+#### Sprites
+
+I drew the sprites based on the Mega Drive and GBA games. Original sprites are under CC BY 4.0.
+
+#### Audio
+
+For the BGMs, I used 8-bit remixes of Sonic 3 & Knuckles by danooct1 with the author's permission, converted FamiTracker Music (FTM) files to MIDI, then to PICO-8 format using [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter. Finally, I merged the sound channels and reworked some notes to make them sound better in PICO-8.
+
+For the SFX, I listened to the original ones and tried to reproduce them with PICO-8's sound editor.

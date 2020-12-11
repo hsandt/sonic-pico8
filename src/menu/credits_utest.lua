@@ -1,7 +1,5 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper_titlemenu")
 local credits = require("menu/credits")
-
-local ui = require("engine/ui/ui")
 
 local menu = require("menu/menu")
 
@@ -12,30 +10,45 @@ describe('credits', function ()
     local fake_app = {}
     local c
 
-    setup(function ()
-      stub(menu, "show_items")
-    end)
-
-    teardown(function ()
-      menu.show_items:revert()
-    end)
-
     before_each(function ()
       c = credits()
       c.app = fake_app
     end)
 
-    after_each(function ()
-      menu.show_items:clear()
-    end)
-
     describe('on_enter', function ()
+
+      setup(function ()
+        stub(_G, "music")
+        stub(menu, "show_items")
+      end)
+
+      teardown(function ()
+        music:revert()
+        menu.show_items:revert()
+      end)
+
+      before_each(function ()
+        c = credits()
+        c.app = fake_app
+      end)
+
+      after_each(function ()
+        music:clear()
+        menu.show_items:clear()
+      end)
+
+      it('should stop music', function ()
+        c:on_enter()
+
+        assert.spy(music).was_called(1)
+        assert.spy(music).was_called_with(-1)
+      end)
 
       it('should create text menu with app', function ()
         c:on_enter()
 
         assert.are_equal(fake_app, c.menu.app)
-        assert.are_same({alignments.horizontal_center, colors.white}, {c.menu.alignment, c.menu.text_color})
+        assert.are_same({alignments.left, colors.white}, {c.menu.alignment, c.menu.text_color})
       end)
 
       it('should show text menu', function ()
@@ -76,7 +89,6 @@ describe('credits', function ()
 
         setup(function ()
           stub(credits, "draw_credits_text")
-          -- stub menu.draw completely to avoid altering the count of ui.print_centered calls
           stub(menu, "draw")
         end)
 

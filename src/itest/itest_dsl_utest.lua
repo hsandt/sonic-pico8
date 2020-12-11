@@ -1,17 +1,20 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
+require("resources/visual_ingame_addon")
+
+require("engine/core/seq_helper")
 local flow = require("engine/application/flow")
 local tilemap = require("engine/data/tilemap")
 local input = require("engine/input/input")
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager,   time_trigger,   integration_test = get_members(integrationtest,
-     "itest_manager", "time_trigger", "integration_test")
+local integration_test = require("engine/test/integration_test")
+local itest_manager = require("engine/test/itest_manager")
+local scripted_action = require("engine/test/scripted_action")
+local time_trigger = require("engine/test/time_trigger")
 
 local itest_dsl = require("itest/itest_dsl")
-local gameplay_value_data,   generate_function_table = get_members(itest_dsl,
-     "gameplay_value_data", "generate_function_table")
+local gameplay_value_data = get_members(itest_dsl, "gameplay_value_data")
 -- get_members is convenient to hide underscores with proxy refs
 local eval_pc_bottom_pos, eval_pc_velocity, eval_pc_velocity_y, eval_pc_ground_spd, eval_pc_motion_state, eval_pc_slope = get_members(itest_dsl,
-     "_eval_pc_bottom_pos", "_eval_pc_velocity", "_eval_pc_velocity_y", "_eval_pc_ground_spd", "_eval_pc_motion_state", "_eval_pc_slope")
+     "eval_pc_bottom_pos", "eval_pc_velocity", "eval_pc_velocity_y", "eval_pc_ground_spd", "eval_pc_motion_state", "eval_pc_slope")
 local command,   expectation = get_members(itest_dsl,
      "command", "expectation")
 local dsl_itest,   itest_dsl_parser = get_members(itest_dsl,
@@ -21,9 +24,21 @@ local stage_state = require("ingame/stage_state")
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
+local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
 describe('itest_dsl', function ()
+
+  -- stub very slow functions called on stage state enter
+  --  so utests calling flow:change_gamestate_by_type(':stage') in before_each
+  --  don't have a big overhead on start
+  setup(function ()
+    stub(stage_state, "spawn_objects_in_all_map_regions")
+  end)
+
+  teardown(function ()
+    stage_state.spawn_objects_in_all_map_regions:revert()
+  end)
 
   local state
 
@@ -48,145 +63,131 @@ describe('itest_dsl', function ()
 
   end)
 
-  describe('generate_function_table', function ()
+  describe('parse_', function ()
 
-    it('should assert when the number of arguments is wrong', function ()
-      local enum_types = {a = 10, b = 20}
-      local module = {
-        use_a = function() end,
-        use_b = function() end
-      }
-      local function_table = generate_function_table(module, enum_types, "use_")
-      assert.are_same({[10] = module.use_a, [20] = module.use_b}, function_table)
-    end)
-
-  end)
-
-  describe('_parse_', function ()
-
-    describe('_parse_none', function ()
+    describe('parse_none', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_none({"too many"})
-        end, "_parse_none: got 1 args, expected 0")
+          itest_dsl.parse_none({"too many"})
+        end, "parse_none: got 1 args, expected 0")
       end)
 
       it('should return nil', function ()
-        assert.is_nil(itest_dsl._parse_none({}))
+        assert.is_nil(itest_dsl.parse_none({}))
       end)
 
     end)
 
-    describe('_parse_number', function ()
+    describe('parse_number', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_number({"too", "many"})
-        end, "_parse_number: got 2 args, expected 1")
+          itest_dsl.parse_number({"too", "many"})
+        end, "parse_number: got 2 args, expected 1")
       end)
 
       it('should return the single string argument as number', function ()
-        assert.are_equal(5, itest_dsl._parse_number({"5"}))
+        assert.are_equal(5, itest_dsl.parse_number({"5"}))
       end)
 
     end)
 
-    describe('_parse_vector', function ()
+    describe('parse_vector', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_vector({"too few"})
-        end, "_parse_vector: got 1 args, expected 2")
+          itest_dsl.parse_vector({"too few"})
+        end, "parse_vector: got 1 args, expected 2")
       end)
 
       it('should return the 2 coordinate string arguments as vector', function ()
-        assert.are_same(vector(2, -3.5), itest_dsl._parse_vector({"2", "-3.5"}))
+        assert.are_same(vector(2, -3.5), itest_dsl.parse_vector({"2", "-3.5"}))
       end)
 
     end)
 
-    describe('_parse_horizontal_dir', function ()
+    describe('parse_horizontal_dir', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_horizontal_dir({"too", "many"})
-        end, "_parse_horizontal_dir: got 2 args, expected 1")
+          itest_dsl.parse_horizontal_dir({"too", "many"})
+        end, "parse_horizontal_dir: got 2 args, expected 1")
       end)
 
       it('should return the single argument as horizontal direction', function ()
-        assert.are_equal(horizontal_dirs.right, itest_dsl._parse_horizontal_dir({"right"}))
+        assert.are_equal(horizontal_dirs.right, itest_dsl.parse_horizontal_dir({"right"}))
       end)
 
     end)
 
-    describe('_parse_control_mode', function ()
+    describe('parse_control_mode', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_control_mode({"too", "many"})
-        end, "_parse_control_mode: got 2 args, expected 1")
+          itest_dsl.parse_control_mode({"too", "many"})
+        end, "parse_control_mode: got 2 args, expected 1")
       end)
 
       it('should return the single argument as control mode', function ()
-        assert.are_equal(control_modes.ai, itest_dsl._parse_control_mode({"ai"}))
+        assert.are_equal(control_modes.ai, itest_dsl.parse_control_mode({"ai"}))
       end)
 
     end)
 
-    describe('_parse_motion_mode', function ()
+    describe('parse_motion_mode', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_motion_mode({"too", "many"})
-        end, "_parse_motion_mode: got 2 args, expected 1")
+          itest_dsl.parse_motion_mode({"too", "many"})
+        end, "parse_motion_mode: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion mode', function ()
-        assert.are_equal(motion_modes.debug, itest_dsl._parse_motion_mode({"debug"}))
+        assert.are_equal(motion_modes.debug, itest_dsl.parse_motion_mode({"debug"}))
       end)
 
     end)
 
-    describe('_parse_button_id', function ()
+    describe('parse_button_id', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_button_id({"too", "many"})
-        end, "_parse_button_id: got 2 args, expected 1")
+          itest_dsl.parse_button_id({"too", "many"})
+        end, "parse_button_id: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion mode', function ()
-        assert.are_equal(button_ids.o, itest_dsl._parse_button_id({"o"}))
+        assert.are_equal(button_ids.o, itest_dsl.parse_button_id({"o"}))
       end)
 
     end)
 
-    describe('_parse_motion_state', function ()
+    describe('parse_motion_state', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_motion_state({"too", "many"})
-        end, "_parse_motion_state: got 2 args, expected 1")
+          itest_dsl.parse_motion_state({"too", "many"})
+        end, "parse_motion_state: got 2 args, expected 1")
       end)
 
       it('should return the single argument as motion state', function ()
-        assert.are_equal(motion_states.falling, itest_dsl._parse_motion_state({"falling"}))
+        assert.are_equal(motion_states.falling, itest_dsl.parse_motion_state({"falling"}))
       end)
 
     end)
 
-    describe('_parse_gp_value', function ()
+    describe('parse_gp_value', function ()
 
       it('should assert when the number of arguments is wrong', function ()
         assert.has_error(function ()
-          itest_dsl._parse_gp_value({"too few"})
-        end, "_parse_gp_value: got 1 args, expected at least 2")
+          itest_dsl.parse_gp_value({"too few"})
+        end, "parse_gp_value: got 1 args, expected at least 2")
       end)
 
       it('should return the gameplay value type string and the expected value, itself recursively parsed', function ()
         assert.are_same({"pc_bottom_pos", vector(1, 3)},
-          {itest_dsl._parse_gp_value({"pc_bottom_pos", "1", "3"})})
+          {itest_dsl.parse_gp_value({"pc_bottom_pos", "1", "3"})})
       end)
 
     end)
@@ -215,7 +216,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should call warp_bottom_to on the current player character', function ()
-        itest_dsl._execute_warp({vector(1, 3)})
+        itest_dsl.execute_warp({vector(1, 3)})
 
         assert.spy(player_char.warp_bottom_to).was_called(1)
         assert.spy(player_char.warp_bottom_to).was_called_with(match.ref(state.player_char), vector(1, 3))
@@ -226,14 +227,14 @@ describe('itest_dsl', function ()
     describe('"execute_set', function ()
 
       it('should set pc velocity to (1, -3)', function ()
-        itest_dsl._execute_set({"pc_velocity", vector(1, -3)})
+        itest_dsl.execute_set({"pc_velocity", vector(1, -3)})
         assert.are_same(vector(1, -3), state.player_char.velocity)
       end)
 
       it('should fail with unsupported gp_value_type for setting', function ()
         assert.has_error(function ()
-          itest_dsl._execute_set({"pc_slope", -2})
-        end, "itest_dsl.set_pc_slope is not defined")
+          itest_dsl.execute_set({"pc_slope", -2})
+        end, "setter for pc_slope is not defined")
       end)
 
     end)
@@ -241,7 +242,7 @@ describe('itest_dsl', function ()
     describe('execute_set_control_mode', function ()
 
       it('should set the control mode', function ()
-        itest_dsl._execute_set_control_mode({control_modes.puppet})
+        itest_dsl.execute_set_control_mode({control_modes.puppet})
         assert.are_equal(control_modes.puppet, state.player_char.control_mode)
       end)
 
@@ -258,7 +259,7 @@ describe('itest_dsl', function ()
       end)
 
       it('should set the motion mode', function ()
-        itest_dsl._execute_set_motion_mode({motion_modes.debug})
+        itest_dsl.execute_set_motion_mode({motion_modes.debug})
         assert.spy(player_char.set_motion_mode).was_called(1)
         assert.spy(player_char.set_motion_mode).was_called_with(match.ref(state.player_char), motion_modes.debug)
       end)
@@ -268,7 +269,7 @@ describe('itest_dsl', function ()
     describe('execute_move', function ()
 
       it('should set the move intention of the current player character to the directional unit vector matching his horizontal direction', function ()
-        itest_dsl._execute_move({horizontal_dirs.right})
+        itest_dsl.execute_move({horizontal_dirs.right})
         assert.are_same(vector(1, 0), state.player_char.move_intention)
       end)
 
@@ -278,7 +279,7 @@ describe('itest_dsl', function ()
 
       it('should set the move intention of the current player character to vector zero', function ()
         state.player_char.move_intention = vector(99, -99)
-        itest_dsl._execute_stop({})
+        itest_dsl.execute_stop({})
         assert.are_same(vector.zero(), state.player_char.move_intention)
       end)
 
@@ -287,7 +288,7 @@ describe('itest_dsl', function ()
     describe('execute_jump', function ()
 
       it('should set the jump intention and hold jump intention to true', function ()
-        itest_dsl._execute_jump({})
+        itest_dsl.execute_jump({})
         assert.are_same({true, true},
           {state.player_char.jump_intention, state.player_char.hold_jump_intention})
       end)
@@ -298,7 +299,7 @@ describe('itest_dsl', function ()
 
       it('should set the hold jump intention to false', function ()
         state.player_char.hold_jump_intention = true
-        itest_dsl._execute_stop_jump({})
+        itest_dsl.execute_stop_jump({})
         assert.is_false(state.player_char.hold_jump_intention)
       end)
 
@@ -308,7 +309,7 @@ describe('itest_dsl', function ()
 
       it('should set the simulated button down state to true', function ()
         input.simulated_buttons_down[0][button_ids.x] = false
-        itest_dsl._execute_press({button_ids.x})
+        itest_dsl.execute_press({button_ids.x})
         assert.is_true(input.simulated_buttons_down[0][button_ids.x])
       end)
 
@@ -318,7 +319,7 @@ describe('itest_dsl', function ()
 
       it('should set the simulated button down state to true', function ()
         input.simulated_buttons_down[0][button_ids.up] = true
-        itest_dsl._execute_release({button_ids.up})
+        itest_dsl.execute_release({button_ids.up})
         assert.is_false(input.simulated_buttons_down[0][button_ids.up])
       end)
 
@@ -390,7 +391,7 @@ describe('itest_dsl', function ()
   end)
 
 
-  describe('set_', function ()
+  describe('_set_', function ()
 
     before_each(function ()
       flow:add_gamestate(state)
@@ -399,8 +400,18 @@ describe('itest_dsl', function ()
 
     describe('set_pc_velocity', function ()
 
-      it('should return the velocity the current player character', function ()
+      it('should set the velocity of the current player character', function ()
         itest_dsl.set_pc_velocity(vector(1, -4))
+        assert.are_same(vector(1, -4), state.player_char.velocity)
+      end)
+
+    end)
+
+    describe('set_pc_velocity_y', function ()
+
+      it('should set the velocity of the current player character', function ()
+        state.player_char.velocity = vector(1, 10)
+        itest_dsl.set_pc_velocity_y(-4)
         assert.are_same(vector(1, -4), state.player_char.velocity)
       end)
 
@@ -408,7 +419,7 @@ describe('itest_dsl', function ()
 
     describe('set_pc_ground_spd', function ()
 
-      it('should return the ground speed current player character', function ()
+      it('should set the ground of speed current player character', function ()
         itest_dsl.set_pc_ground_spd(3.5)
         assert.are_equal(3.5, state.player_char.ground_speed)
       end)
@@ -484,9 +495,9 @@ describe('itest_dsl', function ()
           {}
         },
         {
-          itest_dsl_parser._itest,
-          itest_dsl_parser._last_time_trigger,
-          itest_dsl_parser._final_expectations
+          itest_dsl_parser.itest,
+          itest_dsl_parser.last_time_trigger,
+          itest_dsl_parser.final_expectations
         })
     end)
 
@@ -709,7 +720,7 @@ expect
           "(ignored)"
         }
         local tm, next_line_index = itest_dsl_parser.parse_tilemap(tilemap_text)
-        local full = full_tile_id
+        local full = tile_repr.full_tile_id
         assert.is_true(are_same_with_message(
           {
             tilemap({
@@ -879,9 +890,14 @@ expect
         -- note we are testing as busted, so we get the almost_eq messages
         -- since we added quadrants, even integer coordinates receive float transformation,
         --  hence the .0 on passed position
-        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        -- local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        --   "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
+        --   "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        --   "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
+        -- shorter version in assertions.lua
+        local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected ~~ with eps: 0.015625.\n"..
           "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
-          "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+          "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
           "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})
 
@@ -897,9 +913,9 @@ expect
             {}
           },
           {
-            itest_dsl_parser._itest,
-            itest_dsl_parser._last_time_trigger,
-            itest_dsl_parser._final_expectations
+            itest_dsl_parser.itest,
+            itest_dsl_parser.last_time_trigger,
+            itest_dsl_parser.final_expectations
           })
       end)
 
@@ -973,12 +989,12 @@ expect
 
     end)
 
-    describe('_act', function ()
+    describe('act', function ()
 
       local function f() end
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test("test 1", {})
+        itest_dsl_parser.itest = integration_test("test 1", {})
       end)
 
       after_each(function ()
@@ -986,44 +1002,57 @@ expect
       end)
 
       it('should add an action after an existing time trigger, and clear the last time trigger', function ()
-        itest_dsl_parser._last_time_trigger = time_trigger(3, true)
-        itest_dsl_parser:_act(f)
-        assert.are_equal(1, #itest_dsl_parser._itest.action_sequence)
-        local action = itest_dsl_parser._itest.action_sequence[1]
+        itest_dsl_parser.last_time_trigger = time_trigger(3, true)
+        itest_dsl_parser:act(f)
+        assert.are_equal(1, #itest_dsl_parser.itest.action_sequence)
+        local action = itest_dsl_parser.itest.action_sequence[1]
         assert.are_same({time_trigger(3, true), f,
             nil},
           {action.trigger, action.callback,
-            itest_dsl_parser._last_time_trigger})
+            itest_dsl_parser.last_time_trigger})
       end)
 
     end)
 
-    describe('_wait', function ()
+    describe('wait', function ()
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
       end)
 
       it('should set the current time_trigger of the parser to one with the passed interval, in frames', function ()
-        itest_dsl_parser:_wait(12)
-        assert.are_same(time_trigger(12, true), itest_dsl_parser._last_time_trigger)
+        itest_dsl_parser:wait(12)
+        assert.are_same(time_trigger(12, true), itest_dsl_parser.last_time_trigger)
       end)
 
       it('should add a dummy action with any previous time trigger, then set the last time trigger to the new one', function ()
-        itest_dsl_parser._last_time_trigger = time_trigger(4, true)
-        itest_dsl_parser:_wait(8)
-        assert.are_equal(1, #itest_dsl_parser._itest.action_sequence)
-        local action = itest_dsl_parser._itest.action_sequence[1]
+        itest_dsl_parser.last_time_trigger = time_trigger(4, true)
+        itest_dsl_parser:wait(8)
+        assert.are_equal(1, #itest_dsl_parser.itest.action_sequence)
+        local action = itest_dsl_parser.itest.action_sequence[1]
         assert.are_same({time_trigger(4, true), nil}, {action.trigger, action.callback})
-        assert.are_same(time_trigger(8, true), itest_dsl_parser._last_time_trigger)
+        assert.are_same(time_trigger(8, true), itest_dsl_parser.last_time_trigger)
       end)
 
     end)
 
-    describe('_define_final_assertion', function ()
+    describe('define_final_assertion', function ()
+
+      local original_evaluators
 
       setup(function ()
-        -- mock evaluators
+        -- unfortunately, we decided to keep evaluators local, and our itest_dsl.evaluators
+        --  is not what is used in the methods, it's only a reference to the local one
+        -- so reassigning that reference wouldn't mock them for real, we need to change
+        --  the table content by index
+        -- but to revert this change we need to backup the evaluators (at least
+        --  the two ones we will mock)
+        -- if we were using itest_dsl.evaluators for real in define_final_assertion,
+        --  we could just backup the *reference* to evaluators and mock itest_dsl.evaluators
+        --  by reassigning it to a mockup table
+        original_evaluators = copy_seq(itest_dsl.evaluators)
+
+        -- now change the *content* of the evaluators table
         itest_dsl.evaluators[gp_value_types.pc_bottom_pos] = function ()
           return vector(27, 30)
         end
@@ -1033,38 +1062,42 @@ expect
       end)
 
       teardown(function ()
-        -- reset evaluators
-        itest_dsl.evaluators = generate_function_table(itest_dsl, gp_value_types, "eval_")
+        -- reset evaluators content from the backup
+        itest_dsl.evaluators[gp_value_types.pc_bottom_pos] = original_evaluators[gp_value_types.pc_bottom_pos]
+        itest_dsl.evaluators[gp_value_types.pc_velocity] = original_evaluators[gp_value_types.pc_velocity]
       end)
 
       before_each(function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
       end)
 
       it('should set the final assertion as returning true, message when the gameplay value is expected', function ()
-        itest_dsl_parser._final_expectations = {
+        itest_dsl_parser.final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),
           expectation("pc_velocity", vector(-3, 2.5))
         }
-        itest_dsl_parser:_define_final_assertion()
-        assert.are_same({true, ""}, {itest_dsl_parser._itest.final_assertion()})
+        itest_dsl_parser:define_final_assertion()
+        assert.are_same({true, ""}, {itest_dsl_parser.itest.final_assertion()})
       end)
 
       it('should set the final assertion as returning false, message when the gameplay value is not expected', function ()
-        itest_dsl_parser._final_expectations = {
+        itest_dsl_parser.final_expectations = {
           expectation("pc_bottom_pos", vector(27, 30)),  -- ok
           expectation("pc_velocity", vector(-3, 7.5))    -- different from actual
         }
-        itest_dsl_parser:_define_final_assertion()
-        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        itest_dsl_parser:define_final_assertion()
+        -- local expected_message = "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
+        -- "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
+        -- short version in assertions.lua
+        local expected_message = "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
         "Passed in:\nvector(-3, 2.5)\nExpected:\nvector(-3, 7.5)\n"
-        assert.are_same({false, expected_message}, {itest_dsl_parser._itest.final_assertion()})
+        assert.are_same({false, expected_message}, {itest_dsl_parser.itest.final_assertion()})
       end)
 
       it('should assert when the passed gameplay value type is invalid', function ()
-        itest_dsl_parser._itest = integration_test('test', {})
+        itest_dsl_parser.itest = integration_test('test', {})
         assert.has_error(function ()
-          itest_dsl_parser._itest.final_assertion()
+          itest_dsl_parser.itest.final_assertion()
         end)
       end)
 

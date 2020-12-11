@@ -1,15 +1,18 @@
-require("engine/test/bustedhelper")
+require("test/bustedhelper_titlemenu")
+require("resources/visual_titlemenu_addon")
+
 local titlemenu = require("menu/titlemenu")
 
-local ui = require("engine/ui/ui")
+local text_helper = require("engine/ui/text_helper")
 
+local picosonic_app = require("application/picosonic_app_titlemenu")
 local menu = require("menu/menu")
+local visual = require("resources/visual_common")
 
 describe('titlemenu', function ()
 
   describe('(with instance)', function ()
 
-    local fake_app = {}
     local tm
 
     setup(function ()
@@ -21,8 +24,10 @@ describe('titlemenu', function ()
     end)
 
     before_each(function ()
+      local app = picosonic_app()
       tm = titlemenu()
-      tm.app = fake_app
+      -- no need to register gamestate properly, just add app member to pass tests
+      tm.app = app
     end)
 
     after_each(function ()
@@ -31,15 +36,42 @@ describe('titlemenu', function ()
 
     describe('on_enter', function ()
 
-      it('should create text menu with app', function ()
+      setup(function ()
+        stub(picosonic_app, "start_coroutine")
+      end)
+
+      teardown(function ()
+        picosonic_app.start_coroutine:revert()
+      end)
+
+      after_each(function ()
+        picosonic_app.start_coroutine:clear()
+      end)
+
+      it('should call start_coroutine_method on opening_sequence_async', function ()
         tm:on_enter()
 
-        assert.are_equal(fake_app, tm.menu.app)
-        assert.are_same({alignments.horizontal_center, colors.white}, {tm.menu.alignment, tm.menu.text_color})
+        local s = assert.spy(picosonic_app.start_coroutine)
+        s.was_called(1)
+        s.was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
+      end)
+
+    end)
+
+    describe('show_menu', function ()
+
+      it('should create text menu with app', function ()
+        tm:show_menu()
+
+        assert.is_not_nil(tm.menu)
+        assert.are_equal(tm.app, tm.menu.app)
+        assert.are_same({alignments.left, colors.white}, {tm.menu.alignment, tm.menu.text_color})
+        assert.are_equal(visual.sprite_data_t.menu_cursor_shoe, tm.menu.left_cursor_sprite_data)
+        assert.are_equal(7, tm.menu.left_cursor_half_width)
       end)
 
       it('should show text menu', function ()
-        tm:on_enter()
+        tm:show_menu()
 
         assert.spy(menu.show_items).was_called(1)
         assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(titlemenu.items))
@@ -47,20 +79,38 @@ describe('titlemenu', function ()
 
     end)
 
-    describe('(with menu entered)', function ()
+    describe('on_exit', function ()
 
-      before_each(function ()
-        tm:on_enter()
+      it('should clear menu reference', function ()
+        tm.menu = {"dummy"}
+
+        tm:on_exit()
+
+        assert.is_nil(tm.menu)
       end)
 
-      describe('update', function ()
+    end)
 
-        setup(function ()
-          stub(menu, "update")
-        end)
+    describe('update', function ()
 
-        teardown(function ()
-          menu.update:revert()
+      setup(function ()
+        stub(menu, "update")
+      end)
+
+      teardown(function ()
+        menu.update:revert()
+      end)
+
+      it('should not try to update menu if nil', function ()
+        tm:update()
+
+        assert.spy(menu.update).was_not_called()
+      end)
+
+      describe('(with menu shown)', function ()
+
+        before_each(function ()
+          tm:show_menu()
         end)
 
         it('should update menu', function ()
@@ -72,29 +122,53 @@ describe('titlemenu', function ()
 
       end)
 
-      describe('render', function ()
+    end)
 
-        setup(function ()
-          stub(titlemenu, "draw_title")
-          -- stub menu.draw completely to avoid altering the count of ui.print_centered calls
-          stub(menu, "draw")
-        end)
+    describe('render', function ()
 
-        teardown(function ()
-          titlemenu.draw_title:revert()
-          menu.draw:revert()
-        end)
+      setup(function ()
+        stub(titlemenu, "draw_background")
+        stub(titlemenu, "draw_title")
+        -- stub menu.draw completely to avoid altering the count of text_helper.print_centered calls
+        stub(menu, "draw")
+      end)
 
-        after_each(function ()
-          titlemenu.draw_title:clear()
-          menu.draw:clear()
-        end)
+      teardown(function ()
+        titlemenu.draw_background:revert()
+        titlemenu.draw_title:revert()
+        menu.draw:revert()
+      end)
 
-        it('should draw title', function ()
-          tm:render()
+      after_each(function ()
+        titlemenu.draw_background:clear()
+        titlemenu.draw_title:clear()
+        menu.draw:clear()
+      end)
 
-          assert.spy(titlemenu.draw_title).was_called(1)
-          assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
+      it('should draw background', function ()
+        tm:render()
+
+        assert.spy(titlemenu.draw_background).was_called(1)
+        assert.spy(titlemenu.draw_background).was_called_with(match.ref(tm))
+      end)
+
+      it('should draw title', function ()
+        tm:render()
+
+        assert.spy(titlemenu.draw_title).was_called(1)
+        assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
+      end)
+
+      it('should not try to render menu if nil', function ()
+        tm:render()
+
+        assert.spy(menu.draw).was_not_called()
+      end)
+
+      describe('(with menu shown)', function ()
+
+        before_each(function ()
+          tm:show_menu()
         end)
 
         it('should draw menu', function ()
@@ -106,30 +180,30 @@ describe('titlemenu', function ()
 
       end)
 
-      describe('draw_title', function ()
+    end)
 
-        setup(function ()
-          stub(ui, "print_centered")
-        end)
+    describe('draw_title', function ()
 
-        teardown(function ()
-          ui.print_centered:revert()
-        end)
+      -- we don't mind what intermediate render methods are called,
+      -- we just stub PICO-8 API in case it causes side effects
+      --  (but it will only change things like draw color which
+      --  should be reset before any test on draw color itself anyway)
 
-        after_each(function ()
-          ui.print_centered:clear()
-        end)
-
-        it('should print "pico-sonic by leyn" centered, in white', function ()
-          tm:draw_title()
-
-          assert.spy(ui.print_centered).was_called(2)
-          -- no need to check what exactly is printed
-        end)
-
+      setup(function ()
+        stub(_G, "spr")
+        stub(_G, "pset")
       end)
 
-    end)  -- (with menu entered)
+      teardown(function ()
+        spr:revert()
+        pset:revert()
+      end)
+
+      it('should not crash', function ()
+        tm:draw_title()
+      end)
+
+    end)
 
   end)  -- (with instance)
 

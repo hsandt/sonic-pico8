@@ -19,7 +19,7 @@ function ground_query_info:init(tile_location, signed_distance, slope_angle)
   self.slope_angle = slope_angle
 end
 
---#if log
+--#if tostring
 function ground_query_info:_tostring()
   return "ground_query_info("..joinstr(", ", self.tile_location, self.signed_distance, tostr(self.slope_angle))..")"
 end
@@ -49,7 +49,7 @@ function ground_motion_result:init(tile_location, position, slope_angle, is_bloc
   self.is_falling = is_falling
 end
 
---#if log
+--#if tostring
 function ground_motion_result:_tostring()
   return "ground_motion_result("..joinstr(", ", self.tile_location, self.position, self.slope_angle, self.is_blocked, self.is_falling)..")"
 end
@@ -89,7 +89,7 @@ function air_motion_result:is_blocked_along(direction)
   end
 end
 
---#if log
+--#if tostring
 function air_motion_result:_tostring()
   return "air_motion_result("..joinstr(", ",
     self.tile_location, self.position, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"

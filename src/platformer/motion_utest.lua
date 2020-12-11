@@ -1,4 +1,4 @@
-require("test/bustedhelper")
+require("test/bustedhelper_ingame")
 local motion = require("platformer/motion")
 local ground_query_info = motion.ground_query_info
 local ground_motion_result,   air_motion_result = get_members(motion,

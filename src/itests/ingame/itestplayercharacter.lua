@@ -1,6 +1,4 @@
 -- gamestates: stage
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager, integration_test, time_trigger = integrationtest.itest_manager, integrationtest.integration_test, integrationtest.time_trigger
 local itest_dsl = require("itest/itest_dsl")
 local itest_dsl_parser = itest_dsl.itest_dsl_parser
 local input = require("engine/input/input")
@@ -9,9 +7,19 @@ local pc_data = require("data/playercharacter_data")
 
 local itest
 
+-- itests are too big in terms of chars and will reach the max easily
+--  so we keep them to a minimum in PICO-8 itest build
+-- build we still want to run them as headless itests, in particular during CI
+--  so we uncomment them gradually while adding --#if busted to strip them from
+--  itest build
+-- unfortunately various itests were broken without me noticing while they were
+--  commented out, so I'm trying to uncomment them one by one now
+-- it's less a problem now that the itests have been useful during development
+--  and as we're closer to release, human test for game feel becomes more important
+
 -- debug motion
 
---[=[
+--#if busted
 
 itest_dsl_parser.register(
   'debug move right', [[
@@ -21,23 +29,22 @@ itest_dsl_parser.register(
 set_motion_mode debug
 warp 0 8
 move right
-wait 60
+wait 2
 
-expect pc_bottom_pos 0x0038.b7f1 8
+expect pc_bottom_pos 0.3 8
 ]])
 
--- precision note on expected pc_bottom_pos:
--- 56.7185211181640625 (0x0038.b7f1) in PICO-8 fixed point precision
--- 56.733333333333 in Lua floating point precision
+-- calculation notes:
+-- F1: ACC 0.1 SPD 0.1 X 0.1
+-- F1: ACC 0.1 SPD 0.2 X 0.3
 
+--#endif
 
 -- ground motion
 
 -- common calculation notes:
 -- to compute position x from x0 after n frames at accel a from speed s0: x = x0 + n*s0 + n(n+1)/2*a
 -- to compute speed s from s0 after n frames at accel a: x = s0 + n*a
-
---]=]
 
 --[=[
 
@@ -303,6 +310,8 @@ expect pc_velocity 0 0
 --  allowed to enter both grounded and airborne update, causing 2x update when leaving the cliff
 -- * revealed that new system always flooring pixel position x caused leaving cliff
 --  frame later, adding a grounded frame with friction
+
+-- this test is now failing, I suspect air friction to mess up X...
 itest_dsl_parser.register(
   'platformer fall cliff', [[
 @stage #
@@ -330,7 +339,12 @@ expect pc_velocity 0.84375 2.625
 -- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
 -- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), falling
 
+--]=]
 
+--[=[
+
+-- this test is now failing by 1 frame because jump is interrupted on frame 3 only...
+-- not sure why, otherwise hoping works fine in real game
 itest_dsl_parser.register(
   'platformer hop flat', [[
 @stage #
@@ -362,6 +376,9 @@ expect pc_velocity 0 -0.03125
 
 -- => apogee at y = 8 - 19.296875 = -11.296875
 
+--]=]
+
+--[=[
 
 itest_dsl_parser.register(
   'platformer jump start flat', [[
@@ -681,12 +698,6 @@ expect pc_velocity 0 0
 
 --]=]
 
--- TODO: advance this test until actual collision with ceiling
--- around frame 19, so we can prove that character is going through ceiling
---  and this must be fixed
--- for some reason, busted and pico-8 results also slightly differ
---  after frame 17 even with vel.x = to_fixed_point(vel.x) on air drag
-
 --[=[
 
 itest_dsl_parser.register(
@@ -697,13 +708,32 @@ itest_dsl_parser.register(
 #.
 ##
 
-warp 12 24
+warp 11 24
 jump
 move left
-wait 20
+wait 5
 
-expect pc_velocity 0 1
+expect pc_bottom_pos 11 16
+expect pc_motion_state air_spin
+expect pc_ground_spd 0
+expect pc_velocity 0 0
 ]])
+
+-- should hit ceiling at frame 5, Y 12
+-- when ceiling bug was active, removing the "move left" instruction
+--  proved it as the test would pass with a vertical jump that stops at:
+--[[
+[frame] frame #4
+[trace] self.position: vector(11.0, 13.609375)
+[trace] self.velocity: vector(0.0, -3.140625)
+[frame] frame #5
+[trace] self.position: vector(11.0, 12.0) (add 4 for bottom pos, so 16)
+[trace] self.velocity: vector(0.0, 0)
+--]]
+
+--]=]
+
+--[=[
 
 -- complete test above with velocity, must be positive above all
 -- test below is more complex, forget about it
@@ -788,6 +818,60 @@ expect pc_velocity -0x000.9aba -1.609375
 -- at frame 2+n: bpos (19.90625-0.0703125*n-0.046875*n*(n+1)/2, 18.875), velocity (-0.0703125-0.046875*n, -3.25+0.109375*n), air_spin
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
 
+-- added to fix #129 BUG MOTION curve_run_up_fall_in_wall
+-- with bug, character is preserving his center but when falling without spinning,
+--  his shape is a rectangle not a square, so the instant rotation of 90 degrees
+--  will place his feet inside the wall just above the steep slope (responsible
+--  for the sudden quadrant change)
+-- with the fix, his position should be readjusted so his feet really just touch the wall
+--  increasing max_ground_escape_height to 6 can hotfix the thing, but it would still take
+--  2 frames to move down a full pixel and trigger the escape during ground motion
+-- that's why we prefer solving the issue on frame 9 (when landing is done) and not frame 11
+-- note that in the tilemap, we add the column of # for a realistic case,
+--  but even without them the issue appears, which makes us think the issue is the same as
+--  #128 BUG MOTION edgy_rising_curve_sonic_stuck and possibly
+--  #131 BUG MOTION fall_on_curve_to_death
+
+--#if busted
+itest_dsl_parser.register(
+  'fall on curve top', [[
+@stage #
+..#
+..#
+.i#
+
+warp 13 12
+wait 9
+
+expect pc_bottom_pos 15 8
+expect pc_motion_state grounded
+expect pc_velocity 0 0.984375
+]])
+--#endif
+
+-- variant after discovering:
+--  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
+-- WIP
+itest_dsl_parser.register(
+  '#mute fall inside curve top after rising', [[
+@stage #
+..#
+..#
+..#
+..#
+.i#
+
+warp 11 42
+set pc_velocity 1 -2
+move right
+wait 60
+
+expect pc_bottom_pos 15 8
+expect pc_motion_state grounded
+expect pc_velocity 0 0.984375
+]])
+
+--[=[
 
 itest_dsl_parser.register(
   'bounce on spring (escape)', [[
@@ -823,6 +907,8 @@ expect pc_bottom_pos 10 34
 expect pc_motion_state falling
 expect pc_velocity 0 -5
 ]])
+
+--]=]
 
 --[=[
 

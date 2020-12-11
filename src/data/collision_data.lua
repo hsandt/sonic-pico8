@@ -1,26 +1,5 @@
 local tile_collision_data = require("data/tile_collision_data")
 
-sprite_flags = {
-  collision = 0,              -- collision flag set on VISIBLE sprite (and MASK sprite for testing with proto tiles)
-  unused1 = 1,
-  unused2 = 2,
-  unused3 = 3,
-  unused4 = 4,
-  spring = 5,                 -- spring
-  midground = 6,              -- midground sprite (should be drawn after programmatical background)
-  foreground = 7,             -- foreground sprite (should be drawn last)
-}
-
-sprite_masks = {
-  collision = 1,     -- 1 << 0
-  unused1 = 2,       -- 1 << 1
-  unused2 = 4,       -- 1 << 2
-  unused3 = 8,       -- 1 << 3
-  unused4 = 16,      -- 1 << 4
-  spring = 32,       -- 1 << 5
-  midground = 64,    -- 1 << 6
-  foreground = 128,  -- 1 << 7
-}
 
 -- below, we are not using serialization.parse_expression anymore
 --  because we want to insert inline comments and have unlimited tokens anyway
@@ -42,18 +21,21 @@ local mask_tile_angles = transform(
     [7]  = {8, 2},
 
     -- low slope ascending every 4px
-    [9]  = {8, -2},
     [8]  = {8, -2},
+    [9]  = {8, -2},
     [10] = {8, -2},
     [11] = {8, -2},
 
-    -- mid slope descending every 2px
-    [12] = {8, -4},
-    [13] = {8, -4},
+    -- mid slope descending every 2px,
+    --  but manually adjust from {8, 4} to a lower slope angle
+    --  for better physics feel, closer to Sonic 3 (and no 45 deg sprite rotation)
+    [12] = {8, 3},
+    [13] = {8, 3},
 
     -- mid slope ascending every 2px
-    [14] = {8, 4},
-    [15] = {8, 4},
+    --  (see remark on adjustment above)
+    [14] = {8, -3},
+    [15] = {8, -3},
 
     -- loop (collider only)
 
@@ -123,8 +105,8 @@ local mask_tile_ids = {
   [7]  = 7,
 
 -- low slope ascending every 4px
-  [9]  = 9,
   [8]  = 8,
+  [9]  = 9,
   [10] = 10,
   [11] = 11,
 
@@ -187,9 +169,9 @@ local mask_tile_ids = {
 -- full tiles
 
 -- wood
-  [30] = 29,  -- wood (specular middle left)
-  [31] = 29,  -- wood (specular middle right)
-  [47] = 29,  -- wood (generic)
+  [218] = 29,  -- wood (specular middle left)
+  [219] = 29,  -- wood (specular middle right)
+  [235] = 29,  -- wood (generic)
   [48] = 29,  -- wood (specular top 1-column)
   [64] = 29,  -- wood (specular middle 1-column)
   [80] = 29,  -- wood (specular top 1-column)
@@ -251,10 +233,22 @@ local mask_tile_ids = {
 --]]
 
 -- rock
-  [92]  = 28,  -- rock (small left or big top-left part)
-  [93]  = 29,  -- rock (small right or big top-right part)
-  [108] = 28,  -- rock (big bottom-left part)
-  [109] = 29,  -- rock (big bottom-right part)
+-- (only left parts have partial colliders)
+  [168] = 28,  -- rock (top-left part)
+  [92]  = 29,  -- rock (top-middle part)
+  [93]  = 29,  -- rock (top-right part)
+  [184] = 28,  -- rock (small rock bottom-left part, can be connected to medium rock extension)
+  [108] = 29,  -- rock (small rock bottom-middle part, can be connected to medium rock extension)
+  [109] = 29,  -- rock (small rock bottom-right part, can be connected to medium rock extension)
+  [169] = 28,  -- rock (medium rock bottom-left part, can be connected to big rock extension)
+  [190] = 29,  -- rock (medium rock bottom-middle part, can be connected to big rock extension)
+  [191] = 29,  -- rock (medium rock bottom-right part, can be connected to big rock extension)
+  [185] = 28,  -- rock (big rock extension top-left part)
+  [206] = 29,  -- rock (big rock extension top-middle part)
+  [207] = 29,  -- rock (big rock extension top-right part)
+  [186] = 28,  -- rock (big rock bottom-left part)
+  [122] = 29,  -- rock (big rock bottom-middle part)
+  [123] = 29,  -- rock (big rock bottom-right part)
 
 -- loop (collider only)
 
@@ -286,9 +280,24 @@ local mask_tile_ids = {
   [105] = 25,
   [121] = 41,
 
+-- launch ramp
+  -- note that the edge is one-way in Sonic 3, but we only have solid platforms for now,
+  --  so we need to define colliders even for the edge of the lower row (244, 245)
+
+  -- lower row
+  [240] = 8,
+  [241] = 9,
+  [242] = 10,
+  [243] = 11,
+  [244] = 29,
+  [245] = 32,
+  -- upper row
+  [228] = 19,
+  [229] = 20,
+
 -- decorative tiles (no collision, but kept commented for tracking purpose)
 --[[
-  [46] = 0,  -- hiding leaves
+  [234] = 0,  -- hiding leaves
 
 -- grass top decorations
   [76] = 0,
@@ -306,6 +315,15 @@ local mask_tile_ids = {
 }
 
 -- convert angle and mask information into complete tile collision data table
+-- ! this is an actual operation done outside function scope, and therefore executed
+--   at require time. In practice, the ingame cartridge indirectly requires collision_data
+--   (via picosonic_app_ingame > stage_state > player_char > world)
+--   so this will be initialized on game start, which is perfect for us as the initial
+--   spritesheet is loaded at that point, and it contains all the collision masks
+-- doing this later, after background data cartridge reload (in stage on_enter)
+--  would fail, as the collision mask sprites would be overwritten by the runtime background
+--  sprites (only meant to be drawn programmatically)
+-- could probably be done via transform too
 local tiles_collision_data = {}
 for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
   tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])

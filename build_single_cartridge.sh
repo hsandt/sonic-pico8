@@ -11,10 +11,10 @@ game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
 
 # Configuration: cartridge
-author="hsandt"
-title="pico-sonic"
+author="leyn"
+title="pico sonic"
 cartridge_stem="picosonic"
-version="4.2"
+version="5.0"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."
@@ -26,7 +26,7 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu' or 'ingame'
+                            'titlemenu', 'ingame' or 'stage_clear'
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
@@ -40,7 +40,6 @@ config='debug'
 
 # Read arguments
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
-roots=()
 while [[ $# -gt 0 ]]; do
   case $1 in
     -h | --help )
@@ -85,46 +84,43 @@ symbols=''
 if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
-  symbols='assert,dump,deprecated,log,cheat,sandbox'
+  symbols='assert,tostring,dump,log,debug_menu,debug_character'
 elif [[ $config == 'debug-ultrafast' ]]; then
-  symbols='assert,dump,deprecated,log,cheat,sandbox,ultrafast'
+  symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
-  # a weird bug makes game very slow when dump is defined but not log
-  # this must be related to the new dump symbol used in dump.lua,
-  # but I don't see how adding more lines makes the game faster
-  # symbols='cheat'
-  # symbols='assert,dump,log,cheat,tuner'
-  # symbols='cheat,tuner,mouse'
-  # symbols='assert,cheat,log,dump'
-  symbols='cheat,log,dump,debug_trigger'
+  # symbols='cheat,tostring,dump,log,debug_menu'
+  symbols='assert,cheat,debug_menu'
+elif [[ $config == 'tuner' ]]; then
+  symbols='tuner,mouse'
 elif [[ $config == 'ultrafast' ]]; then
-  symbols='assert,deprecated,ultrafast'
+  symbols='ultrafast'
 elif [[ $config == 'cheat-ultrafast' ]]; then
-  symbols='assert,deprecated,cheat,ultrafast'
+  symbols='cheat,ultrafast,debug_menu'
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,log,dump'
+  symbols='assert,tostring,dump'
 elif [[ $config == 'profiler' ]]; then
-  symbols='profiler'
+  symbols='profiler,cheat'
 fi
 
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
 
-# Build cartridge (titlemenu or ingame)
+# Build cartridge (titlemenu, ingame or stage_clear)
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \
-  -d "$data_path/data.p8" -M "$data_path/metadata.p8" \
+  -d "$data_path/builtin_data_${cartridge_suffix}.p8" \
+  -M "$data_path/metadata.p8"                         \
   -a "$author" -t "$title"                            \
   -p "$build_output_path"                             \
   -o "${cartridge_stem}_${cartridge_suffix}"          \
   -c "$config"                                        \
   --no-append-config                                  \
   -s "$symbols"                                       \
-  --minify-level 2
+  --minify-level 3
 
 if [[ $? -ne 0 ]]; then
   echo ""

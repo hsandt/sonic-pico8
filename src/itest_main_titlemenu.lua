@@ -3,9 +3,13 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
+require("common_titlemenu")
 
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager = integrationtest.itest_manager
+-- require visual add-on for titlemenu, so any require visual_common
+--  in this cartridge will get both common data and titlemenu data
+require("resources/visual_titlemenu_addon")
+
+local itest_manager = require("engine/test/itest_manager")
 
 --#if log
 local logging = require("engine/debug/logging")
@@ -16,7 +20,7 @@ local picosonic_app_titlemenu = require("application/picosonic_app_titlemenu")
 -- set app immediately so during itest registration by require,
 --   time_trigger can access app fps
 local app = picosonic_app_titlemenu()
-itest_runner.app = app
+itest_manager.itest_run.app = app
 
 -- tag to add require for itest files here
 --[[add_require]]
@@ -57,47 +61,10 @@ function _init()
 end
 
 function _update60()
-  handle_input()
-  itest_runner:update_game_and_test()
+  itest_manager:handle_input()
+  itest_manager:update()
 end
 
 function _draw()
-  itest_runner:draw_game_and_test()
-end
-
--- press left/right to navigate freely in itests, even if not finished
--- press x to skip itest only if finished
-function handle_input()
-  -- avoid crash when itest sequence is empty
-  if #itest_manager.itests == 0 then
-    return
-  end
-
-  -- since input.mode is simulated during itests, use pico8 api directly for input
-  if btnp(button_ids.left) then
-    -- go back to previous itest
-    itest_manager:init_game_and_start_itest_by_relative_index(-1)
-    return
-  elseif btnp(button_ids.right) then
-    -- skip current itest
-    itest_manager:init_game_and_start_next_itest()
-    return
-  elseif btnp(button_ids.up) then
-    -- go back 10 itests
-    itest_manager:init_game_and_start_itest_by_relative_index(-10)
-    return
-  elseif btnp(button_ids.down) then
-    -- skip many itests
-    itest_manager:init_game_and_start_itest_by_relative_index(10)
-    return
-  end
-
-  if itest_runner.current_state == test_states.success or
-    itest_runner.current_state == test_states.failure or
-    itest_runner.current_state == test_states.timeout then
-    -- previous itest has finished, wait for x press to continue to next itest
-    if btnp(button_ids.x) then
-      itest_manager:init_game_and_start_next_itest()
-    end
-  end
+  itest_manager:draw()
 end

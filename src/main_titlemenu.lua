@@ -4,7 +4,11 @@
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")
 require("engine/common")
--- don't require game common.lua which really contains extensions for ingame
+require("common_titlemenu")
+
+-- require visual add-on for titlemenu, so any require visual_common
+--  in this cartridge will get both common data and titlemenu data
+require("resources/visual_titlemenu_addon")
 
 -- we also require codetuner so any file can used tuned()
 -- if tuner symbol is defined, then we also initialize it in init
@@ -49,12 +53,12 @@ function _init()
     ['itest'] = true,
     ['log'] = true,
     ['ui'] = true,
-    ['loop'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
 
     -- game
+    -- ['loop'] = true,
     -- ['...'] = true,
   }
 --#endif

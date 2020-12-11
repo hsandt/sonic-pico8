@@ -8,7 +8,7 @@ language: python # Can use any language here, but if it's not 'python'
 python: "3.6"
 
 env:
-  - LUA_VERSION=5.3 BUILD_VERSION=4.2 ENABLE_RENDER=1
+  - LUA_VERSION=5.3 BUILD_VERSION=5.0 ENABLE_RENDER=1
 
 cache:
   directories:
@@ -63,23 +63,26 @@ script:
   # - ./build_all_cartridges.sh debug
   - ./build_all_cartridges.sh release
 
-  # disabled build_itest.sh in Travis until strings are compressed
-  # because character count is over 65536 and that systematically failed the build
-  # while build release works fine
+  # disabled build_itest.sh in Travis for the same reason as debug
   # - ./build_itest.sh
+  # in the tests below, we don't pass `-m all` anymore because
+  #  we *do* want to ignore WIP tests flagged #mute
   # test: all utests
   - ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh
   # test: all headless itests for titlemenu (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests -m all
+  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests
   # test: all headless itests for stage (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests -m all
+  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests
+  # test: all headless itests for stage_clear (ENABLE_RENDER set in env)
+  - ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests
   # coverage
   - bash <(curl -s https://codecov.io/bash)
 
 before_deploy:
-  # zip multiple cartridges into one distributable archive
-  - pushd build/v${BUILD_VERSION}_release
-  - zip -r picosonic_v${BUILD_VERSION}_release_cartridges.zip .
+  # zip multiple cartridges (including data) into one distributable archive
+  - cp data/data_stage*.p8 "build/v${BUILD_VERSION}_release"
+  - pushd "build/v${BUILD_VERSION}_release"
+  - zip -r "picosonic_v${BUILD_VERSION}_release_cartridges.zip" .
   - popd
 
 deploy:

@@ -45,6 +45,15 @@ function world.get_quadrant_y_coord(pos, quadrant)
   return quadrant % 2 == 1 and pos.y or pos.x
 end
 
+--#if assert
+-- same, but for qj (tilemap location)
+-- maybe overkill, only used for safety check in iterate_over_collision_tiles
+-- it was removed as it costed too many tokens but now that we don't care, it's back
+function world.get_quadrant_j_coord(pos, quadrant)
+  return quadrant % 2 == 1 and pos.j or pos.i
+end
+--#endif
+
 -- set the horizontal coordinate of a position vector in current quadrant
 --  (x if down/up, y if right/left) to value
 function world.set_position_quadrant_x(pos, value, quadrant)
@@ -61,6 +70,7 @@ end
 --  but apply sign change to respect q-up,
 --  i.e. if qy1 represents a value higher in quadrant frame than qy2,
 --  result should be positive
+-- can also be used with qj (in combination with get_quadrant_j_coord)
 function world.sub_qy(qy1, qy2, quadrant)
   -- directions value-dependent trick: up and left are 0 and 1 (< 2)
   --  and only those have a reversed qy

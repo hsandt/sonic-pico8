@@ -6,7 +6,12 @@
 local collision_data = require("data/collision_data")
 local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
-require("test_data/tile_representation")
+local tile_repr = require("test_data/tile_representation")
+
+-- some tiles are defined in visual_ingame_addon for use in real game, but they are not in tile_representation.lua
+--  to avoid redundancy or because we didn't need them in itests yet
+local visual = require("resources/visual_common")
+-- we should require ingameadd-on in main
 
 local mock_raw_tile_collision_data = {
   -- collision_data values + PICO-8 spritesheet must match our mockup data
@@ -17,26 +22,28 @@ local mock_raw_tile_collision_data = {
 
   -- note that the first value is the collision mask sprite id, NOT the original sprite id in the key
   --  so they may differ when not working with prototype tiles
-  [full_tile_id] = {full_tile_id, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
-  [flat_high_tile_left_id] = {flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},
-  [flat_high_tile_id] = {flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
-  [half_tile_id] = {half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
-  [flat_low_tile_id] = {flat_low_tile_id, {2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
-  [bottom_right_quarter_tile_id] = {bottom_right_quarter_tile_id, {0, 0, 0, 0, 4, 4, 4, 4}, {0, 0, 0, 0, 4, 4, 4, 4}, atan2(8, 0)},
-  [asc_slope_22_id] = {asc_slope_22_id, {2, 2, 3, 3, 4, 4, 5, 5}, {0, 0, 0, 2, 4, 6, 8, 8}, 0.0625},
-  [asc_slope_22_upper_level_id] = {asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
-  [asc_slope_45_id] = {asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
-  [desc_slope_45_id] = {desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
-  [visual_loop_topleft] = {mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
-  [visual_loop_toptopleft] = {mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
-  [visual_loop_toptopright] = {mask_loop_toptopright, {0, 0, 0, 1, 1, 2, 2, 3}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, -3)},
-  [visual_loop_bottomleft] = {mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
-  [visual_loop_bottomright] = {mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
+  [tile_repr.full_tile_id] = {tile_repr.full_tile_id, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
+  [tile_repr.flat_high_tile_left_id] = {tile_repr.flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},
+  [tile_repr.flat_high_tile_id] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
+  [tile_repr.half_tile_id] = {tile_repr.half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
+  [tile_repr.flat_low_tile_id] = {tile_repr.flat_low_tile_id, {2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
+  [tile_repr.bottom_right_quarter_tile_id] = {tile_repr.bottom_right_quarter_tile_id, {0, 0, 0, 0, 4, 4, 4, 4}, {0, 0, 0, 0, 4, 4, 4, 4}, atan2(8, 0)},
+  [tile_repr.asc_slope_22_id] = {tile_repr.asc_slope_22_id, {2, 2, 3, 3, 4, 4, 5, 5}, {0, 0, 0, 2, 4, 6, 8, 8}, 0.0625},
+  [tile_repr.asc_slope_22_upper_level_id] = {tile_repr.asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
+  [tile_repr.asc_slope_45_id] = {tile_repr.asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
+  [tile_repr.desc_slope_45_id] = {tile_repr.desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
+  [tile_repr.visual_loop_topleft] = {tile_repr.mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
+  [tile_repr.visual_loop_toptopleft] = {tile_repr.mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
+  [tile_repr.visual_loop_toptopright] = {tile_repr.mask_loop_toptopright, {0, 0, 0, 1, 1, 2, 2, 3}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, -3)},
+  [tile_repr.visual_loop_bottomleft] = {tile_repr.mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
+  [tile_repr.visual_loop_bottomright] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
+  [tile_repr.visual_loop_bottomright_steepest] = {22, {0, 0, 0, 0, 0, 2, 5, 8}, {1, 1, 1, 2, 2, 2, 3, 3}, atan2(3, -8)},
   -- note that we didn't add definitions for mask_ versions, as we don't use them in tests
   -- if we need them, then since content is the same, instead of duplicating lines for mask_,
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
-  [spring_left_id] = {flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
-  [spring_left_id + 1] = {flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
+  [tile_repr.spring_left_id] = {tile_repr.flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
+  [tile_repr.spring_left_id + 1] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
+  [visual.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
 }
 
 -- process data above to generate interior_v/h automatically, so we don't have to add them manually
@@ -62,38 +69,43 @@ function tile_test_data.setup()
   -- this includes "visual" sprites like springs!
 
   -- collision masks / proto tiles
-  fset(full_tile_id, sprite_masks.collision + sprite_masks.midground)  -- full tile
-  fset(half_tile_id, sprite_masks.collision + sprite_masks.midground)  -- half-tile (bottom half)
-  fset(flat_low_tile_id, sprite_masks.collision + sprite_masks.midground)  -- low-tile (bottom quarter)
-  fset(bottom_right_quarter_tile_id, sprite_masks.collision + sprite_masks.midground)  -- quarter-tile (bottom-right half)
-  fset(asc_slope_22_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset by 2 (legacy)
-  fset(asc_slope_22_upper_level_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset by 4
-  fset(asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
-  fset(desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
+  fset(tile_repr.full_tile_id, sprite_masks.collision + sprite_masks.midground)  -- full tile
+  fset(tile_repr.half_tile_id, sprite_masks.collision + sprite_masks.midground)  -- half-tile (bottom half)
+  fset(tile_repr.flat_low_tile_id, sprite_masks.collision + sprite_masks.midground)  -- low-tile (bottom quarter)
+  fset(tile_repr.bottom_right_quarter_tile_id, sprite_masks.collision + sprite_masks.midground)  -- quarter-tile (bottom-right half)
+  fset(tile_repr.asc_slope_22_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset tile_repr.by 2 (legacy)
+  fset(tile_repr.asc_slope_22_upper_level_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset tile_repr.by 4
+  fset(tile_repr.asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
+  fset(tile_repr.desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
 
-  fset(visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
   -- mask also have collision falg, but only useful to test
   -- a non-loop proto curve tile with the same shaped
-  fset(mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopleft, sprite_masks.collision +  sprite_masks.midground)
-  fset(mask_loop_toptopleft, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.visual_loop_toptopleft, sprite_masks.collision +  sprite_masks.midground)
+  fset(tile_repr.mask_loop_toptopleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
-  fset(mask_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.visual_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_loop_toptopright, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
-  fset(mask_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.visual_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
 
-  fset(visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
-  fset(mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
+
+  fset(tile_repr.visual_loop_bottomright_steepest, sprite_masks.collision + sprite_masks.midground)
 
   -- visual sprites
-  fset(spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
-  fset(spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
+  fset(tile_repr.spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
+  fset(tile_repr.spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
 
-  fset(grass_top_decoration1, sprite_masks.foreground)
+  -- ramp
+  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.midground)
+
+  fset(tile_repr.grass_top_decoration1, sprite_masks.foreground)
 
   -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted
   stub(collision_data, "get_tile_collision_data", function (current_tile_id)

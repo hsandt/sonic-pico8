@@ -27,10 +27,10 @@ expect gp_value_type  expect a gameplay value to be equal to (...)
 --]]
 
 require("engine/core/enum")
-require("engine/core/string")
 require("engine/test/assertions")
-local integrationtest = require("engine/test/integrationtest")
-local itest_manager, integration_test = integrationtest.itest_manager, integrationtest.integration_test
+local integration_test = require("engine/test/integration_test")
+local itest_manager = require("engine/test/itest_manager")
+local time_trigger = require("engine/test/time_trigger")
 
 local tilemap = require("engine/data/tilemap")
 
@@ -41,7 +41,7 @@ local input = require("engine/input/input")
 local player_char = require("ingame/playercharacter")
 local pc_data = require("data/playercharacter_data")
 
-require("test_data/tile_representation")
+local tile_repr = require("test_data/tile_representation")
 --#if busted
 local tile_test_data = require("test_data/tile_test_data")
 --#endif
@@ -62,9 +62,11 @@ end
 -- module
 local itest_dsl = {}
 
+-- declare local at top-level to ensure there are accessible in methods below
 local value_parsers
 local executors
 local evaluators
+local setters
 
 -- struct holding data on a gameplay value for expectations
 
@@ -79,23 +81,6 @@ function gameplay_value_data:init(name, parsable_type, eval)
   self.parsable_type = parsable_type
 end
 
-
--- optimize tokens: if this is too much, remove proxy function tables
---  altogether and directly access functions via itest_dsl[prefix..type_name]
---  (this requires to keep the enum_strings table in config with #itest)
--- return table containing functions named {prefix}{enum_type_name}
---  inside a module, indexed by enum value
-local function generate_function_table(module, enum_types, prefix)
-  local t = {}
-  for type_name, enum_type in pairs(enum_types) do
-    t[enum_type] = module[prefix..type_name]
-  end
-  return t
-end
---#if busted
--- allow access to function for utest
-itest_dsl.generate_function_table = generate_function_table
---#endif
 
 -- type of variables that can be parsed
 -- those names are *not* parsed at runtime for DSL, so we can minify them
@@ -121,8 +106,8 @@ horizontal_dirs_protected = {
 
 control_modes_protected = {
   ["human"] = 1,      -- player controls character
-  ["ai"] = 2,         -- ai controls character
-  ["puppet"] = 3      -- itest script controls character
+  ["puppet"] = 3,     -- itest script controls character
+  ["ai"] = 3,         -- ai controls character
 }
 
 motion_modes_protected = {
@@ -181,20 +166,20 @@ command_types = enum {
 command_type_strings = invert_table(command_types)
 --#endif
 
--- argument types expected after those commands
+-- argument types expected after those commands, indexed by command type
 command_arg_types = {
-  [command_types["warp"]]             = parsable_types["vector"],
-  [command_types["set"]]              = parsable_types["gp_value"],
-  [command_types["set_control_mode"]] = parsable_types["control_mode"],
-  [command_types["set_motion_mode"]]  = parsable_types["motion_mode"],
-  [command_types["move"]]             = parsable_types["horizontal_dir"],
-  [command_types["stop"]]             = parsable_types["none"],
-  [command_types["jump"]]             = parsable_types["none"],
-  [command_types["stop_jump"]]        = parsable_types["none"],
-  [command_types["press"]]            = parsable_types["button_id"],
-  [command_types["release"]]          = parsable_types["button_id"],
-  [command_types["wait"]]             = parsable_types["number"],
-  [command_types["expect"]]           = parsable_types["gp_value"],
+  --[[warp]]             parsable_types["vector"],
+  --[[set]]              parsable_types["gp_value"],
+  --[[set_control_mode]] parsable_types["control_mode"],
+  --[[set_motion_mode]]  parsable_types["motion_mode"],
+  --[[move]]             parsable_types["horizontal_dir"],
+  --[[stop]]             parsable_types["none"],
+  --[[jump]]             parsable_types["none"],
+  --[[stop_jump]]        parsable_types["none"],
+  --[[press]]            parsable_types["button_id"],
+  --[[release]]          parsable_types["button_id"],
+  --[[wait]]             parsable_types["number"],
+  --[[expect]]           parsable_types["gp_value"],
 }
 
 
@@ -222,58 +207,58 @@ local gp_value_data_t = {
 
 -- parsing functions (start with _ to protect against member name minification)
 
-function itest_dsl._parse_none(arg_strings)
-  assert(#arg_strings == 0, "_parse_none: got "..#arg_strings.." args, expected 0")
+function itest_dsl.parse_none(arg_strings)
+  assert(#arg_strings == 0, "parse_none: got "..#arg_strings.." args, expected 0")
   return nil
 end
 
-function itest_dsl._parse_number(arg_strings)
-  assert(#arg_strings == 1, "_parse_number: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_number(arg_strings)
+  assert(#arg_strings == 1, "parse_number: got "..#arg_strings.." args, expected 1")
   return tonum(arg_strings[1])
 end
 
-function itest_dsl._parse_vector(arg_strings)
-  assert(#arg_strings == 2, "_parse_vector: got "..#arg_strings.." args, expected 2")
+function itest_dsl.parse_vector(arg_strings)
+  assert(#arg_strings == 2, "parse_vector: got "..#arg_strings.." args, expected 2")
   return vector(tonum(arg_strings[1]), tonum(arg_strings[2]))
 end
 
-function itest_dsl._parse_horizontal_dir(arg_strings)
-  assert(#arg_strings == 1, "_parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_horizontal_dir(arg_strings)
+  assert(#arg_strings == 1, "parse_horizontal_dir: got "..#arg_strings.." args, expected 1")
   local horizontal_dir = horizontal_dirs_protected[arg_strings[1]]
   assert(horizontal_dir, "horizontal_dirs_protected["..arg_strings[1].."] is not defined")
   return horizontal_dir
 end
 
-function itest_dsl._parse_control_mode(arg_strings)
-  assert(#arg_strings == 1, "_parse_control_mode: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_control_mode(arg_strings)
+  assert(#arg_strings == 1, "parse_control_mode: got "..#arg_strings.." args, expected 1")
   local control_mode = control_modes_protected[arg_strings[1]]
   assert(control_mode, "control_modes_protected["..arg_strings[1].."] is not defined")
   return control_mode
 end
 
-function itest_dsl._parse_motion_mode(arg_strings)
-  assert(#arg_strings == 1, "_parse_motion_mode: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_motion_mode(arg_strings)
+  assert(#arg_strings == 1, "parse_motion_mode: got "..#arg_strings.." args, expected 1")
   local motion_mode = motion_modes_protected[arg_strings[1]]
   assert(motion_mode, "motion_modes_protected["..arg_strings[1].."] is not defined")
   return motion_mode
 end
 
-function itest_dsl._parse_motion_state(arg_strings)
-  assert(#arg_strings == 1, "_parse_motion_state: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_motion_state(arg_strings)
+  assert(#arg_strings == 1, "parse_motion_state: got "..#arg_strings.." args, expected 1")
   local motion_state = motion_states_protected[arg_strings[1]]
   assert(motion_state, "motion_states_protected["..arg_strings[1].."] is not defined")
   return motion_state
 end
 
-function itest_dsl._parse_button_id(arg_strings)
-  assert(#arg_strings == 1, "_parse_button_id: got "..#arg_strings.." args, expected 1")
+function itest_dsl.parse_button_id(arg_strings)
+  assert(#arg_strings == 1, "parse_button_id: got "..#arg_strings.." args, expected 1")
   local button_id = button_ids_protected[arg_strings[1]]
   assert(button_id, "button_ids_protected["..arg_strings[1].."] is not defined")
   return button_id
 end
 
-function itest_dsl._parse_gp_value(arg_strings)
-  assert(#arg_strings > 1, "_parse_gp_value: got "..#arg_strings.." args, expected at least 2")
+function itest_dsl.parse_gp_value(arg_strings)
+  assert(#arg_strings > 1, "parse_gp_value: got "..#arg_strings.." args, expected at least 2")
   -- same principle as itest_dsl_parser.parse, the type of the first arg
   --  determines how we parse the rest of the args, named "value components"
   local gp_value_type_str = arg_strings[1]
@@ -294,15 +279,24 @@ function itest_dsl._parse_gp_value(arg_strings)
   return gp_value_type_str, gp_value
 end
 
--- table of parsers for command args and gameplay values, indexed by parsed type
-value_parsers = generate_function_table(itest_dsl, parsable_types, "_parse_")
-itest_dsl.value_parsers = value_parsers
-
+-- table of parsers for command args and gameplay values, indexed by parsable type
+-- local, but declared at top of module
+value_parsers = {
+  itest_dsl.parse_none,
+  itest_dsl.parse_number,
+  itest_dsl.parse_vector,
+  itest_dsl.parse_horizontal_dir,
+  itest_dsl.parse_control_mode,
+  itest_dsl.parse_motion_mode,
+  itest_dsl.parse_motion_state,
+  itest_dsl.parse_button_id,
+  itest_dsl.parse_gp_value
+}
 
 -- functions to execute dsl commands. they take the dsl parser as 1st parameter
 -- so they can update its state if needed
 
-function itest_dsl._execute_warp(args)
+function itest_dsl.execute_warp(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char:warp_bottom_to(args[1])
 
@@ -310,110 +304,141 @@ function itest_dsl._execute_warp(args)
   --  and reload map region there
   -- this trick is needed for itests that last only 1 frame (like spring bounce),
   --  so the colliders in the warp region are correctly set and ground reactions work
-  current_stage_state.camera_pos.x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  current_stage_state.camera_pos.y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  current_stage_state.camera.position.x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  current_stage_state.camera.position.y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
 
   current_stage_state:check_reload_map_region()
 end
 
-function itest_dsl._execute_set(args)
+function itest_dsl.execute_set(args)
   local gp_value_type_str, new_gp_value = unpack(args)
-
-  local setter = itest_dsl["set_"..gp_value_type_str]
-  assert(setter, "itest_dsl.set_"..gp_value_type_str.." is not defined")
+  local gp_value_type = gp_value_types[gp_value_type_str]
+  assert(gp_value_type, "gp_value_types["..gp_value_type_str.."] is not defined")
+  local setter = setters[gp_value_type]
+  assert(setter, "setter for "..gp_value_type_str.." is not defined")
   setter(new_gp_value)
 end
 
-function itest_dsl._execute_set_control_mode(args)
+function itest_dsl.execute_set_control_mode(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.control_mode = args[1]
 end
 
-function itest_dsl._execute_set_motion_mode(args)
+function itest_dsl.execute_set_motion_mode(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char:set_motion_mode(args[1])
 end
 
-function itest_dsl._execute_move(args)
+function itest_dsl.execute_move(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.move_intention = horizontal_dir_vectors[args[1]]
 end
 
-function itest_dsl._execute_stop(args)
+function itest_dsl.execute_stop(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.move_intention = vector.zero()
 end
 
-function itest_dsl._execute_jump(args)
+function itest_dsl.execute_jump(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.jump_intention = true  -- will be consumed
   current_stage_state.player_char.hold_jump_intention = true
 end
 
-function itest_dsl._execute_stop_jump(args)
+function itest_dsl.execute_stop_jump(args)
   local current_stage_state = get_current_state_as_stage()
   current_stage_state.player_char.hold_jump_intention = false
 end
 
-function itest_dsl._execute_press(args)
+function itest_dsl.execute_press(args)
   -- simulate sticky press for player 0
   input.simulated_buttons_down[0][args[1]] = true
 end
 
-function itest_dsl._execute_release(args)
+function itest_dsl.execute_release(args)
   -- simulate release for player 0
   input.simulated_buttons_down[0][args[1]] = false
 end
 
 -- wait and expect are not timed actions and will be handled as special cases
 
--- table of functions to call when applying a command with args, indexed by command type
-executors = generate_function_table(itest_dsl, command_types, "_execute_")
-itest_dsl.executors = executors
+-- executor table, indexed by command type
+-- contains one entry per command, except special commands wait and expect
+-- local, but declared at top of module
+executors = {
+  itest_dsl.execute_warp,
+  itest_dsl.execute_set,
+  itest_dsl.execute_set_control_mode,
+  itest_dsl.execute_set_motion_mode,
+  itest_dsl.execute_move,
+  itest_dsl.execute_stop,
+  itest_dsl.execute_jump,
+  itest_dsl.execute_stop_jump,
+  itest_dsl.execute_press,
+  itest_dsl.execute_release
+}
 
 
 -- gameplay value evaluation functions
 
-function itest_dsl._eval_pc_bottom_pos()
+function itest_dsl.eval_pc_bottom_pos()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char:get_bottom_center()
 end
 
-function itest_dsl._eval_pc_velocity()
+function itest_dsl.eval_pc_velocity()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.velocity
 end
 
-function itest_dsl._eval_pc_velocity_y()
+function itest_dsl.eval_pc_velocity_y()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.velocity.y
 end
 
-function itest_dsl._eval_pc_ground_spd()
+function itest_dsl.eval_pc_ground_spd()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.ground_speed
 end
 
-function itest_dsl._eval_pc_motion_state()
+function itest_dsl.eval_pc_motion_state()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.motion_state
 end
 
-function itest_dsl._eval_pc_slope()
+function itest_dsl.eval_pc_slope()
   local current_stage_state = get_current_state_as_stage()
   return current_stage_state.player_char.slope_angle
 end
 
--- table of functions used to evaluate and returns the gameplay value in current game state
-evaluators = generate_function_table(itest_dsl, gp_value_types, "_eval_")
-itest_dsl.evaluators = evaluators
+-- evaluator table, indexed by gameplay value type
+-- local, but declared at top of module
+evaluators = {
+  itest_dsl.eval_pc_bottom_pos,
+  itest_dsl.eval_pc_velocity,
+  itest_dsl.eval_pc_velocity_y,
+  itest_dsl.eval_pc_ground_spd,
+  itest_dsl.eval_pc_motion_state,
+  itest_dsl.eval_pc_slope
+}
 
+--#if busted
+-- only for define_final_assertion utest
+itest_dsl.evaluators = evaluators
+--#endif
 
 -- gameplay value setters (only when setting value directly makes sense and is used by some itests)
 
 function itest_dsl.set_pc_velocity(value)
   local current_stage_state = get_current_state_as_stage()
-  current_stage_state.player_char.velocity = value
+  -- value comes directly from the itest definition, make sure to copy assign
+  --  or you will modify the value to set on further itests with actual pc velocity!
+  current_stage_state.player_char.velocity:copy_assign(value)
+end
+
+function itest_dsl.set_pc_velocity_y(value)
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.velocity.y = value
 end
 
 function itest_dsl.set_pc_ground_spd(value)
@@ -421,6 +446,28 @@ function itest_dsl.set_pc_ground_spd(value)
   current_stage_state.player_char.ground_speed = value
 end
 
+
+-- type of gameplay values available for expectations
+gp_value_types = enum {
+  "pc_bottom_pos",   -- bottom position of player character
+  "pc_velocity",     -- velocity of player character
+  "pc_velocity_y",   -- y component of velocity of player character
+  "pc_ground_spd",   -- ground speed of player character
+  "pc_motion_state", -- motion state of player character
+  "pc_slope",        -- current slope on which player character is grounded
+}
+
+-- setter table, indexed by gameplay value type
+-- some setters are not used and therefore not implemented
+-- local, but declared at top of module
+setters = {
+  nil,  -- pc_bottom_pos
+  itest_dsl.set_pc_velocity,
+  itest_dsl.set_pc_velocity_y,
+  itest_dsl.set_pc_ground_spd,
+  nil,  -- pc_motion_state
+  nil,  -- pc_slope
+}
 
 -- command struct
 
@@ -466,13 +513,13 @@ end
 
 
 -- itest dsl parser singleton, with parser context state
--- _itest               integration_test  current integration test in construction
--- _last_time_trigger   time_trigger      last time trigger registered with wait command
--- _final_expectations  {expectation}     sequence of expectations to verify
+-- itest               integration_test  current integration test in construction
+-- last_time_trigger   time_trigger      last time trigger registered with wait command
+-- final_expectations  {expectation}     sequence of expectations to verify
 local itest_dsl_parser = singleton(function (self)
-  self._itest = nil
-  self._last_time_trigger = nil
-  self._final_expectations = {}
+  self.itest = nil
+  self.last_time_trigger = nil
+  self.final_expectations = {}
 end)
 itest_dsl.itest_dsl_parser = itest_dsl_parser
 
@@ -578,7 +625,7 @@ function itest_dsl_parser.parse_tilemap(lines)
 
     for j = 1, width do
       local tile_symbol = sub(trimmed_line_str, j, j)
-      local tile_id = tile_symbol_to_ids[tile_symbol]
+      local tile_id = tile_repr.tile_symbol_to_ids[tile_symbol]
       assert(tile_id, "unknown tile symbol: "..tile_symbol)
       add(current_row, tile_id)
     end
@@ -619,9 +666,18 @@ end
 
 -- create and return an itest from a dsli, providing a name
 function itest_dsl_parser.create_itest(name, dsli)
-  itest_dsl_parser._itest = integration_test(name, {dsli.gamestate_type})
+  itest_dsl_parser.itest = integration_test(name, {dsli.gamestate_type})
 
-  itest_dsl_parser._itest.setup = function (app)
+  itest_dsl_parser.itest.setup = function (app)
+    -- disable object scan + spawn as it's very slow to iterate on the whole map
+    --  at the beginning of each test
+    -- if later you add a test to specifically test objects, just add a flag in the DSL
+    --  like @stage #with_objects to still enable object scan + spawn
+    -- note that we do this even if dsli.gamestate_type is not stage,
+    --  as itests in titlemenu may enter stage and we don't want to waste time
+    --  when entering stage state at the end of the itest
+    flow.gamestates[':stage'].enable_spawn_objects = false
+
     flow:change_gamestate_by_type(dsli.gamestate_type)
     if dsli.gamestate_type == ':stage' then
       -- puppet control
@@ -639,7 +695,7 @@ function itest_dsl_parser.create_itest(name, dsli)
     end
   end
 
-  itest_dsl_parser._itest.teardown = function ()
+  itest_dsl_parser.itest.teardown = function ()
     -- clear map
     -- no need to "unload" the game state, the next test will reset the flow anyway
     if dsli.gamestate_type == ':stage' then
@@ -655,16 +711,18 @@ function itest_dsl_parser.create_itest(name, dsli)
 
   for cmd in all(dsli.commands) do
     if cmd.type == command_types["wait"] then
-      itest_dsl_parser:_wait(cmd.args[1])
+      itest_dsl_parser:wait(cmd.args[1])
 
     elseif cmd.type == command_types["expect"] then
       -- we currently don't support live assertions, but we support multiple
       -- final expectations
-      add(itest_dsl_parser._final_expectations, expectation(cmd.args[1], cmd.args[2]))
+      add(itest_dsl_parser.final_expectations, expectation(cmd.args[1], cmd.args[2]))
 
     else
       -- common action, store callback for execution during
-      itest_dsl_parser:_act(function ()
+      itest_dsl_parser:act(function ()
+        -- in Lua the cmd below is really the cmd for this iteration, don't worry about it
+        --  changing in the loop as it won't affect the one of the callback when called later
         local executor = executors[cmd.type]
         assert(executor, "executors["..cmd.type.."] (for '"..command_type_strings[cmd.type].."') is not defined")
         executor(cmd.args)
@@ -674,16 +732,16 @@ function itest_dsl_parser.create_itest(name, dsli)
 
   -- if we finished with a wait (with or without final assertion),
   --  we need to close the itest with a wait-action
-  if itest_dsl_parser._last_time_trigger then
-    itest_dsl_parser._itest:add_action(itest_dsl_parser._last_time_trigger, nil)
-    itest_dsl_parser._last_time_trigger = nil  -- consume and cleanup for next itest
+  if itest_dsl_parser.last_time_trigger then
+    itest_dsl_parser.itest:add_action(itest_dsl_parser.last_time_trigger, nil)
+    itest_dsl_parser.last_time_trigger = nil  -- consume and cleanup for next itest
   end
 
   -- glue code to remain retro-compatible with function-based final assertion
-  itest_dsl_parser:_define_final_assertion()
+  itest_dsl_parser:define_final_assertion()
 
-  local test = itest_dsl_parser._itest
-  itest_dsl_parser._itest = nil  -- consume and cleanup for next itest
+  local test = itest_dsl_parser.itest
+  itest_dsl_parser.itest = nil  -- consume and cleanup for next itest
 
   return test
 end
@@ -696,23 +754,23 @@ end
 --  changes or waiting. when waiting, just skip frames until waiting ends,
 --  at which point you can apply all further actions immediately, until
 --  a new wait action is found.
-function itest_dsl_parser:_act(callback)
-  if self._last_time_trigger then
-    self._itest:add_action(self._last_time_trigger, callback)
-    self._last_time_trigger = nil  -- consume so we know no final wait-action is needed
+function itest_dsl_parser:act(callback)
+  if self.last_time_trigger then
+    self.itest:add_action(self.last_time_trigger, callback)
+    self.last_time_trigger = nil  -- consume so we know no final wait-action is needed
   else
     -- no wait since last action (or this is the first action), so use immediate trigger
-    self._itest:add_action(integrationtest.immediate_trigger, callback)
+    self.itest:add_action(time_trigger.immediate(), callback)
   end
 end
 
-function itest_dsl_parser:_wait(interval)
-  if self._last_time_trigger then
+function itest_dsl_parser:wait(interval)
+  if self.last_time_trigger then
     -- we were already waiting, so finish last wait with empty action
-    self._itest:add_action(self._last_time_trigger, nil)
+    self.itest:add_action(self.last_time_trigger, nil)
   end
   -- we only support frame unit in the dsl
-  self._last_time_trigger = integrationtest.time_trigger(interval, true)
+  self.last_time_trigger = time_trigger(interval, true)
 end
 
 
@@ -720,23 +778,24 @@ end
 -- this is a glue method to make it retro-compatible with the function-based final assertion
 -- eventually, the itest will only hold expectations (possibly predefined functions for currying)
 --  to avoid creating lambda
-function itest_dsl_parser:_define_final_assertion()
+function itest_dsl_parser:define_final_assertion()
   -- define an intermediate local variable to avoid the "local variable closure issue"
-  --  i.e. if we access "self._final_expectations" directly from inside the function
-  --  constructed below, it would get the actual value of self._final_expectations
+  --  i.e. if we access "self.final_expectations" directly from inside the function
+  --  constructed below, it would get the actual value of self.final_expectations
   --  at evaluation time (too late, the temporary table reference would have been lost
   --  and the table gc-ed). So we either need to copy the table content (then clear table)
   --  or store the reference in an intermediate variable like this one (then create new table)
-  local final_expectations_proxy = self._final_expectations
-  self._final_expectations = {}  -- consume and cleanup for next itest
+  local final_expectations_proxy = self.final_expectations
+  self.final_expectations = {}  -- consume and cleanup for next itest
 
-  self._itest.final_assertion = function ()
+  self.itest.final_assertion = function ()
     local success = true
     local full_message = ""
 
     -- check each expectation one by one
     for exp in all(final_expectations_proxy) do
       local gp_value_type = gp_value_types[exp.gp_value_type_str]
+      assert(gp_value_type, "gp_value_types["..exp.gp_value_type_str.."] is not defined")
       local evaluator = evaluators[gp_value_type]
       assert(evaluator, "evaluators["..gp_value_type.."] (for '"..exp.gp_value_type_str.."') is not defined")
       local gp_value = evaluator()

@@ -1,12 +1,10 @@
 -- this script was copied and adapted from Wit Fighter
--- some leftovers like pagination are not used but kept in case
+-- some leftovers like pagination are not used but kept commented out just in case
 --  I add more menu items later (e.g. Sonic 2 use pagination for the VS menu)
 -- for now only the page arrows are not drawn, and related data doesn't exist
 
 local input = require("engine/input/input")
-local ui = require("engine/ui/ui")
-
-local visual = require("resources/visual")
+local text_helper = require("engine/ui/text_helper")
 
 --[[
 Class representing a menu with labels and arrow-based scrolling navigation
@@ -17,11 +15,20 @@ External references
 Instance parameters
   items_count_per_page      int         number of items displayed per page
   alignment                 alignments  text alignment to use for item display
+  interval_y                int         number of extra pixels added to separate items vertically,
+                                          after character height (which already contains an extra pixel of margin
+                                          between text insides)
+                                        note that this doesn't take the outline into account, so 2 means
+                                          you actually want 1 px or margin between the *outlines*
   text_color                colors      item text color
   prev_page_arrow_offset    vector      where to draw previous/next page arrow
                                         from top-left (in left alignment) or
                                         top-center (in center alignment)
                                         next page arrow is drawn symmetrically
+  left_cursor_sprite_data   sprite_data sprite to display on the left of the selected item
+                                        (ignored if aligments is not left)
+  left_cursor_half_width    int         visible half-width of the left cursor sprite (when empty space is trimmed)
+                                        (ignored if aligments is not left)
 
 Instance dynamic parameters
   items             {menu_item}   sequence of items to display
@@ -35,15 +42,22 @@ Instance state
 --]]
 
 local menu = new_class()
-function menu:init(app, items_count_per_page, alignment, text_color, prev_page_arrow_offset)
+function menu:init(app--[[, items_count_per_page]], alignment, interval_y, text_color--[[, prev_page_arrow_offset]], left_cursor_sprite_data, left_cursor_half_width)
   -- external references
   self.app = app
 
   -- parameters
+  --[[
   self.items_count_per_page = items_count_per_page
+  --]]
   self.alignment = alignment
+  self.interval_y = interval_y
   self.text_color = text_color
+  --[[
   self.prev_page_arrow_offset = prev_page_arrow_offset or vector.zero()
+  --]]
+  self.left_cursor_sprite_data = left_cursor_sprite_data
+  self.left_cursor_half_width = left_cursor_half_width
 
   -- dynamic parameters (set once per menu prompt)
   self.items = {}
@@ -188,11 +202,17 @@ function menu:draw(x, top)
 
   -- identify which page is currently shown from the current selection
   -- unlike other indices in Lua, page starts at 0
+
+  -- no paginated menu for now, so just display all items
+  --[[
   local items_count_per_page = self.items_count_per_page
   local page_count = ceil(#items / items_count_per_page)
   local page_index0 = flr((self.selection_index - 1) / items_count_per_page)
   local first_index0 = page_index0 * items_count_per_page
   local last_index0 = min(first_index0 + items_count_per_page - 1, #items - 1)
+  --]]
+  local first_index0 = 0
+  local last_index0 = #items - 1
   for i = first_index0 + 1, last_index0 + 1 do
     -- for current selection, surround with "> <" like this: "> selected item <"
     local label = items[i].label
@@ -200,20 +220,32 @@ function menu:draw(x, top)
 
     if i == self.selection_index then
       if self.alignment == alignments.left then
-        label = "> "..label
+        if self.left_cursor_sprite_data then
+          -- sprite pivot x should be at center so we can place it away from the text with a margin of 3
+          -- sprite pivot y should be at center so it falls vertically in the middle of the text
+          self.left_cursor_sprite_data:render(vector(x - self.left_cursor_half_width - 3, y + 3))
+        else
+          -- fallback to mere text cursor
+          label = "> "..label
+        end
       else  -- self.alignment is alignments.horizontal_center or alignments.center
         label = "> "..label.." <"
       end
     else
       -- if left aligned, move non-selected items to the right to align with selected item
-       if self.alignment == alignments.left then
+      -- unless we use a cursor sprite, which is doesn't offset the text
+       if self.alignment == alignments.left and not self.left_cursor_sprite_data then
          item_x = item_x + 2 * character_width  -- "> " has 2 characters
        end
     end
 
-    ui.print_aligned(label, item_x, y, self.alignment, self.text_color)
-    y = y + character_height
+    text_helper.print_aligned(label, item_x, y, self.alignment, self.text_color, colors.black)
+    y = y + character_height + self.interval_y
   end
+
+  -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway
+
+  --[=[
 
   -- only used if enter one of the blocks below,
   -- but precomputed as useful for both blocks
@@ -224,8 +256,7 @@ function menu:draw(x, top)
     -- show previous page arrow hint
     -- y offset of -2 to have 1px of space between text top and arrow
     local previous_arrow_y = top - 2 + self.prev_page_arrow_offset.y + self.prev_page_arrow_extra_y
-    -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway
-    -- visual.sprite_data_t.previous_arrow:render(vector(arrow_x, previous_arrow_y))
+    visual.sprite_data_t.previous_arrow:render(vector(arrow_x, previous_arrow_y))
   end
   if page_index0 < page_count - 1 then
     -- show next page arrow hint
@@ -237,9 +268,10 @@ function menu:draw(x, top)
     --   but it wouldn't be needed if custom sprite size was supported
     -- make sure to reverse sign of all offsets to make arrow initial position and animation symmetrical on y
     local next_arrow_y = top + character_height * items_count_per_page - self.prev_page_arrow_offset.y - self.prev_page_arrow_extra_y + 1
-    -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway
-    -- visual.sprite_data_t.previous_arrow:render(vector(arrow_x, next_arrow_y), false, --[[flip_y:]] true)
+    visual.sprite_data_t.previous_arrow:render(vector(arrow_x, next_arrow_y), false, --[[flip_y:]] true)
   end
+
+  --]=]
 end
 
 return menu

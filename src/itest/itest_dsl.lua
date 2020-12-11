@@ -106,8 +106,8 @@ horizontal_dirs_protected = {
 
 control_modes_protected = {
   ["human"] = 1,      -- player controls character
-  ["ai"] = 2,         -- ai controls character
-  ["puppet"] = 3      -- itest script controls character
+  ["puppet"] = 3,     -- itest script controls character
+  ["ai"] = 3,         -- ai controls character
 }
 
 motion_modes_protected = {

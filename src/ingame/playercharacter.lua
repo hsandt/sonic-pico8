@@ -28,8 +28,8 @@ local player_char = new_class()
 
 -- state vars
 
--- control_mode             control_modes   control mode: human (default) or ai
--- motion_mode   (cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
+-- control_mode             control_modes   control mode: human (default), puppet or ai (#itest only)
+-- motion_mode  (#cheat)    motion_modes    motion mode: platformer (under gravity) or debug (fly around)
 -- motion_state             motion_states   motion state (platformer mode only)
 -- quadrant                 directions      down vector of quadrant where character is located (down on floor, up on ceiling, left/right on walls)
 -- orientation              horizontal_dirs direction faced by character
@@ -350,13 +350,15 @@ function player_char:handle_input()
       self:toggle_debug_motion()
     end
 --#endif
+--#if itest
   elseif self.control_mode == control_modes.ai then
     -- for now, ai just resets intention
-    -- it is now actually used, as puppet is more convienent for itests,
+    -- it is current unused, as puppet is more convienent for itests,
     --  post-goal behavior, attract mode, etc. (like a scripted behavior)
     self.move_intention = vector.zero()
     self.jump_intention = false
     self.hold_jump_intention = false
+--#endif
   end
 end
 

@@ -1,8 +1,10 @@
 -- enum for character control
 control_modes = {
   human = 1,      -- player controls character
-  ai = 2,         -- ai controls character (precise behavior)
-  puppet = 3      -- external code controls character (stop updating and use the last intentions set)
+  puppet = 2     -- external code controls character (stop updating and use the last intentions set)
+--#if itest
+, ai = 3          -- ai controls character (precise behavior, currently unused and only referred to in tests)
+--#endif
 }
 
 -- motion_modes and motion_states are accessed dynamically via variant name in itest_dsl
@@ -27,4 +29,3 @@ motion_states = {
   air_spin = 3,  -- character is in the air after a jump
   rolling  = 4,  -- character is rolling on the ground
 }
-

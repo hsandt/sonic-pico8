@@ -114,6 +114,12 @@ function stage_state:reload_runtime_data()
   -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
   --  so 512 = 0x200 bytes per row,
   --  so 1536 = 0x600 bytes
+  -- NOTE: we are *not* reloading sprite flags (could do by copying 0x100 bytes from 0x3000-0x30ff)
+  --  which means our builtin spritesheet *must* contain any new flags brought by runtime extra tiles
+  --  (located in the 3 top rows of the spritesheet). Those are rare (only one-way platform tiles)
+  --  but without the flags, they won't behave properly. This means you must place flags on the mask tiles
+  --  in the built-in spritesheet. Later, you can move all mask tiles to another spritesheet to reload
+  --  on start instead.
   local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
   reload(0x0, 0x0, 0x600, runtime_data_path)
 
@@ -1094,7 +1100,7 @@ function stage_state:render_hud()
   -- draw emeralds obtained at top-left of screen, in order from left to right,
   --  with the right color
   for i = 1, #self.spawned_emerald_locations do
-    local draw_position = vector(-4 + 10 * i, 6)
+    local draw_position = vector(-4 + 8 * i, 3)
     if self.picked_emerald_numbers_set[i] then
       emerald.draw(i, draw_position)
     else

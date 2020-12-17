@@ -493,7 +493,7 @@ function player_char:get_ground_sensor_position_from(center_position, quadrant_h
   return qx_floored_bottom_center + offset_qx_vector
 end
 
--- helper method for compute_closest_ground_query_info and _is_blocked_by_ceiling_at
+-- helper method for compute_closest_ground_query_info and is_blocked_by_ceiling_at
 -- for given player character pc, it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
@@ -560,10 +560,14 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     local tile_region_loc = curr_stage_state:global_to_region_location(curr_global_tile_loc)
     local visual_tile_id = mget(tile_region_loc.i, tile_region_loc.j)
 
-    -- we now check for ignored tiles, ramp or loop
+    -- we now check for ignored tiles:
+    --  a. ramps just after launching
+    --  b. loops on inactive layer from PC's point-of-view
+    --  c. one-way platforms unless we check collision downward
     if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
         pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
-        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) then
+        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) or
+        collision_check_quadrant ~= directions.down and fget(visual_tile_id, sprite_flags.oneway) then
       ignore_tile = true
     end
 
@@ -1394,7 +1398,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
     -- position is inside ground, check if we can step up during this step
     -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
     --  the escape is done on the X axis so technically we escape row width)
-    -- refactor: code is similar to _check_escape_from_ground and above all next_air_step
+    -- refactor: code is similar to check_escape_from_ground and above all next_air_step
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up or step flat
       next_position_candidate:add_inplace(vector_to_closest_ground)
@@ -1876,8 +1880,7 @@ function player_char:next_air_step(direction, ref_motion_result)
         -- I used to check direction == directions.down only, and indeed if you step 1px down,
         --  the penetration distance will be no more than 1 and you will always snap to ground.
         -- But this didn't work when direction left/right hit the slope.
-        -- refactor: code is similar to _check_escape_from_ground and above all next_ground_step
-        -- if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+        -- refactor: code is similar to check_escape_from_ground and above all next_ground_step
         if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
           next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
           -- landing: the character has just set foot on ground, flag it and initialize slope angle

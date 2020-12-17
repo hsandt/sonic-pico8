@@ -1148,7 +1148,7 @@ describe('player_char', function ()
 
       describe('compute_ground_sensors_query_info', function ()
 
-        -- interface tests are mostly redundant with _compute_closest_ground_query_info
+        -- interface tests are mostly redundant with compute_closest_ground_query_info
         -- so we prefer implementation tests, checking that it calls the later with both sensor positions
 
         describe('with stubs', function ()
@@ -5382,7 +5382,7 @@ describe('player_char', function ()
             mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (wall without ground below)
           end)
 
-          -- it will fail until _compute_closest_ground_query_info
+          -- it will fail until compute_closest_ground_query_info
           --  detects upper-level tiles as suggested in the note
           it('when stepping right on the ground and hitting the non-supported wall, preserve x and block', function ()
             local motion_result = motion.ground_motion_result(
@@ -5418,7 +5418,7 @@ describe('player_char', function ()
             mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (head wall)
           end)
 
-          -- it will fail until _compute_closest_ground_query_info
+          -- it will fail until compute_closest_ground_query_info
           --  detects upper-level tiles as suggested in the note
           it('when stepping right on the half-tile and hitting the head wall, preserve x and block', function ()
             local motion_result = motion.ground_motion_result(

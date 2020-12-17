@@ -199,6 +199,29 @@
 			]
 		},
 		{
+			"name": "Game: build full game",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_all_cartridges.sh debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_all_cartridges.sh debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_and_install_all_cartridges.sh cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_all_cartridges.sh release"]
+				}
+			]
+		},
+		{
 			"name": "Game: build itests titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,

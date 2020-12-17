@@ -80,7 +80,7 @@ script:
 
 before_deploy:
   # zip multiple cartridges (including data) into one distributable archive
-  - cp data/data_stage*.p8 "build/v${BUILD_VERSION}_release"
+  - cp data/data_*.p8 "build/v${BUILD_VERSION}_release"
   - pushd "build/v${BUILD_VERSION}_release"
   - zip -r "picosonic_v${BUILD_VERSION}_release_cartridges.zip" .
   - popd

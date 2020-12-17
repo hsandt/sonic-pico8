@@ -30,7 +30,7 @@ local titlemenu_sprite_data_t = {
   title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
   angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
-  emerald = sprite_data(sprite_id_location(10, 0), tile_vector(2, 1), vector(4, 4), colors.pink),
+  emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
 }
 
 merge(visual, titlemenu_visual)

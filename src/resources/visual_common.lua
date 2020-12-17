@@ -67,10 +67,10 @@ local sprite_data_t = {
 --#endif
 
   -- ANIMATION SPRITES
-  emerald_pick_fx1 = sprite_data(sprite_id_location(12, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
-  emerald_pick_fx2 = sprite_data(sprite_id_location(13, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
-  emerald_pick_fx3 = sprite_data(sprite_id_location(14, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
-  emerald_pick_fx4 = sprite_data(sprite_id_location(15, 0), tile_vector(1, 1), vector(4, 4), colors.pink),
+  emerald_pick_fx1 = sprite_data(sprite_id_location(12, 0), nil, vector(4, 4), colors.pink),
+  emerald_pick_fx2 = sprite_data(sprite_id_location(13, 0), nil, vector(4, 4), colors.pink),
+  emerald_pick_fx3 = sprite_data(sprite_id_location(14, 0), nil, vector(4, 4), colors.pink),
+  emerald_pick_fx4 = sprite_data(sprite_id_location(15, 0), nil, vector(4, 4), colors.pink),
 }
 
 visual.sprite_data_t = sprite_data_t

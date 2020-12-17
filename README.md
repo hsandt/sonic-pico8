@@ -24,7 +24,7 @@ Works with PICO-8 0.2.0i and 0.2.1b.
 
 ## Features
 
-Version: 5.0
+Version: 5.1
 
 ### Physics
 

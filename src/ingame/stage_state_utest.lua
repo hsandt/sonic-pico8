@@ -1750,10 +1750,10 @@ describe('stage_state', function ()
               state:render_hud()
 
               assert.spy(emerald.draw).was_called(3)
-              assert.spy(emerald.draw).was_called_with(1, vector(6, 6))
+              assert.spy(emerald.draw).was_called_with(1, vector(4, 3))
               -- silhouette only
-              assert.spy(emerald.draw).was_called_with(-1, vector(16, 6))
-              assert.spy(emerald.draw).was_called_with(3, vector(26, 6))
+              assert.spy(emerald.draw).was_called_with(-1, vector(12, 3))
+              assert.spy(emerald.draw).was_called_with(3, vector(20, 3))
             end)
 
             it('should debug render character info (#debug_character only)', function ()

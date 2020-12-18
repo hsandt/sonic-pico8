@@ -559,6 +559,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     -- convert to region location before using mget
     local tile_region_loc = curr_stage_state:global_to_region_location(curr_global_tile_loc)
     local visual_tile_id = mget(tile_region_loc.i, tile_region_loc.j)
+    local is_oneway = fget(visual_tile_id, sprite_flags.oneway)
 
     -- we now check for ignored tiles:
     --  a. ramps just after launching
@@ -567,7 +568,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
         pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
         pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) or
-        collision_check_quadrant ~= directions.down and fget(visual_tile_id, sprite_flags.oneway) then
+        is_oneway and collision_check_quadrant ~= directions.down then
       ignore_tile = true
     end
 
@@ -608,6 +609,13 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- then subtract qcolumn_height and you get the signed distance to the current ground q-column
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
+      -- even when checking downward, we cannot detect one-way platforms from below their surface (signed distance < 0)
+      -- this way, we don't step up or get blocked by them as ceiling inadvertently, but can still just land on them
+      if is_oneway and signed_distance_to_closest_collider < -1 then
+        printh("signed_distance_to_closest_collider: "..nice_dump(signed_distance_to_closest_collider))
+        signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
+      end
+
       -- let caller decide how to handle the presence of collider
       local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
@@ -627,8 +635,10 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- else (can only happen in compute_closest_ground_query_info): ground has been found, but it is too far below character's q-feet
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
-      --  which means we will enter the "end of iteration" block below
-      assert(curr_global_tile_loc == last_global_tile_loc)
+      --  *unless* we are ignore a one-way platform from below (we can't check signed_distance_to_closest_collider < 0
+      --  because signed_distance_to_closest_collider changed already, but we could by storing a backup var if #assert only),
+      --  which means we will enter the "end of iteration" block below (if because on one-way, we'll continue iteration as normal)
+      assert(curr_global_tile_loc == last_global_tile_loc or is_oneway)
     end
 
     -- check fo end of iteration (reached last tile)
@@ -1854,6 +1864,7 @@ function player_char:next_air_step(direction, ref_motion_result)
   log("step_vec: "..step_vec, "trace2")
   log("next_position_candidate: "..next_position_candidate, "trace2")
 
+
   -- we can only hit walls or the ground when stepping left, right or down
   -- (horizontal step of diagonal upward motion is OK)
   if direction ~= directions.up then
@@ -1870,7 +1881,12 @@ function player_char:next_air_step(direction, ref_motion_result)
     --  allow jump from an ascending sheer angle directly onto a platform. This includes moving horizontally.
     -- This must be combined with a step up (snap to ground top, but directly from the air) to really work
     if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y) then
-      -- check if we are touching or entering ground
+      -- check if we are entering ground
+      -- NOTE: for solid ground we could also consider *touching* as landing, by checking <= 0,
+      --  then we'd need to move signed_distance_to_closest_ground definition outside direction ~= directions.up block
+      --  and in the bottom block of this method, check if not ref_motion_result:is_blocked_along(direction) or
+      --  signed_distance_to_closest_ground == 0, instead of just is_blocked_along, since when landing
+      --  we are technically blocked along q-down, but must still update position to avoid getting stuck above ground
       if signed_distance_to_closest_ground < 0 then
         -- Just like during ground step, check the step height: if too high, we hit a wall and stay airborne
         --  else, we land

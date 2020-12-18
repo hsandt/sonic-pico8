@@ -11,7 +11,7 @@ sprite_flags = {
 
 sprite_masks = {
   collision = 1,     -- 1 << 0
-  unused1 = 2,       -- 1 << 1
+  oneway = 2,        -- 1 << 1
   unused2 = 4,       -- 1 << 2
   unused3 = 8,       -- 1 << 3
   unused4 = 16,      -- 1 << 4

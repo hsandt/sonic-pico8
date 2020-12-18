@@ -910,6 +910,22 @@ expect pc_velocity 0 -5
 
 --]=]
 
+--#if busted
+itest_dsl_parser.register(
+  '#solo stand on one-way', [[
+@stage #
+.
+o
+
+warp 4 7
+wait 10
+
+expect pc_bottom_pos 4 8
+expect pc_motion_state grounded
+expect pc_velocity 0 0
+]])
+--#endif
+
 --[=[
 
 -- human tests: let human check rendering (until I find a way to automate this)

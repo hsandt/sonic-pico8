@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Physics: added one-way platform system. Added one-way platform tiles and integrated them in stage
+
+### Changed
+- Sprite: fixed top row of some Sonic rotated run sprites missing
+- Sprite: reduced emerald size by 2px in both directions, adjusted HUD
+
 ## [5.1] - 2020-12-17
 ### Changed
 - Audio: fixed Travis release for GitHub forgetting to upload BGM cartridge (a glitchy version of Green Hill Zone was played instead of Angel Island)

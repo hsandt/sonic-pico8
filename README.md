@@ -16,7 +16,7 @@ It is currently under development.
 
 ## Compatibility
 
-Works with PICO-8 0.2.0i and 0.2.1b.
+Works with PICO-8 0.2.0i ~ 0.2.1b.
 
 ## Screenshots
 

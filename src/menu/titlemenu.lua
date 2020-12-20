@@ -25,6 +25,9 @@ titlemenu.items = transform({
     end},
   }, unpacking(menu_item))
 
+-- attributes:
+-- menu     menu     title menu showing items (only created when it must be shown)
+
 function titlemenu:on_enter()
   self.app:start_coroutine(self.opening_sequence_async, self)
 end

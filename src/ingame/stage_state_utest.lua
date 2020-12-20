@@ -95,6 +95,7 @@ describe('stage_state', function ()
           stub(stage_state, "play_bgm")
           stub(stage_state, "reload_bgm")
           stub(stage_state, "spawn_objects_in_all_map_regions")
+          stub(stage_state, "restore_picked_emerald_data")
           stub(camera_class, "setup_for_stage")
           stub(stage_state, "check_reload_map_region")
           stub(stage_state, "reload_runtime_data")
@@ -106,6 +107,7 @@ describe('stage_state', function ()
           stage_state.play_bgm:revert()
           stage_state.reload_bgm:revert()
           stage_state.spawn_objects_in_all_map_regions:revert()
+          stage_state.restore_picked_emerald_data:revert()
           camera_class.setup_for_stage:revert()
           stage_state.check_reload_map_region:revert()
           stage_state.reload_runtime_data:revert()
@@ -117,6 +119,7 @@ describe('stage_state', function ()
           stage_state.play_bgm:clear()
           stage_state.reload_bgm:clear()
           stage_state.spawn_objects_in_all_map_regions:clear()
+          stage_state.restore_picked_emerald_data:clear()
           camera_class.setup_for_stage:clear()
           stage_state.check_reload_map_region:clear()
           stage_state.reload_runtime_data:clear()
@@ -129,6 +132,11 @@ describe('stage_state', function ()
         it('should call spawn_objects_in_all_map_regions', function ()
           assert.spy(state.spawn_objects_in_all_map_regions).was_called(1)
           assert.spy(state.spawn_objects_in_all_map_regions).was_called_with(match.ref(state))
+        end)
+
+        it('should call restore_picked_emerald_data', function ()
+          assert.spy(state.restore_picked_emerald_data).was_called(1)
+          assert.spy(state.restore_picked_emerald_data).was_called_with(match.ref(state))
         end)
 
         it('should call setup_for_stage on camera with current stage data', function ()
@@ -831,6 +839,7 @@ describe('stage_state', function ()
 
       end)
 
+      -- we stub spawn_objects_in_all_map_regions in (stage state entered) region, so test it outside
       describe('spawn_objects_in_all_map_regions', function ()
 
         setup(function ()
@@ -870,6 +879,38 @@ describe('stage_state', function ()
 
       end)
 
+      -- we stub restore_picked_emerald_data in (stage state entered) region, so test it outside
+      describe('restore_picked_emerald_data', function ()
+
+        before_each(function ()
+          -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
+          poke(0x4300, 73)
+        end)
+
+        after_each(function ()
+          poke(0x4300, 0)
+        end)
+
+        it('should read 1 byte in general memory representing picked emeralds bitset', function ()
+          state:restore_picked_emerald_data()
+
+          assert.are_same({
+            [1] = true,
+            [4] = true,
+            [7] = true,
+          }, state.picked_emerald_numbers_set)
+        end)
+
+        it('should delete emerald object for every picked emerald', function ()
+          state.emeralds = {"dummy1", "dummy2", "dummy3", "dummy4", "dummy5", "dummy6", "dummy7", "dummy8"}
+
+          state:restore_picked_emerald_data()
+
+          assert.are_same({"dummy2", "dummy3", "dummy5", "dummy6", "dummy8"}, state.emeralds)
+        end)
+
+      end)
+
       describe('(stage states added)', function ()
 
         before_each(function ()
@@ -887,15 +928,21 @@ describe('stage_state', function ()
             --  but we do not want to spend several seconds finding all of them
             --  in before_each every time due to on_enter just for tests,
             --  so we stub this
-              stub(stage_state, "spawn_objects_in_all_map_regions")
+            stub(stage_state, "spawn_objects_in_all_map_regions")
+
+            -- restore_picked_emerald_data relies on peek which will find nil memory if not set
+            -- so stub it
+            stub(stage_state, "restore_picked_emerald_data")
           end)
 
           teardown(function ()
             stage_state.spawn_objects_in_all_map_regions:revert()
+            stage_state.restore_picked_emerald_data:revert()
           end)
 
           after_each(function ()
             stage_state.spawn_objects_in_all_map_regions:clear()
+            stage_state.restore_picked_emerald_data:clear()
           end)
 
           before_each(function ()
@@ -1427,7 +1474,7 @@ describe('stage_state', function ()
 
           describe('store_picked_emerald_data', function ()
 
-            it('should store 2 bytes in general memory representing picked emeralds bitset', function ()
+            it('should store 1 byte in general memory representing picked emeralds bitset', function ()
               state.picked_emerald_numbers_set = {
                 [1] = true,
                 [4] = true,

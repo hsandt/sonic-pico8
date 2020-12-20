@@ -4,8 +4,8 @@
 -- Usage: add require("common_stage_clear") at the top of each of your stage_clear main scripts
 --  (along with "engine/common") and in bustedhelper_stage_clear
 
--- we need merge to add the visual_ingame_addon to visual module
-require("engine/core/table_helper")
+require("engine/core/fun_helper")    -- unpacking
+require("engine/core/table_helper")  -- merge (to add the visual_ingame_addon and visual_menu_addon)
 
 -- we need sprite flags to draw grass on top of the rest
 require("data/sprite_flags")

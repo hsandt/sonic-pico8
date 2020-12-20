@@ -5,6 +5,7 @@ require("test/bustedhelper_stage_clear")
 --  whether complex tests done via busted but done in dedicated files, or simulation tests)
 require("common_titlemenu")
 require("resources/visual_ingame_addon")
+require("resources/visual_stage_clear_addon")
 
 local stage_clear_state = require("stage_clear/stage_clear_state")
 
@@ -72,21 +73,21 @@ describe('stage_clear_state', function ()
       describe('on_enter', function ()
 
         setup(function ()
-          stub(stage_clear_state, "reload_runtime_data")
+          stub(stage_clear_state, "restore_picked_emerald_data")
           stub(stage_clear_state, "reload_map_region")
           stub(stage_clear_state, "scan_current_region_to_spawn_objects")
           stub(picosonic_app, "start_coroutine")
         end)
 
         teardown(function ()
-          stage_clear_state.reload_runtime_data:revert()
+          stage_clear_state.restore_picked_emerald_data:revert()
           stage_clear_state.reload_map_region:revert()
           stage_clear_state.scan_current_region_to_spawn_objects:revert()
           picosonic_app.start_coroutine:revert()
         end)
 
         after_each(function ()
-          stage_clear_state.reload_runtime_data:clear()
+          stage_clear_state.restore_picked_emerald_data:clear()
           stage_clear_state.reload_map_region:clear()
           stage_clear_state.scan_current_region_to_spawn_objects:clear()
           picosonic_app.start_coroutine:clear()
@@ -96,9 +97,12 @@ describe('stage_clear_state', function ()
           state:on_enter()
         end)
 
-        it('should call reload_runtime_data, reload_map_region, scan_current_region_to_spawn_objects', function ()
-          assert.spy(state.reload_runtime_data).was_called(1)
-          assert.spy(state.reload_runtime_data).was_called_with(match.ref(state))
+        it('should call restore_picked_emerald_data', function ()
+          assert.spy(state.restore_picked_emerald_data).was_called(1)
+          assert.spy(state.restore_picked_emerald_data).was_called_with(match.ref(state))
+        end)
+
+        it('should call reload_map_region, scan_current_region_to_spawn_objects', function ()
           assert.spy(state.reload_map_region).was_called(1)
           assert.spy(state.reload_map_region).was_called_with(match.ref(state))
           assert.spy(state.scan_current_region_to_spawn_objects).was_called(1)
@@ -109,29 +113,6 @@ describe('stage_clear_state', function ()
           local s = assert.spy(picosonic_app.start_coroutine)
           s.was_called(1)
           s.was_called_with(match.ref(state.app), stage_clear_state.play_stage_clear_sequence_async, match.ref(state))
-        end)
-
-      end)
-
-      describe('reload_runtime_data', function ()
-
-        setup(function ()
-          stub(_G, "reload")
-        end)
-
-        teardown(function ()
-          reload:revert()
-        end)
-
-        after_each(function ()
-          reload:clear()
-        end)
-
-        it('should reload stage runtime data into spritesheet top', function ()
-          state:reload_runtime_data()
-
-          assert.spy(reload).was_called(1)
-          assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
         end)
 
       end)
@@ -268,19 +249,25 @@ describe('stage_clear_state', function ()
         describe('(stage state entered)', function ()
 
           setup(function ()
+            -- restore_picked_emerald_data relies on peek which will find nil memory if not set
+            -- so stub it
+            stub(stage_clear_state, "restore_picked_emerald_data")
+
             -- we don't really mind spying on scan_current_region_to_spawn_objects
             --  but we do not want to spend several seconds finding all of them
             --  in before_each every time due to on_enter just for tests,
             --  so we stub this
-              stub(stage_clear_state, "scan_current_region_to_spawn_objects")
+            stub(stage_clear_state, "scan_current_region_to_spawn_objects")
           end)
 
           teardown(function ()
             stage_clear_state.scan_current_region_to_spawn_objects:revert()
+            stage_clear_state.restore_picked_emerald_data:revert()
           end)
 
           after_each(function ()
             stage_clear_state.scan_current_region_to_spawn_objects:clear()
+            stage_clear_state.restore_picked_emerald_data:clear()
           end)
 
           before_each(function ()
@@ -636,6 +623,10 @@ describe('stage_clear_state', function ()
           end)  -- on exit stage state to enter titlemenu state
 
           -- unlike above, we test on_exit method itself here
+
+          -- COMMENTED OUT to strip characters since we just load new cartridges and never exit
+          -- the stage_clear state
+          --[[
           describe('on_exit', function ()
 
             setup(function ()
@@ -679,6 +670,7 @@ describe('stage_clear_state', function ()
             end)
 
           end)
+          --]]
 
         end)  -- (stage state entered)
 

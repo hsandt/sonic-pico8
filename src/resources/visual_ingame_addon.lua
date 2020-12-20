@@ -37,7 +37,7 @@ local ingame_sprite_data_t = {
   -- RUNTIME SPRITES (stage-specific and common runtime)
   -- below need runtime sprites to be reloaded, overwriting collision masks
   background_forest_bottom_hole = sprite_data(sprite_id_location(1, 0), tile_vector(2, 3), vector(0, 0), colors.pink),
-  emerald_silhouette = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
+  emerald_silhouette = sprite_data(sprite_id_location(9, 1), nil, vector(3, 2), colors.pink),
   goal_plate_goal = sprite_data(sprite_id_location(3, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
   goal_plate_sonic = sprite_data(sprite_id_location(6, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
   goal_plate_rotating_90 = sprite_data(sprite_id_location(0, 1), tile_vector(1, 2), vector(4, 16), colors.pink),

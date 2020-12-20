@@ -12,3 +12,5 @@ require("engine/test/bustedhelper")
 require("common_stage_clear")
 -- we still need to draw goal plate and emeralds, so keep using ingame visuals during stage_clear
 require("resources/visual_ingame_addon")
+-- we also need menu sprite data, but located at a different place than in titlemenu, hence use a unique addon
+require("resources/visual_stage_clear_addon")

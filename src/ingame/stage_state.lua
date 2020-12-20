@@ -72,12 +72,16 @@ function stage_state:on_enter()
   --  as it's slow and will add considerable overhead on test start
   if self.enable_spawn_objects then
     self:spawn_objects_in_all_map_regions()
+    self:restore_picked_emerald_data()
   end
 --#endif
+
+-- ! Make sure to duplicate content of block above in #pico8 block below !
 
 --[[#pico8
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
+  self:restore_picked_emerald_data()
 --#endif
 --#pico8]]
 
@@ -841,6 +845,29 @@ function stage_state:on_reached_goal_async()
   load('picosonic_stage_clear.p8')
 end
 
+function stage_state:restore_picked_emerald_data()
+  -- Retrieve and store picked emeralds set information from memory stored in stage_clear
+  --  before retry. If you come directly from the titlemenu, this should do nothing.
+  -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
+  --  remove emerald objects from the stage with a "silent pick"
+  --  (so this method must be called after object spawning)
+  local picked_emerald_byte = peek(0x4300)
+
+  -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
+  -- the only reason we iterate from the end is because del() will remove elements
+  --  from self.emeralds sequence, rearranging them to fill gaps
+  -- by iterating backward, we don't have to worry about their index changing
+  for i = 8, 1, -1 do
+    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
+      -- add emerald number to picked set
+      self.picked_emerald_numbers_set[i] = true
+
+      -- remove emerald from sequence (backward iteration ensures correct index)
+      del(self.emeralds, self.emeralds[i])
+    end
+  end
+end
+
 function stage_state:store_picked_emerald_data()
   -- general memory is a good fit to store data across cartridges,
   --  although this behavior is undocumented
@@ -849,8 +876,7 @@ function stage_state:store_picked_emerald_data()
   -- note that Sonic is not visible so we don't mind overwriting the memory at 0x4300
   --  which during ingame contains rotated and non-rotated sprite variants
   -- convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
-  -- there are 8 emeralds so we need 1 bytes, but we can combine them in one
-  --  2-byte value and store it at once with length 2
+  -- there are 8 emeralds so we need 1 byte
   local picked_emerald_bytes = 0
   for i = 1, 8 do
     if self.picked_emerald_numbers_set[i] then

@@ -1,10 +1,13 @@
 local gamestate = require("engine/application/gamestate")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
+local rectangle = require("engine/ui/rectangle")
 
+local stage_clear_data = require("data/stage_clear_data")
 local emerald = require("ingame/emerald")
 local goal_plate = require("ingame/goal_plate")
-local stage_data = require("data/stage_data")
+local menu_item = require("menu/menu_item")
+local menu = require("menu/menu_with_sfx")
 local audio = require("resources/audio")
 local ui_animation = require("ui/ui_animation")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
@@ -14,39 +17,59 @@ local stage_clear_state = derived_class(gamestate)
 
 stage_clear_state.type = ':stage_clear'
 
+-- sequence of menu items to display, with their target states
+stage_clear_state.retry_items = transform({
+    {"retry (keep emeralds)", function(app)
+      -- load stage cartridge without clearing picked emerald data in general memory
+      stage_clear_state.retry_stage()
+    end},
+    {"retry from zero", function(app)
+      stage_clear_state.retry_from_zero()
+    end},
+    {"back to title", function(app)
+      stage_clear_state.back_to_titlemenu()
+    end},
+  }, unpacking(menu_item))
+
 function stage_clear_state:init()
   -- gamestate.init(self)  -- kept for expliciteness, but does nothing
 
   -- result (stage clear) overlay
   self.result_overlay = overlay()
 
-  -- emerald cross variables for result UI animation
+  -- emerald variables for result UI animation
+  self.picked_emerald_numbers_set = {}
+  self.picked_emerald_count = 0
   self.result_show_emerald_cross_base = false
   self.result_emerald_cross_palette_swap_table = {}  -- for emerald cross bright animation
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
+
+  -- self.retry_menu starts nil, only created when it must be shown
 end
 
 function stage_clear_state:on_enter()
-  -- simplified compared to stage_state, just reload runtime spritesheet
-  --  (for goal plate in particular) then reload map region hardcoded to where goal is,
+  -- simplified compared to stage_state
+  -- we don't even need to reload runtime spritesheet since the stage_clear builtin spritesheet
+  --  now integrates the runtime spritesheet top rows from the start (and later, ingame may do the same,
+  --  since ultimately we only need the tile masks in the top rows for initial collision data loading,
+  --  and we could quick reload on stage start just for that)
+  -- we need the runtime sprites for goal plate and menu cursor in particular
+
+  -- first, restore picked emerald data set in ingame, just before loading this cartridge
+  self:restore_picked_emerald_data()
+
+  -- we still need to reload map region hardcoded to where goal is,
   --  and spawn objects just there (basically just spawn the goal plate)
-  self:reload_runtime_data()
   self:reload_map_region()
   self:scan_current_region_to_spawn_objects()
 
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
 end
 
--- reload background, HUD and character sprites from runtime data
--- also store non-rotated and rotated sprites into general memory for swapping later
-function stage_clear_state:reload_runtime_data()
-  -- reload runtime background+HUD sprites by copying spritesheet top from background data
-  --  cartridge. see stage_state:reload_runtime_data
-  -- hardcode "1" since we only have 1 stage, and we only need runtime goal sprites
-  reload(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
-end
-
+-- good to know what on_exit should do, but never called since stage_clear cartridge only contains stage_clear state
+--  and we directly load other cartridges without ever exiting this state; so strip it
+--[[
 function stage_clear_state:on_exit()
   -- clear all coroutines (we normally let app handle them, but in this context
   -- we know that all coroutines belong to the stage state, so no risk clearing them from here)
@@ -58,8 +81,12 @@ function stage_clear_state:on_exit()
   -- reinit camera offset for other states
   camera()
 end
+--]]
 
 function stage_clear_state:update()
+  if self.retry_menu then
+    self.retry_menu:update()
+  end
 end
 
 function stage_clear_state:render()
@@ -67,7 +94,13 @@ function stage_clear_state:render()
   visual_stage.render_background(vector(3392, 328))
   self:render_stage_elements()
   self:render_overlay()
+
+  -- draw either picked or missed emeralds
   self:render_emerald_cross()
+
+  if self.retry_menu then
+    self.retry_menu:draw(29, 90)
+  end
 end
 
 function stage_clear_state:spawn_goal_plate_at(global_loc)
@@ -136,19 +169,47 @@ function stage_clear_state:play_stage_clear_sequence_async()
 
   -- stop BGM and play stage clear jingle
   music(audio.jingle_ids.stage_clear)
-  yield_delay(stage_data.stage_clear_duration)
+  yield_delay(stage_clear_data.stage_clear_duration)
 
   -- play result UI "calculation" (we don't have score so it's just checking
   --  if we have all the emeralds)
   self:assess_result_async()
 
-  -- wait a moment and go back to titlemenu
-  self.app:yield_delay_s(stage_data.back_to_titlemenu_delay)
-  self:back_to_titlemenu()
+  -- fade out and show retry screen
+  self:zigzag_fade_out_async()
+  self:show_retry_screen()
 end
 
-function stage_clear_state:back_to_titlemenu()
+function stage_clear_state.retry_stage()
+  load('picosonic_ingame.p8')
+end
+
+function stage_clear_state.retry_from_zero()
+  -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
+  poke(0x4300, 0)
+  stage_clear_state.retry_stage()
+end
+
+function stage_clear_state.back_to_titlemenu()
+  -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
+  poke(0x4300, 0)
   load('picosonic_titlemenu.p8')
+end
+
+function stage_clear_state:restore_picked_emerald_data()
+  -- retrieve and store picked emeralds set information from memory stored in ingame before stage clear
+  --  cartridge was loaded
+  -- similar to stage_state:restore_picked_emerald_data, but we don't remove emerald objects
+  --  and cache the picked count for assessment
+  local picked_emerald_byte = peek(0x4300)
+
+  -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
+  for i = 1, 8 do
+    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
+      self.picked_emerald_numbers_set[i] = true
+      self.picked_emerald_count = self.picked_emerald_count + 1
+    end
+  end
 end
 
 function stage_clear_state:show_result_async()
@@ -183,24 +244,9 @@ function stage_clear_state:show_result_async()
 end
 
 function stage_clear_state:assess_result_async()
-  -- retrieve picked emeralds set information from memory stored in ingame before stage clear
-  --  cartridge was loaded
-  local picked_emerald_numbers_set = {}
-  local picked_emerald_count = 0
-
-  local picked_emerald_byte = peek(0x4300)
-
-  -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
-  for i = 1, 8 do
-    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
-      picked_emerald_numbers_set[i] = true
-      picked_emerald_count = picked_emerald_count + 1
-    end
-  end
-
   for num = 1, 8 do
     -- only display and yield wait for picked emeralds
-    if picked_emerald_numbers_set[num] then
+    if self.picked_emerald_numbers_set[num] then
       self.result_show_emerald_set_by_number[num] = true
       for step = 1, 2 do
         -- instead of setting self.result_emerald_palette_swap_table_by_number[num] = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
@@ -237,8 +283,8 @@ function stage_clear_state:assess_result_async()
   -- it comes from the left again, so offset negatively on start
   -- "got ..." is 6 chars after the string start so 24px after , -88+24=-64
   -- hardcoded since we don't have access to spawned_emerald_locations anymore
-  if picked_emerald_count < 8 then
-    emerald_text = "got "..picked_emerald_count.." emeralds"
+  if self.picked_emerald_count < 8 then
+    emerald_text = "got "..self.picked_emerald_count.." emeralds"
   else
     emerald_text = "got all emeralds"
   end
@@ -246,8 +292,42 @@ function stage_clear_state:assess_result_async()
   local emerald_label = label(emerald_text, vector(-64, 14), colors.white, colors.black)
   self.result_overlay:add_drawable("emerald", emerald_label)
 
-  -- move text from left to right
+  -- move text from left to right and give some time to player to read
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
+  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
+end
+
+function stage_clear_state:zigzag_fade_out_async()
+  -- todo
+
+  -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
+  self.result_overlay:clear_drawables()
+
+  -- only clear members that draw custom items, except for actual emeralds as we'll draw the missing emeralds
+  --  soon anyway
+  self.result_show_emerald_cross_base = false
+
+  -- just keep the full black screen rectangle as background for retry screen
+  local bg = rectangle(vector(0, 0), 128, 128, colors.black)
+  self.result_overlay:add_drawable("bg", bg)
+
+  for num = 1, 8 do
+    -- only display missed emeralds
+    -- not nil is true, and not true is false, so we are effectively filling the set,
+    --  just setting false for picked emeralds instead of the usual nil, but works the same
+    self.result_show_emerald_set_by_number[num] = not self.picked_emerald_numbers_set[num]
+  end
+end
+
+function stage_clear_state:show_retry_screen()
+  -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden,
+  -- but keep the full black screen rectangle as background for retry screen
+  local try_again_label = label("try again?", vector(41, 34), colors.white)
+  self.result_overlay:add_drawable("try again", try_again_label)
+
+  printh("visual.sprite_data_t.menu_cursor: "..nice_dump(visual.sprite_data_t.menu_cursor))
+  self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
+  self.retry_menu:show_items(stage_clear_state.retry_items)
 end
 
 
@@ -366,8 +446,8 @@ function stage_clear_state:draw_emeralds_around_cross(x, y)
   -- but here we obviously only defined 8 relative positions,
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
   for num = 1, 8 do
-    -- result_show_emerald_set_by_number[num] is only set to true when
-    --  we have picked emerald, so no need to check picked_emerald_numbers_set again
+    -- self.result_show_emerald_set_by_number[num] is only set to true when
+    --  we have picked emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
       local draw_position = vector(x, y) + emerald_relative_positions[num]
       emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])

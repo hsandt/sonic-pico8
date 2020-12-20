@@ -4,7 +4,7 @@
 -- Usage: add require("common_titlemenu") at the top of each of your titlemenu main scripts
 --  (along with "engine/common") and in bustedhelper_titlemenu
 
-require("engine/core/fun_helper")
+require("engine/core/fun_helper")    -- unpacking
 require("engine/core/table_helper")
 
 --#if minify_level3

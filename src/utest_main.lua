@@ -12,7 +12,7 @@ require("common_ingame")
 
 -- same, utest_main is neutral, but right now we're testing ingame tiles
 --  so if we have to use visual at some point, requiring the ingame add-on
---  is probably more useful than the titlemenu add-on
+--  is probably more useful than the titlemenu/stage_clear add-on
 require("resources/visual_ingame_addon")
 
 local p8utest = require("engine/test/p8utest")

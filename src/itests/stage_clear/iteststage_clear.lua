@@ -23,7 +23,7 @@ itest_manager:register_itest('player waits',
   end)
 
   -- let stage clear sequence play and see if nothing crashes
-  wait(100, true)
+  wait(750, true)
 
   -- we should still be in stage clear (because even if we load() titlemenu cartridge in headless,
   --  it won't do anything)

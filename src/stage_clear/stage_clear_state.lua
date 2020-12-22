@@ -21,15 +21,39 @@ stage_clear_state.type = ':stage_clear'
 stage_clear_state.retry_items = transform({
     {"retry (keep emeralds)", function(app)
       -- load stage cartridge without clearing picked emerald data in general memory
-      stage_clear_state.retry_stage()
+      app:start_coroutine(stage_clear_state.retry_stage_async)
     end},
     {"retry from zero", function(app)
-      stage_clear_state.retry_from_zero()
+      app:start_coroutine(stage_clear_state.retry_from_zero_async)
     end},
     {"back to title", function(app)
-      stage_clear_state.back_to_titlemenu()
+      app:start_coroutine(stage_clear_state.back_to_titlemenu_async)
     end},
   }, unpacking(menu_item))
+
+-- menu callbacks
+
+function stage_clear_state.retry_stage_async()
+  -- wait just a little before loading so player can hear confirm SFX
+  -- (1 frame is enough since sound is played on another thread)
+  yield_delay(5)
+  load('picosonic_ingame.p8')
+end
+
+function stage_clear_state.retry_from_zero_async()
+  -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
+  poke(0x4300, 0)
+  stage_clear_state.retry_stage_async()
+end
+
+function stage_clear_state.back_to_titlemenu_async()
+  -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
+  poke(0x4300, 0)
+
+  -- wait just a little before loading so player can hear confirm SFX
+  yield_delay(5)
+  load('picosonic_titlemenu.p8')
+end
 
 function stage_clear_state:init()
   -- gamestate.init(self)  -- kept for expliciteness, but does nothing
@@ -249,22 +273,6 @@ end
 
 
 -- actual stage clear sequence functions
-
-function stage_clear_state.retry_stage()
-  load('picosonic_ingame.p8')
-end
-
-function stage_clear_state.retry_from_zero()
-  -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
-  poke(0x4300, 0)
-  stage_clear_state.retry_stage()
-end
-
-function stage_clear_state.back_to_titlemenu()
-  -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
-  poke(0x4300, 0)
-  load('picosonic_titlemenu.p8')
-end
 
 function stage_clear_state:restore_picked_emerald_data()
   -- retrieve and store picked emeralds set information from memory stored in ingame before stage clear

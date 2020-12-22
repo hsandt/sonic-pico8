@@ -1,3 +1,4 @@
+local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
@@ -34,9 +35,8 @@ stage_clear_state.retry_items = transform({
 -- menu callbacks
 
 function stage_clear_state.retry_stage_async()
-  -- wait just a little before loading so player can hear confirm SFX
-  -- (1 frame is enough since sound is played on another thread)
-  yield_delay(5)
+  -- zigzag fadeout will also give time to player to hear confirm SFX
+  flow.curr_state:zigzag_fade_out_async()
   load('picosonic_ingame.p8')
 end
 
@@ -50,8 +50,8 @@ function stage_clear_state.back_to_titlemenu_async()
   -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
   poke(0x4300, 0)
 
-  -- wait just a little before loading so player can hear confirm SFX
-  yield_delay(5)
+  -- zigzag fadeout will also give time to player to hear confirm SFX
+  flow.curr_state:zigzag_fade_out_async()
   load('picosonic_titlemenu.p8')
 end
 
@@ -168,17 +168,20 @@ function stage_clear_state:render()
     if self.retry_menu then
       self.retry_menu:draw(29, 95)
     end
+  end
 
-    if self.global_darkness > 0 then
-      -- black can't get darker, just check the other 15 colors
-      for c = 1, 15 do
-        pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
-      end
-    else
-      -- post-render palette swap seems to persist even after cls()
-      --  so, although render_emeralds indirectly calls pal(), it's safer to manually reset
-      pal()
+  -- draw overlay on top to hide result widgets
+  self:render_overlay()
+
+  if self.global_darkness > 0 then
+    -- black can't get darker, just check the other 15 colors
+    for c = 1, 15 do
+      pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
     end
+  else
+    -- post-render palette swap seems to persist even after cls()
+    --  so, although render_emeralds indirectly calls pal(), it's safer to manually reset
+    pal()
   end
 end
 

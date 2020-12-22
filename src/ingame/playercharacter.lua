@@ -612,7 +612,6 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- even when checking downward, we cannot detect one-way platforms from below their surface (signed distance < 0)
       -- this way, we don't step up or get blocked by them as ceiling inadvertently, but can still just land on them
       if is_oneway and signed_distance_to_closest_collider < -1 then
-        printh("signed_distance_to_closest_collider: "..nice_dump(signed_distance_to_closest_collider))
         signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
       end
 

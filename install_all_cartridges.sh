@@ -25,6 +25,8 @@ if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
     exit 1
 fi
 
+# Configuration: cartridge
+version="5.1"
 config="$1"; shift
 
 # option "png" will export the png cartridge
@@ -39,6 +41,11 @@ cartridge_list="titlemenu ingame stage_clear"
 for cartridge in $cartridge_list; do
   "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
 done
+
+# recompute same install dirpath as used in install_single_cartridge.sh
+# (no need to mkdir -p "${install_dirpath}", it must have been created in said script)
+carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
+install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
 
 # Also copy data cartridges
 echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."

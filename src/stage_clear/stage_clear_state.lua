@@ -113,10 +113,11 @@ function stage_clear_state:play_stage_clear_sequence_async()
 
   -- fade out and show retry screen
   self:zigzag_fade_out_async()
-  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
-  -- enter phase 1: retry menu
+  -- enter phase 1: retry menu immediately so we can clear screen
   self.phase = 1
+
+  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
   self:show_retry_screen_async()
 end
@@ -144,36 +145,39 @@ function stage_clear_state:update()
 end
 
 function stage_clear_state:render()
-  -- see set_camera_with_origin for value explanation (we must pass camera position)
-  visual_stage.render_background(vector(3392, 328))
-  self:render_stage_elements()
-
-  -- hack to draw fade-out on top of picked emeralds during phase 0 (stage result)
-  --  then missed emeralds on top of missed emeralds during phase 1 (retry menu)
   if self.phase == 0 then
-    -- draw either picked or missed emeralds
+    -- phase 0: stage result
+
+    -- see set_camera_with_origin for value explanation (we must pass camera position)
+    visual_stage.render_background(vector(3392, 328))
+    self:render_stage_elements()
+
+    -- draw picked emeralds
     self:render_emeralds()
 
     -- draw overlay on top to hide result widgets
     self:render_overlay()
   else
-    -- draw overlay on top to hide result widgets
-    self:render_overlay()
+    -- phase 1: retry menu
+    cls()
 
-    -- draw either picked or missed emeralds
+    -- draw missed emeralds
     self:render_emeralds()
-  end
 
-  -- exceptionally draw menu above overlay, because this overlay is used as background
-  --  for retry menu
-  if self.retry_menu then
-    self.retry_menu:draw(29, 95)
-  end
+    --  for retry menu
+    if self.retry_menu then
+      self.retry_menu:draw(29, 95)
+    end
 
-  if self.global_darkness > 0 then
-    -- black can't get darker, just check the other 15 colors
-    for c = 1, 15 do
-      pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
+    if self.global_darkness > 0 then
+      -- black can't get darker, just check the other 15 colors
+      for c = 1, 15 do
+        pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
+      end
+    else
+      -- post-render palette swap seems to persist even after cls()
+      --  so, although render_emeralds indirectly calls pal(), it's safer to manually reset
+      pal()
     end
   end
 end
@@ -392,22 +396,20 @@ function zigzag_drawable:draw()
 end
 
 function stage_clear_state:zigzag_fade_out_async()
-  local bg_rect = rectangle(vector(0, 0), 128, 128, colors.black)
-  self.result_overlay:add_drawable("bg_rect", bg_rect)
+  local fadeout_rect = rectangle(vector(0, 0), 128, 128, colors.black)
+  self.result_overlay:add_drawable("fadeout_rect", fadeout_rect)
   self.result_overlay:add_drawable("zigzag", zigzag_drawable)
 
   -- make rectangle with zigzag edge enter the screen from the left
   -- note that we finish at 128 and not 127 so the zigzag fully goes out of the screen to the right,
-  --  and the bg_rect fully covers the screen, ready to be used as background
-  ui_animation.move_drawables_on_coord_async("x", {bg_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
+  --  and the fadeout_rect fully covers the screen, ready to be used as background
+  ui_animation.move_drawables_on_coord_async("x", {fadeout_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
-  -- as well as members that draw custom items, except for actual emeralds as we'll draw the missing emeralds more below
+  -- no need to clear result_show_emerald_set_by_number as we'll set result_show_emerald_set_by_number
+  --  again in show_retry_screen_async to show missing emeralds
+  -- no need to preserve fadeout_rect either because in phase 2, we cls() on render start anyway
   self.result_overlay:clear_drawables()
-
-  -- just re-add the black rectangle as background for the retry menu
-  -- (no need for zigzag edge itself, since the rectangle body now covers the whole screen)
-  self.result_overlay:add_drawable("bg_rect", bg_rect)
 end
 
 function stage_clear_state:show_retry_screen_async()

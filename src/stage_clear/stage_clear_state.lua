@@ -34,6 +34,13 @@ stage_clear_state.retry_items = transform({
 function stage_clear_state:init()
   -- gamestate.init(self)  -- kept for expliciteness, but does nothing
 
+  -- phase 0: stage result
+  -- phase 1: retry menu
+  self.phase = 0
+
+  -- global darkness affect post-draw screen palette
+  self.global_darkness = 0
+
   -- result (stage clear) overlay
   self.result_overlay = overlay()
 
@@ -42,10 +49,6 @@ function stage_clear_state:init()
   self.picked_emerald_count = 0
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
-
-  -- phase 0: stage result
-  -- phase 1: retry menu
-  self.phase = 0
 
   -- self.retry_menu starts nil, only created when it must be shown
 end
@@ -67,6 +70,31 @@ function stage_clear_state:on_enter()
   self:scan_current_region_to_spawn_objects()
 
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
+end
+
+
+-- play overall stage clear sequence (coroutine)
+function stage_clear_state:play_stage_clear_sequence_async()
+  -- show result UI
+  self:show_result_async()
+
+  -- stop BGM and play stage clear jingle
+  music(audio.jingle_ids.stage_clear)
+  yield_delay(stage_clear_data.stage_clear_duration)
+
+  -- play result UI "calculation" (we don't have score so it's just checking
+  --  if we have all the emeralds)
+  self:assess_result_async()
+  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
+
+  -- fade out and show retry screen
+  self:zigzag_fade_out_async()
+  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
+
+  -- enter phase 1: retry menu
+  self.phase = 1
+
+  self:show_retry_screen_async()
 end
 
 -- good to know what on_exit should do, but never called since stage_clear cartridge only contains stage_clear state
@@ -116,6 +144,13 @@ function stage_clear_state:render()
   --  for retry menu
   if self.retry_menu then
     self.retry_menu:draw(29, 90)
+  end
+
+  if self.global_darkness > 0 then
+    -- black can't get darker, just check the other 15 colors
+    for c = 1, 15 do
+      pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
+    end
   end
 end
 
@@ -213,27 +248,7 @@ function stage_clear_state:get_region_topleft_location()
 end
 
 
--- actual stage clear sequence
-
-function stage_clear_state:play_stage_clear_sequence_async()
-  -- show result UI
-  self:show_result_async()
-
-  -- stop BGM and play stage clear jingle
-  music(audio.jingle_ids.stage_clear)
-  yield_delay(stage_clear_data.stage_clear_duration)
-
-  -- play result UI "calculation" (we don't have score so it's just checking
-  --  if we have all the emeralds)
-  self:assess_result_async()
-  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
-
-  -- fade out and show retry screen
-  self:zigzag_fade_out_async()
-  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
-
-  self:show_retry_screen()
-end
+-- actual stage clear sequence functions
 
 function stage_clear_state.retry_stage()
   load('picosonic_ingame.p8')
@@ -385,26 +400,30 @@ function stage_clear_state:zigzag_fade_out_async()
   -- just re-add the black rectangle as background for the retry menu
   -- (no need for zigzag edge itself, since the rectangle body now covers the whole screen)
   self.result_overlay:add_drawable("bg_rect", bg_rect)
-
-  for num = 1, 8 do
-    -- only display missed emeralds
-    -- not nil is true, and not true is false, so we are effectively filling the set,
-    --  just setting false for picked emeralds instead of the usual nil, but works the same
-    self.result_show_emerald_set_by_number[num] = not self.picked_emerald_numbers_set[num]
-  end
 end
 
-function stage_clear_state:show_retry_screen()
-  -- enter phase 1: retry menu
-  self.phase = 1
-
+function stage_clear_state:show_retry_screen_async()
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden,
   -- but keep the full black screen rectangle as background for retry screen
   local try_again_label = label("try again?", vector(41, 34), colors.white)
   self.result_overlay:add_drawable("try again", try_again_label)
 
+  -- display missed emeralds
+  for num = 1, 8 do
+    -- not nil is true, and not true is false, so we are effectively filling the set,
+    --  just setting false for picked emeralds instead of the usual nil, but works the same
+    self.result_show_emerald_set_by_number[num] = not self.picked_emerald_numbers_set[num]
+  end
+
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
   self.retry_menu:show_items(stage_clear_state.retry_items)
+
+  -- color fade in
+  self.global_darkness = 2
+  yield_delay(8)
+  self.global_darkness = 1
+  yield_delay(8)
+  self.global_darkness = 0
 end
 
 

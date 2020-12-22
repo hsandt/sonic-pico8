@@ -40,8 +40,6 @@ function stage_clear_state:init()
   -- emerald variables for result UI animation
   self.picked_emerald_numbers_set = {}
   self.picked_emerald_count = 0
-  self.result_show_emerald_cross_base = false
-  self.result_emerald_cross_palette_swap_table = {}  -- for emerald cross bright animation
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
@@ -102,7 +100,7 @@ function stage_clear_state:render()
   --  then missed emeralds on top of missed emeralds during phase 1 (retry menu)
   if self.phase == 0 then
     -- draw either picked or missed emeralds
-    self:render_emerald_cross()
+    self:render_emeralds()
 
     -- draw overlay on top to hide result widgets
     self:render_overlay()
@@ -111,7 +109,7 @@ function stage_clear_state:render()
     self:render_overlay()
 
     -- draw either picked or missed emeralds
-    self:render_emerald_cross()
+    self:render_emeralds()
   end
 
   -- exceptionally draw menu above overlay, because this overlay is used as background
@@ -283,17 +281,6 @@ function stage_clear_state:show_result_async()
 
   -- make text enter screen from right to left (starts on screen edge, so 128)
   ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 40, 20)
-
-  -- show emerald cross
-  self.result_show_emerald_cross_base = true
-
-  for step = 1, 2 do
-    self.result_emerald_cross_palette_swap_table = visual.bright_to_normal_palette_swap_by_original_color_sequence[step]
-    yield_delay(10)  -- duration of a step
-  end
-
-  -- finish with normal colors
-  clear_table(self.result_emerald_cross_palette_swap_table)
 end
 
 function stage_clear_state:assess_result_async()
@@ -392,7 +379,6 @@ function stage_clear_state:zigzag_fade_out_async()
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
   -- as well as members that draw custom items, except for actual emeralds as we'll draw the missing emeralds more below
   self.result_overlay:clear_drawables()
-  self.result_show_emerald_cross_base = false
 
   -- just re-add the black rectangle as background for the retry menu
   -- (no need for zigzag edge itself, since the rectangle body now covers the whole screen)
@@ -468,21 +454,16 @@ function stage_clear_state:render_overlay()
   self.result_overlay:draw()
 end
 
--- render the emerald cross base and every picked emeralds
-function stage_clear_state:render_emerald_cross()
+-- render every picked/missed emeralds at fixed screen position
+function stage_clear_state:render_emeralds()
   camera()
 
-  if self.result_show_emerald_cross_base then
-    visual.draw_emerald_cross_base(64, 64, self.result_emerald_cross_palette_swap_table)
-  end
-
-  self:draw_emeralds_around_cross(64, 64)
+  self:draw_emeralds(64, 64)
 end
 
--- render the emerald cross base and every picked emeralds
--- (x, y) is at cross center
-function stage_clear_state:draw_emeralds_around_cross(x, y)
-  -- draw emeralds around the cross, from top, CW
+-- draw picked/missed emeralds on an invisible circle centered on (x, y)
+function stage_clear_state:draw_emeralds(x, y)
+  -- draw emeralds around the clock, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations
   -- but here we obviously only defined 8 relative positions,
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)

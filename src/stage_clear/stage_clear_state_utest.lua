@@ -54,8 +54,6 @@ describe('stage_clear_state', function ()
         assert.are_same({
             ':stage_clear',
             overlay(),
-            false,
-            {},
             {},
             {},
           },
@@ -63,8 +61,6 @@ describe('stage_clear_state', function ()
             state.type,
             -- result UI animation only (async methods changing this won't be fully tested)
             state.result_overlay,
-            state.result_show_emerald_cross_base,
-            state.result_emerald_cross_palette_swap_table,
             state.result_show_emerald_set_by_number,
             state.result_emerald_brightness_levels
           })
@@ -300,24 +296,24 @@ describe('stage_clear_state', function ()
               stub(visual_stage, "render_background")
               stub(stage_clear_state, "render_stage_elements")
               stub(stage_clear_state, "render_overlay")
-              stub(stage_clear_state, "render_emerald_cross")
+              stub(stage_clear_state, "render_emeralds")
             end)
 
             teardown(function ()
               visual_stage.render_background:revert()
               stage_clear_state.render_stage_elements:revert()
               stage_clear_state.render_overlay:revert()
-              stage_clear_state.render_emerald_cross:revert()
+              stage_clear_state.render_emeralds:revert()
             end)
 
             after_each(function ()
               visual_stage.render_background:clear()
               stage_clear_state.render_stage_elements:clear()
               stage_clear_state.render_overlay:clear()
-              stage_clear_state.render_emerald_cross:clear()
+              stage_clear_state.render_emeralds:clear()
             end)
 
-            it('should call render_background, render_stage_elements, render_overlay, render_emerald_cross', function ()
+            it('should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
               state:render()
               assert.spy(visual_stage.render_background).was_called(1)
               assert.spy(visual_stage.render_background).was_called_with(vector(3392, 328))
@@ -325,8 +321,8 @@ describe('stage_clear_state', function ()
               assert.spy(stage_clear_state.render_stage_elements).was_called_with(match.ref(state))
               assert.spy(stage_clear_state.render_overlay).was_called(1)
               assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
-              assert.spy(stage_clear_state.render_emerald_cross).was_called(1)
-              assert.spy(stage_clear_state.render_emerald_cross).was_called_with(match.ref(state))
+              assert.spy(stage_clear_state.render_emeralds).was_called(1)
+              assert.spy(stage_clear_state.render_emeralds).was_called_with(match.ref(state))
             end)
 
           end)  -- state.render
@@ -598,8 +594,8 @@ describe('stage_clear_state', function ()
 
           describe('extra render methods (no-crash only)', function ()
 
-            it('render_emerald_cross should not crash', function ()
-              state:render_emerald_cross()
+            it('render_emeralds should not crash', function ()
+              state:render_emeralds()
             end)
 
           end)

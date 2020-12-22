@@ -45,6 +45,10 @@ function stage_clear_state:init()
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
+  -- phase 0: stage result
+  -- phase 1: retry menu
+  self.phase = 0
+
   -- self.retry_menu starts nil, only created when it must be shown
 end
 
@@ -94,11 +98,21 @@ function stage_clear_state:render()
   visual_stage.render_background(vector(3392, 328))
   self:render_stage_elements()
 
-  -- draw either picked or missed emeralds
-  self:render_emerald_cross()
+  -- hack to draw fade-out on top of picked emeralds during phase 0 (stage result)
+  --  then missed emeralds on top of missed emeralds during phase 1 (retry menu)
+  if self.phase == 0 then
+    -- draw either picked or missed emeralds
+    self:render_emerald_cross()
 
-  -- draw overlay on top to hide result widgets
-  self:render_overlay()
+    -- draw overlay on top to hide result widgets
+    self:render_overlay()
+  else
+    -- draw overlay on top to hide result widgets
+    self:render_overlay()
+
+    -- draw either picked or missed emeralds
+    self:render_emerald_cross()
+  end
 
   -- exceptionally draw menu above overlay, because this overlay is used as background
   --  for retry menu
@@ -393,6 +407,9 @@ function stage_clear_state:zigzag_fade_out_async()
 end
 
 function stage_clear_state:show_retry_screen()
+  -- enter phase 1: retry menu
+  self.phase = 1
+
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden,
   -- but keep the full black screen rectangle as background for retry screen
   local try_again_label = label("try again?", vector(41, 34), colors.white)
@@ -437,9 +454,9 @@ function stage_clear_state:render_environment_foreground()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 end
 
--- render the goal plate upper body (similar to stage_state equivalent, but don't check for goal_plate)
+-- render the goal plate upper body (similar to stage_state equivalent)
 function stage_clear_state:render_goal_plate()
-  assert(self.goal_plate)
+  assert(self.goal_plate, "stage_clear_state:render_goal_plate: no goal plate spawned in stage")
 
   self:set_camera_with_origin()
   self.goal_plate:render()
@@ -473,8 +490,9 @@ function stage_clear_state:draw_emeralds_around_cross(x, y)
     -- self.result_show_emerald_set_by_number[num] is only set to true when
     --  we have picked emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
-      local draw_position = vector(x + visual.missed_emeralds_radius * cos(0.25 - (num - 1) / 8),
-        y + visual.missed_emeralds_radius * sin(0.25 - (num - 1) / 8))
+      local radius = visual.missed_emeralds_radius
+      local draw_position = vector(x + radius * cos(0.25 - (num - 1) / 8),
+        y + radius * sin(0.25 - (num - 1) / 8))
       emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

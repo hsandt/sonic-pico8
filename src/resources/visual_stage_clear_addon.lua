@@ -4,29 +4,7 @@ local sprite_data = require("engine/render/sprite_data")
 
 local stage_clear_visual = {
   fadeout_zigzag_width = 11,  -- doesn't include pixel 0, so actually count +1 pixel in total
-  missed_emeralds_radius = 15,
-
-  -- use this table with pal() to recolor things darker (level 1-2, don't use at level 0)
-  -- we skip black which doesn't get darker, so we can start at index 1 and we don't need
-  --  explicit keys at all
-  swap_palette_by_darkness = {
-    -- [colors.black] = {colors.black, colors.black},
-    --[[ [colors.dark_blue] = ]] {colors.black, colors.black},
-    --[[ [colors.dark_purple] = ]] {colors.black, colors.black},
-    --[[ [colors.dark_green] = ]] {colors.black, colors.black},
-    --[[ [colors.brown] = ]] {colors.black, colors.black},
-    --[[ [colors.dark_gray] = ]] {colors.black, colors.black},
-    --[[ [colors.light_gray] = ]] {colors.dark_gray, colors.black},
-    --[[ [colors.white] = ]] {colors.light_gray, colors.dark_gray},
-    --[[ [colors.red] = ]] {colors.dark_purple, colors.black},
-    --[[ [colors.orange] = ]] {colors.brown, colors.black},
-    --[[ [colors.yellow] = ]] {colors.orange, colors.brown},
-    --[[ [colors.green] = ]] {colors.dark_green, colors.black},
-    --[[ [colors.blue] = ]] {colors.dark_blue, colors.black},
-    --[[ [colors.indigo] = ]] {colors.dark_gray, colors.black},
-    --[[ [colors.pink] = ]] {colors.dark_purple, colors.black},
-    --[[ [colors.peach] = ]] {colors.orange, colors.brown}
-  }
+  missed_emeralds_radius = 15
 }
 
 -- visuals for stage_clear only

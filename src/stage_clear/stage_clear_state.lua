@@ -1,5 +1,6 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local postprocess = require("engine/render/postprocess")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
@@ -62,8 +63,8 @@ function stage_clear_state:init()
   -- phase 1: retry menu
   self.phase = 0
 
-  -- global darkness affect post-draw screen palette
-  self.global_darkness = 0
+  -- postprocessing for fade out effect
+  self.postproc = postprocess()
 
   -- result (stage clear) overlay
   self.result_overlay = overlay()
@@ -151,18 +152,9 @@ function stage_clear_state:render()
     -- see set_camera_with_origin for value explanation (we must pass camera position)
     visual_stage.render_background(vector(3392, 328))
     self:render_stage_elements()
-
-    -- draw picked emeralds
-    self:render_emeralds()
-
-    -- draw overlay on top to hide result widgets
-    self:render_overlay()
   else
     -- phase 1: retry menu
     cls()
-
-    -- draw missed emeralds
-    self:render_emeralds()
 
     --  for retry menu
     if self.retry_menu then
@@ -170,19 +162,13 @@ function stage_clear_state:render()
     end
   end
 
+  -- draw picked/missed emeralds
+  self:render_emeralds()
+
   -- draw overlay on top to hide result widgets
   self:render_overlay()
 
-  if self.global_darkness > 0 then
-    -- black can't get darker, just check the other 15 colors
-    for c = 1, 15 do
-      pal(c, visual.swap_palette_by_darkness[c][self.global_darkness], 1)
-    end
-  else
-    -- post-render palette swap seems to persist even after cls()
-    --  so, although render_emeralds indirectly calls pal(), it's safer to manually reset
-    pal()
-  end
+  self.postproc:apply()
 end
 
 
@@ -432,11 +418,11 @@ function stage_clear_state:show_retry_screen_async()
   self.retry_menu:show_items(stage_clear_state.retry_items)
 
   -- color fade in
-  self.global_darkness = 2
+  self.postproc.darkness = 2
   yield_delay(8)
-  self.global_darkness = 1
+  self.postproc.darkness = 1
   yield_delay(8)
-  self.global_darkness = 0
+  self.postproc.darkness = 0
 end
 
 

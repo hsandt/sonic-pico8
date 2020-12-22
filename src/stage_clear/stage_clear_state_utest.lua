@@ -313,16 +313,31 @@ describe('stage_clear_state', function ()
               stage_clear_state.render_emeralds:clear()
             end)
 
-            it('should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+            it('(phase 0) should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+              state.phase = 0
+
               state:render()
+
               assert.spy(visual_stage.render_background).was_called(1)
               assert.spy(visual_stage.render_background).was_called_with(vector(3392, 328))
               assert.spy(stage_clear_state.render_stage_elements).was_called(1)
               assert.spy(stage_clear_state.render_stage_elements).was_called_with(match.ref(state))
-              assert.spy(stage_clear_state.render_overlay).was_called(1)
-              assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
               assert.spy(stage_clear_state.render_emeralds).was_called(1)
               assert.spy(stage_clear_state.render_emeralds).was_called_with(match.ref(state))
+              assert.spy(stage_clear_state.render_overlay).was_called(1)
+              assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
+            end)
+
+
+            it('should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+              state.phase = 1
+
+              state:render()
+
+              assert.spy(stage_clear_state.render_emeralds).was_called(1)
+              assert.spy(stage_clear_state.render_emeralds).was_called_with(match.ref(state))
+              assert.spy(stage_clear_state.render_overlay).was_called(1)
+              assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
             end)
 
           end)  -- state.render
@@ -362,24 +377,6 @@ describe('stage_clear_state', function ()
               for i = 1, 1000 do
                 corunner:update_coroutines()
               end
-            end)
-
-          end)
-
-          describe('back_to_titlemenu', function ()
-
-            setup(function ()
-              stub(_G, "load")
-            end)
-
-            teardown(function ()
-              load:revert()
-            end)
-
-            it('should load cartridge: picosonic_titlemenu.p8', function ()
-              state:back_to_titlemenu()
-              assert.spy(load).was_called(1)
-              assert.spy(load).was_called_with('picosonic_titlemenu.p8')
             end)
 
           end)

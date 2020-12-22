@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Build a specific cartridge for the game and install it in PICO-8 carts folder
-#  to allow playing with multiple cartridges
+# Build a specific cartridge for the game and install it with data cartridges in PICO-8 carts folder
+#  to allow playing with multiple cartridges and newest data.
 
 # Currently only supported on Linux
 
@@ -14,7 +14,7 @@ help() {
 }
 
 usage() {
-  echo "Usage: build_and_install_single_cartridge.sh CARTRIDGE_SUFFIX [CONFIG]
+  echo "Usage: build_and_install_single_cartridge_with_data.sh CARTRIDGE_SUFFIX [CONFIG]
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
@@ -74,4 +74,4 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-"$game_scripts_path/install_single_cartridge.sh" "$cartridge_suffix" "$config"
+"$game_scripts_path/install_single_cartridge_with_data.sh" "$cartridge_suffix" "$config"

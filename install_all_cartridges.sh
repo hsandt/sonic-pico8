@@ -1,12 +1,12 @@
 #!/bin/bash
-# Install all cartridges for the game to the default
+# Install all cartridges for the game, including data cartridges, to the default
 #  PICO-8 carts location
 # This is required if you need to play with multiple carts,
 #  as other carts will only be loaded in PICO-8 carts location
 
 # Usage: install_all_cartridges.sh config [png]
 #   config            build config (e.g. 'debug' or 'release')
-#   png 		      if passed, the .png cartridges are installed
+#   png               if passed, the .png cartridges are installed
 
 # Currently only supported on Linux
 
@@ -29,16 +29,18 @@ config="$1"; shift
 
 # option "png" will export the png cartridge
 if [[ $1 = "png" ]] ; then
-	suffix=".png"
+  suffix=".png"
 else
-	suffix=""
+  suffix=""
 fi
 
-# note that we don't add the data/data_stage*.p8 cartridges because
-# install_single_cartridge.sh for ingame will install all data cartridges anyway
-# (and said script is really meant for built cartridges as it refers to build path)
 cartridge_list="titlemenu ingame stage_clear"
 
 for cartridge in $cartridge_list; do
-	"$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
+  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
 done
+
+# Also copy data cartridges
+echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."
+# trailing slash just to make sure we copy to a directory
+cp data/data_*.p8 "${install_dirpath}/"

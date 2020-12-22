@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build all game cartridges and install them in PICO-8 carts folder.
+# Build all game cartridges, including data cartridges and install them in PICO-8 carts folder.
 
 # Currently only supported on Linux.
 

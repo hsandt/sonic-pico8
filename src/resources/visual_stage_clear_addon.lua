@@ -3,7 +3,8 @@ local visual = require("resources/visual_common")
 local sprite_data = require("engine/render/sprite_data")
 
 local stage_clear_visual = {
-  fadeout_zigzag_width = 11  -- doesn't include pixel 0, so actually count +1 pixel in total
+  fadeout_zigzag_width = 11,  -- doesn't include pixel 0, so actually count +1 pixel in total
+  missed_emeralds_radius = 10
 }
 
 -- visuals for stage_clear only

@@ -93,11 +93,15 @@ function stage_clear_state:render()
   -- see set_camera_with_origin for value explanation (we must pass camera position)
   visual_stage.render_background(vector(3392, 328))
   self:render_stage_elements()
-  self:render_overlay()
 
   -- draw either picked or missed emeralds
   self:render_emerald_cross()
 
+  -- draw overlay on top to hide result widgets
+  self:render_overlay()
+
+  -- exceptionally draw menu above overlay, because this overlay is used as background
+  --  for retry menu
   if self.retry_menu then
     self.retry_menu:draw(29, 90)
   end
@@ -249,23 +253,22 @@ function stage_clear_state:restore_picked_emerald_data()
 end
 
 function stage_clear_state:show_result_async()
-  -- "sonic got through": 17 characters, so 17*4 = 68 px wide
-  -- so to enter from left, offset by -68 (we even get an extra margin pixel)
-  local sonic_label = label("sonic", vector(-68, 14), colors.dark_blue, colors.orange)
+  -- create "sonic" label separately just for different color
+  local sonic_label = label("sonic", vector(0, 14), colors.dark_blue, colors.orange)
   self.result_overlay:add_drawable("sonic", sonic_label)
-  -- "got through" is 6 chars after the string start so 24px after , -68+24=-44
-  local through_label = label("got through", vector(-44, 14), colors.white, colors.black)
+  local through_label = label("got through", vector(0, 14), colors.white, colors.black)
   self.result_overlay:add_drawable("through", through_label)
 
-  -- move text from left to right
+  -- "sonic got through": 17 characters, so 17*4 = 68 px wide
+  -- make text enter from left to right (starts on screen edge, so -68 with even an extra margin pixel after last char)
+  -- "got through" is 6 chars after the string start so 24px after "sonic"
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
 
-  -- enter from screen right so offset is 128
-  local result_label = label("angel island", vector(128, 26), colors.white, colors.black)
-  self.result_overlay:add_drawable("stage", result_label)
+  local stage_label = label("angel island", vector(0, 26), colors.white, colors.black)
+  self.result_overlay:add_drawable("stage", stage_label)
 
-  -- move text from right to left
-  ui_animation.move_drawables_on_coord_async("x", {result_label}, {0}, 128, 40, 20)
+  -- make text enter screen from right to left (starts on screen edge, so 128)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 40, 20)
 
   -- show emerald cross
   self.result_show_emerald_cross_base = true
@@ -303,33 +306,48 @@ function stage_clear_state:assess_result_async()
 
   yield_delay(30)
 
-  self.result_overlay:remove_drawable("sonic")
+  -- retrieve labels from overlay (as we didn't store references as state members)
+  local sonic_label = self.result_overlay.drawables_map["sonic"]
+  local through_label = self.result_overlay.drawables_map["through"]
+  local stage_label = self.result_overlay.drawables_map["stage"]
+
+  -- make text exit to the left (faster)
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, 30, -68, 10)
+
+  -- make text exit to the right (faster)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 40, 128, 10)
+
+  -- clean up labels outside screen, except "sonic" that we will reuse
+  -- "sonic" label is already outside screen so it won't bother us until we use it again
   self.result_overlay:remove_drawable("through")
   self.result_overlay:remove_drawable("stage")
 
   yield_delay(30)
 
-  -- create another sonic label (previous one was also local var, so can't access it from here)
-  local sonic_label = label("sonic", vector(-88, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_drawable("sonic", sonic_label)
   local emerald_text
 
   -- show how many emeralds player got
-  -- "sonic got all emeralds" (the longest sentence) has 22 chars so is 22*4 88 px wide
-  -- it comes from the left again, so offset negatively on start
-  -- "got ..." is 6 chars after the string start so 24px after , -88+24=-64
-  -- hardcoded since we don't have access to spawned_emerald_locations anymore
+  -- "[number]" is has1 character but "all" has 3 characters, and label doesn't support centered text,
+  --  so adjust manually shorter label to be a little more to the right to center it on screen
+  local x_offset = 0
   if self.picked_emerald_count < 8 then
     emerald_text = "got "..self.picked_emerald_count.." emeralds"
+    x_offset = 6
   else
     emerald_text = "got all emeralds"
   end
 
-  local emerald_label = label(emerald_text, vector(-64, 14), colors.white, colors.black)
+  -- don't mind initial x, move_drawables_on_coord_async now sets it before first render
+  local emerald_label = label(emerald_text, vector(0, 14), colors.white, colors.black)
   self.result_overlay:add_drawable("emerald", emerald_label)
 
-  -- move text from left to right and give some time to player to read
-  ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88, 20, 20)
+  -- move text "sonic got X emeralds" (reusing "sonic" label) from left to right and give some time to player to read
+  -- "got ..." is 6 chars after the full string start so 24px after "sonic" -> second offset is 24
+  -- "sonic got all emeralds" (the longest sentence) has 22 chars so is 22*4 88 px wide
+  -- it comes from the left again, so offset negatively on start -> a = -88
+  -- apply offset for shorter label to start and end x
+  -- animation takes 20 frames
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88 + x_offset, 20 + x_offset, 20)
   self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
 end
 
@@ -447,21 +465,6 @@ end
 -- render the emerald cross base and every picked emeralds
 -- (x, y) is at cross center
 function stage_clear_state:draw_emeralds_around_cross(x, y)
-  -- indexed by emerald number
-  -- numbers would be more consistent (0, 11, 20 everywhere)
-  --  if pivot was at (4, 3) instead of (4, 4)
-  --  but we need to make this work with the stage too
-  local emerald_relative_positions = {
-    vector(0, -19),
-    vector(11, -10),
-    vector(20, 1),
-    vector(11, 12),
-    vector(0, 21),
-    vector(-11, 12),
-    vector(-20, 1),
-    vector(-11, -10)
-  }
-
   -- draw emeralds around the cross, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations
   -- but here we obviously only defined 8 relative positions,
@@ -470,7 +473,8 @@ function stage_clear_state:draw_emeralds_around_cross(x, y)
     -- self.result_show_emerald_set_by_number[num] is only set to true when
     --  we have picked emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
-      local draw_position = vector(x, y) + emerald_relative_positions[num]
+      local draw_position = vector(x + visual.missed_emeralds_radius * cos(0.25 - (num - 1) / 8),
+        y + visual.missed_emeralds_radius * sin(0.25 - (num - 1) / 8))
       emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

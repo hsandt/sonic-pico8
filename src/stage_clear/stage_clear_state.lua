@@ -226,9 +226,12 @@ function stage_clear_state:play_stage_clear_sequence_async()
   -- play result UI "calculation" (we don't have score so it's just checking
   --  if we have all the emeralds)
   self:assess_result_async()
+  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
 
   -- fade out and show retry screen
   self:zigzag_fade_out_async()
+  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
+
   self:show_retry_screen()
 end
 
@@ -349,7 +352,6 @@ function stage_clear_state:assess_result_async()
   -- apply offset for shorter label to start and end x
   -- animation takes 20 frames
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88 + x_offset, 20 + x_offset, 20)
-  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
 end
 
 -- drawable for the right part of the fade-out layer (the body will be filled with a separate rectangle)

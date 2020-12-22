@@ -9,4 +9,6 @@ return {
   -- delay between emerald assessment animation has ended, and fade out to retry screen starts (s)
   show_emerald_assessment_duration = 1.0,
 
+  -- delay after zigzag fade out, before showing retry screen content
+  delay_after_zigzag_fadeout = 1.0,
 }

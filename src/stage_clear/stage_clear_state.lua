@@ -167,7 +167,7 @@ function stage_clear_state:render()
   -- exceptionally draw menu above overlay, because this overlay is used as background
   --  for retry menu
   if self.retry_menu then
-    self.retry_menu:draw(29, 90)
+    self.retry_menu:draw(29, 95)
   end
 
   if self.global_darkness > 0 then
@@ -413,7 +413,7 @@ end
 function stage_clear_state:show_retry_screen_async()
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden,
   -- but keep the full black screen rectangle as background for retry screen
-  local try_again_label = label("try again?", vector(41, 34), colors.white)
+  local try_again_label = label("try again?", vector(45, 30), colors.white)
   self.result_overlay:add_drawable("try again", try_again_label)
 
   -- display missed emeralds

@@ -2,6 +2,10 @@ local visual = require("resources/visual_common")
 
 local sprite_data = require("engine/render/sprite_data")
 
+local stage_clear_visual = {
+  fadeout_zigzag_width = 11  -- doesn't include pixel 0, so actually count +1 pixel in total
+}
+
 -- visuals for stage_clear only
 -- it uses the add-on system, which means you only need to require it along with visual_common,
 --  but only get the return value of visual_common named `visual` here
@@ -12,4 +16,5 @@ local menu_sprite_data_t = {
   menu_cursor = sprite_data(sprite_id_location(10, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
 }
 
+merge(visual, stage_clear_visual)
 merge(visual.sprite_data_t, menu_sprite_data_t)

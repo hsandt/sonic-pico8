@@ -103,6 +103,9 @@ function stage_clear_state:render()
   end
 end
 
+
+-- stage-related methods, simplified versions of stage_state equivalents
+
 function stage_clear_state:spawn_goal_plate_at(global_loc)
   -- remember where we found palm tree leaves core tile, to draw extension sprites around later
   assert(self.goal_plate == nil, "stage_clear_state:spawn_goal_plate_at: goal plate already spawned!")
@@ -148,9 +151,6 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
   end
 end
 
-
--- extended map system: see stage_state
-
 -- return map filename for current stage and given region coordinates (u: int, v: int)
 --  do not try this with transitional regions, instead we'll patch them from individual regions
 function stage_clear_state:get_map_region_filename(u, v)
@@ -162,6 +162,42 @@ function stage_clear_state:reload_map_region()
   -- hardcoded for goal region
   reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(3, 1))
 end
+
+
+-- camera methods, also simplified versions of stage_stage equivalent
+
+-- hardcoded version of stage_state:set_camera_with_origin
+function stage_clear_state:set_camera_with_origin(origin)
+  origin = origin or vector.zero()
+  -- hardcoded version: we printed the following value during ingame just before loading stage_clear:
+  --  self.camera.position.x = 3392
+  --  self.camera.position.y = 328
+  --  self.camera.position.x - screen_width / 2 = 3328
+  --  self.camera.position.y - screen_height / 2 = 264
+  -- and reinjected the values below (correspond to camera approx. centered on goal plate)
+  camera(3328 - origin.x, 264 - origin.y)
+end
+
+-- same as stage_state:set_camera_with_region_origin but short enough to copy
+function stage_clear_state:set_camera_with_region_origin()
+  local region_topleft_loc = self:get_region_topleft_location()
+  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
+end
+
+-- same as stage_state:region_to_global_location but short enough to copy
+function stage_clear_state:region_to_global_location(region_loc)
+  return region_loc + self:get_region_topleft_location()
+end
+
+-- return current region topleft as location (convert uv to ij)
+-- hardcoded version of stage_state:get_region_topleft_location
+--  for stage_clear: goal is in region (3, 1) for pico island
+function stage_clear_state:get_region_topleft_location()
+  return location(map_region_tile_width * 3, map_region_tile_height * 1)
+end
+
+
+-- actual stage clear sequence
 
 function stage_clear_state:play_stage_clear_sequence_async()
   -- show result UI
@@ -297,19 +333,38 @@ function stage_clear_state:assess_result_async()
   self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
 end
 
+-- drawable for the right part of the fade-out layer (the body will be filled with a separate rectangle)
+-- there is only one, so don't bother creating a struct just for that
+local zigzag_drawable = {
+  position = vector(0, 0)
+}
+
+function zigzag_drawable:draw()
+  for j = 0, 127 do
+    -- zigzag can be represented by a periodical abs function (length is 0 when line contains 1 px)
+    local length = abs((j - 8) % (2 * visual.fadeout_zigzag_width) - visual.fadeout_zigzag_width)
+    line(self.position.x, j, self.position.x + length, j, colors.black)
+  end
+end
+
 function stage_clear_state:zigzag_fade_out_async()
-  -- todo
+  local bg_rect = rectangle(vector(0, 0), 128, 128, colors.black)
+  self.result_overlay:add_drawable("bg_rect", bg_rect)
+  self.result_overlay:add_drawable("zigzag", zigzag_drawable)
+
+  -- make rectangle with zigzag edge enter the screen from the left
+  -- note that we finish at 128 and not 127 so the zigzag fully goes out of the screen to the right,
+  --  and the bg_rect fully covers the screen, ready to be used as background
+  ui_animation.move_drawables_on_coord_async("x", {bg_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, 36)
 
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
+  -- as well as members that draw custom items, except for actual emeralds as we'll draw the missing emeralds more below
   self.result_overlay:clear_drawables()
-
-  -- only clear members that draw custom items, except for actual emeralds as we'll draw the missing emeralds
-  --  soon anyway
   self.result_show_emerald_cross_base = false
 
-  -- just keep the full black screen rectangle as background for retry screen
-  local bg = rectangle(vector(0, 0), 128, 128, colors.black)
-  self.result_overlay:add_drawable("bg", bg)
+  -- just re-add the black rectangle as background for the retry menu
+  -- (no need for zigzag edge itself, since the rectangle body now covers the whole screen)
+  self.result_overlay:add_drawable("bg_rect", bg_rect)
 
   for num = 1, 8 do
     -- only display missed emeralds
@@ -325,42 +380,8 @@ function stage_clear_state:show_retry_screen()
   local try_again_label = label("try again?", vector(41, 34), colors.white)
   self.result_overlay:add_drawable("try again", try_again_label)
 
-  printh("visual.sprite_data_t.menu_cursor: "..nice_dump(visual.sprite_data_t.menu_cursor))
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
   self.retry_menu:show_items(stage_clear_state.retry_items)
-end
-
-
--- camera
-
--- hardcoded version of stage_state:set_camera_with_origin
-function stage_clear_state:set_camera_with_origin(origin)
-  origin = origin or vector.zero()
-  -- hardcoded version: we printed the following value during ingame just before loading stage_clear:
-  --  self.camera.position.x = 3392
-  --  self.camera.position.y = 328
-  --  self.camera.position.x - screen_width / 2 = 3328
-  --  self.camera.position.y - screen_height / 2 = 264
-  -- and reinjected the values below (correspond to camera approx. centered on goal plate)
-  camera(3328 - origin.x, 264 - origin.y)
-end
-
--- same as stage_state:set_camera_with_region_origin but short enough to copy
-function stage_clear_state:set_camera_with_region_origin()
-  local region_topleft_loc = self:get_region_topleft_location()
-  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
-end
-
--- same as stage_state:region_to_global_location but short enough to copy
-function stage_clear_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
-end
-
--- return current region topleft as location (convert uv to ij)
--- hardcoded version of stage_state:get_region_topleft_location
---  for stage_clear: goal is in region (3, 1) for pico island
-function stage_clear_state:get_region_topleft_location()
-  return location(map_region_tile_width * 3, map_region_tile_height * 1)
 end
 
 

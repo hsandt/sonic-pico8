@@ -1,7 +1,7 @@
 local audio = {}
 
 audio.sfx_ids = {
-  -- builtin_data_titlemenu only
+  -- builtin_data_titlemenu and builtin_data_stage_clear only
   menu_select = 50,
   menu_confirm = 51,
 
@@ -17,7 +17,8 @@ audio.sfx_ids = {
 }
 
 audio.jingle_ids = {
-  stage_clear = 41,
+  -- builtin_data_stage_clear only (overlaps stage bgm in data_bgm1.p8)
+  stage_clear = 0,
 }
 
 audio.music_ids = {

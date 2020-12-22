@@ -51,9 +51,8 @@ describe('titlemenu', function ()
       it('should call start_coroutine_method on opening_sequence_async', function ()
         tm:on_enter()
 
-        local s = assert.spy(picosonic_app.start_coroutine)
-        s.was_called(1)
-        s.was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
+        assert.spy(picosonic_app.start_coroutine).was_called(1)
+        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
       end)
 
     end)
@@ -81,12 +80,31 @@ describe('titlemenu', function ()
 
     describe('on_exit', function ()
 
+      setup(function ()
+        stub(picosonic_app, "stop_all_coroutines")
+      end)
+
+      teardown(function ()
+        picosonic_app.stop_all_coroutines:revert()
+      end)
+
+      after_each(function ()
+        picosonic_app.stop_all_coroutines:clear()
+      end)
+
       it('should clear menu reference', function ()
         tm.menu = {"dummy"}
 
         tm:on_exit()
 
         assert.is_nil(tm.menu)
+      end)
+
+      it('should call stop_all_coroutines', function ()
+        tm:on_exit()
+
+        assert.spy(picosonic_app.stop_all_coroutines).was_called(1)
+        assert.spy(picosonic_app.stop_all_coroutines).was_called_with(match.ref(tm.app))
       end)
 
     end)

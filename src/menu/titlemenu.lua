@@ -64,6 +64,10 @@ end
 function titlemenu:on_exit()
   -- clear menu completely (will call GC, but fine)
   self.menu = nil
+
+  -- stop all coroutines, this is important to prevent opening_sequence_async from continuing in the background
+  --  while reading credits, and fading out music earlier than expected after coming back to title
+  self.app:stop_all_coroutines()
 end
 
 function titlemenu:update()

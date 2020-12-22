@@ -376,7 +376,7 @@ function stage_clear_state:zigzag_fade_out_async()
   -- make rectangle with zigzag edge enter the screen from the left
   -- note that we finish at 128 and not 127 so the zigzag fully goes out of the screen to the right,
   --  and the bg_rect fully covers the screen, ready to be used as background
-  ui_animation.move_drawables_on_coord_async("x", {bg_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, 36)
+  ui_animation.move_drawables_on_coord_async("x", {bg_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
   -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
   -- as well as members that draw custom items, except for actual emeralds as we'll draw the missing emeralds more below

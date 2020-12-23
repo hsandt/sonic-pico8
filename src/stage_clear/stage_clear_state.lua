@@ -417,12 +417,11 @@ function stage_clear_state:show_retry_screen_async()
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
   self.retry_menu:show_items(stage_clear_state.retry_items)
 
-  -- color fade in
-  self.postproc.darkness = 2
-  yield_delay(8)
-  self.postproc.darkness = 1
-  yield_delay(8)
-  self.postproc.darkness = 0
+  -- fade in (we start from everything black so skip max darkness 5)
+  for i = 4, 0, -1 do
+    self.postproc.darkness = i
+    yield_delay(5)
+  end
 end
 
 

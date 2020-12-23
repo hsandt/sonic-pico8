@@ -1,5 +1,6 @@
 local gamestate = require("engine/application/gamestate")
 local volume = require("engine/audio/volume")
+local postprocess = require("engine/render/postprocess")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
@@ -49,6 +50,7 @@ function stage_state:init()
   -- create camera, but wait for player character to spawn before assigning it a target
   -- see on_enter for how we warp it to a good place first
   self.camera = camera_class()
+  self.postproc = postprocess()
 
   -- title overlay
   self.title_overlay = overlay()
@@ -240,6 +242,7 @@ function stage_state:render()
   self:render_fx()
   self:render_hud()
   self:render_overlay()
+  self.postproc:apply()
 end
 
 
@@ -945,6 +948,12 @@ end
 -- ui
 
 function stage_state:show_stage_splash_async()
+  -- fade in
+  for i = 5, 0, -1 do
+    self.postproc.darkness = i
+    yield_delay(7)
+  end
+
   self.app:yield_delay_s(stage_data.show_stage_splash_delay)
 
   -- FIXME: draw iteration order not guaranteed, pico-sonic may be hidden "below" banner

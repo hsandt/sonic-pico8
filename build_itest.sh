@@ -13,10 +13,10 @@ data_path="$(dirname "$0")/data"
 build_output_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 author="leyn"
-title="pico sonic itests (all)"
+title="pico sonic itests (all) v$version"
 cartridge_stem="picosonic_itest_all"
-version="5.1+"
 config='itest'
 # symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
 # cheat needed to set debug motion mode

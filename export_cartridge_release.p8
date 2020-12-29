@@ -9,7 +9,11 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
-cd("picosonic/v5.1+_release")
+-- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
+local version = "5.1+"
+local cartridge_basename = "picosonic_v"..version.."_release"
+
+cd("picosonic/v"..version.."_release")
 
 local entry_cartridge = "picosonic_titlemenu.p8"
 
@@ -24,7 +28,7 @@ local additional_cartridges_list = {
 }
 
 -- prepare folder for png cartridges
-mkdir("picosonic_v5.1+_release.png")
+mkdir(cartridge_basename..".png")
 
 -- load each additional cartridge to save it as png cartridge
 --  in folder created above
@@ -32,7 +36,7 @@ mkdir("picosonic_v5.1+_release.png")
 for cartridge_name in all(additional_cartridges_list) do
   load(cartridge_name)
 
-  cd("picosonic_v5.1+_release.png")
+  cd(cartridge_basename..".png")
   save(cartridge_name..".png")
   cd("..")
 end
@@ -42,7 +46,7 @@ end
 load(entry_cartridge)
 
 -- save as png cartridge
-cd("picosonic_v5.1+_release.png")
+cd(cartridge_basename..".png")
 save(entry_cartridge..".png")
 cd("..")
 
@@ -59,9 +63,9 @@ end
 --  with top-left at sprite 160 (run1) => -i 160
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass additional logic and data files as additional cartridges
-export("picosonic_v5.1+_release.bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+export(cartridge_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
 
-mkdir("picosonic_v5.1+_release.web")
-cd("picosonic_v5.1+_release.web")
-export("picosonic_v5.1+_release.html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+mkdir(cartridge_basename..".web")
+cd(cartridge_basename..".web")
+export(cartridge_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
 cd("..")

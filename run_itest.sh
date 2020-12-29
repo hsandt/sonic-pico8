@@ -7,9 +7,12 @@
 
 # Any extra arguments are passed to pico8
 
+# Configuration: paths
+data_path="$(dirname "$0")/data"
+
 # Configuration: cartridge
 cartridge_stem="picosonic_itest_all"
-version="5.1+"
+version=`cat "$data_path/version.txt"`
 
 cartridge_suffix="$1"; shift
 

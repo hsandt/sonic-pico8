@@ -17,6 +17,7 @@
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
+data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
@@ -28,7 +29,7 @@ if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
 fi
 
 # Configuration: cartridge
-version="5.1+"
+version=`cat "$data_path/version.txt"`
 cartridge_suffix="$1"; shift
 config="$1"; shift
 

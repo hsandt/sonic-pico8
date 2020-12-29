@@ -16,6 +16,7 @@
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
+data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
@@ -26,7 +27,7 @@ if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
 fi
 
 # Configuration: cartridge
-version="5.1+"
+version=`cat "$data_path/version.txt"`
 config="$1"; shift
 
 # option "png" will export the png cartridge

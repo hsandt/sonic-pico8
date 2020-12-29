@@ -11,9 +11,9 @@ game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
 
 # Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 author="leyn"
 cartridge_stem="picosonic"
-version="5.1+"
 title="pico sonic v$version"
 
 help() {

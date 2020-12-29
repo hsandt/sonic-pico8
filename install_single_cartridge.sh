@@ -18,6 +18,9 @@
 #  since p8tool fails to build .p8.png properly, png will be directly
 #  saved from PICO-8 with export_cartridge_release.p8 into PICO-8 carts folder
 
+# Configuration: paths
+data_path="$(dirname "$0")/data"
+
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
     echo "build.sh takes 1 to 2 params, provided $#:
@@ -29,7 +32,7 @@ fi
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="5.1+"
+version=`cat "$data_path/version.txt"`
 cartridge_suffix="$1"; shift
 config="$1"; shift
 

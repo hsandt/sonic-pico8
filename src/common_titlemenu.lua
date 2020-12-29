@@ -20,3 +20,12 @@ require("engine/core/table_helper")
 --   since it is not part of engine/common)
 strspl = 0
 --#endif
+
+--[[#pico8
+--#if unity
+
+-- see explanations in common_ingame.lua
+require("ordered_require_titlemenu")
+
+--#endif
+--#pico8]]

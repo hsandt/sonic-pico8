@@ -9,3 +9,12 @@ require("engine/core/table_helper")  -- merge (to add the visual_ingame_addon an
 
 -- we need sprite flags to draw grass on top of the rest
 require("data/sprite_flags")
+
+--[[#pico8
+--#if unity
+
+-- see explanations in common_ingame.lua
+require("ordered_require_stage_clear")
+
+--#endif
+--#pico8]]

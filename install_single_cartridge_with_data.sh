@@ -28,7 +28,7 @@ if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
 fi
 
 # Configuration: cartridge
-version="5.1"
+version="5.1+"
 cartridge_suffix="$1"; shift
 config="$1"; shift
 

@@ -26,7 +26,7 @@ if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
 fi
 
 # Configuration: cartridge
-version="5.1"
+version="5.1+"
 config="$1"; shift
 
 # option "png" will export the png cartridge

@@ -12,9 +12,9 @@ data_path="$(dirname "$0")/data"
 
 # Configuration: cartridge
 author="leyn"
-title="pico sonic"
 cartridge_stem="picosonic"
-version="5.1"
+version="5.1+"
+title="pico sonic v$version"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."

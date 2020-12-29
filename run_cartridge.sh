@@ -11,7 +11,7 @@
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="5.1"
+version="5.1+"
 
 # shift allows to pass extra arguments as $@
 cartridge_suffix="$1"; shift

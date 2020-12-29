@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Physics: added one-way platform system. Added one-way platform tiles and integrated them in stage
+- Stage clear: added retry screen with missed emeralds and options to retry with or without emerald, or go back to title menu
+- Stage clear: retry screen fades in and out with a zigzag swipe animation and/or gradual color darkness (palette swap)
+- Stage intro: stage fades in with gradual color darkness (palette swap)
 
 ### Changed
 - Sprite: fixed top row of some Sonic rotated run sprites missing
 - Sprite: reduced emerald size by 2px in both directions, adjusted HUD
+- Stage clear: removed emerald cross, arranged emerald position to match retry screen
 
 ## [5.1] - 2020-12-17
 ### Changed

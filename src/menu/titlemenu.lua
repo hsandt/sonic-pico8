@@ -87,6 +87,8 @@ end
 function titlemenu:render()
   self:draw_background()
   self:draw_title()
+  self:draw_version()
+
   if self.menu then
     self.menu:draw(55, 101)
   end
@@ -112,6 +114,13 @@ function titlemenu:draw_title()
   -- logo should be placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
   visual.sprite_data_t.title_logo:render(vector(8, 16))
+end
+
+function titlemenu:draw_version()
+  -- PICO-8 cannot access data/version.txt and we don't want to preprocess substitute some $version
+  -- tag in build script just for this, so we exceptionally hardcode version number
+  -- coords correspond to top-right corner with a small margin
+  text_helper.print_aligned("V5.1+", 126, 2, alignments.right, colors.white, colors.black)
 end
 
 return titlemenu

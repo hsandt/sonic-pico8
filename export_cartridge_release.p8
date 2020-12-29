@@ -14,6 +14,7 @@ cd("picosonic/v5.1_release")
 local entry_cartridge = "picosonic_titlemenu.p8"
 
 local additional_cartridges_list = {
+  "picosonic_stage_intro.p8",
   "picosonic_ingame.p8",
   "picosonic_stage_clear.p8",
   "data_bgm1.p8",
@@ -57,7 +58,7 @@ end
 -- icon is a 16x16 square => -s 2 tiles wide
 --  with top-left at sprite 160 (run1) => -i 160
 --  on pink (color 14) background => -c 14
--- and most importantly we pass ingame, stage_clear and data files as additional cartridges
+-- and most importantly we pass additional logic and data files as additional cartridges
 export("picosonic_v5.1_release.bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
 
 mkdir("picosonic_v5.1_release.web")

@@ -70,7 +70,7 @@ local ingame_animated_sprite_data_t = {
         ingame_sprite_data_t.goal_plate_sonic,
         ingame_sprite_data_t.goal_plate_rotating_45_ccw,
         ingame_sprite_data_t.goal_plate_rotating_90,
-        ingame_sprite_data_t.goal_plate_rotating_45_cw,
+        ingame_sprite_data_t.goal_plate_rotating_45_cw
       },
       3,
       4  -- anim_loop_modes.loop (will be stopped from code)

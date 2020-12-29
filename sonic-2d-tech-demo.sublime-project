@@ -53,6 +53,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit built-in data: stage_intro",
+			"shell": true,
+			"cmd": ["pico8 data/builtin_data_stage_intro.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit built-in data: stage_clear",
 			"shell": true,
 			"cmd": ["pico8 data/builtin_data_stage_clear.p8"],
@@ -191,6 +197,29 @@
 			]
 		},
 		{
+			"name": "Game: build cartridge stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release"]
+				}
+			]
+		},
+		{
 			"name": "Game: build cartridge stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -249,6 +278,14 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_itest.sh ingame"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build itests stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh stage_intro"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -347,6 +384,33 @@
 			]
 		},
 		{
+			"name": "Game: build and run stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro debug)"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro cheat)"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro tuner)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro release)"]
+				},
+			]
+		},
+		{
 			"name": "Game: build and run stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -413,6 +477,14 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_itest.sh ingame && (./pico-boots/scripts/reload.sh || ./run_itest.sh ingame)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build and run itests stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh stage_intro && (./pico-boots/scripts/reload.sh || ./run_itest.sh stage_intro)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -491,6 +563,22 @@
 				{
 					"name": "titlemenu release",
 					"cmd": ["./run_cartridge.sh titlemenu release"]
+				},
+				{
+					"name": "stage_intro debug",
+					"cmd": ["./run_cartridge.sh stage_intro debug"]
+				},
+				{
+					"name": "stage_intro cheat",
+					"cmd": ["./run_cartridge.sh stage_intro cheat"]
+				},
+				{
+					"name": "stage_intro tuner",
+					"cmd": ["./run_cartridge.sh stage_intro tuner"]
+				},
+				{
+					"name": "stage_intro release",
+					"cmd": ["./run_cartridge.sh stage_intro release"]
 				},
 				{
 					"name": "stage_clear debug",
@@ -611,6 +699,36 @@
 			]
 		},
 		{
+			"name": "Game: install cartridge stage_intro (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge_with_data.sh stage_intro debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro cheat png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release png"]
+				}
+			]
+		},
+		{
 			"name": "Game: install cartridge stage_clear (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -708,6 +826,10 @@
 				{
 					"name": "ingame",
 					"cmd": ["./test.sh ingame"],
+				},
+				{
+					"name": "stage_intro",
+					"cmd": ["./test.sh stage_intro"],
 				},
 				{
 					"name": "stage_clear",
@@ -820,6 +942,51 @@
 					}
 				},
 				{
+					"name": "headless_itests stage_intro",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro - solo",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
 					"name": "headless_itests stage_clear",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
@@ -903,7 +1070,7 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			// note that luacov report is generated in the working directory, so the second test report will overwrite the previous one
-			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
+			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_intro ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",

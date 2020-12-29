@@ -3,7 +3,7 @@
 # Run itest with PICO-8 executable
 
 # Usage: build_itest.sh cartridge_suffix
-#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
+#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
 
 # Any extra arguments are passed to pico8
 

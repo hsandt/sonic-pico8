@@ -5,7 +5,7 @@
 #  as install_single_cartridge.sh will not copy data along and is not reliable alone.
 
 # Usage: install_single_cartridge_with_data.sh config [png]
-#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
+#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
 #   config            build config (e.g. 'debug' or 'release'. Default: 'debug')
 #   png 		          if passed, the .png cartridge is installed
 
@@ -21,7 +21,7 @@ game_scripts_path="$(dirname "$0")"
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
     echo "build.sh takes 1 or 2 params, provided $#:
-    \$1: cartridge_suffix ('titlemenu', 'ingame' or 'stage_clear')
+    \$1: cartridge_suffix ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
     \$2: config ('debug', 'release', etc. Default: 'debug')
     \$3: optional suffix ('png' for .png cartridge install)"
     exit 1

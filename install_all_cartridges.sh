@@ -36,7 +36,7 @@ else
   suffix=""
 fi
 
-cartridge_list="titlemenu ingame stage_clear"
+cartridge_list="titlemenu stage_intro ingame stage_clear"
 
 for cartridge in $cartridge_list; do
   "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"

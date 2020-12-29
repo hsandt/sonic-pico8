@@ -10,7 +10,7 @@ local visual = require("resources/visual_common")  -- we should require ingamead
 itest_manager:register_itest('player waits',
     {':stage_clear'}, function ()
 
-  -- enter title menu
+  -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap
   setup_callback(function (app)
     -- simulate having stored picked emeralds bitset from ingame cartridge
     -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)

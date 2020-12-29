@@ -3,7 +3,7 @@
 # Run game cartridge located in PICO-8 carts install folder with PICO-8 executable
 # Must be called after build and install script for that cartridge suffix.
 # Usage: run_game.sh cartridge_suffix config [extra]
-#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
+#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
 #   config            build config (e.g. 'debug' or 'release')
 
 # Any extra arguments are passed to pico8

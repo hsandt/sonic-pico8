@@ -18,7 +18,7 @@ titlemenu.type = ':titlemenu'
 -- sequence of menu items to display, with their target states
 local menu_item_params = {
   {"start", function(app)
-    load('picosonic_ingame.p8')
+    load('picosonic_stage_intro.p8')
   end},
   {"credits", function(app)
     flow:query_gamestate_type(':credits')

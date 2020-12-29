@@ -87,6 +87,14 @@ describe('stage_state', function ()
           })
       end)
 
+      describe('_tostring', function ()
+
+        it('should return "stage_state(1)"', function ()
+          assert.are_equal("stage_state(1)", state:_tostring())
+        end)
+
+      end)
+
       describe('on_enter', function ()
 
         setup(function ()

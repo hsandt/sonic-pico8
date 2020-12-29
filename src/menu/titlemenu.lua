@@ -16,17 +16,25 @@ titlemenu.type = ':titlemenu'
 -- parameters data
 
 -- sequence of menu items to display, with their target states
-titlemenu.items = transform({
-    {"start", function(app)
-      load('picosonic_ingame.p8')
-    end},
-    {"credits", function(app)
-      flow:query_gamestate_type(':credits')
-    end},
-  }, unpacking(menu_item))
+local menu_item_params = {
+  {"start", function(app)
+    load('picosonic_ingame.p8')
+  end},
+  {"credits", function(app)
+    flow:query_gamestate_type(':credits')
+  end},
+}
 
 -- attributes:
 -- menu     menu     title menu showing items (only created when it must be shown)
+
+function titlemenu:init()
+  -- sequence of menu items to display, with their target states
+  -- this could be static, but defining in init allows us to avoid
+  --  outer scope definition, so we don't need to declare local menu_item
+  --  at source top for unity build
+  self.items = transform(menu_item_params, unpacking(menu_item))
+end
 
 function titlemenu:on_enter()
   self.app:start_coroutine(self.opening_sequence_async, self)
@@ -58,7 +66,7 @@ end
 
 function titlemenu:show_menu()
   self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor_shoe, 7)
-  self.menu:show_items(titlemenu.items)
+  self.menu:show_items(self.items)
 end
 
 function titlemenu:on_exit()

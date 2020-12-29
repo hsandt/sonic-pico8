@@ -18,6 +18,22 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Dev: generate dependency graph",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["python3 -m pico-boots.scripts.generate_dependency_graph log/dependency_graph.dot src pico-boots/src"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Dev: generate ordered require file for unity build (for testing)",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["python3 -m pico-boots.scripts.generate_ordered_require_file log/ordered_require.lua main_ingame src pico-boots/src"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: setup",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
@@ -927,6 +943,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Postbuild: test preprocess",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: Postbuild: test minify",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
@@ -935,10 +959,26 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test preprocess",
+			"name": "Engine: Postbuild: test unify",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m scripts.test_preprocess"],
+			"cmd": ["python3 -m scripts.test_unify"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test generate_dependency_graph",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test generate_ordered_require_file",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

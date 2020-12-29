@@ -18,6 +18,7 @@ local overlay = require("engine/ui/overlay")
 local picosonic_app = require("application/picosonic_app_stage_clear")
 local goal_plate = require("ingame/goal_plate")
 local titlemenu = require("menu/titlemenu")
+local visual = require("resources/visual_common")
 local visual_stage = require("resources/visual_stage")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
@@ -149,18 +150,12 @@ describe('stage_clear_state', function ()
 
       describe('scan_current_region_to_spawn_objects', function ()
 
-        local dummy_callback = spy.new(function (self, global_loc) end)
-
         setup(function ()
-          stub(stage_clear_state, "get_spawn_object_callback", function (self, tile_id)
-            if tile_id == 21 then
-              return dummy_callback
-            end
-          end)
+          stub(stage_clear_state, "spawn_goal_plate_at")
         end)
 
         teardown(function ()
-          stage_clear_state.get_spawn_object_callback:revert()
+          stage_clear_state.spawn_goal_plate_at:revert()
         end)
 
         -- setup is too early, stage state will start afterward in before_each,
@@ -170,9 +165,9 @@ describe('stage_clear_state', function ()
           -- we're not using tile_test_data.setup here
           --  (since objects are checked directly by id, not using collision data)
           --  so don't use mock_mset
-          mset(1, 1, 21)
-          mset(2, 2, 21)
-          mset(3, 3, 21)
+          mset(1, 1, visual.goal_plate_base_id)
+          mset(2, 2, visual.goal_plate_base_id)
+          mset(3, 3, visual.goal_plate_base_id)
 
           -- mock stage dimensions, not too big to avoid test too long
           --  (just 2 regions so we can check that location conversion works)
@@ -185,16 +180,16 @@ describe('stage_clear_state', function ()
         end)
 
         after_each(function ()
-          dummy_callback:clear()
+          stage_clear_state.spawn_goal_plate_at:clear()
 
           pico8:clear_map()
         end)
 
-        it('should call spawn object callbacks for recognized representative tiles', function ()
+        it('should call spawn_goal_plate_at global location', function ()
           state:scan_current_region_to_spawn_objects()
 
-          assert.spy(dummy_callback).was_called(3)
-          assert.spy(dummy_callback).was_called_with(match.ref(state), location(1 + map_region_tile_width * 3, 1 + map_region_tile_height * 1), 21)
+          assert.spy(stage_clear_state.spawn_goal_plate_at).was_called(3)
+          assert.spy(stage_clear_state.spawn_goal_plate_at).was_called_with(match.ref(state), location(1 + map_region_tile_width * 3, 1 + map_region_tile_height * 1))
         end)
 
       end)

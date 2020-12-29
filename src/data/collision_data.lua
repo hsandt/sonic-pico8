@@ -1,5 +1,6 @@
 local tile_collision_data = require("data/tile_collision_data")
 
+local collision_data = {}
 
 -- below, we are not using serialization.parse_expression anymore
 --  because we want to insert inline comments and have unlimited tokens anyway
@@ -329,9 +330,9 @@ for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
   tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])
 end
 
-return {
-  -- proxy getter is only here to make stubbing possible in tile_test_data
-  get_tile_collision_data = function (sprite_id)
-    return tiles_collision_data[sprite_id]
-  end
-}
+-- proxy getter is only here to make stubbing possible in tile_test_data
+collision_data.get_tile_collision_data = function (sprite_id)
+  return tiles_collision_data[sprite_id]
+end
+
+return collision_data

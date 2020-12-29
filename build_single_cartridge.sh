@@ -120,7 +120,8 @@ fi
   -c "$config"                                        \
   --no-append-config                                  \
   -s "$symbols"                                       \
-  --minify-level 3
+  --minify-level 3                                    \
+  --unify
 
 if [[ $? -ne 0 ]]; then
   echo ""

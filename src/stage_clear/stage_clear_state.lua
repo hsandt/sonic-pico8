@@ -20,18 +20,18 @@ local stage_clear_state = derived_class(gamestate)
 stage_clear_state.type = ':stage_clear'
 
 -- sequence of menu items to display, with their target states
-stage_clear_state.retry_items = transform({
-    {"retry (keep emeralds)", function(app)
-      -- load stage cartridge without clearing picked emerald data in general memory
-      app:start_coroutine(stage_clear_state.retry_stage_async)
-    end},
-    {"retry from zero", function(app)
-      app:start_coroutine(stage_clear_state.retry_from_zero_async)
-    end},
-    {"back to title", function(app)
-      app:start_coroutine(stage_clear_state.back_to_titlemenu_async)
-    end},
-  }, unpacking(menu_item))
+local retry_menu_item_params = {
+  {"retry (keep emeralds)", function(app)
+    -- load stage cartridge without clearing picked emerald data in general memory
+    app:start_coroutine(stage_clear_state.retry_stage_async)
+  end},
+  {"retry from zero", function(app)
+    app:start_coroutine(stage_clear_state.retry_from_zero_async)
+  end},
+  {"back to title", function(app)
+    app:start_coroutine(stage_clear_state.back_to_titlemenu_async)
+  end},
+}
 
 -- menu callbacks
 
@@ -58,6 +58,12 @@ end
 
 function stage_clear_state:init()
   -- gamestate.init(self)  -- kept for expliciteness, but does nothing
+
+  -- sequence of menu items to display, with their target states
+  -- this could be static, but defining in init allows us to avoid
+  --  outer scope definition, so we don't need to declare local menu_item
+  --  at source top for unity build
+  self.retry_menu_items = transform(retry_menu_item_params, unpacking(menu_item))
 
   -- phase 0: stage result
   -- phase 1: retry menu
@@ -184,16 +190,6 @@ function stage_clear_state:spawn_goal_plate_at(global_loc)
   self.goal_plate.anim_spr:play("sonic")
 end
 
--- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
-stage_clear_state.spawn_object_callbacks_by_tile_id = {
-  [visual.goal_plate_base_id] = stage_clear_state.spawn_goal_plate_at,
-}
-
--- proxy for table above, mostly to ease testing
-function stage_clear_state:get_spawn_object_callback(tile_id)
-  return stage_clear_state.spawn_object_callbacks_by_tile_id[tile_id]
-end
-
 -- iterate over each tile of the current region
 --  and apply method callback for each of them (to spawn objects, etc.)
 --  the method callback but take self, a global tile location and the sprite id at this location
@@ -203,9 +199,9 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
       -- here we already have region (i, j), so no need to convert for mget
       local tile_sprite_id = mget(i, j)
 
-      local spawn_object_callback = self:get_spawn_object_callback(tile_sprite_id)
-
-      if spawn_object_callback then
+      -- there is only one object type we are interested in, the goal plate,
+      --  so check it manually instead of using a table of spawn callbacks as in stage_state
+      if tile_sprite_id == visual.goal_plate_base_id then
         -- tile has been recognized as a representative tile for object spawning
         --  apply callback now
 
@@ -213,7 +209,7 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
         local region_loc = location(i, j)
         -- hardcoded region 31
         local global_loc = region_loc + location(map_region_tile_width * 3, map_region_tile_height * 1)
-        spawn_object_callback(self, global_loc, tile_sprite_id)
+        self:spawn_goal_plate_at(global_loc)
       end
     end
   end
@@ -415,7 +411,7 @@ function stage_clear_state:show_retry_screen_async()
   end
 
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
-  self.retry_menu:show_items(stage_clear_state.retry_items)
+  self.retry_menu:show_items(self.retry_menu_items)
 
   -- fade in (we start from everything black so skip max darkness 5)
   for i = 4, 0, -1 do

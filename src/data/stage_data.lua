@@ -1,6 +1,6 @@
 local location_rect = require("engine/core/location_rect")
 
-return {
+local stage_data = {
 
   -- common data
 
@@ -111,3 +111,5 @@ return {
   }
 
 }
+
+return stage_data

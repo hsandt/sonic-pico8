@@ -61,6 +61,12 @@ function stage_state:init()
 --#endif
 end
 
+--#if tostring
+function stage_state:_tostring()
+  return "stage_state("..self.curr_stage_id..")"
+end
+--#endif
+
 function stage_state:on_enter()
   -- don't initialize loaded region coords to force first
   --  (we don't know in which region player character will spawn)

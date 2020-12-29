@@ -1,4 +1,4 @@
-return {
+local stage_clear_data = {
 
   -- stage clear sequence timing
 
@@ -15,3 +15,5 @@ return {
   -- delay after zigzag fade out, before showing retry screen content (s)
   delay_after_zigzag_fadeout = 1.0,
 }
+
+return stage_clear_data

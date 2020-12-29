@@ -73,7 +73,7 @@ describe('titlemenu', function ()
         tm:show_menu()
 
         assert.spy(menu.show_items).was_called(1)
-        assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(titlemenu.items))
+        assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(tm.items))
       end)
 
     end)

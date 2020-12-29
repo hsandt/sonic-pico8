@@ -1,9 +1,5 @@
 local gamestate = require("engine/application/gamestate")
 local volume = require("engine/audio/volume")
-local postprocess = require("engine/render/postprocess")
-local label = require("engine/ui/label")
-local overlay = require("engine/ui/overlay")
-local rectangle = require("engine/ui/rectangle")
 
 local camera_class = require("ingame/camera")
 local emerald = require("ingame/emerald")
@@ -14,7 +10,6 @@ local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_stage = require("resources/visual_stage")
-local ui_animation = require("ui/ui_animation")
 
 local stage_state = derived_class(gamestate)
 
@@ -50,10 +45,6 @@ function stage_state:init()
   -- create camera, but wait for player character to spawn before assigning it a target
   -- see on_enter for how we warp it to a good place first
   self.camera = camera_class()
-  self.postproc = postprocess()
-
-  -- title overlay
-  self.title_overlay = overlay()
 
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
@@ -106,8 +97,6 @@ function stage_state:on_enter()
   self.camera.target_pc = self.player_char
 
   self.has_player_char_reached_goal = false
-
-  self.app:start_coroutine(self.show_stage_splash_async, self)
 
   -- reload bgm only once, then we can play bgm whenever we want for this stage
   self:reload_bgm()
@@ -212,6 +201,8 @@ function stage_state:reload_runtime_data()
   --  so we just have a little margin!
 end
 
+-- never called, we directly load stage_clear cartridge
+--[[
 function stage_state:on_exit()
   -- clear all coroutines (we normally let app handle them, but in this context
   -- we know that all coroutines belong to the stage state, so no risk clearing them from here)
@@ -219,7 +210,6 @@ function stage_state:on_exit()
 
   -- clear object state vars
   self.player_char = nil
-  self.title_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -227,6 +217,7 @@ function stage_state:on_exit()
   -- stop audio
   self:stop_bgm()
 end
+--]]
 
 function stage_state:update()
   self:update_fx()
@@ -247,8 +238,6 @@ function stage_state:render()
   self:render_stage_elements()
   self:render_fx()
   self:render_hud()
-  self:render_overlay()
-  self.postproc:apply()
 end
 
 
@@ -951,54 +940,6 @@ function stage_state:set_camera_with_region_origin()
 end
 
 
--- ui
-
-function stage_state:show_stage_splash_async()
-  -- fade in
-  for i = 5, 0, -1 do
-    self.postproc.darkness = i
-    yield_delay(7)
-  end
-
-  self.app:yield_delay_s(stage_data.show_stage_splash_delay)
-
-  -- FIXME: draw iteration order not guaranteed, pico-sonic may be hidden "below" banner
-
-  -- init position y is -height so it starts just at the screen top edge
-  local banner = rectangle(vector(9, -106), 32, 106, colors.red)
-  self.title_overlay:add_drawable("banner", banner)
-
-  -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
-  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
-  self.title_overlay:add_drawable("banner_text", banner_text)
-
-  -- make banner enter from the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
-
-  local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
-  self.title_overlay:add_drawable("zone_rect", zone_rectangle)
-
-  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
-  self.title_overlay:add_drawable("zone", zone_label)
-
-  -- make text enter from the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
-
-  -- keep zone displayed for a moment
-  yield_delay(102)
-
-  -- make banner exit to the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
-
-  -- make text exit to the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
-
-  self.title_overlay:remove_drawable("banner")
-  self.title_overlay:remove_drawable("banner_text")
-  self.title_overlay:remove_drawable("zone")
-end
-
-
 -- render
 
 -- render the stage elements with the main camera:
@@ -1155,11 +1096,6 @@ function stage_state:render_hud()
 --#endif
 end
 
--- render the title overlay with a fixed ui camera
-function stage_state:render_overlay()
-  camera()
-  self.title_overlay:draw()
-end
 
 -- audio
 

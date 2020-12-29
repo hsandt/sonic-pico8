@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stage clear: added retry screen with missed emeralds and options to retry with or without emerald, or go back to title menu
 - Stage clear: retry screen fades in and out with a zigzag swipe animation and/or gradual color darkness (palette swap)
 - Stage intro: stage fades in with gradual color darkness (palette swap)
+- Titlemenu: added version number in top-right corner
 
 ### Changed
 - Sprite: fixed top row of some Sonic rotated run sprites missing

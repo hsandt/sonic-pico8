@@ -195,6 +195,8 @@ function player_char:warp_bottom_to(bottom_position)
 end
 --#endif
 
+--#if ingame
+
 --#if cheat
 -- same as warp_to, but with bottom position
 function player_char:warp_to_emerald_by(delta)
@@ -222,6 +224,10 @@ function player_char:warp_to_emerald_by(delta)
   local target_pos = curr_stage_state.spawned_emerald_locations[self.last_emerald_warp_nb]:to_center_position()
   self:warp_to(target_pos)
 end
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- move the player character so that the bottom center is at the given position
@@ -242,6 +248,8 @@ end
 function player_char:set_ground_tile_location(global_tile_loc)
   if self.ground_tile_location ~= global_tile_loc then
     self.ground_tile_location = global_tile_loc
+
+--#if ingame
 
     -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
     --  and reversely
@@ -264,6 +272,8 @@ function player_char:set_ground_tile_location(global_tile_loc)
       log("internal trigger detected, set active loop layer: 2", 'loop')
       self.active_loop_layer = 2
     end
+
+--#endif
   end
 end
 
@@ -288,7 +298,11 @@ function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
 end
 
 function player_char:update()
+-- in stage_intro cartridge, we want Sonic to stay idle, so no input
+--  but update physics and render as usual
+--#if ingame
   self:handle_input()
+--#endif
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
@@ -395,12 +409,14 @@ end
 function player_char:update_motion()
   self:update_collision_timer()
 
+--#if ingame
 --#if cheat
   if self.motion_mode == motion_modes.debug then
     self:update_debug()
     return
   end
   -- else: self.motion_mode == motion_modes.platformer
+--#endif
 --#endif
 
   self:update_platformer_motion()
@@ -502,7 +518,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   -- note that we never change region during a collision check, but the 8 tiles margin
   --  should be enough compared to the short distance along which we check for ground, wall and ceiling
   local curr_stage_state = flow.curr_state
-  assert(curr_stage_state.type == ':stage')
+  assert(curr_stage_state.type == ':stage' or curr_stage_state.type == ':stage_intro')
   local region_topleft_loc = curr_stage_state:get_region_topleft_location()
 
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
@@ -561,6 +577,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     local visual_tile_id = mget(tile_region_loc.i, tile_region_loc.j)
     local is_oneway = fget(visual_tile_id, sprite_flags.oneway)
 
+--#if ingame
+
     -- we now check for ignored tiles:
     --  a. ramps just after launching
     --  b. loops on inactive layer from PC's point-of-view
@@ -571,6 +589,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         is_oneway and collision_check_quadrant ~= directions.down then
       ignore_tile = true
     end
+
+--#endif
 
     if ignore_tile then
         -- tile is on layer with disabled collision, return emptiness
@@ -886,10 +906,12 @@ function player_char:update_platformer_motion()
     self:update_platformer_motion_airborne()
   end
 
+--#if ingame
   self:check_spring()
   self:check_launch_ramp()
   self:check_emerald()
   self:check_loop_external_triggers()
+--#endif
 end
 
 -- check if character is fast enough to roll and wants to roll
@@ -2020,6 +2042,8 @@ end
 
 -- item and trigger checks
 
+--#if ingame
+
 function player_char:check_spring()
   if self.ground_tile_location then
     -- get stage state for global to region location conversion
@@ -2196,6 +2220,10 @@ function player_char:update_velocity_component_debug(coord)
   self.debug_velocity:set(coord, new_debug_velocity_comp)
 end
 
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- update sprite animation state

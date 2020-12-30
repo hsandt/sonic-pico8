@@ -1,11 +1,11 @@
 local flow = require("engine/application/flow")
-local gamestate = require("engine/application/gamestate")
 local postprocess = require("engine/render/postprocess")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
 
 local stage_clear_data = require("data/stage_clear_data")
+local base_stage_state = require("ingame/base_stage_state")
 local emerald = require("ingame/emerald")
 local goal_plate = require("ingame/goal_plate")
 local menu_item = require("menu/menu_item")
@@ -15,7 +15,7 @@ local ui_animation = require("ui/ui_animation")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_stage = require("resources/visual_stage")
 
-local stage_clear_state = derived_class(gamestate)
+local stage_clear_state = derived_class(base_stage_state)
 
 stage_clear_state.type = ':stage_clear'
 
@@ -57,7 +57,10 @@ function stage_clear_state.back_to_titlemenu_async()
 end
 
 function stage_clear_state:init()
-  -- gamestate.init(self)  -- kept for expliciteness, but does nothing
+  base_stage_state.init(self)
+
+  -- stage id
+  self.curr_stage_id = 1
 
   -- sequence of menu items to display, with their target states
   -- this could be static, but defining in init allows us to avoid
@@ -95,9 +98,20 @@ function stage_clear_state:on_enter()
   -- first, restore picked emerald data set in ingame, just before loading this cartridge
   self:restore_picked_emerald_data()
 
+  -- Hardcoded: in stage_clear the camera doesn't move, so we don't need to call self.camera:setup_for_stage,
+  --  pass a player character, etc. (and player char is absent anyway).
+  -- Instead we just set the position directly to values observed at the end
+  --  of ingame cartridge, just before loading stage_clear. This allows us to use base_stage_state methods
+  --  relying on the camera position.
+  self.camera.position.x = 3392
+  self.camera.position.y = 328
+
+  -- Hardcoded: we know that goal is in region (3, 1)
+  reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(3, 1))
+  self.loaded_map_region_coords = vector(3, 1)
+
   -- we still need to reload map region hardcoded to where goal is,
   --  and spawn objects just there (basically just spawn the goal plate)
-  self:reload_map_region()
   self:scan_current_region_to_spawn_objects()
 
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
@@ -215,49 +229,12 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
   end
 end
 
--- return map filename for current stage and given region coordinates (u: int, v: int)
---  do not try this with transitional regions, instead we'll patch them from individual regions
-function stage_clear_state:get_map_region_filename(u, v)
-  -- hardcoded for stage 1
-  return "data_stage1_"..u..v..".p8"
-end
-
-function stage_clear_state:reload_map_region()
-  -- hardcoded for goal region
-  reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(3, 1))
-end
-
 
 -- camera methods, also simplified versions of stage_stage equivalent
-
--- hardcoded version of stage_state:set_camera_with_origin
-function stage_clear_state:set_camera_with_origin(origin)
-  origin = origin or vector.zero()
-  -- hardcoded version: we printed the following value during ingame just before loading stage_clear:
-  --  self.camera.position.x = 3392
-  --  self.camera.position.y = 328
-  --  self.camera.position.x - screen_width / 2 = 3328
-  --  self.camera.position.y - screen_height / 2 = 264
-  -- and reinjected the values below (correspond to camera approx. centered on goal plate)
-  camera(3328 - origin.x, 264 - origin.y)
-end
-
--- same as stage_state:set_camera_with_region_origin but short enough to copy
-function stage_clear_state:set_camera_with_region_origin()
-  local region_topleft_loc = self:get_region_topleft_location()
-  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
-end
 
 -- same as stage_state:region_to_global_location but short enough to copy
 function stage_clear_state:region_to_global_location(region_loc)
   return region_loc + self:get_region_topleft_location()
-end
-
--- return current region topleft as location (convert uv to ij)
--- hardcoded version of stage_state:get_region_topleft_location
---  for stage_clear: goal is in region (3, 1) for pico island
-function stage_clear_state:get_region_topleft_location()
-  return location(map_region_tile_width * 3, map_region_tile_height * 1)
 end
 
 

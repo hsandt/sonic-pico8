@@ -27,6 +27,8 @@ usage() {
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
                             'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+                            A symbol equal to the cartridge suffix is always added
+                            to the config symbols.
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
@@ -103,6 +105,11 @@ elif [[ $config == 'assert' ]]; then
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler,cheat'
 fi
+
+# we always add a symbol for the cartridge suffix in case
+#  we want to customize the build of the same script
+#  depending on the cartridge it is built into
+symbols+="$cartridge_suffix"
 
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name

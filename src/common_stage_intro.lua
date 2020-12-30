@@ -4,6 +4,12 @@
 -- Usage: add require("common_stage_intro") at the top of each of your stage_intro main scripts
 --  (along with "engine/common") and in bustedhelper_stage_intro
 
+-- currently, content is same as common_ingame as we need to move character a little to place it
+--  properly for camera
+-- we may replace character with a proxy character with full custom physics for the "falling on ground"
+--  intro later
+
+require("engine/core/vector_ext_angle")  -- character motion
 require("engine/core/table_helper")  -- merge (to add the visual_stage_intro_addon and visual_menu_addon)
 
 -- we need sprite flags to draw grass on top of the rest

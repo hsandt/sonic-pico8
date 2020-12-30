@@ -111,10 +111,11 @@ describe('stage_intro_state', function ()
         assert.are_equal(vector(0, 1), state.loaded_map_region_coords)
       end)
 
-      it('#solo should call reload for stage1, map 01 (hardcoded)', function ()
+      it('should call reload for runtime data and stage1, map 01 (hardcoded)', function ()
         state:on_enter()
 
-        assert.spy(reload).was_called(1)
+        assert.spy(reload).was_called(2)
+        assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
         assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_01.p8")
       end)
 

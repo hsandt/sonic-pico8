@@ -109,6 +109,10 @@ fi
 # we always add a symbol for the cartridge suffix in case
 #  we want to customize the build of the same script
 #  depending on the cartridge it is built into
+if [[ -n "$symbols" ]]; then
+  # there was at least one symbol before, so add comma separator
+  symbols+=","
+fi
 symbols+="$cartridge_suffix"
 
 # Build cartridges without version nor config appended to name

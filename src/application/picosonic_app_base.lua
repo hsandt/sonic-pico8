@@ -28,13 +28,13 @@ function picosonic_app_base:init()
   gameapp.init(self, fps60)
 end
 
---#if mouse
 function picosonic_app_base:on_post_start() -- override
+--#if mouse
   -- enable mouse devkit
   input:toggle_mouse(true)
   mouse:set_cursor_sprite_data(visual.sprite_data_t.cursor)
-end
 --#endif
+end
 
 function picosonic_app_base:on_reset() -- override
 --#if mouse

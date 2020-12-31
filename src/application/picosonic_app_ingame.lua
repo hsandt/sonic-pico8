@@ -15,7 +15,8 @@ function picosonic_app_ingame:instantiate_gamestates() -- override (mandatory)
 end
 
 function picosonic_app_ingame:on_post_start() -- override (optional)
-    menuitem(3, "back to title", function() load('picosonic_titlemenu.p8') end)
+  picosonic_app_base.on_post_start(self)
+  menuitem(3, "back to title", function() load('picosonic_titlemenu.p8') end)
 end
 
 return picosonic_app_ingame

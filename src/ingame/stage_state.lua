@@ -114,8 +114,10 @@ function stage_state:reload_runtime_data()
   -- NOTE: we are *not* reloading sprite flags (could do by copying 0x100 bytes from 0x3000-0x30ff)
   --  which means our builtin spritesheet *must* contain any new flags brought by runtime extra tiles
   --  (located in the 3 top rows of the spritesheet). Those are rare (only one-way platform tiles)
-  --  but without the flags, they won't behave properly. This means you must place flags on the mask tiles
-  --  in the built-in spritesheet. Later, you can move all mask tiles to another spritesheet to reload
+  --  but without the flags, they won't behave properly. This means you must (unintuitively) place flags
+  --  on the mask tiles in the built-in spritesheet. To make it easier, you may edit the flags on a cartridge
+  --  containing all the sprites of interest, then copy-paste the __gff__ lines into the builtin .p8 cartridge
+  -- Later, you can move all mask tiles to another spritesheet to reload
   --  on start instead.
   local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
   reload(0x0, 0x0, 0x600, runtime_data_path)

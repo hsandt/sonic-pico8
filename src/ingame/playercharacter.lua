@@ -308,6 +308,8 @@ function player_char:update()
   self.anim_spr:update()
 end
 
+--#if ingame
+
 -- update intention based on current input
 function player_char:handle_input()
   if self.control_mode == control_modes.human then
@@ -376,6 +378,7 @@ function player_char:handle_input()
   end
 end
 
+
 function player_char:force_move_right()
   -- force player to move to the right
   self.control_mode = control_modes.puppet
@@ -385,6 +388,7 @@ function player_char:force_move_right()
 end
 
 --#if cheat
+
 function player_char:toggle_debug_motion()
   -- 1 -> 2 (debug)
   -- 2 -> 1 (platformer)
@@ -403,6 +407,11 @@ function player_char:set_motion_mode(val)
     self.debug_velocity = vector.zero()
   end
 end
+
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- update player position

@@ -163,7 +163,10 @@ function stage_intro_state:show_stage_splash_async()
 
   -- splash is over, load ingame cartridge and give control to player
   load('picosonic_ingame.p8')
+
+--[[#pico8
   assert(false, "could not load picosonic_ingame.p8")
+--#pico8]]
 end
 
 return stage_intro_state

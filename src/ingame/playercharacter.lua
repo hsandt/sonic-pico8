@@ -251,28 +251,35 @@ function player_char:set_ground_tile_location(global_tile_loc)
 
 --#if ingame
 
-    -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
-    --  and reversely
-    -- we are now checking loop triggers directly from stage data
-    -- external triggers are different and can be entered airborne, see check_loop_external_triggers
-    local curr_stage_state = flow.curr_state
-    assert(curr_stage_state.type == ':stage')
+--#if busted
+    if flow.curr_state.type == ':ingame' then
+--#endif
+      -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
+      --  and reversely
+      -- we are now checking loop triggers directly from stage data
+      -- external triggers are different and can be entered airborne, see check_loop_external_triggers
+      local curr_stage_state = flow.curr_state
+      assert(curr_stage_state.type == ':stage')
 
-    -- new convention is to check ground location at the end of update_platformer_motion
-    --  like check_spring, because changing state to airborne in the middle of ground motion
-    --  may cause issues
-    -- but loops were added before springs and they keep the character grounded, so we kept
-    --  this behavior here
-    if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
-      -- note that active loop layer may already be 1
-      log("internal trigger detected, set active loop layer: 1", 'loop')
-      self.active_loop_layer = 1
-    elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
-      -- note that active loop layer may already be 2
-      log("internal trigger detected, set active loop layer: 2", 'loop')
-      self.active_loop_layer = 2
+      -- new convention is to check ground location at the end of update_platformer_motion
+      --  like check_spring, because changing state to airborne in the middle of ground motion
+      --  may cause issues
+      -- but loops were added before springs and they keep the character grounded, so we kept
+      --  this behavior here
+      if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
+        -- note that active loop layer may already be 1
+        log("internal trigger detected, set active loop layer: 1", 'loop')
+        self.active_loop_layer = 1
+      elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
+        -- note that active loop layer may already be 2
+        log("internal trigger detected, set active loop layer: 2", 'loop')
+        self.active_loop_layer = 2
+      end
+--#if busted
     end
+--#endif
 
+--(ingame)
 --#endif
   end
 end
@@ -301,7 +308,16 @@ function player_char:update()
 -- in stage_intro cartridge, we want Sonic to stay idle, so no input
 --  but update physics and render as usual
 --#if ingame
-  self:handle_input()
+
+--#if busted
+  if flow.curr_state.type == ':ingame' then
+--#endif
+    self:handle_input()
+--#if busted
+  end
+--#endif
+
+--(ingame)
 --#endif
   self:update_motion()
   self:update_anim()
@@ -420,12 +436,21 @@ function player_char:update_motion()
 
 --#if ingame
 --#if cheat
-  if self.motion_mode == motion_modes.debug then
-    self:update_debug()
-    return
-  end
-  -- else: self.motion_mode == motion_modes.platformer
+
+--#if busted
+  if flow.curr_state.type == ':ingame' then
 --#endif
+    if self.motion_mode == motion_modes.debug then
+      self:update_debug()
+      return
+    end
+--#if busted
+  end
+--#endif
+
+--(ingame)
+--#endif
+--(cheat)
 --#endif
 
   self:update_platformer_motion()
@@ -588,17 +613,25 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
 --#if ingame
 
-    -- we now check for ignored tiles:
-    --  a. ramps just after launching
-    --  b. loops on inactive layer from PC's point-of-view
-    --  c. one-way platforms unless we check collision downward
-    if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
-        pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
-        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) or
-        is_oneway and collision_check_quadrant ~= directions.down then
-      ignore_tile = true
-    end
+--#if busted
+    if flow.curr_state.type == ':ingame' then
+--#endif
+      -- we now check for ignored tiles:
+      --  a. ramps just after launching
+      --  b. loops on inactive layer from PC's point-of-view
+      --  c. one-way platforms unless we check collision downward
+      if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
+          pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
+          pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) or
+          is_oneway and collision_check_quadrant ~= directions.down then
+        ignore_tile = true
+      end
 
+--#if busted
+    end
+--#endif
+
+--(ingame)
 --#endif
 
     if ignore_tile then
@@ -916,10 +949,19 @@ function player_char:update_platformer_motion()
   end
 
 --#if ingame
-  self:check_spring()
-  self:check_launch_ramp()
-  self:check_emerald()
-  self:check_loop_external_triggers()
+
+--#if busted
+  if flow.curr_state.type == ':ingame' then
+--#endif
+    self:check_spring()
+    self:check_launch_ramp()
+    self:check_emerald()
+    self:check_loop_external_triggers()
+--#if busted
+  end
+--#endif
+
+--(ingame)
 --#endif
 end
 

@@ -6,34 +6,41 @@ develop
 [![Build Status](https://travis-ci.org/hsandt/sonic-pico8.svg?branch=develop)](https://travis-ci.org/hsandt/sonic-pico8)
 [![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/develop/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
 
-# PICO-Sonic
+# pico-sonic
 
-A partial clone of classic Sonic the Hedgehog games made with PICO-8. It is inspired by the 16-bit games for mechanics, and by a mix of the 8-bit and 16-bit games for graphics and audio.
+*1-stage demake of Sonic 3 made with PICO-8*
 
-This is a fan game distributed for free and is not endorsed by Sega Games Co., Ltd, which owns the Sonic the Hedgehog trademark and retains all copyrights on the original assets.
+*The 8 Pico Emeralds have been scattered on Pico Island! Sonic fe*
 
-It is currently under development.
+![The 8 Pico Emeralds displayed in circle, each color corresponding to a color on the PICO-8 logo](doc/all_emeralds.png?raw=true)
+
+*pico-sonic* is a partial demake of Sonic the Hedgehog 3's Angel Island act 1 made with PICO-8. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette.
+
+The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage.
+
+*pico-sonic* is a fan game distributed for free and is not endorsed by Sega. Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
+
+## Screenshots
+
+![Sonic running toward emerald](doc/picosonic_showcase.png?raw=true)
 
 ## Compatibility
 
 Works with PICO-8 0.2.0i ~ 0.2.1b.
 
-## Screenshots
-
-![Sonic running toward emerald](screenshots/picosonic_showcase.png?raw=true)
-
 ## Features
 
-Version: 5.1
+Version: 5.1+
 
 ### Physics
 
-* Character runs on flat ground, slopes, and through loops. Accelerates, decelerates and brakes.
-* Character falls from steep slopes and ceiling if running speed is too low.
-* Character is blocked by walls when running, walls and ceiling when jumping
-* Character jumps with variable height orthogonally to current ground
+* Character can run on flat ground, slopes, and through loops with acceleration, deceleration and braking
+* Character can roll with reduced friction
+* Character is blocked by walls and ceiling
+* Character falls from steep slopes and ceiling if running speed is too low
+* Character can jump with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
-* Character can roll
+* One-way platforms
 * Spring bounce
 
 ### Rendering
@@ -51,6 +58,8 @@ Version: 5.1
 * Zone splash screen on stage start
 * Ingame HUD: list of picked emeralds shown in top-left corner
 * Result screen on stage clear
+* Retry screen to restart stage keeping or dropping emeralds picked so far
+* Fade-in/out effects using gradual color palette swapping
 
 ### Audio
 
@@ -60,13 +69,17 @@ Version: 5.1
 
 ### Content
 
-One demo stage, a reproduction of the environment of the first part of Angel Island Act 1 (before it is set on fire) almost at scale 1:1, but using tiles of 8x8. It uses a custom map streaming system to allow a bigger map than PICO-8 standard tilemap. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected to make the stage more interesting.
+One demo stage, a reproduction of the environment of the first part of Angel Island Act 1 (before it is set on fire) at a scale close to 1:1 (Sonic is slightly smaller relatively to the environment), but half the resolution horizontally and vertically. It uses a custom map "streaming" system to allow a bigger map than PICO-8 standard tilemap. There are no enemies, hazards, rings nor item boxes. Instead, some enemies have been replaced by static obstacles, and most importantly some items have been replaced by emeralds that can be collected to make the stage more interesting.
 
 Gimmicks:
 
 * Spring
 * Loop
 * Launch ramp
+
+## Controls
+
+TODO
 
 ## Known technical issues
 
@@ -211,7 +224,9 @@ The `npm` folder has its own MIT license because I adapted a script from the `lu
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose.
+Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
+
+Most assets are derivative works of classic Sonic the Hedgehog games. They have been made with a combination or automated conversion and manual work, depending on the asset's complexity. for demonstration purpose.
 
 #### Sprites
 

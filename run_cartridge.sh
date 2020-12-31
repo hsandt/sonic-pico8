@@ -27,7 +27,7 @@ install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
 #  because load() paths may be relative (in our case, inside picosonic/vX.Y)
 #  and first cartridge path is only cd-ed into if somewhere inside carts/
 # this means you must install the built cartridge before running
-run_cmd="pico8 -run ${install_dirpath}/${cartridge_stem}_${cartridge_suffix}.p8 -screenshot_scale 1 -gif_scale 4 -gif_len 60 $@"
+run_cmd="pico8 -run ${install_dirpath}/${cartridge_stem}_${cartridge_suffix}.p8 -screenshot_scale 4 -gif_scale 4 -gif_len 60 $@"
 
 # Support UNIX platforms without gnome-terminal by checking if the command exists
 # If you `reload.sh` the game, the separate terminal allows you to keep watching the program output,

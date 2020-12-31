@@ -200,6 +200,8 @@ function stage_state:reload_runtime_data()
 end
 
 -- never called, we directly load stage_clear cartridge
+-- if you want to optimize stage retry by just re-entering stage_state though,
+--  you will need on_exit for cleanup (assuming you don't patch PICO-8 for fast load)
 --[[
 function stage_state:on_exit()
   -- clear all coroutines (we normally let app handle them, but in this context
@@ -789,11 +791,16 @@ end
 
 function stage_state:restore_picked_emerald_data()
   -- Retrieve and store picked emeralds set information from memory stored in stage_clear
-  --  before retry. If you come directly from the titlemenu, this should do nothing.
+  --  or system pause menu before warp to start / retry (keep emeralds).
+  -- If you come directly from the titlemenu or a retry from zero, this should do nothing.
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  local picked_emerald_byte = peek(0x4300)
+  -- It is stored in 0x5d00, see store_picked_emerald_data below
+  local picked_emerald_byte = peek(0x5d00)
+
+  -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
+  poke(0x5d00, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -811,14 +818,15 @@ function stage_state:restore_picked_emerald_data()
 end
 
 function stage_state:store_picked_emerald_data()
-  -- general memory is a good fit to store data across cartridges,
-  --  although this behavior is undocumented
-  -- we could also use persistent memory, considering we may save emeralds collected by player
+  -- General memory is persistent during a single session, so a good fit to store data
+  --  across cartridges, although this behavior is undocumented.
+  -- However, 0x4300-0x52ff is occupied by runtime regions, and 0x5300-0x5cff
+  --  is occupied non-rotated/rotated walk/run sprite variants, so store 1 byte at 0x5d00.
+  -- We could also use persistent memory, considering we may save emeralds collected by player
   --  on next run (but for now we don't, so player always starts game from zero)
-  -- note that Sonic is not visible so we don't mind overwriting the memory at 0x4300
-  --  which during ingame contains rotated and non-rotated sprite variants
-  -- convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
-  -- there are 8 emeralds so we need 1 byte
+  --
+  -- Convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
+  --  there are 8 emeralds so we need 1 byte
   local picked_emerald_bytes = 0
   for i = 1, 8 do
     if self.picked_emerald_numbers_set[i] then
@@ -826,7 +834,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x4300, picked_emerald_bytes)
+  poke(0x5d00, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()

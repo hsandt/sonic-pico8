@@ -16,7 +16,20 @@ end
 
 function picosonic_app_ingame:on_post_start() -- override (optional)
   picosonic_app_base.on_post_start(self)
-  menuitem(3, "back to title", function() load('picosonic_titlemenu.p8') end)
+
+  menuitem(3, "warp to start", function()
+    assert(flow.curr_state.type == ':stage')
+    flow.curr_state:store_picked_emerald_data()
+    load('picosonic_ingame.p8')
+  end)
+
+  menuitem(4, "retry from zero", function()
+    load('picosonic_ingame.p8')
+  end)
+
+  menuitem(5, "back to title", function()
+    load('picosonic_titlemenu.p8')
+  end)
 end
 
 return picosonic_app_ingame

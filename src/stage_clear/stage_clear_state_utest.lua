@@ -373,9 +373,8 @@ describe('stage_clear_state', function ()
           end)
 
           it('should not crash with a few emeralds', function ()
-            -- emerald bitset: 0b1010 0b0110
-            pico8.poked_addresses[0x4300] = 0xa
-            pico8.poked_addresses[0x4301] = 0x6
+            -- emerald bitset: 0b10100110
+            pico8.poked_addresses[0x5d00] = 0xa6
 
             -- a time long enough to cover other async methods like assess_result_async
             for i = 1, 1000 do
@@ -384,9 +383,8 @@ describe('stage_clear_state', function ()
           end)
 
           it('should not crash with all emeralds', function ()
-            -- emerald bitset: 0b1111 0b1111
-            pico8.poked_addresses[0x4300] = 0xf
-            pico8.poked_addresses[0x4301] = 0xf
+            -- emerald bitset: 0b11111111
+            pico8.poked_addresses[0x5d00] = 0xff
 
             -- a time long enough to cover other async methods like assess_result_async
             for i = 1, 1000 do

@@ -43,13 +43,13 @@ end
 
 function stage_clear_state.retry_from_zero_async()
   -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
-  poke(0x4300, 0)
+  poke(0x5d00, 0)
   stage_clear_state.retry_stage_async()
 end
 
 function stage_clear_state.back_to_titlemenu_async()
   -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
-  poke(0x4300, 0)
+  poke(0x5d00, 0)
 
   -- zigzag fadeout will also give time to player to hear confirm SFX
   flow.curr_state:zigzag_fade_out_async()
@@ -245,7 +245,7 @@ function stage_clear_state:restore_picked_emerald_data()
   --  cartridge was loaded
   -- similar to stage_state:restore_picked_emerald_data, but we don't remove emerald objects
   --  and cache the picked count for assessment
-  local picked_emerald_byte = peek(0x4300)
+  local picked_emerald_byte = peek(0x5d00)
 
   -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
   for i = 1, 8 do

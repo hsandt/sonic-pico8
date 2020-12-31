@@ -67,7 +67,7 @@ describe('stage_state', function ()
         assert.spy(base_stage_state.init).was_called_with(match.ref(state))
       end)
 
-      it('#solo should initialize members', function ()
+      it('should initialize members', function ()
         assert.are_same({
             ':stage',
             1,
@@ -826,11 +826,11 @@ describe('stage_state', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x4300, 73)
+        poke(0x5d00, 73)
       end)
 
       after_each(function ()
-        poke(0x4300, 0)
+        poke(0x5d00, 0)
       end)
 
       it('should read 1 byte in general memory representing picked emeralds bitset', function ()
@@ -849,6 +849,12 @@ describe('stage_state', function ()
         state:restore_picked_emerald_data()
 
         assert.are_same({"dummy2", "dummy3", "dummy5", "dummy6", "dummy8"}, state.emeralds)
+      end)
+
+      it('should clear picked emerald transitional memory', function ()
+        state:restore_picked_emerald_data()
+
+        assert.are_equal(0, peek(0x5d00))
       end)
 
     end)
@@ -1411,7 +1417,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x4300))
+            assert.are_equal(73, peek(0x5d00))
           end)
 
         end)

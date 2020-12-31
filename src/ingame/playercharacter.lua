@@ -252,7 +252,7 @@ function player_char:set_ground_tile_location(global_tile_loc)
 --#if ingame
 
 --#if busted
-    if flow.curr_state.type == ':ingame' then
+    if flow.curr_state.type == ':stage' then
 --#endif
       -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
       --  and reversely
@@ -310,7 +310,7 @@ function player_char:update()
 --#if ingame
 
 --#if busted
-  if flow.curr_state.type == ':ingame' then
+  if flow.curr_state.type == ':stage' then
 --#endif
     self:handle_input()
 --#if busted
@@ -438,7 +438,7 @@ function player_char:update_motion()
 --#if cheat
 
 --#if busted
-  if flow.curr_state.type == ':ingame' then
+  if flow.curr_state.type == ':stage' then
 --#endif
     if self.motion_mode == motion_modes.debug then
       self:update_debug()
@@ -614,7 +614,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 --#if ingame
 
 --#if busted
-    if flow.curr_state.type == ':ingame' then
+    if flow.curr_state.type == ':stage' then
 --#endif
       -- we now check for ignored tiles:
       --  a. ramps just after launching
@@ -951,7 +951,7 @@ function player_char:update_platformer_motion()
 --#if ingame
 
 --#if busted
-  if flow.curr_state.type == ':ingame' then
+  if flow.curr_state.type == ':stage' then
 --#endif
     self:check_spring()
     self:check_launch_ramp()

@@ -11,9 +11,10 @@ __lua__
 
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
 local version = "5.1+"
+local export_folder = "picosonic/v"..version.."_release"
 local cartridge_basename = "picosonic_v"..version.."_release"
 
-cd("picosonic/v"..version.."_release")
+cd(export_folder)
 
 local entry_cartridge = "picosonic_titlemenu.p8"
 
@@ -22,8 +23,8 @@ local additional_cartridges_list = {
   "picosonic_ingame.p8",
   "picosonic_stage_clear.p8",
   "data_bgm1.p8",
-  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8",
-  "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8",
+  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
+  "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
   "data_stage1_runtime.p8"
 }
 
@@ -48,6 +49,7 @@ load(entry_cartridge)
 -- save as png cartridge
 cd(cartridge_basename..".png")
 save(entry_cartridge..".png")
+printh("Exported PNG cartridges in carts/"..export_folder.."/"..cartridge_basename..".png")
 cd("..")
 
 -- concatenate cartridge names with space separator with a very simplified version
@@ -64,8 +66,10 @@ end
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass additional logic and data files as additional cartridges
 export(cartridge_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+printh("Exported binaries in carts/"..export_folder.."/"..cartridge_basename..".bin")
 
 mkdir(cartridge_basename..".web")
 cd(cartridge_basename..".web")
 export(cartridge_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+printh("Exported HTML in carts/"..export_folder.."/"..cartridge_basename..".html")
 cd("..")

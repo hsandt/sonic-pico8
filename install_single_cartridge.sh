@@ -45,6 +45,7 @@ fi
 
 output_path="build/v${version}_${config}"
 cartridge_filepath="${output_path}/${cartridge_stem}_${cartridge_suffix}.p8${suffix}"
+# Linux only
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
 install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
 

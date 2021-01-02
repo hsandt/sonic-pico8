@@ -759,11 +759,10 @@
 			]
 		},
 		{
-			"name": "Game: export cartridge release",
+			"name": "Game: export and patch cartridge release",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./export_cartridge_release.sh"],
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"cmd": ["./export_and_patch_cartridge_release.sh"],
 		},
 		{
 			"name": "Game: test",

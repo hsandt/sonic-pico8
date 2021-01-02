@@ -12,7 +12,7 @@ __lua__
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
 local version = "5.1+"
 local export_folder = "picosonic/v"..version.."_release"
-local cartridge_basename = "picosonic_v"..version.."_release"
+local game_basename = "picosonic_v"..version.."_release"
 
 cd(export_folder)
 
@@ -29,7 +29,7 @@ local additional_cartridges_list = {
 }
 
 -- prepare folder for png cartridges
-mkdir(cartridge_basename..".png")
+mkdir(game_basename..".png")
 
 -- load each additional cartridge to save it as png cartridge
 --  in folder created above
@@ -37,7 +37,7 @@ mkdir(cartridge_basename..".png")
 for cartridge_name in all(additional_cartridges_list) do
   load(cartridge_name)
 
-  cd(cartridge_basename..".png")
+  cd(game_basename..".png")
   save(cartridge_name..".png")
   cd("..")
 end
@@ -47,9 +47,9 @@ end
 load(entry_cartridge)
 
 -- save as png cartridge
-cd(cartridge_basename..".png")
+cd(game_basename..".png")
 save(entry_cartridge..".png")
-printh("Exported PNG cartridges in carts/"..export_folder.."/"..cartridge_basename..".png")
+printh("Exported PNG cartridges in carts/"..export_folder.."/"..game_basename..".png")
 cd("..")
 
 -- concatenate cartridge names with space separator with a very simplified version
@@ -65,11 +65,11 @@ end
 --  with top-left at sprite 160 (run1) => -i 160
 --  on pink (color 14) background => -c 14
 -- and most importantly we pass additional logic and data files as additional cartridges
-export(cartridge_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
-printh("Exported binaries in carts/"..export_folder.."/"..cartridge_basename..".bin")
+export(game_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+printh("Exported binaries in carts/"..export_folder.."/"..game_basename..".bin")
 
-mkdir(cartridge_basename..".web")
-cd(cartridge_basename..".web")
-export(cartridge_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
-printh("Exported HTML in carts/"..export_folder.."/"..cartridge_basename..".html")
+mkdir(game_basename..".web")
+cd(game_basename..".web")
+export(game_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+printh("Exported HTML in carts/"..export_folder.."/"..game_basename..".html")
 cd("..")

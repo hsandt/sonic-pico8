@@ -12,7 +12,7 @@
 
 # png option is legacy for p8tool. It works in theory but in practice,
 #  since p8tool fails to build .p8.png properly, png will be directly
-#  saved from PICO-8 with export_cartridge_release.p8 into PICO-8 carts folder
+#  saved from PICO-8 with export_game_release.p8 into PICO-8 carts folder
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"

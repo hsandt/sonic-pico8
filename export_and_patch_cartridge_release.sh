@@ -15,7 +15,7 @@ bin_folder="$carts_dirpath/$export_folder/${cartridge_basename}.bin"
 # Export via PICO-8 editor
 pico8 -x export_cartridge_release.p8
 
-# Patch the runtime binaries with 4x_token and fast_reload
-patch_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" \"$bin_folder/linux/$cartridge_basename\""
+# Patch the runtime binaries in-place with 4x_token and fast_reload
+patch_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder/linux/$cartridge_basename\""
 echo "> $patch_cmd"
 bash -c "$patch_cmd"

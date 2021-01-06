@@ -14,11 +14,11 @@ develop
 
 ![The 8 Pico Emeralds displayed in circle, each color corresponding to a color on the PICO-8 logo](doc/all_emeralds.png?raw=true)
 
-*pico-sonic* is a partial demake of Sonic the Hedgehog 3's Angel Island act 1 made with PICO-8. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette.
+**pico-sonic** is a partial demake of Sonic the Hedgehog 3 made with PICO-8. It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette.
 
-The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. This is now closer to a technical demo with some tweaks in the stage to make it more interesting to explore.
+The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. Consider it a technical demo with some exploration challenge.
 
-*pico-sonic* is a fan game distributed for free and is not endorsed by Sega. Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
+pico-sonic is a fan game distributed for free and is not endorsed by Sega. Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
 
 ## Screenshots
 
@@ -101,6 +101,14 @@ You can play with keyboard or gamepad with those inputs:
 
 If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad Tool](https://www.generalarcade.com/gamepadtool) and copy-paste the configuration line into sdl_controllers.txt in PICO-8's [configuration directory](https://pico-8.fandom.com/wiki/Configuration). For instance, the Logicool Gamepad F310 had Open PICO-8 menu mapped to Right Trigger, so I remapped it to Start instead.
 
+### Pause menu
+
+In the pause menu (toggled with Enter/Start), if you are in-game, you can select the following options:
+
+* Warp to start: restart stage from beginning keeping collected emeralds
+* Retry from zero: restart stage losing emeralds collected so far
+* Back to title: go back to title menu
+
 ## Known technical issues
 
 * The player cannot control the character until the stage intro is over
@@ -111,6 +119,7 @@ If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad T
 
 * The stage feels a bit empty and too big due to the lack of items, enemies and hazards
 * Scaling is slightly inconsistent as the tilemap is 1:1, but the Sonic sprites are slightly smaller than they should be (rocks in particular look very big)
+* Some ugly sprite / sprite transitions and SFX too far from the original sounds
 
 ## Releases
 

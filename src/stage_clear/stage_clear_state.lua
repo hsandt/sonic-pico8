@@ -367,11 +367,11 @@ function stage_clear_state:zigzag_fade_out_async()
   --  and the fadeout_rect fully covers the screen, ready to be used as background
   ui_animation.move_drawables_on_coord_async("x", {fadeout_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
-  -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden
-  -- no need to clear result_show_emerald_set_by_number as we'll set result_show_emerald_set_by_number
-  --  again in show_retry_screen_async to show missing emeralds
+  -- at the end of the zigzag fade-out, clear the emerald assessment widgets which are now completely hidden
+  -- also hide the emeralds until we show them again (but it will be the missed ones)
   -- no need to preserve fadeout_rect either because in phase 2, we cls() on render start anyway
   self.result_overlay:clear_drawables()
+  clear_table(self.result_show_emerald_set_by_number)
 end
 
 function stage_clear_state:show_retry_screen_async()

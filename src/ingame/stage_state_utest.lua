@@ -78,7 +78,6 @@ describe('stage_state', function ()
             {},
             {},
             {},
-            {},
             nil,
             -- itest only
             true,
@@ -93,7 +92,6 @@ describe('stage_state', function ()
             state.emeralds,
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
-            state.palm_tree_leaves_core_global_locations,
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,

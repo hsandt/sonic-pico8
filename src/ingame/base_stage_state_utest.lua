@@ -23,9 +23,11 @@ describe('base_base_stage_state', function ()
       local state = base_stage_state()
       assert.are_same({
           camera_class(),
+          {},
         },
         {
           state.camera,
+          state.palm_tree_leaves_core_global_locations,
         })
     end)
 

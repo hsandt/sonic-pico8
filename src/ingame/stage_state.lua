@@ -38,10 +38,6 @@ function stage_state:init()
   -- list of emerald pick fxs playing (currently no pooling, just add and delete)
   self.emerald_pick_fxs = {}
 
-  -- palm trees: list of global locations of palm tree leaves core sprites detected
-  -- used to draw the palm tree extension sprites on foreground
-  self.palm_tree_leaves_core_global_locations = {}
-
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
   self.enable_spawn_objects = true

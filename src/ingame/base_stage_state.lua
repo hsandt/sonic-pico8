@@ -12,6 +12,10 @@ function base_stage_state:init()
   -- create camera, but wait for player character to spawn before assigning it a target
   -- see on_enter for how we warp it to a good place first
   self.camera = camera_class()
+
+  -- palm trees: list of global locations of palm tree leaves core sprites detected
+  -- used to draw the palm tree extension sprites on foreground
+  self.palm_tree_leaves_core_global_locations = {}
 end
 
 
@@ -156,6 +160,9 @@ function base_stage_state:render_environment_foreground()
         sprite_masks.midground)
   end
 
+  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, but we could imagine
+  --  that intro will show some future object waterfall later, so we don't strip object-related code
+  --  from #stage_intro from now
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do
     -- top has pivot at its bottom-left = the top-left of the core

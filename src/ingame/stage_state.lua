@@ -782,7 +782,8 @@ function stage_state:on_reached_goal_async()
   self:store_picked_emerald_data()
 
   -- finally advance to stage clear sequence on new cartridge
-  load('picosonic_stage_clear.p8')
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_stage_clear')
 end
 
 function stage_state:restore_picked_emerald_data()

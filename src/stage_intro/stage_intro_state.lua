@@ -162,10 +162,11 @@ function stage_intro_state:show_stage_splash_async()
   self.overlay:remove_drawable("zone")
 
   -- splash is over, load ingame cartridge and give control to player
-  load('picosonic_ingame.p8')
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_ingame')
 
 --[[#pico8
-  assert(false, "could not load picosonic_ingame.p8")
+  assert(false, "could not load picosonic_ingame")
 --#pico8]]
 end
 

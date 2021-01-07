@@ -20,15 +20,18 @@ function picosonic_app_ingame:on_post_start() -- override (optional)
   menuitem(3, "warp to start", function()
     assert(flow.curr_state.type == ':stage')
     flow.curr_state:store_picked_emerald_data()
-    load('picosonic_ingame.p8')
+    -- prefer passing basename for compatibility with .p8.png
+    load('picosonic_ingame')
   end)
 
   menuitem(4, "retry from zero", function()
-    load('picosonic_ingame.p8')
+    -- prefer passing basename for compatibility with .p8.png
+    load('picosonic_ingame')
   end)
 
   menuitem(5, "back to title", function()
-    load('picosonic_titlemenu.p8')
+    -- prefer passing basename for compatibility with .p8.png
+    load('picosonic_titlemenu')
   end)
 end
 

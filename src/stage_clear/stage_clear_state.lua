@@ -38,7 +38,8 @@ local retry_menu_item_params = {
 function stage_clear_state.retry_stage_async()
   -- zigzag fadeout will also give time to player to hear confirm SFX
   flow.curr_state:zigzag_fade_out_async()
-  load('picosonic_ingame.p8')
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_ingame')
 end
 
 function stage_clear_state.retry_from_zero_async()
@@ -53,7 +54,8 @@ function stage_clear_state.back_to_titlemenu_async()
 
   -- zigzag fadeout will also give time to player to hear confirm SFX
   flow.curr_state:zigzag_fade_out_async()
-  load('picosonic_titlemenu.p8')
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_titlemenu')
 end
 
 function stage_clear_state:init()

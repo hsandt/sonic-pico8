@@ -43,7 +43,7 @@ describe('picosonic_app_ingame', function ()
       assert.spy(picosonic_app_base.on_post_start).was_called_with(match.ref(app))
     end)
 
-    it('should load cartridge: picosonic_titlemenu.p8', function ()
+    it('should load cartridge: picosonic_titlemenu', function ()
       app:on_post_start()
       assert.spy(menuitem).was_called(3)
       -- no reference to lambda passed to menuitem, so don't test was_called_with

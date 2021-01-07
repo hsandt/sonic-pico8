@@ -23,7 +23,7 @@ local additional_cartridges_list = {
   "picosonic_ingame.p8",
   "picosonic_stage_clear.p8",
   "data_bgm1.p8",
-  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
+  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_46.p8",
   "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
   "data_stage1_runtime.p8"
 }
@@ -61,16 +61,17 @@ end
 
 -- exports are done via EXPORT, and can use a custom icon
 --  instead of the .p8.png label
--- icon is a 16x16 square => -s 2 tiles wide
---  with top-left at sprite 160 (run1) => -i 160
---  on pink (color 14) background => -c 14
+-- icon is stored in builtin_data_titlemenu.p8,
+--  as a 16x16 square                      => -s 2 tiles wide
+--  with top-left cell at sprite 46 (run1) => -i 46
+--  on pink (color 14) background          => -c 14
 -- and most importantly we pass additional logic and data files as additional cartridges
-export(game_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+export(game_basename..".bin "..additional_cartridges_string.." -i 46 -s 2 -c 14")
 printh("Exported binaries in carts/"..export_folder.."/"..game_basename..".bin")
 
 mkdir(game_basename.."_web")
 -- Do not cd into game_basename.."_web" because we want the additional cartridges to be accessible
 --  in current path. Instead, export directly into the _web folder
-export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 46 -s 2 -c 14")
 printh("Exported HTML in carts/"..export_folder.."/"..game_basename..".html")
 cd("..")

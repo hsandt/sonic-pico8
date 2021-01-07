@@ -14,7 +14,7 @@ develop
 
 ![The 8 Pico Emeralds displayed in circle, each color corresponding to a color on the PICO-8 logo](doc/all_emeralds.png?raw=true)
 
-**pico-sonic** is a partial demake of Sonic the Hedgehog 3 made with PICO-8. It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette.
+**pico-sonic** is a partial demake of Sonic the Hedgehog 3 made with PICO-8. It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette, and the GBA titles which have more clear-cut graphics.
 
 The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. Consider it a technical demo with some exploration challenge.
 
@@ -232,11 +232,29 @@ Alternatively, to edit the spritesheet in your favorite editor:
 * [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide)
 * [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
 
-## Tools
+## Tools and process
 
 * Tilemap and audio editing made with PICO-8
 * Sprites made with Aseprite
 * Code written with Sublime Text
+
+I used my own PICO-8 framework, [pico-boots](https://github.com/hsandt/pico-boots).
+
+#### Audio
+
+For the BGMs, I used 8-bit remixes of Sonic 3 & Knuckles by danooct1 with the author's permission. I had to go from 8 channels to only 3 or 4 (PICO-8 has 4 channels but during in-game I need to keep one channel for SFX) by picking the notes I considered the most important.
+
+Then I exported the modified FamiTracker Music (FTM) files to MIDI, and converted each MIDI channel to PICO-8 format using [midi2pico](https://github.com/gamax92/midi2pico). Finally, I merged the channels manually and reworked some notes to make them sound better in PICO-8.
+
+For the SFX, I listened to the original ones, sometimes used Audacity to inspect wave forms, and tried to reproduce them from scratch with PICO-8's sound editor.
+
+## Credits
+
+* Original games: Sonic Team
+* 8-bit remixes of Sonic 3 BGMs: danooct1
+* Programming: Leyn (komehara)
+* Sprite adaptation: Leyn
+* SFX/jingle adaptation, BGM adjustments: Leyn
 
 ## License
 
@@ -257,13 +275,3 @@ Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the 
 Most assets are derivative works of classic Sonic the Hedgehog games. They have been made with a combination or automated conversion and manual work (depending on the asset's complexity).
 
 Because of this, I only consider original assets and the manual work of adaptation to be under CC BY NC 4.0.
-
-#### Sprites
-
-I drew most sprites based on the Master System/Game Gear, Mega Drive and GBA games.
-
-#### Audio
-
-For the BGMs, I used 8-bit remixes of Sonic 3 & Knuckles by danooct1 with the author's permission. I had to go from 8 channels to only 3 or 4 (PICO-8 has 4 channels but during in-game I need to keep one channel for SFX) by picking the notes I considered the most important. Then I exported the modified FamiTracker Music (FTM) files to MIDI, and converted each MIDI channel to PICO-8 format using [midi2pico](https://github.com/gamax92/midi2pico). Finally, I merged the channels manually and reworked some notes to make them sound better in PICO-8.
-
-For the SFX, I listened to the original ones and tried to reproduce them manually with PICO-8's sound editor.

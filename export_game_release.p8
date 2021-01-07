@@ -29,7 +29,7 @@ local additional_cartridges_list = {
 }
 
 -- prepare folder for png cartridges
-mkdir(game_basename..".png")
+mkdir(game_basename.."_png_cartridges")
 
 -- load each additional cartridge to save it as png cartridge
 --  in folder created above
@@ -37,7 +37,7 @@ mkdir(game_basename..".png")
 for cartridge_name in all(additional_cartridges_list) do
   load(cartridge_name)
 
-  cd(game_basename..".png")
+  cd(game_basename.."_png_cartridges")
   save(cartridge_name..".png")
   cd("..")
 end
@@ -46,10 +46,10 @@ end
 --  just after
 load(entry_cartridge)
 
--- save as png cartridge
-cd(game_basename..".png")
+-- save as png cartridge as we only did it for other cartridges earlier
+cd(game_basename.."_png_cartridges")
 save(entry_cartridge..".png")
-printh("Exported PNG cartridges in carts/"..export_folder.."/"..game_basename..".png")
+printh("Exported PNG cartridges in carts/"..export_folder.."/"..game_basename.."_png_cartridges")
 cd("..")
 
 -- concatenate cartridge names with space separator with a very simplified version

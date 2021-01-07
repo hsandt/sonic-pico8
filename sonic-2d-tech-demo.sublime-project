@@ -759,6 +759,36 @@
 			]
 		},
 		{
+			"name": "Game: install all cartridges (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_all_cartridges.sh debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_all_cartridges.sh debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_all_cartridges.sh cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_all_cartridges.sh release"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_all_cartridges.sh cheat png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_all_cartridges.sh release png"]
+				}
+			]
+		},
+		{
 			"name": "Game: export and patch cartridge release",
 			"working_dir": "${project_path}",
 			"shell": true,

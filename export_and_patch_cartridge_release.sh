@@ -15,7 +15,7 @@ version=`cat "$data_path/version.txt"`
 export_folder="$carts_dirpath/picosonic/v${version}_release"
 cartridge_basename="picosonic_v${version}_release"
 rel_bin_folder="${cartridge_basename}.bin"
-rel_web_folder="${cartridge_basename}.web"
+rel_web_folder="${cartridge_basename}_web"
 
 # Cleanup bin folder as a bug in PICO-8 makes it accumulate files in .zip for each export (even homonymous files!)
 # and we want to remove any extraneous files too
@@ -41,7 +41,7 @@ pushd "${export_folder}"
   zip -r "${cartridge_basename}_png_cartridges.zip" "${cartridge_basename}_png_cartridges"
 
   # HTML archive
-  zip -r "${cartridge_basename}.web.zip" "${cartridge_basename}.web"
+  zip -r "${cartridge_basename}_web.zip" "${cartridge_basename}_web"
 
   # Bin archives
   pushd "${rel_bin_folder}"

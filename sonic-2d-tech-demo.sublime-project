@@ -795,6 +795,12 @@
 			"cmd": ["./export_and_patch_cartridge_release.sh"],
 		},
 		{
+			"name": "Game: upload cartridge release",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./upload_cartridge_release.sh"],
+		},
+		{
 			"name": "Game: test",
 			"working_dir": "${project_path}",
 			"shell": true,

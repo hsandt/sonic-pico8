@@ -8,7 +8,7 @@ language: python # Can use any language here, but if it's not 'python'
 python: "3.6"
 
 env:
-  - LUA_VERSION=5.3 BUILD_VERSION=5.0 ENABLE_RENDER=1
+  - LUA_VERSION=5.3 BUILD_VERSION=`cat data/version.txt` ENABLE_RENDER=1
 
 cache:
   directories:

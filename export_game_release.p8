@@ -69,7 +69,8 @@ export(game_basename..".bin "..additional_cartridges_string.." -i 160 -s 2 -c 14
 printh("Exported binaries in carts/"..export_folder.."/"..game_basename..".bin")
 
 mkdir(game_basename..".web")
-cd(game_basename..".web")
-export(game_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
+-- Do not cd into game_basename..".web" because we want the additional cartridges to be accessible
+--  in current path. Instead, export directly into the .web folder
+export(game_basename..".web/"..game_basename..".html "..additional_cartridges_string.." -i 160 -s 2 -c 14")
 printh("Exported HTML in carts/"..export_folder.."/"..game_basename..".html")
 cd("..")

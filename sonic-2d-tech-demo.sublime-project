@@ -1149,6 +1149,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Postbuild: test patch_pico8_js",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_patch_pico8_js"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Python (legacy): test replace_strings",
 			"working_dir": "${project_path}",
 			"shell": true,

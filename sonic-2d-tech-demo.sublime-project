@@ -801,6 +801,12 @@
 			"cmd": ["./upload_cartridge_release.sh"],
 		},
 		{
+			"name": "Game: build full game release, export and patch it, upload it",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_all_cartridges.sh release && ./export_and_patch_cartridge_release.sh && ./upload_cartridge_release.sh"],
+		},
+		{
 			"name": "Game: test",
 			"working_dir": "${project_path}",
 			"shell": true,

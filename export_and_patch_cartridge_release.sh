@@ -17,8 +17,13 @@ carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
 version=`cat "$data_path/version.txt"`
 export_folder="$carts_dirpath/picosonic/v${version}_release"
 cartridge_basename="picosonic_v${version}_release"
+rel_png_folder="${cartridge_basename}_png_cartridges"
 rel_bin_folder="${cartridge_basename}.bin"
 rel_web_folder="${cartridge_basename}_web"
+
+# Cleanup png folder as PICO-8 will prompt before overwriting an existing cartridge with the same name,
+# and we cannot reply "y" to prompt in headless script
+rm -rf "${export_folder}/${rel_png_folder}"
 
 # Cleanup bin folder as a bug in PICO-8 makes it accumulate files in .zip for each export (even homonymous files!)
 # and we want to remove any extraneous files too
@@ -47,7 +52,7 @@ pushd "${export_folder}"
 
   # PNG cartridges archive (delete existing one to be safe)
   rm -f "${cartridge_basename}_png_cartridges.zip"
-  zip -r "${cartridge_basename}_png_cartridges.zip" "${cartridge_basename}_png_cartridges"
+  zip -r "${cartridge_basename}_png_cartridges.zip" "$rel_png_folder"
 
   # HTML archive (delete existing one to be safe)
   rm -f "${cartridge_basename}_web.zip"

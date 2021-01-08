@@ -349,7 +349,7 @@ function player_char:handle_input()
     --  this caused delayed lock such as jumping out of lock situation to escape but still being locked for
     --  a moment on ground, or falling off a ceiling and still not being able to move freely for a moment
     -- this contributes to the feel of lack of control after falling off and may be desirable,
-    --  but in pico-sonic we prefer decrementing timer when airborne, so after a long fall or jump you
+    --  but in pico sonic we prefer decrementing timer when airborne, so after a long fall or jump you
     --  can immediately get control back
     -- to restore original game behavior, uncomment the line below and comment out the 2nd line below
     -- if self.horizontal_control_lock_timer > 0 and self:is_grounded() then

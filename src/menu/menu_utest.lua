@@ -245,7 +245,7 @@ describe('menu', function ()
         end)
 
         it('should increase anim_time and loop around period', function ()
-          -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway,
+          -- no vertical arrow graphics in pico sonic, and no paginated menu for now anyway,
           -- so replaced visual_data.menu_arrow_anim_period with some number 2
           m.anim_time = 2 - 1/120
 
@@ -267,7 +267,7 @@ describe('menu', function ()
 
         it('should set arrow extra y to 1 on second half', function ()
           -- impossible situation, but simple enough to check that extra y is reset
-          -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway,
+          -- no vertical arrow graphics in pico sonic, and no paginated menu for now anyway,
           -- so replaced visual_data.menu_arrow_anim_period with some number 2
           m.anim_time = 2 / 2
           m.prev_page_arrow_extra_y = 0
@@ -647,7 +647,7 @@ describe('menu', function ()
           s.was_called_with("> extra3", 60, 48, alignments.left, colors.red)
         end)
 
-        -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway,
+        -- no vertical arrow graphics in pico sonic, and no paginated menu for now anyway,
         -- so not drawing page arrows right now
         --[[
 

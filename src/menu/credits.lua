@@ -60,7 +60,7 @@ function credits:draw_credits_text()
   -- top
   local y = 2
 
-  text_helper.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
+  text_helper.print_aligned("pico sonic - credits", 64, y, alignments.horizontal_center, text_color)
   y = y + line_dy + paragraph_margin + 2
 
   api.print("sonic team", margin_x, y, text_color)

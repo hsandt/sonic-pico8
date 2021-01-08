@@ -60,8 +60,8 @@ logging.logger.active_categories = {
   -- ['log'] = nil,
   -- ['ui'] = nil,
   ['frame'] = true,
-  ['trace'] = true,
-  ['trace2'] = true,
+  -- ['trace'] = true,
+  -- ['trace2'] = true,
   ['spring'] = true,
 
   -- game

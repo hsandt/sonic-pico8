@@ -23,7 +23,7 @@ local additional_cartridges_list = {
   "picosonic_ingame.p8",
   "picosonic_stage_clear.p8",
   "data_bgm1.p8",
-  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_46.p8",
+  "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
   "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
   "data_stage1_runtime.p8"
 }

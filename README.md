@@ -114,6 +114,7 @@ In the pause menu (toggled with Enter/Start), if you are in-game, you can select
 * The player cannot control the character until the stage intro is over
 * The game slows down in some areas, reaching 30 FPS instead of 60 FPS
 * The game pauses to switch to another cartridge, esp. at the end of the stage intro (only memory reload has been patched on PICO-8 to be instant)
+* Web version: high-pitched sounds in BGM do not convey the same as in desktop/cartridge versions
 
 ## Known design issues
 

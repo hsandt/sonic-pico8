@@ -22,12 +22,13 @@ rel_bin_folder="${cartridge_basename}.bin"
 rel_web_folder="${cartridge_basename}_web"
 
 # Cleanup png folder as PICO-8 will prompt before overwriting an existing cartridge with the same name,
-# and we cannot reply "y" to prompt in headless script
-rm -rf "${export_folder}/${rel_png_folder}"
-
+# and we cannot reply "y" to prompt in headless script (and png tends to keep old label when overwritten)
+# Note that we prefer deleting folder content than folder, to avoid file browser/terminal sometimes
+# continuing to show old folder in system bin. Make sure to place blob * outside ""
+rm -rf "${export_folder}/${rel_png_folder}/"*
 # Cleanup bin folder as a bug in PICO-8 makes it accumulate files in .zip for each export (even homonymous files!)
 # and we want to remove any extraneous files too
-rm -rf "${export_folder}/${rel_bin_folder}"
+rm -rf "${export_folder}/${rel_bin_folder}/"*
 
 # Create a variant of each non-data cartridge for PNG export, that reloads .p8.png instead of .p8
 adapt_for_png_cmd="python3.6 \"$picoboots_scripts_path/adapt_for_png.py\" "${export_folder}/picosonic_*.p8

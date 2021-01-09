@@ -124,7 +124,7 @@ then
 	exit 1
 else
 	echo "Build succeeded: $OUTPUT_FILEPATH"
-    # Clean intermediate folder now. If the build failed, the intermediate folder will remain for debugging.
-    # rm -rf "intermediate/${config}"
+    # Clean intermediate folder content now. If the build failed, the intermediate folder will remain for debugging.
+    # rm -rf "intermediate/${config}/"*
 	exit 0
 fi

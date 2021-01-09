@@ -115,7 +115,7 @@ function stage_state:reload_runtime_data()
   --  containing all the sprites of interest, then copy-paste the __gff__ lines into the builtin .p8 cartridge
   -- Later, you can move all mask tiles to another spritesheet to reload
   --  on start instead.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
   reload(0x0, 0x0, 0x600, runtime_data_path)
 
   -- the runtime spritesheet also contains 45-degree rotated sprite variants
@@ -968,7 +968,7 @@ function stage_state:reload_bgm()
   --  => 40 * 4 = 160 = 0xa0 bytes
   -- the bgm should start at pattern 0 on both source and
   --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
+  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..cartridge_ext)
 
   -- we also need the music sfx referenced by the patterns
   self:reload_bgm_tracks()
@@ -981,7 +981,7 @@ function stage_state:reload_bgm_tracks()
   --  => 50 * 68 = 3400 = 0xd48 bytes
   -- the bgm sfx should start at index 0 on both source and
   --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..cartridge_ext)
 end
 
 function stage_state:play_bgm()

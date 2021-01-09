@@ -43,7 +43,7 @@ function stage_intro_state:on_enter()
   --  tile_collision_data.from_raw_tile_collision_data in outer scope, so early enough to be before
   --  loading runtime spritesheet...). Or we could have a custom intro cinematics that doesn't use physics
   --  at all and so no tile collision data is needed.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
   reload(0x0, 0x0, 0x600, runtime_data_path)
 
   self.camera:setup_for_stage(self.curr_stage_data)

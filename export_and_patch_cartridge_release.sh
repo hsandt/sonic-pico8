@@ -29,14 +29,37 @@ rm -rf "${export_folder}/${rel_png_folder}"
 # and we want to remove any extraneous files too
 rm -rf "${export_folder}/${rel_bin_folder}"
 
+# Create a variant of each non-data cartridge for PNG export, that reloads .p8.png instead of .p8
+adapt_for_png_cmd="python3.6 \"$picoboots_scripts_path/adapt_for_png.py\" "${export_folder}/picosonic_*.p8
+echo "> $adapt_for_png_cmd"
+bash -c "$adapt_for_png_cmd"
+
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "Adapt for PNG step failed, STOP."
+  exit 1
+fi
+
 # Export via PICO-8 editor: PNG cartridges, binaries, HTML
 pico8 -x "$game_scripts_path/export_game_release.p8"
+
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "Export game release via PICO-8 step failed, STOP."
+  exit 1
+fi
 
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
 bin_folder="${export_folder}/${rel_bin_folder}"
 patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"
+
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "Patch bin step failed, STOP."
+  exit 1
+fi
 
 # Rename HTML file to index.html for direct play-in-browser
 html_filepath="${export_folder}/${rel_web_folder}/${cartridge_basename}.html"
@@ -47,6 +70,12 @@ js_filepath="${export_folder}/${rel_web_folder}/${cartridge_basename}.js"
 patch_js_cmd="python3.6 \"$picoboots_scripts_path/patch_pico8_js.py\" \"$js_filepath\" \"$js_filepath\""
 echo "> $patch_js_cmd"
 bash -c "$patch_js_cmd"
+
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "Patch JS step failed, STOP."
+  exit 1
+fi
 
 pushd "${export_folder}"
 

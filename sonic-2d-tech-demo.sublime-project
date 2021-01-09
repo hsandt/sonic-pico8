@@ -1191,6 +1191,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Postbuild: test adapt_for_png",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_adapt_for_png"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: Postbuild: test patch_pico8_js",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,

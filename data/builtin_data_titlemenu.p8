@@ -1,9 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
+-- picosonic builtin data: titlemenu
+-- by leyn
 
--- this is the built-in data cartridge
--- for the titlemenu cartridge
+-- this section will be overwritten during build
 __gfx__
 00000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee5eeeeeee77778eeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeeeeee
 00000000ee7eeeeeeeeee7eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee575eeeee7777788eeeeeeeeee272eeeeee2eeeeeeeee272eeeeee2ee
@@ -192,4 +193,3 @@ __music__
 00 0a0f1318
 00 0b0e1419
 04 0c10151a
-

@@ -1,8 +1,10 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
--- this is the built-in data cartridge
--- for the ingame cartridge
+-- picosonic builtin data: stage_intro
+-- by leyn
+
+-- this section will be overwritten during build
 
 -- the collision masks at the top will be overwritten by runtime sprites
 --  via reload
@@ -278,4 +280,3 @@ __music__
 00 41424344
 00 41424344
 04 39777879
-

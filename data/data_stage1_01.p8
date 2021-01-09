@@ -1,8 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
--- this is a data cartridge which only contains map region data for:
--- Angel Island (0, 1)
+-- picosonic data: pico island
+-- region (0, 1) by leyn
 
 -- we only need __map__, but we kept __gfx__ only to visualize tiles when editing
 -- (and __gff__ because it's not too big)

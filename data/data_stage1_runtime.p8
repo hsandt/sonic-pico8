@@ -1,7 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
-
+-- picosonic data:
+-- runtime spritesheet by leyn
 __gfx__
 00000000eeeeebbbeeeeeeeeeeeeeeeeeeed65eeeeeeeeeeeeeeeccccced65eeeeeeeeeee5eeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeeeeee
 00000000eeeebbbeeeeeeeeeed66666666666666666666deed66cccccccc6666666666de575eeeeeee7eeeeeeeeee7eee272eeeeee2eeeeeeeee272eeeeee2ee

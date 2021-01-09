@@ -125,7 +125,7 @@ symbols+="$cartridge_suffix"
   "$game_src_path" main_${cartridge_suffix}.lua       \
   -d "$data_path/builtin_data_${cartridge_suffix}.p8" \
   -M "$data_path/metadata.p8"                         \
-  -a "$author" -t "$title"                            \
+  -a "$author" -t "$title ($cartridge_suffix)"        \
   -p "$build_output_path"                             \
   -o "${cartridge_stem}_${cartridge_suffix}"          \
   -c "$config"                                        \

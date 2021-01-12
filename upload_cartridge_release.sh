@@ -53,11 +53,16 @@ pushd "${export_folder}"
 
   # Travis builds and releases .p8 cartridges packed in .zip, so focus on other platforms/formats
   # Upload web first, it matters for the initial upload as first one will be considered as web version
-  # when using embedded web game on itch.io
-  butler_push_game_for_platform web "${cartridge_basename}_web.zip"
-  butler_push_game_for_platform linux "${rel_bin_folder}/${cartridge_basename}_linux.zip"
-  butler_push_game_for_platform osx "${rel_bin_folder}/${cartridge_basename}_osx.zip"
-  butler_push_game_for_platform windows "${rel_bin_folder}/${cartridge_basename}_windows.zip"
-  butler_push_game_for_platform png "${cartridge_basename}_png_cartridges.zip"
+  #  when using embedded web game on itch.io
+  # Note that we do *not* want the folder containing game name + version inside the .zip
+  #  as itch.io already generates a top-level folder inside the distributed zip, and butler
+  #  is more efficient when distributable structure is stable (while version number changes).
+  # So we don't upload our custom .zip but the folders directly (OSX ist just an .app folder
+  #  so we can upload either).
+  butler_push_game_for_platform web "${cartridge_basename}_web"
+  butler_push_game_for_platform linux "${rel_bin_folder}/${cartridge_basename}_linux"
+  butler_push_game_for_platform osx "${rel_bin_folder}/${cartridge_basename}_osx"
+  butler_push_game_for_platform windows "${rel_bin_folder}/${cartridge_basename}_windows"
+  butler_push_game_for_platform png "${cartridge_basename}_png_cartridges"
 
 popd

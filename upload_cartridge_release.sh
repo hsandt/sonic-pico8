@@ -9,6 +9,8 @@
 # Dependencies:
 # - butler
 
+# You also need to be signed in on itch.io as a collaborator on this project!
+
 # Configuration: paths
 data_path="$(dirname "$0")/data"
 # Linux only

@@ -30,7 +30,7 @@ Works with PICO-8 0.2.0i ~ 0.2.1b.
 
 ## Features
 
-Version: 5.1+
+Version: 5.2
 
 ### Physics
 

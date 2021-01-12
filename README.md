@@ -69,6 +69,7 @@ Version: 5.2
 
 ### Notable features missing
 
+* Timer
 * Crouching and looking up
 * Spin dash
 * When you collect all emeralds...

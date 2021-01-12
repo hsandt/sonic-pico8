@@ -10,7 +10,7 @@ __lua__
 -- Paths are relative to PICO-8 carts directory.
 
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "5.1+"
+local version = "5.2"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"

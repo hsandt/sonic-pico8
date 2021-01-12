@@ -6,17 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [5.2] - 2021-01-12
 ### Added
+- Titlemenu: added version number in top-right corner
+- Stage intro: stage fades in with gradual color darkness (palette swap)
+- System: Added menu entries to retry with and without emeralds
 - Physics: added one-way platform system. Added one-way platform tiles and integrated them in stage
 - Stage clear: added retry screen with missed emeralds and options to retry with or without emerald, or go back to title menu
 - Stage clear: retry screen fades in and out with a zigzag swipe animation and/or gradual color darkness (palette swap)
-- Stage intro: stage fades in with gradual color darkness (palette swap)
-- Titlemenu: added version number in top-right corner
+- Export: improved export script to patch standalone and web automatically (supports > 8192 tokens, no lag on reload())
+- Export: always load cartridge via basename (without extension) and modify loading path in PNG cartridges (".p8.png") to fix load/reload
+- Export: generate .zip archives after export
+- Upload: added upload script to immediately upload to itch.io via butler
 
 ### Changed
+- Titlemenu: fixed top of 'O' in "SONIC" in title logo
+- Stage intro: extracted stage intro into its own cartridge (so ingame cartridge has fewer characters ad can be exported). This introduced a small loading lag after stage intro, and player character cannot move during intro
 - Sprite: fixed top row of some Sonic rotated run sprites missing
 - Sprite: reduced emerald size by 2px in both directions, adjusted HUD
 - Stage clear: removed emerald cross, arranged emerald position to match retry screen
+- Export: fixed export scripts to take all stage regions into account
+- Export: fixed app icon, changed label to show title screen (without menu)
 
 ## [5.1] - 2020-12-17
 ### Changed
@@ -214,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.1...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.2...HEAD
+[5.2]: https://github.com/hsandt/sonic-pico8/compare/v5.1...v5.2
 [5.1]: https://github.com/hsandt/sonic-pico8/compare/v5.0...v5.1
 [5.0]: https://github.com/hsandt/sonic-pico8/compare/v4.2...v5.0
 [4.2]: https://github.com/hsandt/sonic-pico8/compare/v4.1...v4.2

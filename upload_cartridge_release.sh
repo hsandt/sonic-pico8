@@ -52,10 +52,12 @@ function butler_push_game_for_platform {
 pushd "${export_folder}"
 
   # Travis builds and releases .p8 cartridges packed in .zip, so focus on other platforms/formats
+  # Upload web first, it matters for the initial upload as first one will be considered as web version
+  # when using embedded web game on itch.io
+  butler_push_game_for_platform web "${cartridge_basename}_web.zip"
   butler_push_game_for_platform linux "${rel_bin_folder}/${cartridge_basename}_linux.zip"
   butler_push_game_for_platform osx "${rel_bin_folder}/${cartridge_basename}_osx.zip"
   butler_push_game_for_platform windows "${rel_bin_folder}/${cartridge_basename}_windows.zip"
-  butler_push_game_for_platform web "${cartridge_basename}_web.zip"
   butler_push_game_for_platform png "${cartridge_basename}_png_cartridges.zip"
 
 popd

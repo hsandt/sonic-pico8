@@ -251,11 +251,9 @@ For the SFX, I listened to the original ones, sometimes used Audacity to inspect
 
 ## Credits
 
-* Original games: Sonic Team
-* 8-bit remixes of Sonic 3 BGMs: danooct1
-* Programming: Leyn (komehara)
-* Sprite adaptation: Leyn
-* SFX/jingle adaptation, BGM adjustments: Leyn
+* Sonic Team - Original games
+* danooct1 - 8-bit remixes of Sonic 3 BGMs
+* Leyn (komehara) - Programming, Sprite/SFX/jingle adaptation, BGM adjustments
 
 ## License
 

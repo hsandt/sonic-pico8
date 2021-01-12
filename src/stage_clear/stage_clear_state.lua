@@ -377,17 +377,26 @@ function stage_clear_state:zigzag_fade_out_async()
 end
 
 function stage_clear_state:show_retry_screen_async()
-  -- at the end of the zigzag, clear the emerald assessment widgets which are now completely hidden,
-  -- but keep the full black screen rectangle as background for retry screen
-  local try_again_label = label("try again?", vector(45, 30), colors.white)
-  self.result_overlay:add_drawable("try again", try_again_label)
+
+  local has_missed_any_emeralds = false
 
   -- display missed emeralds
   for num = 1, 8 do
     -- not nil is true, and not true is false, so we are effectively filling the set,
     --  just setting false for picked emeralds instead of the usual nil, but works the same
-    self.result_show_emerald_set_by_number[num] = not self.picked_emerald_numbers_set[num]
+    local has_missed_this_emerald = not self.picked_emerald_numbers_set[num]
+    self.result_show_emerald_set_by_number[num] = has_missed_this_emerald
+    has_missed_any_emeralds = has_missed_any_emeralds or has_missed_this_emerald
   end
+
+  -- change text if player has got all emeralds
+  local result_label
+  if has_missed_any_emeralds then
+    result_label = label("try again?", vector(45, 30), colors.white)
+  else
+    result_label = label("congratulations!", vector(35, 45), colors.white)
+  end
+  self.result_overlay:add_drawable("result text", result_label)
 
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
   self.retry_menu:show_items(self.retry_menu_items)

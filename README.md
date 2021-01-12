@@ -124,15 +124,15 @@ In the pause menu (toggled with Enter/Start), if you are in-game, you can select
 
 ## Releases
 
-You can directly download a released version of the game on the [releases](Releases) page, or on the [itch.io page](https://komehara.itch.io/pico-sonic). If you download the binary export for your platform, you're good to go.
+You can directly download a released version of the game on the [releases](https://github.com/hsandt/sonic-pico8/releases) page, or on the [itch.io page](https://komehara.itch.io/pico-sonic). If you download the binary export for your platform, you're good to go.
 
 However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
 
 1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 *carts* folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
 
-2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable to support more tokens, by either following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p) or applying the patches provided in [pico-boots/scripts/patches](pico-boots/scripts/patches) (currently only provided for Linux editor as 'linux_amd64', and Linux and OSX runtime binaries, but if you are playing with Splore then you need an editor patch). You will need xdelta3 to apply the patches.
+2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable to support more tokens, by either following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p) or applying the patches provided in [pico-boots/scripts/patches](pico-boots/scripts/patches) (currently only provided for Linux, OSX and Windows runtime binaries; I will try to push patches for the editor, which you are probably using if you own PICO-8). You will need xdelta3 to apply the patches.
 
-3. I also recommend using a fast reload patch to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions. Similarly to 2., you should apply the patch from the patches folder using xdelta3.
+3. I also recommend using a fast reload patch to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions. Similarly to 2., you should apply the patch from the patches folder using xdelta3 (editor patches not available yet).
 
 ## Build
 

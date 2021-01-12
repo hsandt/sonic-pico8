@@ -34,6 +34,7 @@ local tile_repr = {
   visual_loop_bottomright_steepest = 102,
   spring_left_id = 74,                   -- add 1 to get right, must match value in visual
   grass_top_decoration1 = 76,            -- no collider, just to test foreground
+  oneway_platform_left = 35,             -- left side of one-way platform top part
 }
 
   -- symbol mapping for itests
@@ -55,6 +56,7 @@ tile_repr.tile_symbol_to_ids = {
   ['i']  = tile_repr.visual_loop_bottomright_steepest,
   ['s']  = tile_repr.spring_left_id,
   ['S']  = tile_repr.spring_left_id + 1,
+  ['o']  = tile_repr.oneway_platform_left,
 }
 
 return tile_repr

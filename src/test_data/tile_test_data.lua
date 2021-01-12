@@ -44,6 +44,7 @@ local mock_raw_tile_collision_data = {
   [tile_repr.spring_left_id] = {tile_repr.flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
   [tile_repr.spring_left_id + 1] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
   [visual.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
+  [tile_repr.oneway_platform_left] = {tile_repr.oneway_platform_left, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
 }
 
 -- process data above to generate interior_v/h automatically, so we don't have to add them manually
@@ -80,7 +81,7 @@ function tile_test_data.setup()
 
   fset(tile_repr.visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
-  -- mask also have collision falg, but only useful to test
+  -- mask also have collision flag, but only useful to test
   -- a non-loop proto curve tile with the same shaped
   fset(tile_repr.mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
@@ -98,13 +99,17 @@ function tile_test_data.setup()
 
   fset(tile_repr.visual_loop_bottomright_steepest, sprite_masks.collision + sprite_masks.midground)
 
-  -- visual sprites
+  -- spring
   fset(tile_repr.spring_left_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
   fset(tile_repr.spring_left_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
 
-  -- ramp
-  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.midground)
+  -- ramp (last tile is one-way)
+  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
 
+  -- one-way platform
+  fset(tile_repr.oneway_platform_left, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
+
+  -- grass
   fset(tile_repr.grass_top_decoration1, sprite_masks.foreground)
 
   -- mock height array init so it doesn't have to dig in sprite data, inaccessible from busted

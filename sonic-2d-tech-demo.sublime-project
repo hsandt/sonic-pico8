@@ -18,6 +18,22 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Dev: generate dependency graph",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["python3 -m pico-boots.scripts.generate_dependency_graph log/dependency_graph.dot src pico-boots/src"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Dev: generate ordered require file for unity build (for testing)",
+			"shell": true,
+			"working_dir": "${project_path}",
+			"cmd": ["python3 -m pico-boots.scripts.generate_ordered_require_file log/ordered_require.lua main_ingame src pico-boots/src"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: setup",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
@@ -34,6 +50,12 @@
 			"name": "Game: edit built-in data: ingame",
 			"shell": true,
 			"cmd": ["pico8 data/builtin_data_ingame.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit built-in data: stage_intro",
+			"shell": true,
+			"cmd": ["pico8 data/builtin_data_stage_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
@@ -55,9 +77,8 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: stage1",
+			"name": "Game: edit data: stage1 regions",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_stage1_00.p8"],
 			"working_dir": "${project_path}",
 			"variants":
 			[
@@ -105,22 +126,22 @@
 			"name": "Game: build cartridge titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu debug"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu cheat"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu cheat"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu release"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu release"]
 				}
 			]
 		},
@@ -128,50 +149,73 @@
 			"name": "Game: build cartridge ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh ingame debug"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame debug"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame debug-ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug-ultrafast"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat"]
 				},
 				{
 					"name": "tuner",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame tuner"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame tuner"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame ultrafast"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat-ultrafast"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame sandbox"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame assert"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame profiler"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame profiler"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame release"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame release"]
+				}
+			]
+		},
+		{
+			"name": "Game: build cartridge stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release"]
 				}
 			]
 		},
@@ -179,22 +223,22 @@
 			"name": "Game: build cartridge stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh stage_clear debug"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear debug"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear debug"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear debug"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear cheat"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear cheat"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear release"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear release"]
 				}
 			]
 		},
@@ -238,6 +282,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
 		{
+			"name": "Game: build itests stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh stage_intro"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
 			"name": "Game: build itests stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -257,26 +309,26 @@
 			"name": "Game: build and run titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu debug)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
 				},
 				{
 					"name": "tuner",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh titlemenu release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
 				},
 			]
 		},
@@ -284,50 +336,77 @@
 			"name": "Game: build and run ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug)"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug-ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame debug-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame debug-ultrafast)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat)"]
 				},
 				{
 					"name": "tuner",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame tuner)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame tuner)"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame ultrafast)"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame profiler)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame profiler)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
+				},
+			]
+		},
+		{
+			"name": "Game: build and run stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro debug)"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro cheat)"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro tuner)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro release)"]
 				},
 			]
 		},
@@ -335,22 +414,26 @@
 			"name": "Game: build and run stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge.sh stage_clear debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear debug)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear debug)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear debug)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear debug)"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear cheat)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear cheat)"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear tuner)"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge.sh stage_clear release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear release)"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear release)"]
 				},
 			]
 		},
@@ -372,6 +455,10 @@
 					"cmd": ["./build_and_install_all_cartridges.sh cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_all_cartridges.sh tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_all_cartridges.sh release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu release)"]
 				},
@@ -390,6 +477,14 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_itest.sh ingame && (./pico-boots/scripts/reload.sh || ./run_itest.sh ingame)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+		},
+		{
+			"name": "Game: build and run itests stage_intro",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_itest.sh stage_intro && (./pico-boots/scripts/reload.sh || ./run_itest.sh stage_intro)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -470,12 +565,32 @@
 					"cmd": ["./run_cartridge.sh titlemenu release"]
 				},
 				{
+					"name": "stage_intro debug",
+					"cmd": ["./run_cartridge.sh stage_intro debug"]
+				},
+				{
+					"name": "stage_intro cheat",
+					"cmd": ["./run_cartridge.sh stage_intro cheat"]
+				},
+				{
+					"name": "stage_intro tuner",
+					"cmd": ["./run_cartridge.sh stage_intro tuner"]
+				},
+				{
+					"name": "stage_intro release",
+					"cmd": ["./run_cartridge.sh stage_intro release"]
+				},
+				{
 					"name": "stage_clear debug",
 					"cmd": ["./run_cartridge.sh stage_clear debug"]
 				},
 				{
 					"name": "stage_clear cheat",
 					"cmd": ["./run_cartridge.sh stage_clear cheat"]
+				},
+				{
+					"name": "stage_clear tuner",
+					"cmd": ["./run_cartridge.sh stage_clear tuner"]
 				},
 				{
 					"name": "stage_clear release",
@@ -496,129 +611,200 @@
 			]
 		},
 		{
-			"name": "Game: install cartridge titlemenu",
+			"name": "Game: install cartridge titlemenu (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./install_single_cartridge.sh titlemenu debug"],
+			"cmd": ["./install_single_cartridge_with_data.sh titlemenu debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./install_single_cartridge.sh titlemenu debug"]
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu debug"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./install_single_cartridge.sh titlemenu cheat"]
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu cheat"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./install_single_cartridge.sh titlemenu release"]
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu release"]
 				},
 				{
 					"name": "debug (png)",
-					"cmd": ["./install_single_cartridge.sh titlemenu debug png"]
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu debug png"]
 				},
 				{
 					"name": "release (png)",
-					"cmd": ["./install_single_cartridge.sh titlemenu release png"]
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu release png"]
 				}
 			]
 		},
 		{
-			"name": "Game: install cartridge ingame (with stage maps and bgm)",
+			"name": "Game: install cartridge ingame (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./install_single_cartridge.sh ingame debug"],
+			"cmd": ["./install_single_cartridge_with_data.sh ingame debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./install_single_cartridge.sh ingame debug"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame debug"]
 				},
 				{
 					"name": "debug-ultrafast",
-					"cmd": ["./install_single_cartridge.sh ingame debug-ultrafast"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame debug-ultrafast"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./install_single_cartridge.sh ingame cheat"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame cheat"]
 				},
 				{
 					"name": "tuner",
-					"cmd": ["./install_single_cartridge.sh ingame tuner"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame tuner"]
 				},
 				{
 					"name": "ultrafast",
-					"cmd": ["./install_single_cartridge.sh ingame ultrafast"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame ultrafast"]
 				},
 				{
 					"name": "cheat-ultrafast",
-					"cmd": ["./install_single_cartridge.sh ingame cheat-ultrafast"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame cheat-ultrafast"]
 				},
 				{
 					"name": "sandbox",
-					"cmd": ["./install_single_cartridge.sh ingame sandbox"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame sandbox"]
 				},
 				{
 					"name": "assert",
-					"cmd": ["./install_single_cartridge.sh ingame assert"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame assert"]
 				},
 				{
 					"name": "profiler",
-					"cmd": ["./install_single_cartridge.sh ingame profiler"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame profiler"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./install_single_cartridge.sh ingame release"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame release"]
 				},
 				{
 					"name": "cheat (png)",
-					"cmd": ["./install_single_cartridge.sh ingame cheat png"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame cheat png"]
 				},
 				{
 					"name": "release (png)",
-					"cmd": ["./install_single_cartridge.sh ingame release png"]
+					"cmd": ["./install_single_cartridge_with_data.sh ingame release png"]
 				}
 			]
 		},
 		{
-			"name": "Game: install cartridge stage_clear",
+			"name": "Game: install cartridge stage_intro (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./install_single_cartridge.sh stage_clear debug"],
+			"cmd": ["./install_single_cartridge_with_data.sh stage_intro debug"],
 			"syntax": "Packages/Python/Python.sublime-syntax",
 			"variants":
 			[
 				{
 					"name": "debug",
-					"cmd": ["./install_single_cartridge.sh stage_clear debug"]
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro debug"]
 				},
 				{
 					"name": "cheat",
-					"cmd": ["./install_single_cartridge.sh stage_clear cheat"]
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro cheat"]
 				},
 				{
 					"name": "release",
-					"cmd": ["./install_single_cartridge.sh stage_clear release"]
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release"]
 				},
 				{
 					"name": "cheat (png)",
-					"cmd": ["./install_single_cartridge.sh stage_clear cheat png"]
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro cheat png"]
 				},
 				{
 					"name": "release (png)",
-					"cmd": ["./install_single_cartridge.sh stage_clear release png"]
+					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release png"]
 				}
 			]
 		},
 		{
-			"name": "Game: export cartridge release",
+			"name": "Game: install cartridge stage_clear (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./export_cartridge_release.sh"],
-			"syntax": "Packages/Python/Python.sublime-syntax"
+			"cmd": ["./install_single_cartridge_with_data.sh stage_clear debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_clear debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_clear cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_clear cheat png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release png"]
+				}
+			]
+		},
+		{
+			"name": "Game: install all cartridges (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_all_cartridges.sh debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_all_cartridges.sh debug"]
+				},
+				{
+					"name": "cheat",
+					"cmd": ["./install_all_cartridges.sh cheat"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_all_cartridges.sh release"]
+				},
+				{
+					"name": "cheat (png)",
+					"cmd": ["./install_all_cartridges.sh cheat png"]
+				},
+				{
+					"name": "release (png)",
+					"cmd": ["./install_all_cartridges.sh release png"]
+				}
+			]
+		},
+		{
+			"name": "Game: export and patch cartridge release",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./export_and_patch_cartridge_release.sh"],
+		},
+		{
+			"name": "Game: upload cartridge release",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./upload_cartridge_release.sh"],
+		},
+		{
+			"name": "Game: build full game release, export and patch it, upload it",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_all_cartridges.sh release && ./export_and_patch_cartridge_release.sh && ./upload_cartridge_release.sh"],
 		},
 		{
 			"name": "Game: test",
@@ -681,6 +867,10 @@
 				{
 					"name": "ingame",
 					"cmd": ["./test.sh ingame"],
+				},
+				{
+					"name": "stage_intro",
+					"cmd": ["./test.sh stage_intro"],
 				},
 				{
 					"name": "stage_clear",
@@ -793,6 +983,51 @@
 					}
 				},
 				{
+					"name": "headless_itests stage_intro",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro - solo",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro"
+					}
+				},
+				{
+					"name": "headless_itests stage_intro - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "stage_intro",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
 					"name": "headless_itests stage_clear",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
@@ -876,7 +1111,7 @@
 			"working_dir": "${project_path}",
 			"shell": true,
 			// note that luacov report is generated in the working directory, so the second test report will overwrite the previous one
-			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
+			"cmd": ["ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh && echo '' && ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests && echo '' && ITEST_CARTRIDGE_SUFFIX=stage_intro ./test.sh -f headless_itests && echo '' && pico-boots/test.sh"],
 			// known limitation: last \n won't be detected in build output, so cannot display multi-line errors
 			"file_regex": "((?:pico-boots/src|src)\\/[-\\w\\/]+\\.lua)(?:\\:| @ )([\\d]+)(?:\\:)?([\\d]+)?\\n?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
@@ -916,6 +1151,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Postbuild: test preprocess",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: Postbuild: test minify",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
@@ -924,10 +1167,42 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test preprocess",
+			"name": "Engine: Postbuild: test unify",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m scripts.test_preprocess"],
+			"cmd": ["python3 -m scripts.test_unify"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test generate_dependency_graph",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test generate_ordered_require_file",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test adapt_for_png",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_adapt_for_png"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test patch_pico8_js",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_patch_pico8_js"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

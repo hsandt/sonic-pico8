@@ -1,10 +1,6 @@
-local gamestate = require("engine/application/gamestate")
 local volume = require("engine/audio/volume")
-local label = require("engine/ui/label")
-local overlay = require("engine/ui/overlay")
-local rectangle = require("engine/ui/rectangle")
 
-local camera_class = require("ingame/camera")
+local base_stage_state = require("ingame/base_stage_state")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
@@ -13,14 +9,13 @@ local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_stage = require("resources/visual_stage")
-local ui_animation = require("ui/ui_animation")
 
-local stage_state = derived_class(gamestate)
+local stage_state = derived_class(base_stage_state)
 
 stage_state.type = ':stage'
 
 function stage_state:init()
-  -- gamestate.init(self)  -- kept for expliciteness, but does nothing
+  base_stage_state.init(self)
 
   -- stage id
   self.curr_stage_id = 1
@@ -29,7 +24,8 @@ function stage_state:init()
   self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
 
   -- player character
-  self.player_char = nil
+  -- self.player_char = nil  -- commented out to spare characters
+
   -- has the player character already reached the goal once?
   self.has_player_char_reached_goal = false
 
@@ -42,22 +38,17 @@ function stage_state:init()
   -- list of emerald pick fxs playing (currently no pooling, just add and delete)
   self.emerald_pick_fxs = {}
 
-  -- palm trees: list of global locations of palm tree leaves core sprites detected
-  -- used to draw the palm tree extension sprites on foreground
-  self.palm_tree_leaves_core_global_locations = {}
-
-  -- create camera, but wait for player character to spawn before assigning it a target
-  -- see on_enter for how we warp it to a good place first
-  self.camera = camera_class()
-
-  -- title overlay
-  self.title_overlay = overlay()
-
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
   self.enable_spawn_objects = true
 --#endif
 end
+
+--#if tostring
+function stage_state:_tostring()
+  return "stage_state("..self.curr_stage_id..")"
+end
+--#endif
 
 function stage_state:on_enter()
   -- don't initialize loaded region coords to force first
@@ -72,12 +63,16 @@ function stage_state:on_enter()
   --  as it's slow and will add considerable overhead on test start
   if self.enable_spawn_objects then
     self:spawn_objects_in_all_map_regions()
+    self:restore_picked_emerald_data()
   end
 --#endif
+
+-- ! Make sure to duplicate content of block above in #pico8 block below !
 
 --[[#pico8
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
+  self:restore_picked_emerald_data()
 --#endif
 --#pico8]]
 
@@ -94,8 +89,6 @@ function stage_state:on_enter()
   self.camera.target_pc = self.player_char
 
   self.has_player_char_reached_goal = false
-
-  self.app:start_coroutine(self.show_stage_splash_async, self)
 
   -- reload bgm only once, then we can play bgm whenever we want for this stage
   self:reload_bgm()
@@ -114,7 +107,15 @@ function stage_state:reload_runtime_data()
   -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
   --  so 512 = 0x200 bytes per row,
   --  so 1536 = 0x600 bytes
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime.p8"
+  -- NOTE: we are *not* reloading sprite flags (could do by copying 0x100 bytes from 0x3000-0x30ff)
+  --  which means our builtin spritesheet *must* contain any new flags brought by runtime extra tiles
+  --  (located in the 3 top rows of the spritesheet). Those are rare (only one-way platform tiles)
+  --  but without the flags, they won't behave properly. This means you must (unintuitively) place flags
+  --  on the mask tiles in the built-in spritesheet. To make it easier, you may edit the flags on a cartridge
+  --  containing all the sprites of interest, then copy-paste the __gff__ lines into the builtin .p8 cartridge
+  -- Later, you can move all mask tiles to another spritesheet to reload
+  --  on start instead.
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
   reload(0x0, 0x0, 0x600, runtime_data_path)
 
   -- the runtime spritesheet also contains 45-degree rotated sprite variants
@@ -194,6 +195,10 @@ function stage_state:reload_runtime_data()
   --  so we just have a little margin!
 end
 
+-- never called, we directly load stage_clear cartridge
+-- if you want to optimize stage retry by just re-entering stage_state though,
+--  you will need on_exit for cleanup (assuming you don't patch PICO-8 for fast load)
+--[[
 function stage_state:on_exit()
   -- clear all coroutines (we normally let app handle them, but in this context
   -- we know that all coroutines belong to the stage state, so no risk clearing them from here)
@@ -201,7 +206,6 @@ function stage_state:on_exit()
 
   -- clear object state vars
   self.player_char = nil
-  self.title_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -209,6 +213,7 @@ function stage_state:on_exit()
   -- stop audio
   self:stop_bgm()
 end
+--]]
 
 function stage_state:update()
   self:update_fx()
@@ -229,55 +234,6 @@ function stage_state:render()
   self:render_stage_elements()
   self:render_fx()
   self:render_hud()
-  self:render_overlay()
-end
-
-
--- queries
-
--- return true iff global_tile_loc: location is in any of the areas: {location_rect}
-function stage_state:is_tile_in_area(global_tile_loc, areas, extra_condition_callback)
-  for area in all(areas) do
-    if (extra_condition_callback == nil or extra_condition_callback(global_tile_loc, area)) and
-        area:contains(global_tile_loc) then
-      return true
-    end
-  end
-  return false
-end
-
--- return true iff tile is located in loop entrance area
---  *except at its top-left which is reversed to non-layered entrance trigger*
-function stage_state:is_tile_in_loop_entrance(global_tile_loc)
-  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_entrance_areas, function (global_tile_loc, area)
-    return global_tile_loc ~= location(area.left, area.top)
-  end)
-end
-
--- return true iff tile is located in loop entrance area
---  *except at its top-right which is reversed to non-layered entrance trigger*
-function stage_state:is_tile_in_loop_exit(global_tile_loc)
-  return self:is_tile_in_area(global_tile_loc, self.curr_stage_data.loop_exit_areas, function (global_tile_loc, area)
-    return global_tile_loc ~= location(area.right, area.top)
-  end)
-end
-
--- return true iff tile is located at the top-left (trigger location) of any entrance loop
-function stage_state:is_tile_loop_entrance_trigger(global_tile_loc)
-  for area in all(self.curr_stage_data.loop_entrance_areas) do
-    if global_tile_loc == location(area.left, area.top) then
-      return true
-    end
-  end
-end
-
--- return true iff tile is located at the top-right (trigger location) of any exit loop
-function stage_state:is_tile_loop_exit_trigger(global_tile_loc)
-  for area in all(self.curr_stage_data.loop_exit_areas) do
-    if global_tile_loc == location(area.right, area.top) then
-      return true
-    end
-  end
 end
 
 
@@ -379,12 +335,6 @@ end
 --  so we need an intermediate reload that picks a quarter of each region (called overlapping region)
 -- for instance, with an extended map compounded of a grid of 2x2 = 4 maps, we'd have
 --  4 full reloads, 4 2-half reloads, 1 4-quarter reloads for a total of 9 possible reloads
-
--- return map filename for current stage and given region coordinates (u: int, v: int)
---  do not try this with transitional regions, instead we'll patch them from individual regions
-function stage_state:get_map_region_filename(u, v)
-  return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
-end
 
 function stage_state:get_region_grid_dimensions()
   local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
@@ -832,19 +782,48 @@ function stage_state:on_reached_goal_async()
   self:store_picked_emerald_data()
 
   -- finally advance to stage clear sequence on new cartridge
-  load('picosonic_stage_clear.p8')
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_stage_clear')
+end
+
+function stage_state:restore_picked_emerald_data()
+  -- Retrieve and store picked emeralds set information from memory stored in stage_clear
+  --  or system pause menu before warp to start / retry (keep emeralds).
+  -- If you come directly from the titlemenu or a retry from zero, this should do nothing.
+  -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
+  --  remove emerald objects from the stage with a "silent pick"
+  --  (so this method must be called after object spawning)
+  -- It is stored in 0x5d00, see store_picked_emerald_data below
+  local picked_emerald_byte = peek(0x5d00)
+
+  -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
+  poke(0x5d00, 0)
+
+  -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
+  -- the only reason we iterate from the end is because del() will remove elements
+  --  from self.emeralds sequence, rearranging them to fill gaps
+  -- by iterating backward, we don't have to worry about their index changing
+  for i = 8, 1, -1 do
+    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
+      -- add emerald number to picked set
+      self.picked_emerald_numbers_set[i] = true
+
+      -- remove emerald from sequence (backward iteration ensures correct index)
+      del(self.emeralds, self.emeralds[i])
+    end
+  end
 end
 
 function stage_state:store_picked_emerald_data()
-  -- general memory is a good fit to store data across cartridges,
-  --  although this behavior is undocumented
-  -- we could also use persistent memory, considering we may save emeralds collected by player
+  -- General memory is persistent during a single session, so a good fit to store data
+  --  across cartridges, although this behavior is undocumented.
+  -- However, 0x4300-0x52ff is occupied by runtime regions, and 0x5300-0x5cff
+  --  is occupied non-rotated/rotated walk/run sprite variants, so store 1 byte at 0x5d00.
+  -- We could also use persistent memory, considering we may save emeralds collected by player
   --  on next run (but for now we don't, so player always starts game from zero)
-  -- note that Sonic is not visible so we don't mind overwriting the memory at 0x4300
-  --  which during ingame contains rotated and non-rotated sprite variants
-  -- convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
-  -- there are 8 emeralds so we need 1 bytes, but we can combine them in one
-  --  2-byte value and store it at once with length 2
+  --
+  -- Convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
+  --  there are 8 emeralds so we need 1 byte
   local picked_emerald_bytes = 0
   for i = 1, 8 do
     if self.picked_emerald_numbers_set[i] then
@@ -852,7 +831,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x4300, picked_emerald_bytes)
+  poke(0x5d00, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()
@@ -889,69 +868,6 @@ function stage_state:render_fx()
 end
 
 
--- camera
-
--- set the camera offset to draw stage elements with optional origin (default (0, 0))
--- tilemap should be drawn with region map topleft (in px) as origin
--- characters and items should be drawn with extended map topleft (0, 0) as origin
-function stage_state:set_camera_with_origin(origin)
-  origin = origin or vector.zero()
-  -- the camera position is used to render the stage. it represents the screen center
-  -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
-  -- finally subtract the origin to place tiles correctly
-  camera(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
-end
-
--- set the camera offset to draw stage elements with region origin
---  use this to draw tiles with relative location
-function stage_state:set_camera_with_region_origin()
-  local region_topleft_loc = self:get_region_topleft_location()
-  self:set_camera_with_origin(vector(tile_size * region_topleft_loc.i, tile_size * region_topleft_loc.j))
-end
-
-
--- ui
-
-function stage_state:show_stage_splash_async()
-  self.app:yield_delay_s(stage_data.show_stage_splash_delay)
-
-  -- FIXME: draw iteration order not guaranteed, pico-sonic may be hidden "below" banner
-
-  -- init position y is -height so it starts just at the screen top edge
-  local banner = rectangle(vector(9, -106), 32, 106, colors.red)
-  self.title_overlay:add_drawable("banner", banner)
-
-  -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
-  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
-  self.title_overlay:add_drawable("banner_text", banner_text)
-
-  -- make banner enter from the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
-
-  local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
-  self.title_overlay:add_drawable("zone_rect", zone_rectangle)
-
-  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
-  self.title_overlay:add_drawable("zone", zone_label)
-
-  -- make text enter from the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
-
-  -- keep zone displayed for a moment
-  yield_delay(102)
-
-  -- make banner exit to the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
-
-  -- make text exit to the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
-
-  self.title_overlay:remove_drawable("banner")
-  self.title_overlay:remove_drawable("banner_text")
-  self.title_overlay:remove_drawable("zone")
-end
-
-
 -- render
 
 -- render the stage elements with the main camera:
@@ -971,76 +887,11 @@ function stage_state:render_stage_elements()
 --#endif
 end
 
--- global <-> region location converters
-
-function stage_state:global_to_region_location(global_loc)
-  return global_loc - self:get_region_topleft_location()
-end
-
-function stage_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
-end
-
--- same kind of helper, but for mset
+-- same kind of helper as base_stage_state:global_to_region_location and region_to_global_location,
+--  but for mset
 function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
   local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_location()
   mset(region_loc.i, region_loc.j, sprite_id)
-end
-
--- return current region topleft as location (convert uv to ij)
-function stage_state:get_region_topleft_location()
-  -- note that result should be integer, although due to region coords being sometimes in .5 for transitional areas
-  --  they will be considered as fractional numbers by Lua (displayed with '.0' in native Lua)
-  return location(map_region_tile_width * self.loaded_map_region_coords.x, map_region_tile_height * self.loaded_map_region_coords.y)
-end
-
--- render the stage environment (tiles)
-function stage_state:render_environment_midground()
-  -- possible optimize: don't draw the whole stage offset by camera,
-  --  instead just draw the portion of the level of interest
-  --  (and either keep camera offset or offset manually and subtract from camera offset)
-  -- that said, I didn't notice a performance drop by drawing the full tilemap
-  --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
-
-  -- only draw midground tiles
-  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-end
-
-function stage_state:render_environment_foreground()
-  set_unique_transparency(colors.pink)
-
-  -- draw tiles always on foreground first
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
-
-  local region_topleft_loc = self:get_region_topleft_location()
-
-  -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
-  --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
-  --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
-  self:set_camera_with_origin()
-  for area in all(self.curr_stage_data.loop_entrance_areas) do
-    -- draw map subset just for the loop entrance
-    -- if this is out-of-screen, map will know it should draw nothing so this is very performant already
-    map(area.left - region_topleft_loc.i, area.top - region_topleft_loc.j,
-        tile_size * area.left, tile_size * area.top,
-        area.right - area.left + 1, area.bottom - area.top + 1,
-        sprite_masks.midground)
-  end
-
-  -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
-  for global_loc in all(self.palm_tree_leaves_core_global_locations) do
-    -- top has pivot at its bottom-left = the top-left of the core
-    visual.sprite_data_t.palm_tree_leaves_top:render(global_loc:to_topleft_position())
-    -- right has pivot at is bottom-left = the top-right of the core
-    local right_global_loc = global_loc + location(1, 0)
-    visual.sprite_data_t.palm_tree_leaves_right:render(right_global_loc:to_topleft_position())
-    -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
-    visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
-  end
 end
 
 -- render the player character at its current position
@@ -1094,7 +945,7 @@ function stage_state:render_hud()
   -- draw emeralds obtained at top-left of screen, in order from left to right,
   --  with the right color
   for i = 1, #self.spawned_emerald_locations do
-    local draw_position = vector(-4 + 10 * i, 6)
+    local draw_position = vector(-4 + 8 * i, 3)
     if self.picked_emerald_numbers_set[i] then
       emerald.draw(i, draw_position)
     else
@@ -1108,11 +959,6 @@ function stage_state:render_hud()
 --#endif
 end
 
--- render the title overlay with a fixed ui camera
-function stage_state:render_overlay()
-  camera()
-  self.title_overlay:draw()
-end
 
 -- audio
 
@@ -1122,7 +968,7 @@ function stage_state:reload_bgm()
   --  => 40 * 4 = 160 = 0xa0 bytes
   -- the bgm should start at pattern 0 on both source and
   --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
+  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..cartridge_ext)
 
   -- we also need the music sfx referenced by the patterns
   self:reload_bgm_tracks()
@@ -1130,16 +976,17 @@ end
 
 function stage_state:reload_bgm_tracks()
   -- reload sfx from bgm cartridge memory
-  -- we guarantee that the music sfx will take maximum 50 entries (out of 64)
+  -- we guarantee that the music sfx will take maximum 50 entries (out of 64),
+  --  potentially 0-7 for custom instruments and 8-49 for music tracks
   --  => 50 * 68 = 3400 = 0xd48 bytes
   -- the bgm sfx should start at index 0 on both source and
   --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..cartridge_ext)
 end
 
 function stage_state:play_bgm()
   -- only 4 channels at a time in PICO-8
-  -- Angel Island BGM currently uses only 3 channels so t's pretty safe
+  -- Angel Island BGM currently uses only 3 channels so it's pretty safe
   --  as there is always a channel left for SFX, but in case we add a 4th one
   --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
   music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))

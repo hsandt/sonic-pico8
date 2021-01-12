@@ -195,6 +195,8 @@ function player_char:warp_bottom_to(bottom_position)
 end
 --#endif
 
+--#if ingame
+
 --#if cheat
 -- same as warp_to, but with bottom position
 function player_char:warp_to_emerald_by(delta)
@@ -222,6 +224,10 @@ function player_char:warp_to_emerald_by(delta)
   local target_pos = curr_stage_state.spawned_emerald_locations[self.last_emerald_warp_nb]:to_center_position()
   self:warp_to(target_pos)
 end
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- move the player character so that the bottom center is at the given position
@@ -243,27 +249,38 @@ function player_char:set_ground_tile_location(global_tile_loc)
   if self.ground_tile_location ~= global_tile_loc then
     self.ground_tile_location = global_tile_loc
 
-    -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
-    --  and reversely
-    -- we are now checking loop triggers directly from stage data
-    -- external triggers are different and can be entered airborne, see check_loop_external_triggers
-    local curr_stage_state = flow.curr_state
-    assert(curr_stage_state.type == ':stage')
+--#if ingame
 
-    -- new convention is to check ground location at the end of update_platformer_motion
-    --  like check_spring, because changing state to airborne in the middle of ground motion
-    --  may cause issues
-    -- but loops were added before springs and they keep the character grounded, so we kept
-    --  this behavior here
-    if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
-      -- note that active loop layer may already be 1
-      log("internal trigger detected, set active loop layer: 1", 'loop')
-      self.active_loop_layer = 1
-    elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
-      -- note that active loop layer may already be 2
-      log("internal trigger detected, set active loop layer: 2", 'loop')
-      self.active_loop_layer = 2
+--#if busted
+    if flow.curr_state.type == ':stage' then
+--#endif
+      -- when touching (internal) loop entrance trigger, enable entrance (and disable exit) layer
+      --  and reversely
+      -- we are now checking loop triggers directly from stage data
+      -- external triggers are different and can be entered airborne, see check_loop_external_triggers
+      local curr_stage_state = flow.curr_state
+      assert(curr_stage_state.type == ':stage')
+
+      -- new convention is to check ground location at the end of update_platformer_motion
+      --  like check_spring, because changing state to airborne in the middle of ground motion
+      --  may cause issues
+      -- but loops were added before springs and they keep the character grounded, so we kept
+      --  this behavior here
+      if curr_stage_state:is_tile_loop_entrance_trigger(global_tile_loc) then
+        -- note that active loop layer may already be 1
+        log("internal trigger detected, set active loop layer: 1", 'loop')
+        self.active_loop_layer = 1
+      elseif curr_stage_state:is_tile_loop_exit_trigger(global_tile_loc) then
+        -- note that active loop layer may already be 2
+        log("internal trigger detected, set active loop layer: 2", 'loop')
+        self.active_loop_layer = 2
+      end
+--#if busted
     end
+--#endif
+
+--(ingame)
+--#endif
   end
 end
 
@@ -288,11 +305,26 @@ function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
 end
 
 function player_char:update()
-  self:handle_input()
+-- in stage_intro cartridge, we want Sonic to stay idle, so no input
+--  but update physics and render as usual
+--#if ingame
+
+--#if busted
+  if flow.curr_state.type == ':stage' then
+--#endif
+    self:handle_input()
+--#if busted
+  end
+--#endif
+
+--(ingame)
+--#endif
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
 end
+
+--#if ingame
 
 -- update intention based on current input
 function player_char:handle_input()
@@ -317,7 +349,7 @@ function player_char:handle_input()
     --  this caused delayed lock such as jumping out of lock situation to escape but still being locked for
     --  a moment on ground, or falling off a ceiling and still not being able to move freely for a moment
     -- this contributes to the feel of lack of control after falling off and may be desirable,
-    --  but in pico-sonic we prefer decrementing timer when airborne, so after a long fall or jump you
+    --  but in pico sonic we prefer decrementing timer when airborne, so after a long fall or jump you
     --  can immediately get control back
     -- to restore original game behavior, uncomment the line below and comment out the 2nd line below
     -- if self.horizontal_control_lock_timer > 0 and self:is_grounded() then
@@ -362,6 +394,7 @@ function player_char:handle_input()
   end
 end
 
+
 function player_char:force_move_right()
   -- force player to move to the right
   self.control_mode = control_modes.puppet
@@ -371,6 +404,7 @@ function player_char:force_move_right()
 end
 
 --#if cheat
+
 function player_char:toggle_debug_motion()
   -- 1 -> 2 (debug)
   -- 2 -> 1 (platformer)
@@ -389,18 +423,34 @@ function player_char:set_motion_mode(val)
     self.debug_velocity = vector.zero()
   end
 end
+
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- update player position
 function player_char:update_motion()
   self:update_collision_timer()
 
+--#if ingame
 --#if cheat
-  if self.motion_mode == motion_modes.debug then
-    self:update_debug()
-    return
+
+--#if busted
+  if flow.curr_state.type == ':stage' then
+--#endif
+    if self.motion_mode == motion_modes.debug then
+      self:update_debug()
+      return
+    end
+--#if busted
   end
-  -- else: self.motion_mode == motion_modes.platformer
+--#endif
+
+--(ingame)
+--#endif
+--(cheat)
 --#endif
 
   self:update_platformer_motion()
@@ -493,7 +543,7 @@ function player_char:get_ground_sensor_position_from(center_position, quadrant_h
   return qx_floored_bottom_center + offset_qx_vector
 end
 
--- helper method for compute_closest_ground_query_info and _is_blocked_by_ceiling_at
+-- helper method for compute_closest_ground_query_info and is_blocked_by_ceiling_at
 -- for given player character pc, it iterates over tiles from start to last (defined via offset from sensor position), providing distance from sensor_position_base + sensor_offset_qy along q-down (foot or head)
 --  to q-column q-top (with reverse tile support) to custom callbacks which should return ground query info to closest ground/ceiling in quadrant direction
 -- pass it a quadrant of interest (direction used to check collisions), iteration start and last tile locations
@@ -502,7 +552,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   -- note that we never change region during a collision check, but the 8 tiles margin
   --  should be enough compared to the short distance along which we check for ground, wall and ceiling
   local curr_stage_state = flow.curr_state
-  assert(curr_stage_state.type == ':stage')
+  assert(curr_stage_state.type == ':stage' or curr_stage_state.type == ':stage_intro')
   local region_topleft_loc = curr_stage_state:get_region_topleft_location()
 
   -- get check quadrant down vector (for ceiling check, it's actually up relative to character quadrant)
@@ -559,13 +609,30 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     -- convert to region location before using mget
     local tile_region_loc = curr_stage_state:global_to_region_location(curr_global_tile_loc)
     local visual_tile_id = mget(tile_region_loc.i, tile_region_loc.j)
+    local is_oneway = fget(visual_tile_id, sprite_flags.oneway)
 
-    -- we now check for ignored tiles, ramp or loop
-    if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
-        pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
-        pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) then
-      ignore_tile = true
+--#if ingame
+
+--#if busted
+    if flow.curr_state.type == ':stage' then
+--#endif
+      -- we now check for ignored tiles:
+      --  a. ramps just after launching
+      --  b. loops on inactive layer from PC's point-of-view
+      --  c. one-way platforms unless we check collision downward
+      if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
+          pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
+          pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc) or
+          is_oneway and collision_check_quadrant ~= directions.down then
+        ignore_tile = true
+      end
+
+--#if busted
     end
+--#endif
+
+--(ingame)
+--#endif
 
     if ignore_tile then
         -- tile is on layer with disabled collision, return emptiness
@@ -604,6 +671,12 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- then subtract qcolumn_height and you get the signed distance to the current ground q-column
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
+      -- even when checking downward, we cannot detect one-way platforms from below their surface (signed distance < 0)
+      -- this way, we don't step up or get blocked by them as ceiling inadvertently, but can still just land on them
+      if is_oneway and signed_distance_to_closest_collider < -1 then
+        signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
+      end
+
       -- let caller decide how to handle the presence of collider
       local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
@@ -623,8 +696,10 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- else (can only happen in compute_closest_ground_query_info): ground has been found, but it is too far below character's q-feet
       --  to snap q-down. This can only happen on the last tile we iterate on
       --  (since it was computed to be at the snap q-down limit),
-      --  which means we will enter the "end of iteration" block below
-      assert(curr_global_tile_loc == last_global_tile_loc)
+      --  *unless* we are ignore a one-way platform from below (we can't check signed_distance_to_closest_collider < 0
+      --  because signed_distance_to_closest_collider changed already, but we could by storing a backup var if #assert only),
+      --  which means we will enter the "end of iteration" block below (if because on one-way, we'll continue iteration as normal)
+      assert(curr_global_tile_loc == last_global_tile_loc or is_oneway)
     end
 
     -- check fo end of iteration (reached last tile)
@@ -873,10 +948,21 @@ function player_char:update_platformer_motion()
     self:update_platformer_motion_airborne()
   end
 
-  self:check_spring()
-  self:check_launch_ramp()
-  self:check_emerald()
-  self:check_loop_external_triggers()
+--#if ingame
+
+--#if busted
+  if flow.curr_state.type == ':stage' then
+--#endif
+    self:check_spring()
+    self:check_launch_ramp()
+    self:check_emerald()
+    self:check_loop_external_triggers()
+--#if busted
+  end
+--#endif
+
+--(ingame)
+--#endif
 end
 
 -- check if character is fast enough to roll and wants to roll
@@ -1394,7 +1480,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
     -- position is inside ground, check if we can step up during this step
     -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
     --  the escape is done on the X axis so technically we escape row width)
-    -- refactor: code is similar to _check_escape_from_ground and above all next_air_step
+    -- refactor: code is similar to check_escape_from_ground and above all next_air_step
     if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
       -- step up or step flat
       next_position_candidate:add_inplace(vector_to_closest_ground)
@@ -1850,6 +1936,7 @@ function player_char:next_air_step(direction, ref_motion_result)
   log("step_vec: "..step_vec, "trace2")
   log("next_position_candidate: "..next_position_candidate, "trace2")
 
+
   -- we can only hit walls or the ground when stepping left, right or down
   -- (horizontal step of diagonal upward motion is OK)
   if direction ~= directions.up then
@@ -1866,7 +1953,12 @@ function player_char:next_air_step(direction, ref_motion_result)
     --  allow jump from an ascending sheer angle directly onto a platform. This includes moving horizontally.
     -- This must be combined with a step up (snap to ground top, but directly from the air) to really work
     if self.velocity.y > 0 or abs(self.velocity.x) > abs(self.velocity.y) then
-      -- check if we are touching or entering ground
+      -- check if we are entering ground
+      -- NOTE: for solid ground we could also consider *touching* as landing, by checking <= 0,
+      --  then we'd need to move signed_distance_to_closest_ground definition outside direction ~= directions.up block
+      --  and in the bottom block of this method, check if not ref_motion_result:is_blocked_along(direction) or
+      --  signed_distance_to_closest_ground == 0, instead of just is_blocked_along, since when landing
+      --  we are technically blocked along q-down, but must still update position to avoid getting stuck above ground
       if signed_distance_to_closest_ground < 0 then
         -- Just like during ground step, check the step height: if too high, we hit a wall and stay airborne
         --  else, we land
@@ -1876,8 +1968,7 @@ function player_char:next_air_step(direction, ref_motion_result)
         -- I used to check direction == directions.down only, and indeed if you step 1px down,
         --  the penetration distance will be no more than 1 and you will always snap to ground.
         -- But this didn't work when direction left/right hit the slope.
-        -- refactor: code is similar to _check_escape_from_ground and above all next_ground_step
-        -- if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+        -- refactor: code is similar to check_escape_from_ground and above all next_ground_step
         if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
           next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
           -- landing: the character has just set foot on ground, flag it and initialize slope angle
@@ -2001,6 +2092,8 @@ function player_char:next_air_step(direction, ref_motion_result)
 end
 
 -- item and trigger checks
+
+--#if ingame
 
 function player_char:check_spring()
   if self.ground_tile_location then
@@ -2178,6 +2271,10 @@ function player_char:update_velocity_component_debug(coord)
   self.debug_velocity:set(coord, new_debug_velocity_comp)
 end
 
+--(cheat)
+--#endif
+
+--(ingame)
 --#endif
 
 -- update sprite animation state

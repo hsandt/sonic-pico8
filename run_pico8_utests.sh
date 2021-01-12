@@ -3,9 +3,12 @@
 # Run itest with PICO-8 executable (itests only work in debug config)
 # Pass any extra arguments to pico8
 
+# Configuration: paths
+data_path="$(dirname "$0")/data"
+
 # Configuration: cartridge
 cartridge_stem="picosonic_pico8_utests_all"
-version="5.1"
+version=`cat "$data_path/version.txt"`
 
 run_cmd="pico8 -run build/${cartridge_stem}_v${version}_debug.p8 -screenshot_scale 4 -gif_scale 4 $@"
 

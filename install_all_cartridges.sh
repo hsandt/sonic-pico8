@@ -1,21 +1,22 @@
 #!/bin/bash
-# Install all cartridges for the game to the default
+# Install all cartridges for the game, including data cartridges, to the default
 #  PICO-8 carts location
 # This is required if you need to play with multiple carts,
 #  as other carts will only be loaded in PICO-8 carts location
 
 # Usage: install_all_cartridges.sh config [png]
 #   config            build config (e.g. 'debug' or 'release')
-#   png 		      if passed, the .png cartridges are installed
+#   png               if passed, the .png cartridges are installed
 
 # Currently only supported on Linux
 
 # png option is legacy for p8tool. It works in theory but in practice,
 #  since p8tool fails to build .p8.png properly, png will be directly
-#  saved from PICO-8 with export_cartridge_release.p8 into PICO-8 carts folder
+#  saved from PICO-8 with export_game_release.p8 into PICO-8 carts folder
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
+data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
@@ -25,20 +26,29 @@ if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
     exit 1
 fi
 
+# Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 config="$1"; shift
 
 # option "png" will export the png cartridge
 if [[ $1 = "png" ]] ; then
-	suffix=".png"
+  suffix=".png"
 else
-	suffix=""
+  suffix=""
 fi
 
-# note that we don't add the data/data_stage*.p8 cartridges because
-# install_single_cartridge.sh for ingame will install all data cartridges anyway
-# (and said script is really meant for built cartridges as it refers to build path)
-cartridge_list="titlemenu ingame stage_clear"
+cartridge_list="titlemenu stage_intro ingame stage_clear"
 
 for cartridge in $cartridge_list; do
-	"$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
+  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
 done
+
+# recompute same install dirpath as used in install_single_cartridge.sh
+# (no need to mkdir -p "${install_dirpath}", it must have been created in said script)
+carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
+install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
+
+# Also copy data cartridges
+echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."
+# trailing slash just to make sure we copy to a directory
+cp data/data_*.p8 "${install_dirpath}/"

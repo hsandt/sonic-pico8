@@ -9,10 +9,10 @@ local picosonic_app_base = require("application/picosonic_app_base")
 local titlemenu = require("menu/titlemenu")
 local credits = require("menu/credits")
 
-local picosonic_app_ingame = derived_class(picosonic_app_base)
+local picosonic_app_titlemenu = derived_class(picosonic_app_base)
 
-function picosonic_app_ingame:instantiate_gamestates() -- override
+function picosonic_app_titlemenu:instantiate_gamestates() -- override
   return {titlemenu(), credits()}
 end
 
-return picosonic_app_ingame
+return picosonic_app_titlemenu

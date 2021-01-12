@@ -55,7 +55,7 @@ describe('credits', function ()
         c:on_enter()
 
         assert.spy(menu.show_items).was_called(1)
-        assert.spy(menu.show_items).was_called_with(match.ref(c.menu), match.ref(credits.items))
+        assert.spy(menu.show_items).was_called_with(match.ref(c.menu), match.ref(c.items))
       end)
 
     end)

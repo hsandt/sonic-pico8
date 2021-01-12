@@ -10,7 +10,7 @@ local visual = require("resources/visual_common")  -- we should require ingamead
 itest_manager:register_itest('player waits',
     {':stage_clear'}, function ()
 
-  -- enter title menu
+  -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap
   setup_callback(function (app)
     -- simulate having stored picked emeralds bitset from ingame cartridge
     -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
@@ -23,7 +23,8 @@ itest_manager:register_itest('player waits',
   end)
 
   -- let stage clear sequence play and see if nothing crashes
-  wait(20.0)
+  -- reduced frames from 750 to 100 to make it shorter, although we won't test the whole sequence
+  wait(100, true)
 
   -- we should still be in stage clear (because even if we load() titlemenu cartridge in headless,
   --  it won't do anything)

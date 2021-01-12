@@ -8,7 +8,7 @@ language: python # Can use any language here, but if it's not 'python'
 python: "3.6"
 
 env:
-  - LUA_VERSION=5.3 BUILD_VERSION=5.0 ENABLE_RENDER=1
+  - LUA_VERSION=5.3 BUILD_VERSION=`cat data/version.txt` ENABLE_RENDER=1
 
 cache:
   directories:
@@ -71,6 +71,8 @@ script:
   - ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh
   # test: all headless itests for titlemenu (ENABLE_RENDER set in env)
   - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests
+  # test: all headless itests for stage_intro (ENABLE_RENDER set in env)
+  - ITEST_CARTRIDGE_SUFFIX=stage_intro ./test.sh -f headless_itests
   # test: all headless itests for stage (ENABLE_RENDER set in env)
   - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests
   # test: all headless itests for stage_clear (ENABLE_RENDER set in env)
@@ -81,15 +83,18 @@ script:
 before_deploy:
   # zip multiple cartridges (including data) into one distributable archive
   - cp data/data_*.p8 "build/v${BUILD_VERSION}_release"
-  - pushd "build/v${BUILD_VERSION}_release"
-  - zip -r "picosonic_v${BUILD_VERSION}_release_cartridges.zip" .
+  - pushd build
+  # we are going to zip the whole folder, folder itself included, to make it easier
+  # for user to extract in a proper folder; so rename the folder to make it meaningful
+  - mv "v${BUILD_VERSION}_release" "picosonic_v${BUILD_VERSION}_release_cartridges"
+  - zip -r "picosonic_v${BUILD_VERSION}_release_cartridges.zip" "picosonic_v${BUILD_VERSION}_release_cartridges"
   - popd
 
 deploy:
   provider: releases
   api_key:
     secure: bfXQQ0AXGHgXiq0xOxhYQ2AXX/flQnxJh/+eA/HUGfwdoPDq0QTdqFA/3jEMWkJSsFKEBVKDjJGCt24QPxUIjTu91r1wyCNdL2KlNfnogRjWAVutRZxB/OC2HWR3kJtPjkFQBCsOXHBxGI3hMJL7LWr5WfNsSGMbcRMfvphxFT3ER8XBHAUEJY6roITm6noHroqQt8Uye+0+rkGqJ8QslKRqq8qBZMZeOiOrh6SBdlhsGw0KqNno/dMXQxx2ZCrh/VUeWjNvxzXe/mZjfBPbhvyecN7jz+FytEdAhdt1Dy37hhyOAkDfxLGGsH1YAAfinH8uFwoSRo0MH8fuhdXpT7jUXuAgP9/RS0FEiZDdX+J/FdncCbnoDfE9B4Dt3L3srISeiNwxKK5sx2kzyWvftK30pV1+zEgnbVEKGPIIeGb5wYWSCmzHf+CfLMk+bzeznTrpo/irY/vjoRBefNaVWXqLygrNWxM1uIMJae+OA3MYeUSYd1lpCyRw98i3GC7si68M9OaDeLoDjnqOLqvhurB/RmLzCU7mCYipn2kxykAOdevWN73cyx9VhdFy2GPE5VDw6EO6ZQP04KaeYxP2pgR4ts2kYWpVvf1PGg+2yN4QMkVhrWV+6dG2jtUO0BrCqt5Tpw0I3C3aFmBjjzFBBuKsZpr2yUG3roxnu1Dhww0=
-  file: build/v${BUILD_VERSION}_release/picosonic_v${BUILD_VERSION}_release_cartridges.zip
+  file: build/picosonic_v${BUILD_VERSION}_release_cartridges.zip
   on:
     tags: 'true'
   skip_cleanup: 'true'

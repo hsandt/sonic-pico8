@@ -6,39 +6,46 @@ develop
 [![Build Status](https://travis-ci.org/hsandt/sonic-pico8.svg?branch=develop)](https://travis-ci.org/hsandt/sonic-pico8)
 [![codecov](https://codecov.io/gh/hsandt/sonic-pico8/branch/develop/graph/badge.svg)](https://codecov.io/gh/hsandt/sonic-pico8)
 
-# PICO-Sonic
+# pico sonic
 
-A partial clone of classic Sonic the Hedgehog games made with PICO-8. It is inspired by the 16-bit games for mechanics, and by a mix of the 8-bit and 16-bit games for graphics and audio.
+[itch.io page](https://komehara.itch.io/pico-sonic)
 
-This is a fan game distributed for free and is not endorsed by Sega Games Co., Ltd, which owns the Sonic the Hedgehog trademark and retains all copyrights on the original assets.
+*The 8 Pico Emeralds have been scattered! Sonic arrives on Pico Island, ready to collect them all!*
 
-It is currently under development.
+![The 8 Pico Emeralds displayed in circle, each color corresponding to a color on the PICO-8 logo](doc/all_emeralds.png?raw=true)
 
-## Compatibility
+**pico sonic** is a partial demake of Sonic the Hedgehog 3 made with PICO-8. It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette, and the GBA titles which have more clear-cut graphics.
 
-Works with PICO-8 0.2.0i and 0.2.1b.
+The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. Consider it a technical demo with some exploration challenge.
+
+pico sonic is a fan game distributed for free and is not endorsed by Sega. Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
 
 ## Screenshots
 
-![Sonic running toward emerald](screenshots/picosonic_showcase.png?raw=true)
+![Sonic running toward emerald](doc/picosonic_showcase.png?raw=true)
+
+## Compatibility
+
+Works with PICO-8 0.2.0i ~ 0.2.1b.
 
 ## Features
 
-Version: 5.1
+Version: 5.2
 
 ### Physics
 
-* Character runs on flat ground, slopes, and through loops. Accelerates, decelerates and brakes.
-* Character falls from steep slopes and ceiling if running speed is too low.
-* Character is blocked by walls when running, walls and ceiling when jumping
-* Character jumps with variable height orthogonally to current ground
+* Character can run on flat ground, slopes, and through loops with acceleration, deceleration and braking
+* Character can roll from run
+* Character is blocked by walls and ceiling
+* Character falls from steep slopes and ceiling if running speed is too low
+* Character can jump with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
-* Character can roll
+* One-way platforms
 * Spring bounce
 
 ### Rendering
 
-* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle, *brake* animation
+* Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle, *brake* animation, spring *jump*
 * Foreground plane: grass and leaves, loop entrance
 * Midground plane: general collision tiles, loop exit, some decorations
 * Background planes: sky, ocean, trees and forest holes moving with parallax
@@ -51,46 +58,82 @@ Version: 5.1
 * Zone splash screen on stage start
 * Ingame HUD: list of picked emeralds shown in top-left corner
 * Result screen on stage clear
+* Retry screen to restart stage keeping or dropping emeralds picked so far
+* Fade-in/out effects using gradual color palette swapping
 
 ### Audio
 
 * BGM: Sonic 3 Angel Island BGM demake
-* Jingles: Sonic 3 intro, stage clear
-* SFX: brake, roll, jump, spring jump
+* Jingles: Sonic 3 intro, pick emerald, stage clear
+* SFX: brake, roll, jump, spring jump, rotating goal plate, menu confirm
 
-### Content
+### Notable features missing
 
-One demo stage, a reproduction of the environment of the first part of Angel Island Act 1 (before it is set on fire) almost at scale 1:1, but using tiles of 8x8. It uses a custom map streaming system to allow a bigger map than PICO-8 standard tilemap. There are no enemies, hazards, rings nor item boxes, but some items have been replaced with emeralds that can be collected to make the stage more interesting.
+* Timer
+* Crouching and looking up
+* Spin dash
+* When you collect all emeralds...
 
-Gimmicks:
+## Content
+
+There is a single demo stage which covers the first part of Angel Island Act 1. Scale is close to 1:1, but Sonic is slightly smaller (relatively to the environment) than in the original game.
+
+The game uses a custom map "streaming" system to allow a bigger map than PICO-8's standard tilemap. There are no enemies, hazards, rings nor item boxes. Rocks are not destructible.
+
+Some enemies have been replaced by static obstacles, and most importantly some items have been replaced by emeralds that can be collected to make the stage more interesting.
+
+Stage gimmicks:
 
 * Spring
 * Loop
 * Launch ramp
 
+## Controls
+
+You can play with keyboard or gamepad with those inputs:
+
+| Keyboard          | Gamepad                | Action            |
+|-------------------|------------------------|-------------------|
+| Left/right arrows | D-pad left/right       | Move              |
+| Down arrow        | D-pad down             | Roll (during run) |
+| Z/C/N             | Face button up/down    | Jump              |
+| X/V/M             | Face button left/right | Cancel (menu)     |
+| Enter             | Start                  | Open pause menu  |
+
+If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad Tool](https://www.generalarcade.com/gamepadtool) and copy-paste the configuration line into sdl_controllers.txt in PICO-8's [configuration directory](https://pico-8.fandom.com/wiki/Configuration). For instance, the Logicool Gamepad F310 had Open PICO-8 menu mapped to Right Trigger, so I remapped it to Start instead.
+
+### Pause menu
+
+In the pause menu (toggled with Enter/Start), if you are in-game, you can select the following options:
+
+* Warp to start: restart stage from beginning keeping collected emeralds
+* Retry from zero: restart stage losing emeralds collected so far
+* Back to title: go back to title menu
+
 ## Known technical issues
 
-* When jumping diagonally, Sonic can go past the ceiling in a vertical motion
-* Sonic can walk up low slopes with too much ease, and some slopes behave differently than in Sonic 3
-* After running up a vertical wall and falling, Sonic may fall *into* the wall and get stuck
-* The game slows down in some areas, and tends to run at 30 FPS (instead of 60) in others
+* The player cannot control the character until the stage intro is over
+* The game slows down in some areas, reaching 30 FPS instead of 60 FPS
+* The game pauses to switch to another cartridge, esp. at the end of the stage intro (only memory reload has been patched on PICO-8 to be instant)
+* Web version: high-pitched sounds in BGM do not convey the same as in desktop/cartridge versions
 
 ## Known design issues
 
-* The stage feels very empty and too big due to the lack of items and hazards, despite a reproduction 1:1 of the original map
-* Scaling is slightly inconsistent as the tilemap is 1:1, but the Sonic sprites are slightly smaller than they should be, and the rocks even smaller
+* The stage feels a bit empty and too big due to the lack of items, enemies and hazards
+* Scaling is slightly inconsistent as the tilemap is 1:1, but the Sonic sprites are slightly smaller than they should be (rocks in particular look very big)
+* Some ugly sprite / sprite transitions and SFX too far from the original sounds
 
 ## Releases
 
-You can directly download a released version of the game on the [releases](Releases) page. If you download the binary export for your platform, you're good to go.
+You can directly download a released version of the game on the [releases](https://github.com/hsandt/sonic-pico8/releases) page, or on the [itch.io page](https://komehara.itch.io/pico-sonic). If you download the binary export for your platform, you're good to go.
 
 However, if you download the cartridges or compressed cartridges (png) archive to run them directly in PICO-8, there are a few caveats:
 
 1. This game uses multiple cartridges, therefore you need to unzip the archive in your local PICO-8 *carts* folder so it can properly detect and load neighbor cartridges on game state transition (if you only want to play the core game and without title menu, you can just run picosonic_ingame.p8 anywhere, but note that it will freeze when the stage has been finished)
 
-2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable by following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p).
+2. The ingame cartridge (in .p8 or .p8.png form) cannot be run with a vanilla PICO-8 as it exceeds the maximum token limit (8192). To play it, you need to patch your PICO-8 executable to support more tokens, by either following the procedure I described in [this thread](https://www.lexaloffle.com/bbs/?pid=71689#p) or applying the patches provided in [pico-boots/scripts/patches](pico-boots/scripts/patches) (currently only provided for Linux, OSX and Windows runtime binaries; I will try to push patches for the editor, which you are probably using if you own PICO-8). You will need xdelta3 to apply the patches.
 
-3. I recommend using a fast reload patch (I will write a post to explain how to do it later) to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions.
+3. I also recommend using a fast reload patch to instantly stream stage data. Otherwise, the game will pause half a second every time the character is approaching a different 128x32-tiles region of the map, and also in the transition area between two regions. Similarly to 2., you should apply the patch from the patches folder using xdelta3 (editor patches not available yet).
 
 ## Build
 
@@ -191,11 +234,27 @@ Alternatively, to edit the spritesheet in your favorite editor:
 * [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide)
 * [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
 
-## Tools
+## Tools and process
 
 * Tilemap and audio editing made with PICO-8
 * Sprites made with Aseprite
 * Code written with Sublime Text
+
+I used my own PICO-8 framework, [pico-boots](https://github.com/hsandt/pico-boots).
+
+#### Audio
+
+For the BGMs, I used 8-bit remixes of Sonic 3 & Knuckles by danooct1 with the author's permission. I had to go from 8 channels to only 3 or 4 (PICO-8 has 4 channels but during in-game I need to keep one channel for SFX) by picking the notes I considered the most important.
+
+Then I exported the modified FamiTracker Music (FTM) files to MIDI, and converted each MIDI channel to PICO-8 format using [midi2pico](https://github.com/gamax92/midi2pico). Finally, I merged the channels manually and reworked some notes to make them sound better in PICO-8.
+
+For the SFX, I listened to the original ones, sometimes used Audacity to inspect wave forms, and tried to reproduce them from scratch with PICO-8's sound editor.
+
+## Credits
+
+* Sonic Team - Original games
+* danooct1 - 8-bit remixes of Sonic 3 BGMs
+* Leyn (komehara) - Programming, Sprite/SFX/jingle adaptation, BGM adjustments
 
 ## License
 
@@ -211,14 +270,8 @@ The `npm` folder has its own MIT license because I adapted a script from the `lu
 
 ### Assets
 
-Most assets are derivative works of Sonic the Hedgehog, especially the Master System and Mega Drive games. They have been created, either manually or with a conversion tool, for demonstration purpose.
+Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
 
-#### Sprites
+Most assets are derivative works of classic Sonic the Hedgehog games. They have been made with a combination or automated conversion and manual work (depending on the asset's complexity).
 
-I drew the sprites based on the Mega Drive and GBA games. Original sprites are under CC BY 4.0.
-
-#### Audio
-
-For the BGMs, I used 8-bit remixes of Sonic 3 & Knuckles by danooct1 with the author's permission, converted FamiTracker Music (FTM) files to MIDI, then to PICO-8 format using [midi2pico](https://github.com/gamax92/midi2pico), an automated music format converter. Finally, I merged the sound channels and reworked some notes to make them sound better in PICO-8.
-
-For the SFX, I listened to the original ones and tried to reproduce them with PICO-8's sound editor.
+Because of this, I only consider original assets and the manual work of adaptation to be under CC BY NC 4.0.

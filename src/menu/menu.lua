@@ -120,7 +120,7 @@ function menu:update()
     end
 
     -- visual
-    -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway,
+    -- no vertical arrow graphics in pico sonic, and no paginated menu for now anyway,
     -- so replaced visual_data.menu_arrow_anim_period with some number 2
     self.anim_time = (self.anim_time + self.app.delta_time) % 2
     local anim_time_ratio = self.anim_time / 2
@@ -243,7 +243,7 @@ function menu:draw(x, top)
     y = y + character_height + self.interval_y
   end
 
-  -- no vertical arrow graphics in pico-sonic, and no paginated menu for now anyway
+  -- no vertical arrow graphics in pico sonic, and no paginated menu for now anyway
 
   --[=[
 

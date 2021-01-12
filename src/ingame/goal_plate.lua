@@ -15,7 +15,7 @@ function goal_plate:init(global_loc)
   self.anim_spr:play("goal")
 end
 
---#if log
+--#if tostring
 function goal_plate:_tostring()
  return "goal_plate("..self.global_loc..")"
 end

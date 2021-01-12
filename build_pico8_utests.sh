@@ -13,10 +13,10 @@ data_path="$(dirname "$0")/data"
 build_output_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 author="leyn"
-title="pico sonic - pico8 utests (all)"
+title="pico sonic - pico8 utests (all) v$version"
 cartridge_stem="picosonic_pico8_utests_all"
-version="5.1"
 config='debug'
 symbols='assert,tostring,dump,log,p8utest'
 

@@ -4,7 +4,7 @@
 -- Usage: add require("common_titlemenu") at the top of each of your titlemenu main scripts
 --  (along with "engine/common") and in bustedhelper_titlemenu
 
-require("engine/core/fun_helper")
+require("engine/core/fun_helper")    -- unpacking
 require("engine/core/table_helper")
 
 --#if minify_level3
@@ -20,3 +20,12 @@ require("engine/core/table_helper")
 --   since it is not part of engine/common)
 strspl = 0
 --#endif
+
+--[[#pico8
+--#if unity
+
+-- see explanations in common_ingame.lua
+require("ordered_require_titlemenu")
+
+--#endif
+--#pico8]]

@@ -4,7 +4,7 @@
 # This is essentially a proxy script for pico-boots/scripts/build_cartridge.sh with the right parameters.
 
 # Usage: build_itest.sh cartridge_suffix
-#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
+#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
@@ -13,10 +13,10 @@ data_path="$(dirname "$0")/data"
 build_output_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 author="leyn"
-title="pico sonic itests (all)"
+title="pico sonic itests (all) v$version"
 cartridge_stem="picosonic_itest_all"
-version="5.1"
 config='itest'
 # symbols='assert,log,visual_logger,tuner,profiler,mouse,itest'
 # cheat needed to set debug motion mode

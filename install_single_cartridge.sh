@@ -3,48 +3,55 @@
 #  PICO-8 carts location
 # This is required if you need to play with multiple carts,
 #  as other carts will only be loaded in PICO-8 carts location
+# ! This does not install data and is not useful on its own,
+#  make sure to use install_single_cartridge_with_data.sh or
+#  to manually copy data cartridges after this.
 
 # Usage: install_single_cartridge.sh cartridge_suffix config [png]
-#   cartridge_suffix  'titlemenu', 'ingame' or 'stage_clear'
-#   config            build config (e.g. 'debug' or 'release')
-#   png 		      if passed, the .png cartridge is installed
+#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+#   config            build config (e.g. 'debug' or 'release'. Default: 'debug')
+#   png               if passed, the .png cartridge is installed
 
 # Currently only supported on Linux
 
 # png option is legacy for p8tool. It works in theory but in practice,
 #  since p8tool fails to build .p8.png properly, png will be directly
-#  saved from PICO-8 with export_cartridge_release.p8 into PICO-8 carts folder
+#  saved from PICO-8 with export_game_release.p8 into PICO-8 carts folder
+
+# Configuration: paths
+data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
     echo "build.sh takes 1 to 2 params, provided $#:
-    \$1: cartridge_suffix ('titlemenu', 'ingame' or 'stage_clear')
-    \$2: config ('debug', 'release', etc.)
+    \$1: cartridge_suffix ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
+    \$2: config ('debug', 'release', etc. Default: 'debug')
     \$3: optional suffix ('png' for .png cartridge install)"
     exit 1
 fi
 
 # Configuration: cartridge
 cartridge_stem="picosonic"
-version="5.1"
+version=`cat "$data_path/version.txt"`
 cartridge_suffix="$1"; shift
 config="$1"; shift
 
 # option "png" will export the png cartridge
 if [[ $1 = "png" ]] ; then
-	suffix=".png"
+  suffix=".png"
 else
-	suffix=""
+  suffix=""
 fi
 
 output_path="build/v${version}_${config}"
 cartridge_filepath="${output_path}/${cartridge_stem}_${cartridge_suffix}.p8${suffix}"
+# Linux only
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
 install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
 
 if [[ ! -f "${cartridge_filepath}" ]]; then
-	echo "File ${cartridge_filepath} could not be found, cannot install. Make sure you built it first."
-	exit 1
+  echo "File ${cartridge_filepath} could not be found, cannot install. Make sure you built it first."
+  exit 1
 fi
 
 mkdir -p "${install_dirpath}"
@@ -52,11 +59,5 @@ mkdir -p "${install_dirpath}"
 echo "Installing ${cartridge_filepath} in ${install_dirpath} ..."
 # trailing slash just to make sure we copy to a directory
 cp "${cartridge_filepath}" "${install_dirpath}/"
-
-# Also copy data stage and bgm cartridges for extended map, when installing ingame cartridge
-if [[ "$cartridge_suffix" == "ingame" ]]; then
-	echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."
-	cp data/data_*.p8 "${install_dirpath}/"
-fi
 
 echo "Done."

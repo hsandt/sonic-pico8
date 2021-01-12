@@ -51,9 +51,8 @@ describe('titlemenu', function ()
       it('should call start_coroutine_method on opening_sequence_async', function ()
         tm:on_enter()
 
-        local s = assert.spy(picosonic_app.start_coroutine)
-        s.was_called(1)
-        s.was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
+        assert.spy(picosonic_app.start_coroutine).was_called(1)
+        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
       end)
 
     end)
@@ -74,12 +73,24 @@ describe('titlemenu', function ()
         tm:show_menu()
 
         assert.spy(menu.show_items).was_called(1)
-        assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(titlemenu.items))
+        assert.spy(menu.show_items).was_called_with(match.ref(tm.menu), match.ref(tm.items))
       end)
 
     end)
 
     describe('on_exit', function ()
+
+      setup(function ()
+        stub(picosonic_app, "stop_all_coroutines")
+      end)
+
+      teardown(function ()
+        picosonic_app.stop_all_coroutines:revert()
+      end)
+
+      after_each(function ()
+        picosonic_app.stop_all_coroutines:clear()
+      end)
 
       it('should clear menu reference', function ()
         tm.menu = {"dummy"}
@@ -87,6 +98,13 @@ describe('titlemenu', function ()
         tm:on_exit()
 
         assert.is_nil(tm.menu)
+      end)
+
+      it('should call stop_all_coroutines', function ()
+        tm:on_exit()
+
+        assert.spy(picosonic_app.stop_all_coroutines).was_called(1)
+        assert.spy(picosonic_app.stop_all_coroutines).was_called_with(match.ref(tm.app))
       end)
 
     end)
@@ -129,6 +147,7 @@ describe('titlemenu', function ()
       setup(function ()
         stub(titlemenu, "draw_background")
         stub(titlemenu, "draw_title")
+        stub(titlemenu, "draw_version")
         -- stub menu.draw completely to avoid altering the count of text_helper.print_centered calls
         stub(menu, "draw")
       end)
@@ -136,12 +155,14 @@ describe('titlemenu', function ()
       teardown(function ()
         titlemenu.draw_background:revert()
         titlemenu.draw_title:revert()
+        titlemenu.draw_version:revert()
         menu.draw:revert()
       end)
 
       after_each(function ()
         titlemenu.draw_background:clear()
         titlemenu.draw_title:clear()
+        titlemenu.draw_version:clear()
         menu.draw:clear()
       end)
 
@@ -157,6 +178,13 @@ describe('titlemenu', function ()
 
         assert.spy(titlemenu.draw_title).was_called(1)
         assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
+      end)
+
+      it('should draw version', function ()
+        tm:render()
+
+        assert.spy(titlemenu.draw_version).was_called(1)
+        assert.spy(titlemenu.draw_version).was_called_with(match.ref(tm))
       end)
 
       it('should not try to render menu if nil', function ()

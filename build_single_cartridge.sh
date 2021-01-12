@@ -11,10 +11,10 @@ game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
 
 # Configuration: cartridge
+version=`cat "$data_path/version.txt"`
 author="leyn"
-title="pico sonic"
 cartridge_stem="picosonic"
-version="5.1"
+title="pico sonic v$version"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."
@@ -26,7 +26,9 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu', 'ingame' or 'stage_clear'
+                            'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+                            A symbol equal to the cartridge suffix is always added
+                            to the config symbols.
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
@@ -104,23 +106,33 @@ elif [[ $config == 'profiler' ]]; then
   symbols='profiler,cheat'
 fi
 
+# we always add a symbol for the cartridge suffix in case
+#  we want to customize the build of the same script
+#  depending on the cartridge it is built into
+if [[ -n "$symbols" ]]; then
+  # there was at least one symbol before, so add comma separator
+  symbols+=","
+fi
+symbols+="$cartridge_suffix"
+
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
 
-# Build cartridge (titlemenu, ingame or stage_clear)
+# Build cartridge (titlemenu, 'stage_intro', ingame or stage_clear)
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \
   -d "$data_path/builtin_data_${cartridge_suffix}.p8" \
   -M "$data_path/metadata.p8"                         \
-  -a "$author" -t "$title"                            \
+  -a "$author" -t "$title ($cartridge_suffix)"        \
   -p "$build_output_path"                             \
   -o "${cartridge_stem}_${cartridge_suffix}"          \
   -c "$config"                                        \
   --no-append-config                                  \
   -s "$symbols"                                       \
-  --minify-level 3
+  --minify-level 3                                    \
+  --unify "_${cartridge_suffix}"
 
 if [[ $? -ne 0 ]]; then
   echo ""

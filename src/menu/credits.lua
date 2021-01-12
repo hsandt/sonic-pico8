@@ -14,20 +14,27 @@ credits.type = ':credits'
 
 -- parameters data
 
+local menu_item_params = {
+  {"back", function(app)
+    flow:query_gamestate_type(':titlemenu')
+  end}
+}
+
 local copyright_text = wwrap("this is a fan game distributed for free and is not endorsed by sega games co. ltd, which owns the sonic the hedgehog trademark and copyrights.", 31)
 
--- sequence of menu items to display, with their target states
-credits.items = transform({
-    {"back", function(app)
-      flow:query_gamestate_type(':titlemenu')
-    end},
-  }, unpacking(menu_item))
+function credits:init()
+  -- sequence of menu items to display, with their target states
+  -- this could be static, but defining in init allows us to avoid
+  --  outer scope definition, so we don't need to declare local menu_item
+  --  at source top for unity build
+  self.items = transform(menu_item_params, unpacking(menu_item))
+end
 
 function credits:on_enter()
   music(-1)
 
   self.menu = menu(self.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor, 7)
-  self.menu:show_items(credits.items)
+  self.menu:show_items(self.items)
 end
 
 function credits:on_exit()
@@ -53,7 +60,7 @@ function credits:draw_credits_text()
   -- top
   local y = 2
 
-  text_helper.print_aligned("pico-sonic - credits", 64, y, alignments.horizontal_center, text_color)
+  text_helper.print_aligned("pico sonic - credits", 64, y, alignments.horizontal_center, text_color)
   y = y + line_dy + paragraph_margin + 2
 
   api.print("sonic team", margin_x, y, text_color)

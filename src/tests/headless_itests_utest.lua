@@ -35,6 +35,8 @@ elseif cartridge_suffix == 'ingame' then
   initial_gamestate = ':stage'
 elseif cartridge_suffix == 'stage_clear' then
   initial_gamestate = ':stage_clear'
+elseif cartridge_suffix == 'stage_intro' then
+  initial_gamestate = ':stage_intro'
 else
   assert(false, "unknown cartridge_suffix "..cartridge_suffix)
 end
@@ -58,8 +60,8 @@ logging.logger.active_categories = {
   -- ['log'] = nil,
   -- ['ui'] = nil,
   ['frame'] = true,
-  ['trace'] = true,
-  ['trace2'] = true,
+  -- ['trace'] = true,
+  -- ['trace2'] = true,
   ['spring'] = true,
 
   -- game

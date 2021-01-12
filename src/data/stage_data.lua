@@ -1,36 +1,30 @@
 local location_rect = require("engine/core/location_rect")
-local sprite_data = require("engine/render/sprite_data")
 
-local audio = require("resources/audio")
+local stage_data = {
 
-return {
+  -- Common data
 
-  -- common data
-
-  -- gameplay
+  -- Gameplay
 
   emerald_pick_radius = 8,
 
-  -- UI
 
-  -- delay between stage enter and showing stage title (s)
-  show_stage_splash_delay = 0.2,
+  -- Visual
+
   -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)
   goal_rotating_anim_duration = 120,
-  -- duration of stage clear jingle (frames)
-  --  (actual notes length is 357, added one note = 7 frames to reach half of 3rd column)
-  stage_clear_duration = 364,
-  -- delay between reaching goal and going back to title menu (s)
-  back_to_titlemenu_delay = 1.0,
-  -- duration of bgm fade out after reaching goal (s)
-  bgm_fade_out_duration = 1.0,
-
-  -- other visuals
 
   -- spring extension duration (tiles use custom animation via async instead of animated_sprite)
   spring_extend_duration = 0.15,
 
-  -- stage-specific data, per id
+
+  -- Audio
+
+  -- duration of bgm fade out after reaching goal (s)
+  bgm_fade_out_duration = 1.0,
+
+
+  -- Stage-specific data, per id
 
   for_stage = {
 
@@ -119,3 +113,5 @@ return {
   }
 
 }
+
+return stage_data

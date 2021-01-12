@@ -37,7 +37,7 @@ local ingame_sprite_data_t = {
   -- RUNTIME SPRITES (stage-specific and common runtime)
   -- below need runtime sprites to be reloaded, overwriting collision masks
   background_forest_bottom_hole = sprite_data(sprite_id_location(1, 0), tile_vector(2, 3), vector(0, 0), colors.pink),
-  emerald_silhouette = sprite_data(sprite_id_location(10, 0), tile_vector(2, 1), vector(4, 4), colors.pink),
+  emerald_silhouette = sprite_data(sprite_id_location(9, 1), nil, vector(3, 2), colors.pink),
   goal_plate_goal = sprite_data(sprite_id_location(3, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
   goal_plate_sonic = sprite_data(sprite_id_location(6, 0), tile_vector(3, 2), vector(12, 16), colors.pink),
   goal_plate_rotating_90 = sprite_data(sprite_id_location(0, 1), tile_vector(1, 2), vector(4, 16), colors.pink),
@@ -48,7 +48,7 @@ local ingame_sprite_data_t = {
   goal_plate_rotating_45_cw = sprite_data(sprite_id_location(8, 14), tile_vector(2, 2), vector(8, 16), colors.pink),
 
   -- emerald representation tile (left part) and object sprite (both parts)
-  emerald = sprite_data(sprite_id_location(10, 15), tile_vector(2, 1), vector(4, 4), colors.pink),
+  emerald = sprite_data(sprite_id_location(10, 15), nil, vector(3, 2), colors.pink),
 }
 
 -- derived data: the representative sprite of an emerald (the one placed on the tilemap)
@@ -70,7 +70,7 @@ local ingame_animated_sprite_data_t = {
         ingame_sprite_data_t.goal_plate_sonic,
         ingame_sprite_data_t.goal_plate_rotating_45_ccw,
         ingame_sprite_data_t.goal_plate_rotating_90,
-        ingame_sprite_data_t.goal_plate_rotating_45_cw,
+        ingame_sprite_data_t.goal_plate_rotating_45_cw
       },
       3,
       4  -- anim_loop_modes.loop (will be stopped from code)

@@ -4,7 +4,6 @@
 local visual = require("resources/visual_common")
 
 local emerald = new_class()
-emerald.emerald = emerald
 
 -- static (as used by emerald.draw and emerald_fx:render)
 -- set the color palette swap from red to emerald matching passed number

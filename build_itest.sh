@@ -25,7 +25,7 @@ config='itest'
 # symbols='log,itest,cheat'
 # symbols='itest,dump'
 # symbols='log,itest'
-symbols='itest,tostring'
+symbols='itest,proto,tostring'
 
 cartridge_suffix="$1"; shift
 

@@ -1,4 +1,5 @@
 local stage_data = require("data/stage_data")
+local world = require("platformer/world")
 -- visual requires ingame add-on to have access to spring sprite data
 local visual = require("resources/visual_common")
 
@@ -44,10 +45,25 @@ end
 
 -- render the spring at its current global location
 function spring:render()
+  -- the "quadrant" (ground direction) of the spring is the opposite
+  --  of its faced direction (self.direction), so oppose it then you
+  --  can get the angle to need to rotate it by for rendering
+  local angle = world.quadrant_to_right_angle(oppose_dir(self.direction))
+  local position = self:get_pivot()
+
+  -- hot-patching for offset needed when spring is oriented, so it doesn't
+  --  get too much inside ground or wall
+  -- better idea: place repr tile at spring center exactly and rotate it symmetrically
+  --  using tile center as reference, not tile topleft + pivot = bottom center
+  --  this way everything will be uniform
+  if self.direction == directions.left then
+    position:add_inplace(vector(-2, -4))
+  end
+
   if self.extended_timer > 0 then
-    visual.sprite_data_t.spring_extended:render(self:get_pivot())
+    visual.sprite_data_t.spring_extended:render(position, false, false, angle)
   else
-    visual.sprite_data_t.spring:render(self:get_pivot())
+    visual.sprite_data_t.spring:render(position, false, false, angle)
   end
 end
 

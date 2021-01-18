@@ -75,6 +75,7 @@ local mask_tile_angles = transform(
     -- 8px-high rectangles (angle doesn't matter)
     [28] = {8, 0},  -- 4x8 used for rock left part
     [29] = {8, 0},  -- 8x8 used for rock right part and any full ground
+    [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
 
     -- test only, no corresponding visual tiles
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
@@ -90,11 +91,17 @@ local mask_tile_angles = transform(
 
 -- table of tile collision mask ids indexed by tile id
 local mask_tile_ids = {
+
+--#if proto
+
 -- PROTO TILES
 -- those tiles are meant for testing and level blockout,
 --  and are their own collision masks
 -- they have no additional flags in the spritesheet
 --  so they cannot be used as special tiles like loops or springs
+-- in order to spare characters in release we surround them with #proto
+--  which is currently only defined in build_itest.sh, but you can
+--  temporarily define it for any config if you need it outside itests
 
 -- low slope descending every 4px with flat ground at every step
   [1]  = 1,
@@ -156,6 +163,7 @@ local mask_tile_ids = {
 -- 8px-high rectangles (angle doesn't matter)
   [28] = 28,
   [29] = 29,
+  [30] = 30,
 
 -- test only, no corresponding visual tiles
   [42] = 42,
@@ -163,6 +171,9 @@ local mask_tile_ids = {
   [44] = 44,
 
 -- [45] = 45,  -- empty tile
+
+--(proto)
+--#endif
 
 -- VISUAL TILES
 -- those tiles are associated to one of the collision masks above
@@ -229,9 +240,10 @@ local mask_tile_ids = {
   [107] = 29,  -- extended: bottom-right part
 -- extended higher parts (no collisions)
 --[[
-  [90] = 0,   -- spring extended: top-left part (we only collide with bottom)
-  [91] = 0,   -- spring extended: top-right part (we only collide with bottom)
+  [90] = 0,    -- spring extended: top-left part (we only collide with bottom)
+  [91] = 0,    -- spring extended: top-right part (we only collide with bottom)
 --]]
+  [202] = 30,  -- spring oriented left representative tile (still collides to avoid "falling inside")
 
 -- rock
 -- (only left parts have partial colliders)

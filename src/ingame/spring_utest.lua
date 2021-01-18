@@ -83,23 +83,42 @@ describe('spring', function ()
       sprite_data.render:clear()
     end)
 
-    it('should draw spring normal sprite data from top-left location', function ()
+    it('(up, extended_timer == 0) should draw spring normal sprite data from top-left location', function ()
       local spring_obj = spring(directions.up, location(2, 1))
 
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(26, 16))
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(26, 16), false, false, 0)
     end)
 
-    it('(extended_timer > 0) should draw spring extended sprite data from top-left location', function ()
+    it('(up, extended_timer > 0) should draw spring extended sprite data from top-left location', function ()
       local spring_obj = spring(directions.up, location(2, 1))
       spring_obj.extended_timer = 1
 
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 16))
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 16), false, false, 0)
+    end)
+
+    it('(left, extended_timer == 0) should draw spring normal sprite data from top-left location, rotated to left with offset adjustment', function ()
+      local spring_obj = spring(directions.left, location(2, 1))
+
+      spring_obj:render()
+
+      assert.spy(sprite_data.render).was_called(1)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(24, 12), false, false, 0.25)
+    end)
+
+    it('(left, extended_timer > 0) should draw spring extended sprite data from top-left location, rotated to left with offset adjustment', function ()
+      local spring_obj = spring(directions.left, location(2, 1))
+      spring_obj.extended_timer = 1
+
+      spring_obj:render()
+
+      assert.spy(sprite_data.render).was_called(1)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(24, 12), false, false, 0.25)
     end)
 
   end)

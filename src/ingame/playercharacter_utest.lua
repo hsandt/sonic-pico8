@@ -6411,10 +6411,10 @@ describe('player_char', function ()
 
         before_each(function ()
           -- ..sS
-          -- tile_representation also has a copy of spring_left_id
-          --  but we prefer using visual.spring_left_id since this is the one used at runtime
-          mock_mset(2, 0, visual.spring_left_id)
-          mock_mset(3, 0, visual.spring_left_id + 1)
+          -- tile_representation also has a copy of spring_up_repr_tile_id
+          --  but we prefer using visual.spring_up_repr_tile_id since this is the one used at runtime
+          mock_mset(2, 0, visual.spring_up_repr_tile_id)
+          mock_mset(3, 0, visual.spring_up_repr_tile_id + 1)
         end)
 
         after_each(function ()

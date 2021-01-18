@@ -2097,6 +2097,11 @@ end
 
 function player_char:check_spring()
   if self.ground_tile_location then
+    -- although spring have been converted to objects, checking for contact with
+    --  spring tiles using previous ground check is still easier than checking contact
+    --  with spring object as we would need to determine the surface rectangle where
+    --  Sonic's bottom center position would trigger the spring
+
     -- get stage state for global to region location conversion
     local curr_stage_state = flow.curr_state
     assert(curr_stage_state.type == ':stage')
@@ -2106,8 +2111,8 @@ function player_char:check_spring()
     local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
 
     -- follow new convention of putting flags on the visual sprite
-    -- of course since we know visual.spring_left_id we could check if tile id is
-    --  spring_left_id or spring_left_id + 1 directly, but flag is more convenient for 1st check
+    -- of course since we know visual.spring_up_repr_tile_id we could check if tile id is
+    --  spring_up_repr_tile_id or spring_up_repr_tile_id + 1 directly, but flag is more convenient for 1st check
     if fget(ground_visual_tile_id, sprite_flags.spring) then
       log("character triggers spring", 'spring')
       -- to get spring left part location we still need to check exact tile id
@@ -2115,8 +2120,8 @@ function player_char:check_spring()
       --  extended visual spring sprites as "springs" (in practice, in 1P it's impossible
       --  for player to hit spring twice in a row unless ceiling is very low, but safer)
       local spring_left_loc = self.ground_tile_location:copy()
-      assert(visual.spring_left_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_left_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
-      if ground_visual_tile_id == visual.spring_left_id + 1 then
+      assert(visual.spring_up_repr_tile_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_up_repr_tile_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
+      if ground_visual_tile_id == visual.spring_up_repr_tile_id + 1 then
         -- we are on right part of spring, so representative tile is just on the left
         spring_left_loc.i = spring_left_loc.i - 1
       end

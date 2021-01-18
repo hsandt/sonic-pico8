@@ -21,6 +21,7 @@ local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
+local spring = require("ingame/spring")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
 local visual_stage = require("resources/visual_stage")
@@ -78,6 +79,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
+            {},
             nil,
             -- itest only
             true,
@@ -92,6 +94,7 @@ describe('stage_state', function ()
             state.emeralds,
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
+            state.springs,
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,
@@ -279,6 +282,26 @@ describe('stage_state', function ()
         state:spawn_goal_plate_at(location(1, 33))
 
         assert.are_same(goal_plate(location(1, 33)), state.goal_plate)
+      end)
+
+    end)
+
+    describe('spawn_spring_up_at', function ()
+
+      it('should spawn and store spring up at global location', function ()
+        state:spawn_spring_up_at(location(1, 33))
+
+        assert.are_same({spring(directions.up, location(1, 33))}, state.springs)
+      end)
+
+    end)
+
+    describe('spawn_spring_left_at', function ()
+
+      it('should spawn and store spring left at global location', function ()
+        state:spawn_spring_left_at(location(1, 33))
+
+        assert.are_same({spring(directions.left, location(1, 33))}, state.springs)
       end)
 
     end)
@@ -1024,6 +1047,7 @@ describe('stage_state', function ()
 
           setup(function ()
             stub(stage_state, "update_fx")
+            stub(spring, "update")
             stub(player_char, "update")
             stub(stage_state, "check_reached_goal")
             stub(goal_plate, "update")
@@ -1032,6 +1056,7 @@ describe('stage_state', function ()
 
           teardown(function ()
             stage_state.update_fx:revert()
+            spring.update:revert()
             player_char.update:revert()
             stage_state.check_reached_goal:revert()
             goal_plate.update:revert()
@@ -1050,6 +1075,7 @@ describe('stage_state', function ()
 
           after_each(function ()
             stage_state.update_fx:clear()
+            spring.update:clear()
             player_char.update:clear()
             stage_state.check_reached_goal:clear()
             goal_plate.update:clear()
@@ -1084,6 +1110,23 @@ describe('stage_state', function ()
             state:update()
 
             assert.spy(goal_plate.update).was_not_called()
+          end)
+
+          describe('update', function ()
+
+            it('should update each spring', function ()
+              state.springs = {
+                spring(directions.up, location(1, 1)),
+                spring(directions.left, location(2, 2)),
+              }
+
+              state:update()
+
+              assert.spy(spring.update).was_called(2)
+              assert.spy(spring.update).was_called_with(match.ref(state.springs[1]))
+              assert.spy(spring.update).was_called_with(match.ref(state.springs[2]))
+            end)
+
           end)
 
         end)  -- update
@@ -1131,21 +1174,27 @@ describe('stage_state', function ()
         describe('extend_spring', function ()
 
           setup(function ()
-            stub(picosonic_app, "start_coroutine")
+            stub(spring, "extend")
           end)
 
           teardown(function ()
-            picosonic_app.start_coroutine:revert()
+            spring.extend:revert()
           end)
 
-          before_each(function ()
-            picosonic_app.start_coroutine:clear()
+          after_each(function ()
+            spring.extend:clear()
           end)
 
-          it('should play a coroutine that replaces spring tile with extended spring tile until a certain time (only check no error)', function ()
-            state:extend_spring(location(2, 0))
-            assert.spy(picosonic_app.start_coroutine).was_called(1)
-            assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.extend_spring_async, match.ref(state), location(2, 0))
+          it('should call extend on first spring matching passed location', function ()
+            state.springs = {
+              spring(directions.up, location(1, 1)),
+              spring(directions.left, location(2, 2)),
+            }
+
+            state:extend_spring(location(2, 2))
+
+            assert.spy(spring.extend).was_called(1)
+            assert.spy(spring.extend).was_called_with(match.ref(state.springs[2]))
           end)
 
         end)
@@ -1463,6 +1512,7 @@ describe('stage_state', function ()
           setup(function ()
             stub(stage_state, "render_environment_midground")
             stub(stage_state, "render_emeralds")
+            stub(stage_state, "render_springs")
             stub(stage_state, "render_goal_plate")
             stub(stage_state, "render_player_char")
             stub(stage_state, "render_environment_foreground")
@@ -1473,6 +1523,7 @@ describe('stage_state', function ()
           teardown(function ()
             stage_state.render_environment_midground:revert()
             stage_state.render_emeralds:revert()
+            stage_state.render_springs:revert()
             stage_state.render_goal_plate:revert()
             stage_state.render_player_char:revert()
             stage_state.render_environment_foreground:revert()
@@ -1483,6 +1534,7 @@ describe('stage_state', function ()
           after_each(function ()
             stage_state.render_environment_midground:clear()
             stage_state.render_emeralds:clear()
+            stage_state.render_springs:clear()
             stage_state.render_goal_plate:clear()
             stage_state.render_player_char:clear()
             stage_state.render_environment_foreground:clear()
@@ -1496,6 +1548,8 @@ describe('stage_state', function ()
             assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
             assert.spy(state.render_emeralds).was_called(1)
             assert.spy(state.render_emeralds).was_called_with(match.ref(state))
+            assert.spy(state.render_springs).was_called(1)
+            assert.spy(state.render_springs).was_called_with(match.ref(state))
             assert.spy(state.render_goal_plate).was_called(1)
             assert.spy(state.render_goal_plate).was_called_with(match.ref(state))
             assert.spy(state.render_player_char).was_called(1)
@@ -1572,6 +1626,40 @@ describe('stage_state', function ()
             assert.spy(emerald.render).was_called(2)
             assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[1]))
             assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[2]))
+          end)
+
+        end)
+
+        describe('render_springs', function ()
+
+          setup(function ()
+            stub(stage_state, "set_camera_with_origin")
+            stub(spring, "render")
+          end)
+
+          teardown(function ()
+            stage_state.set_camera_with_origin:revert()
+            spring.render:revert()
+          end)
+
+          after_each(function ()
+            stage_state.set_camera_with_origin:clear()
+            spring.render:clear()
+          end)
+
+          it('should call set_camera_with_origin and spring:render', function ()
+            state.springs = {
+              spring(directions.up, location(1, 1)),
+              spring(directions.left, location(2, 2)),
+            }
+
+            state:render_springs()
+
+            assert.spy(stage_state.set_camera_with_origin).was_called(1)
+            assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+            assert.spy(spring.render).was_called(2)
+            assert.spy(spring.render).was_called_with(match.ref(state.springs[1]))
+            assert.spy(spring.render).was_called_with(match.ref(state.springs[2]))
           end)
 
         end)

@@ -8,10 +8,13 @@ local sprite_data = require("engine/render/sprite_data")
 --  but only get the return value of visual_common named `visual` here
 -- it will automatically add extra information to `visual`
 local ingame_visual = {
-  -- springs are drawn directly via tilemap, so id is enough to play extend anim
-  spring_left_id = 74,                   -- add 1 to get right, must match value in tile_representation
-  spring_extended_bottom_left_id = 106,  -- add 1 to get right
-  spring_extended_top_left_id = 90,      -- add 1 to get right
+  spring_up_repr_tile_id = 74,              -- add 1 to get right part, must match value in tile_representation
+                                            --  and location in ingame_sprite_data_t.spring
+  spring_left_repr_tile_id = 202,           -- just representing spring oriented to left on tilemap,
+                                            --  we use the generic sprite rotated for rendering
+
+  -- spring_extended_bottom_left_id = 106,  -- add 1 to get right
+  -- spring_extended_top_left_id = 90,      -- add 1 to get right
 
   -- palm tree top representative tile is drawn via tilemap, so id is enough
   --  for extension sprites drawn around it, see ingame_sprite_data_t.palm_tree_leaves*
@@ -49,6 +52,10 @@ local ingame_sprite_data_t = {
 
   -- emerald representation tile (left part) and object sprite (both parts)
   emerald = sprite_data(sprite_id_location(10, 15), nil, vector(3, 2), colors.pink),
+
+  -- spring (pivot at bottom center on both sprites so it extends correctly)
+  spring = sprite_data(sprite_id_location(10, 4), tile_vector(2, 1), vector(10, 8), colors.pink),
+  spring_extended = sprite_data(sprite_id_location(10, 5), tile_vector(2, 2), vector(10, 16), colors.pink)
 }
 
 -- derived data: the representative sprite of an emerald (the one placed on the tilemap)

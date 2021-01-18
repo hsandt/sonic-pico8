@@ -64,6 +64,7 @@ function _init()
     -- ['palm'] = true,
     -- ['ramp'] = true,
     -- ['goal'] = true,
+    ['spring'] = true,
     -- ['...'] = true,
   }
 --#endif

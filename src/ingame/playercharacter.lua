@@ -2106,9 +2106,22 @@ function player_char:check_spring()
 end
 
 function player_char:trigger_spring(spring_obj)
-  self.velocity.y = -pc_data.spring_jump_speed_frame
-  self:enter_motion_state(motion_states.falling)
-  self.should_play_spring_jump = true
+  if spring_obj.direction == directions.up then
+    self.velocity.y = -pc_data.spring_jump_speed_frame
+    self:enter_motion_state(motion_states.falling)
+    self.should_play_spring_jump = true
+  else
+    -- we assume horizontal spring here (spring down not supported)
+    local horizontal_dir_sign = dir_vectors[spring_obj.direction].x
+    if self:is_grounded() then
+      -- we assume the spring on ground (ceiling would reverse ground speed sign)
+      -- set the ground speed and let velocity be updated next frame
+      self.ground_speed = horizontal_dir_sign * pc_data.spring_jump_speed_frame
+    else
+      -- in the air, only velocity makes sense
+      self.velocity.x = horizontal_dir_sign * pc_data.spring_jump_speed_frame
+    end
+  end
 
   spring_obj:extend()
 

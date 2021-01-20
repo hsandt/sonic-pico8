@@ -7632,7 +7632,9 @@ describe('player_char', function ()
 
     describe('trigger_spring', function ()
 
-      local mock_spring = { extend = spy.new(function () end) }
+      local mock_spring_up = { direction = directions.up, extend = spy.new(function () end) }
+      local mock_spring_left = { direction = directions.left, extend = spy.new(function () end) }
+      local mock_spring_right = { direction = directions.right, extend = spy.new(function () end) }
 
       setup(function ()
         stub(stage_state, "extend_spring")
@@ -7650,33 +7652,59 @@ describe('player_char', function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
         player_char.play_low_priority_sfx:clear()
-        mock_spring.extend:clear()
+        mock_spring_up.extend:clear()
+        mock_spring_left.extend:clear()
+        mock_spring_right.extend:clear()
       end)
 
-      it('should set upward velocity on character', function ()
-        pc:trigger_spring(mock_spring)
+      it('(spring up) should set upward velocity on character', function ()
+        pc:trigger_spring(mock_spring_up)
         assert.are_same(vector(0, - pc_data.spring_jump_speed_frame), pc.velocity)
       end)
 
-      it('should enter motion state: falling', function ()
-        pc:trigger_spring(mock_spring)
+      it('(spring up) should enter motion state: falling', function ()
+        pc:trigger_spring(mock_spring_up)
         assert.spy(player_char.enter_motion_state).was_called(1)
         assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
       end)
 
-      it('should set should_play_spring_jump to true', function ()
-        pc:trigger_spring(mock_spring)
+      it('(spring up) should set should_play_spring_jump to true', function ()
+        pc:trigger_spring(mock_spring_up)
         assert.is_true(pc.should_play_spring_jump)
       end)
 
+      it('(spring left, pc grounded) should set ground speed on character', function ()
+        pc.motion_state = motion_states.rolling
+        pc:trigger_spring(mock_spring_left)
+        assert.are_equal(- pc_data.spring_jump_speed_frame, pc.ground_speed)
+      end)
+
+      it('(spring right, pc grounded) should set ground speed on character', function ()
+        pc.motion_state = motion_states.rolling
+        pc:trigger_spring(mock_spring_right)
+        assert.are_equal(pc_data.spring_jump_speed_frame, pc.ground_speed)
+      end)
+
+      it('(spring left, pc airborne) should set air speed x on character', function ()
+        pc.motion_state = motion_states.air_spin
+        pc:trigger_spring(mock_spring_left)
+        assert.are_equal(- pc_data.spring_jump_speed_frame, pc.velocity.x)
+      end)
+
+      it('(spring right, pc airborne) should set air speed x on character', function ()
+        pc.motion_state = motion_states.air_spin
+        pc:trigger_spring(mock_spring_right)
+        assert.are_equal(pc_data.spring_jump_speed_frame, pc.velocity.x)
+      end)
+
       it('should call extend on passed spring object', function ()
-        pc:trigger_spring(mock_spring)
-        assert.spy(mock_spring.extend).was_called(1)
-        assert.spy(mock_spring.extend).was_called_with(match.ref(mock_spring))
+        pc:trigger_spring(mock_spring_up)
+        assert.spy(mock_spring_up.extend).was_called(1)
+        assert.spy(mock_spring_up.extend).was_called_with(match.ref(mock_spring_up))
       end)
 
       it('should play low priority spring jump sfx', function ()
-        pc:trigger_spring(mock_spring)
+        pc:trigger_spring(mock_spring_up)
 
         assert.spy(player_char.play_low_priority_sfx).was_called(1)
         assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spring_jump)

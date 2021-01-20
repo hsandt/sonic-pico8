@@ -54,8 +54,8 @@ local ingame_sprite_data_t = {
   emerald = sprite_data(sprite_id_location(10, 15), nil, vector(3, 2), colors.pink),
 
   -- spring (pivot at bottom center on both sprites so it extends correctly)
-  spring = sprite_data(sprite_id_location(10, 4), tile_vector(2, 1), vector(10, 8), colors.pink),
-  spring_extended = sprite_data(sprite_id_location(10, 5), tile_vector(2, 2), vector(10, 16), colors.pink)
+  spring = sprite_data(sprite_id_location(10, 4), tile_vector(2, 1), vector(10, 2), colors.pink),
+  spring_extended = sprite_data(sprite_id_location(10, 5), tile_vector(2, 2), vector(10, 10), colors.pink)
 }
 
 -- derived data: the representative sprite of an emerald (the one placed on the tilemap)

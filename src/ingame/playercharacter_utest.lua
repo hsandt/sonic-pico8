@@ -6409,30 +6409,63 @@ describe('player_char', function ()
           player_char.trigger_spring:revert()
         end)
 
-        before_each(function ()
-          -- ..sS
-          -- tile_representation also has a copy of spring_up_repr_tile_id
-          --  but we prefer using visual.spring_up_repr_tile_id since this is the one used at runtime
-          mock_mset(2, 0, visual.spring_up_repr_tile_id)
-          mock_mset(3, 0, visual.spring_up_repr_tile_id + 1)
-        end)
-
         after_each(function ()
           player_char.trigger_spring:clear()
         end)
 
-        it('should call trigger_spring when ground tile location points to a spring tile (left)', function ()
-          pc.ground_tile_location = location(2, 0)
-          pc:check_spring()
-          assert.spy(player_char.trigger_spring).was_called(1)
-          assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        describe('(check_player_char_in_spring_trigger_area finds no spring)', function ()
+
+          setup(function ()
+            stub(stage_state, "check_player_char_in_spring_trigger_area", function (self)
+              return nil
+            end)
+            stub(player_char, "trigger_spring")
+          end)
+
+          teardown(function ()
+            stage_state.check_player_char_in_spring_trigger_area:revert()
+            player_char.trigger_spring:revert()
+          end)
+
+          after_each(function ()
+            stage_state.check_player_char_in_spring_trigger_area:clear()
+            player_char.trigger_spring:clear()
+          end)
+
+          it('should call trigger_spring when ground tile location points to a spring tile (left)', function ()
+            pc:check_spring()
+            assert.spy(player_char.trigger_spring).was_not_called()
+          end)
+
         end)
 
-        it('should call trigger_spring when ground tile location points to a spring tile (right)', function ()
-          pc.ground_tile_location = location(3, 0)
-          pc:check_spring()
-          assert.spy(player_char.trigger_spring).was_called(1)
-          assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), location(2, 0))
+        describe('(check_player_char_in_spring_trigger_area finds spring)', function ()
+
+          local mock_spring = {"mock spring"}
+
+          setup(function ()
+            stub(stage_state, "check_player_char_in_spring_trigger_area", function (self)
+              return mock_spring
+            end)
+            stub(player_char, "trigger_spring")
+          end)
+
+          teardown(function ()
+            stage_state.check_player_char_in_spring_trigger_area:revert()
+            player_char.trigger_spring:revert()
+          end)
+
+          after_each(function ()
+            stage_state.check_player_char_in_spring_trigger_area:clear()
+            player_char.trigger_spring:clear()
+          end)
+
+          it('should call trigger_spring when ground tile location points to a spring tile (left)', function ()
+            pc:check_spring()
+            assert.spy(player_char.trigger_spring).was_called(1)
+            assert.spy(player_char.trigger_spring).was_called_with(match.ref(pc), match.ref(mock_spring))
+          end)
+
         end)
 
       end)
@@ -7599,6 +7632,8 @@ describe('player_char', function ()
 
     describe('trigger_spring', function ()
 
+      local mock_spring = { extend = spy.new(function () end) }
+
       setup(function ()
         stub(stage_state, "extend_spring")
         spy.on(player_char, "enter_motion_state")
@@ -7615,32 +7650,33 @@ describe('player_char', function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
         player_char.play_low_priority_sfx:clear()
+        mock_spring.extend:clear()
       end)
 
       it('should set upward velocity on character', function ()
-        pc:trigger_spring(location(2, 0))
+        pc:trigger_spring(mock_spring)
         assert.are_same(vector(0, - pc_data.spring_jump_speed_frame), pc.velocity)
       end)
 
       it('should enter motion state: falling', function ()
-        pc:trigger_spring(location(2, 0))
+        pc:trigger_spring(mock_spring)
         assert.spy(player_char.enter_motion_state).was_called(1)
         assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
       end)
 
       it('should set should_play_spring_jump to true', function ()
-        pc:trigger_spring(location(2, 0))
+        pc:trigger_spring(mock_spring)
         assert.is_true(pc.should_play_spring_jump)
       end)
 
-      it('should call extend_spring on current stage state with spring location', function ()
-        pc:trigger_spring(location(2, 0))
-        assert.spy(stage_state.extend_spring).was_called(1)
-        assert.spy(stage_state.extend_spring).was_called_with(match.ref(flow.curr_state), location(2, 0))
+      it('should call extend on passed spring object', function ()
+        pc:trigger_spring(mock_spring)
+        assert.spy(mock_spring.extend).was_called(1)
+        assert.spy(mock_spring.extend).was_called_with(match.ref(mock_spring))
       end)
 
       it('should play low priority spring jump sfx', function ()
-        pc:trigger_spring(location(2, 0))
+        pc:trigger_spring(mock_spring)
 
         assert.spy(player_char.play_low_priority_sfx).was_called(1)
         assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spring_jump)

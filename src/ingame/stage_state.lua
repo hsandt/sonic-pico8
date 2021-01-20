@@ -608,20 +608,36 @@ function stage_state:spawn_objects_in_all_map_regions()
 end
 
 
--- visual events
+-- gameplay events
 
-function stage_state:extend_spring(spring_left_loc)
-  -- find spring object corresponding to spring location
-  -- (Sonic still detects springs via tiles for convenience)
+-- check if position is in emerald pick up area and if so,
+--  return emerald. Else, return nil.
+function stage_state:check_player_char_in_spring_trigger_area()
   for spring_obj in all(self.springs) do
-    if spring_obj.global_loc == spring_left_loc then
-      spring_obj:extend()
-      return
+    if spring_obj.direction == directions.up then
+      -- check that character is standing just on spring (replaces spring ground tile check)
+      local pivot = spring_obj:get_adjusted_pivot()
+      local pc_bottom_center = self.player_char:get_bottom_center()
+      if flr(pc_bottom_center.y) == pivot.y and
+          pivot.x - 8 <= pc_bottom_center.x and pc_bottom_center.x < pivot.x + 8 then
+        return spring_obj
+      end
+    else
+      -- we only support horizontal spring from here
+      -- check that character center is located so that its left/right edge
+      --  just touched the right/left edge a spring oriented right/left
+      -- we detect walls at 3.5, so distance of 3
+      -- note that when falling right in front of the spring, even without velocity X,
+      --  Sonic will detect the spring
+      local trigger_center = spring_obj:get_adjusted_pivot() + 3 * dir_vectors[spring_obj.direction]
+      local pc_center = self.player_char.position
+      if flr(pc_center.x) == trigger_center.x and
+          trigger_center.y - 6 <= pc_center.y and pc_center.y < trigger_center.y + 6 then
+        return spring_obj
+      end
     end
   end
 end
-
--- gameplay events
 
 -- check if position is in emerald pick up area and if so,
 --  return emerald. Else, return nil.

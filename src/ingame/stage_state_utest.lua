@@ -1171,30 +1171,79 @@ describe('stage_state', function ()
 
         end)  -- state.render
 
-        describe('extend_spring', function ()
+        describe('check_player_char_in_spring_trigger_area', function ()
 
-          setup(function ()
-            stub(spring, "extend")
-          end)
-
-          teardown(function ()
-            spring.extend:revert()
-          end)
-
-          after_each(function ()
-            spring.extend:clear()
-          end)
-
-          it('should call extend on first spring matching passed location', function ()
+          before_each(function ()
             state.springs = {
-              spring(directions.up, location(1, 1)),
-              spring(directions.left, location(2, 2)),
+              spring(directions.up, location(0, 0)),
+              spring(directions.left, location(0, 1)),
+              spring(directions.right, location(0, 2)),
             }
+          end)
 
-            state:extend_spring(location(2, 2))
+          it('should return nil when player char position is too far from all the springs', function ()
+            state.player_char.position = vector(300, 300)
+            assert.is_nil(state:check_player_char_in_spring_trigger_area())
+          end)
 
-            assert.spy(spring.extend).was_called(1)
-            assert.spy(spring.extend).was_called_with(match.ref(state.springs[2]))
+          it('should return spring when player char is standing on spring up (left edge)', function ()
+            -- set bottom center manually (spring pivot at (10, 2))
+            state.player_char.position = vector(10 - 8, 2.1 - 8)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[1], spring_obj)
+          end)
+
+          it('should return spring when player char is standing on spring up (right edge)', function ()
+            -- set bottom center manually (spring pivot at (10, 2))
+            state.player_char.position = vector(10 + 7.9, 2.1 - 8)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[1], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring left (top)', function ()
+            -- set bottom center manually (spring pivot at (10, 10))
+            state.player_char.position = vector(10 - 11, 10 - 6)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[2], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring left (bottom)', function ()
+            -- set bottom center manually (spring pivot at (10, 10))
+            state.player_char.position = vector(10 - 11, 10 + 5.9)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[2], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring right (top)', function ()
+            -- set bottom center manually (spring pivot at (5, 18))
+            state.player_char.position = vector(5 + 3, 18 - 6)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[3], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring right (bottom)', function ()
+            -- set bottom center manually (spring pivot at (5, 18))
+            state.player_char.position = vector(5 + 3, 18 + 5.9)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[3], spring_obj)
           end)
 
         end)

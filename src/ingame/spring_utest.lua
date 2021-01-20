@@ -60,11 +60,21 @@ describe('spring', function ()
 
   end)
 
-  describe('get_pivot', function ()
+  describe('get_adjusted_pivot', function ()
 
-    it('spring(directions.up, location(2, 1)) => "spring(directions.up, location(2, 1))"', function ()
+    it('should return standard pivot for spring up', function ()
       local spring_obj = spring(directions.up, location(2, 1))
-      assert.are_same(vector(26, 16), spring_obj:get_pivot())
+      assert.are_same(vector(26, 10), spring_obj:get_adjusted_pivot())
+    end)
+
+    it('should return topleft + (2, 2) for spring left', function ()
+      local spring_obj = spring(directions.left, location(2, 1))
+      assert.are_same(vector(16 + 2, 8 + 2), spring_obj:get_adjusted_pivot())
+    end)
+
+    it('should return topleft + (5, 2) for spring left', function ()
+      local spring_obj = spring(directions.right, location(2, 1))
+      assert.are_same(vector(16 + 5, 8 + 2), spring_obj:get_adjusted_pivot())
     end)
 
   end)
@@ -83,13 +93,16 @@ describe('spring', function ()
       sprite_data.render:clear()
     end)
 
+    -- tests below have been written before defining get_adjusted_pivot instead of get_pivot
+    --  and rely on get_adjusted_pivot being correct
+
     it('(up, extended_timer == 0) should draw spring normal sprite data from top-left location', function ()
       local spring_obj = spring(directions.up, location(2, 1))
 
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(26, 16), false, false, 0)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(26, 10), false, false, 0)
     end)
 
     it('(up, extended_timer > 0) should draw spring extended sprite data from top-left location', function ()
@@ -99,7 +112,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 16), false, false, 0)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 10), false, false, 0)
     end)
 
     it('(left, extended_timer == 0) should draw spring normal sprite data from top-left location, rotated to left with offset adjustment', function ()
@@ -108,7 +121,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(24, 12), false, false, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(18, 10), false, false, 0.25)
     end)
 
     it('(left, extended_timer > 0) should draw spring extended sprite data from top-left location, rotated to left with offset adjustment', function ()
@@ -118,7 +131,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(24, 12), false, false, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(18, 10), false, false, 0.25)
     end)
 
   end)

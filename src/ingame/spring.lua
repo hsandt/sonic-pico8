@@ -39,8 +39,19 @@ function spring:update()
   end
 end
 
-function spring:get_pivot()
-  return self.global_loc:to_topleft_position() + visual.sprite_data_t.spring.pivot
+-- unfortunately the spring objects are never quite where the spring tiles
+--  would put them with a unique pivot, if we want the springs to stick to walls
+-- so this method allows use to get adjusted pivot for rendering and detection trigger
+--  (I rotated the sprites in Aseprite to locate the wanted pivot for each oriented spring)
+-- keep using the standard sprite pivot for actual sprite rotation in render() though
+function spring:get_adjusted_pivot()
+  if self.direction == directions.up then
+    return self.global_loc:to_topleft_position() + visual.sprite_data_t.spring.pivot
+  elseif self.direction == directions.left then
+    return self.global_loc:to_topleft_position() + vector(2, 2)
+  else  -- self.direction == directions.right then -- (we don't support spring down)
+    return self.global_loc:to_topleft_position() + vector(5, 2)
+  end
 end
 
 -- render the spring at its current global location
@@ -49,21 +60,12 @@ function spring:render()
   --  of its faced direction (self.direction), so oppose it then you
   --  can get the angle to need to rotate it by for rendering
   local angle = world.quadrant_to_right_angle(oppose_dir(self.direction))
-  local position = self:get_pivot()
-
-  -- hot-patching for offset needed when spring is oriented, so it doesn't
-  --  get too much inside ground or wall
-  -- better idea: place repr tile at spring center exactly and rotate it symmetrically
-  --  using tile center as reference, not tile topleft + pivot = bottom center
-  --  this way everything will be uniform
-  if self.direction == directions.left then
-    position:add_inplace(vector(-2, -4))
-  end
+  local adjusted_pivot = self:get_adjusted_pivot()
 
   if self.extended_timer > 0 then
-    visual.sprite_data_t.spring_extended:render(position, false, false, angle)
+    visual.sprite_data_t.spring_extended:render(adjusted_pivot, false, false, angle)
   else
-    visual.sprite_data_t.spring:render(position, false, false, angle)
+    visual.sprite_data_t.spring:render(adjusted_pivot, false, false, angle)
   end
 end
 

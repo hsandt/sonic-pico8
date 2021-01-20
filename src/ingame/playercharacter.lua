@@ -231,11 +231,9 @@ end
 --#endif
 
 -- move the player character so that the bottom center is at the given position
---#if itest
 function player_char:get_bottom_center()
   return self.position + self:get_center_height() * self:get_quadrant_down()
 end
---#endif
 
 --#if busted
 -- move the player character so that the bottom center is at the given position
@@ -2096,48 +2094,23 @@ end
 --#if ingame
 
 function player_char:check_spring()
-  if self.ground_tile_location then
-    -- although spring have been converted to objects, checking for contact with
-    --  spring tiles using previous ground check is still easier than checking contact
-    --  with spring object as we would need to determine the surface rectangle where
-    --  Sonic's bottom center position would trigger the spring
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
 
-    -- get stage state for global to region location conversion
-    local curr_stage_state = flow.curr_state
-    assert(curr_stage_state.type == ':stage')
-
-    -- convert to region location before using mget
-    local ground_tile_region_loc = curr_stage_state:global_to_region_location(self.ground_tile_location)
-    local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
-
-    -- follow new convention of putting flags on the visual sprite
-    -- of course since we know visual.spring_up_repr_tile_id we could check if tile id is
-    --  spring_up_repr_tile_id or spring_up_repr_tile_id + 1 directly, but flag is more convenient for 1st check
-    if fget(ground_visual_tile_id, sprite_flags.spring) then
-      log("character triggers spring", 'spring')
-      -- to get spring left part location we still need to check exact tile id
-      -- note that we only check for non-extended sprite, so make sure not to flag
-      --  extended visual spring sprites as "springs" (in practice, in 1P it's impossible
-      --  for player to hit spring twice in a row unless ceiling is very low, but safer)
-      local spring_left_loc = self.ground_tile_location:copy()
-      assert(visual.spring_up_repr_tile_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_up_repr_tile_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
-      if ground_visual_tile_id == visual.spring_up_repr_tile_id + 1 then
-        -- we are on right part of spring, so representative tile is just on the left
-        spring_left_loc.i = spring_left_loc.i - 1
-      end
-      self:trigger_spring(spring_left_loc)
-    end
+  -- unlike emerald we don't just pass position because springs are more complex
+  --  and may require to check bottom position or center position depending on direction
+  local spring_obj = curr_stage_state:check_player_char_in_spring_trigger_area()
+  if spring_obj then
+    self:trigger_spring(spring_obj)
   end
 end
 
-function player_char:trigger_spring(spring_left_loc)
+function player_char:trigger_spring(spring_obj)
   self.velocity.y = -pc_data.spring_jump_speed_frame
   self:enter_motion_state(motion_states.falling)
   self.should_play_spring_jump = true
 
-  local curr_stage_state = flow.curr_state
-  assert(curr_stage_state.type == ':stage')
-  curr_stage_state:extend_spring(spring_left_loc)
+  spring_obj:extend()
 
   -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spring_jump)

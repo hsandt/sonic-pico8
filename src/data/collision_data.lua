@@ -76,6 +76,7 @@ local mask_tile_angles = transform(
     [28] = {8, 0},  -- 4x8 used for rock left part
     [29] = {8, 0},  -- 8x8 used for rock right part and any full ground
     [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
+    [31] = {8, 0},  -- 6x8 used for spring oriented right (ground part only, object is separate)
 
     -- test only, no corresponding visual tiles
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
@@ -164,6 +165,7 @@ local mask_tile_ids = {
   [28] = 28,
   [29] = 29,
   [30] = 30,
+  [31] = 31,
 
 -- test only, no corresponding visual tiles
   [42] = 42,
@@ -244,6 +246,7 @@ local mask_tile_ids = {
   [91] = 0,    -- spring extended: top-right part (we only collide with bottom)
 --]]
   [202] = 30,  -- spring oriented left representative tile (still collides to avoid "falling inside")
+  [173] = 31,  -- spring oriented right representative tile (still collides to avoid "falling inside")
 
 -- rock
 -- (only left parts have partial colliders)

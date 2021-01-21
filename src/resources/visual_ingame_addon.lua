@@ -12,9 +12,8 @@ local ingame_visual = {
                                             --  and location in ingame_sprite_data_t.spring
   spring_left_repr_tile_id = 202,           -- just representing spring oriented to left on tilemap,
                                             --  we use the generic sprite rotated for rendering
-
-  -- spring_extended_bottom_left_id = 106,  -- add 1 to get right
-  -- spring_extended_top_left_id = 90,      -- add 1 to get right
+  spring_right_repr_tile_id = 173,          -- just representing spring oriented to right on tilemap,
+                                            --  we use the generic sprite rotated for rendering
 
   -- palm tree top representative tile is drawn via tilemap, so id is enough
   --  for extension sprites drawn around it, see ingame_sprite_data_t.palm_tree_leaves*

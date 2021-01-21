@@ -297,15 +297,16 @@ function stage_state:spawn_goal_plate_at(global_loc)
   log("added goal plate at "..global_loc, "goal")
 end
 
-function stage_state:spawn_spring_up_at(global_loc)
-  add(self.springs, spring(directions.up, global_loc))
-  log("added spring up at "..global_loc, "spring")
+local function generate_spawn_spring_dir_at_callback(direction, global_loc)
+  return function (self, global_loc)
+    add(self.springs, spring(direction, global_loc))
+  log("added spring dir "..direction.." at "..global_loc, "spring")
+  end
 end
 
-function stage_state:spawn_spring_left_at(global_loc)
-  add(self.springs, spring(directions.left, global_loc))
-  log("added spring left at "..global_loc, "spring")
-end
+stage_state.spawn_spring_up_at = generate_spawn_spring_dir_at_callback(directions.up)
+stage_state.spawn_spring_left_at = generate_spawn_spring_dir_at_callback(directions.left)
+stage_state.spawn_spring_right_at = generate_spawn_spring_dir_at_callback(directions.right)
 
 -- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
 stage_state.spawn_object_callbacks_by_tile_id = {
@@ -314,6 +315,7 @@ stage_state.spawn_object_callbacks_by_tile_id = {
   [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
   [visual.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
   [visual.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
+  [visual.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
 }
 
 -- proxy for table above, mostly to ease testing
@@ -626,7 +628,11 @@ function stage_state:check_player_char_in_spring_trigger_area()
       -- we only support horizontal spring from here
       -- check that character center is located so that its left/right edge
       --  just touched the right/left edge a spring oriented right/left
-      -- we detect walls at 3.5, so distance of 3
+      -- we detect walls at 3.5, and to maintain left/right symmetry we should use the same trick
+      --  as during motion, ceiling so we get an extra pixel on the right;
+      --  but in this particular case, get_adjusted_pivot already adds an offset of 6 instead of 5
+      --  for springs oriented right (else the spring is drawn 1px inside the wall on the left),
+      --  so we can just use 3 and no ceil() on trigger_center.x
       -- note that when falling right in front of the spring, even without velocity X,
       --  Sonic will detect the spring
       local trigger_center = spring_obj:get_adjusted_pivot() + 3 * dir_vectors[spring_obj.direction]

@@ -1227,8 +1227,8 @@ describe('stage_state', function ()
           end)
 
           it('should return spring when player char is touching spring right (top)', function ()
-            -- set bottom center manually (spring pivot at (5, 18))
-            state.player_char.position = vector(5 + 3, 18 - 6)
+            -- set bottom center manually (spring pivot at (5, 18)), we ceil 3.5 so +4
+            state.player_char.position = vector(5 + 4, 18 - 6)
 
             local spring_obj = state:check_player_char_in_spring_trigger_area()
 
@@ -1237,8 +1237,8 @@ describe('stage_state', function ()
           end)
 
           it('should return spring when player char is touching spring right (bottom)', function ()
-            -- set bottom center manually (spring pivot at (5, 18))
-            state.player_char.position = vector(5 + 3, 18 + 5.9)
+            -- set bottom center manually (spring pivot at (5, 18)), we ceil 3.5 so +4
+            state.player_char.position = vector(5 + 4, 18 + 5.9)
 
             local spring_obj = state:check_player_char_in_spring_trigger_area()
 

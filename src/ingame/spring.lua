@@ -50,7 +50,7 @@ function spring:get_adjusted_pivot()
   elseif self.direction == directions.left then
     return self.global_loc:to_topleft_position() + vector(2, 2)
   else  -- self.direction == directions.right then -- (we don't support spring down)
-    return self.global_loc:to_topleft_position() + vector(5, 2)
+    return self.global_loc:to_topleft_position() + vector(6, 2)
   end
 end
 

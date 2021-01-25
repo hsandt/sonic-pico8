@@ -32,7 +32,7 @@ Works with PICO-8 0.2.0i ~ 0.2.1b.
 
 ## Features
 
-Version: 5.2
+Version: 5.3
 
 ### Physics
 
@@ -43,7 +43,7 @@ Version: 5.2
 * Character can jump with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
 * One-way platforms
-* Spring bounce
+* Spring bounce (vertical and horizontal)
 
 ### Rendering
 
@@ -86,7 +86,7 @@ Some enemies have been replaced by static obstacles, and most importantly some i
 
 Stage gimmicks:
 
-* Spring
+* Spring (vertical and horizontal)
 * Loop
 * Launch ramp
 

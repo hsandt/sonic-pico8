@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.3] - 2021-01-25
+### Added
+- Stage: added horizontal springs (internally now fully-fledged objects instead of tiles)
+
+### Changed
+- Stage clear: fixed "Angel Island" -> "Pico Island"
+
 ## [5.2] - 2021-01-12
 ### Added
 - Titlemenu: added version number in top-right corner
@@ -225,7 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.2...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.3...HEAD
+[5.3]: https://github.com/hsandt/sonic-pico8/compare/v5.2...v5.3
 [5.2]: https://github.com/hsandt/sonic-pico8/compare/v5.1...v5.2
 [5.1]: https://github.com/hsandt/sonic-pico8/compare/v5.0...v5.1
 [5.0]: https://github.com/hsandt/sonic-pico8/compare/v4.2...v5.0

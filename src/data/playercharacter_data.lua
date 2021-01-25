@@ -119,6 +119,7 @@ local pc_data = {
   -- absolute vertical speed given by spring bounce (px/frame)
   -- from this and gravity we can deduce the max jump height: 116.71875
   --  (measurement with debug step: 112) ~ 14+ tiles at frame 45
+  -- note: this is the value of yellow springs only, red springs would be 8
   spring_jump_speed_frame = 5,
 
   -- duration of horizontal control lock after bouncing on a spring (frames)

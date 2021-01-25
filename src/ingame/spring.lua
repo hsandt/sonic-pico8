@@ -56,16 +56,32 @@ end
 
 -- render the spring at its current global location
 function spring:render()
-  -- the "quadrant" (ground direction) of the spring is the opposite
-  --  of its faced direction (self.direction), so oppose it then you
-  --  can get the angle to need to rotate it by for rendering
-  local angle = world.quadrant_to_right_angle(oppose_dir(self.direction))
+  local flip_y = false
+  local angle = 0
   local adjusted_pivot = self:get_adjusted_pivot()
+  if self.direction == directions.left then
+    angle = 0.25
+  elseif self.direction == directions.right then
+    -- we used to rotate spring to the right, but then lighting was at the bottom and shade at the top
+    --  so we should flip the sprite to preserve lighting orientation
+    -- however, flip is applied *before* rotation so we need to flip on Y to actually flip on X
+    flip_y = true
+    angle = 0.25
+
+    -- unfortunately using flip Y has the side effect of messing up visual pivot,
+    --  so we must offset adjusted pivot (which is still correct for physics trigger check)
+    --  depending on whether sprite is extended or not
+    if self.extended_timer > 0 then
+      adjusted_pivot.x = adjusted_pivot.x + 4
+    else
+      adjusted_pivot.x = adjusted_pivot.x - 4  -- 6-4 = 2 so we now got the same adjusted pivot as left
+    end
+  end
 
   if self.extended_timer > 0 then
-    visual.sprite_data_t.spring_extended:render(adjusted_pivot, false, false, angle)
+    visual.sprite_data_t.spring_extended:render(adjusted_pivot, false, flip_y, angle)
   else
-    visual.sprite_data_t.spring:render(adjusted_pivot, false, false, angle)
+    visual.sprite_data_t.spring:render(adjusted_pivot, false, flip_y, angle)
   end
 end
 

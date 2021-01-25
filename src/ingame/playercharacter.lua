@@ -1051,7 +1051,7 @@ function player_char:update_platformer_motion_grounded()
     if self.slope_angle >= 0.25 and self.slope_angle <= 0.75 then
       should_fall = true
     end
-    self.horizontal_control_lock_timer = pc_data.horizontal_control_lock_duration
+    self.horizontal_control_lock_timer = pc_data.fall_off_horizontal_control_lock_duration
   end
 
   if should_fall then
@@ -2112,7 +2112,16 @@ function player_char:trigger_spring(spring_obj)
     self.should_play_spring_jump = true
   else
     -- we assume horizontal spring here (spring down not supported)
-    local horizontal_dir_sign = dir_vectors[spring_obj.direction].x
+
+    -- set orientation to match spring, even in the air
+    -- small trick to convert cardinal direction to horizontal direction
+    -- cardinal left = 0 -> horizontal left 1, cardinal right = 2 -> horizontal right = 2
+    self.orientation = spring_obj.direction / 2 + 1
+
+    -- set horizontal control lock to prevent character from immediately braking (when grounded)
+    self.horizontal_control_lock_timer = pc_data.spring_horizontal_control_lock_duration
+
+    local horizontal_dir_sign = horizontal_dir_signs[self.orientation]
     if self:is_grounded() then
       -- we assume the spring on ground (ceiling would reverse ground speed sign)
       -- set the ground speed and let velocity be updated next frame

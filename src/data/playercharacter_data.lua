@@ -99,7 +99,7 @@ local pc_data = {
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
 
   -- duration of horizontal control lock after fall/slide off (frames)
-  horizontal_control_lock_duration = 30,  -- 0.5s
+  fall_off_horizontal_control_lock_duration = 30,  -- 0.5s
 
   -- max air speed (px/frame)
   --  (very high, probably won't happen unless Sonic falls in bottomless pit)
@@ -120,6 +120,9 @@ local pc_data = {
   -- from this and gravity we can deduce the max jump height: 116.71875
   --  (measurement with debug step: 112) ~ 14+ tiles at frame 45
   spring_jump_speed_frame = 5,
+
+  -- duration of horizontal control lock after bouncing on a spring (frames)
+  spring_horizontal_control_lock_duration = 16,
 
   -- ground speed required to trigger launch ramp (px/frame)
   launch_ramp_min_ground_speed = 2,

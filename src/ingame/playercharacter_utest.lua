@@ -3156,7 +3156,7 @@ describe('player_char', function ()
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
 
-            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
+            assert.are_equal(pc_data.fall_off_horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
           end)
 
           it('(rolling on ceiling/wall-ceiling) should enter air_spin state and set horizontal control lock timer thanks to Falling and Sliding Off condition combined with block setting ground speed to 0', function ()
@@ -3169,7 +3169,7 @@ describe('player_char', function ()
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
 
-            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
+            assert.are_equal(pc_data.fall_off_horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
           end)
 
           it('(on slope less than 90 degrees) should not enter falling state but still set horizontal control lock timer', function ()
@@ -3180,7 +3180,7 @@ describe('player_char', function ()
 
             assert.spy(enter_motion_state_stub).was_not_called()
 
-            assert.are_equal(pc_data.horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
+            assert.are_equal(pc_data.fall_off_horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
           end)
 
         end)
@@ -7671,6 +7671,18 @@ describe('player_char', function ()
       it('(spring up) should set should_play_spring_jump to true', function ()
         pc:trigger_spring(mock_spring_up)
         assert.is_true(pc.should_play_spring_jump)
+      end)
+
+      it('(spring left) should set orientation to left', function ()
+        pc.orientation = horizontal_dirs.right
+        pc:trigger_spring(mock_spring_left)
+        assert.are_equal(horizontal_dirs.left, pc.orientation)
+      end)
+
+      it('(spring left) should set horizontal control lock timer', function ()
+        pc.horizontal_control_lock_timer = 0
+        pc:trigger_spring(mock_spring_left)
+        assert.are_equal(pc_data.spring_horizontal_control_lock_duration, pc.horizontal_control_lock_timer)
       end)
 
       it('(spring left, pc grounded) should set ground speed on character', function ()

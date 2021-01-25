@@ -81,12 +81,10 @@ fi
 # Archiving
 # The archives we create here keep all the files under a folder with the full game name
 #  to avoid extracting files "in the wild". They are meant for manual distribution and preservation.
-# itch.io creates its own folder from the game name + channel, and count on the distributable structure
-#  to be stable across versions so butler can only upload differences. So do not upload those archives
-#  to itch.io, as the folder inside contain the version number which will change and prevent efficient
-#  diffing. For itch.io, just upload the folder directly, and it will generate the zip.
-# The exception is OSX, when the .app folder is at the top of the PICO-8 archive,
-#  and we can upload either the .app folder directly or the .zip containing it.
+# itch.io uses a diff system with butler to only upload minimal patches, but surprisingly works well
+#  with folder structure changing slightly (renaming containing folder and executable), so don't worry
+#  about providing those customized zip archives to butler.
+# Note that for OSX, the .app folder is at the same time the app and the top-level element.
 pushd "${export_folder}"
 
   # PNG cartridges archive (delete existing one to be safe)

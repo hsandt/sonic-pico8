@@ -621,7 +621,8 @@ function stage_state:check_player_char_in_spring_trigger_area()
       local pivot = spring_obj:get_adjusted_pivot()
       local pc_bottom_center = self.player_char:get_bottom_center()
       if flr(pc_bottom_center.y) == pivot.y and
-          pivot.x - 8 <= pc_bottom_center.x and pc_bottom_center.x < pivot.x + 8 then
+          -- left/right pixel integer dissymmetry means we have -flr(8.5) and +ceil(8.9)
+          pivot.x - 8 <= pc_bottom_center.x and pc_bottom_center.x < pivot.x + 9 then
         return spring_obj
       end
     else
@@ -638,7 +639,8 @@ function stage_state:check_player_char_in_spring_trigger_area()
       local trigger_center = spring_obj:get_adjusted_pivot() + 3 * dir_vectors[spring_obj.direction]
       local pc_center = self.player_char.position
       if flr(pc_center.x) == trigger_center.x and
-          trigger_center.y - 6 <= pc_center.y and pc_center.y < trigger_center.y + 6 then
+          -- up/down pixel integer dissymmetry means we have -flr(6.5) and +ceil(6.5)
+          trigger_center.y - 6 <= pc_center.y and pc_center.y < trigger_center.y + 7 then
         return spring_obj
       end
     end

@@ -38,6 +38,15 @@ describe('emerald', function ()
 
   end)
 
+  describe('get_render_bounding_corners', function ()
+
+    it('should return standard pivot for spring (direction doesn\'t matter)', function ()
+      local em = emerald(7, location(2, 1))
+      assert.are_same({vector(16, 8), vector(24, 16)}, {em:get_render_bounding_corners()})
+    end)
+
+  end)
+
   describe('set_color_palette (static)', function ()
 
     setup(function ()

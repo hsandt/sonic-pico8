@@ -951,7 +951,9 @@ function stage_state:render_emeralds()
   self:set_camera_with_origin()
 
   for em in all(self.emeralds) do
-    em:render()
+    if self.camera:is_rect_visible(em:get_render_bounding_corners()) then
+      em:render()
+    end
   end
 end
 

@@ -1663,10 +1663,18 @@ describe('stage_state', function ()
           end)
 
           it('should call set_camera_with_origin and emerald:render', function ()
+            -- We could stub emerald:get_render_bounding_corners AND
+            --  camera_class:is_rect_visible but chained stubbing often generates
+            --  meaningless intermediate mock values. Instead, we do a mini-integration test
+            --  with actual values where springs would be visible on screen or not
+            --  (but we are not unit testing the visibility test itself, so no need to
+            --  test all edge cases)
             state.emeralds = {
-              emerald(1, location(1, 1)),
-              emerald(2, location(2, 2)),
+              emerald(1, location(1, 0)),
+              emerald(2, location(2, 0)),
+              emerald(3, location(8, 0)),  -- on right edge of screen, not visible
             }
+            state.camera.position = vector(0, 0)
 
             state:render_emeralds()
 
@@ -1697,12 +1705,7 @@ describe('stage_state', function ()
           end)
 
           it('should call set_camera_with_origin and spring:render', function ()
-            -- We could stub spring:get_render_bounding_corners AND
-            --  camera_class:is_rect_visible but chained stubbing often generates
-            --  meaningless intermediate mock values. Instead, we do a mini-integration test
-            --  with actual values where springs would be visible on screen or not
-            --  (but we are not unit testing the visibility test itself, so no need to
-            --  test all edge cases)
+            -- we prefer mini-integration test as with render_emeralds
             state.springs = {
               spring(directions.up, location(1, 0)),
               spring(directions.left, location(2, 0)),

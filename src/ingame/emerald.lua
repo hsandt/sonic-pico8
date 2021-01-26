@@ -68,6 +68,12 @@ function emerald:get_center()
   return self.location:to_center_position()
 end
 
+function emerald:get_render_bounding_corners()
+  -- no need to have minimum bounding box for sprite, a 1x1-tile-sized box is enough
+  local topleft = self.location:to_topleft_position()
+  return topleft, topleft + tile_size * vector(1, 1)
+end
+
 -- render the emerald at its current location
 function emerald:render()
   emerald.draw(self.number, self:get_center())

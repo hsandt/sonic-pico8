@@ -1697,10 +1697,18 @@ describe('stage_state', function ()
           end)
 
           it('should call set_camera_with_origin and spring:render', function ()
+            -- We could stub spring:get_render_bounding_corners AND
+            --  camera_class:is_rect_visible but chained stubbing often generates
+            --  meaningless intermediate mock values. Instead, we do a mini-integration test
+            --  with actual values where springs would be visible on screen or not
+            --  (but we are not unit testing the visibility test itself, so no need to
+            --  test all edge cases)
             state.springs = {
-              spring(directions.up, location(1, 1)),
-              spring(directions.left, location(2, 2)),
+              spring(directions.up, location(1, 0)),
+              spring(directions.left, location(2, 0)),
+              spring(directions.right, location(8, 0)),  -- on right edge of screen, not visible
             }
+            state.camera.position = vector(0, 0)
 
             state:render_springs()
 

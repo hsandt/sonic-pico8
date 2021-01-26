@@ -45,13 +45,26 @@ end
 --  (I rotated the sprites in Aseprite to locate the wanted pivot for each oriented spring)
 -- keep using the standard sprite pivot for actual sprite rotation in render() though
 function spring:get_adjusted_pivot()
+  local topleft = self.global_loc:to_topleft_position()
   if self.direction == directions.up then
-    return self.global_loc:to_topleft_position() + visual.sprite_data_t.spring.pivot
+    return topleft + visual.sprite_data_t.spring.pivot
   elseif self.direction == directions.left then
-    return self.global_loc:to_topleft_position() + vector(2, 2)
+    return topleft + vector(2, 2)
   else  -- self.direction == directions.right then -- (we don't support spring down)
-    return self.global_loc:to_topleft_position() + vector(6, 2)
+    return topleft + vector(6, 2)
   end
+end
+
+function spring:get_render_bounding_corners()
+  -- to simplify we won't aim for the minimal bounding box for each direction,
+  --  in each state, but for a broad region bounding all possible sprites
+  --  in all possible directions and states (normal or extended)
+  -- the sprite is always contained within a square of 2x2 tiles, where the global
+  --  location is the bottom-left tile, and so its topleft is just on the middle left
+  --  of the square; so the bounding corners are 1 tile above that, and 2 tiles to the
+  --  right, 1 tile below that
+  local topleft = self.global_loc:to_topleft_position()
+  return topleft - tile_size * vector(0, 1), topleft + tile_size * vector(2, 1)
 end
 
 -- render the spring at its current global location

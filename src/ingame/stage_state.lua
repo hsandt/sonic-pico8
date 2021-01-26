@@ -959,7 +959,9 @@ function stage_state:render_springs()
   self:set_camera_with_origin()
 
   for spring_obj in all(self.springs) do
-    spring_obj:render()
+    if self.camera:is_rect_visible(spring_obj:get_render_bounding_corners()) then
+      spring_obj:render()
+    end
   end
 end
 

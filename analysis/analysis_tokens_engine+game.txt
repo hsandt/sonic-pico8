@@ -3,50 +3,58 @@ Analyzing lua scripts in intermediate/release/pico-boots...
 common.lua (common.p8)
 by analyze_script
 - version: 16
-- lines: 49
-- chars: 2263
-- tokens: 30
-- compressed chars: 1285
+- lines: 54
+- chars: 2730
+- tokens: 36
+- compressed chars: 1491
 
 animated_sprite_data.lua (animated_sprite_data.p8)
 by analyze_script
 - version: 16
-- lines: 40
-- chars: 1524
-- tokens: 97
-- compressed chars: 686
+- lines: 31
+- chars: 1141
+- tokens: 61
+- compressed chars: 576
+
+postprocess.lua (postprocess.p8)
+by analyze_script
+- version: 16
+- lines: 56
+- chars: 3146
+- tokens: 253
+- compressed chars: 1077
 
 sprite_data.lua (sprite_data.p8)
 by analyze_script
 - version: 16
-- lines: 61
-- chars: 1888
-- tokens: 184
-- compressed chars: 813
+- lines: 73
+- chars: 2482
+- tokens: 218
+- compressed chars: 1032
 
 sprite.lua (sprite.p8)
 by analyze_script
 - version: 16
-- lines: 107
-- chars: 6274
-- tokens: 212
-- compressed chars: 2942
+- lines: 110
+- chars: 6552
+- tokens: 218
+- compressed chars: 3102
 
 animated_sprite.lua (animated_sprite.p8)
 by analyze_script
 - version: 16
-- lines: 125
-- chars: 7185
-- tokens: 275
-- compressed chars: 2668
+- lines: 123
+- chars: 7900
+- tokens: 261
+- compressed chars: 2913
 
 color.lua (color.p8)
 by analyze_script
 - version: 16
-- lines: 33
-- chars: 567
-- tokens: 82
-- compressed chars: 363
+- lines: 39
+- chars: 772
+- tokens: 94
+- compressed chars: 495
 
 input_enums.lua (input_enums.p8)
 by analyze_script
@@ -59,42 +67,42 @@ by analyze_script
 input.lua (input.p8)
 by analyze_script
 - version: 16
-- lines: 167
-- chars: 5846
-- tokens: 344
-- compressed chars: 1603
+- lines: 163
+- chars: 5618
+- tokens: 337
+- compressed chars: 1494
 
 constants.lua (constants.p8)
 by analyze_script
 - version: 16
-- lines: 24
-- chars: 579
-- tokens: 43
-- compressed chars: 347
+- lines: 29
+- chars: 786
+- tokens: 46
+- compressed chars: 501
 
 gameapp.lua (gameapp.p8)
 by analyze_script
 - version: 16
-- lines: 202
-- chars: 6934
-- tokens: 310
-- compressed chars: 2666
+- lines: 147
+- chars: 4992
+- tokens: 180
+- compressed chars: 2052
 
 coroutine_runner.lua (coroutine_runner.p8)
 by analyze_script
 - version: 16
-- lines: 51
-- chars: 2065
-- tokens: 114
-- compressed chars: 969
+- lines: 50
+- chars: 2038
+- tokens: 113
+- compressed chars: 956
 
 gamestate.lua (gamestate.p8)
 by analyze_script
 - version: 16
 - lines: 28
-- chars: 869
-- tokens: 38
-- compressed chars: 478
+- chars: 917
+- tokens: 34
+- compressed chars: 518
 
 manager.lua (manager.p8)
 by analyze_script
@@ -107,10 +115,10 @@ by analyze_script
 flow.lua (flow.p8)
 by analyze_script
 - version: 16
-- lines: 101
-- chars: 2928
-- tokens: 122
-- compressed chars: 1284
+- lines: 96
+- chars: 2830
+- tokens: 110
+- compressed chars: 1271
 
 time_trigger.lua (time_trigger.p8)
 by analyze_script
@@ -166,7 +174,7 @@ by analyze_script
 - lines: 264
 - chars: 8917
 - tokens: 611
-- compressed chars: 3115
+- compressed chars: 3113
 
 scripted_action.lua (scripted_action.p8)
 by analyze_script
@@ -216,21 +224,29 @@ by analyze_script
 - tokens: 10
 - compressed chars: 144
 
+rectangle.lua (rectangle.p8)
+by analyze_script
+- version: 16
+- lines: 25
+- chars: 905
+- tokens: 67
+- compressed chars: 463
+
 label.lua (label.p8)
 by analyze_script
 - version: 16
-- lines: 28
-- chars: 1092
+- lines: 29
+- chars: 1116
 - tokens: 71
-- compressed chars: 580
+- compressed chars: 602
 
 overlay.lua (overlay.p8)
 by analyze_script
 - version: 16
-- lines: 57
-- chars: 1349
-- tokens: 123
-- compressed chars: 689
+- lines: 64
+- chars: 2390
+- tokens: 109
+- compressed chars: 1103
 
 api.lua (api.p8)
 by analyze_script
@@ -296,6 +312,14 @@ by analyze_script
 - tokens: 90
 - compressed chars: 795
 
+vector_ext_magnitude.lua (vector_ext_magnitude.p8)
+by analyze_script
+- version: 16
+- lines: 44
+- chars: 1754
+- tokens: 127
+- compressed chars: 671
+
 string.lua (string.p8)
 by analyze_script
 - version: 16
@@ -307,10 +331,18 @@ by analyze_script
 class.lua (class.p8)
 by analyze_script
 - version: 16
-- lines: 183
-- chars: 7511
-- tokens: 319
-- compressed chars: 3094
+- lines: 173
+- chars: 7229
+- tokens: 296
+- compressed chars: 2999
+
+vector_ext_mirror.lua (vector_ext_mirror.p8)
+by analyze_script
+- version: 16
+- lines: 21
+- chars: 467
+- tokens: 47
+- compressed chars: 209
 
 random.lua (random.p8)
 by analyze_script
@@ -336,21 +368,21 @@ by analyze_script
 - tokens: 20
 - compressed chars: 226
 
-vector_ext.lua (vector_ext.p8)
+stringify.lua (stringify.p8)
 by analyze_script
 - version: 16
-- lines: 99
-- chars: 3297
-- tokens: 271
-- compressed chars: 1158
+- lines: 11
+- chars: 319
+- tokens: 23
+- compressed chars: 234
 
 helper.lua (helper.p8)
 by analyze_script
 - version: 16
-- lines: 56
-- chars: 1788
-- tokens: 99
-- compressed chars: 1040
+- lines: 54
+- chars: 1823
+- tokens: 92
+- compressed chars: 1076
 
 string_join.lua (string_join.p8)
 by analyze_script
@@ -363,18 +395,18 @@ by analyze_script
 seq_helper.lua (seq_helper.p8)
 by analyze_script
 - version: 16
-- lines: 34
-- chars: 880
-- tokens: 71
-- compressed chars: 413
+- lines: 49
+- chars: 1286
+- tokens: 101
+- compressed chars: 587
 
 math.lua (math.p8)
 by analyze_script
 - version: 16
-- lines: 252
-- chars: 7455
+- lines: 251
+- chars: 7362
 - tokens: 554
-- compressed chars: 3226
+- compressed chars: 3177
 
 enum.lua (enum.p8)
 by analyze_script
@@ -383,6 +415,14 @@ by analyze_script
 - chars: 482
 - tokens: 29
 - compressed chars: 342
+
+vector_ext_angle.lua (vector_ext_angle.p8)
+by analyze_script
+- version: 16
+- lines: 36
+- chars: 1183
+- tokens: 98
+- compressed chars: 536
 
 dump.lua (dump.p8)
 by analyze_script
@@ -435,10 +475,26 @@ by analyze_script
 collision.lua (collision.p8)
 by analyze_script
 - version: 16
-- lines: 147
-- chars: 7069
-- tokens: 362
-- compressed chars: 2605
+- lines: 148
+- chars: 7116
+- tokens: 365
+- compressed chars: 2618
+
+volume.lua (volume.p8)
+by analyze_script
+- version: 16
+- lines: 54
+- chars: 2379
+- tokens: 122
+- compressed chars: 1134
+
+sound.lua (sound.p8)
+by analyze_script
+- version: 16
+- lines: 15
+- chars: 418
+- tokens: 31
+- compressed chars: 285
 
 pico8wtk.lua (pico8wtk.p8)
 by analyze_script
@@ -462,17 +518,25 @@ main_ingame.lua (main_ingame.p8)
 by analyze_script
 - version: 16
 - lines: 41
-- chars: 886
+- chars: 873
 - tokens: 48
-- compressed chars: 555
+- compressed chars: 537
 
 common_titlemenu.lua (common_titlemenu.p8)
 by analyze_script
 - version: 16
-- lines: 22
-- chars: 1204
-- tokens: 9
-- compressed chars: 762
+- lines: 27
+- chars: 1294
+- tokens: 12
+- compressed chars: 796
+
+main_stage_clear.lua (main_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 42
+- chars: 998
+- tokens: 51
+- compressed chars: 570
 
 itest_main_ingame.lua (itest_main_ingame.p8)
 by analyze_script
@@ -485,10 +549,26 @@ by analyze_script
 common_ingame.lua (common_ingame.p8)
 by analyze_script
 - version: 16
-- lines: 20
-- chars: 774
-- tokens: 21
-- compressed chars: 505
+- lines: 31
+- chars: 1825
+- tokens: 15
+- compressed chars: 1108
+
+common_stage_clear.lua (common_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 18
+- chars: 740
+- tokens: 12
+- compressed chars: 485
+
+common_stage_intro.lua (common_stage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 27
+- chars: 1177
+- tokens: 15
+- compressed chars: 723
 
 itest_main_titlemenu.lua (itest_main_titlemenu.p8)
 by analyze_script
@@ -506,53 +586,101 @@ by analyze_script
 - tokens: 31
 - compressed chars: 340
 
+main_stage_intro.lua (main_stage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 41
+- chars: 954
+- tokens: 48
+- compressed chars: 569
+
 utest_main.lua (utest_main.p8)
 by analyze_script
 - version: 16
 - lines: 27
-- chars: 1007
+- chars: 1019
 - tokens: 24
-- compressed chars: 623
+- compressed chars: 633
+
+itest_main_stage_intro.lua (itest_main_stage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 42
+- chars: 1142
+- tokens: 56
+- compressed chars: 640
+
+ordered_require_stage_clear.lua (ordered_require_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 52
+- chars: 1737
+- tokens: 150
+- compressed chars: 582
+
+itest_main_stage_clear.lua (itest_main_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 43
+- chars: 1188
+- tokens: 59
+- compressed chars: 647
 
 picosonic_app_titlemenu.lua (picosonic_app_titlemenu.p8)
 by analyze_script
 - version: 16
 - lines: 20
-- chars: 607
+- chars: 616
 - tokens: 33
-- compressed chars: 350
+- compressed chars: 347
 
 picosonic_app_base.lua (picosonic_app_base.p8)
 by analyze_script
 - version: 16
-- lines: 36
-- chars: 597
-- tokens: 44
-- compressed chars: 322
+- lines: 38
+- chars: 657
+- tokens: 48
+- compressed chars: 336
+
+picosonic_app_stage_intro.lua (picosonic_app_stage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 19
+- chars: 596
+- tokens: 25
+- compressed chars: 331
+
+picosonic_app_stage_clear.lua (picosonic_app_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 19
+- chars: 596
+- tokens: 25
+- compressed chars: 330
 
 picosonic_app_ingame.lua (picosonic_app_ingame.p8)
 by analyze_script
 - version: 16
-- lines: 19
-- chars: 547
-- tokens: 25
-- compressed chars: 325
+- lines: 39
+- chars: 1150
+- tokens: 70
+- compressed chars: 573
 
 playercharacter.lua (playercharacter.p8)
 by analyze_script
 - version: 16
-- lines: 2039
-- chars: 110395
-- tokens: 3900
-- compressed chars: 42256
+- lines: 1910
+- chars: 105242
+- tokens: 3568
+- compressed chars: 40583
 
 stage_state.lua (stage_state.p8)
 by analyze_script
 - version: 16
-- lines: 1457
-- chars: 61954
-- tokens: 4302
-- compressed chars: 23008
+- lines: 969
+- chars: 43345
+- tokens: 2065
+- compressed chars: 16670
 
 emerald_fx.lua (emerald_fx.p8)
 by analyze_script
@@ -565,26 +693,42 @@ by analyze_script
 camera.lua (camera.p8)
 by analyze_script
 - version: 16
-- lines: 190
-- chars: 8456
-- tokens: 447
-- compressed chars: 3284
+- lines: 213
+- chars: 9662
+- tokens: 510
+- compressed chars: 3760
+
+spring.lua (spring.p8)
+by analyze_script
+- version: 16
+- lines: 98
+- chars: 4017
+- tokens: 244
+- compressed chars: 1720
 
 emerald.lua (emerald.p8)
 by analyze_script
 - version: 16
-- lines: 73
-- chars: 2634
-- tokens: 159
-- compressed chars: 1218
+- lines: 78
+- chars: 2852
+- tokens: 177
+- compressed chars: 1328
 
 playercharacter_enums.lua (playercharacter_enums.p8)
 by analyze_script
 - version: 16
-- lines: 25
-- chars: 1108
-- tokens: 33
-- compressed chars: 663
+- lines: 23
+- chars: 1044
+- tokens: 29
+- compressed chars: 634
+
+base_stage_state.lua (base_stage_state.p8)
+by analyze_script
+- version: 16
+- lines: 108
+- chars: 4882
+- tokens: 242
+- compressed chars: 2253
 
 fx.lua (fx.p8)
 by analyze_script
@@ -605,50 +749,82 @@ by analyze_script
 itestplayercharacter.lua (itestplayercharacter.p8)
 by analyze_script
 - version: 16
-- lines: 499
-- chars: 27482
+- lines: 500
+- chars: 27483
 - tokens: 205
-- compressed chars: 10420
+- compressed chars: 10422
 
 itesttitlemenu.lua (itesttitlemenu.p8)
 by analyze_script
 - version: 16
 - lines: 37
-- chars: 1052
+- chars: 1065
 - tokens: 64
-- compressed chars: 631
+- compressed chars: 661
+
+iteststage_clear.lua (iteststage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 37
+- chars: 1522
+- tokens: 73
+- compressed chars: 936
+
+iteststage_intro.lua (iteststage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 30
+- chars: 1168
+- tokens: 60
+- compressed chars: 724
+
+visual_stage_clear_addon.lua (visual_stage_clear_addon.p8)
+by analyze_script
+- version: 16
+- lines: 23
+- chars: 1006
+- tokens: 59
+- compressed chars: 658
+
+visual_stage.lua (visual_stage.p8)
+by analyze_script
+- version: 16
+- lines: 300
+- chars: 13536
+- tokens: 1318
+- compressed chars: 5229
 
 visual_common.lua (visual_common.p8)
 by analyze_script
 - version: 16
-- lines: 187
-- chars: 8400
-- tokens: 862
-- compressed chars: 3396
+- lines: 70
+- chars: 3053
+- tokens: 194
+- compressed chars: 1495
 
 visual_ingame_addon.lua (visual_ingame_addon.p8)
 by analyze_script
 - version: 16
-- lines: 85
-- chars: 4530
-- tokens: 378
-- compressed chars: 1780
+- lines: 91
+- chars: 5134
+- tokens: 431
+- compressed chars: 1943
 
 visual_titlemenu_addon.lua (visual_titlemenu_addon.p8)
 by analyze_script
 - version: 16
 - lines: 39
-- chars: 1688
-- tokens: 207
+- chars: 1674
+- tokens: 203
 - compressed chars: 750
 
 audio.lua (audio.p8)
 by analyze_script
 - version: 16
-- lines: 27
-- chars: 424
-- tokens: 59
-- compressed chars: 267
+- lines: 31
+- chars: 648
+- tokens: 57
+- compressed chars: 384
 
 world.lua (world.p8)
 by analyze_script
@@ -685,18 +861,18 @@ by analyze_script
 credits.lua (credits.p8)
 by analyze_script
 - version: 16
-- lines: 82
-- chars: 2589
-- tokens: 334
-- compressed chars: 1202
+- lines: 91
+- chars: 2839
+- tokens: 344
+- compressed chars: 1329
 
 titlemenu.lua (titlemenu.p8)
 by analyze_script
 - version: 16
-- lines: 70
-- chars: 2084
-- tokens: 232
-- compressed chars: 1085
+- lines: 129
+- chars: 4492
+- tokens: 320
+- compressed chars: 2242
 
 menu.lua (menu.p8)
 by analyze_script
@@ -704,7 +880,7 @@ by analyze_script
 - lines: 233
 - chars: 10618
 - tokens: 524
-- compressed chars: 4254
+- compressed chars: 4251
 
 bustedhelper_titlemenu.lua (bustedhelper_titlemenu.p8)
 by analyze_script
@@ -714,6 +890,22 @@ by analyze_script
 - tokens: 9
 - compressed chars: 349
 
+bustedhelper_stage_intro.lua (bustedhelper_stage_intro.p8)
+by analyze_script
+- version: 16
+- lines: 16
+- chars: 885
+- tokens: 9
+- compressed chars: 531
+
+bustedhelper_stage_clear.lua (bustedhelper_stage_clear.p8)
+by analyze_script
+- version: 16
+- lines: 18
+- chars: 1020
+- tokens: 12
+- compressed chars: 606
+
 bustedhelper_ingame.lua (bustedhelper_ingame.p8)
 by analyze_script
 - version: 16
@@ -722,21 +914,45 @@ by analyze_script
 - tokens: 9
 - compressed chars: 461
 
+ui_animation.lua (ui_animation.p8)
+by analyze_script
+- version: 16
+- lines: 19
+- chars: 673
+- tokens: 63
+- compressed chars: 429
+
+stage_clear_data.lua (stage_clear_data.p8)
+by analyze_script
+- version: 16
+- lines: 21
+- chars: 626
+- tokens: 21
+- compressed chars: 372
+
+stage_intro_data.lua (stage_intro_data.p8)
+by analyze_script
+- version: 16
+- lines: 8
+- chars: 203
+- tokens: 9
+- compressed chars: 148
+
 sprite_flags.lua (sprite_flags.p8)
 by analyze_script
 - version: 16
 - lines: 23
-- chars: 719
+- chars: 735
 - tokens: 70
-- compressed chars: 350
+- compressed chars: 366
 
 collision_data.lua (collision_data.p8)
 by analyze_script
 - version: 16
-- lines: 309
-- chars: 8688
-- tokens: 1031
-- compressed chars: 3503
+- lines: 261
+- chars: 8924
+- tokens: 916
+- compressed chars: 3582
 
 tile_collision_data.lua (tile_collision_data.p8)
 by analyze_script
@@ -757,18 +973,18 @@ by analyze_script
 playercharacter_data.lua (playercharacter_data.p8)
 by analyze_script
 - version: 16
-- lines: 284
-- chars: 13551
-- tokens: 818
-- compressed chars: 5180
+- lines: 293
+- chars: 13862
+- tokens: 825
+- compressed chars: 5324
 
 stage_data.lua (stage_data.p8)
 by analyze_script
 - version: 16
-- lines: 123
-- chars: 5686
-- tokens: 225
-- compressed chars: 2774
+- lines: 119
+- chars: 5262
+- tokens: 206
+- compressed chars: 2592
 
 tile_test_data.lua (tile_test_data.p8)
 by analyze_script
@@ -781,23 +997,39 @@ by analyze_script
 tile_representation.lua (tile_representation.p8)
 by analyze_script
 - version: 16
-- lines: 62
-- chars: 2876
-- tokens: 197
-- compressed chars: 1296
+- lines: 64
+- chars: 3026
+- tokens: 207
+- compressed chars: 1357
+
+stage_clear_state.lua (stage_clear_state.p8)
+by analyze_script
+- version: 16
+- lines: 473
+- chars: 19550
+- tokens: 1223
+- compressed chars: 7684
 
 itest_dsl.lua (itest_dsl.p8)
 by analyze_script
 - version: 16
 - lines: 743
 - chars: 28299
-- tokens: 1740
-- compressed chars: 9854
+- tokens: 1741
+- compressed chars: 9859
+
+stage_intro_state.lua (stage_intro_state.p8)
+by analyze_script
+- version: 16
+- lines: 161
+- chars: 5676
+- tokens: 478
+- compressed chars: 2290
 
 utestdata.lua (utestdata.p8)
 by analyze_script
 - version: 16
-- lines: 48
-- chars: 3024
-- tokens: 300
-- compressed chars: 1177
+- lines: 44
+- chars: 2738
+- tokens: 281
+- compressed chars: 1144

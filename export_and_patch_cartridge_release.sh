@@ -3,7 +3,8 @@
 # Export and patch cartridge releases, then update existing archives with patched executables
 # Also apply small tweaks to make release work completely:
 # - rename HTML file to index.html to make it playable directly in browser (esp. on itch.io)
-# - (TODO) add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+# - add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+#   (to allow reload() to work with png cartridges)
 # Make sure to first build full game in release
 
 # Configuration: paths

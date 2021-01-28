@@ -270,11 +270,11 @@ function stage_clear_state:show_result_async()
   -- "got through" is 6 chars after the string start so 24px after "sonic"
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
 
-  local stage_label = label("angel island", vector(0, 26), colors.white, colors.black)
+  local stage_label = label("pico island", vector(0, 26), colors.white, colors.black)
   self.result_overlay:add_drawable("stage", stage_label)
 
   -- make text enter screen from right to left (starts on screen edge, so 128)
-  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 40, 20)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 42, 20)
 end
 
 function stage_clear_state:assess_result_async()

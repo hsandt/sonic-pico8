@@ -21,6 +21,7 @@ local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
+local spring = require("ingame/spring")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
 local visual_stage = require("resources/visual_stage")
@@ -78,6 +79,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
+            {},
             nil,
             -- itest only
             true,
@@ -92,6 +94,7 @@ describe('stage_state', function ()
             state.emeralds,
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
+            state.springs,
             state.loaded_map_region_coords,
             -- itest only
             state.enable_spawn_objects,
@@ -279,6 +282,26 @@ describe('stage_state', function ()
         state:spawn_goal_plate_at(location(1, 33))
 
         assert.are_same(goal_plate(location(1, 33)), state.goal_plate)
+      end)
+
+    end)
+
+    describe('spawn_spring_up_at', function ()
+
+      it('should spawn and store spring up at global location', function ()
+        state:spawn_spring_up_at(location(1, 33))
+
+        assert.are_same({spring(directions.up, location(1, 33))}, state.springs)
+      end)
+
+    end)
+
+    describe('spawn_spring_left_at', function ()
+
+      it('should spawn and store spring left at global location', function ()
+        state:spawn_spring_left_at(location(1, 33))
+
+        assert.are_same({spring(directions.left, location(1, 33))}, state.springs)
       end)
 
     end)
@@ -1024,6 +1047,7 @@ describe('stage_state', function ()
 
           setup(function ()
             stub(stage_state, "update_fx")
+            stub(spring, "update")
             stub(player_char, "update")
             stub(stage_state, "check_reached_goal")
             stub(goal_plate, "update")
@@ -1032,6 +1056,7 @@ describe('stage_state', function ()
 
           teardown(function ()
             stage_state.update_fx:revert()
+            spring.update:revert()
             player_char.update:revert()
             stage_state.check_reached_goal:revert()
             goal_plate.update:revert()
@@ -1050,6 +1075,7 @@ describe('stage_state', function ()
 
           after_each(function ()
             stage_state.update_fx:clear()
+            spring.update:clear()
             player_char.update:clear()
             stage_state.check_reached_goal:clear()
             goal_plate.update:clear()
@@ -1084,6 +1110,23 @@ describe('stage_state', function ()
             state:update()
 
             assert.spy(goal_plate.update).was_not_called()
+          end)
+
+          describe('update', function ()
+
+            it('should update each spring', function ()
+              state.springs = {
+                spring(directions.up, location(1, 1)),
+                spring(directions.left, location(2, 2)),
+              }
+
+              state:update()
+
+              assert.spy(spring.update).was_called(2)
+              assert.spy(spring.update).was_called_with(match.ref(state.springs[1]))
+              assert.spy(spring.update).was_called_with(match.ref(state.springs[2]))
+            end)
+
           end)
 
         end)  -- update
@@ -1128,24 +1171,79 @@ describe('stage_state', function ()
 
         end)  -- state.render
 
-        describe('extend_spring', function ()
-
-          setup(function ()
-            stub(picosonic_app, "start_coroutine")
-          end)
-
-          teardown(function ()
-            picosonic_app.start_coroutine:revert()
-          end)
+        describe('check_player_char_in_spring_trigger_area', function ()
 
           before_each(function ()
-            picosonic_app.start_coroutine:clear()
+            state.springs = {
+              spring(directions.up, location(0, 0)),
+              spring(directions.left, location(0, 1)),
+              spring(directions.right, location(0, 2)),
+            }
           end)
 
-          it('should play a coroutine that replaces spring tile with extended spring tile until a certain time (only check no error)', function ()
-            state:extend_spring(location(2, 0))
-            assert.spy(picosonic_app.start_coroutine).was_called(1)
-            assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_state.extend_spring_async, match.ref(state), location(2, 0))
+          it('should return nil when player char position is too far from all the springs', function ()
+            state.player_char.position = vector(300, 300)
+            assert.is_nil(state:check_player_char_in_spring_trigger_area())
+          end)
+
+          it('should return spring when player char is standing on spring up (left edge)', function ()
+            -- set bottom center manually (spring pivot at (10, 2))
+            state.player_char.position = vector(10 - 8, 2.1 - 8)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[1], spring_obj)
+          end)
+
+          it('should return spring when player char is standing on spring up (right edge)', function ()
+            -- set bottom center manually (spring pivot at (10, 2))
+            state.player_char.position = vector(10 + 8.9, 2.1 - 8)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[1], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring left (top)', function ()
+            -- set bottom center manually (spring pivot at (10, 10))
+            state.player_char.position = vector(10 - 11, 10 - 6)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[2], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring left (bottom)', function ()
+            -- set bottom center manually (spring pivot at (10, 10))
+            state.player_char.position = vector(10 - 11, 10 + 6.9)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[2], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring right (top)', function ()
+            -- set bottom center manually (spring pivot at (5, 18)), we ceil 3.5 so +4
+            state.player_char.position = vector(5 + 4, 18 - 6)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[3], spring_obj)
+          end)
+
+          it('should return spring when player char is touching spring right (bottom)', function ()
+            -- set bottom center manually (spring pivot at (5, 18)), we ceil 3.5 so +4
+            state.player_char.position = vector(5 + 4, 18 + 6.9)
+
+            local spring_obj = state:check_player_char_in_spring_trigger_area()
+
+            assert.is_not_nil(spring_obj)
+            assert.are_equal(state.springs[3], spring_obj)
           end)
 
         end)
@@ -1463,6 +1561,7 @@ describe('stage_state', function ()
           setup(function ()
             stub(stage_state, "render_environment_midground")
             stub(stage_state, "render_emeralds")
+            stub(stage_state, "render_springs")
             stub(stage_state, "render_goal_plate")
             stub(stage_state, "render_player_char")
             stub(stage_state, "render_environment_foreground")
@@ -1473,6 +1572,7 @@ describe('stage_state', function ()
           teardown(function ()
             stage_state.render_environment_midground:revert()
             stage_state.render_emeralds:revert()
+            stage_state.render_springs:revert()
             stage_state.render_goal_plate:revert()
             stage_state.render_player_char:revert()
             stage_state.render_environment_foreground:revert()
@@ -1483,6 +1583,7 @@ describe('stage_state', function ()
           after_each(function ()
             stage_state.render_environment_midground:clear()
             stage_state.render_emeralds:clear()
+            stage_state.render_springs:clear()
             stage_state.render_goal_plate:clear()
             stage_state.render_player_char:clear()
             stage_state.render_environment_foreground:clear()
@@ -1496,6 +1597,8 @@ describe('stage_state', function ()
             assert.spy(state.render_environment_midground).was_called_with(match.ref(state))
             assert.spy(state.render_emeralds).was_called(1)
             assert.spy(state.render_emeralds).was_called_with(match.ref(state))
+            assert.spy(state.render_springs).was_called(1)
+            assert.spy(state.render_springs).was_called_with(match.ref(state))
             assert.spy(state.render_goal_plate).was_called(1)
             assert.spy(state.render_goal_plate).was_called_with(match.ref(state))
             assert.spy(state.render_player_char).was_called(1)
@@ -1560,10 +1663,18 @@ describe('stage_state', function ()
           end)
 
           it('should call set_camera_with_origin and emerald:render', function ()
+            -- We could stub emerald:get_render_bounding_corners AND
+            --  camera_class:is_rect_visible but chained stubbing often generates
+            --  meaningless intermediate mock values. Instead, we do a mini-integration test
+            --  with actual values where springs would be visible on screen or not
+            --  (but we are not unit testing the visibility test itself, so no need to
+            --  test all edge cases)
             state.emeralds = {
-              emerald(1, location(1, 1)),
-              emerald(2, location(2, 2)),
+              emerald(1, location(1, 0)),
+              emerald(2, location(2, 0)),
+              emerald(3, location(8, 0)),  -- on right edge of screen, not visible
             }
+            state.camera.position = vector(0, 0)
 
             state:render_emeralds()
 
@@ -1572,6 +1683,43 @@ describe('stage_state', function ()
             assert.spy(emerald.render).was_called(2)
             assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[1]))
             assert.spy(emerald.render).was_called_with(match.ref(state.emeralds[2]))
+          end)
+
+        end)
+
+        describe('render_springs', function ()
+
+          setup(function ()
+            stub(stage_state, "set_camera_with_origin")
+            stub(spring, "render")
+          end)
+
+          teardown(function ()
+            stage_state.set_camera_with_origin:revert()
+            spring.render:revert()
+          end)
+
+          after_each(function ()
+            stage_state.set_camera_with_origin:clear()
+            spring.render:clear()
+          end)
+
+          it('should call set_camera_with_origin and spring:render', function ()
+            -- we prefer mini-integration test as with render_emeralds
+            state.springs = {
+              spring(directions.up, location(1, 0)),
+              spring(directions.left, location(2, 0)),
+              spring(directions.right, location(8, 0)),  -- on right edge of screen, not visible
+            }
+            state.camera.position = vector(0, 0)
+
+            state:render_springs()
+
+            assert.spy(stage_state.set_camera_with_origin).was_called(1)
+            assert.spy(stage_state.set_camera_with_origin).was_called_with(match.ref(state))
+            assert.spy(spring.render).was_called(2)
+            assert.spy(spring.render).was_called_with(match.ref(state.springs[1]))
+            assert.spy(spring.render).was_called_with(match.ref(state.springs[2]))
           end)
 
         end)

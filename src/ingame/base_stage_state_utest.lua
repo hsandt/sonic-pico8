@@ -229,9 +229,9 @@ describe('base_base_stage_state', function ()
 
       before_each(function ()
         -- 2 midground tiles on screen, 1 outside when camera is at (0, 0)
-        mock_mset(0, 0, tile_repr.spring_left_id)
-        mock_mset(3, 0, tile_repr.spring_left_id)
-        mock_mset(9, 0, tile_repr.spring_left_id)
+        mock_mset(0, 0, tile_repr.spring_up_repr_tile_id)
+        mock_mset(3, 0, tile_repr.spring_up_repr_tile_id)
+        mock_mset(9, 0, tile_repr.spring_up_repr_tile_id)
         -- 1 undefined tile onscreen (it's foreground hiding leaf in PICO-8,
         --  but what matters here is that midground flag is not set)
         mock_mset(5, 0, 46)

@@ -4,7 +4,6 @@
 local visual = require("resources/visual_common")
 
 local emerald = new_class()
-emerald.emerald = emerald
 
 -- static (as used by emerald.draw and emerald_fx:render)
 -- set the color palette swap from red to emerald matching passed number
@@ -67,6 +66,12 @@ end
 
 function emerald:get_center()
   return self.location:to_center_position()
+end
+
+function emerald:get_render_bounding_corners()
+  -- no need to have minimum bounding box for sprite, a 1x1-tile-sized box is enough
+  local topleft = self.location:to_topleft_position()
+  return topleft, topleft + tile_size * vector(1, 1)
 end
 
 -- render the emerald at its current location

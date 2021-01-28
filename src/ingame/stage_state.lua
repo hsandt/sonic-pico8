@@ -5,6 +5,7 @@ local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
+local spring = require("ingame/spring")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
@@ -37,6 +38,9 @@ function stage_state:init()
   self.picked_emerald_numbers_set = {}
   -- list of emerald pick fxs playing (currently no pooling, just add and delete)
   self.emerald_pick_fxs = {}
+
+  -- spring objects
+  self.springs = {}
 
 --#if itest
   -- set to false in itest setup to disable object spawning, which relies on very slow map scan
@@ -217,6 +221,13 @@ end
 
 function stage_state:update()
   self:update_fx()
+
+  -- springs can be updated before or after player character,
+  --  updating before will simply make them appear extended 1 extra frame
+  for spring_obj in all(self.springs) do
+    spring_obj:update()
+  end
+
   self.player_char:update()
 
   self:check_reached_goal()
@@ -281,17 +292,30 @@ function stage_state:spawn_palm_tree_leaves_at(global_loc)
 end
 
 function stage_state:spawn_goal_plate_at(global_loc)
-  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
   assert(self.goal_plate == nil, "stage_state:spawn_goal_plate_at: goal plate already spawned!")
   self.goal_plate = goal_plate(global_loc)
   log("added goal plate at "..global_loc, "goal")
 end
+
+local function generate_spawn_spring_dir_at_callback(direction, global_loc)
+  return function (self, global_loc)
+    add(self.springs, spring(direction, global_loc))
+  log("added spring dir "..direction.." at "..global_loc, "spring")
+  end
+end
+
+stage_state.spawn_spring_up_at = generate_spawn_spring_dir_at_callback(directions.up)
+stage_state.spawn_spring_left_at = generate_spawn_spring_dir_at_callback(directions.left)
+stage_state.spawn_spring_right_at = generate_spawn_spring_dir_at_callback(directions.right)
 
 -- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
 stage_state.spawn_object_callbacks_by_tile_id = {
   [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
   [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
   [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+  [visual.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
+  [visual.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
+  [visual.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
 }
 
 -- proxy for table above, mostly to ease testing
@@ -586,39 +610,42 @@ function stage_state:spawn_objects_in_all_map_regions()
 end
 
 
--- visual events
-
-function stage_state:extend_spring(spring_left_loc)
-  self.app:start_coroutine(self.extend_spring_async, self, spring_left_loc)
-end
-
-function stage_state:extend_spring_async(spring_left_loc)
-  -- note that we adapted mset to the new region system
-  -- but now it's not a good idea to do that with dynamic objects because of region reload
-  -- springs may be reloaded, suddenly reverting to their normal form
-  --  and the async coroutine may even continue in the absence of cleanup (although it would just
-  --  set them to their normal form again anyway)
-
-  -- set tilemap to show extended spring
-  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_extended_bottom_left_id)
-  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_extended_bottom_left_id + 1)
-  -- if there is anything above spring, tiles will be overwritten, so make sure
-  --  to leave space above it
-  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, visual.spring_extended_top_left_id)
-  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, visual.spring_extended_top_left_id + 1)
-
-  -- wait just enough to show extended spring before it goes out of screen
-  self.app:yield_delay_s(stage_data.spring_extend_duration)
-
-  -- revert to default spring sprite
-  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j, visual.spring_left_id)
-  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j, visual.spring_left_id + 1)
-  -- nothing above spring tiles in normal state, so simply remove extended top tiles
-  self:mset_global_to_region(spring_left_loc.i, spring_left_loc.j - 1, 0)
-  self:mset_global_to_region(spring_left_loc.i + 1, spring_left_loc.j - 1, 0)
-end
-
 -- gameplay events
+
+-- check if position is in emerald pick up area and if so,
+--  return emerald. Else, return nil.
+function stage_state:check_player_char_in_spring_trigger_area()
+  for spring_obj in all(self.springs) do
+    if spring_obj.direction == directions.up then
+      -- check that character is standing just on spring (replaces spring ground tile check)
+      local pivot = spring_obj:get_adjusted_pivot()
+      local pc_bottom_center = self.player_char:get_bottom_center()
+      if flr(pc_bottom_center.y) == pivot.y and
+          -- left/right pixel integer dissymmetry means we have -flr(8.5) and +ceil(8.9)
+          pivot.x - 8 <= pc_bottom_center.x and pc_bottom_center.x < pivot.x + 9 then
+        return spring_obj
+      end
+    else
+      -- we only support horizontal spring from here
+      -- check that character center is located so that its left/right edge
+      --  just touched the right/left edge a spring oriented right/left
+      -- we detect walls at 3.5, and to maintain left/right symmetry we should use the same trick
+      --  as during motion, ceiling so we get an extra pixel on the right;
+      --  but in this particular case, get_adjusted_pivot already adds an offset of 6 instead of 5
+      --  for springs oriented right (else the spring is drawn 1px inside the wall on the left),
+      --  so we can just use 3 and no ceil() on trigger_center.x
+      -- note that when falling right in front of the spring, even without velocity X,
+      --  Sonic will detect the spring
+      local trigger_center = spring_obj:get_adjusted_pivot() + 3 * dir_vectors[spring_obj.direction]
+      local pc_center = self.player_char.position
+      if flr(pc_center.x) == trigger_center.x and
+          -- up/down pixel integer dissymmetry means we have -flr(6.5) and +ceil(6.5)
+          trigger_center.y - 6 <= pc_center.y and pc_center.y < trigger_center.y + 7 then
+        return spring_obj
+      end
+    end
+  end
+end
 
 -- check if position is in emerald pick up area and if so,
 --  return emerald. Else, return nil.
@@ -876,6 +903,7 @@ end
 function stage_state:render_stage_elements()
   self:render_environment_midground()
   self:render_emeralds()
+  self:render_springs()
   self:render_goal_plate()
   self:render_player_char()
   self:render_environment_foreground()
@@ -923,7 +951,19 @@ function stage_state:render_emeralds()
   self:set_camera_with_origin()
 
   for em in all(self.emeralds) do
-    em:render()
+    if self.camera:is_rect_visible(em:get_render_bounding_corners()) then
+      em:render()
+    end
+  end
+end
+
+function stage_state:render_springs()
+  self:set_camera_with_origin()
+
+  for spring_obj in all(self.springs) do
+    if self.camera:is_rect_visible(spring_obj:get_render_bounding_corners()) then
+      spring_obj:render()
+    end
   end
 end
 

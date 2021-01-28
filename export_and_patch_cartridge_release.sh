@@ -3,7 +3,8 @@
 # Export and patch cartridge releases, then update existing archives with patched executables
 # Also apply small tweaks to make release work completely:
 # - rename HTML file to index.html to make it playable directly in browser (esp. on itch.io)
-# - (TODO) add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+# - add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+#   (to allow reload() to work with png cartridges)
 # Make sure to first build full game in release
 
 # Configuration: paths
@@ -52,6 +53,13 @@ fi
 
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
 bin_folder="${export_folder}/${rel_bin_folder}"
+
+if [[ ! $(ls -A "$bin_folder") ]]; then
+  echo ""
+  echo "Exporting game release binaries via PICO-8 failed, STOP. Check that each cartridge compressed size <= 100%."
+  exit 1
+fi
+
 patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"
@@ -81,12 +89,10 @@ fi
 # Archiving
 # The archives we create here keep all the files under a folder with the full game name
 #  to avoid extracting files "in the wild". They are meant for manual distribution and preservation.
-# itch.io creates its own folder from the game name + channel, and count on the distributable structure
-#  to be stable across versions so butler can only upload differences. So do not upload those archives
-#  to itch.io, as the folder inside contain the version number which will change and prevent efficient
-#  diffing. For itch.io, just upload the folder directly, and it will generate the zip.
-# The exception is OSX, when the .app folder is at the top of the PICO-8 archive,
-#  and we can upload either the .app folder directly or the .zip containing it.
+# itch.io uses a diff system with butler to only upload minimal patches, but surprisingly works well
+#  with folder structure changing slightly (renaming containing folder and executable), so don't worry
+#  about providing those customized zip archives to butler.
+# Note that for OSX, the .app folder is at the same time the app and the top-level element.
 pushd "${export_folder}"
 
   # PNG cartridges archive (delete existing one to be safe)

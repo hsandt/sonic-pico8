@@ -13,9 +13,13 @@ function base_stage_state:init()
   -- see on_enter for how we warp it to a good place first
   self.camera = camera_class()
 
+  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
+  --  palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
+--#if ingame
   -- palm trees: list of global locations of palm tree leaves core sprites detected
   -- used to draw the palm tree extension sprites on foreground
   self.palm_tree_leaves_core_global_locations = {}
+--#endif
 end
 
 
@@ -160,9 +164,9 @@ function base_stage_state:render_environment_foreground()
         sprite_masks.midground)
   end
 
-  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, but we could imagine
-  --  that intro will show some future object waterfall later, so we don't strip object-related code
-  --  from #stage_intro from now
+  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
+  --  palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
+--#if ingame
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do
     -- top has pivot at its bottom-left = the top-left of the core
@@ -173,6 +177,7 @@ function base_stage_state:render_environment_foreground()
     -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
     visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
   end
+--#endif
 end
 
 return base_stage_state

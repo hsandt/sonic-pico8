@@ -32,7 +32,7 @@ local tile_repr = {
   visual_loop_bottomright = 100,
   mask_loop_bottomright = 20,
   visual_loop_bottomright_steepest = 102,
-  spring_left_id = 74,                   -- add 1 to get right, must match value in visual
+  spring_up_repr_tile_id = 74,                   -- add 1 to get right, must match value in visual
   grass_top_decoration1 = 76,            -- no collider, just to test foreground
   oneway_platform_left = 35,             -- left side of one-way platform top part
 }
@@ -54,8 +54,8 @@ tile_repr.tile_symbol_to_ids = {
   ['Z']  = tile_repr.visual_loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)
   ['R']  = tile_repr.visual_loop_toptopright,  -- loop top-top-right corner (between flat top and top-right)
   ['i']  = tile_repr.visual_loop_bottomright_steepest,
-  ['s']  = tile_repr.spring_left_id,
-  ['S']  = tile_repr.spring_left_id + 1,
+  ['s']  = tile_repr.spring_up_repr_tile_id,
+  ['S']  = tile_repr.spring_up_repr_tile_id + 1,
   ['o']  = tile_repr.oneway_platform_left,
 }
 

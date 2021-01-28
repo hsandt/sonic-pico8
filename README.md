@@ -18,6 +18,8 @@ develop
 
 The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. Consider it a technical demo with some exploration challenge.
 
+Disclaimer: the game runs on a patched version of PICO-8 that doesn't have the original token count limitation. However, I do respect the (compressed) characters limit for each cartridge. See [Releases](#releases) for more info.
+
 pico sonic is a fan game distributed for free and is not endorsed by Sega. Sega Games Co., Ltd owns the Sonic the Hedgehog trademark and copyrights on the original assets.
 
 ## Screenshots
@@ -30,7 +32,7 @@ Works with PICO-8 0.2.0i ~ 0.2.1b.
 
 ## Features
 
-Version: 5.2
+Version: 5.3
 
 ### Physics
 
@@ -41,7 +43,7 @@ Version: 5.2
 * Character can jump with variable height orthogonally to current ground
 * Character preserves momentum on jumping and landing
 * One-way platforms
-* Spring bounce
+* Spring bounce (vertical and horizontal)
 
 ### Rendering
 
@@ -84,7 +86,7 @@ Some enemies have been replaced by static obstacles, and most importantly some i
 
 Stage gimmicks:
 
-* Spring
+* Spring (vertical and horizontal)
 * Loop
 * Launch ramp
 

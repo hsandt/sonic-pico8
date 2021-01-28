@@ -12,13 +12,12 @@ local visual = require("resources/visual_common")
 
 local player_char = new_class()
 
--- parameters (copied from PC data)
+-- parameters cached from PC data
 
--- spr_data               {string: sprite_data}   sprite data for this character
--- debug_move_max_speed   float                   move max speed in debug mode
--- debug_move_accel       float                   move acceleration in debug mode
--- debug_move_decel       float                   move deceleration in debug mode
--- debug_move_friction    float                   move friction in debug mode
+-- debug_move_max_speed (#cheat)  float                   move max speed in debug mode
+-- debug_move_accel     (#cheat)  float                   move acceleration in debug mode
+-- debug_move_decel     (#cheat)  float                   move deceleration in debug mode
+-- debug_move_friction  (#cheat)  float                   move friction in debug mode
 
 
 -- components
@@ -62,11 +61,12 @@ local player_char = new_class()
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (debug_character)     {...}   rays to draw for debug render this frame
 function player_char:init()
-  self.spr_data = pc_data.sonic_sprite_data
+--#if cheat
   self.debug_move_max_speed = pc_data.debug_move_max_speed
   self.debug_move_accel = pc_data.debug_move_accel
   self.debug_move_decel = pc_data.debug_move_decel
   self.debug_move_friction = pc_data.debug_move_friction
+--#endif
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
 
@@ -231,11 +231,9 @@ end
 --#endif
 
 -- move the player character so that the bottom center is at the given position
---#if itest
 function player_char:get_bottom_center()
   return self.position + self:get_center_height() * self:get_quadrant_down()
 end
---#endif
 
 --#if busted
 -- move the player character so that the bottom center is at the given position
@@ -1053,7 +1051,7 @@ function player_char:update_platformer_motion_grounded()
     if self.slope_angle >= 0.25 and self.slope_angle <= 0.75 then
       should_fall = true
     end
-    self.horizontal_control_lock_timer = pc_data.horizontal_control_lock_duration
+    self.horizontal_control_lock_timer = pc_data.fall_off_horizontal_control_lock_duration
   end
 
   if should_fall then
@@ -2096,43 +2094,45 @@ end
 --#if ingame
 
 function player_char:check_spring()
-  if self.ground_tile_location then
-    -- get stage state for global to region location conversion
-    local curr_stage_state = flow.curr_state
-    assert(curr_stage_state.type == ':stage')
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
 
-    -- convert to region location before using mget
-    local ground_tile_region_loc = curr_stage_state:global_to_region_location(self.ground_tile_location)
-    local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
-
-    -- follow new convention of putting flags on the visual sprite
-    -- of course since we know visual.spring_left_id we could check if tile id is
-    --  spring_left_id or spring_left_id + 1 directly, but flag is more convenient for 1st check
-    if fget(ground_visual_tile_id, sprite_flags.spring) then
-      log("character triggers spring", 'spring')
-      -- to get spring left part location we still need to check exact tile id
-      -- note that we only check for non-extended sprite, so make sure not to flag
-      --  extended visual spring sprites as "springs" (in practice, in 1P it's impossible
-      --  for player to hit spring twice in a row unless ceiling is very low, but safer)
-      local spring_left_loc = self.ground_tile_location:copy()
-      assert(visual.spring_left_id <= ground_visual_tile_id and ground_visual_tile_id <= visual.spring_left_id + 1, "player_char:check_spring: ground_visual_tile_id "..ground_visual_tile_id.." has flag spring but is not left nor right spring visual tile")
-      if ground_visual_tile_id == visual.spring_left_id + 1 then
-        -- we are on right part of spring, so representative tile is just on the left
-        spring_left_loc.i = spring_left_loc.i - 1
-      end
-      self:trigger_spring(spring_left_loc)
-    end
+  -- unlike emerald we don't just pass position because springs are more complex
+  --  and may require to check bottom position or center position depending on direction
+  local spring_obj = curr_stage_state:check_player_char_in_spring_trigger_area()
+  if spring_obj then
+    self:trigger_spring(spring_obj)
   end
 end
 
-function player_char:trigger_spring(spring_left_loc)
-  self.velocity.y = -pc_data.spring_jump_speed_frame
-  self:enter_motion_state(motion_states.falling)
-  self.should_play_spring_jump = true
+function player_char:trigger_spring(spring_obj)
+  if spring_obj.direction == directions.up then
+    self.velocity.y = -pc_data.spring_jump_speed_frame
+    self:enter_motion_state(motion_states.falling)
+    self.should_play_spring_jump = true
+  else
+    -- we assume horizontal spring here (spring down not supported)
 
-  local curr_stage_state = flow.curr_state
-  assert(curr_stage_state.type == ':stage')
-  curr_stage_state:extend_spring(spring_left_loc)
+    -- set orientation to match spring, even in the air
+    -- small trick to convert cardinal direction to horizontal direction
+    -- cardinal left = 0 -> horizontal left 1, cardinal right = 2 -> horizontal right = 2
+    self.orientation = spring_obj.direction / 2 + 1
+
+    -- set horizontal control lock to prevent character from immediately braking (when grounded)
+    self.horizontal_control_lock_timer = pc_data.spring_horizontal_control_lock_duration
+
+    local horizontal_dir_sign = horizontal_dir_signs[self.orientation]
+    if self:is_grounded() then
+      -- we assume the spring on ground (ceiling would reverse ground speed sign)
+      -- set the ground speed and let velocity be updated next frame
+      self.ground_speed = horizontal_dir_sign * pc_data.spring_jump_speed_frame
+    else
+      -- in the air, only velocity makes sense
+      self.velocity.x = horizontal_dir_sign * pc_data.spring_jump_speed_frame
+    end
+  end
+
+  spring_obj:extend()
 
   -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spring_jump)

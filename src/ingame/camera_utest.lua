@@ -759,4 +759,47 @@ describe('camera_class', function ()
 
   end)
 
+  describe('is_rect_visible', function ()
+
+    local cam
+
+    before_each(function ()
+      cam = camera_class()
+      cam.position = vector(64, 64)  -- so top-left is (0, 0) and bottom-right is (128, 128)
+    end)
+
+    it('should return false for square just touching on the left, but outside camera view', function ()
+      assert.is_false(cam:is_rect_visible(vector(-10, -10), vector(0, 30)))
+    end)
+
+    it('should return false for square just touching on the right, but outside camera view', function ()
+      assert.is_false(cam:is_rect_visible(vector(128, -10), vector(140, 30)))
+    end)
+
+    it('should return false for square just touching on the top, but outside camera view', function ()
+      assert.is_false(cam:is_rect_visible(vector(-10, -10), vector(140, 0)))
+    end)
+
+    it('should return false for square just touching on the bottom, but outside camera view', function ()
+      assert.is_false(cam:is_rect_visible(vector(-10, 128), vector(140, 140)))
+    end)
+
+    it('should return true for square just entering topleft corner', function ()
+      assert.is_true(cam:is_rect_visible(vector(-10, -10), vector(1, 1)))
+    end)
+
+    it('should return true for square just entering topright corner', function ()
+      assert.is_true(cam:is_rect_visible(vector(127, -10), vector(140, 1)))
+    end)
+
+    it('should return true for square just entering bottomleft corner', function ()
+      assert.is_true(cam:is_rect_visible(vector(-10, 127), vector(1, 140)))
+    end)
+
+    it('should return true for square just entering bottomright corner', function ()
+      assert.is_true(cam:is_rect_visible(vector(127, 127), vector(140, 140)))
+    end)
+
+  end)
+
 end)

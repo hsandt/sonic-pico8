@@ -180,6 +180,15 @@ local mask_tile_ids = {
 -- VISUAL TILES
 -- those tiles are associated to one of the collision masks above
 
+-- one-way tiles
+
+-- one-way platform tiles are in the runtime mask area, so overlapping proto tiles
+--#ifn proto
+-- the bottom doesn't matter as one-way, otherwise surface is full, so just use full tile mask
+  [35] = 29,
+  [36] = 29,
+--#endif
+
 -- full tiles
 
 -- wood

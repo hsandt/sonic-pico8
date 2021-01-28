@@ -205,4 +205,27 @@ function camera_class:get_bottom_limit_at_x(x)
   return (self.stage_data.tile_height - bottom_limit_tile_margin) * tile_size
 end
 
+-- return true if a rectangle with diagonal corners at (topleft, bottomright)
+--  intersects the camera view rectangle
+-- we use topleft inclusive, bottomright exclusive convention
+-- this means that camera actually shows pixels 0 to 127 on each direction, not 128,
+--  but we still use the exclusive bottom-right corner (128, 128) for the calculation
+-- similarly, the rectangle bottomright to test is actually 1px bottom and 1px right to
+--  the last visible bottom-right pixel of the sprite to test visibility of
+-- this makes it easier to compute bounds (e.g. for a 8x8 sprite, bottomright = topleft + (8, 8))
+-- we assume integer coordinates
+function camera_class:is_rect_visible(topleft, bottomright)
+  -- AABB intersection: are camera view rectangle and object rectangle intersecting?
+
+  -- compute camera view bounds
+  local left_edge = self.position.x - screen_width / 2
+  local right_edge = self.position.x + screen_width / 2
+  local top_edge = self.position.y - screen_height / 2
+  local bottom_edge = self.position.y + screen_height / 2
+
+  -- compare edge positions
+  return left_edge < bottomright.x and right_edge > topleft.x and
+    top_edge < bottomright.y and bottom_edge > topleft.y
+end
+
 return camera_class

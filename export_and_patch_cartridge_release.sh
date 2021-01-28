@@ -3,7 +3,8 @@
 # Export and patch cartridge releases, then update existing archives with patched executables
 # Also apply small tweaks to make release work completely:
 # - rename HTML file to index.html to make it playable directly in browser (esp. on itch.io)
-# - (TODO) add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+# - add '.png' to every occurrence of '.p8' in copy of game source before exporting to PNG
+#   (to allow reload() to work with png cartridges)
 # Make sure to first build full game in release
 
 # Configuration: paths
@@ -52,6 +53,13 @@ fi
 
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
 bin_folder="${export_folder}/${rel_bin_folder}"
+
+if [[ ! $(ls -A "$bin_folder") ]]; then
+  echo ""
+  echo "Exporting game release binaries via PICO-8 failed, STOP. Check that each cartridge compressed size <= 100%."
+  exit 1
+fi
+
 patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"

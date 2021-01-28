@@ -110,7 +110,6 @@ describe('player_char', function ()
       assert.is_not_nil(pc)
       assert.are_same(
         {
-          pc_data.sonic_sprite_data,
           pc_data.debug_move_max_speed,
           pc_data.debug_move_accel,
           pc_data.debug_move_decel,
@@ -121,7 +120,6 @@ describe('player_char', function ()
           0,  -- cheat
         },
         {
-          pc.spr_data,
           pc.debug_move_max_speed,
           pc.debug_move_accel,
           pc.debug_move_decel,

@@ -79,6 +79,15 @@ describe('spring', function ()
 
   end)
 
+  describe('get_render_bounding_corners', function ()
+
+    it('should return standard pivot for spring (direction doesn\'t matter)', function ()
+      local spring_obj = spring(directions.up, location(2, 1))
+      assert.are_same({vector(16, 0), vector(32, 16)}, {spring_obj:get_render_bounding_corners()})
+    end)
+
+  end)
+
   describe('draw', function ()
 
     setup(function ()

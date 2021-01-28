@@ -12,13 +12,12 @@ local visual = require("resources/visual_common")
 
 local player_char = new_class()
 
--- parameters (copied from PC data)
+-- parameters cached from PC data
 
--- spr_data               {string: sprite_data}   sprite data for this character
--- debug_move_max_speed   float                   move max speed in debug mode
--- debug_move_accel       float                   move acceleration in debug mode
--- debug_move_decel       float                   move deceleration in debug mode
--- debug_move_friction    float                   move friction in debug mode
+-- debug_move_max_speed (#cheat)  float                   move max speed in debug mode
+-- debug_move_accel     (#cheat)  float                   move acceleration in debug mode
+-- debug_move_decel     (#cheat)  float                   move deceleration in debug mode
+-- debug_move_friction  (#cheat)  float                   move friction in debug mode
 
 
 -- components
@@ -62,11 +61,12 @@ local player_char = new_class()
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (debug_character)     {...}   rays to draw for debug render this frame
 function player_char:init()
-  self.spr_data = pc_data.sonic_sprite_data
+--#if cheat
   self.debug_move_max_speed = pc_data.debug_move_max_speed
   self.debug_move_accel = pc_data.debug_move_accel
   self.debug_move_decel = pc_data.debug_move_decel
   self.debug_move_friction = pc_data.debug_move_friction
+--#endif
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
 

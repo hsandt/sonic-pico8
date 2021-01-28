@@ -5,7 +5,7 @@
 			"name": "Dev: analyze engine scripts (intermediate release)",
 			"shell": true,
 			"working_dir": "${project_path}",
-			"cmd": ["pico-boots/scripts/analyze.py intermediate/release/pico-boots"],
+			"cmd": ["python3 -m pico-boots.scripts.analyze intermediate/release/pico-boots"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -13,7 +13,7 @@
 			"name": "Dev: analyze game scripts (intermediate release)",
 			"shell": true,
 			"working_dir": "${project_path}",
-			"cmd": ["pico-boots/scripts/analyze.py intermediate/release/src"],
+			"cmd": ["python3 -m pico-boots.scripts.analyze intermediate/release/src"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

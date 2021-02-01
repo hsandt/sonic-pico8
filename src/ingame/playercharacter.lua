@@ -40,9 +40,10 @@ local player_char = new_class()
 -- ground_speed             float           current speed along the ground (~px/frame)
 -- horizontal_control_lock_timer    int     time left before regaining horizontal control after fall/slide off (frames)
 -- velocity                 vector          current velocity in platformer mode (px/frame)
--- debug_velocity           vector          current velocity in debug mode (m/s)
+-- debug_velocity (#cheat)  vector          current velocity in debug mode (m/s)
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
+-- (#original_slope_features)
 
 -- move_intention           vector          current move intention (binary cardinal)
 -- jump_intention           bool            current intention to start jump (consumed on jump)
@@ -96,11 +97,16 @@ function player_char:setup()
   self.ground_speed = 0.
   self.horizontal_control_lock_timer = 0.
   self.velocity = vector.zero()
+--#if cheat
   self.debug_velocity = vector.zero()
+--#endif
+
   -- slope_angle starts at 0 instead of nil to match standing state above
   -- (if spawning in the air, fine, next update will reset angle to nil)
   self.slope_angle = 0.
+--#if original_slope_features
   self.ascending_slope_time = 0.
+--#endif
 
   self.move_intention = vector.zero()
   self.jump_intention = false
@@ -1116,37 +1122,48 @@ end
 function player_char:update_ground_speed_by_slope()
   local is_ascending_slope = false
 
-  if self.slope_angle ~= 0 then
-    -- Original feature (not in SPG): Progressive Ascending Steep Slope Factor
-    --  If character is ascending a slope, do not apply the full slope factor immediately.
-    --  Instead, linearly increase the applied slope factor from 0 to full over a given duration.
-    --  We use the ground speed before applying intention to avoid exploid of spamming
-    --  the left/right (ascending) input to restart the timer thanks to the ground speed
-    --  being slightly increased by the intention, but actually countered by slope accel in the same frame.
-    -- Effect: the character can completely cross steep but short slopes
-    -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
-    --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
-    local ascending_slope_factor = 1
-    -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
-    --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
-    if self.ground_speed ~= 0 and abs(sin(self.slope_angle)) >= sin(-pc_data.steep_slope_min_angle) and sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
-      is_ascending_slope = true
-      local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
-      local progressive_ascending_slope_factor = 1
-      -- increase tracking time every frame
-      self.ascending_slope_time = min(self.ascending_slope_time + delta_time60, ascending_slope_duration)
-      ascending_slope_factor = self.ascending_slope_time / ascending_slope_duration
-    end
+  -- below does nothing if self.slope_angle == 0,
+  --  but we removed that check just to spare some characters
 
-    -- slope angle is mostly defined with atan2(dx, dy) which follows top-left origin BUT counter-clockwise angle convention
-    -- sin also follows this convention, so ultimately + is OK
-    self.ground_speed = self.ground_speed + ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
-  end
+--#if original_slope_features
 
-  if not is_ascending_slope then
+  -- Original feature (not in SPG): Progressive Ascending Steep Slope Factor
+  --  If character is ascending a slope, do not apply the full slope factor immediately.
+  --  Instead, linearly increase the applied slope factor from 0 to full over a given duration.
+  --  We use the ground speed before applying intention to avoid exploid of spamming
+  --  the left/right (ascending) input to restart the timer thanks to the ground speed
+  --  being slightly increased by the intention, but actually countered by slope accel in the same frame.
+  -- Effect: the character can completely cross steep but short slopes
+  -- Resolves: character was suddenly stopped by longer slopes when starting ascension with low momentum,
+  --  falling back to the flat ground behind, and repeating, causing a glitch-like oscillation
+  local ascending_slope_factor = 1
+  -- make sure to compare sin in abs value (steep_slope_min_angle is between 0 and 0.25 so we know its sin is negative)
+  --  since slope angle is module 1 and cannot be directly compared (and you'd need to use (slope_angle + 0.5) % 1 - 0.5 to be sure)
+  if self.ground_speed ~= 0 and abs(sin(self.slope_angle)) >= sin(-pc_data.steep_slope_min_angle) and sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
+    is_ascending_slope = true
+    local ascending_slope_duration = pc_data.progressive_ascending_slope_duration
+    local progressive_ascending_slope_factor = 1
+    -- increase tracking time every frame
+    self.ascending_slope_time = min(self.ascending_slope_time + delta_time60, ascending_slope_duration)
+    ascending_slope_factor = self.ascending_slope_time / ascending_slope_duration
+  else
     -- reset ascending slope time
     self.ascending_slope_time = 0
   end
+  self.ground_speed = self.ground_speed + ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+
+--(original_slope_features)
+--#endif
+
+--#ifn original_slope_features
+--[[#pico8
+
+  -- slope angle is mostly defined with atan2(dx, dy) which follows top-left origin BUT counter-clockwise angle convention
+  -- sin also follows this convention, so ultimately + is OK
+  self.ground_speed = self.ground_speed + pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
+
+--#pico8]]
+--#endif
 end
 
 -- update ground speed while standing based on current move intention
@@ -1170,6 +1187,9 @@ function player_char:update_ground_run_speed_by_intention()
         self.brake_anim_phase = 0
       end
     else
+
+--#if original_slope_features
+
       -- Original feature (not in SPG): Reduced Deceleration on Steep Descending Slope
       --  Apply a fixed factor
       -- Effect: a character descending a steep slope will take more time to brake than if
@@ -1185,6 +1205,19 @@ function player_char:update_ground_run_speed_by_intention()
 
       -- decelerate
       new_ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
+
+--(original_slope_features)
+--#endif
+
+--#ifn original_slope_features
+--[[#pico8
+
+      -- decelerate
+      new_ground_speed = self.ground_speed + self.move_intention.x * pc_data.ground_decel_frame2
+
+--#pico8]]
+--#endif
+
       -- check if speed has switched sign this frame, i.e. character has turned around
       -- since adding brake_reverse we slightly change edge case handling: if ground speed reaches 0 this frame
       --  we consider the turn around is complete and switch orientation
@@ -1234,6 +1267,8 @@ function player_char:update_ground_run_speed_by_intention()
     if self.ground_speed ~= 0 then
       -- no move intention, character is passive
 
+--#if original_slope_features
+
       -- Original feature (not in SPG): No Friction on Steep Descending Slope
       --  Do not apply friction when character is descending a steep slope passively;
       --  In other words, apply it only on flat ground, low slope and only steep slopes if ascending
@@ -1245,6 +1280,18 @@ function player_char:update_ground_run_speed_by_intention()
       if abs(sin(self.slope_angle)) <= sin(-pc_data.steep_slope_min_angle) or sgn(self.ground_speed) ~= sgn(sin(self.slope_angle)) then
         new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
       end
+
+--(original_slope_features)
+--#endif
+
+--#ifn original_slope_features
+--[[#pico8
+
+        new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+
+--#pico8]]
+--#endif
+
     end
 
     -- whether still in friction or completely stopped, if the brake_start anim has finished

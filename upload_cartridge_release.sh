@@ -39,7 +39,7 @@ if [[ $# -ne 0 ]]; then
   exit 1
 fi
 
-# Arg $1: platform/format ('linux', 'osx', 'windows', 'web', 'png')
+# Arg $1: platform/format ('linux', 'osx', 'windows', 'web', 'png', 'p8')
 # Arg $2: path to archive corresponding to platform/format
 function butler_push_game_for_platform {
   platform="$1"
@@ -61,5 +61,6 @@ pushd "${export_folder}"
   butler_push_game_for_platform osx "${rel_bin_folder}/${cartridge_basename}_osx.zip"
   butler_push_game_for_platform windows "${rel_bin_folder}/${cartridge_basename}_windows.zip"
   butler_push_game_for_platform png "${cartridge_basename}_png_cartridges.zip"
+  butler_push_game_for_platform p8 "${cartridge_basename}_cartridges.zip"
 
 popd

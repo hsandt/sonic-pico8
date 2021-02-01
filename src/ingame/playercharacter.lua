@@ -2462,8 +2462,9 @@ end
 
 function player_char:debug_print_info()
   -- debug info
-  api.print("state: "..self.motion_state, 8, 100, colors.white)
-  api.print("quadrant: "..tostr(self.quadrant), 8, 106, colors.white)
+  api.print("state: "..self.motion_state, 8, 94, colors.white)
+  api.print("quadrant: "..tostr(self.quadrant), 8, 100, colors.white)
+  api.print("slope: "..tostr(self.slope_angle), 8, 106, colors.white)
   api.print("x: "..self.position.x, 8, 112, colors.white)
   api.print("y: "..self.position.y, 8, 118, colors.white)
 end

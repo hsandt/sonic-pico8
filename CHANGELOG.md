@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [5.3] - 2021-01-25
+## [5.3] - 2021-02-01
 ### Added
 - Stage: added horizontal springs (internally now fully-fledged objects instead of tiles)
 
 ### Changed
+- Physics: removed original slope features, namely Progressive Ascending Steep Slope Factor, Reduced Deceleration on Steep Descending Slope and No Friction on Steep Descending Slope (stripped unless symbol #original_slope_features is defined, which no build config currently uses). No strong impact on gameplay observed across Pico Island stage
 - Stage clear: fixed "Angel Island" -> "Pico Island"
 
 ## [5.2] - 2021-01-12

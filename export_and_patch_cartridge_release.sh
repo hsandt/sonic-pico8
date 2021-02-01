@@ -51,6 +51,13 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
+# ingame is the biggest cartridge so if PNG export fails, this one will fail first
+if [[ ! -f "${export_folder}/${rel_png_folder}/picosonic_ingame.p8.png" ]]; then
+  echo ""
+  echo "Exporting PNG cartridge for ingame via PICO-8 failed, STOP. Check that this cartridge compressed size <= 100% even after adding '.png' for reload."
+  exit 1
+fi
+
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
 bin_folder="${export_folder}/${rel_bin_folder}"
 

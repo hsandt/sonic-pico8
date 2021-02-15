@@ -21,6 +21,14 @@ version=`cat "$data_path/version.txt"`
 export_folder="$carts_dirpath/picosonic/v${version}_release"
 cartridge_basename="picosonic_v${version}_release"
 
+# Verify that the export folder is present. This does not guarantee we built and installed all cartridges
+# to carts correctly, but if not present don't even try to export.
+if [[ ! -d "$export_folder" ]]; then
+  echo "No directory found at $export_folder. Make sure to build and install the cartridges in release first. STOP."
+  exit 1
+fi
+
+# Configuration: sub-directories
 rel_p8_folder="${cartridge_basename}_cartridges"
 rel_png_folder="${cartridge_basename}_png_cartridges"
 rel_bin_folder="${cartridge_basename}.bin"
@@ -79,13 +87,13 @@ if [[ ! -f "${png_folder}/picosonic_ingame.p8.png" ]]; then
   exit 1
 fi
 
-# Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
-if [[ ! $(ls -A "$bin_folder") ]]; then
+if [[ ! -d "$bin_folder" || ! $(ls -A "$bin_folder") ]]; then
   echo ""
   echo "Exporting game release binaries via PICO-8 failed, STOP. Check that each cartridge compressed size <= 100%."
   exit 1
 fi
 
+# Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
 patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"

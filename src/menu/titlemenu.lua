@@ -118,10 +118,11 @@ function titlemenu:draw_title()
 end
 
 function titlemenu:draw_version()
+  -- #version
   -- PICO-8 cannot access data/version.txt and we don't want to preprocess substitute some $version
   -- tag in build script just for this, so we exceptionally hardcode version number
   -- coords correspond to top-right corner with a small margin
-  text_helper.print_aligned("V5.3", 126, 2, alignments.right, colors.white, colors.black)
+  text_helper.print_aligned("V5.3+", 126, 2, alignments.right, colors.white, colors.black)
 end
 
 return titlemenu

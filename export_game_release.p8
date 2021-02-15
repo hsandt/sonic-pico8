@@ -9,8 +9,9 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
+-- #version
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "5.3"
+local version = "5.3+"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"

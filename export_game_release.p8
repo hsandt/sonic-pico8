@@ -102,7 +102,9 @@ cd(export_folder)
   mkdir(game_basename.."_web")
   -- Do not cd into game_basename.."_web" because we want the additional cartridges to be accessible
   --  in current path. Instead, export directly into the _web folder
-  export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 46 -s 2 -c 14")
+  -- Use custom template. It is located in plates/picosonic_template.html and copied into PICO-8 config dir plates
+  --  in export_and_patch_cartridge_release.sh
+  export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 46 -s 2 -c 14 -p picosonic_template")
   printh("Exported HTML in carts/"..export_folder.."/"..game_basename..".html")
 
 cd("..")

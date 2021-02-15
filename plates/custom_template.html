@@ -736,7 +736,8 @@ canvas{
 
 </head>
 
-<body style="padding:0px; margin:0px; background-color:#222; color:#ccc">
+<!-- CHANGED from default template: background-color:#222 -> #000 for a dark background as you would get in a PICO-8 window on desktop -->
+<body style="padding:0px; margin:0px; background-color:#000; color:#ccc">
 <div id="body_0"> <!-- hide this when playing in mobile (p8_touch_detected) so that elements don't affect layout -->
 
 
@@ -745,7 +746,9 @@ canvas{
 
 <div id="p8_desktop" style="display:block; position:absolute; top:10px; left:10px"></div> <!-- desktop for saving gifs / screenshots -->
 <div id="p8_frame_0" style="max-width:800px; max-height:800px; margin:auto;"> <!-- double function: limit size, and display only this div for touch devices -->
-<div id="p8_frame" style="display:flex; width:100%; max-width:95vw; height:100vw; max-height:95vh; margin:auto;">
+<!-- CHANGED from default template: 95vw/vh -> 100vw/vh to avoid shrinking frame more than necessary,
+	 and 100vh makes sure play area is vertically centered inside the external frame -->
+<div id="p8_frame" style="display:flex; width:100%; max-width:100vw; height:100vw; max-height:100vh; margin:auto;">
 
 	<div id="p8_menu_buttons_touch" style="position:absolute; width:100%; z-index:10; left:0px;">
 		<div class="p8_menu_button" id="p8b_full"  style="float:left;margin-left:10px" onClick="p8_give_focus(); p8_request_fullscreen();"></div>

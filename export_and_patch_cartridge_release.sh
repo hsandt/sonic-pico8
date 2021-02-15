@@ -11,8 +11,10 @@
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
 game_scripts_path="$(dirname "$0")"
 data_path="$(dirname "$0")/data"
+local_plates_path="$(dirname "$0")/plates"
 # Linux only
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
+config_plates_dirpath="$HOME/.lexaloffle/pico-8/plates"
 
 # Configuration: cartridge
 version=`cat "$data_path/version.txt"`
@@ -56,6 +58,10 @@ if [[ $? -ne 0 ]]; then
   echo "Adapt for PNG step failed, STOP."
   exit 1
 fi
+
+# Copy custom template to PICO-8 config plates folder as "picosonic_template.html"
+# (just to avoid conflicts with other games)
+cp "${local_plates_path}/custom_template.html" "${config_plates_dirpath}/picosonic_template.html"
 
 # Export via PICO-8 editor: PNG cartridges, binaries, HTML
 pico8 -x "$game_scripts_path/export_game_release.p8"

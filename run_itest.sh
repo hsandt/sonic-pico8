@@ -16,7 +16,7 @@ version=`cat "$data_path/version.txt"`
 
 cartridge_suffix="$1"; shift
 
-run_cmd="pico8 -run build/${cartridge_stem}_${cartridge_suffix}_v${version}_itest.p8 -screenshot_scale 4 -gif_scale 4 $@"
+run_cmd="pico8 -run build/v${version}_itest/${cartridge_stem}_${cartridge_suffix}_v${version}_itest.p8 -screenshot_scale 4 -gif_scale 4 $@"
 
 # Support UNIX platforms without gnome-terminal by checking if the command exists
 # If you `reload.sh` the game, the separate terminal allows you to keep watching the program output,

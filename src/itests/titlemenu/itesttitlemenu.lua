@@ -1,8 +1,6 @@
 -- gamestates: titlemenu
 local itest_manager = require("engine/test/itest_manager")
-local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-
 
 -- testing credits is easier than entering stage
 --  because stage in on another cartridge (ingame),

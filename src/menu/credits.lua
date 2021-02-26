@@ -20,7 +20,7 @@ local menu_item_params = {
   end}
 }
 
-local copyright_text = wwrap("this is a fan game distributed for free and is not endorsed by sega games co. ltd, which owns the sonic the hedgehog trademark and copyrights.", 31)
+local copyright_text = text_helper.wwrap("this is a fan game distributed for free and is not endorsed by sega games co. ltd, which owns the sonic the hedgehog trademark and copyrights.", 31)
 
 function credits:init()
   -- sequence of menu items to display, with their target states

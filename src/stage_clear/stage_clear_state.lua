@@ -132,9 +132,9 @@ function stage_clear_state:play_stage_clear_sequence_async()
   -- play result UI "calculation" (we don't have score so it's just checking
   --  if we have all the emeralds)
   self:assess_result_async()
-  self.app:yield_delay_s(stage_clear_data.show_emerald_assessment_duration)
 
   -- fade out and show retry screen
+  self.app:yield_delay_s(stage_clear_data.fadeout_delay_s)
   self:zigzag_fade_out_async()
 
   -- enter phase 1: retry menu immediately so we can clear screen
@@ -319,17 +319,20 @@ function stage_clear_state:assess_result_async()
 
   yield_delay(30)
 
+  local got_all_emeralds = self.picked_emerald_count >= 8
+
   local emerald_text
 
   -- show how many emeralds player got
   -- "[number]" is has1 character but "all" has 3 characters, and label doesn't support centered text,
   --  so adjust manually shorter label to be a little more to the right to center it on screen
   local x_offset = 0
-  if self.picked_emerald_count < 8 then
+
+  if got_all_emeralds then
+    emerald_text = "got all emeralds"
+  else
     emerald_text = "got "..self.picked_emerald_count.." emeralds"
     x_offset = 6
-  else
-    emerald_text = "got all emeralds"
   end
 
   -- don't mind initial x, move_drawables_on_coord_async now sets it before first render
@@ -343,6 +346,12 @@ function stage_clear_state:assess_result_async()
   -- apply offset for shorter label to start and end x
   -- animation takes 20 frames
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88 + x_offset, 20 + x_offset, 20)
+
+  if got_all_emeralds then
+    self.app:yield_delay_s(stage_clear_data.got_all_emeralds_sfx_delay_s)
+    sfx(audio.sfx_ids.got_all_emeralds)
+    self.app:yield_delay_s(stage_clear_data.got_all_emeralds_sfx_duration_s)
+  end
 end
 
 -- drawable for the right part of the fade-out layer (the body will be filled with a separate rectangle)

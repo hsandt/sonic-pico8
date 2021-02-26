@@ -373,6 +373,9 @@ function stage_clear_state:zigzag_fade_out_async()
   self.result_overlay:add_drawable("fadeout_rect", fadeout_rect)
   self.result_overlay:add_drawable("zigzag", zigzag_drawable)
 
+  -- swipe sfx must be played during swipe animation
+  sfx(audio.sfx_ids.menu_swipe)
+
   -- make rectangle with zigzag edge enter the screen from the left
   -- note that we finish at 128 and not 127 so the zigzag fully goes out of the screen to the right,
   --  and the fadeout_rect fully covers the screen, ready to be used as background

@@ -20,18 +20,18 @@ local stage_clear_state = derived_class(base_stage_state)
 stage_clear_state.type = ':stage_clear'
 
 -- sequence of menu items to display, with their target states
-local retry_menu_item_params = {
-  {"retry (keep emeralds)", function(app)
-    -- load stage cartridge without clearing picked emerald data in general memory
-    app:start_coroutine(stage_clear_state.retry_stage_async)
-  end},
-  {"retry from zero", function(app)
-    app:start_coroutine(stage_clear_state.retry_from_zero_async)
-  end},
-  {"back to title", function(app)
-    app:start_coroutine(stage_clear_state.back_to_titlemenu_async)
-  end},
-}
+local retry_keep_menu_item = menu_item("retry (keep emeralds)", function(app)
+  -- load stage cartridge without clearing picked emerald data in general memory
+  app:start_coroutine(stage_clear_state.retry_stage_async)
+end)
+
+local retry_zero_menu_item = menu_item("retry from zero", function(app)
+  app:start_coroutine(stage_clear_state.retry_from_zero_async)
+end)
+
+local back_title_menu_item = menu_item("back to title", function(app)
+  app:start_coroutine(stage_clear_state.back_to_titlemenu_async)
+end)
 
 -- menu callbacks
 
@@ -64,12 +64,6 @@ function stage_clear_state:init()
   -- stage id
   self.curr_stage_id = 1
 
-  -- sequence of menu items to display, with their target states
-  -- this could be static, but defining in init allows us to avoid
-  --  outer scope definition, so we don't need to declare local menu_item
-  --  at source top for unity build
-  self.retry_menu_items = transform(retry_menu_item_params, unpacking(menu_item))
-
   -- phase 0: stage result
   -- phase 1: retry menu
   self.phase = 0
@@ -86,7 +80,7 @@ function stage_clear_state:init()
   self.result_show_emerald_set_by_number = {}  -- [number] = nil means don't show it
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
-  -- self.retry_menu starts nil, only created when it must be shown
+  -- self.retry_menu starts nil, only created when menu must be shown
 end
 
 function stage_clear_state:on_enter()
@@ -390,15 +384,18 @@ end
 
 function stage_clear_state:show_retry_screen_async()
 
+  local has_got_any_emeralds = false
   local has_missed_any_emeralds = false
 
   -- display missed emeralds
   for num = 1, 8 do
     -- not nil is true, and not true is false, so we are effectively filling the set,
     --  just setting false for picked emeralds instead of the usual nil, but works the same
-    local has_missed_this_emerald = not self.picked_emerald_numbers_set[num]
-    self.result_show_emerald_set_by_number[num] = has_missed_this_emerald
-    has_missed_any_emeralds = has_missed_any_emeralds or has_missed_this_emerald
+    local has_got_this_emerald = self.picked_emerald_numbers_set[num]
+    -- remember we show missed emeralds, hence the not
+    self.result_show_emerald_set_by_number[num] = not has_got_this_emerald
+    has_got_any_emeralds = has_got_any_emeralds or has_got_this_emerald
+    has_missed_any_emeralds = has_missed_any_emeralds or not has_got_this_emerald
   end
 
   -- change text if player has got all emeralds
@@ -411,7 +408,17 @@ function stage_clear_state:show_retry_screen_async()
   self.result_overlay:add_drawable("result text", result_label)
 
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
-  self.retry_menu:show_items(self.retry_menu_items)
+
+  -- prepare menu items
+  local retry_menu_items = {}
+  if has_got_any_emeralds then
+    -- keeping emeralds only makes sense if we got at least one
+    add(retry_menu_items, retry_keep_menu_item)
+  end
+  add(retry_menu_items, retry_zero_menu_item)
+  add(retry_menu_items, back_title_menu_item)
+
+  self.retry_menu:show_items(retry_menu_items)
 
   -- fade in (we start from everything black so skip max darkness 5)
   for i = 4, 0, -1 do
@@ -484,7 +491,7 @@ function stage_clear_state:draw_emeralds(x, y)
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
   for num = 1, 8 do
     -- self.result_show_emerald_set_by_number[num] is only set to true when
-    --  we have picked emerald, so no need to check self.picked_emerald_numbers_set again
+    --  we have missed emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
       local radius = visual.missed_emeralds_radius
       local draw_position = vector(x + radius * cos(0.25 - (num - 1) / 8),

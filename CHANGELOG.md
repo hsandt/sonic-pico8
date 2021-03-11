@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Changed: improved HTML template to just fit the game canvas
+### Added
+- Audio: added "got all emeralds" jingle with delay
+- Audio: added menu swipe (zigzag fade-out) SFX during stage clear
+
+### Changed
+- Stage into: fixed fade-in color palette swap not applied on first frame
+- Stage clear: do not show "Retry (keep emeralds)" if you got 0 emeralds
+- Export (web): improved HTML template to just fit the game canvas
+- Engine: updated pico-boots and adapted API calls
 
 ## [5.3] - 2021-02-01
 ### Added

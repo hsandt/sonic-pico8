@@ -1152,10 +1152,7 @@ function player_char:update_ground_speed_by_slope()
   end
   self.ground_speed = self.ground_speed + ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
   -- slope angle is mostly defined with atan2(dx, dy) which follows top-left origin BUT counter-clockwise angle convention
@@ -1206,10 +1203,7 @@ function player_char:update_ground_run_speed_by_intention()
       -- decelerate
       new_ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
       -- decelerate
@@ -1281,13 +1275,10 @@ function player_char:update_ground_run_speed_by_intention()
         new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
       end
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
-        new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+      new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
 
 --#pico8]]
 --#endif

@@ -7,7 +7,15 @@
 require("engine/core/vector_ext_angle")
 require("engine/core/table_helper")
 
+
 --#if minify_level3
+
+--#if itest
+-- itest_dsl uses them
+require("engine/core/enum")
+require("engine/core/string_split")
+require("engine/test/assertions")
+--#endif
 
 -- in this particular project, this happens to be defined early anyway,
 --  but to be safe

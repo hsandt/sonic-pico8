@@ -18,9 +18,11 @@ local pc_data = {
   -- ground active deceleration (brake) during toll (px/frame^2)
   ground_roll_decel_frame2 = 0.0625,  -- 4/64
 
+--#if original_slope_features
   -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
   -- ground active deceleration factor on descending slope (no unit, [0-1])
   ground_decel_descending_slope_factor = 0.5,
+--#endif
 
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
@@ -41,6 +43,7 @@ local pc_data = {
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
 
+--#if original_slope_features
   -- Used by 3 original features (not in SPG):
   --  - Reduced Deceleration on Steep Descending Slope
   --  - No Friction on Steep Descending Slope
@@ -55,6 +58,7 @@ local pc_data = {
   -- Original feature (not in SPG): Progressive Ascending Slope Factor
   -- time needed when ascending a slope before full slope factor is applied (s)
   progressive_ascending_slope_duration = 0.5,
+--#endif
 
   -- air acceleration on x axis (px/frame^2)
   -- from this, air_drag_factor_per_frame, initial_var_jump_speed_frame and gravity,

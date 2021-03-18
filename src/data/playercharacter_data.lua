@@ -205,9 +205,10 @@ local pc_data = {
   -- sprite
 
   -- speed at which the character sprite angle falls back toward 0 (upward)
-  --  when character is airborne (typically after falling from ceiling)
-  --  (px/frame)
-  sprite_angle_airborne_reset_speed_frame = 0.0095,  -- 0.5/(7/8×60) ie character moves from upside down to upward in 7/8 s
+  --  when character is airborne (after falling from ceiling or running up and off an ascending slope) (pico8 angle/frame)
+  -- SPG: 2/256*360=2.8125° <=> 2/256=1/128=0.0078125 pico angle unit
+  -- deduced duration to rotate from upside down to upward: 0.5/(1/128) = 64 frames = 1s + 4 frames
+  sprite_angle_airborne_reset_speed_frame = 1/128,
 
   -- stand right
   -- colors.pink: 14

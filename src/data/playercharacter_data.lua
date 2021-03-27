@@ -102,6 +102,12 @@ local pc_data = {
   --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
 
+  -- range of angle allowing ceiling adherence catch (Sonic lands on the ceiling after touching it/
+  --  colliding with it). This applies to top-left and top-right ceiling corners (e.g. in loops),
+  --  and ranges are always counted from the right vertical and left vertical, i.e.
+  --  [0.25, 0.25 + range] and [0.75 - range, 0.75] resp. (pico8 angle unit)
+  ceiling_adherence_catch_range_from_vertical = 0.125,  -- 45/360
+
   -- duration of horizontal control lock after fall/slide off (frames)
   fall_off_horizontal_control_lock_duration = 30,  -- 0.5s
 
@@ -206,7 +212,7 @@ local pc_data = {
 
   -- speed at which the character sprite angle falls back toward 0 (upward)
   --  when character is airborne (after falling from ceiling or running up and off an ascending slope) (pico8 angle/frame)
-  -- SPG: 2/256*360=2.8125° <=> 2/256=1/128=0.0078125 pico angle unit
+  -- SPG: 2/256*360=2.8125° <=> 2/256=1/128=0.0078125 pico8 angle unit
   -- deduced duration to rotate from upside down to upward: 0.5/(1/128) = 64 frames = 1s + 4 frames
   sprite_angle_airborne_reset_speed_frame = 1/128,
 

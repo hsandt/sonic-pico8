@@ -906,7 +906,8 @@ function player_char:enter_motion_state(next_motion_state)
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
       -- do not clamp ground speed! this allows us to spin dash, fall a bit, land and run at high speed!
-      -- SPG says original calculation either preserves vx or uses vy * sin * some factor depending on angle range (possibly to reduce CPU)
+      -- SPG (https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) says original calculation either preserves vx or
+      --  uses vy * sin * some factor depending on angle range (possibly to reduce CPU)
       --  but for now we keep this as it's physically logical and feels good enough
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
 
@@ -2120,24 +2121,55 @@ function player_char:next_air_step(direction, ref_motion_result)
   --  to see if there is not a collision pixel 1px above (should be on another tile above)
   --  and from here compute the actual ground distance... of course, always add supporting ground
   --  tile under a ground tile when possible
+  -- UPDATE after adding landing on ceiling: the condition should still work with ceiling adherence catch,
+  --  although the SPG doesn't mention it again in Slope Physics
   if not ref_motion_result.is_blocked_by_wall and
       (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) or direction == directions.up then
     -- TODO: use new compute_ceiling_sensors_query_info to retrieve complete info
     -- if signed distance is negative, then we're hitting the ceiling. But better, we can check slope for adherence
-    local is_blocked_by_ceiling_at_next = self:is_blocked_by_ceiling_at(next_position_candidate)
-    if is_blocked_by_ceiling_at_next then
-      if direction == directions.up then
-        ref_motion_result.is_blocked_by_ceiling = true
-        log("is blocked by ceiling", "trace2")
-      else
-        -- we would be blocked by ceiling on the next position, but since we can't even go there,
-        --  we are actually blocked by the wall preventing the horizontal move
-        -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
-        --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
-        -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
-        -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
-        ref_motion_result.is_blocked_by_wall = true
-        log("is blocked by ceiling as wall", "trace2")
+    -- https://info.sonicretro.org/SPG:Slope_Physics#When_Going_Upward
+    local ceiling_query_info = self:compute_ceiling_sensors_query_info(next_position_candidate)
+
+    -- if there is touch/collision with ceiling, tile_location is set
+    if ceiling_query_info.tile_location then
+      -- note that angles inclusive/exclusive are not exactly like SPG says, because the comparisons were asymmetrical,
+      --  which must have made sense in terms of coding at the time, but we prefer symmetrical angles. Besides, we actually
+      --  have ceiling slopes at 45 degrees which we'd like to adhere onto
+--#if assert
+      assert(ceiling_query_info.signed_distance <= 0, "player_char:next_air_step: touch/collision detected with ceiling "..
+        "but signed distance is positive: "..ceiling_query_info.signed_distance)
+      assert(ceiling_query_info.slope_angle > 0.25 and ceiling_query_info.slope_angle < 0.75,
+        "player_char:next_air_step: touch/collision detected with ceiling and quadrant is always down when airborne, yet "..
+        "ceiling_query_info.slope_angle is not between 0.25 and 0.75, it is: "..ceiling_query_info.slope_angle)
+--#endif
+      if ceiling_query_info.slope_angle <= 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical or
+          ceiling_query_info.slope_angle >= 0.75 - pc_data.ceiling_adherence_catch_range_from_vertical then
+        -- character lands on ceiling aka ceiling adherence catch (touching is enough, and no extra condition on velocity)
+        ref_motion_result.tile_location = ceiling_query_info.tile_location
+        -- no need to set position, we are not blocked by wall and should not be blocked along direction
+        --  (mostly up for ceiling, and rarely left/right when entering this block with the sheer angle condition)
+        --  so we'll enter the final block at the bottom which sets ref_motion_result.position to next_position_candidate
+        ref_motion_result.is_landing = true
+        ref_motion_result.slope_angle = ceiling_query_info.slope_angle
+      elseif ceiling_query_info.signed_distance < 0 then
+        -- character hit the hard (almost horizontal) ceiling and cannot adhere: just blocked by ceiling,
+        --  or, if moving to the side, blocked by wall
+        -- note that above we check for going inside ceiling to be exact, since just touching it should not block you,
+        --  while landing on ceiling can happen just when touching ceiling (but difference is hard to see in game,
+        --  as you rarely jump and just touch the ceiling anyway)
+        if direction == directions.up then
+          ref_motion_result.is_blocked_by_ceiling = true
+          log("is blocked by ceiling", "trace2")
+        else
+          -- we would be blocked by ceiling on the next position, but since we can't even go there,
+          --  we are actually blocked by the wall preventing the horizontal move
+          -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
+          --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
+          -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
+          -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
+          ref_motion_result.is_blocked_by_wall = true
+          log("is blocked by ceiling as wall", "trace2")
+        end
       end
     end
   end

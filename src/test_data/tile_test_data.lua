@@ -32,9 +32,12 @@ local mock_raw_tile_collision_data = {
   [tile_repr.asc_slope_22_upper_level_id] = {tile_repr.asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
   [tile_repr.asc_slope_45_id] = {tile_repr.asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
   [tile_repr.desc_slope_45_id] = {tile_repr.desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
+  [tile_repr.visual_topleft_45] = {tile_repr.mask_topleft_45, {8, 7, 6, 5, 4, 3, 2, 1}, {8, 7, 6, 5, 4, 3, 2, 1}, atan2(-8, 8)},
   [tile_repr.visual_loop_topleft] = {tile_repr.mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
   [tile_repr.visual_loop_toptopleft] = {tile_repr.mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
   [tile_repr.visual_loop_toptopright] = {tile_repr.mask_loop_toptopright, {0, 0, 0, 1, 1, 2, 2, 3}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, -3)},
+  [tile_repr.visual_loop_topright] = {tile_repr.mask_loop_topright, {3, 4, 4, 5, 6, 6, 7, 8}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, -5)},
+  [tile_repr.visual_topright_45] = {tile_repr.mask_topright_45, {1, 2, 3, 4, 5, 6, 7, 8}, {8, 7, 6, 5, 4, 3, 2, 1}, atan2(-8, -8)},
   [tile_repr.visual_loop_bottomleft] = {tile_repr.mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
   [tile_repr.visual_loop_bottomright] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
   [tile_repr.visual_loop_bottomright_steepest] = {22, {0, 0, 0, 0, 0, 2, 5, 8}, {1, 1, 1, 2, 2, 2, 3, 3}, atan2(3, -8)},
@@ -79,10 +82,13 @@ function tile_test_data.setup()
   fset(tile_repr.asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
   fset(tile_repr.desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
 
-  fset(tile_repr.visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
+  -- masks also have collision flag, but only useful to test
+  -- a non-loop proto curve tile with the same shape (as loop require visual tiles anyway)
 
-  -- mask also have collision flag, but only useful to test
-  -- a non-loop proto curve tile with the same shaped
+  fset(tile_repr.visual_topleft_45, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_topleft_45, sprite_masks.collision + sprite_masks.midground)
+
+  fset(tile_repr.visual_loop_topleft, sprite_masks.collision + sprite_masks.midground)
   fset(tile_repr.mask_loop_topleft, sprite_masks.collision + sprite_masks.midground)
 
   fset(tile_repr.visual_loop_toptopleft, sprite_masks.collision +  sprite_masks.midground)
@@ -93,6 +99,12 @@ function tile_test_data.setup()
 
   fset(tile_repr.visual_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
   fset(tile_repr.mask_loop_bottomleft, sprite_masks.collision + sprite_masks.midground)
+
+  fset(tile_repr.visual_loop_topright, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_loop_topright, sprite_masks.collision + sprite_masks.midground)
+
+  fset(tile_repr.visual_topright_45, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.mask_topright_45, sprite_masks.collision + sprite_masks.midground)
 
   fset(tile_repr.visual_loop_bottomright, sprite_masks.collision + sprite_masks.midground)
   fset(tile_repr.mask_loop_bottomright, sprite_masks.collision + sprite_masks.midground)

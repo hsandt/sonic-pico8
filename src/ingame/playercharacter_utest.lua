@@ -7649,6 +7649,45 @@ describe('player_char', function ()
 
         end)
 
+        -- testing landing on ceiling aka ceiling adherence catch
+        describe('#solo (with ceiling top-left and top-right 45-deg corners)', function ()
+
+          before_each(function ()
+            -- 45
+            mock_mset(0, 0, tile_repr.visual_topleft_45)
+            mock_mset(1, 0, tile_repr.visual_topright_45)
+          end)
+
+          it('direction up into top-left corner should land on (adhere to) ceiling', function ()
+            pc.velocity.x = 0
+            pc.velocity.y = -3
+
+            local motion_result = motion.air_motion_result(
+              nil,
+              -- column 4 in topleft tile should have downward column of height 6
+              vector(4, 6 + pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:next_air_step(directions.down, motion_result)
+
+            assert.are_same(motion.air_motion_result(
+                location(0, 0),
+                vector(4, 6 + pc_data.center_height_standing),
+                false,
+                false,
+                true,  -- is_landing
+                atan2(-8, 8)
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
       end)  -- (with mock tiles data setup)
 
     end)  -- next_air_step

@@ -5532,6 +5532,42 @@ describe('player_char', function ()
 
         end)
 
+        -- added to test fix #132 BUG MOTION/VISUAL running from flat to steep descending slope causes glitch
+        describe('(with steepest curve then flat ground)', function ()
+
+          before_each(function ()
+            -- ..
+            -- i#
+            mock_mset(0, 1, tile_repr.visual_loop_bottomright_steepest)
+            mock_mset(1, 1, tile_repr.full_tile_id)
+          end)
+
+          -- case: step fall due to angle
+          it('when stepping from flat ground onto very steep descending ground, angle diff is enough to still fall', function ()
+            local motion_result = motion.ground_motion_result(
+              location(1, 1),
+              vector(6, 8 - pc_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            -- step block
+            pc:next_ground_step(horizontal_dirs.left, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                nil,
+                vector(5, 8 - pc_data.center_height_standing),
+                nil,
+                false,
+                true  -- now falling
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
         -- bugfix history:
         -- = itest of player running on flat ground when ascending a slope showed that when removing supporting ground,
         --   character would be blocked at the bottom of the slope, so I isolated just that part into a utest
@@ -5598,6 +5634,34 @@ describe('player_char', function ()
                 45/360,
                 false,
                 false
+              ),
+              motion_result
+            )
+          end)
+
+          -- case: after step fall, we are close to ground again but not inside yet
+          -- This variant was added after testing case #132: initial utest passed, but during
+          --  actual gameplay, the character sometimes relanded immediately on the slope after taking off,
+          --  defeating the feature.
+          -- But for the unit test we don't need such a complex scenario, any ground will do.
+          it('when already falling from previous step, do not step down', function ()
+            local motion_result = motion.ground_motion_result(
+              nil,  -- no ground
+              vector(12, 9 - pc_data.center_height_standing),
+              nil,  -- no ground, so no angle
+              false,
+              true  -- previously falling
+            )
+
+            -- step down
+            pc:next_ground_step(horizontal_dirs.left, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                nil,
+                vector(11, 9 - pc_data.center_height_standing),  -- don't step down, so keep Y
+                nil,
+                false,
+                true  -- still falling
               ),
               motion_result
             )
@@ -7625,7 +7689,9 @@ describe('player_char', function ()
 
             local motion_result = motion.air_motion_result(
               nil,
-              vector(5, 0 - pc_data.center_height_standing),
+              -- used to be 0 -, now it's 1 - since we removed the top pixel of the steepest slope
+              -- when fixing #132 (see corresponding utest)
+              vector(5, 1 - pc_data.center_height_standing),
               false,
               false,
               false,
@@ -7637,7 +7703,7 @@ describe('player_char', function ()
             assert.are_same(motion.air_motion_result(
                 location(0, 0),
                 -- kinda arbitrary offset of 6, but based on character data
-                vector(-1, 0 - pc_data.center_height_standing),
+                vector(-1, 1 - pc_data.center_height_standing),
                 false,
                 false,
                 true,
@@ -7650,7 +7716,7 @@ describe('player_char', function ()
         end)
 
         -- testing landing on ceiling aka ceiling adherence catch
-        describe('#solo (with ceiling top-left and top-right 45-deg corners)', function ()
+        describe('(with ceiling top-left and top-right 45-deg corners)', function ()
 
           before_each(function ()
             -- 45

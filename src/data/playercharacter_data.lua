@@ -60,6 +60,9 @@ local pc_data = {
   progressive_ascending_slope_duration = 0.5,
 --#endif
 
+  -- Use for Original slope feature: Take-Off Angle Difference
+  take_off_angle_difference = 0.125,  -- between 0.125 (45 deg) and 0.25 (90 deg)
+
   -- air acceleration on x axis (px/frame^2)
   -- from this, air_drag_factor_per_frame, initial_var_jump_speed_frame and gravity,
   --  we can deduce the jump distance X on flat ground when jumping and starting to move

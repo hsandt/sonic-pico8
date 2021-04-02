@@ -40,7 +40,7 @@ local mock_raw_tile_collision_data = {
   [tile_repr.visual_topright_45] = {tile_repr.mask_topright_45, {1, 2, 3, 4, 5, 6, 7, 8}, {8, 7, 6, 5, 4, 3, 2, 1}, atan2(-8, -8)},
   [tile_repr.visual_loop_bottomleft] = {tile_repr.mask_loop_bottomleft, {8, 7, 6, 6, 5, 4, 4, 3}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, 5)},
   [tile_repr.visual_loop_bottomright] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},
-  [tile_repr.visual_loop_bottomright_steepest] = {22, {0, 0, 0, 0, 0, 2, 5, 8}, {1, 1, 1, 2, 2, 2, 3, 3}, atan2(3, -8)},
+  [tile_repr.visual_loop_bottomright_steepest] = {22, {0, 0, 0, 0, 0, 2, 5, 7}, {1, 1, 1, 2, 2, 2, 3, 3}, atan2(3, -8)},
   -- note that we didn't add definitions for mask_ versions, as we don't use them in tests
   -- if we need them, then since content is the same, instead of duplicating lines for mask_,
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations

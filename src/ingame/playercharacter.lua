@@ -1528,7 +1528,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
 
   -- merge < 0 and == 0 cases together to spare tokens
   -- when 0, next_position_candidate.y will simply not change
-  if signed_distance_to_closest_ground <= 0 then
+  if signed_distance_to_closest_ground < 0 then
     -- position is inside ground, check if we can step up during this step
     -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
     --  the escape is done on the X axis so technically we escape row width)
@@ -1545,17 +1545,37 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
       --  character will simply hit the wall, then fall
       ref_motion_result.is_blocked = true
     end
-  elseif signed_distance_to_closest_ground > 0 then
+  elseif signed_distance_to_closest_ground >= 0 then
     -- position is above ground, check if we can step down during this step
     -- (step down is during ground motion only)
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
-      -- step down
-      next_position_candidate:add_inplace(vector_to_closest_ground)
-      -- if character left the ground during a previous step, cancel that (step down land, very rare)
-      ref_motion_result.is_falling = false
+      -- if character has fallen during previous step, prevent step down AND no need to check for angle take-off
+      --  note he can still re-land, but only by entering the ground i.e. signed distance to ground < 0, as in block above
+      if not ref_motion_result.is_falling then
+        -- Original slope feature: Take-Off Angle Difference
+        -- When character falls when running from to ground, he could normally step down,
+        --  but the new ground is a descending slope too steep compared to previous slope angle.
+        -- Exceptionally not inside --#if original_slope_features because it really fixes glitches
+        --  when character moves at low speed from flat ground to steep descending slope
+        -- In the original, Sonic just runs on the steep descending slope as if nothing, and also exceptionally
+        --  preserves his sprite angle, but that would have required extra code.
+        -- Make sure to check if we are not already falling so slope angle exists (alternatively check that ref_motion_result.slope_angle is not nil)
+        -- When running toward the left, angle diff has opposite sign, so multiply by horizontal sign to counter this
+        if ref_motion_result.slope_angle and
+            horizontal_dir_signs[quadrant_horizontal_dir] * (ref_motion_result.slope_angle - query_info.slope_angle) > pc_data.take_off_angle_difference then
+          -- step fall due to angle difference aka angle-based Take-Off
+          ref_motion_result.is_falling = true
+        else
+          -- step down
+          next_position_candidate:add_inplace(vector_to_closest_ground)
+          -- if character left the ground during a previous step, cancel that (step down land, very rare)
+          ref_motion_result.is_falling = false
+        end
+      end
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
+      --  (but he'll need to really enter the ground i.e. signed distance to ground < 0)
       -- caution: we are not updating qy at all, which means the character starts
       --  "walking horizontally in the air". in sonic games, we would expect
       --  momentum to take over and send the character along qy, preserving

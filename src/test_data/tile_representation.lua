@@ -7,7 +7,7 @@ local tile_repr = {
   no_tile_id = 0,
   full_tile_id = 29,
   flat_high_tile_left_id = 26,
-  flat_high_tile_id = 27,
+  flat_high_tile_id = 27,  -- TODO: use 2, it's the same
   half_tile_id = 4,
   flat_low_tile_id = 6,
   bottom_right_quarter_tile_id = 44,  -- test only
@@ -15,6 +15,7 @@ local tile_repr = {
   asc_slope_22_upper_level_id = 43,  -- test only
   asc_slope_45_id = 21,
   desc_slope_45_id = 16,
+  desc_slope_2px_id = 1,  -- low slope descending every 4px, from height 7 to 6, 2px total on connection
   -- because of the new convention of placing special sprite flags on visual tiles,
   --  for meaningful tests we separate both tiles and check that flags are verified
   --  on the right sprites. tilemap testing loop functionality should place the visual
@@ -49,6 +50,7 @@ local tile_repr = {
 tile_repr.tile_symbol_to_ids = {
   ['.']  = tile_repr.no_tile_id,   -- empty
   ['#']  = tile_repr.full_tile_id,  -- full tile
+  ['-']  = tile_repr.flat_high_tile_id,  -- block 6x high
   ['=']  = tile_repr.half_tile_id,  -- half tile (4px high)
   ['_']  = tile_repr.flat_low_tile_id,  -- flat low tile (2px high)
   ['r']  = tile_repr.bottom_right_quarter_tile_id,  -- bottom-right quarter tile (4px high)
@@ -56,6 +58,7 @@ tile_repr.tile_symbol_to_ids = {
   ['y']  = tile_repr.asc_slope_22_upper_level_id,  -- ascending slope upper level 22.5 (actually 1:2)
   ['/']  = tile_repr.asc_slope_45_id,  -- ascending slope 45
   ['\\'] = tile_repr.desc_slope_45_id,  -- descending slope 45
+  ['>'] = tile_repr.desc_slope_2px_id,
   ['4']  = tile_repr.visual_topleft_45,  -- 45-deg top-left ceiling slope
   ['Y']  = tile_repr.visual_loop_topleft,  -- loop top-left corner
   ['Z']  = tile_repr.visual_loop_toptopleft,   -- loop top-top-left corner (between flat top and top-left)

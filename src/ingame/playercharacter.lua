@@ -460,7 +460,8 @@ function player_char:update_motion()
   self:update_platformer_motion()
 end
 
--- return (signed_distance, slope_angle) where:
+-- return ground_query_info(tile_location, signed_distance, slope_angle) where:
+--  - tile_location is the location of the detected ground tile, nil if no ground detected
 --  - signed_distance is the signed distance to the highest ground when character center is at center_position,
 --   either negative when (in abs, penetration height)
 --   or positive (actual distance to ground), always abs clamped to tile_size+1
@@ -1551,6 +1552,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
       -- if character has fallen during previous step, prevent step down AND no need to check for angle take-off
       --  note he can still re-land, but only by entering the ground i.e. signed distance to ground < 0, as in block above
+      -- otherwise, character is still grounded, so check for angle take-off, and if not taking off, step down
       if not ref_motion_result.is_falling then
         -- Original slope feature: Take-Off Angle Difference
         -- When character falls when running from to ground, he could normally step down,
@@ -1561,15 +1563,14 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
         --  preserves his sprite angle, but that would have required extra code.
         -- Make sure to check if we are not already falling so slope angle exists (alternatively check that ref_motion_result.slope_angle is not nil)
         -- When running toward the left, angle diff has opposite sign, so multiply by horizontal sign to counter this
-        if ref_motion_result.slope_angle and
-            horizontal_dir_signs[quadrant_horizontal_dir] * (ref_motion_result.slope_angle - query_info.slope_angle) > pc_data.take_off_angle_difference then
+        -- Note that character is not falling, so grounded (during step), so ref_motion_result.slope_angle is not nil
+        local signed_angle_delta = compute_signed_angle_between(query_info.slope_angle, ref_motion_result.slope_angle)
+        if horizontal_dir_signs[quadrant_horizontal_dir] * signed_angle_delta > pc_data.take_off_angle_difference then
           -- step fall due to angle difference aka angle-based Take-Off
           ref_motion_result.is_falling = true
         else
           -- step down
           next_position_candidate:add_inplace(vector_to_closest_ground)
-          -- if character left the ground during a previous step, cancel that (step down land, very rare)
-          ref_motion_result.is_falling = false
         end
       end
     else

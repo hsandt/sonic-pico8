@@ -834,7 +834,7 @@ expect pc_velocity -0x000.9aba -1.609375
 
 --#if busted
 itest_dsl_parser.register(
-  'fall on curve top', [[
+  '#mute fall on curve top', [[
 @stage #
 ..#
 ..#

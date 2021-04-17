@@ -55,7 +55,7 @@ before_script:
   - ln -s "$(pwd)/tool/picotool-master/p8tool" "$HOME/.local/bin/p8tool"
 
 script:
-  # build game and itest to make sure everything works fine
+  # build game to make sure everything works fine
   # (even if build fails, tests will be run independently thanks to busted)
   # disabled build_game.sh debug because character count may get over 65536
   # easily when working at the limit, and fail; while build release is what really counts

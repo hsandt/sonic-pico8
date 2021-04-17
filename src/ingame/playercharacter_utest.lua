@@ -5205,7 +5205,8 @@ describe('player_char', function ()
             )
           end)
 
-          it('when stepping right back on the ground, increment x and cancel fall', function ()
+          -- this behaviour changed with #132, we don't step down after falling when just touching ground
+          it('when stepping right after fall but just touching ground, increment x but do not cancel fall', function ()
             local motion_result = motion.ground_motion_result(
               nil,
               vector(-3, 8 - pc_data.center_height_standing),
@@ -5218,11 +5219,39 @@ describe('player_char', function ()
             pc:next_ground_step(horizontal_dirs.right, motion_result)
 
             assert.are_same(motion.ground_motion_result(
-                location(0, 1),
+                nil,
                 vector(-2, 8 - pc_data.center_height_standing),
+                nil,
+                false,
+                true  -- still falling
+              ),
+              motion_result
+            )
+          end)
+
+          -- we still wanted to test the case where character lands back on ground (what happened
+          --  above before #132 fix), but we need to place another tile just high enough so step
+          --  gets at least 1px inside ground... a bit cumbersome, so we cheat and assume character
+          --  is 1px lower from the start (although impossible as it should have left ground),
+          --  so character steps up
+          it('when stepping right back on the ground, increment x and cancel fall', function ()
+            local motion_result = motion.ground_motion_result(
+              nil,
+              vector(-3, 9 - pc_data.center_height_standing),
+              nil,
+              false,
+              true
+            )
+
+            -- step land (very rare)
+            pc:next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                location(0, 1),
+                vector(-2, 8 - pc_data.center_height_standing),  -- go up 1px to step up ground again
                 0,
                 false,
-                false
+                false  -- landed back after a step falling
               ),
               motion_result
             )
@@ -5351,7 +5380,7 @@ describe('player_char', function ()
             local motion_result = motion.ground_motion_result(
               location(0, 1),
               vector(8 + pc_data.center_height_standing, 15),
-              0,
+              0.75,
               false,
               false
             )
@@ -5552,7 +5581,7 @@ describe('player_char', function ()
               false
             )
 
-            -- step block
+            -- step to left "onto" curve (actually above)
             pc:next_ground_step(horizontal_dirs.left, motion_result)
 
             assert.are_same(motion.ground_motion_result(
@@ -5561,6 +5590,43 @@ describe('player_char', function ()
                 nil,
                 false,
                 true  -- now falling
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
+        -- added after fixing #132 as I noticed my angle comparison was incorrect when one angle was above 0, and the other just below 0 (~0.9)
+        -- it was fixed by using the new compute_signed_angle_between
+        describe('(with steepest curve then flat ground)', function ()
+
+          before_each(function ()
+            -- >-
+            mock_mset(0, 0, tile_repr.desc_slope_2px_id)
+            mock_mset(1, 0, tile_repr.flat_high_tile_id)
+          end)
+
+          -- case: no step fall as angle difference is small
+          it('when stepping from low descending ground onto flat ground, angle diff is not enough to fall', function ()
+            local motion_result = motion.ground_motion_result(
+              location(0, 0),
+              -- > tile last column has height 6, so gap of 2
+              vector(10, 2 - pc_data.center_height_standing),
+              atan2(8, 2),
+              false,
+              false
+            )
+
+            -- step to right onto flat high tile
+            pc:next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                location(1, 0),
+                vector(11, 2 - pc_data.center_height_standing),
+                0,
+                false,
+                false  -- still grounded
               ),
               motion_result
             )

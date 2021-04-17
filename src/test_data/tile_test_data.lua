@@ -32,6 +32,7 @@ local mock_raw_tile_collision_data = {
   [tile_repr.asc_slope_22_upper_level_id] = {tile_repr.asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
   [tile_repr.asc_slope_45_id] = {tile_repr.asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
   [tile_repr.desc_slope_45_id] = {tile_repr.desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
+  [tile_repr.desc_slope_2px_id] = {tile_repr.desc_slope_2px_id, {7, 7, 7, 7, 6, 6, 6, 6}, {0, 4, 8, 8, 8, 8, 8, 8}, atan2(8, 2)},
   [tile_repr.visual_topleft_45] = {tile_repr.mask_topleft_45, {8, 7, 6, 5, 4, 3, 2, 1}, {8, 7, 6, 5, 4, 3, 2, 1}, atan2(-8, 8)},
   [tile_repr.visual_loop_topleft] = {tile_repr.mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
   [tile_repr.visual_loop_toptopleft] = {tile_repr.mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
@@ -74,6 +75,8 @@ function tile_test_data.setup()
 
   -- collision masks / proto tiles
   fset(tile_repr.full_tile_id, sprite_masks.collision + sprite_masks.midground)  -- full tile
+  fset(tile_repr.flat_high_tile_left_id, sprite_masks.collision + sprite_masks.midground)
+  fset(tile_repr.flat_high_tile_id, sprite_masks.collision + sprite_masks.midground)
   fset(tile_repr.half_tile_id, sprite_masks.collision + sprite_masks.midground)  -- half-tile (bottom half)
   fset(tile_repr.flat_low_tile_id, sprite_masks.collision + sprite_masks.midground)  -- low-tile (bottom quarter)
   fset(tile_repr.bottom_right_quarter_tile_id, sprite_masks.collision + sprite_masks.midground)  -- quarter-tile (bottom-right half)
@@ -81,6 +84,7 @@ function tile_test_data.setup()
   fset(tile_repr.asc_slope_22_upper_level_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 22.5 offset tile_repr.by 4
   fset(tile_repr.asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
   fset(tile_repr.desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
+  fset(tile_repr.desc_slope_2px_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope every 4px, from height 7 to 6
 
   -- masks also have collision flag, but only useful to test
   -- a non-loop proto curve tile with the same shape (as loop require visual tiles anyway)

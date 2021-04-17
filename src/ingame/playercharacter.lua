@@ -94,8 +94,8 @@ function player_char:setup()
   --  will trigger change event
   self.ground_tile_location = location(-1, -1)
   self.position = vector(-1, -1)
-  self.ground_speed = 0.
-  self.horizontal_control_lock_timer = 0.
+  self.ground_speed = 0
+  self.horizontal_control_lock_timer = 0
   self.velocity = vector.zero()
 --#if cheat
   self.debug_velocity = vector.zero()
@@ -103,9 +103,9 @@ function player_char:setup()
 
   -- slope_angle starts at 0 instead of nil to match standing state above
   -- (if spawning in the air, fine, next update will reset angle to nil)
-  self.slope_angle = 0.
+  self.slope_angle = 0
 --#if original_slope_features
-  self.ascending_slope_time = 0.
+  self.ascending_slope_time = 0
 --#endif
 
   self.move_intention = vector.zero()
@@ -116,8 +116,8 @@ function player_char:setup()
   self.can_interrupt_jump = false
 
   self.anim_spr:play("idle")
-  self.anim_run_speed = 0.
-  self.continuous_sprite_angle = 0.
+  self.anim_run_speed = 0
+  self.continuous_sprite_angle = 0
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
 
@@ -292,7 +292,7 @@ end
 -- if force_upward_sprite is true, set sprite angle to 0
 -- else, set sprite angle to angle (if not nil)
 function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
-  assert(angle == nil or 0. <= angle and angle <= 1., "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
+  assert(angle == nil or 0 <= angle and angle <= 1, "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
 
   self.slope_angle = angle
 

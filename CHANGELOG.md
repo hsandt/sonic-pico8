@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.4] - 2021-04-17
+### Added
+- Audio: added "got all emeralds" jingle with delay
+- Audio: added menu swipe (zigzag fade-out) SFX during stage clear
+- Character physics: character can land on ceiling corners up to 45 degrees
+- Character physics: fixed character jittering when walking down from the top of the first curved slope to the left. Now, character falls when ground angle changes by 45 degrees or more. This is an original feature and differs from Sonic 3, which would let Sonic stick to the curved slope while running as if it was flat ground.
+
+### Changed
+- Stage intro: fixed fade-in color palette swap not applied on first frame
+- Stage clear: do not show "Retry (keep emeralds)" if you got 0 emeralds
+- Export (web): improved HTML template to just fit the game canvas
+- Export: stripped some unused code/data for smaller cartridge
+- Engine: updated pico-boots and adapted API calls
+
 ## [5.3] - 2021-02-01
 ### Added
 - Stage: added horizontal springs (internally now fully-fledged objects instead of tiles)

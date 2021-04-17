@@ -5,6 +5,10 @@ audio.sfx_ids = {
   menu_select = 50,
   menu_confirm = 51,
 
+  -- builtin_data_stage_clear only
+  menu_swipe = 52,
+  got_all_emeralds = 56,
+
   -- builtin_data_ingame only
   -- because it plays on 4th channel over low-volume bgm,
   --  pick emerald jingle is considered an sfx

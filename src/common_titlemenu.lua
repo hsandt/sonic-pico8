@@ -8,17 +8,14 @@ require("engine/core/fun_helper")    -- unpacking
 require("engine/core/table_helper")
 
 --#if minify_level3
--- early declaration of strspl for minification by -G
--- in our case, assigning anything is safe because common_titlemenu is required
---  at runtime before any other modules that may indirectly need string_split
---  (we are talking runtime execution here, not parsing order) so it won't
---  overwrite the true definition of strspl, and we don't need to surround with
---  `if nil` as with `require = 0` in engine/common.
--- we can also require("engine/core/string_split") if we need more functions from
---  that module, or for some reason the require order would make it unsafe
--- (we would then have some redundancy as text_helper requires string_split on its own
---   since it is not part of engine/common)
-strspl = 0
+
+-- string_split defines strspl which is used in particular by text_helper
+-- but text_helper is required at a deeper level so we require it here
+-- to have early definition
+-- we used to just define strspl = 0 for compactness, but we now use unity build
+-- when possible, which strips any redundant requires (after minification)
+require("engine/core/string_split")
+
 --#endif
 
 --[[#pico8

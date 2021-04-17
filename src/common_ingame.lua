@@ -4,8 +4,25 @@
 -- Usage: add require("common_ingame") at the top of each of your ingame main scripts
 --  (along with "engine/common") and in bustedhelper_ingame
 
+require("engine/core/angle")  -- used by playercharacter, so technically not needed for stage_clear
 require("engine/core/vector_ext_angle")
 require("engine/core/table_helper")
+
+
+--#if minify_level3
+
+--#if itest
+-- itest_dsl uses them
+require("engine/core/enum")
+require("engine/core/string_split")
+require("engine/test/assertions")
+--#endif
+
+-- in this particular project, this happens to be defined early anyway,
+--  but to be safe
+require("engine/render/animated_sprite_data_enums")
+
+--#endif
 
 require("data/sprite_flags")
 require("ingame/playercharacter_enums")

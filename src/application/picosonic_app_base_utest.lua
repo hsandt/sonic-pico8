@@ -30,8 +30,14 @@ describe('picosonic_app_base', function ()
     end)
 
     after_each(function ()
+      clear_table(pico8.poked_addresses)
       input.toggle_mouse:clear()
       mouse.set_cursor_sprite_data:clear()
+    end)
+
+    it('should disable input auto-repeat by poking 0x5f5c = 255 (-1)', function ()
+      app:on_post_start()
+      assert.are_equal(-1, pico8.poked_addresses[0x5f5c])
     end)
 
     it('should toggle mouse cursor', function ()

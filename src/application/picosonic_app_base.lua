@@ -29,6 +29,10 @@ function picosonic_app_base:init()
 end
 
 function picosonic_app_base:on_post_start() -- override
+  -- disable input auto-repeat (this is to be cleaner, as input module barely uses btnp anyway,
+  --  and simply detects state changes using btn; if too many compressed chars, strip that first)
+  poke(0x5f5c, -1)
+
 --#if mouse
   -- enable mouse devkit
   input:toggle_mouse(true)

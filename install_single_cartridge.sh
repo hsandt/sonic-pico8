@@ -47,7 +47,7 @@ output_path="build/v${version}_${config}"
 cartridge_filepath="${output_path}/${cartridge_stem}_${cartridge_suffix}.p8${suffix}"
 # Linux only
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
-install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
+install_dirpath="${carts_dirpath}/${cartridge_stem}/v${version}_${config}"
 
 if [[ ! -f "${cartridge_filepath}" ]]; then
   echo "File ${cartridge_filepath} could not be found, cannot install. Make sure you built it first."

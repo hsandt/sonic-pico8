@@ -10,7 +10,7 @@
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
 game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
-build_output_path="$(dirname "$0")/build"
+build_dir_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
 version=`cat "$data_path/version.txt"`
@@ -28,6 +28,11 @@ config='itest'
 symbols='itest,proto,tostring'
 
 cartridge_suffix="$1"; shift
+
+# Define build output folder from config
+# (to simplify cartridge loading, cartridge files are always named the same,
+#  so we can only distinguish builds by their folder names)
+build_output_path="${build_dir_path}/v${version}_${config}"
 
 # Build from itest main for all itests
 # metadata doesn't really matter for tests, we pass it anyway

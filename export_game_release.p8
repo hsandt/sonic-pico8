@@ -9,8 +9,9 @@ __lua__
 -- Note that it will not warn if cartridge is not found.
 -- Paths are relative to PICO-8 carts directory.
 
+-- #version
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "5.3"
+local version = "5.4"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"
@@ -102,7 +103,9 @@ cd(export_folder)
   mkdir(game_basename.."_web")
   -- Do not cd into game_basename.."_web" because we want the additional cartridges to be accessible
   --  in current path. Instead, export directly into the _web folder
-  export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 46 -s 2 -c 14")
+  -- Use custom template. It is located in plates/picosonic_template.html and copied into PICO-8 config dir plates
+  --  in export_and_patch_cartridge_release.sh
+  export(game_basename.."_web/"..game_basename..".html "..additional_cartridges_string.." -i 46 -s 2 -c 14 -p picosonic_template")
   printh("Exported HTML in carts/"..export_folder.."/"..game_basename..".html")
 
 cd("..")

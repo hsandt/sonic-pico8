@@ -197,6 +197,10 @@ function stage_state:reload_runtime_data()
 
   -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
   --  so we just have a little margin!
+  -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
+  --  of course we can keep using it for general memory, but if we start using custom font,
+  --  since the first bytes are used for default parameters, I'll have to stop using addresses
+  --  before 0x5600
 end
 
 -- never called, we directly load stage_clear cartridge

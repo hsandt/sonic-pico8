@@ -94,8 +94,8 @@ function player_char:setup()
   --  will trigger change event
   self.ground_tile_location = location(-1, -1)
   self.position = vector(-1, -1)
-  self.ground_speed = 0.
-  self.horizontal_control_lock_timer = 0.
+  self.ground_speed = 0
+  self.horizontal_control_lock_timer = 0
   self.velocity = vector.zero()
 --#if cheat
   self.debug_velocity = vector.zero()
@@ -103,9 +103,9 @@ function player_char:setup()
 
   -- slope_angle starts at 0 instead of nil to match standing state above
   -- (if spawning in the air, fine, next update will reset angle to nil)
-  self.slope_angle = 0.
+  self.slope_angle = 0
 --#if original_slope_features
-  self.ascending_slope_time = 0.
+  self.ascending_slope_time = 0
 --#endif
 
   self.move_intention = vector.zero()
@@ -116,8 +116,8 @@ function player_char:setup()
   self.can_interrupt_jump = false
 
   self.anim_spr:play("idle")
-  self.anim_run_speed = 0.
-  self.continuous_sprite_angle = 0.
+  self.anim_run_speed = 0
+  self.continuous_sprite_angle = 0
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
 
@@ -292,7 +292,7 @@ end
 -- if force_upward_sprite is true, set sprite angle to 0
 -- else, set sprite angle to angle (if not nil)
 function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
-  assert(angle == nil or 0. <= angle and angle <= 1., "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
+  assert(angle == nil or 0 <= angle and angle <= 1, "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
 
   self.slope_angle = angle
 
@@ -460,7 +460,8 @@ function player_char:update_motion()
   self:update_platformer_motion()
 end
 
--- return (signed_distance, slope_angle) where:
+-- return ground_query_info(tile_location, signed_distance, slope_angle) where:
+--  - tile_location is the location of the detected ground tile, nil if no ground detected
 --  - signed_distance is the signed distance to the highest ground when character center is at center_position,
 --   either negative when (in abs, penetration height)
 --   or positive (actual distance to ground), always abs clamped to tile_size+1
@@ -469,28 +470,42 @@ end
 -- if both sensors have different signed distances,
 --  the lowest signed distance is returned (to escape completely or to have just 1 sensor snapping to the ground)
 function player_char:compute_ground_sensors_query_info(center_position)
+  return self:compute_sensors_query_info(self.compute_closest_ground_query_info, center_position)
+end
 
+-- similar to compute_ground_sensors_query_info, but ceiling
+-- it is not completely symmetrical adherence rules differ
+function player_char:compute_ceiling_sensors_query_info(center_position)
+  return self:compute_sensors_query_info(self.compute_closest_ceiling_query_info, center_position)
+end
+
+-- general method that returns general ground query info for ground or ceiling closest to both of ground sensors
+-- pass compute_closest_query_info: compute_closest_ground_query_info or compute_closest_ceiling_query_info
+function player_char:compute_sensors_query_info(compute_closest_query_info, center_position)
   -- initialize with negative value to return if the character is not intersecting ground
   local min_signed_distance = 1 / 0  -- max (32768 in pico-8, but never enter it manually as it would be negative)
   local highest_ground_query_info = nil
 
-  -- check both ground sensors for ground
+  -- check both ground sensors for ground/ceiling (ceiling also uses ground sensors, it just uses an offset to adjust)
   for i=1,2 do
   -- equivalent to:
   -- for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
-    -- check that ground sensor #i is on top of or below the mask column
+    -- check that ground sensor #i is on q-top of or q-below the mask column
     local sensor_position = self:get_ground_sensor_position_from(center_position, i)
-    local query_info = self:compute_closest_ground_query_info(sensor_position)
+    local query_info = compute_closest_query_info(self, sensor_position)
     local signed_distance = query_info.signed_distance
 
     -- apply ground priority rule: highest ground, then ground speed (velocity X in the air) sign breaks tie,
     --  then q-horizontal direction breaks tie
+    -- it also applies to ceiling, although when running, we only care about hitting ceiling or not (bool) so priority
+    --  doesn't change the result; so it only applies to airborne movement
 
     -- store the biggest penetration height among sensors
     -- case a: this ground is higher than the previous one, store new height and slope angle
     -- case b: this ground has the same height as the previous one, but character orientation
     --  makes him stand on that one rather than the previous one, so we use its slope
+    -- (for ceiling, think of everything upside down, as when dealing with q-up ground)
     -- check both cases in condition below
     if signed_distance < min_signed_distance or signed_distance == min_signed_distance and self:get_prioritized_dir() == i then
       min_signed_distance = signed_distance  -- does nothing in case b
@@ -500,7 +515,6 @@ function player_char:compute_ground_sensors_query_info(center_position)
   end
 
   return motion.ground_query_info(highest_ground_query_info.tile_location, min_signed_distance, highest_ground_query_info.slope_angle)
-
 end
 
 function player_char:get_prioritized_dir()
@@ -642,7 +656,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         -- tile is on layer with disabled collision, return emptiness
         qcolumn_height, slope_angle = 0--, nil
     else
-      -- Ceiling ignore reverse full tiles on first tile. Comment from _is_column_blocked_by_ceiling_at
+      -- Ceiling ignore reverse full tiles on first tile. Comment from compute_closest_ceiling_query_info
       --  before extracting iterate_over_collision_tiles
       -- on the first tile, we don't cannot really be blocked by a ground
       --  with the same interior direction as quadrant <=> opposite to quadrant_opp
@@ -681,7 +695,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
       end
 
-      -- let caller decide how to handle the presence of collider
+      -- callback returns ground query info, let it decide how to handle presence of collider
       local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 
       -- we cannot 2x return from a called function directly, so instead, we check if a result was returned
@@ -727,7 +741,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
     if world.sub_qy(curr_qj, last_qj, collision_check_quadrant) >= 0 then
 --#endif
       assert(curr_global_tile_loc == last_global_tile_loc, "see comment in iterate_over_collision_tiles")
-      -- let caller decide how to handle the end of iteration without finding any collider
+      -- callback returns ground query info, let it decide how to handle the end of iteration without finding any collider
       local result = no_collider_callback()
 
 --#if debug_character
@@ -737,8 +751,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         end
 --#endif
 
-      -- ground check returns query info while ceiling check returns bool
-      -- in any case, this is the final check so return the result whatever it is
+      -- this is the final check so return the result whatever it is
       return result
     end
 
@@ -775,7 +788,8 @@ local function ground_check_no_collider_callback()
   return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
 end
 
--- return (signed_distance, slope_angle) where:
+-- return ground_query_info(tile_location, signed_distance, slope_angle) where:
+--  - tile_location is the location where we found the first colliding tile, or nil if no collision
 --  - signed distance to closest ground from sensor_position,
 --     either negative when (in abs, penetration height, clamped to max_ground_escape_height+1)
 --      or positive (actual distance to ground, clamped to max_ground_snap_height+1)
@@ -893,6 +907,9 @@ function player_char:enter_motion_state(next_motion_state)
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
       -- do not clamp ground speed! this allows us to spin dash, fall a bit, land and run at high speed!
+      -- SPG (https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) says original calculation either preserves vx or
+      --  uses vy * sin * some factor depending on angle range (possibly to reduce CPU)
+      --  but for now we keep this as it's physically logical and feels good enough
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
 
       -- we have just reached the ground (and possibly escaped),
@@ -1152,10 +1169,7 @@ function player_char:update_ground_speed_by_slope()
   end
   self.ground_speed = self.ground_speed + ascending_slope_factor * pc_data.slope_accel_factor_frame2 * sin(self.slope_angle)
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
   -- slope angle is mostly defined with atan2(dx, dy) which follows top-left origin BUT counter-clockwise angle convention
@@ -1206,10 +1220,7 @@ function player_char:update_ground_run_speed_by_intention()
       -- decelerate
       new_ground_speed = self.ground_speed + self.move_intention.x * ground_decel_factor * pc_data.ground_decel_frame2
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
       -- decelerate
@@ -1281,13 +1292,10 @@ function player_char:update_ground_run_speed_by_intention()
         new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
       end
 
---(original_slope_features)
---#endif
-
---#ifn original_slope_features
+--#else
 --[[#pico8
 
-        new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
+      new_ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - pc_data.ground_friction_frame2)
 
 --#pico8]]
 --#endif
@@ -1521,7 +1529,7 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
 
   -- merge < 0 and == 0 cases together to spare tokens
   -- when 0, next_position_candidate.y will simply not change
-  if signed_distance_to_closest_ground <= 0 then
+  if signed_distance_to_closest_ground < 0 then
     -- position is inside ground, check if we can step up during this step
     -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
     --  the escape is done on the X axis so technically we escape row width)
@@ -1538,17 +1546,37 @@ function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result
       --  character will simply hit the wall, then fall
       ref_motion_result.is_blocked = true
     end
-  elseif signed_distance_to_closest_ground > 0 then
+  elseif signed_distance_to_closest_ground >= 0 then
     -- position is above ground, check if we can step down during this step
     -- (step down is during ground motion only)
     if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
-      -- step down
-      next_position_candidate:add_inplace(vector_to_closest_ground)
-      -- if character left the ground during a previous step, cancel that (step down land, very rare)
-      ref_motion_result.is_falling = false
+      -- if character has fallen during previous step, prevent step down AND no need to check for angle take-off
+      --  note he can still re-land, but only by entering the ground i.e. signed distance to ground < 0, as in block above
+      -- otherwise, character is still grounded, so check for angle take-off, and if not taking off, step down
+      if not ref_motion_result.is_falling then
+        -- Original slope feature: Take-Off Angle Difference
+        -- When character falls when running from to ground, he could normally step down,
+        --  but the new ground is a descending slope too steep compared to previous slope angle.
+        -- Exceptionally not inside --#if original_slope_features because it really fixes glitches
+        --  when character moves at low speed from flat ground to steep descending slope
+        -- In the original, Sonic just runs on the steep descending slope as if nothing, and also exceptionally
+        --  preserves his sprite angle, but that would have required extra code.
+        -- Make sure to check if we are not already falling so slope angle exists (alternatively check that ref_motion_result.slope_angle is not nil)
+        -- When running toward the left, angle diff has opposite sign, so multiply by horizontal sign to counter this
+        -- Note that character is not falling, so grounded (during step), so ref_motion_result.slope_angle is not nil
+        local signed_angle_delta = compute_signed_angle_between(query_info.slope_angle, ref_motion_result.slope_angle)
+        if horizontal_dir_signs[quadrant_horizontal_dir] * signed_angle_delta > pc_data.take_off_angle_difference then
+          -- step fall due to angle difference aka angle-based Take-Off
+          ref_motion_result.is_falling = true
+        else
+          -- step down
+          next_position_candidate:add_inplace(vector_to_closest_ground)
+        end
+      end
     else
       -- step fall: step down is too low, character will fall
       -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
+      --  (but he'll need to really enter the ground i.e. signed distance to ground < 0)
       -- caution: we are not updating qy at all, which means the character starts
       --  "walking horizontally in the air". in sonic games, we would expect
       --  momentum to take over and send the character along qy, preserving
@@ -1598,12 +1626,19 @@ end
 --  at position because of the ceiling (or a full tile if standing at the top of a tile)
 function player_char:is_blocked_by_ceiling_at(center_position)
 
+  -- note: we could use compute_ceiling_sensors_query_info and check for negative distance since it finds
+  --  the closest ceiling, but it's slightly more optimal to stop as soon as first true collision is found
+  -- if we lack characters in cartridge space, it's worth trying the other way though
+
   -- check ceiling from both ground sensors. if any finds one, return true
   for i in all({horizontal_dirs.left, horizontal_dirs.right}) do
 
     -- check if ground sensor #i has ceiling closer than a character's height
     local sensor_position = self:get_ground_sensor_position_from(center_position, i)
-    if self:is_column_blocked_by_ceiling_at(sensor_position) then
+    local ceiling_query_info = self:compute_closest_ceiling_query_info(sensor_position)
+    -- distance to ceiling is always negative or 0 as we never "step q-down" onto ceiling
+    -- but we must still exclude the case of distance == 0 is case we are just touching ceiling, not blocked
+    if ceiling_query_info.signed_distance < 0 then
       return true
     end
 
@@ -1613,18 +1648,22 @@ function player_char:is_blocked_by_ceiling_at(center_position)
 end
 
 
--- actual body of _is_column_blocked_by_ceiling_at passed to iterate_over_collision_tiles
+-- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
+-- return "ground query info" although it's ceiling, because depending on the angle, character may actually adhere, making it
+--  a q-up ground
 -- return nil if no clear result and we must continue to iterate (until the last tile)
--- slope_angle is not used, so we aggressively remove it to gain 1 token
--- note that curr_tile_loc is unused in this implementation
-local function ceiling_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_ceiling) --, slope_angle)
-  if signed_distance_to_closest_ceiling < 0 then
-    -- head (or body) inside ceiling
-    return true
+local function ceiling_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_ceiling, slope_angle)
+  -- previous calculations already reversed sign of distance to match convention (> 0 when not touching, < 0 when inside)
+  if signed_distance_to_closest_ceiling <= 0 then
+    -- head (or body) just touching or inside ceiling
+    return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_ceiling, slope_angle)
   else
     -- head far touching ceiling or has some gap from ceiling
-    return false
+    -- unlike ground, we never "step q-down" onto ceiling, the ceiling check only results in collision with movement interruption
+    --  or ceiling adherence, but then character started going inside ceiling (distance <= 0), therefore distance is never > 0
+    --  unless we reached ceiling_check_no_collider_callback and then it's the max + 1
+    return nil
   end
 end
 
@@ -1632,17 +1671,17 @@ end
 --  as no_collider_callback
 local function ceiling_check_no_collider_callback()
   -- end of iteration, and no ceiling found
-  return false
+  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
 end
 
--- return true iff there is a ceiling above in the column of sensor_position, in a tile above
---  sensor_position's tile, within a height lower than a character's height
--- note that we return true even if the detected obstacle is lower than one step up's height,
+-- similar to compute_closest_ground_query_info, but for ceiling
+-- return ground_query_info(tile_location, signed_distance, slope_angle) (see compute_closest_ground_query_info for more info)
+-- note that we return a query info with negative sign (inside ceiling) even if the detected obstacle is lower than one step up's height,
 --  because we assume that if the character could step this up, it would have and the passed
 --  sensor_position would be the resulting position, so only higher tiles will be considered
 --  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
-function player_char:is_column_blocked_by_ceiling_at(sensor_position)
-  assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:is_column_blocked_by_ceiling_at: sensor_position qx must be floored")
+function player_char:compute_closest_ceiling_query_info(sensor_position)
+  assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:compute_closest_ceiling_query_info: sensor_position qx must be floored")
 
   -- oppose_dir since we check ceiling by detecting tiles q-above, and their q-column height matters
   --  when measured from the q-top (e.g. if there's a top half-tile maybe character head is not hitting it
@@ -1981,7 +2020,6 @@ function player_char:next_air_step(direction, ref_motion_result)
   log("step_vec: "..step_vec, "trace2")
   log("next_position_candidate: "..next_position_candidate, "trace2")
 
-
   -- we can only hit walls or the ground when stepping left, right or down
   -- (horizontal step of diagonal upward motion is OK)
   if direction ~= directions.up then
@@ -2104,22 +2142,55 @@ function player_char:next_air_step(direction, ref_motion_result)
   --  to see if there is not a collision pixel 1px above (should be on another tile above)
   --  and from here compute the actual ground distance... of course, always add supporting ground
   --  tile under a ground tile when possible
+  -- UPDATE after adding landing on ceiling: the condition should still work with ceiling adherence catch,
+  --  although the SPG doesn't mention it again in Slope Physics
   if not ref_motion_result.is_blocked_by_wall and
       (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) or direction == directions.up then
-    local is_blocked_by_ceiling_at_next = self:is_blocked_by_ceiling_at(next_position_candidate)
-    if is_blocked_by_ceiling_at_next then
-      if direction == directions.up then
-        ref_motion_result.is_blocked_by_ceiling = true
-        log("is blocked by ceiling", "trace2")
-      else
-        -- we would be blocked by ceiling on the next position, but since we can't even go there,
-        --  we are actually blocked by the wall preventing the horizontal move
-        -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
-        --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
-        -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
-        -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
-        ref_motion_result.is_blocked_by_wall = true
-        log("is blocked by ceiling as wall", "trace2")
+    -- TODO: use new compute_ceiling_sensors_query_info to retrieve complete info
+    -- if signed distance is negative, then we're hitting the ceiling. But better, we can check slope for adherence
+    -- https://info.sonicretro.org/SPG:Slope_Physics#When_Going_Upward
+    local ceiling_query_info = self:compute_ceiling_sensors_query_info(next_position_candidate)
+
+    -- if there is touch/collision with ceiling, tile_location is set
+    if ceiling_query_info.tile_location then
+      -- note that angles inclusive/exclusive are not exactly like SPG says, because the comparisons were asymmetrical,
+      --  which must have made sense in terms of coding at the time, but we prefer symmetrical angles. Besides, we actually
+      --  have ceiling slopes at 45 degrees which we'd like to adhere onto
+--#if assert
+      assert(ceiling_query_info.signed_distance <= 0, "player_char:next_air_step: touch/collision detected with ceiling "..
+        "but signed distance is positive: "..ceiling_query_info.signed_distance)
+      assert(ceiling_query_info.slope_angle > 0.25 and ceiling_query_info.slope_angle < 0.75,
+        "player_char:next_air_step: touch/collision detected with ceiling and quadrant is always down when airborne, yet "..
+        "ceiling_query_info.slope_angle is not between 0.25 and 0.75, it is: "..ceiling_query_info.slope_angle)
+--#endif
+      if ceiling_query_info.slope_angle <= 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical or
+          ceiling_query_info.slope_angle >= 0.75 - pc_data.ceiling_adherence_catch_range_from_vertical then
+        -- character lands on ceiling aka ceiling adherence catch (touching is enough, and no extra condition on velocity)
+        ref_motion_result.tile_location = ceiling_query_info.tile_location
+        -- no need to set position, we are not blocked by wall and should not be blocked along direction
+        --  (mostly up for ceiling, and rarely left/right when entering this block with the sheer angle condition)
+        --  so we'll enter the final block at the bottom which sets ref_motion_result.position to next_position_candidate
+        ref_motion_result.is_landing = true
+        ref_motion_result.slope_angle = ceiling_query_info.slope_angle
+      elseif ceiling_query_info.signed_distance < 0 then
+        -- character hit the hard (almost horizontal) ceiling and cannot adhere: just blocked by ceiling,
+        --  or, if moving to the side, blocked by wall
+        -- note that above we check for going inside ceiling to be exact, since just touching it should not block you,
+        --  while landing on ceiling can happen just when touching ceiling (but difference is hard to see in game,
+        --  as you rarely jump and just touch the ceiling anyway)
+        if direction == directions.up then
+          ref_motion_result.is_blocked_by_ceiling = true
+          log("is blocked by ceiling", "trace2")
+        else
+          -- we would be blocked by ceiling on the next position, but since we can't even go there,
+          --  we are actually blocked by the wall preventing the horizontal move
+          -- 4-quadrant note: if moving diagonally downward, this will actually correspond to the SPG case
+          --  mentioned above where ysp >= 0 but abs(xsp) > abs(ysp)
+          -- in this case, we are really detecting the *ceiling*, but Sonic can also start running on it
+          -- we should actually test the penetration distance is a symmetrical way to ground, not just the direction
+          ref_motion_result.is_blocked_by_wall = true
+          log("is blocked by ceiling as wall", "trace2")
+        end
       end
     end
   end

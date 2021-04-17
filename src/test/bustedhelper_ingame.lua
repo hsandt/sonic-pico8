@@ -11,3 +11,30 @@
 require("engine/test/bustedhelper")
 require("common_ingame")
 require("resources/visual_ingame_addon")
+
+-- uncomment below just when you need to see log during utests
+--[[
+local logging = require("engine/debug/logging")
+logging.logger:register_stream(logging.console_log_stream)
+logging.logger.active_categories = {
+  -- engine
+  ['default'] = true,
+  -- ['codetuner'] = true,
+  -- ['flow'] = true,
+  -- ['itest'] = true,
+  -- ['log'] = true,
+  -- ['ui'] = true,
+  -- ['reload'] = true,
+  ['trace'] = true,
+  ['trace2'] = true,
+  -- ['frame'] = true,
+
+  -- game
+  -- ['loop'] = true,
+  -- ['emerald'] = true,
+  -- ['palm'] = true,
+  -- ['ramp'] = true,
+  -- ['goal'] = true,
+  -- ['spring'] = true,
+}
+--]]

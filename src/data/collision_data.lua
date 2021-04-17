@@ -70,7 +70,7 @@ local mask_tile_angles = transform(
 
     -- 6px-high rectangles (angle doesn't matter)
     [26] = {8, 0},  -- 4x6 used for spring left part (collider only)
-    [27] = {8, 0},  -- 8x6 used for spring right part (collider only)
+    [27] = {8, 0},  -- 8x6 used for spring right part (collider only)  -- TODO: reuse 2, it's the same!
 
     -- 8px-high rectangles (angle doesn't matter)
     [28] = {8, 0},  -- 4x8 used for rock left part

@@ -54,11 +54,11 @@ logging.file_log_stream:clear()
 logging.logger.active_categories = {
   -- engine
   ['default'] = true,
-  -- ['codetuner'] = nil,
-  -- ['flow'] = nil,
+  -- ['codetuner'] = true,
+  -- ['flow'] = true,
   ['itest'] = true,
-  -- ['log'] = nil,
-  -- ['ui'] = nil,
+  -- ['log'] = true,
+  -- ['ui'] = true,
   ['frame'] = true,
   -- ['trace'] = true,
   -- ['trace2'] = true,

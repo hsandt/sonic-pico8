@@ -6,9 +6,9 @@
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
-game_scripts_path="$(dirname "$0")"
 game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
+build_dir_path="$(dirname "$0")/build"
 
 # Configuration: cartridge
 version=`cat "$data_path/version.txt"`
@@ -78,7 +78,7 @@ fi
 # Define build output folder from config
 # (to simplify cartridge loading, cartridge files are always named the same,
 #  so we can only distinguish builds by their folder names)
-build_output_path="$(dirname "$0")/build/v${version}_${config}"
+build_output_path="${build_dir_path}/v${version}_${config}"
 
 # Define symbols from config
 symbols=''
@@ -119,7 +119,7 @@ symbols+="$cartridge_suffix"
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
 
-# Build cartridge (titlemenu, 'stage_intro', ingame or stage_clear)
+# Build cartridge ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \

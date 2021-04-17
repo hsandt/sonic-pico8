@@ -1146,8 +1146,13 @@ describe('player_char', function ()
 
       describe('compute_ground_sensors_query_info', function ()
 
-        -- interface tests are mostly redundant with compute_closest_ground_query_info
+        -- interface tests are mostly redundant with compute_closest_query_info
         -- so we prefer implementation tests, checking that it calls the later with both sensor positions
+
+        -- since adding ceiling adherence, this method really just calls compute_sensors_query_info,
+        --  but it was simpler to keep existing tests than testing compute_sensors_query_info in isolation
+        --  as we'd still need to create and pass a dummy callback
+        -- we do however stub compute_closest_ground_query_info
 
         describe('with stubs', function ()
 
@@ -1241,6 +1246,12 @@ describe('player_char', function ()
         end)
 
       end)
+
+      -- we should probably test compute_ceiling_sensors_query_info here, but since this one is a new function,
+      --  we could just assert.spy the call for compute_sensors_query_info which is less interesting,
+      --  while doing end-to-end test would mostly be a copy of compute_ground_sensors_query_info utests above
+      --  but adapted for ceiling (which is already tested for compute_closest_ceiling_query_info)
+      -- but feel free to add such tests if you still find issues with ceiling detection
 
       describe('get_prioritized_dir', function ()
 
@@ -5194,7 +5205,8 @@ describe('player_char', function ()
             )
           end)
 
-          it('when stepping right back on the ground, increment x and cancel fall', function ()
+          -- this behaviour changed with #132, we don't step down after falling when just touching ground
+          it('when stepping right after fall but just touching ground, increment x but do not cancel fall', function ()
             local motion_result = motion.ground_motion_result(
               nil,
               vector(-3, 8 - pc_data.center_height_standing),
@@ -5207,11 +5219,39 @@ describe('player_char', function ()
             pc:next_ground_step(horizontal_dirs.right, motion_result)
 
             assert.are_same(motion.ground_motion_result(
-                location(0, 1),
+                nil,
                 vector(-2, 8 - pc_data.center_height_standing),
+                nil,
+                false,
+                true  -- still falling
+              ),
+              motion_result
+            )
+          end)
+
+          -- we still wanted to test the case where character lands back on ground (what happened
+          --  above before #132 fix), but we need to place another tile just high enough so step
+          --  gets at least 1px inside ground... a bit cumbersome, so we cheat and assume character
+          --  is 1px lower from the start (although impossible as it should have left ground),
+          --  so character steps up
+          it('when stepping right back on the ground, increment x and cancel fall', function ()
+            local motion_result = motion.ground_motion_result(
+              nil,
+              vector(-3, 9 - pc_data.center_height_standing),
+              nil,
+              false,
+              true
+            )
+
+            -- step land (very rare)
+            pc:next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                location(0, 1),
+                vector(-2, 8 - pc_data.center_height_standing),  -- go up 1px to step up ground again
                 0,
                 false,
-                false
+                false  -- landed back after a step falling
               ),
               motion_result
             )
@@ -5340,7 +5380,7 @@ describe('player_char', function ()
             local motion_result = motion.ground_motion_result(
               location(0, 1),
               vector(8 + pc_data.center_height_standing, 15),
-              0,
+              0.75,
               false,
               false
             )
@@ -5521,6 +5561,79 @@ describe('player_char', function ()
 
         end)
 
+        -- added to test fix #132 BUG MOTION/VISUAL running from flat to steep descending slope causes glitch
+        describe('(with steepest curve then flat ground)', function ()
+
+          before_each(function ()
+            -- ..
+            -- i#
+            mock_mset(0, 1, tile_repr.visual_loop_bottomright_steepest)
+            mock_mset(1, 1, tile_repr.full_tile_id)
+          end)
+
+          -- case: step fall due to angle
+          it('when stepping from flat ground onto very steep descending ground, angle diff is enough to still fall', function ()
+            local motion_result = motion.ground_motion_result(
+              location(1, 1),
+              vector(6, 8 - pc_data.center_height_standing),
+              0,
+              false,
+              false
+            )
+
+            -- step to left "onto" curve (actually above)
+            pc:next_ground_step(horizontal_dirs.left, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                nil,
+                vector(5, 8 - pc_data.center_height_standing),
+                nil,
+                false,
+                true  -- now falling
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
+        -- added after fixing #132 as I noticed my angle comparison was incorrect when one angle was above 0, and the other just below 0 (~0.9)
+        -- it was fixed by using the new compute_signed_angle_between
+        describe('(with steepest curve then flat ground)', function ()
+
+          before_each(function ()
+            -- >-
+            mock_mset(0, 0, tile_repr.desc_slope_2px_id)
+            mock_mset(1, 0, tile_repr.flat_high_tile_id)
+          end)
+
+          -- case: no step fall as angle difference is small
+          it('when stepping from low descending ground onto flat ground, angle diff is not enough to fall', function ()
+            local motion_result = motion.ground_motion_result(
+              location(0, 0),
+              -- > tile last column has height 6, so gap of 2
+              vector(10, 2 - pc_data.center_height_standing),
+              atan2(8, 2),
+              false,
+              false
+            )
+
+            -- step to right onto flat high tile
+            pc:next_ground_step(horizontal_dirs.right, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                location(1, 0),
+                vector(11, 2 - pc_data.center_height_standing),
+                0,
+                false,
+                false  -- still grounded
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
         -- bugfix history:
         -- = itest of player running on flat ground when ascending a slope showed that when removing supporting ground,
         --   character would be blocked at the bottom of the slope, so I isolated just that part into a utest
@@ -5587,6 +5700,34 @@ describe('player_char', function ()
                 45/360,
                 false,
                 false
+              ),
+              motion_result
+            )
+          end)
+
+          -- case: after step fall, we are close to ground again but not inside yet
+          -- This variant was added after testing case #132: initial utest passed, but during
+          --  actual gameplay, the character sometimes relanded immediately on the slope after taking off,
+          --  defeating the feature.
+          -- But for the unit test we don't need such a complex scenario, any ground will do.
+          it('when already falling from previous step, do not step down', function ()
+            local motion_result = motion.ground_motion_result(
+              nil,  -- no ground
+              vector(12, 9 - pc_data.center_height_standing),
+              nil,  -- no ground, so no angle
+              false,
+              true  -- previously falling
+            )
+
+            -- step down
+            pc:next_ground_step(horizontal_dirs.left, motion_result)
+
+            assert.are_same(motion.ground_motion_result(
+                nil,
+                vector(11, 9 - pc_data.center_height_standing),  -- don't step down, so keep Y
+                nil,
+                false,
+                true  -- still falling
               ),
               motion_result
             )
@@ -5700,30 +5841,38 @@ describe('player_char', function ()
       describe('is_blocked_by_ceiling_at', function ()
 
         local get_ground_sensor_position_from_mock
-        local is_column_blocked_by_ceiling_at_mock
+        local compute_closest_ceiling_query_info_mock
 
         setup(function ()
           get_ground_sensor_position_from_mock = stub(player_char, "get_ground_sensor_position_from", function (self, center_position, i)
             return i == horizontal_dirs.left and vector(-1, center_position.y) or vector(1, center_position.y)
           end)
 
-          is_column_blocked_by_ceiling_at_mock = stub(player_char, "is_column_blocked_by_ceiling_at", function (self, sensor_position)
+          compute_closest_ceiling_query_info_mock = stub(player_char, "compute_closest_ceiling_query_info", function (self, sensor_position)
             -- simulate ceiling detection by encoding information in x and y
+            -- no particular realism in the returned values
+            -- remember that 0 <=> touching <=> not blocked
+            local signed_distance
             if sensor_position.y == 1 then
-              return sensor_position.x < 0 and false or false
+              signed_distance = pc_data.max_ground_snap_height + 1 -- to test no collider found, not even touch
             elseif sensor_position.y == 2 then
-              return sensor_position.x < 0 and true or false  -- left sensor detects ceiling
+              signed_distance = sensor_position.x < 0 and -1 or 0  -- left sensor detects inside ceiling, right only touch
             elseif sensor_position.y == 3 then
-              return sensor_position.x < 0 and false or true  -- right sensor detects ceiling
+              signed_distance = sensor_position.x < 0 and 0 or -1  -- right sensor detects inside ceiling, left only touch
             else
-              return sensor_position.x < 0 and true or true  -- both sensors detect ceiling
+              signed_distance = sensor_position.x < 0 and -1 or -1 -- both sensors detect inside ceiling
+            end
+            if signed_distance <= 0 then
+              return ground_query_info(location(0, 0), signed_distance, 0.5)
+            else
+              return ground_query_info(nil, signed_distance, nil)
             end
           end)
         end)
 
         teardown(function ()
           get_ground_sensor_position_from_mock:revert()
-          is_column_blocked_by_ceiling_at_mock:revert()
+          compute_closest_ceiling_query_info_mock:revert()
         end)
 
         it('should return false when both sensors detect no near ceiling', function ()
@@ -5744,7 +5893,7 @@ describe('player_char', function ()
 
       end)  -- _is_blocked_by_ceiling_at
 
-      describe('is_column_blocked_by_ceiling_at', function ()
+      describe('compute_closest_ceiling_query_info', function ()
 
         setup(function ()
           stub(player_char, "get_full_height", function ()
@@ -5756,10 +5905,10 @@ describe('player_char', function ()
           player_char.get_full_height:revert()
         end)
 
-        describe('(no tiles)', function ()
+        describe('no tiles)', function ()
 
-          it('should return false anywhere', function ()
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(4, 5)))
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) everywhere', function ()
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 5)))
           end)
 
         end)
@@ -5771,13 +5920,14 @@ describe('player_char', function ()
             mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (act like a full ceiling if position is at bottom)
           end)
 
-          it('should return true for sensor position just above the bottom of the tile', function ()
+          it('should return ground_query_info(location(1, 0), - character height - 0.1, 0.5) for sensor position just above the bottom-center of the tile', function ()
             -- with new implementation, we check tile even at foot level
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(8, 7.9)))
+            -- remember that we are detection ceiling so quadrant is up, and angle is 0.5 (180 deg)
+            assert.are_same(ground_query_info(location(1, 0), -16.1, 0.5), pc:compute_closest_ceiling_query_info(vector(12, 7.9)))
           end)
 
-          it('should return false for sensor position on the left of the tile', function ()
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(7, 8)))
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position on the left of the tile', function ()
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(7, 8)))
           end)
 
           -- bugfix history:
@@ -5785,20 +5935,20 @@ describe('player_char', function ()
           --  ? actually I was right, since if the character moves inside the 2nd of a diagonal tile pattern,
           --    it *must* be blocked. when character has a foot on the lower tile, it is considered to be
           --    in this lower tile
-          it('should return true for sensor position at the bottom-left of the tile', function ()
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(8, 8)))
+          it('should return ground_query_info(location(1, 0), -character height, 0.5) for sensor position at the bottom-left of the tile', function ()
+            assert.is_same(ground_query_info(location(1, 0), -16, 0.5), pc:compute_closest_ceiling_query_info(vector(8, 8)))
           end)
 
-          it('should return true for sensor position on the bottom-right of the tile', function ()
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(15, 8)))
+          it('should return ground_query_info(location(1, 0), -character height, 0.5) for sensor position on the bottom-right of the tile', function ()
+            assert.is_same(ground_query_info(location(1, 0), -16, 0.5), pc:compute_closest_ceiling_query_info(vector(15, 8)))
           end)
 
-          it('should return false for sensor position on the right of the tile', function ()
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(16, 8)))
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position on the right of the tile', function ()
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(16, 8)))
           end)
 
-          it('should return true for sensor position below the tile, at character height - 1px', function ()
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(12, 8 + 16 - 1)))
+          it('should return ground_query_info(location(1, 0), -1, 0.5) for sensor position below the tile, at character height - 1px', function ()
+            assert.is_same(ground_query_info(location(1, 0), -1, 0.5), pc:compute_closest_ceiling_query_info(vector(12, 8 + 16 - 1)))
           end)
 
           -- bugfix history:
@@ -5806,8 +5956,8 @@ describe('player_char', function ()
           --    so i moved the height_distance >= pc_data.full_height_standing check above
           --    the ground_array_height check (computing height_distance from tile bottom instead of top)
           --    to pass it in this case too
-          it('should return false for sensor position below the tile, at character height', function ()
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(12, 8 + 16)))
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position below the tile, at character height', function ()
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(12, 8 + 16)))
           end)
 
         end)
@@ -5819,42 +5969,47 @@ describe('player_char', function ()
             mock_mset(0, 0, tile_repr.half_tile_id)
           end)
 
-          it('should return false for sensor position in the middle of the tile', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position in the middle of the tile', function ()
             -- we now start checking ceiling a few pixels q-above character feet
             --  and ignore reverse full height on same tile as sensor, so slope not detected as ceiling
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(4, 6)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 6)))
           end)
 
-          it('should return false for sensor position at the bottom of the tile', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position at the bottom of the tile', function ()
             -- here we don't detect a ceiling because y = 8 is considered belonging to
             --  tile j = 1, but we define ignore_reverse = start_tile_loc == curr_tile_loc
             --  not ignore_reverse = curr_tile_loc == curr_tile_loc
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(4, 8)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 8)))
           end)
 
-          it('should return false for sensor position 2 px below tile (so that 4px above is inside tile)', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position 2 px below tile (so that 4px above is inside tile)', function ()
             -- this test makes sure that we ignore reverse full height for start tile
             --  *not* sensor tile, which is different when sensor is less than 4px of the neighboring tile
             --  in iteration direction
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(4, 10)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 10)))
           end)
 
-          it('should return false for quadrant left, sensor position 5 px q-inside tile', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for quadrant left, offset sensor position (head) 1 px q-outside tile', function ()
             pc.quadrant = directions.left
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(3, 4)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(-17, 4)))
           end)
 
-          it('should return true for quadrant left, sensor position 6 px q-inside tile', function ()
+          it('should return ground_query_info(location(0, 0), 0, 0.25) for quadrant left, offset sensor position (head) just touching left of tile', function ()
             pc.quadrant = directions.left
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(2, 4)))
+            assert.is_same(ground_query_info(location(0, 0), 0, 0.25), pc:compute_closest_ceiling_query_info(vector(-16, 4)))
           end)
 
-          it('should return false for quadrant right, sensor position 5 px q-inside tile', function ()
+          it('should return ground_query_info(location(0, 0), - 1, 0.25) for quadrant left, offset sensor position (head) 1 px reverse-q(right)-inside tile', function ()
+            pc.quadrant = directions.left
+            assert.is_same(ground_query_info(location(0, 0), -1, 0.25), pc:compute_closest_ceiling_query_info(vector(-15, 4)))
+          end)
+
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for quadrant right, when 4 px to the left is outside tile', function ()
             pc.quadrant = directions.right
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(4, 4)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 4)))
           end)
 
-          it('should return true for quadrant right, sensor position 6 px q-inside tile', function ()
+          it('should return ground_query_info(location(0, 0), -character height - 2, 0.5) for quadrant right, offset sensor position (head) 2 px reverse-q(left)-inside tile', function ()
             -- this test makes sure that we do *not* ignore reverse full height for initial tile if
             --  that are full horizontal rectangle (see world.compute_qcolumn_height_at)
             --  since slope_angle_to_interiors has a bias 0 -> right so onceiling check,
@@ -5866,7 +6021,7 @@ describe('player_char', function ()
             -- we can fix the disymmetry with some .5 pixel extent in qy in both ground distance and ceiling check
             --  (as in the qx direction with ground sensor extent) but we don't mind since Classic Sonic itself
             --  has an odd size collider in reality
-            assert.is_true(pc:is_column_blocked_by_ceiling_at(vector(6, 4)))
+            assert.is_same(ground_query_info(location(0, 0), -18, 0.75), pc:compute_closest_ceiling_query_info(vector(6, 4)))
           end)
 
         end)
@@ -5878,18 +6033,18 @@ describe('player_char', function ()
             mock_mset(0, 0, tile_repr.asc_slope_45_id)
           end)
 
-          it('should return false for sensor position on the left of the tile', function ()
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(0, 7)))
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position on the left of the tile', function ()
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(0, 7)))
           end)
 
-          it('should return true for sensor position at the bottom-left of the tile', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position at the bottom-left of the tile', function ()
             -- we now start checking ceiling a few pixels q-above character feet, so slope not detected as ceiling
-            assert.is_false(pc:is_column_blocked_by_ceiling_at(vector(0, 8)))
+            assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(0, 8)))
           end)
 
         end)
 
-      end)  -- _is_column_blocked_by_ceiling_at
+      end)  -- _compute_closest_ceiling_query_info
 
       describe('check_jump_intention', function ()
 
@@ -7600,7 +7755,9 @@ describe('player_char', function ()
 
             local motion_result = motion.air_motion_result(
               nil,
-              vector(5, 0 - pc_data.center_height_standing),
+              -- used to be 0 -, now it's 1 - since we removed the top pixel of the steepest slope
+              -- when fixing #132 (see corresponding utest)
+              vector(5, 1 - pc_data.center_height_standing),
               false,
               false,
               false,
@@ -7612,11 +7769,50 @@ describe('player_char', function ()
             assert.are_same(motion.air_motion_result(
                 location(0, 0),
                 -- kinda arbitrary offset of 6, but based on character data
-                vector(-1, 0 - pc_data.center_height_standing),
+                vector(-1, 1 - pc_data.center_height_standing),
                 false,
                 false,
                 true,
                 atan2(3, -8)
+              ),
+              motion_result
+            )
+          end)
+
+        end)
+
+        -- testing landing on ceiling aka ceiling adherence catch
+        describe('(with ceiling top-left and top-right 45-deg corners)', function ()
+
+          before_each(function ()
+            -- 45
+            mock_mset(0, 0, tile_repr.visual_topleft_45)
+            mock_mset(1, 0, tile_repr.visual_topright_45)
+          end)
+
+          it('direction up into top-left corner should land on (adhere to) ceiling', function ()
+            pc.velocity.x = 0
+            pc.velocity.y = -3
+
+            local motion_result = motion.air_motion_result(
+              nil,
+              -- column 4 in topleft tile should have downward column of height 6
+              vector(4, 6 + pc_data.center_height_standing),
+              false,
+              false,
+              false,
+              nil
+            )
+
+            pc:next_air_step(directions.down, motion_result)
+
+            assert.are_same(motion.air_motion_result(
+                location(0, 0),
+                vector(4, 6 + pc_data.center_height_standing),
+                false,
+                false,
+                true,  -- is_landing
+                atan2(-8, 8)
               ),
               motion_result
             )

@@ -18,9 +18,11 @@ local pc_data = {
   -- ground active deceleration (brake) during toll (px/frame^2)
   ground_roll_decel_frame2 = 0.0625,  -- 4/64
 
+--#if original_slope_features
   -- Original feature (not in SPG): Reduced Deceleration on Descending Slope
   -- ground active deceleration factor on descending slope (no unit, [0-1])
   ground_decel_descending_slope_factor = 0.5,
+--#endif
 
   -- ground friction (passive deceleration) (px/frame^2)
   ground_friction_frame2 = 0.0234375,  -- 1.5/64
@@ -41,6 +43,7 @@ local pc_data = {
   -- slope accel acceleration factor (px/frame^2), to multiply by sin(angle)
   slope_accel_factor_frame2 = 0.0625,  -- 7/64
 
+--#if original_slope_features
   -- Used by 3 original features (not in SPG):
   --  - Reduced Deceleration on Steep Descending Slope
   --  - No Friction on Steep Descending Slope
@@ -55,6 +58,10 @@ local pc_data = {
   -- Original feature (not in SPG): Progressive Ascending Slope Factor
   -- time needed when ascending a slope before full slope factor is applied (s)
   progressive_ascending_slope_duration = 0.5,
+--#endif
+
+  -- Use for Original slope feature: Take-Off Angle Difference
+  take_off_angle_difference = 0.125,  -- between 0.125 (45 deg) and 0.25 (90 deg)
 
   -- air acceleration on x axis (px/frame^2)
   -- from this, air_drag_factor_per_frame, initial_var_jump_speed_frame and gravity,
@@ -97,6 +104,12 @@ local pc_data = {
   -- ground speed threshold under which character will fall/slide off when walking at more
   --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
+
+  -- range of angle allowing ceiling adherence catch (Sonic lands on the ceiling after touching it/
+  --  colliding with it). This applies to top-left and top-right ceiling corners (e.g. in loops),
+  --  and ranges are always counted from the right vertical and left vertical, i.e.
+  --  [0.25, 0.25 + range] and [0.75 - range, 0.75] resp. (pico8 angle unit)
+  ceiling_adherence_catch_range_from_vertical = 0.125,  -- 45/360
 
   -- duration of horizontal control lock after fall/slide off (frames)
   fall_off_horizontal_control_lock_duration = 30,  -- 0.5s
@@ -201,9 +214,10 @@ local pc_data = {
   -- sprite
 
   -- speed at which the character sprite angle falls back toward 0 (upward)
-  --  when character is airborne (typically after falling from ceiling)
-  --  (px/frame)
-  sprite_angle_airborne_reset_speed_frame = 0.0095,  -- 0.5/(7/8×60) ie character moves from upside down to upward in 7/8 s
+  --  when character is airborne (after falling from ceiling or running up and off an ascending slope) (pico8 angle/frame)
+  -- SPG: 2/256*360=2.8125° <=> 2/256=1/128=0.0078125 pico8 angle unit
+  -- deduced duration to rotate from upside down to upward: 0.5/(1/128) = 64 frames = 1s + 4 frames
+  sprite_angle_airborne_reset_speed_frame = 1/128,
 
   -- stand right
   -- colors.pink: 14

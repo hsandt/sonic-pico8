@@ -74,7 +74,6 @@ describe('stage_clear_state', function ()
         assert.are_same({
             ':stage_clear',
             1,
-            3,
             0,
             postprocess(),
             overlay(),
@@ -86,7 +85,6 @@ describe('stage_clear_state', function ()
           {
             state.type,
             state.curr_stage_id,
-            #state.retry_menu_items,  -- a bit complex to check transform worked, so just check count
             state.phase,
             state.postproc,
             state.result_overlay,

@@ -124,28 +124,37 @@ function stage_state:reload_runtime_data()
 
   -- the runtime spritesheet also contains 45-degree rotated sprite variants
   --  for Sonic walk and run cycle, meant to replace the non-rotated equivalents
-  --  in the built-in spritesheet
+  --  in the built-in spritesheet + crouch sprites
   -- we don't want to reload data files (neither the built-in nor the runtime)
   --  every time Sonic changes 1/8 rotation, so we copy both the non-rotated
   --  and rotated variants now into in general memory, so we can swap them later
+  -- we do the same for the idle + spring_jump (top 2x2 cell) sprites vs runtime crouch sprites
 
   -- 1st argument of memcpy is destination, and is always general memory address
   --  (0x4300) + some offset
-  -- first, we need to spare 0x1000 for reload_..._map_region methods
+  -- first, we need to spare 0x800 for reload_..._map_region methods
   --  which use the general memory as temporary storage for patching operations
   -- second, we prefer keeping memory compact by copying the sprites one after
   --  the other in general memory, rather than following the spritesheet layout
   --  (even if there is a hole after a rotated sprite because it made sprite
   --  alignment look better, we don't have a similar hole in general memory)
-  -- so, we start at 0x5300 and then simply add the length of the previous memcpy
+  -- so, we start at 0x4b00 and then simply add the length of the previous memcpy
   --  operation to get the next dest address
 
   -- the non-rotated variants are already in current memory, so just copy them
 
-  -- the walk cycle sprites start at row 8, column 2 (counting from 0)
+  -- the walk cycle sprites start at row 8, column 0 (counting from 0)
   -- sprites are stored in memory line by line, 1 cell being 8x8 px, and
   --  8px are represented by 4 bytes, so top-left address is at:
-  --  8 * 0x200 + 2 * 0x4 = 0x1008
+  --  8 * 0x200 + 0 * 0x4 = 0x1000
+
+  -- Original calculation when only storing 45-rotated sprites, now less relevant since crouch1
+  --  and crouch2 sprites occupy the remaining cells of the row, allowing us to do a contiguous copy
+  --  at once. But kept since it helps understanding how we cpy run cycle sprites, and later
+  --  spin dash sprites, which still need partial lines copy.
+
+  -- << old comment kept for partial line copy explanations
+
   -- there are 6 walk sprites of span 2x2, which don't cover the whole row of 16 cells of 8x8
   --  and need to copy 8 * 2 = 16 partial lines over 6 * 2 = 12 cells of 8x8, which makes
   --  12 * 4 = 48 = 0x30 bytes per line
@@ -164,43 +173,49 @@ function stage_state:reload_runtime_data()
   --  data later then we don't have the most compact memory as we'd have holes for each
   --  partial line but the last one
 
-  -- the run cycle sprites follow the same logic, but they start at row 10, column 0,
+  -- >>
+
+  -- we copy the 6 walk sprites + idle + spring_jump top at once from built-in data
+  -- we cover 2 rows of 0x200 = 0x400 bytes
+  memcpy(0x4b00, 0x1000, 0x400)  -- next address: 0x4f00
+
+  -- the run cycle sprites still require partial line copy, and they start at row 10, column 0,
   --  and there are 4 sprites of span 2x2, so their topleft address is at:
   --  10 * 0x200 = 0x1400
   -- and we need 8 * 2 = 16 partial lines over 4 * 2 = 8 cells of 8x8,
   --  so 8 * 4 = 32 = 0x20 bytes per line
+  -- we still need to skip a full row to get the next partial line, so +0x40 on src address
+  --  every iteration
+  -- next address is 16 * 0x20 = 0x200 after start address
 
-  -- to make code shorter, let's copy in parallel the 16 lines for the walk and run sprites
-  -- each time, we advance dest address by the same value as copied length, so 0x30 and 0x20
-  --  resp.
   for i = 0, 15 do
-    -- 6 walk cycle sprites
-    memcpy(0x5300 + i * 0x30, 0x1008 + i * 0x40, 0x30)
-
     -- 4 run cycle sprites
-    memcpy(0x5600 + i * 0x20, 0x1400 + i * 0x40, 0x20)
+    memcpy(0x4f00 + i * 0x20, 0x1400 + i * 0x40, 0x20)  -- next address: 0x4f00 + 0x200 = 0x5100
   end
 
   -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
-  -- the dest addresses start just after the last memcpy above, at 0x5800
-  -- from here, the same principle applies, but the dest addresses are offset by 0x300
+  -- the dest addresses start just after the last memcpy above, at 0x5900
+  -- from here, the same principle applies, but the dest addresses are offset by 0x400 + 0x200 = 0x600
   --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
   --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
 
-  for i = 0, 15 do
-    -- 6 walk cycle sprites (rotated)
-    reload(0x5800 + i * 0x30, 0x1008 + i * 0x40, 0x30, runtime_data_path)
+  -- 6 walk cycle sprites (rotated) + crouch sprites
+  reload(0x5100, 0x1000, 0x400, runtime_data_path)  -- next address: 0x5500
 
+  -- next address is 16 * 0x20 = 0x200 after start address
+  for i = 0, 15 do
     -- 4 run cycle sprites (rotated)
-    reload(0x5b00 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)
+    reload(0x5500 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)  -- next address: 0x5700
   end
 
-  -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
-  --  so we just have a little margin!
+  -- Total memory used by backup and runtime sprites: 0xc00
+
+  -- Memory range left: 0x5700-0x5dff
+
   -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
   --  of course we can keep using it for general memory, but if we start using custom font,
   --  since the first bytes are used for default parameters, I'll have to stop using addresses
-  --  before 0x5600
+  --  before 0x5600, which is a bit tight!
 end
 
 -- never called, we directly load stage_clear cartridge
@@ -435,10 +450,6 @@ function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
   -- in order to copy the horizontal half of a tilemap (64x32 tiles), we need to copy
   --  32 lines of 64 tiles, one by one
 
-  -- reloading from an external file 32 times is too slow, so we store the whole
-  --  external tilemap first into general memory 0x4300, to process it later
-  reload(0x4300, 0x2000, 0x1000, filename)
-
   -- depending on whether we copy from their left half to our right half, or reversely,
   --  we set the source and destination addresses differently
   -- a line contains 128 = 0x80 tiles so:
@@ -453,9 +464,33 @@ function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
     temp_source_addr0 = temp_source_addr0 + 0x40
   end
 
-  -- copy 32 lines of length 64 = 0x40
-  for j = 0, 31 do
+  -- reloading from an external file 32 times is too slow, so we store parts of
+  --  the external tilemap in general memory, then copy half-lines from it one by one
+  --  with local memory copy operations only
+  -- we used to copy the full tilemap, but to avoid using too much of general memory
+  --  as temporary memory for one-time operations, we prefer splitting the load of 0x1000 bytes
+  --  in 2: first copy the upper part, second copy the lower part into the same location,
+  --  0x800 bytes each (so it uses as much temp memory as reload_quarter_of_map_region)
+  -- with fast reload, reload is relatively fast and therefore 2 reloads at runtime are OK,
+  --  there is only a slight CPU increment but this will make sense to optimize (e.g. slicing the op
+  --  over 2 frames) when we reached 60 FPS
+  --  (but we couldn't do 32 reloads, as even with fast reload, a half-second freeze would be perceived)
+  -- for now we just put everything at the start of general memory 0x4300
+  reload(0x4300, 0x2000, 0x800, filename)
+
+  -- copy first 16 lines of length 64 = 0x40
+  for j = 0, 15 do
     memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
+  end
+
+  -- same as before, but add 0x800 to source addresses to access the lower part of the map
+  reload(0x4300, 0x2800, 0x800, filename)
+
+  -- copy last 16 lines of length 64 = 0x40
+  -- note that we reuse the same temporary address, so make sure to restart index at 0
+  --  just for the temporary address offset
+  for j = 16, 31 do
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + (j-16) * 0x80, 0x40)
   end
 end
 
@@ -824,11 +859,11 @@ function stage_state:restore_picked_emerald_data()
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in 0x5d00, see store_picked_emerald_data below
-  local picked_emerald_byte = peek(0x5d00)
+  -- It is stored in 0x5700, see store_picked_emerald_data below
+  local picked_emerald_byte = peek(0x5700)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(0x5d00, 0)
+  poke(0x5700, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -848,8 +883,9 @@ end
 function stage_state:store_picked_emerald_data()
   -- General memory is persistent during a single session, so a good fit to store data
   --  across cartridges, although this behavior is undocumented.
-  -- However, 0x4300-0x52ff is occupied by runtime regions, and 0x5300-0x5cff
-  --  is occupied non-rotated/rotated walk/run sprite variants, so store 1 byte at 0x5d00.
+  -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
+  --  is occupied non-rotated/rotated walk/run sprite variants, so next address is 0x5700
+  -- We only need to store 1 byte = 8 bits, 1 bit per emerald, so we just poke at 0x5700.
   -- We could also use persistent memory, considering we may save emeralds collected by player
   --  on next run (but for now we don't, so player always starts game from zero)
   --
@@ -862,7 +898,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x5d00, picked_emerald_bytes)
+  poke(0x5700, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()

@@ -217,29 +217,35 @@ describe('stage_state', function ()
         memcpy:clear()
       end)
 
+      it('should copy non-rotated sprite variants into general memory for backup', function ()
+        state:reload_runtime_data()
+
+        assert.spy(memcpy).was_called(17)
+        -- this has become too long since we copy line by line, so we stopped checking
+        --  individual calls, except the first ones
+
+        -- walk cycle + idle + spring_jump (top 2x2)
+        assert.spy(memcpy).was_called_with(0x4b00, 0x1000, 0x400)
+
+        -- run cycle
+        assert.spy(memcpy).was_called_with(0x4f00, 0x1400, 0x20)
+        assert.spy(memcpy).was_called_with(0x4f20, 0x1440, 0x20)
+      end)
+
       it('should reload stage runtime data into spritesheet top, and rotated sprite variants into general memory', function ()
         state:reload_runtime_data()
 
-        assert.spy(reload).was_called(33)
+        assert.spy(reload).was_called(18)
+
+        -- general runtime data
         assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5800, 0x1008, 0x30, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5830, 0x1048, 0x30, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x20, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5b20, 0x1440, 0x20, "data_stage1_runtime.p8")
+
+        -- character runtime sprites
+        assert.spy(reload).was_called_with(0x5100, 0x1000, 0x400, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x5500, 0x1400, 0x20, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x5520, 0x1440, 0x20, "data_stage1_runtime.p8")
         -- this has become too long since we copy line by line, so we stopped checking
         --  individual calls, except the first ones
-      end)
-
-      it('should copy non-rotated sprite variants into general memory', function ()
-        state:reload_runtime_data()
-
-        assert.spy(memcpy).was_called(32)
-        -- this has become too long since we copy line by line, so we stopped checking
-        --  individual calls, except the first ones
-        assert.spy(memcpy).was_called_with(0x5300, 0x1008, 0x30)
-        assert.spy(memcpy).was_called_with(0x5330, 0x1048, 0x30)
-        assert.spy(memcpy).was_called_with(0x5600, 0x1400, 0x20)
-        assert.spy(memcpy).was_called_with(0x5620, 0x1440, 0x20)
       end)
 
     end)
@@ -668,6 +674,14 @@ describe('stage_state', function ()
 
     end)
 
+    -- there are currently no utests for:
+    --  - reload_horizontal_half_of_map_region
+    --  - reload_vertical_half_of_map_region
+    --  - reload_quarter_of_map_region
+    -- we could add them, but experience showed that it was easy to mess up addresses
+    --  and that utests would not help a lot with that, so testing in real game is probably best for those
+    -- however utests can still be useful for syntax and trivial error checking
+
     describe('reload_map_region', function ()
 
       setup(function ()
@@ -847,11 +861,11 @@ describe('stage_state', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x5d00, 73)
+        poke(0x5700, 73)
       end)
 
       after_each(function ()
-        poke(0x5d00, 0)
+        poke(0x5700, 0)
       end)
 
       it('should read 1 byte in general memory representing picked emeralds bitset', function ()
@@ -875,7 +889,7 @@ describe('stage_state', function ()
       it('should clear picked emerald transitional memory', function ()
         state:restore_picked_emerald_data()
 
-        assert.are_equal(0, peek(0x5d00))
+        assert.are_equal(0, peek(0x5700))
       end)
 
     end)
@@ -1513,7 +1527,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x5d00))
+            assert.are_equal(73, peek(0x5700))
           end)
 
         end)

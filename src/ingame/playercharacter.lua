@@ -128,12 +128,12 @@ end
 
 -- return true iff character is grounded
 function player_char:is_grounded()
-  return self.motion_state == motion_states.standing or self.motion_state == motion_states.rolling
+  return contains({motion_states.standing, motion_states.rolling, motion_states.crouching}, self.motion_state)
 end
 
 -- return true iff character is curled
 function player_char:is_compact()
-  return self.motion_state == motion_states.air_spin or self.motion_state == motion_states.rolling
+  return contains({motion_states.air_spin, motion_states.rolling, motion_states.crouching}, self.motion_state)
 end
 
 function player_char:get_center_height()
@@ -957,8 +957,9 @@ function player_char:update_platformer_motion()
 
   -- do not move check below inside the is_grounded() check above,
   --  to clearly show that the state may have changed and we check it properly again
-  if self.motion_state == motion_states.standing then
-    self:check_roll_start()
+  --  (even though ultimately, the current checks are all about grounded states)
+  if contains({motion_states.standing, motion_states.crouching}, self.motion_state) then
+    self:check_crouch_and_roll_start()
   elseif self.motion_state == motion_states.rolling then
     self:check_roll_end()
   end
@@ -986,16 +987,35 @@ function player_char:update_platformer_motion()
 --#endif
 end
 
--- check if character is fast enough to roll and wants to roll
--- if so, start rolling
--- we assume character is standing on ground
-function player_char:check_roll_start()
-  -- if character is walking fast enough and pressing down (and no horizontal direction), he will roll
-  if abs(self.ground_speed) >= pc_data.roll_min_ground_speed and self.move_intention.x == 0 and self.move_intention.y > 0 then
-    -- currently enter_motion_state from standing to rolling will do nothing more than set the state
-    --  but we call it so we have a centralized place to add other side effects or cleanup if needed
-    self:enter_motion_state(motion_states.rolling)
-    self:play_low_priority_sfx(audio.sfx_ids.roll)
+-- Check if character wants to crouch (move pure down) or stop crouching (release down or move horizontally).
+-- If crouching and moving fast enough, he will roll.
+-- We assume character is standing on ground or crouching.
+function player_char:check_crouch_and_roll_start()
+  -- Check move intention down (as in the original down, no horizontal direction must be pressed)
+  if self:wants_to_crouch() then
+    -- if character is walking fast enough, he will roll; else, he will crouch
+    -- if character is already crouching and starts sliding at high speed because of a slope,
+    --  rolling also starts; else, do nothing, character just keeps crouching (can slide at low speed)
+    if abs(self.ground_speed) >= pc_data.roll_min_ground_speed then
+      -- currently enter_motion_state from standing to rolling will do nothing more than set the state
+      --  but we call it so we have a centralized place to add other side effects or cleanup if needed
+      self:enter_motion_state(motion_states.rolling)
+      self:play_low_priority_sfx(audio.sfx_ids.roll)
+    elseif self.motion_state ~= motion_states.crouching then
+      -- same remark as above, no side effect as crouch is really like standing state except
+      --  it shrinks the hitbox and allows spin dash
+      self:enter_motion_state(motion_states.crouching)
+
+      -- prepare spritesheet reload for crouch sprites
+      self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching:]] true)
+    end
+  elseif self.motion_state ~= motion_states.standing then
+    self:enter_motion_state(motion_states.standing)
+
+    -- prepare spritesheet reload for standing sprites (esp. idle)
+    -- note that if Sonic stands up on a slope 45-degrees, render will immediately reload the
+    --  rotated walk sprites...
+    self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
   end
 end
 
@@ -1705,6 +1725,11 @@ function player_char:compute_closest_ceiling_query_info(sensor_position)
   return iterate_over_collision_tiles(self, oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 
+-- return true iff move intention is down, without horizontal component
+function player_char:wants_to_crouch()
+  return self.move_intention.x == 0 and self.move_intention.y > 0
+end
+
 -- if character intends to jump, prepare jump for next frame
 -- this extra frame allows us to detect if the player wants a variable jump or a hop
 --  depending whether input is hold or not
@@ -1794,7 +1819,7 @@ function player_char:update_platformer_motion_airborne()
   end
 
   -- check for stage left edge soft block
-  -- see _update_platformer_motion_grounded
+  -- see update_platformer_motion_grounded
   if flr(air_motion_result.position.x) < pc_data.ground_sensor_extent_x then
     -- clamp position to stage left edge and clamp velocity x to 0
     -- note that in theory we should update the air motion result
@@ -2469,6 +2494,9 @@ function player_char:check_play_anim()
         self.anim_spr:play("run", false, self.anim_run_speed)
       end
     end
+  elseif self.motion_state == motion_states.crouching then
+    -- we don't mind about speed here, character can totally slide at low speed due to momentum or slope
+    self.anim_spr:play("crouch")
   else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
     local min_play_speed = self.motion_state == motion_states.rolling and
       pc_data.rolling_spin_anim_min_play_speed or pc_data.air_spin_anim_min_play_speed
@@ -2493,22 +2521,35 @@ function player_char:check_update_sprite_angle()
   end
 end
 
--- replace all Sonic sprites that have a 45-degree rotation variant
+-- replace all Sonic walk sprites that have a 45-degree rotation variant
 --  with either the non-rotated or the 45-degree rotation variant
+-- also replace the idle + spring_jump (top) vs crouch sprites since they are
+--  on the same row so it allows a single big copy operation
+-- this is OK as Sonic only shows one sprite at a time (and there is no rotated
+--  crouch sprite)
 -- requirement: stage_state:reload_runtime_data must have been called
-function player_char:reload_rotated_sprites(rotated_by_45)
+function player_char:reload_rotated_walk_and_crouch_sprites(rotated_by_45_or_crouching)
   -- see stage_state:reload_runtime_data for address explanation
   -- basically we are copying sprites general memory (with the correct
   --  address offset if rotated), back into the current spritesheet memory
-  -- consider extracting a common helper function from both methods
-  local addr_offset = rotated_by_45 and 0x500 or 0
+  -- following stage_state:reload_runtime_data, offset between built-in and runtime sprites
+  --  is 0x600
+  local addr_offset = rotated_by_45_or_crouching and 0x600 or 0
 
+  -- copy 6 walk sprites + idle + spring_jump top (if not rotated_by_45_or_crouching)
+  --  or 6 walk sprites (rotated) + crouch sprites from general memory to
+  --  current spritesheet memory
+  memcpy(0x1000, 0x4b00 + addr_offset, 0x400)  -- next address: 0x5700
+end
+
+-- same as reload_rotated_sprites_walk, but for run sprites
+function player_char:reload_rotated_run_sprites(rotated_by_45)
+  local addr_offset = rotated_by_45 and 0x600 or 0
+
+  -- same as reload_rotated_sprites_walk, but we must iterate over partial lines
   for i = 0, 15 do
-    -- 6 walk cycle sprites
-    memcpy(0x1008 + i * 0x40, 0x5300 + addr_offset + i * 0x30, 0x30)
-
     -- 4 run cycle sprites
-    memcpy(0x1400 + i * 0x40, 0x5600 + addr_offset + i * 0x20, 0x20)
+    memcpy(0x1400 + i * 0x40, 0x4f00 + addr_offset + i * 0x20, 0x20)
   end
 end
 
@@ -2528,16 +2569,26 @@ function player_char:render()
     --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
     sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
 
+    -- TODO OPTIMIZATION: store which sprite rows were loaded last, and only reload if needed
+
     -- an computed rotation of 45 degrees would result in an ugly sprite
     --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
     --  sprites when we want a better angle resolution
     if sprite_angle % 0.25 == 0 then
       -- closest 45-degree angle is already cardinal, we can safely rotate
       -- still make sure we use non-rotated sprites in case we changed them earlier
-      self:reload_rotated_sprites(--[[rotated_by_45: nil]])
+      if self.anim_spr.current_anim_key == "walk" then
+        self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
+      else  -- self.anim_spr.current_anim_key == "run"
+        self:reload_rotated_run_sprites(--[[rotated_by_45: nil]])
+      end
     else
       -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
-      self:reload_rotated_sprites(--[[rotated_by_45: ]] true)
+      if self.anim_spr.current_anim_key == "walk" then
+        self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching:]] true)
+      else  -- self.anim_spr.current_anim_key == "run"
+        self:reload_rotated_run_sprites(--[[rotated_by_45:]] true)
+      end
 
       -- rotated sprite embeds a rotation of 45 degrees, so if not flipped, rotate by angle - 45 degrees
       -- if flipped, the sprite is 45 degrees *behind* the horizontal left, so we must add 45 degrees instead

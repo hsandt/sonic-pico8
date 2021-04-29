@@ -244,6 +244,11 @@ describe('player_char', function ()
         assert.is_true(pc:is_grounded())
       end)
 
+      it('should return true when character is crouching on the ground', function ()
+        pc.motion_state = motion_states.crouching
+        assert.is_true(pc:is_grounded())
+      end)
+
       it('should return false when character is falling', function ()
         pc.motion_state = motion_states.falling
         assert.is_false(pc:is_grounded())
@@ -265,6 +270,11 @@ describe('player_char', function ()
 
       it('should return true when character is rolling on the ground', function ()
         pc.motion_state = motion_states.rolling
+        assert.is_true(pc:is_compact())
+      end)
+
+      it('should return true when character is crouching on the ground', function ()
+        pc.motion_state = motion_states.crouching
         assert.is_true(pc:is_compact())
       end)
 
@@ -1040,7 +1050,7 @@ describe('player_char', function ()
 
       describe('(when motion mode is platformer)', function ()
 
-        it('should call _update_platformer_motion', function ()
+        it('should call update_platformer_motion', function ()
           pc:update_motion()
           assert.spy(player_char.update_platformer_motion).was_called(1)
           assert.spy(player_char.update_platformer_motion).was_called_with(match.ref(pc))
@@ -1057,8 +1067,8 @@ describe('player_char', function ()
 
         -- bugfix history
         -- .
-        -- * the test revealed a missing return, as _update_platformer_motion was called but shouldn't
-        it('should call _update_debug', function ()
+        -- * the test revealed a missing return, as update_platformer_motion was called but shouldn't
+        it('should call update_debug', function ()
           pc:update_motion()
           assert.spy(player_char.update_platformer_motion).was_not_called()
           assert.spy(player_char.update_debug).was_called(1)
@@ -2467,7 +2477,7 @@ describe('player_char', function ()
       describe('update_platformer_motion', function ()
 
         setup(function ()
-          stub(player_char, "check_roll_start")
+          stub(player_char, "check_crouch_and_roll_start")
           stub(player_char, "check_roll_end")
           stub(player_char, "check_spring")
           stub(player_char, "check_launch_ramp")
@@ -2476,7 +2486,7 @@ describe('player_char', function ()
         end)
 
         teardown(function ()
-          player_char.check_roll_start:revert()
+          player_char.check_crouch_and_roll_start:revert()
           player_char.check_roll_end:revert()
           player_char.check_spring:revert()
           player_char.check_launch_ramp:revert()
@@ -2485,7 +2495,7 @@ describe('player_char', function ()
         end)
 
         after_each(function ()
-          player_char.check_roll_start:clear()
+          player_char.check_crouch_and_roll_start:clear()
           player_char.check_roll_end:clear()
           player_char.check_spring:clear()
           player_char.check_launch_ramp:clear()
@@ -2607,13 +2617,13 @@ describe('player_char', function ()
 
             describe('(when character is standing)', function ()
 
-              it('should call check_roll_start', function ()
+              it('should call check_crouch_and_roll_start', function ()
                 pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
-                assert.spy(player_char.check_roll_start).was_called(1)
-                assert.spy(player_char.check_roll_start).was_called_with(match.ref(pc))
+                assert.spy(player_char.check_crouch_and_roll_start).was_called(1)
+                assert.spy(player_char.check_crouch_and_roll_start).was_called_with(match.ref(pc))
               end)
 
               it('should call update_platformer_motion_grounded', function ()
@@ -2628,9 +2638,32 @@ describe('player_char', function ()
 
             end)
 
+            describe('(when character is crouching)', function ()
+
+              it('should call check_crouch_and_roll_start', function ()
+                pc.motion_state = motion_states.crouching
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_crouch_and_roll_start).was_called(1)
+                assert.spy(player_char.check_crouch_and_roll_start).was_called_with(match.ref(pc))
+              end)
+
+              it('should call update_platformer_motion_grounded', function ()
+                pc.motion_state = motion_states.crouching
+
+                pc:update_platformer_motion()
+
+                assert.spy(update_platformer_motion_grounded_mock).was_called(1)
+                assert.spy(update_platformer_motion_grounded_mock).was_called_with(match.ref(pc))
+                assert.spy(update_platformer_motion_airborne_stub).was_not_called()
+              end)
+
+            end)
+
             describe('(when character is rolling)', function ()
 
-              it('should call check_roll_start', function ()
+              it('should call check_crouch_and_roll_start', function ()
                 pc.motion_state = motion_states.rolling
 
                 pc:update_platformer_motion()
@@ -2687,12 +2720,12 @@ describe('player_char', function ()
 
             describe('(when character is standing first)', function ()
 
-              it('should not call check_roll_start since check_jump will enter air_spin first', function ()
+              it('should not call check_crouch_and_roll_start since check_jump will enter air_spin first', function ()
                 pc.motion_state = motion_states.standing
 
                 pc:update_platformer_motion()
 
-                assert.spy(player_char.check_roll_start).was_not_called()
+                assert.spy(player_char.check_crouch_and_roll_start).was_not_called()
               end)
 
               it('should call update_platformer_motion_airborne since check_jump will enter air_spin first', function ()
@@ -2736,23 +2769,26 @@ describe('player_char', function ()
 
         end)
 
-      end)  -- _update_platformer_motion
+      end)  -- update_platformer_motion
 
-      describe('check_roll_start', function ()
+      describe('#solo check_crouch_and_roll_start', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
           stub(player_char, "play_low_priority_sfx")
+          stub(player_char, "reload_rotated_walk_and_crouch_sprites")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
           player_char.play_low_priority_sfx:revert()
+          player_char.reload_rotated_walk_and_crouch_sprites:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
           player_char.play_low_priority_sfx:clear()
+          player_char.reload_rotated_walk_and_crouch_sprites:clear()
         end)
 
         before_each(function ()
@@ -2760,87 +2796,141 @@ describe('player_char', function ()
           pc.motion_state = motion_states.standing
         end)
 
-        it('should not start rolling if input down is pressed but abs ground speed (positive) is not enough', function ()
+        -- stubbing note: normally we should stub wants_to_crouch, but most of the tests below have been written
+        --  before wants_to_crouch was extracted, and it's still simpler to set move_intention that changing
+        --  some local var returned by wants_to_crouch's stub function, so we kept them this way
+        -- in counterpart, do not bother testing all move_intention cases, wants_to_crouch utests will do that
+
+        it('(standing) should crouch if input down is pressed but abs ground speed (positive) is not enough', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed - 0.01
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
-          assert.spy(player_char.enter_motion_state).was_not_called()
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.crouching)
         end)
 
-        it('should not start rolling if input down is pressed but abs ground speed (negative) is not enough', function ()
+        it('(standing) should crouch if input down is pressed but abs ground speed (negative) is not enough', function ()
           pc.ground_speed = -pc_data.roll_min_ground_speed + 0.01
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
-          assert.spy(player_char.enter_motion_state).was_not_called()
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.crouching)
         end)
 
-        it('should not start rolling if input down is pressed and abs ground speed (positive) is enough, but input x is also pressed', function ()
+        it('(standing) should also reload crouch sprites when crouching', function ()
+          pc.ground_speed = 0
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_crouch_and_roll_start()
+
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
+        end)
+
+        it('(standing) should not crouch nor start rolling if input down is pressed and abs ground speed (positive) is enough, but input x is also pressed', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention = vector(-1, 1)
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_not_called()
         end)
 
-        it('should not start rolling if abs ground speed (positive) is high enough but input down is not pressed', function ()
+        it('(standing) should not crouch nor start rolling if abs ground speed (positive) is high enough but input down is not pressed', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 0
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_not_called()
         end)
 
-        it('should not start rolling if abs ground speed (negative) is high enough but input down is not pressed', function ()
+        it('(standing) should not crouch nor start rolling if abs ground speed (negative) is high enough but input down is not pressed', function ()
           pc.ground_speed = -pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 0
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_not_called()
         end)
 
-        it('should start rolling if input down is pressed and abs ground speed (positive) is enough', function ()
+        it('(standing) should start rolling if input down is pressed and abs ground speed (positive) is enough', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_called(1)
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
         end)
 
-        it('should start rolling if input down is pressed and abs ground speed (negative) is enough', function ()
+        it('(standing) should start rolling if input down is pressed and abs ground speed (negative) is enough', function ()
           pc.ground_speed = -pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_called(1)
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
         end)
 
-        it('should play low priority sfx when conditions to start rolling are met', function ()
+        it('(standing) should play low priority sfx when conditions to start rolling are met', function ()
           pc.ground_speed = pc_data.roll_min_ground_speed
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 1
 
-          pc:check_roll_start()
+          pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.play_low_priority_sfx).was_called(1)
           assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.roll)
+        end)
+
+        it('(crouching) should start rolling if input down is held and abs ground speed (negative) becomes enough (due to auto-slide on slope)', function ()
+          pc.motion_state = motion_states.crouching
+          pc.ground_speed = -pc_data.roll_min_ground_speed
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_crouch_and_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
+        end)
+
+        it('(crouching) should not try to crouch again if input down is held at low abs ground speed', function ()
+          pc.motion_state = motion_states.crouching
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 1
+
+          pc:check_crouch_and_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
+        end)
+
+        it('(crouching) should stand up and reload idle sprite if input down is released', function ()
+          pc.motion_state = motion_states.crouching
+          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
+          pc.move_intention.y = 0
+
+          pc:check_crouch_and_roll_start()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
         end)
 
       end)
@@ -6046,6 +6136,27 @@ describe('player_char', function ()
 
       end)  -- _compute_closest_ceiling_query_info
 
+      describe('wants_to_crouch', function ()
+
+        it('should return false if no move intention', function ()
+          pc:wants_to_crouch()
+          assert.is_false(pc:wants_to_crouch())
+        end)
+
+        it('should return false if move intention is left-down', function ()
+          pc.move_intention.x = -1
+          pc.move_intention.y = 1
+          assert.is_false(pc:wants_to_crouch())
+        end)
+
+        it('should return true if move intention is pure down', function ()
+          pc.move_intention.x = 0
+          pc.move_intention.y = 1
+          assert.is_true(pc:wants_to_crouch())
+        end)
+
+      end)
+
       describe('check_jump_intention', function ()
 
         it('should do nothing when jump_intention is false', function ()
@@ -8403,6 +8514,16 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
       end)
 
+      it('should play crouch anim when crouching (even when sliding)', function ()
+        pc.motion_state = motion_states.crouching
+        pc.ground_speed = 0
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "crouch")
+      end)
+
       it('(air spin with anim_run_speed below air_spin_anim_min_play_speed) should play spin anim at air_spin_anim_min_play_speed', function ()
         pc.anim_run_speed = pc_data.air_spin_anim_min_play_speed / 2
         pc.motion_state = motion_states.air_spin
@@ -8516,7 +8637,7 @@ describe('player_char', function ()
 
     end)
 
-    describe('reload_rotated_sprites', function ()
+    describe('reload_rotated_walk_and_crouch_sprites', function ()
 
       setup(function ()
         stub(_G, "memcpy")
@@ -8530,28 +8651,54 @@ describe('player_char', function ()
         memcpy:clear()
       end)
 
-      it('should copy non-rotated sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_sprites()
+      it('should copy non-rotated walk + idle + spring_jump (top) sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_walk_and_crouch_sprites()
 
-        assert.spy(memcpy).was_called(32)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1008, 0x5300, 0x30)
-        assert.spy(memcpy).was_called_with(0x1048, 0x5330, 0x30)
-        assert.spy(memcpy).was_called_with(0x1400, 0x5600, 0x20)
-        assert.spy(memcpy).was_called_with(0x1440, 0x5620, 0x20)
+        assert.spy(memcpy).was_called(1)
+        assert.spy(memcpy).was_called_with(0x1000, 0x4b00, 0x400)
       end)
 
-      it('should copy rotated sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_sprites(true)
+      it('should copy rotated walk + crouch sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_walk_and_crouch_sprites(true)
 
-        assert.spy(memcpy).was_called(32)
+        assert.spy(memcpy).was_called(1)
+        assert.spy(memcpy).was_called_with(0x1000, 0x5100, 0x400)
+      end)
+
+    end)
+
+    describe('reload_rotated_run_sprites', function ()
+
+      setup(function ()
+        stub(_G, "memcpy")
+      end)
+
+      teardown(function ()
+        memcpy:revert()
+      end)
+
+      after_each(function ()
+        memcpy:clear()
+      end)
+
+      it('should copy non-rotated run sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_run_sprites()
+
+        assert.spy(memcpy).was_called(16)
         -- too many calls to check them all, but test at least the first ones of each
         -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1008, 0x5800, 0x30)
-        assert.spy(memcpy).was_called_with(0x1048, 0x5830, 0x30)
-        assert.spy(memcpy).was_called_with(0x1400, 0x5b00, 0x20)
-        assert.spy(memcpy).was_called_with(0x1440, 0x5b20, 0x20)
+        assert.spy(memcpy).was_called_with(0x1400, 0x4f00, 0x20)
+        assert.spy(memcpy).was_called_with(0x1440, 0x4f20, 0x20)
+      end)
+
+      it('should copy rotated run sprites in general memory back to spritesheet', function ()
+        pc:reload_rotated_run_sprites(true)
+
+        assert.spy(memcpy).was_called(16)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1400, 0x5500, 0x20)
+        assert.spy(memcpy).was_called_with(0x1440, 0x5520, 0x20)
       end)
 
     end)
@@ -8560,17 +8707,20 @@ describe('player_char', function ()
 
       setup(function ()
         stub(animated_sprite, "render")
-        stub(player_char, "reload_rotated_sprites")
+        stub(player_char, "reload_rotated_walk_and_crouch_sprites")
+        stub(player_char, "reload_rotated_run_sprites")
       end)
 
       teardown(function ()
         animated_sprite.render:revert()
-        player_char.reload_rotated_sprites:revert()
+        player_char.reload_rotated_walk_and_crouch_sprites:revert()
+        player_char.reload_rotated_run_sprites:revert()
       end)
 
       after_each(function ()
         animated_sprite.render:clear()
-        player_char.reload_rotated_sprites:clear()
+        player_char.reload_rotated_walk_and_crouch_sprites:clear()
+        player_char.reload_rotated_run_sprites:clear()
       end)
 
       describe('(brake_start)', function ()
@@ -8586,7 +8736,8 @@ describe('player_char', function ()
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_not_called()
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- sprite is already rotated by 45, so the additional angle is 0
@@ -8600,7 +8751,8 @@ describe('player_char', function ()
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_not_called()
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- note that we don't apply modulo and count on render to detect that 1 == 0 [1], so we effectively pass 1
@@ -8615,63 +8767,106 @@ describe('player_char', function ()
           pc.anim_spr.current_anim_key = "walk"
         end)
 
-        it('(when character is facing left, closer to cardinal angle) should reload non-rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
+        it('(when character is facing left, closer to cardinal angle) should reload non-rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
           pc.position = vector(12.5, 8.2)
           pc.orientation = horizontal_dirs.left
           pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc))
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
         end)
 
-        it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
+        it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
           pc.position = vector(12.5, 8.2)
           pc.orientation = horizontal_dirs.left
           pc.continuous_sprite_angle = 0.0626  -- closer to 0.125 than 0
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc), true)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- sprite is already rotated by 45, so the additional angle is 0
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
         end)
 
-        it('(when character is facing right, closer to cardinal angle) should reload non-rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
+        it('(when character is facing right, closer to cardinal angle) should reload non-rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
           pc.position = vector(12.5, 8.2)
           pc.orientation = horizontal_dirs.right
           pc.continuous_sprite_angle = 1 - 0.0624  -- closer to 1 (i.e. 0 modulo 1) than 0.875
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc))
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- note that we don't apply modulo and count on render to detect that 1 == 0 [1], so we effectively pass 1
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 1)
         end)
 
-        it('(when character is facing right, closer to diagonal angle) should reload 45-degree rotated sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
+        it('(when character is facing right, closer to diagonal angle) should reload 45-degree rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
           pc.position = vector(12.5, 8.2)
           pc.orientation = horizontal_dirs.right
           pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
 
           pc:render()
 
-          assert.spy(player_char.reload_rotated_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_sprites).was_called_with(match.ref(pc), true)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
+          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
 
           assert.spy(animated_sprite.render).was_called(1)
           -- sprite is already rotated by 45, so the additional angle is only 0.75
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0.75)
+        end)
+
+      end)
+
+      describe('(run)', function ()
+
+        before_each(function ()
+          pc.anim_spr.current_anim_key = "run"
+        end)
+
+        it('(when character is facing left, closer to cardinal angle) should reload non-rotated run sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
+          pc.position = vector(12.5, 8.2)
+          pc.orientation = horizontal_dirs.left
+          pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
+
+          pc:render()
+
+          assert.spy(player_char.reload_rotated_run_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_run_sprites).was_called_with(match.ref(pc))
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
+
+          assert.spy(animated_sprite.render).was_called(1)
+          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
+        end)
+
+        it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated run sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
+          pc.position = vector(12.5, 8.2)
+          pc.orientation = horizontal_dirs.left
+          pc.continuous_sprite_angle = 0.0626  -- closer to 0.125 than 0
+
+          pc:render()
+
+          assert.spy(player_char.reload_rotated_run_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_run_sprites).was_called_with(match.ref(pc), true)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
+
+          assert.spy(animated_sprite.render).was_called(1)
+          -- sprite is already rotated by 45, so the additional angle is 0
+          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
         end)
 
       end)

@@ -2340,6 +2340,9 @@ function player_char:trigger_spring(spring_obj)
     self.velocity.y = -pc_data.spring_jump_speed_frame
     self:enter_motion_state(motion_states.falling)
     self.should_play_spring_jump = true
+
+    -- reload spring jump top sprite cells
+    self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
   else
     -- we assume horizontal spring here (spring down not supported)
 
@@ -2686,6 +2689,12 @@ function player_char:render()
       -- rotated sprite embeds a rotation of 45 degrees, so if not flipped, rotate by angle - 45 degrees
       -- if flipped, the sprite is 45 degrees *behind* the horizontal left, so we must add 45 degrees instead
       sprite_angle = sprite_angle + (flip_x and 1 or -1) * 0.125
+    end
+  else
+    if self.anim_spr.current_anim_key == "idle" then
+      -- idle sprite is never rotated, and we need to reload it after a spin dash -> rolling -> standing again
+      --  as in this case we leave crouching without reloading the idle sprite in check_crouch_and_roll_start
+      self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
     end
   end
 

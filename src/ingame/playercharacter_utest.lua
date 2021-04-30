@@ -8177,18 +8177,22 @@ describe('player_char', function ()
         stub(stage_state, "extend_spring")
         spy.on(player_char, "enter_motion_state")
         stub(player_char, "play_low_priority_sfx")
+        stub(player_char, "reload_rotated_walk_and_crouch_sprites")
       end)
 
       teardown(function ()
         stage_state.extend_spring:revert()
         player_char.enter_motion_state:revert()
         player_char.play_low_priority_sfx:revert()
+        player_char.reload_rotated_walk_and_crouch_sprites:revert()
       end)
 
       after_each(function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
         player_char.play_low_priority_sfx:clear()
+        player_char.reload_rotated_walk_and_crouch_sprites:clear()
+
         mock_spring_up.extend:clear()
         mock_spring_left.extend:clear()
         mock_spring_right.extend:clear()
@@ -8208,6 +8212,13 @@ describe('player_char', function ()
       it('(spring up) should set should_play_spring_jump to true', function ()
         pc:trigger_spring(mock_spring_up)
         assert.is_true(pc.should_play_spring_jump)
+      end)
+
+      it('(spring up) should reload sprites for spring jump', function ()
+        pc:trigger_spring(mock_spring_up)
+
+        assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+        assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
       end)
 
       it('(spring left) should set orientation to left', function ()
@@ -9108,6 +9119,21 @@ describe('player_char', function ()
           assert.spy(animated_sprite.render).was_called(1)
           -- sprite is already rotated by 45, so the additional angle is 0
           assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
+        end)
+
+      end)
+
+      describe('(idle)', function ()
+
+        before_each(function ()
+          pc.anim_spr.current_anim_key = "idle"
+        end)
+
+        it('should reload idle sprite among others', function ()
+          pc:render()
+
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
+          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
         end)
 
       end)

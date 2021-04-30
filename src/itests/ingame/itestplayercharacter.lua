@@ -59,7 +59,7 @@ warp 4 8
 wait 10
 
 expect pc_bottom_pos 4 12
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -81,7 +81,7 @@ move right
 wait 30
 
 expect pc_bottom_pos 14.8984375 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0.703125
 expect pc_velocity 0.703125 0
 ]])
@@ -99,7 +99,7 @@ move left
 wait 10
 
 expect pc_bottom_pos 14.7109375 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd -0.1875
 expect pc_velocity -0.1875 0
 ]])
@@ -117,7 +117,7 @@ stop
 wait 30
 
 expect pc_bottom_pos 25.09375 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -162,14 +162,14 @@ move right
 wait 14
 
 expect pc_bottom_pos 6.36378532203461338585 15
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_slope -0.125
 expect pc_ground_spd 0.3266448974609375
 expect pc_velocity 0.23097282203461338585 -0.23097282203461338585
 ]])
 
 -- expect pc_bottom_pos 0x0006.8509 15
--- expect pc_motion_state grounded
+-- expect pc_motion_state standing
 -- expect pc_slope -0.125
 -- expect pc_ground_spd 0.26318359375
 -- expect pc_velocity 0x0000.2fa4 -0x0000.2fa5
@@ -224,7 +224,7 @@ move right
 wait 28
 
 expect pc_bottom_pos 13 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -234,7 +234,7 @@ expect pc_velocity 0 0
 -- wait 28 frames and stop
 -- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
 
--- at frame 1: pos (4 + 0.0234375, 8), velocity (0.0234375, 0), grounded
+-- at frame 1: pos (4 + 0.0234375, 8), velocity (0.0234375, 0), standing
 -- at frame 27: pos (12.8359375, 8), velocity (0.6328125, 0), about to meet wall
 -- at frame 28: pos (13, 8), velocity (0, 0), hit wall
 
@@ -252,7 +252,7 @@ move right
 wait 4
 
 expect pc_bottom_pos 13 11
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -267,10 +267,10 @@ expect pc_velocity 0 0
 -- character will be blocked when right wall sensor is at x = 16.5, so when center will be at x = 13
 
 -- if move intention is applied after slope factor (or both are applied, then ground speed is clamped as we should):
--- at frame 1: pos (7, 14), velocity (3, 0), grounded
--- at frame 2: pos (7 + 0x0002.c589 = 9.771621704102, 13), velocity (3, 0), grounded
--- at frame 3: pos (7 + 2 * 0x0002.c589 = 12.543243408204, 11), velocity (3, 0), grounded
--- at frame 4: pos (13, 11), velocity (3, 0), grounded
+-- at frame 1: pos (7, 14), velocity (3, 0), standing
+-- at frame 2: pos (7 + 0x0002.c589 = 9.771621704102, 13), velocity (3, 0), standing
+-- at frame 3: pos (7 + 2 * 0x0002.c589 = 12.543243408204, 11), velocity (3, 0), standing
+-- at frame 4: pos (13, 11), velocity (3, 0), standing
 
 -- in practice, slope after is applied after intention, causing a slight decel:
 
@@ -299,7 +299,7 @@ warp 4 0
 wait 21
 
 expect pc_bottom_pos 4 24
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -331,9 +331,9 @@ expect pc_velocity 0.84375 2.625
 ]])
 
 -- calculation notes:
--- at frame 1: pos (17.9453125, 8), velocity (0.796875, 0), grounded
--- at frame 34: pos (17.9453125, 8), velocity (0.796875, 0), grounded
--- at frame 35: pos (18.765625, 8), velocity (0.8203125, 0), grounded (do not apply ground sensor extent: -2.5 directly, floor to full px first)
+-- at frame 1: pos (17.9453125, 8), velocity (0.796875, 0), standing
+-- at frame 34: pos (17.9453125, 8), velocity (0.796875, 0), standing
+-- at frame 35: pos (18.765625, 8), velocity (0.8203125, 0), standing (do not apply ground sensor extent: -2.5 directly, floor to full px first)
 -- at frame 36: pos (19.609375, 8), velocity (0.84375, 0), falling (flr_x=19) -> stop accel
 -- wait 24 frames and stop
 -- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
@@ -365,14 +365,14 @@ expect pc_velocity 0 -0.03125
 -- calculation notes
 
 -- wait for apogee (frame 20) and stop
--- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 1:  bpos (4, 8), velocity (0, 0), standing (waits 1 frame before confirming hop/jump)
 -- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), air_spin (hop confirmed, no gravity applied this frame)
 -- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), air_spin
 -- at frame 19: pos (4, 8 - 19.265625), velocity (0, -0.140625), air_spin -> before apogee
 -- at frame 20: pos (4, 8 - 19.296875), velocity (0, -0.03125), air_spin -> reached apogee
 -- at frame 21: pos (4, 8 - 19.21875), velocity (0, 0.078125), air_spin -> starts going down
 -- at frame 38: pos (4, 8 - 1.15625), velocity (0, 1.9375), air_spin ->  about to land
--- at frame 39: pos (4, 8), velocity (0, 0), grounded -> has landed
+-- at frame 39: pos (4, 8), velocity (0, 0), standing -> has landed
 
 -- => apogee at y = 8 - 19.296875 = -11.296875
 
@@ -418,7 +418,7 @@ expect pc_velocity 0 -2
 -- calculation notes
 
 -- interrupt variable jump at the end of frame 2
--- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 1: bpos (4, 8), velocity (0, 0), standing (waits 1 frame before confirming hop/jump)
 -- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), air_spin (jump confirmed)
 -- at frame 3: bpos (4, 8 - 6.390625), velocity (0, -3.140625), air_spin
 -- at frame 4: bpos (4, 8 - 9.421875), velocity (0, -3.03125), air_spin
@@ -474,13 +474,13 @@ expect pc_velocity 0 -0.078125
 -- calculation notes
 
 -- wait for the apogee (frame 31) and stop
--- at frame 1: bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
--- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), air_spin (do not apply gravity on first frame of jump since we were grounded)
+-- at frame 1: bpos (4, 8), velocity (0, 0), standing (waits 1 frame before confirming hop/jump)
+-- at frame 2: bpos (4, 8 - 3.25), velocity (0, -3.25), air_spin (do not apply gravity on first frame of jump since we were standing)
 -- at frame 30: bpos (4, 8 - 49.84375), velocity (0, -0.1875), air_spin -> before apogee
 -- at frame 31: bpos (4, 8 - 49.921875), velocity (0, -0.078125), air_spin -> reached apogee (100px in 16-bit, matches SPG on Jumping)
 -- at frame 32: bpos (4, 8 - 49.890625), velocity (0, 0.03125), air_spin -> starts going down
 -- at frame 61: bpos (4, 8 - 1.40625), velocity (0, 3.203125), air_spin -> about to land
--- at frame 62: bpos (4, 8), velocity (0, 0), grounded -> has landed
+-- at frame 62: bpos (4, 8), velocity (0, 0), standing -> has landed
 
 
 itest_dsl_parser.register(
@@ -498,7 +498,7 @@ press o
 wait 20
 
 expect pc_bottom_pos 4 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
@@ -516,14 +516,14 @@ expect pc_velocity 0 0
 
 -- calculation notes:
 -- wait for apogee (frame 20) and stop
--- at frame 1:  bpos (4, 8), velocity (0, 0), grounded (waits 1 frame before confirming hop/jump)
+-- at frame 1:  bpos (4, 8), velocity (0, 0), standing (waits 1 frame before confirming hop/jump)
 -- at frame 2:  bpos (4, 8 - 2), velocity (0, -2), air_spin (hop confirmed)
 -- at frame 3:  bpos (4, 8 - 3.890625), velocity (0, -1.890625), air_spin (hop confirmed)
 -- at frame 19: bpos (4, 8 - 19.265625), velocity (0, -0.140625), air_spin -> before apogee
 -- at frame 20: bpos (4, 8 - 19.296875), velocity (0, -0.03125), air_spin -> reached apogee
 -- at frame 21: bpos (4, 8 - 19.21875), velocity (0, 0.078125), air_spin -> starts going down
 -- at frame 38: bpos (4, 8 - 1.15625), velocity (0, 1.9375), air_spin ->  about to land
--- at frame 39: bpos (4, 8), velocity (0, 0), grounded -> has landed
+-- at frame 39: bpos (4, 8), velocity (0, 0), standing -> has landed
 
 -- and wait an extra frame to see if Sonic will jump due to holding jump input,
 -- so stop at frame 40
@@ -570,7 +570,7 @@ expect pc_velocity 0 -1.125
 
 -- calculation notes:
 -- start jump input
--- at frame 1:  bpos (4, 24), velocity (0, 0), grounded
+-- at frame 1:  bpos (4, 24), velocity (0, 0), standing
 -- wait 1 frame to confirm hop, and start moving right, then wait 9 frames
 -- at frame 2:  bpos (4 + .046875, 24 - 2), velocity (3/64, -2), air_spin (hop)
 -- at frame 3:  bpos (4.140625, 24 - 3.890625), velocity (6/64, -1 - 57/64), air_spin
@@ -687,7 +687,7 @@ expect pc_velocity 0 0
 
 -- wait for the apogee (frame 31) and stop
 -- frame  bottom pos            velocity         state     event
--- 1      (4, 32)               (0, 0)           grounded
+-- 1      (4, 32)               (0, 0)           standing
 -- 2      (4, 32 - 3  - 16/64)  (0, -3 - 16/64)  air_spin  confirm jump (no gravity on first frame)
 -- 3      (4, 32 - 6  - 25/64)  (0, -3 -  9/64)  air_spin
 -- 4      (4, 32 - 8)           (0, 0)           air_spin
@@ -792,7 +792,7 @@ expect pc_velocity -0x000.9aba -1.609375
 -- calculation notes
 
 -- wait ceiling hit (frame 31) and stop
--- at frame 1: bpos (19.9765625, 56), velocity (-0.0234375, 0), grounded (apply ground accel, waits 1 frame before confirming jump)
+-- at frame 1: bpos (19.9765625, 56), velocity (-0.0234375, 0), standing (apply ground accel, waits 1 frame before confirming jump)
 -- at frame 2: bpos (19.90625, 56 - 3.25), velocity (-0.0703125, -3.25), air_spin (apply air accel, do not apply gravity on first frame of jump since we were grounded)
 -- at frame 3: bpos (19.7890625, 56 - 6.390625), velocity (-0.1171875, -3.140625), air_spin (start applying gravity)
 -- ...
@@ -844,7 +844,7 @@ warp 13 12
 wait 9
 
 expect pc_bottom_pos 15 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_velocity 0 0.984375
 ]])
 --#endif
@@ -867,7 +867,7 @@ move right
 wait 60
 
 expect pc_bottom_pos 15 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_velocity 0 0.984375
 ]])
 
@@ -912,7 +912,7 @@ expect pc_velocity 0 -5
 
 --#if busted
 itest_dsl_parser.register(
-  '#solo stand on one-way', [[
+  'stand on one-way', [[
 @stage #
 .
 o
@@ -921,10 +921,28 @@ warp 4 7
 wait 10
 
 expect pc_bottom_pos 4 8
-expect pc_motion_state grounded
+expect pc_motion_state standing
 expect pc_velocity 0 0
 ]])
 --#endif
+
+itest_dsl_parser.register(
+  '#solo crouch and spin dash', [[
+@stage #
+.
+#
+
+warp 4 8
+wait 2
+crouch
+wait 1
+jump
+wait 1
+
+expect pc_bottom_pos 4 8
+expect pc_motion_state spin_dashing
+expect pc_velocity 0 0
+]])
 
 --[=[
 

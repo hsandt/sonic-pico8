@@ -24,9 +24,10 @@ motion_modes = {
 
 -- enum for character motion state in platformer mode
 motion_states = {
-  standing  = 1,  -- character is idle or running on the ground
-  falling   = 2,  -- character is falling in the air, but not spinning
-  air_spin  = 3,  -- character is in the air after a jump
-  rolling   = 4,  -- character is rolling on the ground
-  crouching = 5,  -- character is crouching on the ground
+  standing     = 1,  -- character is idle or running on the ground
+  falling      = 2,  -- character is falling in the air, but not spinning
+  air_spin     = 3,  -- character is in the air after a jump
+  rolling      = 4,  -- character is rolling on the ground
+  crouching    = 5,  -- character is crouching on the ground
+  spin_dashing = 6,  -- character is charging spin dash
 }

@@ -249,6 +249,11 @@ describe('player_char', function ()
         assert.is_true(pc:is_grounded())
       end)
 
+      it('should return true when character is spin dashing on the ground', function ()
+        pc.motion_state = motion_states.spin_dashing
+        assert.is_true(pc:is_grounded())
+      end)
+
       it('should return false when character is falling', function ()
         pc.motion_state = motion_states.falling
         assert.is_false(pc:is_grounded())
@@ -275,6 +280,11 @@ describe('player_char', function ()
 
       it('should return true when character is crouching on the ground', function ()
         pc.motion_state = motion_states.crouching
+        assert.is_true(pc:is_compact())
+      end)
+
+      it('should return true when character is spin dashing on the ground', function ()
+        pc.motion_state = motion_states.spin_dashing
         assert.is_true(pc:is_compact())
       end)
 
@@ -2511,18 +2521,21 @@ describe('player_char', function ()
           assert.are_same({}, pc.debug_rays)
         end)
 
-        describe('(check_jump stubbed)', function ()
+        describe('(check_jump and check_spin_dash stubbed)', function ()
 
           setup(function ()
             stub(player_char, "check_jump")
+            stub(player_char, "check_spin_dash")
           end)
 
           teardown(function ()
             player_char.check_jump:revert()
+            player_char.check_spin_dash:revert()
           end)
 
           after_each(function ()
             player_char.check_jump:clear()
+            player_char.check_spin_dash:clear()
           end)
 
           it('(when motion state is standing on ground) should call check_jump', function ()
@@ -2571,6 +2584,19 @@ describe('player_char', function ()
             pc:update_platformer_motion()
             assert.spy(player_char.check_loop_external_triggers).was_called()
             assert.spy(player_char.check_loop_external_triggers).was_called_with(match.ref(pc))
+          end)
+
+          it('(when motion state is grounded) should call check_spin_dash', function ()
+            pc.motion_state = motion_states.standing
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_spin_dash).was_called(1)
+            assert.spy(player_char.check_spin_dash).was_called_with(match.ref(pc))
+          end)
+
+          it('(when motion state is airborne) should call check_spin_dash', function ()
+            pc.motion_state = motion_states.falling
+            pc:update_platformer_motion()
+            assert.spy(player_char.check_spin_dash).was_not_called()
           end)
 
         end)
@@ -2771,7 +2797,7 @@ describe('player_char', function ()
 
       end)  -- update_platformer_motion
 
-      describe('#solo check_crouch_and_roll_start', function ()
+      describe('check_crouch_and_roll_start', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
@@ -3000,14 +3026,14 @@ describe('player_char', function ()
 
       -- bugfix history:
       --  ^ use fractional speed to check that fractional moves are supported
-      describe('update_platformer_motion_grounded (when _update_velocity sets ground_speed to 2.5)', function ()
+      describe('update_platformer_motion_grounded (when update_velocity sets ground_speed to 2.5)', function ()
 
         local update_ground_speed_mock
         local enter_motion_state_stub
         local check_jump_intention_stub
         local compute_ground_motion_result_mock
 
-        -- allows to modify the mock _update_ground_speed without restubbing it for every test section
+        -- allows to modify the mock update_ground_speed without restubbing it for every test section
         local new_ground_speed = -2.5  -- use fractional speed to check that fractions are preserved
 
         setup(function ()
@@ -3041,7 +3067,7 @@ describe('player_char', function ()
           check_jump_intention_stub:clear()
         end)
 
-        it('should call _update_ground_speed', function ()
+        it('should call update_ground_speed', function ()
           pc:update_platformer_motion_grounded()
 
           -- implementation
@@ -3049,7 +3075,7 @@ describe('player_char', function ()
           assert.spy(update_ground_speed_mock).was_called_with(match.ref(pc))
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.25, is_blocked: false, is_falling: false)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.25, is_blocked: false, is_falling: false)', function ()
 
           setup(function ()
             compute_ground_motion_result_mock = stub(player_char, "compute_ground_motion_result", function (self)
@@ -3073,14 +3099,14 @@ describe('player_char', function ()
 
           it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
             pc:update_platformer_motion_grounded()
-            -- interface: relying on _update_ground_speed implementation
+            -- interface: relying on update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5, 0)}, {pc.ground_speed, pc.velocity})
           end)
 
           it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
             pc.slope_angle = 1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
             pc:update_platformer_motion_grounded()
-            -- interface: relying on _update_ground_speed implementation
+            -- interface: relying on update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
@@ -3129,7 +3155,7 @@ describe('player_char', function ()
               pc.quadrant = directions.right
             end)
 
-            describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed / 2)', function ()
+            describe('(update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed / 2)', function ()
 
               setup(function ()
                 -- something lower than pc_data.ceiling_adherence_min_ground_speed in abs value
@@ -3137,11 +3163,21 @@ describe('player_char', function ()
               end)
 
               teardown(function ()
-                -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
+                -- pretty hacky way to restore the original stub of update_ground_speed for further tests below
                 new_ground_speed = -2.5
               end)
 
               it('should enter falling state thanks to Falling and Sliding Off condition', function ()
+                pc:update_platformer_motion_grounded()
+
+                assert.spy(enter_motion_state_stub).was_called(1)
+                assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
+              end)
+
+              -- rare, but possible with crouch sliding
+              it('(when crouching) should enter air_spin state thanks to Falling and Sliding Off condition', function ()
+                pc.motion_state = motion_states.crouching
+
                 pc:update_platformer_motion_grounded()
 
                 assert.spy(enter_motion_state_stub).was_called(1)
@@ -3157,9 +3193,19 @@ describe('player_char', function ()
                 assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
               end)
 
+              -- hypothetical case, only possible with crumbling floor or some moving wall pushing you to fall during spin dash
+              it('(when spin dashing) should enter air_spin state thanks to Falling and Sliding Off condition', function ()
+                pc.motion_state = motion_states.spin_dashing
+
+                pc:update_platformer_motion_grounded()
+
+                assert.spy(enter_motion_state_stub).was_called(1)
+                assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
+              end)
+
             end)
 
-            describe('(_update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
+            describe('(update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
 
               setup(function ()
                 -- exactly pc_data.ceiling_adherence_min_ground_speed in abs value to test exact comparison
@@ -3167,7 +3213,7 @@ describe('player_char', function ()
               end)
 
               teardown(function ()
-                -- pretty hacky way to restore the original stub of _update_ground_speed for further tests below
+                -- pretty hacky way to restore the original stub of update_ground_speed for further tests below
                 new_ground_speed = -2.5
               end)
 
@@ -3183,7 +3229,7 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.5, is_blocked: true, is_falling: false)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.5, is_blocked: true, is_falling: false)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -3284,7 +3330,7 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: false, is_falling: true)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: false, is_falling: true)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -3310,14 +3356,14 @@ describe('player_char', function ()
 
           it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
             pc:update_platformer_motion_grounded()
-            -- interface: relying on _update_ground_speed implementation
+            -- interface: relying on update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5, 0)}, {pc.ground_speed, pc.velocity})
           end)
 
           it('should keep updated ground speed and set velocity frame according to ground speed and slope if not flat (not blocked)', function ()
             pc.slope_angle = 1/6  -- cos = 1/2, sin = -sqrt(3)/2, but use the formula directly to support floating errors
             pc:update_platformer_motion_grounded()
-            -- interface: relying on _update_ground_speed implementation
+            -- interface: relying on update_ground_speed implementation
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
@@ -3360,7 +3406,7 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: true, is_falling: true)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: nil, is_blocked: true, is_falling: true)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -3424,7 +3470,7 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -3524,6 +3570,20 @@ describe('player_char', function ()
           assert.spy(player_char.clamp_ground_speed).was_called_with(match.ref(pc), 2.5)
         end)
 
+        it('(crouching) should update ground speed based on slope, like standing (we check intention but should do nothing)', function ()
+          pc.ground_speed = 2.5
+
+          pc:update_ground_speed()
+
+          assert.spy(player_char.update_ground_speed_by_slope).was_called(1)
+          assert.spy(player_char.update_ground_speed_by_slope).was_called_with(match.ref(pc))
+          -- move intention x should be 0, so this is called but should do nothing
+          assert.spy(player_char.update_ground_run_speed_by_intention).was_called(1)
+          assert.spy(player_char.update_ground_run_speed_by_intention).was_called_with(match.ref(pc))
+          assert.spy(player_char.clamp_ground_speed).was_called(1)
+          assert.spy(player_char.clamp_ground_speed).was_called_with(match.ref(pc), 2.5)
+        end)
+
         it('(rolling) should call update_ground_roll_speed_by_intention (instead of _run_)', function ()
           pc.motion_state = motion_states.rolling
 
@@ -3536,7 +3596,18 @@ describe('player_char', function ()
           assert.spy(player_char.clamp_ground_speed).was_not_called()
         end)
 
-      end)  -- _update_ground_speed
+        it('(spin dashing) should not do anything', function ()
+          pc.motion_state = motion_states.spin_dashing
+
+          pc:update_ground_speed()
+
+          assert.spy(player_char.update_ground_speed_by_slope).was_not_called()
+          assert.spy(player_char.update_ground_run_speed_by_intention).was_not_called()
+          assert.spy(player_char.update_ground_roll_speed_by_intention).was_not_called()
+          assert.spy(player_char.clamp_ground_speed).was_not_called()
+        end)
+
+      end)  -- update_ground_speed
 
       describe('update_ground_speed_by_slope', function ()
 
@@ -3646,7 +3717,7 @@ describe('player_char', function ()
             })
         end)
 
-      end)  -- _update_ground_speed_by_slope
+      end)  -- update_ground_speed_by_slope
 
       describe('update_ground_run_speed_by_intention', function ()
 
@@ -5183,7 +5254,7 @@ describe('player_char', function ()
 
         end)
 
-      end)  -- _compute_ground_motion_result
+      end)  -- compute_ground_motion_result
 
       describe('next_ground_step', function ()
 
@@ -6176,14 +6247,17 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "play_low_priority_sfx")
+          stub(player_char, "enter_motion_state")  -- we used to check motion state directly, but now we can stub
         end)
 
         teardown(function ()
           player_char.play_low_priority_sfx:revert()
+          player_char.enter_motion_state:revert()
         end)
 
         after_each(function ()
           player_char.play_low_priority_sfx:clear()
+          player_char.enter_motion_state:clear()
         end)
 
         it('should not set jump members and return false when should_jump is false', function ()
@@ -6191,16 +6265,31 @@ describe('player_char', function ()
           local result = pc:check_jump()
 
           -- interface
-          assert.are_same({false, vector(4.1, -1), motion_states.standing, false, false}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
+          assert.are_same({false, vector(4.1, -1), false, false}, {result, pc.velocity, pc.has_jumped_this_frame, pc.can_interrupt_jump})
         end)
 
-        it('should consume should_jump, add initial var jump velocity, update motion state, set has_jumped_this_frame amd can_interrupt_jump flags and return true when should_jump is true', function ()
+        it('should not enter another motion state when should_jump is false', function ()
+          pc.should_jump = false
+          pc:check_jump()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+        end)
+
+        it('should consume should_jump, add initial var jump velocity, set has_jumped_this_frame amd can_interrupt_jump flags and return true when should_jump is true', function ()
           pc.velocity = vector(4.1, -1)
           pc.should_jump = true
           local result = pc:check_jump()
 
           -- interface
-          assert.are_same({true, vector(4.1, -4.25), motion_states.air_spin, true, true}, {result, pc.velocity, pc.motion_state, pc.has_jumped_this_frame, pc.can_interrupt_jump})
+          assert.are_same({true, vector(4.1, -4.25), true, true}, {result, pc.velocity, pc.has_jumped_this_frame, pc.can_interrupt_jump})
+        end)
+
+        it('should enter motion state: air_spin', function ()
+          pc.should_jump = true
+          pc:check_jump()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.air_spin)
         end)
 
         it('should add impulse along ground normal when slope_angle is not 0 (and we should jump)', function ()
@@ -6214,13 +6303,156 @@ describe('player_char', function ()
           assert.is_true(almost_eq_with_message(-2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.y))
         end)
 
-        it('should play jump low priority sfx when character should jump', function ()
+        it('should play jump sfx (low priority) when character should jump', function ()
           pc.should_jump = true
 
           pc:check_jump()
 
           assert.spy(player_char.play_low_priority_sfx).was_called(1)
           assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.jump)
+        end)
+
+      end)
+
+      describe('check_spin_dash', function ()
+
+        setup(function ()
+          stub(player_char, "play_low_priority_sfx")
+          stub(player_char, "release_spin_dash")
+          stub(player_char, "enter_motion_state")
+        end)
+
+        teardown(function ()
+          player_char.play_low_priority_sfx:revert()
+          player_char.release_spin_dash:revert()
+          player_char.enter_motion_state:revert()
+        end)
+
+        after_each(function ()
+          player_char.play_low_priority_sfx:clear()
+          player_char.release_spin_dash:clear()
+          player_char.enter_motion_state:clear()
+        end)
+
+        it('(standing) should not do anything', function ()
+          pc.motion_state = motion_states.standing
+
+          pc:check_spin_dash()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+          assert.spy(player_char.release_spin_dash).was_not_called()
+        end)
+
+        it('(crouching, release down) should not do anything (standing up is not processed here)', function ()
+          pc.motion_state = motion_states.crouching
+
+          pc:check_spin_dash()
+
+          assert.spy(player_char.enter_motion_state).was_not_called()
+          assert.spy(player_char.release_spin_dash).was_not_called()
+        end)
+
+        it('(spin dashing, release down) should call release_spin_dash', function ()
+          pc.motion_state = motion_states.spin_dashing
+
+          pc:check_spin_dash()
+
+          assert.spy(player_char.release_spin_dash).was_called(1)
+          assert.spy(player_char.release_spin_dash).was_called_with(match.ref(pc))
+        end)
+
+        it('(crouching or spin dashing, keep down with jump intention) should enter spin dashing state and set ground speed to 0 (frozen from here)', function ()
+          pc.motion_state = motion_states.crouching
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+
+          pc:check_spin_dash()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.spin_dashing)
+
+          assert.are_equal(0, pc.ground_speed)
+        end)
+
+        it('(crouching, keep down with jump intention) should consume jump intention', function ()
+          pc.motion_state = motion_states.crouching
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+
+          pc:check_spin_dash()
+
+          assert.is_false(pc.jump_intention)
+        end)
+
+        it('(crouching or spin dashing, keep down with jump intention) should increase spin dash rev (no friction this frame)', function ()
+          pc.motion_state = motion_states.spin_dashing
+
+          pc:check_spin_dash()
+
+          -- TODO
+          -- assert.are_equal(2, pc.spin_dash_rev)
+        end)
+
+        it('(crouching or spin dashing, keep down with jump intention) should play spin dash rev sfx (low priority)', function ()
+          pc.should_jump = true
+
+          pc:check_jump()
+
+          -- TODO
+          -- assert.spy(player_char.play_low_priority_sfx).was_called(1)
+          -- assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_rev)
+        end)
+
+        it('(spin dashing, keep down without jump intention) should apply friction to spin dash rev', function ()
+          pc.should_jump = true
+          pc.spin_dash_rev = 2
+
+          pc:check_jump()
+
+          -- TODO
+          -- assert.are_equal(2 * pc_data.spin_dash_drag_factor_per_frame, pc.spin_dash_rev)
+        end)
+
+      end)
+
+      describe('release_spin_dash', function ()
+
+        setup(function ()
+          stub(player_char, "enter_motion_state")
+        end)
+
+        teardown(function ()
+          player_char.enter_motion_state:revert()
+        end)
+
+        after_each(function ()
+          player_char.enter_motion_state:clear()
+        end)
+
+        it('should enter rolling state', function ()
+          pc.motion_state = motion_states.spin_dashing  -- optional
+
+          pc:release_spin_dash()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
+        end)
+
+        it('should set ground speed based on spin dash rev', function ()
+          pc.spin_dash_rev = 1
+
+          pc:release_spin_dash()
+
+          -- TODO
+          -- assert.are_equal(12, pc.ground_speed)
+        end)
+
+        it('should play spin dash release sfx (low priority)', function ()
+          pc:release_spin_dash()
+
+          -- TODO
+          -- assert.spy(player_char.play_low_priority_sfx).was_called(1)
+          -- assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_release)
         end)
 
       end)
@@ -6619,7 +6851,7 @@ describe('player_char', function ()
 
         end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)
 
-        describe('(when _compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
+        describe('(when compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
 
           local compute_ground_motion_result_mock
 
@@ -8187,7 +8419,7 @@ describe('player_char', function ()
         update_velocity_component_debug_stub:revert()
       end)
 
-      it('should call _update_velocity_component_debug on each component', function ()
+      it('should call update_velocity_component_debug on each component', function ()
         pc:update_velocity_debug()
         assert.spy(update_velocity_component_debug_stub).was_called(2)
         assert.spy(update_velocity_component_debug_stub).was_called_with(match.ref(pc), "x")
@@ -8522,6 +8754,15 @@ describe('player_char', function ()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "crouch")
+      end)
+
+      it('should play spin_dash anim when spin dashing', function ()
+        pc.motion_state = motion_states.spin_dashing
+
+        pc:check_play_anim()
+
+        assert.spy(animated_sprite.play).was_called(1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash")
       end)
 
       it('(air spin with anim_run_speed below air_spin_anim_min_play_speed) should play spin anim at air_spin_anim_min_play_speed', function ()

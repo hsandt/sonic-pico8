@@ -46,7 +46,7 @@ local player_char = new_class()
 -- (#original_slope_features)
 
 -- move_intention           vector          current move intention (binary cardinal)
--- jump_intention           bool            current intention to start jump (consumed on jump)
+-- jump_intention           bool            current intention to start jump or spin dash (consumed on jump or spin dash)
 -- hold_jump_intention      bool            current intention to hold jump (always true when jump_intention is true)
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
@@ -128,12 +128,12 @@ end
 
 -- return true iff character is grounded
 function player_char:is_grounded()
-  return contains({motion_states.standing, motion_states.rolling, motion_states.crouching}, self.motion_state)
+  return contains({motion_states.standing, motion_states.rolling, motion_states.crouching, motion_states.spin_dashing}, self.motion_state)
 end
 
 -- return true iff character is curled
 function player_char:is_compact()
-  return contains({motion_states.air_spin, motion_states.rolling, motion_states.crouching}, self.motion_state)
+  return contains({motion_states.air_spin, motion_states.rolling, motion_states.crouching, motion_states.spin_dashing}, self.motion_state)
 end
 
 function player_char:get_center_height()
@@ -341,6 +341,11 @@ function player_char:handle_input()
     if not self:is_grounded() or self.horizontal_control_lock_timer <= 0 then
 
       -- horizontal input
+      -- note: in the original game, pressing left + right at the same time makes the game think
+      --  Sonic is moving toward left at speed 0, then braking to the right, making him walk toward right
+      --  at a very low speed. This is useful for a quick startup in TAS and a quick controlled break
+      --  when going to the right; but not useful otherwise and not feasible on some gamepads; so we don't
+      --  emulate this behavior (see Start faster on http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
       if input:is_down(button_ids.left) then
         player_move_intention:add_inplace(vector(-1, 0))
       elseif input:is_down(button_ids.right) then
@@ -918,7 +923,7 @@ function player_char:enter_motion_state(next_motion_state)
       self.can_interrupt_jump = false
       self.should_play_spring_jump = false
     end
-  else  -- next_motion_state == motion_states.rolling
+  elseif next_motion_state == motion_states.rolling then
     -- we don't have code to preserve airborne tangential velocity here because we cannot really land and immediately roll
     --  without going through the standing state (even Sonic 3 shows Sonic in standing sprite for 1 frame);
     --  and Sonic Mania's Drop Dash would probably ignore previous velocity anyway
@@ -930,6 +935,14 @@ function player_char:enter_motion_state(next_motion_state)
       self.should_play_spring_jump = false
       self.brake_anim_phase = 0
     end
+
+    -- TODO
+    -- prepare spritesheet reload for rolling sprites
+    -- self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
+  else  -- next_motion_state == motion_states.spin_dashing
+    -- TODO
+    -- prepare spritesheet reload for spin dash sprites
+    -- self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing:]] true)
   end
 end
 
@@ -951,8 +964,12 @@ function player_char:update_platformer_motion()
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
+  -- In the original game, pressing down and jump at the same time gives priority to jump.
+  --  Releasing down and pressing jump during crouch gives also priority to spin dash.
+  --  So checking jump before crouching is the correct order (you need 2 frames to crouch, then spin dash)
   if self:is_grounded() then
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
+    self:check_spin_dash()  -- this is exclusive with jumping, so there is no order conflict
   end
 
   -- do not move check below inside the is_grounded() check above,
@@ -1099,9 +1116,14 @@ function player_char:update_platformer_motion_grounded()
 
   if should_fall then
     local new_state
-    if self.motion_state == motion_states.standing then
+    -- in the original game, Sonic keeps crouching and spin dash during fall (possible using crouch slide
+    --  or spin dashing on crumbling ground), but you cannot release spin dash during the fall...
+    -- this is very rare, and we don't want to handle the case of air crouching to prevent spin dashing,
+    --  so we just switch to normal fall in this case (and air_spin for spin_dashing, but there is
+    --  no crumbling ground in the level and spin dash freezes velocity X, so this cannot even happen)
+    if contains({motion_states.standing, motion_states.crouching}, self.motion_state) then
       new_state = motion_states.falling
-    else  -- self.motion_state == motion_states.rolling
+    else  -- self.motion_state == motion_states.rolling or self.motion_state == motion_states.spin_dashing
       -- roll fall is like an air_spin without can_interrupt_jump (nor double jump in Sonic 3)
       new_state = motion_states.air_spin
     end
@@ -1133,18 +1155,23 @@ function player_char:update_ground_speed()
   -- We apply slope factor *before* move intention because it gives
   --  better results when not moving on a low slope (friction will stop you completely).
   -- Another side effect is that the ground speed *after* slope factor application
-  --  will be considered for the move intention effect, such as decelerating
+  --  will be considered for the move intention effect, such as using ground active deceleration
   --  when moving forward on an ascending slope if it started make you move down.
-  -- Also, if ground speed is 0 and we start trying to ascend slope,
+  -- Disabled Original Slope Feature Note:
+  --  Also, if ground speed is 0 and we start trying to ascend slope,
   --  Progressive Ascending Steep Slope Factor feature won't be applied the first frame.
   -- But it should be OK overall.
   -- Note that this order is supported by the SPG (http://info.sonicretro.org/SPG:Solid_Tiles)
-  if self.motion_state == motion_states.standing then
+  if contains({motion_states.standing, motion_states.crouching}, self.motion_state) then
     local previous_ground_speed = self.ground_speed
     self:update_ground_speed_by_slope()
+    -- the two below are not needed for crouching:
+    --  - there should be no move intention x with crouch
+    --  - high speed will turn crouch into roll, so crouch only has low speed
+    -- but it takes fewer characters not to add an extra check... and it shouldn't take much extra CPU
     self:update_ground_run_speed_by_intention()
     self:clamp_ground_speed(previous_ground_speed)
-  else
+  elseif self.motion_state == motion_states.rolling then
     self:update_ground_speed_by_slope()
     self:update_ground_roll_speed_by_intention()
     -- There is some particular clamping based on speed X in the original game,
@@ -1152,6 +1179,9 @@ function player_char:update_ground_speed()
     --  or not at all. Right now there's no place in the level where you'd go overspeed,
     --  actually you'd rather try to get as much speed as possible to get past the loops,
     --  so we are not clamping roll speed at all. Otherwise we'd probably just clamp ground speed to 8.
+  -- else  -- self.motion_state == motion_states.spin_dashing
+    -- do nothing so ground speed is frozen, as in the original game (crouch and spin dash just before
+    --  falling down after trying to climb up a slope with not enough momentum to reproduce)
   end
 end
 
@@ -1733,6 +1763,12 @@ end
 -- if character intends to jump, prepare jump for next frame
 -- this extra frame allows us to detect if the player wants a variable jump or a hop
 --  depending whether input is hold or not
+-- TODO/CHAR OPTIMIZATION: now hop is no more than a variable jump immediately interrupted, so there is no need
+--  to delay jump detection like this. We shouldn't be losing a frame even now as jump is checked
+--  at the beginning of the next frame, however since ground accel is weaker than air accel,
+--  character will tend to be slower when running and jumping.
+--  We can probably merge check_jump_intention and check_jump now, and do it before update_platformer_motion_grounded.
+--  Make sure to also trigger spin dash at this point, since it's also using self.jump_intention.
 function player_char:check_jump_intention()
   if self.jump_intention then
     -- consume intention so puppet control mode (which is sticky) also works
@@ -1744,6 +1780,7 @@ end
 -- if character intends to jump, apply jump velocity from current ground
 --  and enter the air_spin state
 -- return true iff jump was applied (return value is currently unused)
+-- CHAR OPTIMIZATION: no need for return value anymore (update utest too)
 function player_char:check_jump()
   if self.should_jump then
     self.should_jump = false
@@ -1767,6 +1804,55 @@ function player_char:check_jump()
     return true
   end
   return false
+end
+
+-- check if player should start spin dash, or charge spin dash further
+function player_char:check_spin_dash()
+  if contains({motion_states.crouching, motion_states.spin_dashing}, self.motion_state) then
+    if self.motion_state == motion_states.spin_dashing and self.move_intention.y <= 0 then
+      -- player released down button, release spin dash!
+      self:release_spin_dash()
+    elseif self.jump_intention then
+      -- player is charging spin dash (this includes the initial charge)
+      -- consume intention so puppet control mode (which is sticky) also works
+      self.jump_intention = false
+
+      -- enter spin dashing state the first time, after that it will just be rev
+      if self.motion_state == motion_states.crouching then
+        self:enter_motion_state(motion_states.spin_dashing)
+        self.ground_speed = 0
+      end
+
+      -- revvin' up!
+
+      -- TODO: fill spin dash rev formula from SPG
+      -- self.spin_dash_rev = self.spin_dash_rev + 2
+
+      -- TODO: make SFX and add ID to data
+      -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
+    else
+      if self.motion_state == motion_states.spin_dashing then
+        -- only apply friction when not charging this frame (gives a change to reach maximum speed,
+        --  although needs perfect timing)
+        -- TODO: apply spin dash friction from SPG
+        -- self.spin_dash_rev = self.spin_dash_rev * pc_data.spin_dash_drag_factor_per_frame
+      end
+    end
+  end
+end
+
+-- release spin dash and launch character rolling at charged speed
+-- we assume character is spin dashing
+function player_char:release_spin_dash()
+  -- set ground speed and let velocity be updated next frame (we're not losing a frame)
+  local dir_sign = horizontal_dir_signs[self.orientation]
+  self:enter_motion_state(motion_states.rolling)
+
+  -- TODO: fill formula from SPG, using self.spin_dash_rev
+  self.ground_speed = dir_sign * 12
+
+  -- TODO: make SFX and add ID to data
+  -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
 end
 
 -- update motion following platformer airborne motion rules
@@ -1946,7 +2032,7 @@ function player_char:compute_air_motion_result()
   return motion_result
 end
 
--- TODO: factorize with _compute_ground_motion_result
+-- TODO: factorize with compute_ground_motion_result?
 -- modifies ref_motion_result in-place, setting it to the result of an air motion from ref_motion_result.position
 --  over velocity:get(coord) px, where coord is "x" or "y"
 function player_char:advance_in_air_along(ref_motion_result, velocity, coord)
@@ -2171,9 +2257,6 @@ function player_char:next_air_step(direction, ref_motion_result)
   --  although the SPG doesn't mention it again in Slope Physics
   if not ref_motion_result.is_blocked_by_wall and
       (self.velocity.y < 0 or abs(self.velocity.x) > abs(self.velocity.y)) or direction == directions.up then
-    -- TODO: use new compute_ceiling_sensors_query_info to retrieve complete info
-    -- if signed distance is negative, then we're hitting the ceiling. But better, we can check slope for adherence
-    -- https://info.sonicretro.org/SPG:Slope_Physics#When_Going_Upward
     local ceiling_query_info = self:compute_ceiling_sensors_query_info(next_position_candidate)
 
     -- if there is touch/collision with ceiling, tile_location is set
@@ -2181,6 +2264,7 @@ function player_char:next_air_step(direction, ref_motion_result)
       -- note that angles inclusive/exclusive are not exactly like SPG says, because the comparisons were asymmetrical,
       --  which must have made sense in terms of coding at the time, but we prefer symmetrical angles. Besides, we actually
       --  have ceiling slopes at 45 degrees which we'd like to adhere onto
+
 --#if assert
       assert(ceiling_query_info.signed_distance <= 0, "player_char:next_air_step: touch/collision detected with ceiling "..
         "but signed distance is positive: "..ceiling_query_info.signed_distance)
@@ -2188,6 +2272,9 @@ function player_char:next_air_step(direction, ref_motion_result)
         "player_char:next_air_step: touch/collision detected with ceiling and quadrant is always down when airborne, yet "..
         "ceiling_query_info.slope_angle is not between 0.25 and 0.75, it is: "..ceiling_query_info.slope_angle)
 --#endif
+
+      -- ceiling adherence
+      -- https://info.sonicretro.org/SPG:Slope_Physics#When_Going_Upward
       if ceiling_query_info.slope_angle <= 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical or
           ceiling_query_info.slope_angle >= 0.75 - pc_data.ceiling_adherence_catch_range_from_vertical then
         -- character lands on ceiling aka ceiling adherence catch (touching is enough, and no extra condition on velocity)
@@ -2259,6 +2346,9 @@ function player_char:trigger_spring(spring_obj)
     -- set orientation to match spring, even in the air
     -- small trick to convert cardinal direction to horizontal direction
     -- cardinal left = 0 -> horizontal left 1, cardinal right = 2 -> horizontal right = 2
+    -- unlike the original game, it will make Sonic look in the spring's direction before actually moving
+    --  there, since render will be done before next velocity update
+    -- to fix that, you can just check for spring collision at the beginning of the update rather than the end
     self.orientation = spring_obj.direction / 2 + 1
 
     -- set horizontal control lock to prevent character from immediately braking (when grounded)
@@ -2267,7 +2357,7 @@ function player_char:trigger_spring(spring_obj)
     local horizontal_dir_sign = horizontal_dir_signs[self.orientation]
     if self:is_grounded() then
       -- we assume the spring on ground (ceiling would reverse ground speed sign)
-      -- set the ground speed and let velocity be updated next frame
+      -- set the ground speed and let velocity be updated next frame (we're not losing a frame)
       self.ground_speed = horizontal_dir_sign * pc_data.spring_jump_speed_frame
     else
       -- in the air, only velocity makes sense
@@ -2497,6 +2587,9 @@ function player_char:check_play_anim()
   elseif self.motion_state == motion_states.crouching then
     -- we don't mind about speed here, character can totally slide at low speed due to momentum or slope
     self.anim_spr:play("crouch")
+  elseif self.motion_state == motion_states.spin_dashing then
+    -- TODO: restart spin dash on each rev
+    self.anim_spr:play("spin_dash")
   else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
     local min_play_speed = self.motion_state == motion_states.rolling and
       pc_data.rolling_spin_anim_min_play_speed or pc_data.air_spin_anim_min_play_speed

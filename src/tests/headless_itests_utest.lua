@@ -60,8 +60,8 @@ logging.logger.active_categories = {
   -- ['log'] = true,
   -- ['ui'] = true,
   ['frame'] = true,
-  -- ['trace'] = true,
-  -- ['trace2'] = true,
+  ['trace'] = true,
+  ['trace2'] = true,
   ['spring'] = true,
 
   -- game

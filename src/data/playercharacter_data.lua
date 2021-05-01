@@ -248,11 +248,11 @@ local pc_data = {
       spin4            = {{8, 12}, {2, 2}, { 6, 6}, 14},
       crouch1          = {{12, 8}, {2, 2}, { 7,10}, 14},
       crouch2          = {{14, 8}, {2, 2}, { 7,10}, 14},
-      spin_dash_shrink = {{0, 12}, {2, 2}, { 3, 8}, 14},
-      spin_dash_1      = {{2, 12}, {2, 2}, { 3, 8}, 14},
-      spin_dash_2      = {{4, 12}, {2, 2}, { 3, 8}, 14},
-      spin_dash_3      = {{6, 12}, {2, 2}, { 3, 8}, 14},
-      spin_dash_4      = {{8, 12}, {2, 2}, { 3, 8}, 14},
+      spin_dash_shrink = {{0, 12}, {2, 2}, { 3,10}, 14},
+      spin_dash1       = {{2, 12}, {2, 2}, { 3,10}, 14},
+      spin_dash2       = {{4, 12}, {2, 2}, { 3,10}, 14},
+      spin_dash3       = {{6, 12}, {2, 2}, { 3,10}, 14},
+      spin_dash4       = {{8, 12}, {2, 2}, { 3,10}, 14},
     }, function (raw_data)
       return sprite_data(
         sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc

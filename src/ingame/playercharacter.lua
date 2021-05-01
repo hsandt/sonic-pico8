@@ -44,6 +44,7 @@ local player_char = new_class()
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 -- (#original_slope_features)
+-- spin_dash_rev            float           spin dash charge (aka revving) value (float to allow drag over time)
 
 -- move_intention           vector          current move intention (binary cardinal)
 -- jump_intention           bool            current intention to start jump or spin dash (consumed on jump or spin dash)
@@ -107,6 +108,7 @@ function player_char:setup()
 --#if original_slope_features
   self.ascending_slope_time = 0
 --#endif
+  self.spin_dash_rev = 0
 
   self.move_intention = vector.zero()
   self.jump_intention = false
@@ -1809,6 +1811,11 @@ function player_char:check_spin_dash()
   if contains({motion_states.crouching, motion_states.spin_dashing}, self.motion_state) then
     if self.motion_state == motion_states.spin_dashing and self.move_intention.y <= 0 then
       -- player released down button, release spin dash!
+      -- edge case: if during crouch, player releases down and pressed JUMP at the same time,
+      --  character still rev once, only to release spin dash next frame
+      --  (in theory player could press down again to hold the spin dash charge... in the original
+      --  game, it doesn't seem possible and spin dash releases anyway, although I couldn't test
+      --  with TAS so not sure at; but it doesn't matter, we don't reproduce this edge behavior at 100%)
       self:release_spin_dash()
     elseif self.jump_intention then
       -- player is charging spin dash (this includes the initial charge)
@@ -1818,13 +1825,19 @@ function player_char:check_spin_dash()
       -- enter spin dashing state the first time, after that it will just be rev
       if self.motion_state == motion_states.crouching then
         self:enter_motion_state(motion_states.spin_dashing)
+
+        -- reset ground speed (it effectively freezes it, as update won't apply slope factor
+        --  during spin dash charge)
         self.ground_speed = 0
+
+        -- reset spin dash rev (it's important to do because we do not reset it on release)
+        self.spin_dash_rev = 0
       end
 
       -- revvin' up!
 
-      -- TODO: fill spin dash rev formula from SPG
-      -- self.spin_dash_rev = self.spin_dash_rev + 2
+      -- fill spin dash rev formula from SPG
+      self.spin_dash_rev = min(self.spin_dash_rev + pc_data.spin_dash_rev_increase_step, pc_data.spin_dash_rev_max)
 
       -- TODO: make SFX and add ID to data
       -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
@@ -1832,8 +1845,7 @@ function player_char:check_spin_dash()
       if self.motion_state == motion_states.spin_dashing then
         -- only apply friction when not charging this frame (gives a change to reach maximum speed,
         --  although needs perfect timing)
-        -- TODO: apply spin dash friction from SPG
-        -- self.spin_dash_rev = self.spin_dash_rev * pc_data.spin_dash_drag_factor_per_frame
+        self.spin_dash_rev = self.spin_dash_rev * pc_data.spin_dash_drag_factor_per_frame
       end
     end
   end
@@ -1846,8 +1858,8 @@ function player_char:release_spin_dash()
   local dir_sign = horizontal_dir_signs[self.orientation]
   self:enter_motion_state(motion_states.rolling)
 
-  -- TODO: fill formula from SPG, using self.spin_dash_rev
-  self.ground_speed = dir_sign * 12
+  -- set ground speed using base launch speed and rev contribution
+  self.ground_speed = dir_sign * (pc_data.spin_dash_base_speed + flr(self.spin_dash_rev) * pc_data.spin_dash_rev_increase_factor)
 
   -- TODO: make SFX and add ID to data
   -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)

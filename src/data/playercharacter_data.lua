@@ -74,6 +74,8 @@ local pc_data = {
   -- note that combined with air_accel_x_frame2, we can deduce the actual
   --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
   --  = 1.453125 px/frame
+  -- value comes from 1 - 0.125*256, as SPG mentions value is subtracted by ((previous_value div 0.125) / 256)
+  --  but we don't mind about the Euclidian division and just keep the remainder, effectively dividing by 0.125*256
   air_drag_factor_per_frame = 0.96875,  -- 62/64
 
   -- min absolute velocity x for which air drag is applied (px/frame)
@@ -210,6 +212,29 @@ local pc_data = {
 
   -- friction aka passive deceleration speed in debug mode (px/frame^2)
   debug_move_friction = 1,
+
+  -- spin dash
+
+  -- rev increase every time player pressed jump button
+  -- note that this is an abstract value, so we don't divide it by 2 like speed values
+  -- (no unit)
+  spin_dash_rev_increase_step = 2,
+
+  -- when not revving (charging spin dash) this frame, apply this factor to reduce rev slightly
+  -- same value as air_drag_factor_per_frame (SPG remarks that)
+  -- (no unit)
+  spin_dash_drag_factor_per_frame = 0.96875,  -- 62/64
+
+  -- maximum rev value (abstract value, so no division by 2 for PICO-8)
+  -- (no unit)
+  spin_dash_rev_max = 8,
+
+  -- base launch speed on spin dash release (SPG value / 2) (px/frame)
+  spin_dash_base_speed = 4,
+
+  -- factor applied to floor part of spin dash rev to contribute to spin dash launch speed (px/frame)
+  -- SPG divides rev by 2, so in PICO-8 units we must divide by 4, so multiply by 0.25
+  spin_dash_rev_increase_factor = 0.25,
 
   -- sprite
 

@@ -162,6 +162,7 @@ describe('player_char', function ()
           vector.zero(),
           0,
           0,
+          0,
 
           vector.zero(),
           false,
@@ -194,6 +195,7 @@ describe('player_char', function ()
           pc.debug_velocity,
           pc.slope_angle,
           pc.ascending_slope_time,
+          pc.spin_dash_rev,
 
           pc.move_intention,
           pc.jump_intention,
@@ -6418,19 +6420,54 @@ describe('player_char', function ()
           assert.is_false(pc.jump_intention)
         end)
 
-        it('(crouching or spin dashing, keep down with jump intention) should increase spin dash rev (no friction this frame)', function ()
-          pc.motion_state = motion_states.spin_dashing
+        it('(crouching, keep down with jump intention) should reset spin dash rev to first increase step EVEN if last spin dash left old value (no friction this frame)', function ()
+          pc.motion_state = motion_states.crouching
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+          pc.spin_dash_rev = 4
 
           pc:check_spin_dash()
 
-          -- TODO
-          -- assert.are_equal(2, pc.spin_dash_rev)
+          assert.are_equal(pc_data.spin_dash_rev_increase_step, pc.spin_dash_rev)
+        end)
+
+
+        it('(crouching, release down with jump intention) edge case: should still do first rev (and release only next frame)', function ()
+          pc.motion_state = motion_states.crouching
+          pc.move_intention.y = 0
+          pc.jump_intention = true
+
+          pc:check_spin_dash()
+
+          assert.is_false(pc.jump_intention)
+        end)
+
+        it('(spin dashing, keep down with jump intention) should increase spin dash by rev increase step (no friction this frame)', function ()
+          pc.motion_state = motion_states.spin_dashing
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+          pc.spin_dash_rev = 4
+
+          pc:check_spin_dash()
+
+          assert.are_equal(4 + pc_data.spin_dash_rev_increase_step, pc.spin_dash_rev)
+        end)
+
+        it('(spin dashing, keep down with jump intention) should increase spin dash by rev but clamped to max (no friction this frame)', function ()
+          pc.motion_state = motion_states.spin_dashing
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+          pc.spin_dash_rev = 7.5
+
+          pc:check_spin_dash()
+
+          assert.are_equal(pc_data.spin_dash_rev_max, pc.spin_dash_rev)
         end)
 
         it('(crouching or spin dashing, keep down with jump intention) should play spin dash rev sfx (low priority)', function ()
           pc.should_jump = true
 
-          pc:check_jump()
+          pc:check_spin_dash()
 
           -- TODO
           -- assert.spy(player_char.play_low_priority_sfx).was_called(1)
@@ -6438,13 +6475,14 @@ describe('player_char', function ()
         end)
 
         it('(spin dashing, keep down without jump intention) should apply friction to spin dash rev', function ()
-          pc.should_jump = true
+          pc.motion_state = motion_states.spin_dashing
+          pc.move_intention.y = 1
+          pc.jump_intention = false
           pc.spin_dash_rev = 2
 
-          pc:check_jump()
+          pc:check_spin_dash()
 
-          -- TODO
-          -- assert.are_equal(2 * pc_data.spin_dash_drag_factor_per_frame, pc.spin_dash_rev)
+          assert.are_equal(2 * pc_data.spin_dash_drag_factor_per_frame, pc.spin_dash_rev)
         end)
 
       end)
@@ -6472,13 +6510,20 @@ describe('player_char', function ()
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.rolling)
         end)
 
-        it('should set ground speed based on spin dash rev', function ()
-          pc.spin_dash_rev = 1
+        it('should set ground speed based on spin dash rev: less than 1, so floored to 0 -> base speed only', function ()
+          pc.spin_dash_rev = 0.5
 
           pc:release_spin_dash()
 
-          -- TODO
-          -- assert.are_equal(12, pc.ground_speed)
+          assert.are_equal(pc_data.spin_dash_base_speed, pc.ground_speed)
+        end)
+
+        it('should set ground speed based on spin dash rev: less than 1, so floored to 0 -> base speed only', function ()
+          pc.spin_dash_rev = 2.5
+
+          pc:release_spin_dash()
+
+          assert.are_equal(pc_data.spin_dash_base_speed + 2 * pc_data.spin_dash_rev_increase_factor, pc.ground_speed)
         end)
 
         it('should play spin dash release sfx (low priority)', function ()

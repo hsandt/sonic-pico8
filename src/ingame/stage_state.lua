@@ -187,30 +187,47 @@ function stage_state:reload_runtime_data()
   -- we still need to skip a full row to get the next partial line, so +0x40 on src address
   --  every iteration
   -- next address is 16 * 0x20 = 0x200 after start address
-
   for i = 0, 15 do
     -- 4 run cycle sprites
     memcpy(0x4f00 + i * 0x20, 0x1400 + i * 0x40, 0x20)  -- next address: 0x4f00 + 0x200 = 0x5100
   end
 
+  -- since adding spin dash we also do the same with rolling vs spin dashing:
+  --  they have the same number of sprites (5) and overlap exactly on the spritesheet,
+  --  so we copy 16 partial lines covering 5 sprites of span 2x2 starting at row 12, column 0:
+  --  - start (topleft): 12 * 0x200 = 0x1800
+  --  - length: 5 * 2 * 4 = 40 = 0x28 bytes
+  --  - iteration: next line, so +0x40
+  -- next address is 16 * 0x28 = 0x280 after start address
+  for i = 0, 15 do
+    -- 5 rolling sprites
+    memcpy(0x5100 + i * 0x28, 0x1800 + i * 0x40, 0x28)  -- next address: 0x5100 + 0x280 = 0x5380
+  end
+
   -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
   -- the dest addresses start just after the last memcpy above, at 0x5900
-  -- from here, the same principle applies, but the dest addresses are offset by 0x400 + 0x200 = 0x600
+  -- from here, the same principle applies, but the dest addresses are offset by 0x400 + 0x200 + 0x280 = 0x880
   --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
   --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
 
   -- 6 walk cycle sprites (rotated) + crouch sprites
-  reload(0x5100, 0x1000, 0x400, runtime_data_path)  -- next address: 0x5500
+  reload(0x5380, 0x1000, 0x400, runtime_data_path)  -- next address: 0x5780
 
   -- next address is 16 * 0x20 = 0x200 after start address
   for i = 0, 15 do
     -- 4 run cycle sprites (rotated)
-    reload(0x5500 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)  -- next address: 0x5700
+    reload(0x5780 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)  -- next address: 0x5780 + 0x200 = 0x5980
+  end
+
+  -- next address is 16 * 0x28 = 0x280 after start address
+  for i = 0, 15 do
+    -- 5 spin dashing sprites
+    reload(0x5980 + i * 0x28, 0x1800 + i * 0x40, 0x28, runtime_data_path)  -- next address: 0x5980 + 0x280 = 0x5c00
   end
 
   -- Total memory used by backup and runtime sprites: 0xc00
 
-  -- Memory range left: 0x5700-0x5dff
+  -- Memory range left: 0x5c00-0x5dff
 
   -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
   --  of course we can keep using it for general memory, but if we start using custom font,
@@ -859,11 +876,11 @@ function stage_state:restore_picked_emerald_data()
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in 0x5700, see store_picked_emerald_data below
-  local picked_emerald_byte = peek(0x5700)
+  -- It is stored in 0x5dff, see store_picked_emerald_data below
+  local picked_emerald_byte = peek(0x5dff)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(0x5700, 0)
+  poke(0x5dff, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -883,9 +900,13 @@ end
 function stage_state:store_picked_emerald_data()
   -- General memory is persistent during a single session, so a good fit to store data
   --  across cartridges, although this behavior is undocumented.
+  -- We only need to store 1 byte = 8 bits, 1 bit per emerald, so we just poke one byte.
   -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
-  --  is occupied non-rotated/rotated walk/run sprite variants, so next address is 0x5700
-  -- We only need to store 1 byte = 8 bits, 1 bit per emerald, so we just poke at 0x5700.
+  --  is occupied non-rotated/rotated walk/run sprite variants... but it was annoying to offset
+  --  picked emerald byte address every time I added a runtime sprite, so I decided to use the
+  --  *last* byte (0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
+  --  left). When saving data in persistent memory (so player can continue emerald hunting later),
+  --  it won't even be a problem since we will use a very different address in the persistent block.
   -- We could also use persistent memory, considering we may save emeralds collected by player
   --  on next run (but for now we don't, so player always starts game from zero)
   --
@@ -898,7 +919,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x5700, picked_emerald_bytes)
+  poke(0x5dff, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()

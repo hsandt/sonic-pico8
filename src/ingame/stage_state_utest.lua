@@ -220,7 +220,7 @@ describe('stage_state', function ()
       it('should copy non-rotated sprite variants into general memory for backup', function ()
         state:reload_runtime_data()
 
-        assert.spy(memcpy).was_called(17)
+        assert.spy(memcpy).was_called(33)
         -- this has become too long since we copy line by line, so we stopped checking
         --  individual calls, except the first ones
 
@@ -230,22 +230,30 @@ describe('stage_state', function ()
         -- run cycle
         assert.spy(memcpy).was_called_with(0x4f00, 0x1400, 0x20)
         assert.spy(memcpy).was_called_with(0x4f20, 0x1440, 0x20)
+
+        -- rolling
+        assert.spy(memcpy).was_called_with(0x5100, 0x1800, 0x28)
+        assert.spy(memcpy).was_called_with(0x5128, 0x1840, 0x28)
       end)
 
       it('should reload stage runtime data into spritesheet top, and rotated sprite variants into general memory', function ()
         state:reload_runtime_data()
 
-        assert.spy(reload).was_called(18)
+        assert.spy(reload).was_called(34)
 
         -- general runtime data
         assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
 
         -- character runtime sprites
-        assert.spy(reload).was_called_with(0x5100, 0x1000, 0x400, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5500, 0x1400, 0x20, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5520, 0x1440, 0x20, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x5380, 0x1000, 0x400, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x5780, 0x1400, 0x20, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x57a0, 0x1440, 0x20, "data_stage1_runtime.p8")
         -- this has become too long since we copy line by line, so we stopped checking
         --  individual calls, except the first ones
+
+        -- spin dash sprites
+        assert.spy(reload).was_called_with(0x5980, 0x1800, 0x28, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called_with(0x59a8, 0x1840, 0x28, "data_stage1_runtime.p8")
       end)
 
     end)

@@ -2332,7 +2332,7 @@ describe('player_char', function ()
             })
         end)
 
-        it('should enter passed state: rolling, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
+        it('(not grounded, pass rolling) should enter passed state: rolling, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
@@ -2356,6 +2356,40 @@ describe('player_char', function ()
               pc.should_play_spring_jump,
               pc.brake_anim_phase,
             })
+        end)
+
+        describe('(stubbing reload_rolling_vs_spin_dash_sprites)', function ()
+
+          setup(function ()
+            stub(player_char, "reload_rolling_vs_spin_dash_sprites")
+          end)
+
+          teardown(function ()
+            player_char.reload_rolling_vs_spin_dash_sprites:revert()
+          end)
+
+          after_each(function ()
+            player_char.reload_rolling_vs_spin_dash_sprites:clear()
+          end)
+
+          it('(any previous state, pass rolling) should call reload_rolling_vs_spin_dash_sprites', function ()
+            pc.motion_state = motion_states.standing
+
+            pc:enter_motion_state(motion_states.rolling)
+
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
+          end)
+
+          it('(any previous state, pass spin_dashing) should call reload_rolling_vs_spin_dash_sprites', function ()
+            pc.motion_state = motion_states.crouching
+
+            pc:enter_motion_state(motion_states.spin_dashing)
+
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc), true)
+          end)
+
         end)
 
         it('(falling -> standing, velocity X = 0 on flat ground) should set ground speed to 0', function ()
@@ -8910,16 +8944,16 @@ describe('player_char', function ()
         assert.spy(memcpy).was_called_with(0x1000, 0x4b00, 0x400)
       end)
 
-      it('should copy rotated walk + crouch sprites in general memory back to spritesheet', function ()
+      it('(passing true) should copy rotated walk + crouch sprites in general memory back to spritesheet', function ()
         pc:reload_rotated_walk_and_crouch_sprites(true)
 
         assert.spy(memcpy).was_called(1)
-        assert.spy(memcpy).was_called_with(0x1000, 0x5100, 0x400)
+        assert.spy(memcpy).was_called_with(0x1000, 0x5380, 0x400)
       end)
 
     end)
 
-    describe('reload_rotated_run_sprites', function ()
+    describe('eload_rotated_run_sprites', function ()
 
       setup(function ()
         stub(_G, "memcpy")
@@ -8943,14 +8977,50 @@ describe('player_char', function ()
         assert.spy(memcpy).was_called_with(0x1440, 0x4f20, 0x20)
       end)
 
-      it('should copy rotated run sprites in general memory back to spritesheet', function ()
+      it('(passing true) should copy rotated run sprites in general memory back to spritesheet', function ()
         pc:reload_rotated_run_sprites(true)
 
         assert.spy(memcpy).was_called(16)
         -- too many calls to check them all, but test at least the first ones of each
         -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1400, 0x5500, 0x20)
-        assert.spy(memcpy).was_called_with(0x1440, 0x5520, 0x20)
+        assert.spy(memcpy).was_called_with(0x1400, 0x5780, 0x20)
+        assert.spy(memcpy).was_called_with(0x1440, 0x57a0, 0x20)
+      end)
+
+    end)
+
+    describe('reload_rolling_vs_spin_dash_sprites', function ()
+
+      setup(function ()
+        stub(_G, "memcpy")
+      end)
+
+      teardown(function ()
+        memcpy:revert()
+      end)
+
+      after_each(function ()
+        memcpy:clear()
+      end)
+
+      it('should copy rolling run sprites in general memory back to spritesheet', function ()
+        pc:reload_rolling_vs_spin_dash_sprites()
+
+        assert.spy(memcpy).was_called(16)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1800, 0x5100, 0x28)
+        assert.spy(memcpy).was_called_with(0x1840, 0x5128, 0x28)
+      end)
+
+      it('(passing true) should copy spin dash sprites in general memory back to spritesheet', function ()
+        pc:reload_rolling_vs_spin_dash_sprites(true)
+
+        assert.spy(memcpy).was_called(16)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1800, 0x5980, 0x28)
+        assert.spy(memcpy).was_called_with(0x1840, 0x59a8, 0x28)
       end)
 
     end)

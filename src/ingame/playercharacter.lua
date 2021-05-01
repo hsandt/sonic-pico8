@@ -936,13 +936,11 @@ function player_char:enter_motion_state(next_motion_state)
       self.brake_anim_phase = 0
     end
 
-    -- TODO
     -- prepare spritesheet reload for rolling sprites
-    -- self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
+    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
   else  -- next_motion_state == motion_states.spin_dashing
-    -- TODO
     -- prepare spritesheet reload for spin dash sprites
-    -- self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing:]] true)
+    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing:]] true)
   end
 end
 
@@ -2629,8 +2627,8 @@ function player_char:reload_rotated_walk_and_crouch_sprites(rotated_by_45_or_cro
   -- basically we are copying sprites general memory (with the correct
   --  address offset if rotated), back into the current spritesheet memory
   -- following stage_state:reload_runtime_data, offset between built-in and runtime sprites
-  --  is 0x600
-  local addr_offset = rotated_by_45_or_crouching and 0x600 or 0
+  --  is 0x880
+  local addr_offset = rotated_by_45_or_crouching and 0x880 or 0
 
   -- copy 6 walk sprites + idle + spring_jump top (if not rotated_by_45_or_crouching)
   --  or 6 walk sprites (rotated) + crouch sprites from general memory to
@@ -2640,12 +2638,23 @@ end
 
 -- same as reload_rotated_sprites_walk, but for run sprites
 function player_char:reload_rotated_run_sprites(rotated_by_45)
-  local addr_offset = rotated_by_45 and 0x600 or 0
+  local addr_offset = rotated_by_45 and 0x880 or 0
 
   -- same as reload_rotated_sprites_walk, but we must iterate over partial lines
   for i = 0, 15 do
     -- 4 run cycle sprites
     memcpy(0x1400 + i * 0x40, 0x4f00 + addr_offset + i * 0x20, 0x20)
+  end
+end
+
+-- same as reload_rotated_run_sprites, but for rolling/spin dash sprites
+function player_char:reload_rolling_vs_spin_dash_sprites(spin_dashing)
+  local addr_offset = spin_dashing and 0x880 or 0
+
+  -- same as reload_rotated_sprites_walk, but we must iterate over partial lines
+  for i = 0, 15 do
+    -- 5 rolling / spin dashing sprites
+    memcpy(0x1800 + i * 0x40, 0x5100 + addr_offset + i * 0x28, 0x28)
   end
 end
 

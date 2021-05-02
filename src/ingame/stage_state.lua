@@ -942,6 +942,9 @@ function stage_state:update_fx()
     end
   end
 
+  -- normally we should deactivate pfx and reuse it for pooling,
+  --  but deleting them was simpler (fewer characters) and single-time operation
+  --- so CPU cost is OK
   for pfx in all(to_delete) do
     del(self.emerald_pick_fxs, pfx)
   end

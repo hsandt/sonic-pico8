@@ -19,6 +19,7 @@ audio.sfx_ids = {
   pick_emerald = 55,
   goal_reached = 56,
   spin_dash_rev = 57,
+  spin_dash_release = 58
 }
 
 audio.jingle_ids = {

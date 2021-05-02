@@ -1860,8 +1860,7 @@ function player_char:release_spin_dash()
   -- set ground speed using base launch speed and rev contribution
   self.ground_speed = dir_sign * (pc_data.spin_dash_base_speed + flr(self.spin_dash_rev) * pc_data.spin_dash_rev_increase_factor)
 
-  -- TODO: make SFX and add ID to data
-  -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
+  self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
 end
 
 -- update motion following platformer airborne motion rules

@@ -6492,14 +6492,17 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
+          stub(player_char, "play_low_priority_sfx")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
+          player_char.play_low_priority_sfx:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
+          player_char.play_low_priority_sfx:clear()
         end)
 
         it('should enter rolling state', function ()
@@ -6530,9 +6533,8 @@ describe('player_char', function ()
         it('should play spin dash release sfx (low priority)', function ()
           pc:release_spin_dash()
 
-          -- TODO
-          -- assert.spy(player_char.play_low_priority_sfx).was_called(1)
-          -- assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_release)
+          assert.spy(player_char.play_low_priority_sfx).was_called(1)
+          assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_release)
         end)
 
       end)

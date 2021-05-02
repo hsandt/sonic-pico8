@@ -12,12 +12,12 @@ audio.sfx_ids = {
   -- builtin_data_ingame only
   -- because it plays on 4th channel over low-volume bgm,
   --  pick emerald jingle is considered an sfx
-  pick_emerald = 57,
-  goal_reached = 58,
-  jump = 59,
-  spring_jump = 60,
-  roll = 61,
-  brake = 62,
+  pick_emerald = 55,
+  goal_reached = 56,
+  jump = 51,
+  spring_jump = 52,
+  roll = 53,
+  brake = 54,
 }
 
 audio.jingle_ids = {

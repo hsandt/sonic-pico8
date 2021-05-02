@@ -4,6 +4,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 
 local collision_data = require("data/collision_data")
 local pc_data = require("data/playercharacter_data")
+local pfx = require("ingame/pfx")
 local motion = require("platformer/motion")
 local world = require("platformer/world")
 local audio = require("resources/audio")
@@ -57,8 +58,10 @@ local player_char = new_class()
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when standing, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
--- should_play_spring_jump         bool     Set to true when sent upward in the air thanks to spring, and not falling down yet
+-- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
+
+-- smoke_pfx                pfx             particle system used to render smoke during spin dash charge
 
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (debug_character)     {...}   rays to draw for debug render this frame
@@ -71,6 +74,7 @@ function player_char:init()
 --#endif
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
+  self.smoke_pfx = pfx(tuned("spawn period", 10), tuned("lifetime", 60), tuned("velocity", 1) * vector(-1, 0), tuned("size", 3))
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping
@@ -328,6 +332,7 @@ function player_char:update()
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
+  self.smoke_pfx:update()
 end
 
 --#if ingame
@@ -1839,6 +1844,10 @@ function player_char:check_spin_dash()
       -- fill spin dash rev formula from SPG
       self.spin_dash_rev = min(self.spin_dash_rev + pc_data.spin_dash_rev_increase_step, pc_data.spin_dash_rev_max)
 
+      -- visual
+      self.smoke_pfx:start(self.position)
+
+      -- audio
       self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
     else
       if self.motion_state == motion_states.spin_dashing then
@@ -1860,6 +1869,10 @@ function player_char:release_spin_dash()
   -- set ground speed using base launch speed and rev contribution
   self.ground_speed = dir_sign * (pc_data.spin_dash_base_speed + flr(self.spin_dash_rev) * pc_data.spin_dash_rev_increase_factor)
 
+  -- visual
+  self.smoke_pfx:stop()
+
+  -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
 end
 
@@ -2718,6 +2731,7 @@ function player_char:render()
   end
 
   self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
+  self.smoke_pfx:render()
 end
 
 -- play sfx on channel 3, only if a jingle is not already playing there

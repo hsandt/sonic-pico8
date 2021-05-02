@@ -8,8 +8,9 @@ describe('pfx', function ()
   describe('init', function ()
 
     it('should create an pfx with passed frame period, and an empty sequence of particles', function ()
-      local pfx1 = pfx(10)
-      assert.are_same({10, {}, false}, {pfx1.frame_period, pfx1.particles, pfx1.is_emitting})
+      local pfx1 = pfx(10, 60, vector(2, 3))
+      assert.are_same({10, 60, vector(2, 3), {}, false},
+        {pfx1.frame_period, pfx1.base_frame_lifetime, pfx1.base_init_velocity, pfx1.particles, pfx1.is_emitting})
     end)
 
   end)
@@ -37,12 +38,12 @@ describe('pfx', function ()
   describe('spawn_particle', function ()
 
     it('should add a new particle to the sequence', function ()
-      local pfx1 = pfx(10)
+      local pfx1 = pfx(10, 5, vector(0, 0), 3)
       pfx1.position = vector(10, 20)
 
       pfx1:spawn_particle()
 
-      assert.are_same({particle(vector(10, 20), vector(0, 0), 3)}, pfx1.particles)
+      assert.are_same({particle(5, vector(10, 20), vector(0, 0), 3)}, pfx1.particles)
     end)
 
   end)

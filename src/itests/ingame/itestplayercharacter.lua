@@ -937,7 +937,7 @@ wait 2
 crouch
 wait 1
 jump
-wait 1
+wait 60
 
 expect pc_bottom_pos 4 8
 expect pc_motion_state spin_dashing

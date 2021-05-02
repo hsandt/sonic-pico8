@@ -10,6 +10,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 
 local pc_data = require("data/playercharacter_data")
 local emerald = require("ingame/emerald")
+local pfx = require("ingame/pfx")
 local stage_state = require("ingame/stage_state")
 local motion = require("platformer/motion")
 local ground_query_info = motion.ground_query_info
@@ -105,7 +106,7 @@ describe('player_char', function ()
       assert.spy(player_char.setup).was_called_with(match.ref(pc))
     end)
 
-    it('should create a player character storing values from playercharacter_data', function ()
+    it('#solo should create a player character storing values from playercharacter_data', function ()
       local pc = player_char()
       assert.is_not_nil(pc)
       assert.are_same(
@@ -117,6 +118,7 @@ describe('player_char', function ()
           -- setup will modify anim_spr state, but we stubbed it so it's still
           --  has the value on init now
           animated_sprite(pc_data.sonic_animated_sprite_data_table),
+          pfx(10, 5, vector(3, 2)),
           0,  -- cheat
         },
         {
@@ -125,6 +127,7 @@ describe('player_char', function ()
           pc.debug_move_decel,
           pc.debug_move_friction,
           pc.anim_spr,
+          pc.smoke_pfx,
           pc.last_emerald_warp_nb,  -- cheat
         }
       )
@@ -763,6 +766,7 @@ describe('player_char', function ()
         stub(player_char, "update_motion")
         stub(player_char, "update_anim")
         stub(animated_sprite, "update")
+        stub(pfx, "update")
       end)
 
       teardown(function ()
@@ -770,6 +774,7 @@ describe('player_char', function ()
         player_char.update_motion:revert()
         player_char.update_anim:revert()
         animated_sprite.update:revert()
+        pfx.update:revert()
       end)
 
       after_each(function ()
@@ -777,9 +782,10 @@ describe('player_char', function ()
         player_char.update_motion:clear()
         player_char.update_anim:clear()
         animated_sprite.update:clear()
+        pfx.update:clear()
       end)
 
-      it('should call _handle_input, _update_motion, _update_anim and update animated sprite', function ()
+      it('should call handle_input, update_motion, update_anim, update animated sprite, update smoke pfx', function ()
         pc:update()
 
         -- implementation
@@ -791,6 +797,8 @@ describe('player_char', function ()
         assert.spy(pc.update_anim).was_called_with(match.ref(pc))
         assert.spy(animated_sprite.update).was_called(1)
         assert.spy(animated_sprite.update).was_called_with(match.ref(pc.anim_spr))
+        assert.spy(pfx.update).was_called(1)
+        assert.spy(pfx.update).was_called_with(match.ref(pc.smoke_pfx))
       end)
 
     end)
@@ -6353,18 +6361,21 @@ describe('player_char', function ()
       describe('check_spin_dash', function ()
 
         setup(function ()
+          stub(pfx, "start")
           stub(player_char, "play_low_priority_sfx")
           stub(player_char, "release_spin_dash")
           stub(player_char, "enter_motion_state")
         end)
 
         teardown(function ()
+          pfx.start:revert()
           player_char.play_low_priority_sfx:revert()
           player_char.release_spin_dash:revert()
           player_char.enter_motion_state:revert()
         end)
 
         after_each(function ()
+          pfx.start:clear()
           player_char.play_low_priority_sfx:clear()
           player_char.release_spin_dash:clear()
           player_char.enter_motion_state:clear()
@@ -6397,7 +6408,7 @@ describe('player_char', function ()
           assert.spy(player_char.release_spin_dash).was_called_with(match.ref(pc))
         end)
 
-        it('(crouching or spin dashing, keep down with jump intention) should enter spin dashing state and set ground speed to 0 (frozen from here)', function ()
+        it('(crouching, keep down with jump intention) should enter spin dashing state, set ground speed to 0 (frozen from here), start smoke pfx', function ()
           pc.motion_state = motion_states.crouching
           pc.move_intention.y = 1
           pc.jump_intention = true
@@ -6408,6 +6419,9 @@ describe('player_char', function ()
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.spin_dashing)
 
           assert.are_equal(0, pc.ground_speed)
+
+          assert.spy(pfx.start).was_called(1)
+          assert.spy(pfx.start).was_called_with(match.ref(pc.smoke_pfx), pc.position)
         end)
 
         it('(crouching, keep down with jump intention) should consume jump intention', function ()
@@ -6492,16 +6506,19 @@ describe('player_char', function ()
 
         setup(function ()
           stub(player_char, "enter_motion_state")
+          stub(pfx, "stop")
           stub(player_char, "play_low_priority_sfx")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
+          pfx.stop:revert()
           player_char.play_low_priority_sfx:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
+          pfx.stop:clear()
           player_char.play_low_priority_sfx:clear()
         end)
 
@@ -6528,6 +6545,13 @@ describe('player_char', function ()
           pc:release_spin_dash()
 
           assert.are_equal(pc_data.spin_dash_base_speed + 2 * pc_data.spin_dash_rev_increase_factor, pc.ground_speed)
+        end)
+
+        it('should stop smoke pfx', function ()
+          pc:release_spin_dash()
+
+          assert.spy(pfx.stop).was_called(1)
+          assert.spy(pfx.stop).was_called_with(match.ref(pc.smoke_pfx))
         end)
 
         it('should play spin dash release sfx (low priority)', function ()
@@ -9077,18 +9101,21 @@ describe('player_char', function ()
 
       setup(function ()
         stub(animated_sprite, "render")
+        stub(pfx, "render")
         stub(player_char, "reload_rotated_walk_and_crouch_sprites")
         stub(player_char, "reload_rotated_run_sprites")
       end)
 
       teardown(function ()
         animated_sprite.render:revert()
+        pfx.render:revert()
         player_char.reload_rotated_walk_and_crouch_sprites:revert()
         player_char.reload_rotated_run_sprites:revert()
       end)
 
       after_each(function ()
         animated_sprite.render:clear()
+        pfx.render:clear()
         player_char.reload_rotated_walk_and_crouch_sprites:clear()
         player_char.reload_rotated_run_sprites:clear()
       end)
@@ -9252,6 +9279,38 @@ describe('player_char', function ()
 
           assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
           assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
+        end)
+
+      end)
+
+      describe('#solo (spin_dash)', function ()
+
+        before_each(function ()
+          pc.anim_spr.current_anim_key = "spin_dash"
+        end)
+
+        -- note that we always update and render smoke pfx, since even after spin dash launch,
+        --  a few particles may remain; but we choose the most common situation, i.e. during spin dash anim
+
+        it('(when character is facing left) should render smoke_pfx in left direction', function ()
+          pc.orientation = horizontal_dirs.left
+
+          pc:render()
+
+          assert.spy(pfx.render).was_called(1)
+          -- TODO: either add left/right parameter here, or store it inside pfx on start()
+          assert.spy(pfx.render).was_called_with(match.ref(pc.smoke_pfx))
+        end)
+
+
+        it('(when character is facing right) should render smoke_pfx in right direction', function ()
+          pc.orientation = horizontal_dirs.right
+
+          pc:render()
+
+          assert.spy(pfx.render).was_called(1)
+          -- TODO: either add left/right parameter here, or store it inside pfx on start()
+          assert.spy(pfx.render).was_called_with(match.ref(pc.smoke_pfx))
         end)
 
       end)

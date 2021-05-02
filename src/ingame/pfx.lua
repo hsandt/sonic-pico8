@@ -9,7 +9,10 @@ local particle = require("ingame/particle")
 --  e.g. we pass position to start() (ok because we don't move during spin dash...)
 
 -- parameters
--- frame_period    frame_period  spawning period (frames)
+-- frame_period        frame_period         spawning period (frames)
+-- base_frame_lifetime base_frame_lifetime  base lifetime for spawned particles
+-- base_init_velocity  base_init_velocity   base initial velocity for spawned particles
+-- base_init_size      base_init_size       base initial velocity for spawned particles
 
 -- state
 -- particles       {particle}    sequence of particles to update and render
@@ -17,9 +20,12 @@ local particle = require("ingame/particle")
 -- frame_time      float         current time since started playing, modulo frame_period
 -- position        vector        current position, used as a base to determine where to spawn new particles
 
-function pfx:init(frame_period)
+function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_init_size)
   -- parameters
   self.frame_period = frame_period
+  self.base_frame_lifetime = base_frame_lifetime
+  self.base_init_velocity = base_init_velocity
+  self.base_init_size = base_init_size
 
   -- state
   self.particles = {}
@@ -41,7 +47,7 @@ function pfx:stop()
 end
 
 function pfx:spawn_particle()
-  add(self.particles, particle(self.position, vector(0, 0), 3))
+  add(self.particles, particle(self.base_frame_lifetime, self.position, self.base_init_velocity, self.base_init_size))
 end
 
 -- update each pfx

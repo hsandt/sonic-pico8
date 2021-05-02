@@ -6465,13 +6465,14 @@ describe('player_char', function ()
         end)
 
         it('(crouching or spin dashing, keep down with jump intention) should play spin dash rev sfx (low priority)', function ()
-          pc.should_jump = true
+          pc.motion_state = motion_states.spin_dashing
+          pc.move_intention.y = 1
+          pc.jump_intention = true
 
           pc:check_spin_dash()
 
-          -- TODO
-          -- assert.spy(player_char.play_low_priority_sfx).was_called(1)
-          -- assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_rev)
+          assert.spy(player_char.play_low_priority_sfx).was_called(1)
+          assert.spy(player_char.play_low_priority_sfx).was_called_with(match.ref(pc), audio.sfx_ids.spin_dash_rev)
         end)
 
         it('(spin dashing, keep down without jump intention) should apply friction to spin dash rev', function ()

@@ -1839,8 +1839,7 @@ function player_char:check_spin_dash()
       -- fill spin dash rev formula from SPG
       self.spin_dash_rev = min(self.spin_dash_rev + pc_data.spin_dash_rev_increase_step, pc_data.spin_dash_rev_max)
 
-      -- TODO: make SFX and add ID to data
-      -- self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
+      self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
     else
       if self.motion_state == motion_states.spin_dashing then
         -- only apply friction when not charging this frame (gives a change to reach maximum speed,

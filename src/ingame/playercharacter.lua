@@ -74,7 +74,7 @@ function player_char:init()
 --#endif
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
-  self.smoke_pfx = pfx(tuned("spawn period", 10), tuned("lifetime", 60), tuned("velocity", 1) * vector(-1, 0), tuned("size", 3))
+  self.smoke_pfx = pfx(10, 60, vector(-1, 0), 3)
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping
@@ -332,6 +332,13 @@ function player_char:update()
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
+
+  -- tuning
+  self.smoke_pfx.frame_period = tuned("period", 7, 0.1)
+  self.smoke_pfx.base_frame_lifetime = tuned("lifetime", 18, 0.1)
+  self.smoke_pfx.base_init_velocity = vector(tuned("vel_x", -1, 0.01), tuned("vel_y", -0.3, 0.01))
+  self.smoke_pfx.base_init_size = tuned("size", 5, 0.1)
+
   self.smoke_pfx:update()
 end
 
@@ -1845,7 +1852,8 @@ function player_char:check_spin_dash()
       self.spin_dash_rev = min(self.spin_dash_rev + pc_data.spin_dash_rev_increase_step, pc_data.spin_dash_rev_max)
 
       -- visual
-      self.smoke_pfx:start(self.position)
+      -- hardcoded values as unlikely to change once set, and to spare characters
+      self.smoke_pfx:start(self.position + vector(0, 5), self.orientation == horizontal_dirs.left)
 
       -- audio
       self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)

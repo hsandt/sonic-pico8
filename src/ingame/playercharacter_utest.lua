@@ -106,7 +106,7 @@ describe('player_char', function ()
       assert.spy(player_char.setup).was_called_with(match.ref(pc))
     end)
 
-    it('#solo should create a player character storing values from playercharacter_data', function ()
+    it('should create a player character storing values from playercharacter_data', function ()
       local pc = player_char()
       assert.is_not_nil(pc)
       assert.are_same(
@@ -118,7 +118,7 @@ describe('player_char', function ()
           -- setup will modify anim_spr state, but we stubbed it so it's still
           --  has the value on init now
           animated_sprite(pc_data.sonic_animated_sprite_data_table),
-          pfx(10, 5, vector(3, 2)),
+          pfx(10, 5, vector(3, 2)),  -- must update with final values
           0,  -- cheat
         },
         {
@@ -6408,7 +6408,7 @@ describe('player_char', function ()
           assert.spy(player_char.release_spin_dash).was_called_with(match.ref(pc))
         end)
 
-        it('(crouching, keep down with jump intention) should enter spin dashing state, set ground speed to 0 (frozen from here), start smoke pfx', function ()
+        it('(facing right, crouching, keep down with jump intention) should enter spin dashing state, set ground speed to 0 (frozen from here), start smoke pfx', function ()
           pc.motion_state = motion_states.crouching
           pc.move_intention.y = 1
           pc.jump_intention = true
@@ -6421,7 +6421,25 @@ describe('player_char', function ()
           assert.are_equal(0, pc.ground_speed)
 
           assert.spy(pfx.start).was_called(1)
-          assert.spy(pfx.start).was_called_with(match.ref(pc.smoke_pfx), pc.position)
+          assert.spy(pfx.start).was_called_with(match.ref(pc.smoke_pfx), pc.position + vector(0, 5), false)
+        end)
+
+
+        it('(facing right, crouching, keep down with jump intention) should enter spin dashing state, set ground speed to 0 (frozen from here), start smoke pfx (mirrored)', function ()
+          pc.orientation = horizontal_dirs.left
+          pc.motion_state = motion_states.crouching
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+
+          pc:check_spin_dash()
+
+          assert.spy(player_char.enter_motion_state).was_called(1)
+          assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.spin_dashing)
+
+          assert.are_equal(0, pc.ground_speed)
+
+          assert.spy(pfx.start).was_called(1)
+          assert.spy(pfx.start).was_called_with(match.ref(pc.smoke_pfx), pc.position + vector(0, 5), true)
         end)
 
         it('(crouching, keep down with jump intention) should consume jump intention', function ()
@@ -9283,7 +9301,7 @@ describe('player_char', function ()
 
       end)
 
-      describe('#solo (spin_dash)', function ()
+      describe('(spin_dash)', function ()
 
         before_each(function ()
           pc.anim_spr.current_anim_key = "spin_dash"

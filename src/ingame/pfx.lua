@@ -10,15 +10,16 @@ local particle = require("ingame/particle")
 
 -- parameters
 -- frame_period        frame_period         spawning period (frames)
--- base_frame_lifetime base_frame_lifetime  base lifetime for spawned particles
--- base_init_velocity  base_init_velocity   base initial velocity for spawned particles
--- base_init_size      base_init_size       base initial velocity for spawned particles
+-- base_frame_lifetime base_frame_lifetime  base lifetime for spawned particles (frames)
+-- base_init_velocity  base_init_velocity   base initial velocity for spawned particles (px/frame)
+-- base_init_size      base_init_size       base initial velocity for spawned particles (px)
 
 -- state
 -- particles       {particle}    sequence of particles to update and render
 -- is_emitting     bool          is the particle effect playing, i.e. spawning particles periodically?
 -- frame_time      float         current time since started playing, modulo frame_period
 -- position        vector        current position, used as a base to determine where to spawn new particles
+-- mirror_x        bool          if true, mirror particle velocity on X
 
 function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_init_size)
   -- parameters
@@ -36,10 +37,11 @@ function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_in
   -- self.position = vector.zero()
 end
 
-function pfx:start(position)
+function pfx:start(position, mirror_x)
   self.is_emitting = true
   self.frame_time = 0
   self.position = position
+  self.mirror_x = mirror_x  -- "or false" stripped to spare a few characters, as nil has same behavior as false
 end
 
 function pfx:stop()
@@ -47,7 +49,14 @@ function pfx:stop()
 end
 
 function pfx:spawn_particle()
-  add(self.particles, particle(self.base_frame_lifetime, self.position, self.base_init_velocity, self.base_init_size))
+  local initial_frame_velocity = self.base_init_velocity:copy()
+  if self.mirror_x then
+    initial_frame_velocity.x = -initial_frame_velocity.x
+  end
+
+  -- apply random orthogonal velocity variation
+  local frame_accel = initial_frame_velocity:rotated_90_cw() * (rnd(2 * tuned("dv", 0.04, 0.01)) - tuned("dv", 0.04, 0.01))
+  add(self.particles, particle(self.base_frame_lifetime, self.position, initial_frame_velocity, self.base_init_size, frame_accel))
 end
 
 -- update each pfx

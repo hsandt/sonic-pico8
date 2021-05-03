@@ -17,10 +17,10 @@ describe('pfx', function ()
 
   describe('start', function ()
 
-    it('should set is_emitting to true and reset frame_time to 0', function ()
+    it('should set is_emitting to true, reset frame_time to 0, set position and mirror_x', function ()
       local pfx1 = pfx(10)
-      pfx1:start()
-      assert.are_same({true, 0}, {pfx1.is_emitting, pfx1.frame_time})
+      pfx1:start(vector(2, 4), true)
+      assert.are_same({true, 0, vector(2, 4), true}, {pfx1.is_emitting, pfx1.frame_time, pfx1.position, pfx1.mirror_x})
     end)
 
   end)
@@ -37,13 +37,38 @@ describe('pfx', function ()
 
   describe('spawn_particle', function ()
 
+    setup(function ()
+      -- always return ma half, so the total variation is 0 (easier to test)
+      stub(_G, "rnd", function (x)
+        return x / 2
+      end)
+    end)
+
+    teardown(function ()
+      rnd:revert()
+    end)
+
+    after_each(function ()
+      rnd:clear()
+    end)
+
     it('should add a new particle to the sequence', function ()
-      local pfx1 = pfx(10, 5, vector(0, 0), 3)
+      local pfx1 = pfx(10, 5, vector(10, 5), 3)
       pfx1.position = vector(10, 20)
 
       pfx1:spawn_particle()
 
-      assert.are_same({particle(5, vector(10, 20), vector(0, 0), 3)}, pfx1.particles)
+      assert.are_same({particle(5, vector(10, 20), vector(10, 5), 3)}, pfx1.particles)
+    end)
+
+    it('(mirror_x: true) should add a new particle with velocity mirrored od X', function ()
+      local pfx1 = pfx(10, 5, vector(10, 5), 3)
+      pfx1.position = vector(10, 20)
+      pfx1.mirror_x = true
+
+      pfx1:spawn_particle()
+
+      assert.are_same({particle(5, vector(10, 20), vector(-10, 5), 3)}, pfx1.particles)
     end)
 
   end)

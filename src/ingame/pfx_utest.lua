@@ -8,9 +8,9 @@ describe('pfx', function ()
   describe('init', function ()
 
     it('should create an pfx with passed frame period, and an empty sequence of particles', function ()
-      local pfx1 = pfx(10, 60, vector(2, 3))
-      assert.are_same({10, 60, vector(2, 3), {}, false},
-        {pfx1.frame_period, pfx1.base_frame_lifetime, pfx1.base_init_velocity, pfx1.particles, pfx1.is_emitting})
+      local pfx1 = pfx(10, 60, vector(2, 3), 5.5)
+      assert.are_same({10, 60, vector(2, 3), 5.5, {}, false},
+        {pfx1.frame_period, pfx1.base_frame_lifetime, pfx1.base_init_velocity, pfx1.base_max_size, pfx1.particles, pfx1.is_emitting})
     end)
 
   end)
@@ -148,7 +148,8 @@ describe('pfx', function ()
 
       pfx1:update()
 
-      assert.spy(pfx.spawn_particle).was_called(1)
+      -- WIP: tuning spawn count, should be parameterized
+      assert.spy(pfx.spawn_particle).was_called(4)
       assert.spy(pfx.spawn_particle).was_called_with(match.ref(pfx1))
     end)
 

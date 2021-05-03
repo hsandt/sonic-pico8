@@ -12,7 +12,7 @@ local particle = require("ingame/particle")
 -- frame_period        frame_period         spawning period (frames)
 -- base_frame_lifetime base_frame_lifetime  base lifetime for spawned particles (frames)
 -- base_init_velocity  base_init_velocity   base initial velocity for spawned particles (px/frame)
--- base_init_size      base_init_size       base initial velocity for spawned particles (px)
+-- base_max_size       base_max_size        base max size for spawned particles (px)
 
 -- state
 -- particles       {particle}    sequence of particles to update and render
@@ -21,12 +21,12 @@ local particle = require("ingame/particle")
 -- position        vector        current position, used as a base to determine where to spawn new particles
 -- mirror_x        bool          if true, mirror particle velocity on X
 
-function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_init_size)
+function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_max_size)
   -- parameters
   self.frame_period = frame_period
   self.base_frame_lifetime = base_frame_lifetime
   self.base_init_velocity = base_init_velocity
-  self.base_init_size = base_init_size
+  self.base_max_size = base_max_size
 
   -- state
   self.particles = {}
@@ -56,7 +56,7 @@ function pfx:spawn_particle()
 
   -- apply random orthogonal velocity variation
   local frame_accel = initial_frame_velocity:rotated_90_cw() * (rnd(2 * tuned("dv", 0.04, 0.01)) - tuned("dv", 0.04, 0.01))
-  add(self.particles, particle(self.base_frame_lifetime, self.position, initial_frame_velocity, self.base_init_size, frame_accel))
+  add(self.particles, particle(self.base_frame_lifetime, self.position, initial_frame_velocity, self.base_max_size, frame_accel))
 end
 
 -- update each pfx

@@ -10,17 +10,18 @@ local particle = new_class()
 -- elapsed_frames          vector    elapsed frames since spawn
 -- position                vector    current position
 -- initial_frame_velocity  vector    current velocity (applied every frame, so divide second-based velocity by FPS)
--- size                    float     current size (px)
-function particle:init(frame_lifetime, initial_position, initial_frame_velocity, initial_size, frame_accel)
+-- max_size                float     max size (px)
+function particle:init(frame_lifetime, initial_position, initial_frame_velocity, max_size, frame_accel)
   -- parameters
   self.frame_lifetime = frame_lifetime
   self.frame_accel = frame_accel or vector.zero()
+  self.max_size = max_size
 
   -- state
   self.elapsed_frames = 0
   self.position = initial_position
   self.frame_velocity = initial_frame_velocity
-  self.size = initial_size
+  self.size = 0  -- will be set on first update
 end
 
 -- update particle and return true iff particle is still alive this frame
@@ -50,7 +51,8 @@ function particle:update()
   -- negative size will draw nothing, no need to clamp
   local function size_ratio_over_lifetime(life_ratio)
     if life_ratio < 0.3 then
-      return life_ratio / 0.3
+      -- linear piece, start at size 0 at 0, ends at 1 at 0.3
+      return tuned("size 0", 2, 0.1) * (1 - life_ratio / 0.3) + life_ratio / 0.3
     end
     return 1 - (life_ratio - 0.3) / 0.7
   end

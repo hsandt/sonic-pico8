@@ -118,7 +118,7 @@ describe('player_char', function ()
           -- setup will modify anim_spr state, but we stubbed it so it's still
           --  has the value on init now
           animated_sprite(pc_data.sonic_animated_sprite_data_table),
-          pfx(10, 5, vector(3, 2)),  -- must update with final values
+          -- pfx(10, 5, vector(3, 2)),  -- must update with final values, so prefer commenting out for now
           0,  -- cheat
         },
         {
@@ -127,7 +127,7 @@ describe('player_char', function ()
           pc.debug_move_decel,
           pc.debug_move_friction,
           pc.anim_spr,
-          pc.smoke_pfx,
+          -- pc.smoke_pfx,
           pc.last_emerald_warp_nb,  -- cheat
         }
       )

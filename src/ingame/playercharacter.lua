@@ -334,10 +334,10 @@ function player_char:update()
   self.anim_spr:update()
 
   -- tuning
-  self.smoke_pfx.frame_period = tuned("period", 7, 0.1)
-  self.smoke_pfx.base_frame_lifetime = tuned("lifetime", 40, 1)
-  self.smoke_pfx.base_init_velocity = vector(tuned("vel_x", -0.44, 0.01), tuned("vel_y", -0.19, 0.01))
-  self.smoke_pfx.base_init_size = tuned("size", 3.6, 0.1)
+  self.smoke_pfx.frame_period = tuned("period", 4.7, 0.1)
+  self.smoke_pfx.base_frame_lifetime = tuned("lifetime", 31, 1)
+  self.smoke_pfx.base_init_velocity = vector(tuned("vel_x", -0.43, 0.01), tuned("vel_y", -0.25, 0.01))
+  self.smoke_pfx.base_max_size = tuned("max size", 4.3, 0.1)
 
   self.smoke_pfx:update()
 end

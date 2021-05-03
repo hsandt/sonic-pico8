@@ -5,11 +5,11 @@ describe('particle', function ()
 
   describe('init', function ()
 
-    it('should create an particle with frame_lifetime, initial_position, initial_velocity, initial_size', function ()
+    it('should create an particle with frame_lifetime, initial_position, initial_velocity, max_size', function ()
       local particle1 = particle(2, vector(12, 2), vector(-2, 3), 3, vector(-2, 2))
       assert.are_same({2, 0, vector(12, 2), vector(-2, 3), 3,
           vector(-2, 2)},
-        {particle1.frame_lifetime, particle1.elapsed_frames, particle1.position, particle1.frame_velocity, particle1.size,
+        {particle1.frame_lifetime, particle1.elapsed_frames, particle1.position, particle1.frame_velocity, particle1.max_size,
           particle1.frame_accel})
     end)
 
@@ -93,7 +93,8 @@ describe('particle', function ()
 
       particle1:update()
 
-      assert.are_equal(2.9, particle1.size)  -- must update with final data
+      -- formula is a bit complex and hardcoded now, but try your bast
+      assert.are_equal(9.8, particle1.size)  -- must update with final data
     end)
 
   end)
@@ -117,6 +118,7 @@ describe('particle', function ()
 
     it('(size = 2..3) should call circfill at particle position, with size, white (hardcoded)"', function ()
       local particle1 = particle(2, vector(12, 2), vector(-2, 3), 2.5)
+      particle1.size = 2.5
 
       particle1:render()
 
@@ -126,6 +128,7 @@ describe('particle', function ()
 
     it('(size not in 2..3) should call circfill at particle position, with size, white (hardcoded)"', function ()
       local particle1 = particle(2, vector(12, 2), vector(-2, 3), 5)
+      particle1.size = 5
 
       particle1:render()
 

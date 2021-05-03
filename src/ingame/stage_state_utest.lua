@@ -869,11 +869,11 @@ describe('stage_state', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x5700, 73)
+        poke(0x5dff, 73)
       end)
 
       after_each(function ()
-        poke(0x5700, 0)
+        poke(0x5dff, 0)
       end)
 
       it('should read 1 byte in general memory representing picked emeralds bitset', function ()
@@ -897,7 +897,7 @@ describe('stage_state', function ()
       it('should clear picked emerald transitional memory', function ()
         state:restore_picked_emerald_data()
 
-        assert.are_equal(0, peek(0x5700))
+        assert.are_equal(0, peek(0x5dff))
       end)
 
     end)
@@ -1535,7 +1535,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x5700))
+            assert.are_equal(73, peek(0x5dff))
           end)
 
         end)

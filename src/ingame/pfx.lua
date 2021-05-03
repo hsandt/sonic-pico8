@@ -75,7 +75,9 @@ function pfx:update()
     self.frame_time = self.frame_time + 1
     if self.frame_time >= self.frame_period then
       self.frame_time = 0
-      self:spawn_particle()
+      for i = 1, tuned("spawn_count", 4) do
+        self:spawn_particle()
+      end
     end
   end
 end

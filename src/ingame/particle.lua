@@ -43,8 +43,18 @@ end
 function particle:update()
   self.position = self.position + self.frame_velocity
   self.frame_velocity = self.frame_velocity + self.frame_accel
+  -- make size grow quickly at start of lifetime, but shrink again at 1/3 of lifetime
+  --  (to avoid big particles hiding character bottom too much)
+  -- use linear function decreasing from 1 to -1 over lifetime
+  -- local size_delta = (1 - 2 * self.elapsed_frames / self.frame_lifetime) * tuned("size var", 0.03, 0.01)
   -- negative size will draw nothing, no need to clamp
-  self.size = self.size - tuned("size decr", 0.1, 0.01)
+  local function size_ratio_over_lifetime(life_ratio)
+    if life_ratio < 0.3 then
+      return life_ratio / 0.3
+    end
+    return 1 - (life_ratio - 0.3) / 0.7
+  end
+  self.size = tuned("size ratio", 4.9, 0.1) * size_ratio_over_lifetime(self.elapsed_frames / self.frame_lifetime)
 end
 
 -- render particle at its current location

@@ -50,13 +50,14 @@ function particle:update()
   -- local size_delta = (1 - 2 * self.elapsed_frames / self.frame_lifetime) * tuned("size var", 0.03, 0.01)
   -- negative size will draw nothing, no need to clamp
   local function size_ratio_over_lifetime(life_ratio)
-    if life_ratio < 0.3 then
-      -- linear piece, start at size 0 at 0, ends at 1 at 0.3
-      return tuned("size 0", 2, 0.1) * (1 - life_ratio / 0.3) + life_ratio / 0.3
+    local junction = tuned("junction", 0.36, 0.01)
+    if life_ratio < junction then
+      -- linear piece, start at size 0 at 0, ends at 1 at junction
+      return tuned("size 0", 0.4, 0.1) * (1 - life_ratio / junction) + life_ratio / junction
     end
-    return 1 - (life_ratio - 0.3) / 0.7
+    return 1 - (life_ratio - junction) / (1 - junction)
   end
-  self.size = tuned("size ratio", 4.9, 0.1) * size_ratio_over_lifetime(self.elapsed_frames / self.frame_lifetime)
+  self.size = self.max_size * size_ratio_over_lifetime(self.elapsed_frames / self.frame_lifetime)
 end
 
 -- render particle at its current location

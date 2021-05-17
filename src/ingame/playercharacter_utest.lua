@@ -140,7 +140,7 @@ describe('player_char', function ()
             pc_data.spin_dash_dust_base_init_velocity,
             pc_data.spin_dash_dust_max_deviation,
             pc_data.spin_dash_dust_base_max_size,
-            size_ratio_over_lifetime),
+            player_char.size_ratio_over_lifetime),
           0,  -- cheat
         },
         {
@@ -6387,6 +6387,7 @@ describe('player_char', function ()
           stub(player_char, "play_low_priority_sfx")
           stub(player_char, "release_spin_dash")
           stub(player_char, "enter_motion_state")
+          stub(animated_sprite, "play")
         end)
 
         teardown(function ()
@@ -6394,6 +6395,13 @@ describe('player_char', function ()
           player_char.play_low_priority_sfx:revert()
           player_char.release_spin_dash:revert()
           player_char.enter_motion_state:revert()
+          animated_sprite.play:revert()
+        end)
+
+        -- since pc is init in before_each and init calls setup
+        --   which calls pc.anim_spr:play("idle"), we must clear call count just after that
+        before_each(function ()
+          animated_sprite.play:clear()
         end)
 
         after_each(function ()
@@ -6516,6 +6524,17 @@ describe('player_char', function ()
           pc:check_spin_dash()
 
           assert.are_equal(pc_data.spin_dash_rev_max, pc.spin_dash_rev)
+        end)
+
+        it('(crouching or spin dashing, keep down with jump intention) should play spin_dash anim *from start* when spin dashing', function ()
+          pc.motion_state = motion_states.spin_dashing
+          pc.move_intention.y = 1
+          pc.jump_intention = true
+
+          pc:check_spin_dash()
+
+          assert.spy(animated_sprite.play).was_called(1)
+          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash", true)
         end)
 
         it('(crouching or spin dashing, keep down with jump intention) should play spin dash rev sfx (low priority)', function ()
@@ -8733,8 +8752,8 @@ describe('player_char', function ()
         animated_sprite.play:revert()
       end)
 
-      -- since pc is init in before_each and init calls _setup
-      --   which calls pc.anim_spr:play, we must clear call count just after that
+      -- since pc is init in before_each and init calls setup
+      --   which calls pc.anim_spr:play("idle"), we must clear call count just after that
       before_each(function ()
         animated_sprite.play:clear()
       end)
@@ -8913,13 +8932,13 @@ describe('player_char', function ()
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "crouch")
       end)
 
-      it('should play spin_dash anim when spin dashing', function ()
+      it('should *not* play spin_dash anim when spin dashing', function ()
         pc.motion_state = motion_states.spin_dashing
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash")
+        -- exceptionally not playing anim from here, see comment in method
+        assert.spy(animated_sprite.play).was_not_called()
       end)
 
       it('(air spin with anim_run_speed below air_spin_anim_min_play_speed) should play spin anim at air_spin_anim_min_play_speed', function ()

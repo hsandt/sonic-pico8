@@ -94,7 +94,7 @@ function player_char:init()
     pc_data.spin_dash_dust_base_init_velocity,
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
-    size_ratio_over_lifetime)
+    player_char.size_ratio_over_lifetime)
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping
@@ -1860,11 +1860,17 @@ function player_char:check_spin_dash()
       end
 
       -- revvin' up!
+      -- this includes the first rev
 
       -- fill spin dash rev formula from SPG
       self.spin_dash_rev = min(self.spin_dash_rev + pc_data.spin_dash_rev_increase_step, pc_data.spin_dash_rev_max)
 
       -- visual
+
+      -- exceptionally play anim from here instead of player_char:check_play_anim,
+      --  because we must replay animation from start on every rev
+      self.anim_spr:play("spin_dash", --[[from_start:]] true)
+
       -- hardcoded values as unlikely to change once set, and to spare characters
       self.smoke_pfx:start(self.position + vector(0, 5), self.orientation == horizontal_dirs.left)
 
@@ -2633,8 +2639,8 @@ function player_char:check_play_anim()
     -- we don't mind about speed here, character can totally slide at low speed due to momentum or slope
     self.anim_spr:play("crouch")
   elseif self.motion_state == motion_states.spin_dashing then
-    -- TODO: restart spin dash on each rev
-    self.anim_spr:play("spin_dash")
+    -- exceptionally we don't need to self.anim_spr:play("spin_dash"), it's already done on every rev
+    --  so we can also pass from_start: true
   else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
     local min_play_speed = self.motion_state == motion_states.rolling and
       pc_data.rolling_spin_anim_min_play_speed or pc_data.air_spin_anim_min_play_speed

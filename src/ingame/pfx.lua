@@ -9,24 +9,31 @@ local particle = require("ingame/particle")
 --  e.g. we pass position to start() (ok because we don't move during spin dash...)
 
 -- parameters
--- frame_period        frame_period         spawning period (frames)
--- base_frame_lifetime base_frame_lifetime  base lifetime for spawned particles (frames)
--- base_init_velocity  base_init_velocity   base initial velocity for spawned particles (px/frame)
--- base_max_size       base_max_size        base max size for spawned particles (px)
+-- spawn_period_frames       number          particle spawning period (frames, fractions ok)
+-- spawn_count               int             number of particles emitted every spawn period
+-- base_lifetime_frames      number          base lifetime for spawned particles (frames, fractions ok)
+-- base_velocity             vector          base velocity for spawned particles (px/frame)
+-- max_deviation             float           max factor of base_velocity magnitude used for orthogonal
+--                                           acceleration, randomized per particle (ratio)
+-- base_size                 float           base max size for spawned particles (px, fraction ok)
+-- size_ratio_over_lifetime  ratio -> float  function returning factor of base size over lifetime ratio
 
 -- state
 -- particles       {particle}    sequence of particles to update and render
 -- is_emitting     bool          is the particle effect playing, i.e. spawning particles periodically?
--- frame_time      float         current time since started playing, modulo frame_period
+-- frame_time      float         current time since started playing, modulo spawn_period_frames
 -- position        vector        current position, used as a base to determine where to spawn new particles
 -- mirror_x        bool          if true, mirror particle velocity on X
 
-function pfx:init(frame_period, base_frame_lifetime, base_init_velocity, base_max_size)
+function pfx:init(spawn_period_frames, spawn_count, base_lifetime_frames, base_velocity, max_deviation, base_size, size_ratio_over_lifetime)
   -- parameters
-  self.frame_period = frame_period
-  self.base_frame_lifetime = base_frame_lifetime
-  self.base_init_velocity = base_init_velocity
-  self.base_max_size = base_max_size
+  self.spawn_period_frames = spawn_period_frames
+  self.spawn_count = spawn_count
+  self.base_lifetime_frames = base_lifetime_frames
+  self.base_velocity = base_velocity
+  self.max_deviation = max_deviation
+  self.base_size = base_size
+  self.size_ratio_over_lifetime = size_ratio_over_lifetime
 
   -- state
   self.particles = {}
@@ -49,14 +56,15 @@ function pfx:stop()
 end
 
 function pfx:spawn_particle()
-  local initial_frame_velocity = self.base_init_velocity:copy()
+  local initial_frame_velocity = self.base_velocity:copy()
   if self.mirror_x then
     initial_frame_velocity.x = -initial_frame_velocity.x
   end
 
-  -- apply random orthogonal velocity variation
-  local frame_accel = initial_frame_velocity:rotated_90_cw() * (rnd(2 * tuned("dv", 0.04, 0.01)) - tuned("dv", 0.04, 0.01))
-  add(self.particles, particle(self.base_frame_lifetime, self.position, initial_frame_velocity, self.base_max_size, frame_accel))
+  -- apply random orthogonal velocity variation to cause motion deviation over time
+  local frame_accel = initial_frame_velocity:rotated_90_cw() * (rnd(2 * self.max_deviation) - self.max_deviation)
+  add(self.particles, particle(self.base_lifetime_frames, self.position, initial_frame_velocity, frame_accel,
+    self.base_size, self.size_ratio_over_lifetime))
 end
 
 -- update each pfx
@@ -71,11 +79,11 @@ function pfx:update()
   end
 
   if self.is_emitting then
-    -- update time and check frame_period to see if we should spawn new particles
+    -- update time and check spawn_period_frames to see if we should spawn new particles
     self.frame_time = self.frame_time + 1
-    if self.frame_time >= self.frame_period then
+    if self.frame_time >= self.spawn_period_frames then
       self.frame_time = 0
-      for i = 1, tuned("spawn_count", 4) do
+      for i = 1, self.spawn_count do
         self:spawn_particle()
       end
     end

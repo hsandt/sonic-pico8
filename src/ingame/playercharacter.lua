@@ -13,6 +13,20 @@ local visual = require("resources/visual_common")
 
 local player_char = new_class()
 
+-- helper for spin dash dust
+function player_char.size_ratio_over_lifetime(life_ratio)
+  -- make size grow quickly at start of lifetime, but shrink again around 1/3 of lifetime
+  --  (to avoid big particles hiding character bottom too much)
+  -- negative size will draw nothing, no need to clamp
+  local junction = 0.36
+  if life_ratio < junction then
+    -- linear piece, start at size 0.4 at 0, ends at 1 at junction
+    return 0.4 * (1 - life_ratio / junction) + life_ratio / junction
+  end
+  -- linear piece start at 1 at junction, ends at 0 at 1
+  return 1 - (life_ratio - junction) / (1 - junction)
+end
+
 -- parameters cached from PC data
 
 -- debug_move_max_speed (#cheat)  float                   move max speed in debug mode
@@ -74,7 +88,13 @@ function player_char:init()
 --#endif
 
   self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
-  self.smoke_pfx = pfx(10, 60, vector(-1, 0), 3)
+  self.smoke_pfx = pfx(pc_data.spin_dash_dust_spawn_period_frames,
+    pc_data.spin_dash_dust_spawn_count,
+    pc_data.spin_dash_dust_lifetime_frames,
+    pc_data.spin_dash_dust_base_init_velocity,
+    pc_data.spin_dash_dust_max_deviation,
+    pc_data.spin_dash_dust_base_max_size,
+    size_ratio_over_lifetime)
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping
@@ -332,13 +352,6 @@ function player_char:update()
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
-
-  -- tuning
-  self.smoke_pfx.frame_period = tuned("period", 3.1, 0.1)
-  self.smoke_pfx.base_frame_lifetime = tuned("lifetime", 34, 1)
-  self.smoke_pfx.base_init_velocity = vector(tuned("vel_x", -0.43, 0.01), tuned("vel_y", -0.17, 0.01))
-  self.smoke_pfx.base_max_size = tuned("max size", 4.1, 0.1)
-
   self.smoke_pfx:update()
 end
 

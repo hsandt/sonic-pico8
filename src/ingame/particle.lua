@@ -3,19 +3,21 @@ local particle = new_class()
 -- single particle class
 
 -- parameters
--- frame_lifetime   float     total lifetime (frames)
--- frame_accel      vector    velocity difference applied every frame (px/frame^2)
+-- frame_lifetime            float           total lifetime (frames)
+-- frame_accel               vector          velocity difference applied every frame (px/frame^2)
 
 -- state
--- elapsed_frames          vector    elapsed frames since spawn
--- position                vector    current position
--- initial_frame_velocity  vector    current velocity (applied every frame, so divide second-based velocity by FPS)
--- max_size                float     max size (px)
-function particle:init(frame_lifetime, initial_position, initial_frame_velocity, max_size, frame_accel)
+-- elapsed_frames            vector          elapsed frames since spawn
+-- position                  vector          current position
+-- initial_frame_velocity    vector          current velocity (applied every frame, so divide second-based velocity by FPS)
+-- base_size                 float           base size (px)
+-- size_ratio_over_lifetime  ratio -> float  function returning factor of base size over lifetime ratio
+function particle:init(frame_lifetime, initial_position, initial_frame_velocity, deviation, base_size, size_ratio_over_lifetime)
   -- parameters
   self.frame_lifetime = frame_lifetime
   self.frame_accel = frame_accel or vector.zero()
-  self.max_size = max_size
+  self.base_size = base_size
+  self.size_ratio_over_lifetime = size_ratio_over_lifetime
 
   -- state
   self.elapsed_frames = 0
@@ -44,20 +46,7 @@ end
 function particle:update()
   self.position = self.position + self.frame_velocity
   self.frame_velocity = self.frame_velocity + self.frame_accel
-  -- make size grow quickly at start of lifetime, but shrink again at 1/3 of lifetime
-  --  (to avoid big particles hiding character bottom too much)
-  -- use linear function decreasing from 1 to -1 over lifetime
-  -- local size_delta = (1 - 2 * self.elapsed_frames / self.frame_lifetime) * tuned("size var", 0.03, 0.01)
-  -- negative size will draw nothing, no need to clamp
-  local function size_ratio_over_lifetime(life_ratio)
-    local junction = tuned("junction", 0.36, 0.01)
-    if life_ratio < junction then
-      -- linear piece, start at size 0 at 0, ends at 1 at junction
-      return tuned("size 0", 0.4, 0.1) * (1 - life_ratio / junction) + life_ratio / junction
-    end
-    return 1 - (life_ratio - junction) / (1 - junction)
-  end
-  self.size = self.max_size * size_ratio_over_lifetime(self.elapsed_frames / self.frame_lifetime)
+  self.size = self.base_size * self.size_ratio_over_lifetime(self.elapsed_frames / self.frame_lifetime)
 end
 
 -- render particle at its current location

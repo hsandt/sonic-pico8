@@ -199,6 +199,7 @@ local pc_data = {
   --  (px)
   max_ground_snap_height = 4,
 
+
   -- debug motion
 
   -- motion speed in debug mode (px/frame)
@@ -212,6 +213,7 @@ local pc_data = {
 
   -- friction aka passive deceleration speed in debug mode (px/frame^2)
   debug_move_friction = 1,
+
 
   -- spin dash
 
@@ -235,6 +237,7 @@ local pc_data = {
   -- factor applied to floor part of spin dash rev to contribute to spin dash launch speed (px/frame)
   -- SPG divides rev by 2, so in PICO-8 units we must divide by 4, so multiply by 0.25
   spin_dash_rev_increase_factor = 0.25,
+
 
   -- sprite
 
@@ -303,6 +306,27 @@ local pc_data = {
 
   -- speed from which the brake anim is played when decelerating (px/frame)
   brake_anim_min_speed_frame = 2,
+
+
+  -- pfx
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_spawn_period_frames = 3.1,
+
+  -- spin dash dust particle spawn count every period
+  spin_dash_dust_spawn_count = 4,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_lifetime_frames = 34,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_base_init_velocity = vector(-0.43, -0.17),
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_max_deviation = 0.04,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_base_max_size = 4.1,
 }
 
 local sdt = pc_data.sonic_sprite_data_table

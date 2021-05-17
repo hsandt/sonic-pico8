@@ -118,7 +118,13 @@ describe('player_char', function ()
           -- setup will modify anim_spr state, but we stubbed it so it's still
           --  has the value on init now
           animated_sprite(pc_data.sonic_animated_sprite_data_table),
-          -- pfx(10, 5, vector(3, 2)),  -- must update with final values, so prefer commenting out for now
+          pfx(pc_data.spin_dash_dust_spawn_period_frames,
+            pc_data.spin_dash_dust_spawn_count,
+            pc_data.spin_dash_dust_lifetime_frames,
+            pc_data.spin_dash_dust_base_init_velocity,
+            pc_data.spin_dash_dust_max_deviation,
+            pc_data.spin_dash_dust_base_max_size,
+            size_ratio_over_lifetime),
           0,  -- cheat
         },
         {
@@ -127,7 +133,7 @@ describe('player_char', function ()
           pc.debug_move_decel,
           pc.debug_move_friction,
           pc.anim_spr,
-          -- pc.smoke_pfx,
+          pc.smoke_pfx,
           pc.last_emerald_warp_nb,  -- cheat
         }
       )

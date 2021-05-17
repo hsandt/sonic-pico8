@@ -12,7 +12,7 @@ local particle = new_class()
 -- initial_frame_velocity    vector          current velocity (applied every frame, so divide second-based velocity by FPS)
 -- base_size                 float           base size (px)
 -- size_ratio_over_lifetime  ratio -> float  function returning factor of base size over lifetime ratio
-function particle:init(frame_lifetime, initial_position, initial_frame_velocity, deviation, base_size, size_ratio_over_lifetime)
+function particle:init(frame_lifetime, initial_position, initial_frame_velocity, frame_accel, base_size, size_ratio_over_lifetime)
   -- parameters
   self.frame_lifetime = frame_lifetime
   self.frame_accel = frame_accel or vector.zero()

@@ -2261,14 +2261,17 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
+          stub(player_char, "reload_rolling_vs_spin_dash_sprites")
         end)
 
         teardown(function ()
           player_char.set_slope_angle_with_quadrant:revert()
+          player_char.reload_rolling_vs_spin_dash_sprites:revert()
         end)
 
         after_each(function ()
           player_char.set_slope_angle_with_quadrant:clear()
+          player_char.reload_rolling_vs_spin_dash_sprites:clear()
         end)
 
         it('should enter passed state: falling, reset ground-specific state vars, no animation change', function ()
@@ -2338,6 +2341,15 @@ describe('player_char', function ()
 
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil, true)
+        end)
+
+        it('(any previous state, pass air_spin) should call reload_rolling_vs_spin_dash_sprites', function ()
+          pc.motion_state = motion_states.air_spin
+
+          pc:enter_motion_state(motion_states.air_spin)
+
+          assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
+          assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
         end)
 
         -- bugfix history: .

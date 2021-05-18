@@ -935,6 +935,9 @@ function player_char:enter_motion_state(next_motion_state)
     self.should_jump = false
     self.should_play_spring_jump = false
     self.brake_anim_phase = 0
+
+    -- prepare spritesheet reload for rolling sprites
+    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)

@@ -864,6 +864,41 @@ describe('stage_state', function ()
 
     end)
 
+    describe('spawn_waterfalls', function ()
+
+      setup(function ()
+        stub(stage_state, "reload_map_region")
+        stub(stage_state, "scan_current_region_to_spawn_waterfalls")
+      end)
+
+      teardown(function ()
+        stage_state.reload_map_region:revert()
+        stage_state.scan_current_region_to_spawn_waterfalls:revert()
+      end)
+
+      after_each(function ()
+        stage_state.reload_map_region:clear()
+        stage_state.scan_current_region_to_spawn_waterfalls:clear()
+      end)
+
+      it('should call reload every top region map on the 2x3 grid -> 2 calls, calling scan_current_region_to_spawn_waterfalls as many times', function ()
+        state.curr_stage_data = {
+          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
+          tile_height = 32 * 3  -- 3 regions per column
+        }
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_waterfalls()
+
+        assert.spy(stage_state.reload_map_region).was_called(2)
+        assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(0, 0))
+        assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 0))
+
+        assert.spy(stage_state.scan_current_region_to_spawn_waterfalls).was_called(2)
+      end)
+
+    end)
+
     -- we stub restore_picked_emerald_data in (stage state entered) region, so test it outside
     describe('restore_picked_emerald_data', function ()
 
@@ -1157,6 +1192,7 @@ describe('stage_state', function ()
 
           setup(function ()
             stub(visual_stage, "render_background")
+            stub(base_stage_state, "render_waterfalls")
             stub(stage_state, "render_stage_elements")
             stub(stage_state, "render_fx")
             stub(stage_state, "render_hud")
@@ -1165,6 +1201,7 @@ describe('stage_state', function ()
 
           teardown(function ()
             visual_stage.render_background:revert()
+            base_stage_state.render_waterfalls:revert()
             stage_state.render_stage_elements:revert()
             stage_state.render_fx:revert()
             stage_state.render_hud:revert()
@@ -1173,6 +1210,7 @@ describe('stage_state', function ()
 
           after_each(function ()
             visual_stage.render_background:clear()
+            base_stage_state.render_waterfalls:clear()
             stage_state.render_stage_elements:clear()
             stage_state.render_fx:clear()
             stage_state.render_hud:clear()
@@ -1183,6 +1221,8 @@ describe('stage_state', function ()
             state:render()
             assert.spy(visual_stage.render_background).was_called(1)
             assert.spy(visual_stage.render_background).was_called_with(state.camera.position)
+            assert.spy(base_stage_state.render_waterfalls).was_called(1)
+            assert.spy(base_stage_state.render_waterfalls).was_called_with(match.ref(state))
             assert.spy(stage_state.render_stage_elements).was_called(1)
             assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
             assert.spy(stage_state.render_fx).was_called(1)

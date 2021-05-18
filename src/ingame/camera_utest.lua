@@ -763,6 +763,9 @@ describe('camera_class', function ()
 
     local cam
 
+    -- note: if you add flooring to camera position and passed coordinates,
+    --  you should add 0.9 everywhere for more precise utests
+
     before_each(function ()
       cam = camera_class()
       cam.position = vector(64, 64)  -- so top-left is (0, 0) and bottom-right is (128, 128)

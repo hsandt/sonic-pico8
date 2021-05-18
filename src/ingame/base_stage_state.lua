@@ -20,6 +20,13 @@ function base_stage_state:init()
   -- used to draw the palm tree extension sprites on foreground
   self.palm_tree_leaves_core_global_locations = {}
 --#endif
+
+--#ifn stage_clear
+  -- waterfall: list of global locations i of every column where we should draw a waterfall
+  --  going down. We don't need to store full location with j because waterfall always
+  --  start at j=0
+  self.waterfall_global_locations_i = {}
+--#endif
 end
 
 
@@ -125,7 +132,52 @@ function base_stage_state:get_region_topleft_location()
 end
 
 
+--#ifn stage_clear
+
+-- background
+
+function base_stage_state:scan_current_region_to_spawn_waterfalls()
+  -- iterate over the top row
+  for i = 0, map_region_tile_width - 1 do
+    -- here we already have region (i, 0), so no need to convert for mget
+    local tile_sprite_id = mget(i, 0)
+    if tile_sprite_id == 0 then
+      -- this top tile is empty, waterfall should fall from here
+      -- we do need to convert location now since spawn methods work in global coordinates
+      local region_loc = location(i, 0)
+      local global_loc = self:region_to_global_location(region_loc)
+      add(self.waterfall_global_locations_i, global_loc.i)
+    end
+  end
+end
+
+--#endif
+
+
 -- render
+
+-- render waterfalls
+-- usually in visual_state, this one requires some extra info and to track time,
+--  so it was easier to put in base_stage_state
+function base_stage_state:render_waterfalls()
+  self:set_camera_with_origin()
+
+  for waterfall_global_location_i in all(self.waterfall_global_locations_i) do
+    -- optimize draw calls by only drawing if waterfall column is visible
+    -- no -1 is just because the rectangle bottom-right is exclusive
+    if self.camera:is_rect_visible(vector(tile_size * waterfall_global_location_i, 0),
+        vector(tile_size * (waterfall_global_location_i + 1), tile_size * self.curr_stage_data.tile_height)) then
+      self:draw_waterfall(waterfall_global_location_i)
+    end
+  end
+end
+
+function base_stage_state:draw_waterfall(waterfall_global_location_i)
+  -- -1 because bottom-right is inclusive
+  rectfill(tile_size * waterfall_global_location_i, 0,
+    tile_size * (waterfall_global_location_i + 1) - 1, tile_size * self.curr_stage_data.tile_height,
+    colors.blue)
+end
 
 -- render the stage environment (tiles)
 function base_stage_state:render_environment_midground()

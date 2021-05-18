@@ -214,18 +214,21 @@ end
 --  the last visible bottom-right pixel of the sprite to test visibility of
 -- this makes it easier to compute bounds (e.g. for a 8x8 sprite, bottomright = topleft + (8, 8))
 -- we assume integer coordinates
-function camera_class:is_rect_visible(topleft, bottomright)
+function camera_class:is_rect_visible(topleft, exclusive_bottomright)
   -- AABB intersection: are camera view rectangle and object rectangle intersecting?
 
   -- compute camera view bounds
+  -- ! we should probably floor camera and passed coordinates
+  -- however in our current usages, at least one of them is integer so it still works
+  -- but consider flooring if you have enough compressed characters left, for robustness
   local left_edge = self.position.x - screen_width / 2
   local right_edge = self.position.x + screen_width / 2
   local top_edge = self.position.y - screen_height / 2
   local bottom_edge = self.position.y + screen_height / 2
 
   -- compare edge positions
-  return left_edge < bottomright.x and right_edge > topleft.x and
-    top_edge < bottomright.y and bottom_edge > topleft.y
+  return left_edge < exclusive_bottomright.x and right_edge > topleft.x and
+    top_edge < exclusive_bottomright.y and bottom_edge > topleft.y
 end
 
 return camera_class

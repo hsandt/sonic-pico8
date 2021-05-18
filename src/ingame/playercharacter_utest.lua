@@ -2261,17 +2261,14 @@ describe('player_char', function ()
 
         setup(function ()
           spy.on(player_char, "set_slope_angle_with_quadrant")  -- spy not stub in case the resulting slope_angle/quadrant matters
-          stub(player_char, "reload_rolling_vs_spin_dash_sprites")
         end)
 
         teardown(function ()
           player_char.set_slope_angle_with_quadrant:revert()
-          player_char.reload_rolling_vs_spin_dash_sprites:revert()
         end)
 
         after_each(function ()
           player_char.set_slope_angle_with_quadrant:clear()
-          player_char.reload_rolling_vs_spin_dash_sprites:clear()
         end)
 
         it('should enter passed state: falling, reset ground-specific state vars, no animation change', function ()
@@ -2343,15 +2340,6 @@ describe('player_char', function ()
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil, true)
         end)
 
-        it('(any previous state, pass air_spin) should call reload_rolling_vs_spin_dash_sprites', function ()
-          pc.motion_state = motion_states.air_spin
-
-          pc:enter_motion_state(motion_states.air_spin)
-
-          assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
-          assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
-        end)
-
         -- bugfix history: .
         it('should enter passed state: standing, reset has_jumped_this_frame, can_interrupt_jump and should_play_spring_jump', function ()
           pc.ground_speed = 10
@@ -2402,7 +2390,7 @@ describe('player_char', function ()
             })
         end)
 
-        describe('(stubbing reload_rolling_vs_spin_dash_sprites)', function ()
+        describe('#solo (stubbing reload_rolling_vs_spin_dash_sprites)', function ()
 
           setup(function ()
             stub(player_char, "reload_rolling_vs_spin_dash_sprites")
@@ -2416,6 +2404,15 @@ describe('player_char', function ()
             player_char.reload_rolling_vs_spin_dash_sprites:clear()
           end)
 
+          it('(any previous state, pass air_spin) should call reload_rolling_vs_spin_dash_sprites', function ()
+            pc.motion_state = motion_states.air_spin
+
+            pc:enter_motion_state(motion_states.air_spin)
+
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
+          end)
+
           it('(any previous state, pass rolling) should call reload_rolling_vs_spin_dash_sprites', function ()
             pc.motion_state = motion_states.standing
 
@@ -2425,13 +2422,21 @@ describe('player_char', function ()
             assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
           end)
 
-          it('(any previous state, pass spin_dashing) should call reload_rolling_vs_spin_dash_sprites', function ()
+          it('(any previous state, pass spin_dashing) should call reload_rolling_vs_spin_dash_sprites with true', function ()
             pc.motion_state = motion_states.crouching
 
             pc:enter_motion_state(motion_states.spin_dashing)
 
             assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
             assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc), true)
+          end)
+
+          it('(any previous state, pass crouching) should not call reload_rolling_vs_spin_dash_sprites with true', function ()
+            pc.motion_state = motion_states.standing
+
+            pc:enter_motion_state(motion_states.crouching)
+
+            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_not_called()
           end)
 
         end)

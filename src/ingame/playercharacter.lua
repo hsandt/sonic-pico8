@@ -968,7 +968,7 @@ function player_char:enter_motion_state(next_motion_state)
 
     -- prepare spritesheet reload for rolling sprites
     self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
-  else  -- next_motion_state == motion_states.spin_dashing
+  elseif next_motion_state == motion_states.spin_dashing then
     -- prepare spritesheet reload for spin dash sprites
     self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing:]] true)
   end

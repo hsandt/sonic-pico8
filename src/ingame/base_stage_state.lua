@@ -1,5 +1,6 @@
 local gamestate = require("engine/application/gamestate")
 
+local stage_data = require("data/stage_data")
 local camera_class = require("ingame/camera")
 local visual = require("resources/visual_common")
 
@@ -162,21 +163,36 @@ end
 function base_stage_state:render_waterfalls()
   self:set_camera_with_origin()
 
+  local camera_pos = self.camera.position
+  local left_edge = camera_pos.x - screen_width / 2
+  local right_edge = camera_pos.x + screen_width / 2
+  local top_tile_to_draw
+  local bottom_tile_to_draw
+
   for waterfall_global_location_i in all(self.waterfall_global_locations_i) do
-    -- optimize draw calls by only drawing if waterfall column is visible
-    -- no -1 is just because the rectangle bottom-right is exclusive
-    if self.camera:is_rect_visible(vector(tile_size * waterfall_global_location_i, 0),
-        vector(tile_size * (waterfall_global_location_i + 1), tile_size * self.curr_stage_data.tile_height)) then
-      self:draw_waterfall(waterfall_global_location_i)
+    -- extract the horizontal part of the check in camera_class:is_rect_visible
+    -- proper check on right edge is flr(right_edge) >= ... + 1 but we know the rhs is integer
+    --  so we just do this to spare characters
+    if left_edge < tile_size * (waterfall_global_location_i + 1) and
+        right_edge > tile_size * waterfall_global_location_i then
+
+      -- lazy evaluation (to spare cpu when no waterfall is visible)
+      if not top_tile_to_draw then
+        -- flr on one side, ceil on the other, so we are sure to draw a sprite as long
+        --  as it's even partially visible
+        top_tile_to_draw = flr((camera_pos.y - screen_height / 2) / tile_size)
+        bottom_tile_to_draw = ceil((camera_pos.y + screen_height / 2) / tile_size) - 1
+      end
+
+      self:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
     end
   end
 end
 
-function base_stage_state:draw_waterfall(waterfall_global_location_i)
-  -- -1 because bottom-right is inclusive
-  rectfill(tile_size * waterfall_global_location_i, 0,
-    tile_size * (waterfall_global_location_i + 1) - 1, tile_size * self.curr_stage_data.tile_height,
-    colors.blue)
+function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
+  for j = top_tile_to_draw, bottom_tile_to_draw do
+    spr(stage_data.waterfall_sprite_id, tile_size * waterfall_global_location_i, tile_size * j)
+  end
 end
 
 -- render the stage environment (tiles)

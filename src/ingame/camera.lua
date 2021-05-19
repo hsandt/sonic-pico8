@@ -218,7 +218,7 @@ function camera_class:is_rect_visible(topleft, exclusive_bottomright)
   -- AABB intersection: are camera view rectangle and object rectangle intersecting?
 
   -- compute camera view bounds
-  -- ! we should probably floor camera and passed coordinates
+  -- ! we should probably floor camera and passed coordinates, and use >= (+1) instead of >
   -- however in our current usages, at least one of them is integer so it still works
   -- but consider flooring if you have enough compressed characters left, for robustness
   local left_edge = self.position.x - screen_width / 2

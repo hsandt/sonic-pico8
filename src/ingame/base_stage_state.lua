@@ -189,10 +189,33 @@ function base_stage_state:render_waterfalls()
   end
 end
 
+local waterfall_color_cycle = {
+  -- original colors : dark_blue, indigo, blue, white
+  {colors.dark_blue, colors.blue,      colors.blue,      colors.white},
+  {colors.white,     colors.dark_blue, colors.blue,      colors.blue},
+  {colors.blue,      colors.white,     colors.dark_blue, colors.blue},
+  {colors.blue,      colors.blue,      colors.white,     colors.dark_blue},
+}
+
 function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
+  -- waterfall sprite contains black
+  palt(colors.black, false)
+
+  local period = 0.5
+  local ratio = (t() % period) / period
+  local step_count = #waterfall_color_cycle
+  local step = min(flr(ratio * step_count) + 1, step_count)
+  local new_colors = waterfall_color_cycle[step]
+  pal(colors.dark_blue, new_colors[1])
+  pal(colors.indigo, new_colors[2])
+  pal(colors.blue, new_colors[3])
+  pal(colors.white, new_colors[4])
+
   for j = top_tile_to_draw, bottom_tile_to_draw do
     spr(stage_data.waterfall_sprite_id, tile_size * waterfall_global_location_i, tile_size * j)
   end
+
+  pal()
 end
 
 -- render the stage environment (tiles)

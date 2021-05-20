@@ -1,10 +1,13 @@
 pico-8 cartridge // http://www.pico-8.com
-version 29
+version 32
 __lua__
 -- picosonic builtin data: ingame
 -- by leyn
 
 -- this section will be overwritten during build
+
+-- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+import "spritesheet_stage1_builtin.png"
 
 -- the collision masks at the top will be overwritten by runtime sprites
 --  via reload
@@ -303,4 +306,3 @@ __music__
 00 41424744
 00 41424744
 00 41424744
-

@@ -6,6 +6,9 @@ __lua__
 
 -- this section will be overwritten during build
 
+-- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+import "spritesheet_stage_clear_builtin.png"
+
 -- the collision masks at the top will be overwritten by runtime sprites
 --  via reload
 __gfx__

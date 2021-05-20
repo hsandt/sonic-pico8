@@ -103,7 +103,7 @@ elif [[ $config == 'sandbox' ]]; then
 elif [[ $config == 'assert' ]]; then
   symbols='assert,tostring,dump'
 elif [[ $config == 'profiler' ]]; then
-  symbols='profiler,cheat'
+  symbols='profiler,debug_menu'
 fi
 
 # we always add a symbol for the cartridge suffix in case

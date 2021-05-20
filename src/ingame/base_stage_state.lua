@@ -166,8 +166,7 @@ function base_stage_state:render_waterfalls()
   local camera_pos = self.camera.position
   local left_edge = camera_pos.x - screen_width / 2
   local right_edge = camera_pos.x + screen_width / 2
-  local top_tile_to_draw
-  local bottom_tile_to_draw
+  local top_tile_to_draw, bottom_tile_to_draw
 
   for waterfall_global_location_i in all(self.waterfall_global_locations_i) do
     -- extract the horizontal part of the check in camera_class:is_rect_visible

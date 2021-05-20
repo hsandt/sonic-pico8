@@ -4,6 +4,9 @@ __lua__
 -- picosonic data: pico island
 -- region (1, 1) by leyn
 
+-- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+import "spritesheet_stage1_edition.png"
+
 -- we only need __map__, but we kept __gfx__ only to visualize tiles when editing
 -- (and __gff__ because it's not too big)
 __gfx__

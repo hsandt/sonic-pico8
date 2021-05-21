@@ -48,8 +48,9 @@ rm -rf "${p8_folder}/"*
 # continuing to show old folder in system bin. Make sure to place blob * outside ""
 rm -rf "${png_folder}/"*
 
-# Cleanup bin folder as a bug in PICO-8 makes it accumulate files in .zip for each export (even homonymous files!)
-# and we want to remove any extraneous files too
+# Cleanup bin folder as we want to remove any extraneous files too
+# Note: PICO-8 used to accumulate files in .zip for each export (even homonymous files!),
+# making this mandatory, but this was fixed in 0.2.2. We still decided to keep the line to be clean.
 rm -rf "${bin_folder}/"*
 
 # p8 cartridges can be distributed as such, so just copy them to the folder to zip later

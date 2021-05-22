@@ -1408,18 +1408,13 @@ describe('stage_state', function ()
             state.emeralds = {
               emerald(1, location(0, 0)),
               emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
+              emerald(8, location(0, 1)),
             }
           end)
 
           it('should add an emerald number to the picked set', function ()
             state.picked_emerald_numbers_set = {
               [4] = true
-            }
-            state.emeralds = {
-              emerald(1, location(0, 0)),
-              emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
             }
             state:character_pick_emerald(state.emeralds[2])
             assert.are_same({[2] = true, [4] = true}, state.picked_emerald_numbers_set)
@@ -1430,25 +1425,20 @@ describe('stage_state', function ()
               emerald_fx(1, vector(0, 0))
             }
 
-            state:character_pick_emerald(state.emeralds[2])
+            state:character_pick_emerald(state.emeralds[3])
 
-            -- emerald 2 was at location (1, 0),
-            --  so its center was at (12, 4)
+            -- emerald 2 was at location (0, 1),
+            --  so its center was at (4, 12)
             assert.are_same({
                 emerald_fx(1, vector(0, 0)),
-                emerald_fx(2, vector(12, 4))
+                emerald_fx(8, vector(4 + 5, 12))  -- pfx also follow emerald 8 center adjustment of X+5
               },
               state.emerald_pick_fxs)
           end)
 
           it('should remove an emerald from the sequence', function ()
-            state.emeralds = {
-              emerald(1, location(0, 0)),
-              emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
-            }
             state:character_pick_emerald(state.emeralds[2])
-            assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
+            assert.are_same({emerald(1, location(0, 0)), emerald(8, location(0, 1))}, state.emeralds)
           end)
 
           it('should play character_pick_emerald sfx', function ()

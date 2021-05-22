@@ -31,9 +31,14 @@ describe('emerald', function ()
 
   describe('get_center', function ()
 
-    it('emerald(..., location(2, 1)) => vector(20, 12)', function ()
+    it('emerald(1~7, location(2, 1)) => vector(20, 12)', function ()
       local em = emerald(7, location(2, 1))
       assert.are_same(vector(20, 12), em:get_center())
+    end)
+
+    it('emerald(8, location(2, 1)) => vector(25, 12)', function ()
+      local em = emerald(8, location(2, 1))
+      assert.are_same(vector(25, 12), em:get_center())
     end)
 
   end)

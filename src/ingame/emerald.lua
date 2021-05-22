@@ -65,7 +65,15 @@ end
 --#endif
 
 function emerald:get_center()
-  return self.location:to_center_position()
+  local center_position = self.location:to_center_position()
+
+  -- visual trick: last emerald (above spring) is offset compared to spring sprite,
+  --  so adjust position to place it above spring center (this also affects picking collision)
+  if self.number == 8 then
+    center_position:add_inplace(vector(5, 0))
+  end
+
+  return center_position
 end
 
 function emerald:get_render_bounding_corners()

@@ -26,8 +26,12 @@ local menu_item_params = {
   end},
 }
 
--- attributes:
--- menu     menu     title menu showing items (only created when it must be shown)
+-- parameters:
+-- items                {menu_item}   sequence of menu items that the menu should display
+
+-- state:
+-- show_menu_after_delay_async_coroutine_index   int|nil        index of coroutine for show_menu_after_delay_async
+-- menu                 menu          title menu showing items (only created when it must be shown)
 
 function titlemenu:init()
   -- sequence of menu items to display, with their target states
@@ -35,21 +39,18 @@ function titlemenu:init()
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
+  -- self.menu = nil  -- defined later, this is commented out to spare characters
+  -- self.is_playing_opening = false  -- nil is equivalent to false, so commented out to spare characters
 end
 
 function titlemenu:on_enter()
-  self.app:start_coroutine(self.opening_sequence_async, self)
+  self.app:start_coroutine(self.play_opening_music_async, self)
+  self.show_menu_after_delay_async_coroutine_index = self.app:start_coroutine(self.show_menu_after_delay_async, self)
 end
 
-function titlemenu:opening_sequence_async()
+function titlemenu:play_opening_music_async()
   -- start title BGM
   music(audio.music_ids.title)
-
-  -- show menu after short intro of 2 columns
-  -- title bgm is at SPD 12 so that makes
-  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
-  yield_delay(96)
-  self:show_menu()
 
   -- fade out current bgm during the last half-measure (we have a decreasing volume
   --   in the music itself but there is still a gap between volume 1 and 0 in PICO-8
@@ -60,9 +61,17 @@ function titlemenu:opening_sequence_async()
   --   12 SPD * 4 frames/SPD/column * (4 patterns * 4 columns + 2 columns) = 864 frames
   -- and lasts:
   --   12 SPD * 4 frames/SPD/column * 1 column = 48 frames = 48 * 1000 / 60 = 800 ms
-  -- we've already waited 96 frames so only wait 864 - 96 = 768 frames now
-  yield_delay(768)
+  yield_delay(864)
   music(-1, 800)
+end
+
+function titlemenu:show_menu_after_delay_async()
+  -- show menu after short intro of 2 columns
+  -- we assume play_opening_music_async was started at the same time
+  -- title bgm is at SPD 12 so that makes
+  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+  yield_delay(96)
+  self:show_menu()
 end
 
 function titlemenu:show_menu()
@@ -70,11 +79,15 @@ function titlemenu:show_menu()
   self.menu:show_items(self.items)
 end
 
+-- this is called when entering credits
 function titlemenu:on_exit()
+  -- a priori not needed, because we can only enter credits once the opening is over
+  self.is_playing_opening = false
+
   -- clear menu completely (will call GC, but fine)
   self.menu = nil
 
-  -- stop all coroutines, this is important to prevent opening_sequence_async from continuing in the background
+  -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
   self.app:stop_all_coroutines()
 end
@@ -82,6 +95,10 @@ end
 function titlemenu:update()
   if self.menu then
     self.menu:update()
+  elseif input:is_just_pressed(button_ids.o) then
+    -- stop show menu delay and show menu immediately instead
+    self.app:stop_coroutine(self.show_menu_after_delay_async_coroutine_index)
+    self:show_menu()
   end
 end
 

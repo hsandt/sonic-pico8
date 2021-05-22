@@ -27,11 +27,11 @@ local menu_item_params = {
 }
 
 -- parameters:
--- items                {menu_item}   sequence of menu items that the menu should display
+-- items                        {menu_item}   sequence of menu items that the menu should display
 
 -- state:
--- show_menu_after_delay_async_coroutine_index   int|nil        index of coroutine for show_menu_after_delay_async
--- menu                 menu          title menu showing items (only created when it must be shown)
+-- frames_before_showing_menu   int           number of frames before showing menu. Ignored if 0.
+-- menu                         menu          title menu showing items (only created when it must be shown)
 
 function titlemenu:init()
   -- sequence of menu items to display, with their target states
@@ -39,13 +39,21 @@ function titlemenu:init()
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
-  -- self.menu = nil  -- defined later, this is commented out to spare characters
-  -- self.is_playing_opening = false  -- nil is equivalent to false, so commented out to spare characters
+  -- self.menu = nil  -- commented out to spare characters
+
+  -- defined in on_enter anyway, but we still define it to allow utests to handle that
+  --  without simulating on_enter (and titlemenu cartridge has enough space)
+  self.frames_before_showing_menu = 0
 end
 
 function titlemenu:on_enter()
   self.app:start_coroutine(self.play_opening_music_async, self)
-  self.show_menu_after_delay_async_coroutine_index = self.app:start_coroutine(self.show_menu_after_delay_async, self)
+
+  -- show menu after short intro of 2 columns
+  -- we assume play_opening_music_async was started at the same time
+  -- title bgm is at SPD 12 so that makes
+  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+  self.frames_before_showing_menu = 96
 end
 
 function titlemenu:play_opening_music_async()
@@ -63,15 +71,6 @@ function titlemenu:play_opening_music_async()
   --   12 SPD * 4 frames/SPD/column * 1 column = 48 frames = 48 * 1000 / 60 = 800 ms
   yield_delay(864)
   music(-1, 800)
-end
-
-function titlemenu:show_menu_after_delay_async()
-  -- show menu after short intro of 2 columns
-  -- we assume play_opening_music_async was started at the same time
-  -- title bgm is at SPD 12 so that makes
-  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
-  yield_delay(96)
-  self:show_menu()
 end
 
 function titlemenu:show_menu()
@@ -95,10 +94,20 @@ end
 function titlemenu:update()
   if self.menu then
     self.menu:update()
-  elseif input:is_just_pressed(button_ids.o) then
-    -- stop show menu delay and show menu immediately instead
-    self.app:stop_coroutine(self.show_menu_after_delay_async_coroutine_index)
-    self:show_menu()
+  else
+    -- menu not shown yet, check for immediate show input vs normal countdown
+
+    if input:is_just_pressed(button_ids.o) then
+      -- show menu immediately
+      self.frames_before_showing_menu = 0
+    else
+      -- decrement countdown
+      self.frames_before_showing_menu = self.frames_before_showing_menu - 1
+    end
+
+    if self.frames_before_showing_menu <= 0 then
+      self:show_menu()
+    end
   end
 end
 

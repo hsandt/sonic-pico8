@@ -39,6 +39,13 @@ function stage_state:init()
   -- list of emerald pick fxs playing (currently no pooling, just add and delete)
   self.emerald_pick_fxs = {}
 
+  -- overlap tiles: tiles that are overlapping another tile in the tilemap and cannot be defined directly
+  --  in tilemap data, but can be stored in advance and mset on every region reload
+  -- they can be midground or foreground, it's the sprite flag that decides how they are rendered
+  --  since they are rendered as part of the tilemap
+  -- format: {{global tile location, sprite_id}, ...}
+  self.overlap_tiles = {}
+
   -- spring objects
   self.springs = {}
 
@@ -55,10 +62,6 @@ end
 --#endif
 
 function stage_state:on_enter()
-  -- don't initialize loaded region coords to force first
-  --  (we don't know in which region player character will spawn)
-  -- self.loaded_map_region_coords = nil
-
   -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
   --  we preload all map regions on stage start and spawn
 
@@ -320,6 +323,17 @@ function stage_state:spawn_emerald_at(global_loc)
   -- but regions are always preloaded for object spawning in the same order, so
   -- for given emerald locations, their colors are deterministic
   add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+  -- if emerald is surrounded by hiding leaves (we only check if there's one on the right)
+  --  we must draw an extra hiding leaves sprite on top of the emerald
+  -- but to make it cheaper, we mset it directly onto the tilemap
+  -- except tilemap is reloaded from file on region reload, so we cannot mset now,
+  --  and must store that info for later (to mset during every region reload)
+  local region_loc = self:global_to_region_location(global_loc)
+  local s = mget(region_loc.i, region_loc.j)
+  if mget(region_loc.i + 1, region_loc.j) == visual.hiding_leaves_id then
+    add(self.overlap_tiles, {global_loc, visual.hiding_leaves_id})
+  end
 
   log("added emerald #"..#self.emeralds, "emerald")
 end
@@ -651,6 +665,18 @@ function stage_state:check_reload_map_region()
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
     self:reload_map_region(new_map_region_coords)
+
+    for overlap_tile_info in all(self.overlap_tiles) do
+      local global_loc, sprite_id = unpack(overlap_tile_info)
+      local region_loc = self:global_to_region_location(global_loc)
+      -- OPTIMIZE CHARS: region coords range check is to be cleaner,
+      --  but PICO-8 can handle an mset outside the 128x32 tiles, just do nothing
+      --  So you can remove this check if it really costs too many characters
+      if region_loc.i >= 0 and region_loc.i < map_region_tile_width and
+          region_loc.j >= 0 and region_loc.j < map_region_tile_height then
+        mset(region_loc.i, region_loc.j, sprite_id)
+      end
+    end
   end
 end
 
@@ -992,13 +1018,6 @@ function stage_state:render_stage_elements()
 --#if debug_character
   self.player_char:debug_draw_rays()
 --#endif
-end
-
--- same kind of helper as base_stage_state:global_to_region_location and region_to_global_location,
---  but for mset
-function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
-  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_location()
-  mset(region_loc.i, region_loc.j, sprite_id)
 end
 
 -- render the player character at its current position

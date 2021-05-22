@@ -1124,10 +1124,11 @@ function player_char:update_platformer_motion_grounded()
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
-  self.velocity = self.ground_speed * vector.unit_from_angle(self.slope_angle)
+  self.velocity:copy_assign(self.ground_speed * vector.unit_from_angle(self.slope_angle))
 
   -- update position
-  self.position = ground_motion_result.position
+  self.position:copy_assign(ground_motion_result.position)
+  -- printh("self.position ("..self.position..") ")
 
   -- character falls by default if finds no ground to stick to
   local should_fall = ground_motion_result.is_falling

@@ -15,6 +15,10 @@ local ingame_visual = {
   spring_right_repr_tile_id = 173,          -- just representing spring oriented to right on tilemap,
                                             --  we use the generic sprite rotated for rendering
 
+  -- hiding leaves, must be known to detect emerald surrounded by them and render an extra hiding leaf
+  --  on top of the emerald itself (via tilemap)
+  hiding_leaves_id = 234,
+
   -- palm tree top representative tile is drawn via tilemap, so id is enough
   --  for extension sprites drawn around it, see ingame_sprite_data_t.palm_tree_leaves*
   palm_tree_leaves_core_id = 236,

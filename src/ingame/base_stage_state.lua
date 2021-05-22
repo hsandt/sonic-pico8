@@ -28,6 +28,10 @@ function base_stage_state:init()
   --  start at j=0
   self.waterfall_global_locations_i = {}
 --#endif
+
+-- don't initialize loaded region coords (we don't know in which region player character will spawn),
+--  each child class on_enter will set them in on_enter
+-- self.loaded_map_region_coords = nil
 end
 
 

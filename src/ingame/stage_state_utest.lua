@@ -80,6 +80,7 @@ describe('stage_state', function ()
             {},
             {},
             {},
+            {},
             nil,
             -- itest only
             true,
@@ -94,6 +95,7 @@ describe('stage_state', function ()
             state.emeralds,
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
+            state.overlap_tiles,
             state.springs,
             state.loaded_map_region_coords,
             -- itest only
@@ -261,19 +263,44 @@ describe('stage_state', function ()
     describe('spawn_emerald_at', function ()
 
       it('should store emerald global location', function ()
-        state:spawn_emerald_at(location(1, 33))
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
         assert.are_same({
-          location(1, 33),
+          location(128 + 5, 16 + 17),
         }, state.spawned_emerald_locations)
       end)
 
       it('should spawn and store emerald objects for each emerald tile', function ()
-        state:spawn_emerald_at(location(1, 33))
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
         assert.are_same({
-          emerald(1, location(1, 33)),
+          emerald(1, location(128 + 5, 16 + 17)),
         }, state.emeralds)
+      end)
+
+      it('(no hiding leaves on the right) should not add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({}, state.overlap_tiles)
+      end)
+
+      it('(hiding leaves on the right) should add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+        -- region coords: place hiding leaves just on right of emerald
+        mset(5 + 1, 17, visual.hiding_leaves_id)
+        state.overlap_tiles = {"dummy"}
+
+        -- '128 +' and '16 +' because region u = 1 and v = 0.5 (we could also write 33 = 32 + 1, but
+        --  16 is the real reference = topleft.j for v = 0.5)
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual.hiding_leaves_id}}, state.overlap_tiles)
       end)
 
     end)
@@ -769,12 +796,17 @@ describe('stage_state', function ()
           end
           return vector(0, 0)
         end)
-        stub(stage_state, "reload_map_region")
+        stub(stage_state, "reload_map_region", function (self, new_map_region_coords)
+          -- minimal stub just to change member that must be used by statements below
+          self.loaded_map_region_coords = new_map_region_coords
+        end)
+        stub(_G, "mset")
       end)
 
       teardown(function ()
         stage_state.get_map_region_coords:revert()
         stage_state.reload_map_region:revert()
+        mset:revert()
       end)
 
       before_each(function ()
@@ -788,6 +820,7 @@ describe('stage_state', function ()
       after_each(function ()
         stage_state.get_map_region_coords:clear()
         stage_state.reload_map_region:clear()
+        mset:clear()
       end)
 
       it('should call reload_map_region with (1, 0.5)', function ()
@@ -804,6 +837,28 @@ describe('stage_state', function ()
         state:check_reload_map_region()
 
         assert.spy(stage_state.reload_map_region).was_not_called()
+      end)
+
+      it('should mset overlap tiles at region coordinates inside current region range', function ()
+        -- note that check_reload_map_region will *move* to region (1, 0.5)
+        state.loaded_map_region_coords = vector(0, 0)
+        state.overlap_tiles = {{location(128 + 5, 16 + 17), 24}}
+
+        state:check_reload_map_region()
+
+        assert.spy(mset).was_called(1)
+        assert.spy(mset).was_called_with(5, 17, 24)
+      end)
+
+      it('should *not* mset overlap tiles at region coordinates outside current region range', function ()
+        -- note that check_reload_map_region will *move* to region (1, 0.5)
+        state.loaded_map_region_coords = vector(0, 0)
+        -- too much on the left! region coords would be (-5, 17) which are outside current map!
+        state.overlap_tiles = {{location(128 - 5, 16 + 17), 24}}
+
+        state:check_reload_map_region()
+
+        assert.spy(mset).was_not_called()
       end)
 
     end)

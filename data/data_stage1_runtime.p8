@@ -3,6 +3,10 @@ version 29
 __lua__
 -- picosonic data:
 -- runtime spritesheet by leyn
+
+-- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+import "spritesheet_stage1_runtime.png"
+
 __gfx__
 00000000eeeeebbbeeeeeeeeeeeeeeeeeeed65eeeeeeeeeeeeeeeccccced65eeeeeeeeeee5eeeeeeeeeeeeeeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeeeeee
 00000000eeeebbbeeeeeeeeeed66666666666666666666deed66cccccccc6666666666de575eeeeeee7eeeeeeeeee7eee272eeeeee2eeeeeeeee272eeeeee2ee

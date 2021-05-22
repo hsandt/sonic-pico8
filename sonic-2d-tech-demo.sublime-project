@@ -43,37 +43,37 @@
 		{
 			"name": "Game: edit built-in data: titlemenu",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_titlemenu.p8"],
+			"cmd": ["pico8 -run data/builtin_data_titlemenu.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: ingame",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_ingame.p8"],
+			"cmd": ["pico8 -run data/builtin_data_ingame.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_intro",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_stage_intro.p8"],
+			"cmd": ["pico8 -run data/builtin_data_stage_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_clear",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_stage_clear.p8"],
+			"cmd": ["pico8 -run data/builtin_data_stage_clear.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data: bgm",
 			"shell": true,
-			"cmd": ["pico8 data/data_bgm1.p8"],
+			"cmd": ["pico8 -run data/data_bgm1.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data: stage1 runtime",
 			"shell": true,
-			"cmd": ["pico8 data/data_stage1_runtime.p8"],
+			"cmd": ["pico8 -run data/data_stage1_runtime.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
@@ -84,35 +84,35 @@
 			[
 				{
 					"name": "00",
-					"cmd": ["pico8 data/data_stage1_00.p8"],
+					"cmd": ["pico8 -run data/data_stage1_00.p8"],
 				},
 				{
 					"name": "01",
-					"cmd": ["pico8 data/data_stage1_01.p8"],
+					"cmd": ["pico8 -run data/data_stage1_01.p8"],
 				},
 				{
 					"name": "10",
-					"cmd": ["pico8 data/data_stage1_10.p8"],
+					"cmd": ["pico8 -run data/data_stage1_10.p8"],
 				},
 				{
 					"name": "11",
-					"cmd": ["pico8 data/data_stage1_11.p8"],
+					"cmd": ["pico8 -run data/data_stage1_11.p8"],
 				},
 				{
 					"name": "20",
-					"cmd": ["pico8 data/data_stage1_20.p8"],
+					"cmd": ["pico8 -run data/data_stage1_20.p8"],
 				},
 				{
 					"name": "21",
-					"cmd": ["pico8 data/data_stage1_21.p8"],
+					"cmd": ["pico8 -run data/data_stage1_21.p8"],
 				},
 				{
 					"name": "30",
-					"cmd": ["pico8 data/data_stage1_30.p8"],
+					"cmd": ["pico8 -run data/data_stage1_30.p8"],
 				},
 				{
 					"name": "31",
-					"cmd": ["pico8 data/data_stage1_31.p8"],
+					"cmd": ["pico8 -run data/data_stage1_31.p8"],
 				},
 			]
 		},

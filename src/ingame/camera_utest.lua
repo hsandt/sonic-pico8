@@ -722,6 +722,16 @@ describe('camera_class', function ()
 
   end)
 
+  describe('get_floored_position', function ()
+
+    it('should return current position with floored coordinates', function ()
+      local cam = camera_class()
+      cam.position = vector(5.9, -5.1)
+      assert.are_same(vector(5, -6), cam:get_floored_position())
+    end)
+
+  end)
+
   describe('get_bottom_limit_at_x', function ()
 
     local cam

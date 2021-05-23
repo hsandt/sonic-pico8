@@ -102,6 +102,7 @@ function stage_intro_state:update()
 end
 
 function stage_intro_state:render()
+  -- no need to floor camera position like stage_state, since we don't really move on X
   visual_stage.render_background(self.camera.position)
   self:render_waterfalls()
   self:render_stage_elements()

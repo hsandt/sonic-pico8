@@ -184,6 +184,13 @@ function camera_class:update()
   self.position.y = mid(screen_height / 2, self.position.y, dynamic_bottom_limit - screen_height / 2)
 end
 
+-- return position with floored coordinates
+--  use this when passing position to a function that doesn't automatically floor
+--  like pico8's camera(), and where pixel fractions may cause unintended effects
+function camera_class:get_floored_position()
+  return vector(flr(self.position.x), flr(self.position.y))
+end
+
 function camera_class:get_bottom_limit_at_x(x)
   local bottom_limit_tile_margin = 0
 

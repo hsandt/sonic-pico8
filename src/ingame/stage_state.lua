@@ -282,7 +282,9 @@ function stage_state:update()
 end
 
 function stage_state:render()
-  visual_stage.render_background(self.camera.position)
+  -- background parallax layers use precise calculation and will sometimes move parallax
+  --  during sub-pixel motion, causing visual instability => so floor camera position
+  visual_stage.render_background(self.camera:get_floored_position())
   self:render_waterfalls()
   self:render_stage_elements()
   self:render_fx()

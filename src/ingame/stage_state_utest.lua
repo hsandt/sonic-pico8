@@ -1273,9 +1273,13 @@ describe('stage_state', function ()
           end)
 
           it('should call render_background, render_stage_elements, render_fx, render_hud', function ()
+            -- to test camera position flooring
+            state.camera.position = vector(60.1, 380.9)
+
             state:render()
+
             assert.spy(visual_stage.render_background).was_called(1)
-            assert.spy(visual_stage.render_background).was_called_with(state.camera.position)
+            assert.spy(visual_stage.render_background).was_called_with(vector(60, 380))  -- floored coords
             assert.spy(base_stage_state.render_waterfalls).was_called(1)
             assert.spy(base_stage_state.render_waterfalls).was_called_with(match.ref(state))
             assert.spy(stage_state.render_stage_elements).was_called(1)

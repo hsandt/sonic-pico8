@@ -3,6 +3,7 @@ local camera_class = require("ingame/camera")
 
 local camera_data = require("data/camera_data")
 local player_char = require("ingame/playercharacter")
+local pc_data = require("data/playercharacter_data")
 
 describe('camera_class', function ()
 
@@ -10,8 +11,30 @@ describe('camera_class', function ()
 
     it('should init members to defaults', function ()
       local cam = camera_class()
-      assert.are_same({nil, vector.zero(), 0, horizontal_dirs.right, 0},
-        {cam.target_pc, cam.position, cam.forward_offset, cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
+      assert.are_same({
+          nil,
+          vector.zero(),
+          0,
+          horizontal_dirs.right,
+          0,
+          horizontal_dirs.right,
+          0,
+          0,
+          0,
+          0,
+        },
+        {
+          cam.target_pc,
+          cam.position,
+          cam.forward_offset,
+          cam.last_grounded_orientation,
+          cam.frames_since_grounded_orientation_change,
+          cam.confirmed_orientation,
+          cam.frames_since_crouching,
+          cam.look_down_offset,
+          cam.base_position_x,  -- #busted
+          cam.base_position_y,
+        })
     end)
 
   end)
@@ -26,8 +49,12 @@ describe('camera_class', function ()
       local cam = camera_class()
       cam:setup_for_stage(mock_curr_stage_data)
 
+      -- normally we should stub init_position and verify we called it passing the spawn center position,
+      --  but this test was written before init_position was extracted, so we kept checking the final result
+      --  although it's a bit redundant with the actual init_position utest below
       local spawn_position = mock_curr_stage_data.spawn_location:to_center_position()
       assert.are_same(spawn_position, cam.position)
+      assert.are_equal(spawn_position.y, cam.base_position_y)  -- base position y sync
     end)
 
     it('should initialize forward_offset to + camera_data.forward_distance ', function ()
@@ -40,6 +67,18 @@ describe('camera_class', function ()
       cam:setup_for_stage(mock_curr_stage_data)
 
       assert.are_same(camera_data.forward_distance, cam.forward_offset)
+    end)
+
+  end)
+
+  describe('init_position', function ()
+
+    it('should initialize camera at future character spawn position (+ estimated future forward base offset)', function ()
+      local cam = camera_class()
+      cam:init_position(vector(10, 2))
+
+      assert.are_same(vector(10, 2), cam.position)
+      assert.are_equal(2, cam.base_position_y)  -- base position y sync
     end)
 
   end)
@@ -84,7 +123,7 @@ describe('camera_class', function ()
     end)
 
     it('(debug motion) should track the player 1:1', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_mode = motion_modes.debug
       cam.target_pc.position = vector(140, 100)
 
@@ -177,11 +216,77 @@ describe('camera_class', function ()
       assert.are_same({horizontal_dirs.right, 1}, {cam.last_grounded_orientation, cam.frames_since_grounded_orientation_change})
     end)
 
+    -- look down: frames_since_crouching update
+
+    it('(pc not crouching) should reset frames_since_crouching', function ()
+      cam.target_pc.motion_state = motion_states.standing
+      cam.frames_since_crouching = 60
+
+      cam:update()
+
+      assert.are_equal(0, cam.frames_since_crouching)
+    end)
+
+    it('(pc not crouching) should decrease look_down_offset by look_down_speed', function ()
+      cam.target_pc.motion_state = motion_states.standing
+      cam.look_down_offset = 10
+
+      cam:update()
+
+      assert.are_equal(10 - camera_data.look_down_speed, cam.look_down_offset)
+    end)
+
+    it('(pc not crouching) should decrease look_down_offset by look_down_speed clamped to 0', function ()
+      cam.target_pc.motion_state = motion_states.standing
+      cam.look_down_offset = camera_data.look_down_speed / 2
+
+      cam:update()
+
+      assert.are_equal(0, cam.look_down_offset)
+    end)
+
+    it('(pc crouching) should increment frames_since_crouching', function ()
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.frames_since_crouching = 60
+
+      cam:update()
+
+      assert.are_equal(61, cam.frames_since_crouching)
+    end)
+
+    it('(pc crouching just reaching enough time this frame) should still not increase look_down_offset', function ()
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.frames_since_crouching = camera_data.frames_before_look_down - 1
+
+      cam:update()
+
+      assert.are_equal(0, cam.look_down_offset)
+    end)
+
+    it('(pc crouching already reached frames_before_look_down last frame) should increase look_down_offset', function ()
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.frames_since_crouching = camera_data.frames_before_look_down
+
+      cam:update()
+
+      assert.are_equal(camera_data.look_down_speed, cam.look_down_offset)
+    end)
+
+    it('(pc crouching already reached frames_before_look_down last frame) should increase look_down_offset clamped to camera_data.max_look_down_distance', function ()
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.frames_since_crouching = camera_data.frames_before_look_down
+      cam.look_down_offset =  camera_data.max_look_down_distance - camera_data.look_down_speed / 2
+
+      cam:update()
+
+      assert.are_equal(camera_data.max_look_down_distance, cam.look_down_offset)
+    end)
+
     -- below, make sure to test base_position_x instead of cam.position.x if you want to ignore the forward offset,
     --  and in particular the base forward offset which is always present due to orientation
 
     it('should move the camera X so player X is on left edge if he goes beyond left edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 - camera_data.window_half_width - 1, 80)
 
       cam:update()
@@ -190,7 +295,7 @@ describe('camera_class', function ()
     end)
 
     it('should not move the camera on X if player X remains in window X (left edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 - camera_data.window_half_width, 80)
 
       cam:update()
@@ -199,7 +304,7 @@ describe('camera_class', function ()
     end)
 
     it('should not move the camera on X if player X remains in window X (right edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 + camera_data.window_half_width, 80)
 
       cam:update()
@@ -208,7 +313,7 @@ describe('camera_class', function ()
     end)
 
     it('should move the camera X so player X is on right edge if he goes beyond right edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 + camera_data.window_half_width + 1, 80)
 
       cam:update()
@@ -219,7 +324,7 @@ describe('camera_class', function ()
     -- forward base, positive X
 
     it('forward base: should increase forward offset toward + camera_data.forward_distance by catch up speed (not clamped yet) when character faces right (but not moving fast)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.forward_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
@@ -237,7 +342,7 @@ describe('camera_class', function ()
     end)
 
     it('forward base: should increase forward offset toward + camera_data.forward_distance by catch up speed (clamped) when character faces right (but not moving fast)', function ()
-      cam.position = vector(120 + camera_data.forward_distance, 80)
+      cam:init_position(vector(120 + camera_data.forward_distance, 80))
       cam.forward_offset = camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
@@ -253,7 +358,7 @@ describe('camera_class', function ()
     -- forward base, negative X
 
     it('forward base: should increase forward offset toward - camera_data.forward_distance by catch up speed (not clamped yet) when character faces left (but not moving fast)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.forward_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
@@ -267,7 +372,7 @@ describe('camera_class', function ()
     end)
 
     it('forward base: should increase forward offset toward - camera_data.forward_distance by catch up speed (clamped) when character faces left (but not moving fast)', function ()
-      cam.position = vector(120 - camera_data.forward_distance, 80)
+      cam:init_position(vector(120 - camera_data.forward_distance, 80))
       cam.forward_offset = - camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
@@ -286,7 +391,7 @@ describe('camera_class', function ()
     it('forward extension: should increase forward extension by catch up speed when character reaches (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2', function ()
       -- we start from offset 0 so the forward base offset doesn't have an impact here
 
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -301,7 +406,7 @@ describe('camera_class', function ()
     it('forward extension: should increase forward extension toward max by catch up speed when character reaches max_forward_ext_speed_x', function ()
       -- we start from offset 0 so the forward base offset doesn't have an impact here
 
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -321,7 +426,7 @@ describe('camera_class', function ()
       cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -341,7 +446,7 @@ describe('camera_class', function ()
       cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -358,7 +463,7 @@ describe('camera_class', function ()
       --  everywhere
 
       cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -375,7 +480,7 @@ describe('camera_class', function ()
       --  everywhere
 
       cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 + 0.1  -- just add something lower than camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -392,7 +497,7 @@ describe('camera_class', function ()
       --  so the forward base offset doesn't have an impact
 
       cam.forward_offset = camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -409,7 +514,7 @@ describe('camera_class', function ()
       --  everywhere
 
       cam.forward_offset = camera_data.forward_distance + 0.1  -- just something lower than camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -428,7 +533,7 @@ describe('camera_class', function ()
     it('forward extension: should increase forward extension toward NEGATIVE by catch up speed when character reaches -max_forward_ext_speed_x', function ()
       -- we start from offset 0 so the forward base offset doesn't have an impact here
 
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -447,7 +552,7 @@ describe('camera_class', function ()
       cam.forward_offset = camera_data.forward_distance - (camera_data.forward_ext_max_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
 
@@ -462,7 +567,7 @@ describe('camera_class', function ()
       --  everywhere
 
       cam.forward_offset = camera_data.forward_distance - camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
 
@@ -477,7 +582,7 @@ describe('camera_class', function ()
       --  everywhere
 
       cam.forward_offset = camera_data.forward_distance - 0.1  -- just something lower (in abs) than camera_data.forward_ext_max_distance
-      cam.position = vector(120 + cam.forward_offset, 80)
+      cam:init_position(vector(120 + cam.forward_offset, 80))
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
 
@@ -490,7 +595,7 @@ describe('camera_class', function ()
     -- Y
 
     it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       -- alternative +/- ground speed to check abs logic
       cam.target_pc.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
@@ -506,7 +611,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond top edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
@@ -519,7 +624,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than low catchup speed', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y - 0.5))
@@ -530,7 +635,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond top edge slower than fast catchup speed', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -camera_data.fast_catchup_min_ground_speed
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y - 0.5))
@@ -541,7 +646,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing) should not move the camera Y if player Y remains in window Y (top edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y)
@@ -552,7 +657,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing) should not move the camera Y if player Y remains in window Y (bottom edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y)
@@ -563,7 +668,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, low ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y - 0.5))
@@ -574,7 +679,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, high ground speed) should move the camera Y to match player Y if he goes beyond bottom edge slower than low catchup speed', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -camera_data.fast_catchup_min_ground_speed
       cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y - 0.5))
@@ -585,7 +690,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, low ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -(camera_data.fast_catchup_min_ground_speed - 0.5)
       -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
@@ -600,7 +705,7 @@ describe('camera_class', function ()
     end)
 
     it('(standing, high ground speed) should move the camera Y toward player position (so it matches reference Y) using slow catchup speed if he goes beyond bottom edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
@@ -613,7 +718,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to top edge) if player Y goes beyond top edge faster than fast_catchup_speed_y', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - (camera_data.fast_catchup_speed_y + 5))
 
@@ -624,7 +729,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should move the camera Y so player Y is on top edge if he goes beyond top edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - 1)
 
@@ -634,7 +739,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should not move the camera on Y if player Y remains in window Y (top edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height)
 
@@ -644,7 +749,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should not move the camera on X if player X remains in window X (bottom edge)', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height)
 
@@ -654,7 +759,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should move the camera X so player X is on bottom edge if he goes beyond bottom edge', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + 1)
 
@@ -664,7 +769,7 @@ describe('camera_class', function ()
     end)
 
     it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to bottom edge) if player Y goes beyond bottom edge faster than fast_catchup_speed_y', function ()
-      cam.position = vector(120, 80)
+      cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
       cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + (camera_data.fast_catchup_speed_y + 5))
 
@@ -674,34 +779,75 @@ describe('camera_class', function ()
       assert.are_equal(80 + camera_data.fast_catchup_speed_y, cam.position.y)
     end)
 
+    it('#solo (compact) should target center for standing height even if character is compact for camera stability on Y', function ()
+      cam:init_position(vector(120, 80))
+      cam.look_down_offset = 0
+
+      cam.target_pc.motion_state = motion_states.rolling
+      local pos_y_compact = 80 + pc_data.center_height_standing - pc_data.center_height_compact
+      cam.target_pc.position = vector(120, pos_y_compact + camera_data.window_center_offset_y)
+
+      cam:update()
+
+      assert.are_equal(80, cam.position.y)
+    end)
+
+    it('(crouching with look_down_offset) should apply look_down_offset', function ()
+      cam:init_position(vector(120, 80))
+      cam.look_down_offset = 10
+
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y)
+
+      cam:update()
+
+      assert.are_equal(80 + 10, cam.position.y)
+    end)
+
+    it('(crouching) should apply look_down_offset then clamp on Y (bottom limit offset 0 at that X)', function ()
+      cam:init_position(vector(800-64, 220-64))
+      cam.look_down_offset = 30
+
+      cam.target_pc.motion_state = motion_states.crouching
+      cam.target_pc.position = vector(800-64, 220-64 + camera_data.window_center_offset_y)
+
+      cam:update()
+
+      -- 220 + 30 = 250 but clamped so 240 (64 for screen half height)
+      assert.are_equal(240-64, cam.position.y)
+    end)
+
     it('should move the camera to player position, clamped (top-left)', function ()
-      cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
       -- pick offsets of camera_data.slow_catchup_speed_y or lower to be safe
-      cam.position = vector(64 + 2, 64 + 2)
+      cam:init_position(vector(64 + 2, 64 + 2))
+
       cam.target_pc.position = vector(12, 24)
+      cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
 
       cam:update()
 
       assert.are_same(vector(64, 64), cam.position)
     end)
 
-    it('should move the camera to player position, clamped (bottom-right)', function ()
+    it('should move the camera to player position, clamped (top-right)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(800-64, 240-64)
-      cam.target_pc.position = vector(2000, 1000)
+      cam:init_position(vector(800-64, 64 + 2))
+
+      cam.target_pc.position = vector(2000, 0)
 
       cam:update()
 
-      assert.are_same(vector(800-64, 240-64), cam.position)
+      assert.are_same(vector(800-64, 64), cam.position)
     end)
 
     it('should move the camera to player position, clamped (bottom-right, bottom limit offset 0)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(800-64, 240-64)
+      cam:init_position(vector(800-64, 240-64))
+
       cam.target_pc.position = vector(2000, 1000)
 
       cam:update()
@@ -712,7 +858,8 @@ describe('camera_class', function ()
     it('should move the camera to player position, clamped (bottom-left, bottom limit offset 2)', function ()
       -- start near/at the edge already, if you're too far the camera won't have
       --  time to reach the edge in one update due to smooth motion (in y)
-      cam.position = vector(64, 224-64)
+      cam:init_position(vector(64, 224-64))
+
       cam.target_pc.position = vector(0, 1000)
 
       cam:update()
@@ -726,7 +873,7 @@ describe('camera_class', function ()
 
     it('should return current position with floored coordinates', function ()
       local cam = camera_class()
-      cam.position = vector(5.9, -5.1)
+      cam:init_position(vector(5.9, -5.1))
       assert.are_same(vector(5, -6), cam:get_floored_position())
     end)
 
@@ -778,7 +925,7 @@ describe('camera_class', function ()
 
     before_each(function ()
       cam = camera_class()
-      cam.position = vector(64, 64)  -- so top-left is (0, 0) and bottom-right is (128, 128)
+      cam:init_position(vector(64, 64))  -- so top-left is (0, 0) and bottom-right is (128, 128)
     end)
 
     it('should return false for square just touching on the left, but outside camera view', function ()

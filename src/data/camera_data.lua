@@ -35,6 +35,7 @@ local camera_data = {
   --  fast_catchup_min_ground_speed or more (e.g. when rolling fast)
   fast_catchup_speed_y = 8,
 
+
   -- Forward offset system
 
   -- Base: When character is looking forward a horizontal direction for a certain time
@@ -72,6 +73,19 @@ local camera_data = {
 
   -- catchup speed on X to reach maximum forward extension (px/frame)
   forward_ext_catchup_speed_x = 0.5,
+
+
+  -- Look down
+
+  -- number of frames since starting crouch (and holding it) before camera starts moving down
+  --  (to avoid annoying look down when preparing spin dash). 120 frames = 2s
+  frames_before_look_down = 120,
+
+  -- speed of camera moving down during look down, but also moving up to neutral state (px/frame)
+  look_down_speed = 1,
+
+  -- maximum vertical distance of camera moving down during look down (px)
+  max_look_down_distance = 44,
 }
 
 return camera_data

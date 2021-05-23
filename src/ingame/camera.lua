@@ -29,11 +29,27 @@ function camera_class:init()
   --  it is confirmed and can be applied to forward base offset
   self.confirmed_orientation = horizontal_dirs.right
 
+  -- time since crouching, incremented until we reach frames_before_look_down,
+  --  and reset when leaving crouching (frames)
+  self.frames_since_crouching = 0
+
+  -- current offset of look down (positive when camera moves down) (px)
+  self.look_down_offset = 0
+
 --#if busted
   -- intermediate values that are much easier to test when isolated, but don't need to be stored
   --  at runtime (only set in update, not in setup)
   self.base_position_x = 0
 --#endif
+
+  -- base position y: this one is requierd at runtime for look down,
+  --  because we must remember the no-look-down position obtained via window calculations,
+  --  and then apply look down to this value (apply look down to position y every frame
+  --  would stack the offsets like a crazy integration!)
+  -- Optimization chars: usually we should comment this out to spare characters as setup_for_stage
+  --  will set it soon, but it may mess up utests easily to have this number undefined,
+  --  so bear the extra characters for now; if you really want to strip from release, just surround with #busted
+  self.base_position_y = 0
 end
 
 -- setup camera for stage data
@@ -44,7 +60,7 @@ function camera_class:setup_for_stage(data)
   -- warp the camera to spawn location (anywhere in the starting region will be enough
   --  so the tilemap region is loaded properly for collision detection; but centering it
   --  on the character first makes sense, since with the window system several positions are possible)
-  self.position = data.spawn_location:to_center_position()
+  self:init_position(data.spawn_location:to_center_position())
 
   -- prepare forward base offset set for future character (we assume it will be facing right)
   --  just so camera doesn't move just on start (this is quick, would probably
@@ -53,6 +69,16 @@ function camera_class:setup_for_stage(data)
   --  since it will be updated with forward_offset next frame (right now, position is really
   --  set just for the initial region loading, so only the approx. location matters)
   self.forward_offset = camera_data.forward_distance
+end
+
+-- initialize camera position
+-- only used by setup_for_stage at runtime, it was useful to extract for the various utests
+--  so they could start with a base position y matching the initial position
+function camera_class:init_position(initial_position)
+  self.position = initial_position
+  -- immediately sync base position y, which needs a starting point
+  --  (unlike base position x, set from scratch every frame)
+  self.base_position_y = initial_position.y
 end
 
 -- update camera position based on player character position
@@ -82,6 +108,27 @@ function camera_class:update()
     if self.frames_since_grounded_orientation_change >= camera_data.grounded_orientation_confirmation_duration then
       self.confirmed_orientation = self.last_grounded_orientation
     end
+  end
+
+  -- update frames_since_crouching (increment or reset)
+  if self.target_pc.motion_state == motion_states.crouching then
+    if self.frames_since_crouching >= camera_data.frames_before_look_down then
+      -- move camera down at given speed until limit
+      self.look_down_offset = min(self.look_down_offset + camera_data.look_down_speed, camera_data.max_look_down_distance)
+    else
+      -- we haven't crouched for long enough, increment frame counter
+      -- note that we are not increasing look down offset this frame, so when frames_before_look_down is 1,
+      --  we effectively wait 1 frame before starting looking down
+      self.frames_since_crouching = self.frames_since_crouching + 1
+    end
+  else
+    -- reset frame counter immediately in case it was positive
+    self.frames_since_crouching = 0
+
+    -- move camera back up at same speed as when moving down, until neutral position
+    -- note that due to level bottom limit clamping, when crouching near the bottom limit,
+    --  we won't see the camera move back up before a small delay
+    self.look_down_offset = max(0, self.look_down_offset - camera_data.look_down_speed)
   end
 
   -- Window system: most of the time, only move camera when character
@@ -152,7 +199,7 @@ function camera_class:update()
   if self.target_pc:is_grounded() then
     -- on the ground, stick to y as much as possible
     local target_y = self.target_pc.position.y - camera_data.window_center_offset_y
-    local dy = target_y - self.position.y
+    local dy = target_y - self.base_position_y
 
     -- clamp abs dy with catchup speed (which depends on ground speed)
     local catchup_speed_y = abs(self.target_pc.ground_speed) < camera_data.fast_catchup_min_ground_speed and
@@ -160,20 +207,23 @@ function camera_class:update()
     dy = sgn(dy) * min(abs(dy), catchup_speed_y)
 
     -- apply move
-    self.position.y = self.position.y + dy
+    self.base_position_y = self.base_position_y + dy
   else
     -- in the air apply vertical window (stick to top and bottom edges)
-    local target_y = mid(self.position.y,
+    local target_y = mid(self.base_position_y,
       self.target_pc.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
       self.target_pc.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
-    local dy = target_y - self.position.y
+    local dy = target_y - self.base_position_y
 
     -- clamp abs dy with fast catchup speed
     dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed_y)
 
     -- apply move
-    self.position.y = self.position.y + dy
+    self.base_position_y = self.base_position_y + dy
   end
+
+  -- apply look down offset
+  self.position.y = self.base_position_y + self.look_down_offset
 
   -- clamp on level edges
   -- we are handling the center so we need to offset by screen_width/height

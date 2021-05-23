@@ -197,6 +197,33 @@
 			]
 		},
 		{
+			"name": "Game: build cartridge attract_mode",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode release"]
+				}
+			]
+		},
+		{
 			"name": "Game: build cartridge stage_intro",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -384,6 +411,33 @@
 			]
 		},
 		{
+			"name": "Game: build and run attract_mode",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode debug)"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode assert)"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode profiler)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode release)"]
+				},
+			]
+		},
+		{
 			"name": "Game: build and run stage_intro",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -553,6 +607,22 @@
 					"cmd": ["./run_cartridge.sh ingame release"]
 				},
 				{
+					"name": "attract_mode debug",
+					"cmd": ["./run_cartridge.sh attract_mode debug"]
+				},
+				{
+					"name": "attract_mode assert",
+					"cmd": ["./run_cartridge.sh attract_mode assert"]
+				},
+				{
+					"name": "attract_mode profiler",
+					"cmd": ["./run_cartridge.sh attract_mode profiler"]
+				},
+				{
+					"name": "attract_mode release",
+					"cmd": ["./run_cartridge.sh attract_mode release"]
+				},
+				{
 					"name": "titlemenu debug",
 					"cmd": ["./run_cartridge.sh titlemenu debug"]
 				},
@@ -695,6 +765,32 @@
 				{
 					"name": "release (png)",
 					"cmd": ["./install_single_cartridge_with_data.sh ingame release png"]
+				}
+			]
+		},
+		{
+			"name": "Game: install cartridge attract_mode (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge_with_data.sh attract_mode debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode debug"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode release"]
 				}
 			]
 		},

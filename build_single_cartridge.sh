@@ -26,7 +26,7 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+                            See data/cartridges.txt for the list of cartridge names
                             A symbol equal to the cartridge suffix is always added
                             to the config symbols.
 
@@ -115,6 +115,14 @@ if [[ -n "$symbols" ]]; then
 fi
 symbols+="$cartridge_suffix"
 
+# Define builtin data to use (in most cases it's just the cartridge suffix)
+if [[ $cartridge_suffix == 'attract_mode' ]]; then
+  # attract mode reuses same data as ingame, so no need for dedicated data cartridge
+  builtin_data_suffix="ingame"
+else
+  builtin_data_suffix="$cartridge_suffix"
+fi
+
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
@@ -122,17 +130,17 @@ symbols+="$cartridge_suffix"
 # Build cartridge
 # See data/cartridges.txt for the list of cartridge names
 # metadata really counts for the entry cartridge (titlemenu)
-"$picoboots_scripts_path/build_cartridge.sh"          \
-  "$game_src_path" main_${cartridge_suffix}.lua       \
-  -d "$data_path/builtin_data_${cartridge_suffix}.p8" \
-  -M "$data_path/metadata.p8"                         \
-  -a "$author" -t "$title ($cartridge_suffix)"        \
-  -p "$build_output_path"                             \
-  -o "${cartridge_stem}_${cartridge_suffix}"          \
-  -c "$config"                                        \
-  --no-append-config                                  \
-  -s "$symbols"                                       \
-  --minify-level 3                                    \
+"$picoboots_scripts_path/build_cartridge.sh"             \
+  "$game_src_path" main_${cartridge_suffix}.lua          \
+  -d "$data_path/builtin_data_${builtin_data_suffix}.p8" \
+  -M "$data_path/metadata.p8"                            \
+  -a "$author" -t "$title ($cartridge_suffix)"           \
+  -p "$build_output_path"                                \
+  -o "${cartridge_stem}_${cartridge_suffix}"             \
+  -c "$config"                                           \
+  --no-append-config                                     \
+  -s "$symbols"                                          \
+  --minify-level 3                                       \
   --unify "_${cartridge_suffix}"
 
 if [[ $? -ne 0 ]]; then

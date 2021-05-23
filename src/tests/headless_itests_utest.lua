@@ -29,6 +29,7 @@ local app = picosonic_app()
 
 -- define initial gamestate based on cartridge
 -- #cartridge
+-- (no itests for attract_mode)
 local initial_gamestate
 if cartridge_suffix == 'titlemenu' then
   initial_gamestate = ':titlemenu'

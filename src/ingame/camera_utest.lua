@@ -85,6 +85,11 @@ describe('camera_class', function ()
 
   describe('update_camera', function ()
 
+    -- add this to pos Y when Sonic is compact so you can place its actual center,
+    --  while the camera will still target a few pixels above, i.e. the center as if Sonic was standing
+    -- see comment on adjusted_target_pc_pos_y in source
+    local compact_height_adjustment = pc_data.center_height_standing - pc_data.center_height_compact
+
     local cam
     local pc
 
@@ -720,7 +725,7 @@ describe('camera_class', function ()
     it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to top edge) if player Y goes beyond top edge faster than fast_catchup_speed_y', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - (camera_data.fast_catchup_speed_y + 5))
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y - camera_data.window_half_height - (camera_data.fast_catchup_speed_y + 5))
 
       cam:update()
 
@@ -731,7 +736,7 @@ describe('camera_class', function ()
     it('(airborne) should move the camera Y so player Y is on top edge if he goes beyond top edge', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height - 1)
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y - camera_data.window_half_height - 1)
 
       cam:update()
 
@@ -741,7 +746,7 @@ describe('camera_class', function ()
     it('(airborne) should not move the camera on Y if player Y remains in window Y (top edge)', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y - camera_data.window_half_height)
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y - camera_data.window_half_height)
 
       cam:update()
 
@@ -751,7 +756,7 @@ describe('camera_class', function ()
     it('(airborne) should not move the camera on X if player X remains in window X (bottom edge)', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height)
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y + camera_data.window_half_height)
 
       cam:update()
 
@@ -761,7 +766,7 @@ describe('camera_class', function ()
     it('(airborne) should move the camera X so player X is on bottom edge if he goes beyond bottom edge', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + 1)
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y + camera_data.window_half_height + 1)
 
       cam:update()
 
@@ -771,7 +776,7 @@ describe('camera_class', function ()
     it('(airborne) should move the camera Y toward player Y with fast catchup speed (so that it gets closer to bottom edge) if player Y goes beyond bottom edge faster than fast_catchup_speed_y', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.air_spin
-      cam.target_pc.position = vector(120 , 80 + camera_data.window_center_offset_y + camera_data.window_half_height + (camera_data.fast_catchup_speed_y + 5))
+      cam.target_pc.position = vector(120 , 80 + compact_height_adjustment + camera_data.window_center_offset_y + camera_data.window_half_height + (camera_data.fast_catchup_speed_y + 5))
 
       cam:update()
 
@@ -779,13 +784,12 @@ describe('camera_class', function ()
       assert.are_equal(80 + camera_data.fast_catchup_speed_y, cam.position.y)
     end)
 
-    it('#solo (compact) should target center for standing height even if character is compact for camera stability on Y', function ()
+    it('(compact) should target center for standing height even if character is compact for camera stability on Y', function ()
       cam:init_position(vector(120, 80))
       cam.look_down_offset = 0
 
       cam.target_pc.motion_state = motion_states.rolling
-      local pos_y_compact = 80 + pc_data.center_height_standing - pc_data.center_height_compact
-      cam.target_pc.position = vector(120, pos_y_compact + camera_data.window_center_offset_y)
+      cam.target_pc.position = vector(120, 80 + compact_height_adjustment + camera_data.window_center_offset_y)
 
       cam:update()
 
@@ -797,7 +801,7 @@ describe('camera_class', function ()
       cam.look_down_offset = 10
 
       cam.target_pc.motion_state = motion_states.crouching
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y)
+      cam.target_pc.position = vector(120, 80 + compact_height_adjustment + camera_data.window_center_offset_y)
 
       cam:update()
 
@@ -809,7 +813,7 @@ describe('camera_class', function ()
       cam.look_down_offset = 30
 
       cam.target_pc.motion_state = motion_states.crouching
-      cam.target_pc.position = vector(800-64, 220-64 + camera_data.window_center_offset_y)
+      cam.target_pc.position = vector(800-64, 220-64 + compact_height_adjustment + camera_data.window_center_offset_y)
 
       cam:update()
 

@@ -1,8 +1,6 @@
 local camera_data = require("data/camera_data")
 
---#if cheat
-local player_char = require("ingame/playercharacter")
---#endif
+local pc_data = require("data/playercharacter_data")
 
 local camera_class = new_class()
 
@@ -194,11 +192,19 @@ function camera_class:update()
   self.position.x = windowed_camera_x + self.forward_offset
 
   -- Y tracking
+
+  -- Always track fictive center of character as if standing, for camera stability on Y
+  -- In particular, when crouching, character center moves down (compact height is lower), which would cause
+  --  the camera to move down if it was tracking the real center. When standing, adjusted_target_pc_pos_y == self.target_pc.position.y
+  -- SPG confirms this even when airborne, see GIF and comment about "5px offset while sonic is curled"
+  --  on http://info.sonicretro.org/SPG:Camera#In_the_Air
+  local adjusted_target_pc_pos_y = self.target_pc.position.y + self.target_pc:get_center_height() - pc_data.center_height_standing
+
   -- unlike original game we simply use the current center position even when compact (curled)
   --  instead of the ghost standing center position
   if self.target_pc:is_grounded() then
     -- on the ground, stick to y as much as possible
-    local target_y = self.target_pc.position.y - camera_data.window_center_offset_y
+    local target_y = adjusted_target_pc_pos_y - camera_data.window_center_offset_y
     local dy = target_y - self.base_position_y
 
     -- clamp abs dy with catchup speed (which depends on ground speed)
@@ -211,8 +217,8 @@ function camera_class:update()
   else
     -- in the air apply vertical window (stick to top and bottom edges)
     local target_y = mid(self.base_position_y,
-      self.target_pc.position.y - camera_data.window_center_offset_y - camera_data.window_half_height,
-      self.target_pc.position.y - camera_data.window_center_offset_y + camera_data.window_half_height)
+      adjusted_target_pc_pos_y - camera_data.window_center_offset_y - camera_data.window_half_height,
+      adjusted_target_pc_pos_y - camera_data.window_center_offset_y + camera_data.window_half_height)
     local dy = target_y - self.base_position_y
 
     -- clamp abs dy with fast catchup speed

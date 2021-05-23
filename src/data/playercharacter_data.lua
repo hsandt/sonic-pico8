@@ -200,6 +200,7 @@ local pc_data = {
   max_ground_snap_height = 4,
 
 
+--#if cheat
   -- debug motion
 
   -- motion speed in debug mode (px/frame)
@@ -213,6 +214,7 @@ local pc_data = {
 
   -- friction aka passive deceleration speed in debug mode (px/frame^2)
   debug_move_friction = 1,
+--#endif
 
 
   -- spin dash

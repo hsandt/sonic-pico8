@@ -65,7 +65,7 @@ describe('stage_clear_state', function ()
         base_stage_state.init:clear()
       end)
 
-      it('#solo should call base constructor', function ()
+      it('should call base constructor', function ()
         assert.spy(base_stage_state.init).was_called(1)
         assert.spy(base_stage_state.init).was_called_with(match.ref(state))
       end)
@@ -130,7 +130,9 @@ describe('stage_clear_state', function ()
       end)
 
       it('should hardcode set camera position', function ()
+        -- uses init_position under the hood, but check result directly to simplify
         assert.are_equal(vector(3392, 328), state.camera.position)
+        assert.are_equal(328, state.camera.base_position_y)
       end)
 
       it('should hardcode set loaded_map_region_coords', function ()
@@ -326,7 +328,7 @@ describe('stage_clear_state', function ()
             stage_clear_state.render_emeralds:clear()
           end)
 
-          it('#solo (phase 0) should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+          it('(phase 0) should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
             state.phase = 0
 
             state:render()

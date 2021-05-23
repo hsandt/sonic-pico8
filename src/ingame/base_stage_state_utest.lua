@@ -51,13 +51,13 @@ describe('base_base_stage_state', function ()
     describe('set_camera_with_origin', function ()
 
       it('should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
-        state.camera.position = vector(24, 13)
+        state.camera:init_position(vector(24, 13))
         state:set_camera_with_origin()
         assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
       end)
 
       it('should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
-        state.camera.position = vector(24, 13)
+        state.camera:init_position(vector(24, 13))
         state:set_camera_with_origin(vector(10, 20))
         assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
       end)
@@ -306,7 +306,7 @@ describe('base_base_stage_state', function ()
       it('render_environment_midground should call map for all midground sprites', function ()
         -- note that we reverted to using map for performance, so this test doesn't need to be
         --  in the tile test data setup context anymore
-        state.camera.position = vector(0, 0)
+        state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(0, 0)
 
         state:render_environment_midground()
@@ -320,7 +320,7 @@ describe('base_base_stage_state', function ()
 
       it('render_environment_foreground should call spr on tiles present on screen', function ()
         -- this test was copy-pasted from render_environment_midground
-        state.camera.position = vector(0, 0)
+        state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(2, 1)
 
         state:render_environment_foreground()

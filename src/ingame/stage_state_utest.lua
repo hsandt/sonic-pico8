@@ -814,7 +814,7 @@ describe('stage_state', function ()
         state.player_char = {position = vector(0, 0)}
         -- at least set some camera position used in get_map_region_coords stub
         --  so we can verify we are passing it correctly
-        state.camera.position = vector(200, 64)
+        state.camera:init_position(vector(200, 64))
       end)
 
       after_each(function ()
@@ -1274,7 +1274,7 @@ describe('stage_state', function ()
 
           it('should call render_background, render_stage_elements, render_fx, render_hud', function ()
             -- to test camera position flooring
-            state.camera.position = vector(60.1, 380.9)
+            state.camera:init_position(vector(60.1, 380.9))
 
             state:render()
 
@@ -1785,7 +1785,7 @@ describe('stage_state', function ()
               emerald(2, location(2, 0)),
               emerald(3, location(8, 0)),  -- on right edge of screen, not visible
             }
-            state.camera.position = vector(0, 0)
+            state.camera:init_position(vector(0, 0))
 
             state:render_emeralds()
 
@@ -1822,7 +1822,7 @@ describe('stage_state', function ()
               spring(directions.left, location(2, 0)),
               spring(directions.right, location(8, 0)),  -- on right edge of screen, not visible
             }
-            state.camera.position = vector(0, 0)
+            state.camera:init_position(vector(0, 0))
 
             state:render_springs()
 

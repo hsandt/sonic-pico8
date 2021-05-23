@@ -910,9 +910,8 @@ expect pc_velocity 0 -5
 
 --]=]
 
---#if busted
 itest_dsl_parser.register(
-  'stand on one-way', [[
+  '#solo stand on one-way', [[
 @stage #
 .
 o
@@ -924,10 +923,10 @@ expect pc_bottom_pos 4 8
 expect pc_motion_state standing
 expect pc_velocity 0 0
 ]])
---#endif
 
+--#if busted
 itest_dsl_parser.register(
-  '#solo crouch and spin dash', [[
+  'crouch and spin dash', [[
 @stage #
 .
 #
@@ -943,6 +942,7 @@ expect pc_bottom_pos 4 8
 expect pc_motion_state spin_dashing
 expect pc_velocity 0 0
 ]])
+--#endif
 
 --[=[
 

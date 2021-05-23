@@ -308,8 +308,9 @@ function itest_dsl.execute_warp(args)
   --  and reload map region there
   -- this trick is needed for itests that last only 1 frame (like spring bounce),
   --  so the colliders in the warp region are correctly set and ground reactions work
-  current_stage_state.camera.position.x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  current_stage_state.camera.position.y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  local new_cam_pos_x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  local new_cam_pos_y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  current_stage_state.camera:init_position(vector(new_cam_pos_x, new_cam_pos_y))
 
   current_stage_state:check_reload_map_region()
 end

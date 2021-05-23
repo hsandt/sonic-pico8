@@ -28,6 +28,7 @@ local picosonic_app = require("application/picosonic_app_"..cartridge_suffix)
 local app = picosonic_app()
 
 -- define initial gamestate based on cartridge
+-- #cartridge
 local initial_gamestate
 if cartridge_suffix == 'titlemenu' then
   initial_gamestate = ':titlemenu'

@@ -119,7 +119,8 @@ symbols+="$cartridge_suffix"
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
 
-# Build cartridge ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
+# Build cartridge
+# See data/cartridges.txt for the list of cartridge names
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"          \
   "$game_src_path" main_${cartridge_suffix}.lua       \

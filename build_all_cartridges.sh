@@ -5,6 +5,7 @@
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
+data_path="$(dirname "$0")/data"
 
 help() {
   echo "Build a PICO-8 cartridge with the passed config."
@@ -57,7 +58,10 @@ if [[ ${#positional_args[@]} -ge 1 ]]; then
   config="${positional_args[0]}"
 fi
 
-cartridge_list="titlemenu stage_intro ingame stage_clear"
+# cartridges.txt lists cartridge names, one line per cartridge
+# newlines act like separators for iteration just like spaces,
+# so this is equivalent to `cartridge_list="titlemenu stage_intro ..."`
+cartridge_list=`cat "$data_path/cartridges.txt"`
 
 for cartridge in $cartridge_list; do
   "$game_scripts_path/build_single_cartridge.sh" "$cartridge" "$config"

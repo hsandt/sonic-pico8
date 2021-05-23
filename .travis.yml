@@ -8,7 +8,7 @@ language: python # Can use any language here, but if it's not 'python'
 python: "3.6"
 
 env:
-  - LUA_VERSION=5.3 BUILD_VERSION=`cat data/version.txt` ENABLE_RENDER=1
+  - LUA_VERSION=5.3 BUILD_VERSION=`cat data/version.txt` CARTRIDGES=`cat data/cartridges.txt` ENABLE_RENDER=1
 
 cache:
   directories:
@@ -69,14 +69,11 @@ script:
   #  we *do* want to ignore WIP tests flagged #mute
   # test: all utests
   - ITEST_CARTRIDGE_SUFFIX=ignore ./test.sh
-  # test: all headless itests for titlemenu (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=titlemenu ./test.sh -f headless_itests
-  # test: all headless itests for stage_intro (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=stage_intro ./test.sh -f headless_itests
-  # test: all headless itests for stage (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=ingame ./test.sh -f headless_itests
-  # test: all headless itests for stage_clear (ENABLE_RENDER set in env)
-  - ITEST_CARTRIDGE_SUFFIX=stage_clear ./test.sh -f headless_itests
+  # test: all headless itests for each cartridge (ENABLE_RENDER set in env)
+  - |
+    for cartridge in $CARTRIDGES; do
+      ITEST_CARTRIDGE_SUFFIX="$cartridge" ./test.sh -f headless_itests
+    done
   # coverage
   - bash <(curl -s https://codecov.io/bash)
 

@@ -1,0 +1,4 @@
+titlemenu
+stage_intro
+ingame
+stage_clear

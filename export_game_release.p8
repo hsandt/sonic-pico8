@@ -20,6 +20,8 @@ cd(export_folder)
 
   local entry_cartridge = "picosonic_titlemenu.p8"
 
+  -- #cartridge (tagged to easily find what code to change when adding a new cartridge,
+  -- and because this script cannot access external files like cartridges.txt)
   local additional_main_cartridges_list = {
     "picosonic_stage_intro.p8",
     "picosonic_ingame.p8",

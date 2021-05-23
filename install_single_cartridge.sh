@@ -8,7 +8,7 @@
 #  to manually copy data cartridges after this.
 
 # Usage: install_single_cartridge.sh cartridge_suffix config [png]
-#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+#   cartridge_suffix  see data/cartridges.txt for the list of cartridge names
 #   config            build config (e.g. 'debug' or 'release'. Default: 'debug')
 #   png               if passed, the .png cartridge is installed
 
@@ -24,7 +24,7 @@ data_path="$(dirname "$0")/data"
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
     echo "build.sh takes 1 to 2 params, provided $#:
-    \$1: cartridge_suffix ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
+    \$1: cartridge_suffix (see data/cartridges.txt for the list of cartridge names)
     \$2: config ('debug', 'release', etc. Default: 'debug')
     \$3: optional suffix ('png' for .png cartridge install)"
     exit 1

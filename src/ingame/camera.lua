@@ -85,7 +85,9 @@ function camera_class:update()
     if self.target_pc.motion_mode == motion_modes.debug then
       -- in debug motion, just track the character (otherwise he may move too fast vertically
       --  and lost the camera)
-      self.position = self.target_pc.position
+      -- init_position seems weird here, but it's just to update base_position_y
+      --  so the camera doesn't start from a different Y again when leaving debug motion mode
+      self:init_position(self.target_pc.position)
       return
     end
     -- else: self.motion_mode == motion_modes.platformer

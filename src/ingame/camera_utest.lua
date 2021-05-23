@@ -129,12 +129,16 @@ describe('camera_class', function ()
 
     it('(debug motion) should track the player 1:1', function ()
       cam:init_position(vector(120, 80))
+
       cam.target_pc.motion_mode = motion_modes.debug
       cam.target_pc.position = vector(140, 100)
 
       cam:update()
 
+      -- normally we should stub init_position and check call with cam.target_pc.position,
+      --  but it was faster to just check the result
       assert.are_same(vector(140, 100), cam.position)
+      assert.are_equal(100, cam.base_position_y)
     end)
 
     it('(pc grounded, last orientation is not current) should change last_grounded_orientation and reset frames_since_grounded_orientation_change', function ()

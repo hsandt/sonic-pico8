@@ -14,7 +14,7 @@ local visual = require("resources/visual_common")
 local player_char = new_class()
 
 -- helper for spin dash dust
-function player_char.size_ratio_over_lifetime(life_ratio)
+function player_char.pfx_size_ratio_over_lifetime(life_ratio)
   -- make size grow quickly at start of lifetime, but shrink again around 1/3 of lifetime
   --  (to avoid big particles hiding character bottom too much)
   -- negative size will draw nothing, no need to clamp
@@ -94,7 +94,7 @@ function player_char:init()
     pc_data.spin_dash_dust_base_init_velocity,
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
-    player_char.size_ratio_over_lifetime)
+    player_char.pfx_size_ratio_over_lifetime)
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping

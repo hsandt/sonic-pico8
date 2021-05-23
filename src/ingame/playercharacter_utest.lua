@@ -24,18 +24,18 @@ describe('player_char', function ()
 
   -- static methods
 
-  describe('size_ratio_over_lifetime', function ()
+  describe('pfx_size_ratio_over_lifetime', function ()
 
     it('0 => 0.4', function ()
-      assert.are_equal(0.4, player_char.size_ratio_over_lifetime(0))
+      assert.are_equal(0.4, player_char.pfx_size_ratio_over_lifetime(0))
     end)
 
     it('0.36 => 1', function ()
-      assert.are_equal(1, player_char.size_ratio_over_lifetime(0.36))
+      assert.are_equal(1, player_char.pfx_size_ratio_over_lifetime(0.36))
     end)
 
     it('1 => 0', function ()
-      assert.are_equal(0, player_char.size_ratio_over_lifetime(1))
+      assert.are_equal(0, player_char.pfx_size_ratio_over_lifetime(1))
     end)
 
   end)
@@ -140,7 +140,7 @@ describe('player_char', function ()
             pc_data.spin_dash_dust_base_init_velocity,
             pc_data.spin_dash_dust_max_deviation,
             pc_data.spin_dash_dust_base_max_size,
-            player_char.size_ratio_over_lifetime),
+            player_char.pfx_size_ratio_over_lifetime),
           0,  -- cheat
         },
         {

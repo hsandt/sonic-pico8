@@ -339,12 +339,17 @@ function player_char:update()
 --  but update physics and render as usual
 --#if ingame
 
+--#ifn attract_mode
+
 --#if busted
   if flow.curr_state.type == ':stage' then
 --#endif
     self:handle_input()
 --#if busted
   end
+--#endif
+
+--(not attract_mode)
 --#endif
 
 --(ingame)
@@ -356,6 +361,8 @@ function player_char:update()
 end
 
 --#if ingame
+
+--#ifn attract_mode
 
 -- update intention based on current input
 function player_char:handle_input()
@@ -430,6 +437,8 @@ function player_char:handle_input()
   end
 end
 
+--(not attract_mode)
+--#endif
 
 function player_char:force_move_right()
   -- force player to move to the right

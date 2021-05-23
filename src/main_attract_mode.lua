@@ -26,9 +26,53 @@ local vlogger = require("engine/debug/visual_logger")
 local profiler = require("engine/debug/profiler")
 --#endif
 
+local flow = require("engine/application/flow")
+local coroutine_runner = require("engine/application/coroutine_runner")
+
 local picosonic_app_attract_mode = require("application/picosonic_app_attract_mode")
 
 local app = picosonic_app_attract_mode()
+
+local attract_mode_coroutine_runner
+
+-- define everything Sonic must do during the attract mode here
+-- it's not 100% correct to do it in main because this relies on flow having entered stage state
+--  but since it's the initial state, it should be entered on frame 1 anyway
+local function attract_mode_scenario_async()
+  -- wait for 1 frame so flow finishes loading the initial state: stage
+  --  (yield_delay requires +1 so 2)
+  yield_delay(2)
+
+  assert(flow.curr_state, "flow has no current state yet")
+  assert(flow.curr_state.type == ':stage')
+
+  local pc = flow.curr_state.player_char
+  assert(pc)
+
+  -- normally we should set pc.control_mode to control_modes.puppet
+  --  but since we're already stripping player_char:handle_input from #ifn attract_mode,
+  --  we don't need to do anything
+
+  -- now do the demonstration!
+  -- this is similar to our itest DSL, except the DSL being too expensive in a cartridge
+  --  (when combined with ingame code which includes background rendering unlike our itests)
+  --  so we just manually set character intention and wait between actions with yield_delay
+
+  -- run to the right at max speed!
+  pc.move_intention.x = 1
+
+  -- wait 5s
+  app:yield_delay_s(5)
+
+  -- jump
+  pc.jump_intention = true
+
+  -- wait 5s
+  app:yield_delay_s(5)
+
+  -- end demo, go back to title menu
+  load('picosonic_titlemenu')
+end
 
 function _init()
 --#if log
@@ -86,9 +130,16 @@ function _init()
 
   app.initial_gamestate = ':stage'
   app:start()
+
+  -- create coroutine runner and start attract mode scenario
+  attract_mode_coroutine_runner = coroutine_runner()
+  attract_mode_coroutine_runner:start_coroutine(attract_mode_scenario_async)
 end
 
 function _update60()
+  -- update coroutine so player character receives puppet mode instructions
+  attract_mode_coroutine_runner:update_coroutines()
+
   app:update()
 end
 

@@ -119,6 +119,9 @@ symbols+="$cartridge_suffix"
 if [[ $cartridge_suffix == 'attract_mode' ]]; then
   # attract mode reuses same data as ingame, so no need for dedicated data cartridge
   builtin_data_suffix="ingame"
+  # we must also define the ingame symbols to have access to all ingame code
+  # (as opposed to stage_intro / stage_clear code)
+  symbols+=",ingame"
 else
   builtin_data_suffix="$cartridge_suffix"
 fi

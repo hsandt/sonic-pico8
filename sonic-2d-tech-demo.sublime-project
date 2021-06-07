@@ -1079,6 +1079,51 @@
 					}
 				},
 				{
+					"name": "headless_itests attract_mode",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode - solo",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
 					"name": "headless_itests stage_intro",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {

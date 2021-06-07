@@ -1,6 +1,5 @@
--- Require all common attract_mode modules (used across various scripts in game project)
---  that define globals and don't return a module table
--- Equivalent to engine/common.lua but for attract_mode cartridge.
+-- See common_ingame.lua for explanations, since attract_mode is very close to ingame
+
 -- Usage: add require("common_attract_mode") at the top of each of your attract_mode main scripts
 --  (along with "engine/common") and in bustedhelper_attract_mode
 

@@ -14,6 +14,7 @@ if cartridge_suffix == 'ignore' then
   return
 end
 
+-- Make sure to create a bustedhelper_[cartridge] for each cartridge
 require("test/bustedhelper_"..cartridge_suffix)
 
 require("engine/test/headless_itest")
@@ -34,6 +35,8 @@ local initial_gamestate
 if cartridge_suffix == 'titlemenu' then
   initial_gamestate = ':titlemenu'
 elseif cartridge_suffix == 'ingame' then
+  initial_gamestate = ':stage'
+elseif cartridge_suffix == 'attract_mode' then
   initial_gamestate = ':stage'
 elseif cartridge_suffix == 'stage_clear' then
   initial_gamestate = ':stage_clear'

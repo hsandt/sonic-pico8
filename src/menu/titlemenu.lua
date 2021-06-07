@@ -30,9 +30,9 @@ local menu_item_params = {
 -- items                        {menu_item}   sequence of menu items that the menu should display
 
 -- state:
--- frames_before_showing_menu          int   number of frames before showing menu. Ignored if 0.
--- frames_before_showing_attract_mode  int   number of frames before showing attract mode. Ignored if 0.
--- menu                                menu  title menu showing items (only created when it must be shown)
+-- frames_before_showing_menu     int     number of frames before showing menu. Ignored if 0.
+-- should_start_attract_mode       bool    should we enter attract mode now?
+-- menu                           menu    title menu showing items (only created when it must be shown)
 
 function titlemenu:init()
   -- sequence of menu items to display, with their target states
@@ -45,7 +45,7 @@ function titlemenu:init()
   -- defined in on_enter anyway, but we still define it to allow utests to handle that
   --  without simulating on_enter (and titlemenu cartridge has enough space)
   self.frames_before_showing_menu = 0
-  self.frames_before_showing_attract_mode = 0
+  self.should_start_attract_mode = false
 end
 
 function titlemenu:on_enter()
@@ -56,7 +56,7 @@ function titlemenu:on_enter()
   -- title bgm is at SPD 12 so that makes
   --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
   self.frames_before_showing_menu = 96
-  self.frames_before_showing_attract_mode = 0
+  self.should_start_attract_mode = false
 end
 
 function titlemenu:play_opening_music_async()
@@ -74,6 +74,12 @@ function titlemenu:play_opening_music_async()
   --   12 SPD * 4 frames/SPD/column * 1 column = 48 frames = 48 * 1000 / 60 = 800 ms
   yield_delay(864)
   music(-1, 800)
+
+  -- wait for music fade out to finish (48 frames), then wait a little more before
+  --   starting attract mode (1s = 60 frames), similarly to Sonic 3
+  yield_delay(108)
+
+  self.should_start_attract_mode = true
 end
 
 function titlemenu:show_menu()
@@ -99,12 +105,8 @@ function titlemenu:update()
     self.menu:update()
 
     -- attract mode countdown
-    if self.frames_before_showing_attract_mode > 0 then
-      self.frames_before_showing_attract_mode = self.frames_before_showing_attract_mode - 1
-
-      if self.frames_before_showing_attract_mode <= 0 then
-        self:start_attract_mode()
-      end
+    if self.should_start_attract_mode then
+      self:start_attract_mode()
     end
   else
     -- menu not shown yet, check for immediate show input vs normal countdown
@@ -119,17 +121,6 @@ function titlemenu:update()
 
     if self.frames_before_showing_menu <= 0 then
       self:show_menu()
-
-      -- start countdown for attract mode only after showing menu, to avoid issues
-      --  with two concurrent countdowns
-      -- as in Sonic 3, we show attract mode shortly after the opening jingle has ended
-      --  this one is handled via a coroutine so for this one, we will actually run an update
-      --  countdown in parallel with a coroutine
-      -- we could also set a small timer at the end of play_opening_music_async, but we prefer
-      --  keeping both behaviours separate
-      -- according to play_opening_music_async, the opening jingle lasts 864 + 48 = 912 frames
-      --  but we remove the 96 frames already waited to show menu, so 912 - 96 = 816
-      self.frames_before_showing_attract_mode = 816
     end
   end
 end

@@ -20,7 +20,7 @@ describe('titlemenu', function ()
       -- a bit complicated to test the generated items, so just test length for items
       assert.are_equal(2, #tm.items)
       assert.are_equal(0, tm.frames_before_showing_menu)
-      assert.are_equal(0, tm.frames_before_showing_attract_mode)
+      assert.is_false(tm.should_start_attract_mode)
     end)
 
   end)
@@ -69,11 +69,11 @@ describe('titlemenu', function ()
         assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.play_opening_music_async, match.ref(tm))
       end)
 
-      it('should initialize frames_before_showing_menu for countdown, but reset frames_before_showing_attract_mode', function ()
+      it('should initialize frames_before_showing_menu for countdown and reset frames_before_showing_attract_mode', function ()
         tm:on_enter()
 
         assert.are_equal(96, tm.frames_before_showing_menu)
-        assert.are_equal(0, tm.frames_before_showing_attract_mode)
+        assert.is_false(tm.should_start_attract_mode)
       end)
 
     end)
@@ -186,7 +186,7 @@ describe('titlemenu', function ()
         assert.spy(titlemenu.show_menu).was_not_called(1)
       end)
 
-      it('(button O not pressed, frames_before_showing_menu <= 1) should decrement frames_before_showing_menu to <=0 and show menu + start attact mode timer', function ()
+      it('(button O not pressed, frames_before_showing_menu <= 1) should decrement frames_before_showing_menu to <=0 and show menu', function ()
         tm.frames_before_showing_menu = 1
 
         tm:update()
@@ -195,8 +195,6 @@ describe('titlemenu', function ()
 
         assert.spy(titlemenu.show_menu).was_called(1)
         assert.spy(titlemenu.show_menu).was_called_with(match.ref(tm))
-
-        assert.are_equal(912, tm.frames_before_showing_attract_mode)
       end)
 
       it('(no menu) should not try to update menu', function ()
@@ -219,20 +217,18 @@ describe('titlemenu', function ()
           assert.spy(menu.update).was_called_with(match.ref(tm.menu))
         end)
 
-        it('should countdown attract mode timer', function ()
-          tm.frames_before_showing_attract_mode = 912
+        it('(should_start_attract_mode: false) should not start attract mode', function ()
+          tm.should_start_attract_mode = false
 
           tm:update()
 
-          assert.are_equal(911, tm.frames_before_showing_attract_mode)
+          assert.spy(titlemenu.start_attract_mode).was_not_called()
         end)
 
-        it('(attract mode timer at 1) should countdown attract mode timer to 0 and enter attract mode', function ()
-          tm.frames_before_showing_attract_mode = 1
+        it('(should_start_attract_mode: true) should start attract mode', function ()
+          tm.should_start_attract_mode = true
 
           tm:update()
-
-          assert.are_equal(0, tm.frames_before_showing_attract_mode)
 
           assert.spy(titlemenu.start_attract_mode).was_called(1)
           assert.spy(titlemenu.start_attract_mode).was_called_with(match.ref(tm))

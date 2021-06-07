@@ -31,3 +31,25 @@ itest_manager:register_itest('player select credits, confirm',
   end)
 
 end)
+
+-- testing entering attract mode after a long time
+itest_manager:register_itest('attract mode starts after opening jingle',
+    {':titlemenu'}, function ()
+
+  -- enter title menu
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':titlemenu')
+  end)
+
+  -- menu should appear in 96 frames 2 seconds
+  wait(96 / 60)
+
+  -- attract mode should start 816 frames after that
+  wait(816 / 60)
+
+  -- check that we are now in the attract_mode state
+  final_assert(function ()
+    return flow.curr_state.frames_before_showing_attract_mode == 0, "timer for attract mode is not over: "..flow.curr_state.frames_before_showing_attract_mode
+  end)
+
+end)

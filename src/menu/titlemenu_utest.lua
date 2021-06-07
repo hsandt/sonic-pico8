@@ -69,10 +69,11 @@ describe('titlemenu', function ()
         assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.play_opening_music_async, match.ref(tm))
       end)
 
-      it('should initialize frames_before_showing_menu for countdown', function ()
+      it('should initialize frames_before_showing_menu for countdown, but reset frames_before_showing_attract_mode', function ()
         tm:on_enter()
 
         assert.are_equal(96, tm.frames_before_showing_menu)
+        assert.are_equal(0, tm.frames_before_showing_attract_mode)
       end)
 
     end)

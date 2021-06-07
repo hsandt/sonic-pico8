@@ -56,6 +56,7 @@ function titlemenu:on_enter()
   -- title bgm is at SPD 12 so that makes
   --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
   self.frames_before_showing_menu = 96
+  self.frames_before_showing_attract_mode = 0
 end
 
 function titlemenu:play_opening_music_async()
@@ -127,7 +128,8 @@ function titlemenu:update()
       -- we could also set a small timer at the end of play_opening_music_async, but we prefer
       --  keeping both behaviours separate
       -- according to play_opening_music_async, the opening jingle lasts 864 + 48 = 912 frames
-      self.frames_before_showing_attract_mode = 912
+      --  but we remove the 96 frames already waited to show menu, so 912 - 96 = 816
+      self.frames_before_showing_attract_mode = 816
     end
   end
 end

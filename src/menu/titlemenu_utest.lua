@@ -12,6 +12,19 @@ local visual = require("resources/visual_common")
 
 describe('titlemenu', function ()
 
+  describe('init', function ()
+
+    it('should initialize members', function ()
+      local tm = titlemenu()
+
+      -- a bit complicated to test the generated items, so just test length for items
+      assert.are_equal(2, #tm.items)
+      assert.are_equal(0, tm.frames_before_showing_menu)
+      assert.are_equal(0, tm.frames_before_showing_attract_mode)
+    end)
+
+  end)
+
   describe('(with instance)', function ()
 
     local tm
@@ -121,16 +134,19 @@ describe('titlemenu', function ()
       setup(function ()
         stub(menu, "update")
         stub(titlemenu, "show_menu")
+        stub(titlemenu, "start_attract_mode")
       end)
 
       teardown(function ()
         menu.update:revert()
         titlemenu.show_menu:revert()
+        titlemenu.start_attract_mode:revert()
       end)
 
       after_each(function ()
         menu.update:clear()
         titlemenu.show_menu:clear()
+        titlemenu.start_attract_mode:clear()
       end)
 
       it('(no menu) should not try to update menu', function ()
@@ -169,7 +185,7 @@ describe('titlemenu', function ()
         assert.spy(titlemenu.show_menu).was_not_called(1)
       end)
 
-      it('(button O not pressed, frames_before_showing_menu <= 1) should decrement frames_before_showing_menu to <=0 and show menu', function ()
+      it('(button O not pressed, frames_before_showing_menu <= 1) should decrement frames_before_showing_menu to <=0 and show menu + start attact mode timer', function ()
         tm.frames_before_showing_menu = 1
 
         tm:update()
@@ -178,6 +194,8 @@ describe('titlemenu', function ()
 
         assert.spy(titlemenu.show_menu).was_called(1)
         assert.spy(titlemenu.show_menu).was_called_with(match.ref(tm))
+
+        assert.are_equal(912, tm.frames_before_showing_attract_mode)
       end)
 
       it('(no menu) should not try to update menu', function ()
@@ -200,6 +218,48 @@ describe('titlemenu', function ()
           assert.spy(menu.update).was_called_with(match.ref(tm.menu))
         end)
 
+        it('should countdown attract mode timer', function ()
+          tm.frames_before_showing_attract_mode = 912
+
+          tm:update()
+
+          assert.are_equal(911, tm.frames_before_showing_attract_mode)
+        end)
+
+        it('(attract mode timer at 1) should countdown attract mode timer to 0 and enter attract mode', function ()
+          tm.frames_before_showing_attract_mode = 1
+
+          tm:update()
+
+          assert.are_equal(0, tm.frames_before_showing_attract_mode)
+
+          assert.spy(titlemenu.start_attract_mode).was_called(1)
+          assert.spy(titlemenu.start_attract_mode).was_called_with(match.ref(tm))
+        end)
+
+      end)
+
+    end)
+
+    describe('start_attract_mode', function ()
+
+      setup(function ()
+        stub(_G, "load")
+      end)
+
+      teardown(function ()
+        load:revert()
+      end)
+
+      after_each(function ()
+        load:clear()
+      end)
+
+      it('should load attract mode cartridge', function ()
+        tm:start_attract_mode()
+
+        assert.spy(load).was_called(1)
+        assert.spy(load).was_called_with('picosonic_attract_mode')
       end)
 
     end)

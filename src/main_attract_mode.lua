@@ -40,14 +40,15 @@ local attract_mode_coroutine_runner
 --  but since it's the initial state, it should be entered on frame 1 anyway
 local function attract_mode_scenario_async()
   -- wait for 1 frame so flow finishes loading the initial state: stage
-  --  (yield_delay requires +1 so 2)
-  yield_delay(2)
+  yield()
 
   assert(flow.curr_state, "flow has no current state yet")
   assert(flow.curr_state.type == ':stage')
 
   local pc = flow.curr_state.player_char
   assert(pc)
+
+  pc.control_mode = control_modes.puppet
 
   -- normally we should set pc.control_mode to control_modes.puppet
   --  but since we're already stripping player_char:handle_input from #ifn attract_mode,
@@ -60,15 +61,107 @@ local function attract_mode_scenario_async()
 
   -- run to the right at max speed!
   pc.move_intention.x = 1
-
-  -- wait 5s
   app:yield_delay_s(5)
 
-  -- jump
+  -- jump above first spring with a small jump
   pc.jump_intention = true
+  app:yield_delay_s(0.5)
 
-  -- wait 5s
-  app:yield_delay_s(5)
+  -- jump on top of higher platform and above second spring with a big jump (max jump requires holding 0.5s)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  app:yield_delay_s(0.5)
+  pc.hold_jump_intention = false
+
+  -- the following was recorded using #recorder
+  -- see explanations at the end
+
+  -- Sonic will jump above the 2 rocks, perform a spin dash, land, run through the loop and roll at the top
+  yield_delay_frames(84)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(8)
+  pc.hold_jump_intention = false
+  yield_delay_frames(2)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(8)
+  pc.move_intention = vector(-1, 0)
+  yield_delay_frames(4)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(32)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(4)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(4)
+  pc.hold_jump_intention = false
+  yield_delay_frames(14)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(24)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(14)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(8)
+  pc.hold_jump_intention = false
+  yield_delay_frames(12)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(10)
+  pc.move_intention = vector(-1, 0)
+  yield_delay_frames(26)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(5)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(3)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(11)
+  pc.move_intention = vector(0, 1)
+  yield_delay_frames(15)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(3)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(1)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(3)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(1)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(9)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(112)
+  pc.move_intention = vector(1, 1)
+  yield_delay_frames(2)
+  pc.move_intention = vector(0, 1)
+  yield_delay_frames(8)
+  pc.move_intention = vector(0, 0)
+
+  -- if you want to record futher from this point:
+  -- 1. uncomment the block of code below
+  -- 2. build and run 'attract_mode' cartridge with 'recorder' config
+  -- 3. it will automatically play the section above, then give control to human
+  -- 4. from here, play what you want to demonstrate in attract mode
+  -- 5. close the game and open .lexaloffle/pico-8/carts/picosonic/v[version]_recorder/picosonic_attract_mode_log.p8l
+  -- 6. remove first line with "START RECORDING HUMAN INPUT" then all line prefixes "[recorder] "
+  -- 7. copy-paste the resulting lines below `total_frames = 0`
+
+  -- pc.control_mode = control_modes.human
+  -- log(total_frames..": START RECORDING HUMAN INPUT", "recorder")
+  -- total_frames = 0  -- reset total frames as we want relative delays since last record
+
+  -- leave some time to let Sonic roll after the loop
+  app:yield_delay_s(0.5)
 
   -- end demo, go back to title menu
   load('picosonic_titlemenu')
@@ -91,24 +184,19 @@ function _init()
 
   logging.logger.active_categories = {
     -- engine
-    ['default'] = true,
-    ['codetuner'] = true,
-    ['flow'] = true,
-    ['itest'] = true,
-    ['log'] = true,
-    ['ui'] = true,
-    ['reload'] = true,
+    -- ['default'] = true,
+    -- ['codetuner'] = true,
+    -- ['flow'] = true,
+    -- ['itest'] = true,
+    -- ['log'] = true,
+    -- ['ui'] = true,
+    -- ['reload'] = true,
     -- ['trace'] = true,
     -- ['trace2'] = true,
     -- ['frame'] = true,
 
     -- game
-    -- ['loop'] = true,
-    -- ['emerald'] = true,
-    -- ['palm'] = true,
-    -- ['ramp'] = true,
-    -- ['goal'] = true,
-    ['spring'] = true,
+    ['recorder'] = true,
     -- ['...'] = true,
   }
 --#endif
@@ -137,6 +225,11 @@ function _init()
 end
 
 function _update60()
+--#if recorder
+  -- increment total frames for timed recording
+  total_frames = total_frames + 1
+--#endif
+
   -- update coroutine so player character receives puppet mode instructions
   attract_mode_coroutine_runner:update_coroutines()
 

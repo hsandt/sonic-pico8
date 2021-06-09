@@ -19,6 +19,11 @@ require("engine/render/animated_sprite_data_enums")
 require("data/sprite_flags")
 require("ingame/playercharacter_enums")
 
+--#if recorder
+-- exceptionally a global non-constant variable to easily access and print for action recording
+total_frames = 0
+--#endif
+
 --[[#pico8
 --#if unity
 

@@ -210,12 +210,20 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode tuner"]
+				},
+				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert"]
 				},
 				{
 					"name": "profiler",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode recorder"]
 				},
 				{
 					"name": "release",
@@ -424,12 +432,20 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode debug)"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode tuner)"]
+				},
+				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode assert)"]
 				},
 				{
 					"name": "profiler",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode profiler)"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode recorder && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode recorder)"]
 				},
 				{
 					"name": "release",
@@ -611,12 +627,20 @@
 					"cmd": ["./run_cartridge.sh attract_mode debug"]
 				},
 				{
+					"name": "attract_mode tuner",
+					"cmd": ["./run_cartridge.sh attract_mode tuner"]
+				},
+				{
 					"name": "attract_mode assert",
 					"cmd": ["./run_cartridge.sh attract_mode assert"]
 				},
 				{
 					"name": "attract_mode profiler",
 					"cmd": ["./run_cartridge.sh attract_mode profiler"]
+				},
+				{
+					"name": "attract_mode recorder",
+					"cmd": ["./run_cartridge.sh attract_mode recorder"]
 				},
 				{
 					"name": "attract_mode release",
@@ -781,12 +805,20 @@
 					"cmd": ["./install_single_cartridge_with_data.sh attract_mode debug"]
 				},
 				{
+					"name": "tuner",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode tuner"]
+				},
+				{
 					"name": "assert",
 					"cmd": ["./install_single_cartridge_with_data.sh attract_mode assert"]
 				},
 				{
 					"name": "profiler",
 					"cmd": ["./install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode recorder"]
 				},
 				{
 					"name": "release",

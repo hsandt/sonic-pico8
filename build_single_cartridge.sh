@@ -104,6 +104,8 @@ elif [[ $config == 'assert' ]]; then
   symbols='assert,tostring,dump'
 elif [[ $config == 'profiler' ]]; then
   symbols='profiler,debug_menu'
+elif [[ $config == 'recorder' ]]; then
+  symbols='recorder,tostring,log'
 fi
 
 # we always add a symbol for the cartridge suffix in case
@@ -123,6 +125,10 @@ if [[ $cartridge_suffix == 'attract_mode' ]]; then
   # (as opposed to stage_intro / stage_clear code)
   symbols+=",ingame"
 else
+  if [[ $cartridge_suffix == 'ingame' ]]; then
+    # add symbol #normal_mode to distinguish from attract_mode, as both define #ingame
+    symbols+=",normal_mode"
+  fi
   builtin_data_suffix="$cartridge_suffix"
 fi
 

@@ -339,7 +339,8 @@ function player_char:update()
 --  but update physics and render as usual
 --#if ingame
 
---#ifn attract_mode
+-- input is used by normal (non-attract) mode and attract-mode in recorder sub-mode only
+--#if normal_mode || recorder
 
 --#if busted
   if flow.curr_state.type == ':stage' then
@@ -362,7 +363,8 @@ end
 
 --#if ingame
 
---#ifn attract_mode
+-- input is used by normal (non-attract) mode and attract-mode in recorder sub-mode only
+--#if normal_mode || recorder
 
 -- update intention based on current input
 function player_char:handle_input()
@@ -411,12 +413,58 @@ function player_char:handle_input()
       player_move_intention:add_inplace(vector(0, 1))
     end
 
+--#if recorder
+    -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
+    --  in attract_mode_scenario_async. #recorder symbol should be dfined together with #tostring to make meaningful logs.
+    if self.move_intention ~= player_move_intention then
+      -- print usable Lua directly to the log (we'll just have to remove [recorder] at the start)
+      -- ex:
+      -- yield_delay_frames(10)
+      -- pc.move_intention = vector(1, 0)
+      log("yield_delay_frames("..total_frames..")", "recorder")
+      log("pc.move_intention = "..player_move_intention, "recorder")
+
+      -- reset total frames as we want relative delays since last record
+      total_frames = 0
+    end
+--#endif
+
     self.move_intention = player_move_intention
 
     -- jump
     local is_jump_input_down = input:is_down(button_ids.o)  -- convenient var for optional pre-check
     -- set jump intention each frame, don't set it to true for later consumption to avoid sticky input
     --  without needing a reset later during update
+
+--#if recorder
+    -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
+    --  in attract_mode_scenario_async. #recorder symbol should be defined together with #tostring and #log in some 'recorder' config.
+    if not self.jump_intention and input:is_just_pressed(button_ids.o) then
+      -- usable Lua ex:
+      -- yield_delay_frames(10)
+      -- pc.jump_intention = true
+      if total_frames > 0 then
+        log("yield_delay_frames("..total_frames..")", "recorder")
+      end
+      log("pc.jump_intention = true", "recorder")
+
+      -- reset total frames as we want relative delays since last record
+      total_frames = 0
+    end
+    if self.hold_jump_intention ~= is_jump_input_down then
+      -- usable Lua ex:
+      -- yield_delay_frames(10)
+      -- pc.hold_jump_intention = true
+      if total_frames > 0 then
+        log("yield_delay_frames("..total_frames..")", "recorder")
+      end
+      log("pc.hold_jump_intention = "..tostr(is_jump_input_down), "recorder")
+
+      -- reset total frames as we want relative delays since last record
+      total_frames = 0
+    end
+--#endif
+
     self.jump_intention = is_jump_input_down and input:is_just_pressed(button_ids.o)
     self.hold_jump_intention = is_jump_input_down
 

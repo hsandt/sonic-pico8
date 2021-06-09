@@ -136,7 +136,7 @@ function stage_intro_state:show_stage_splash_async()
   -- fade in
   for i = 5, 0, -1 do
     self.postproc.darkness = i
-    yield_delay(7)
+    yield_delay_frames(6)
   end
 
   self.app:yield_delay_s(stage_intro_data.show_stage_splash_delay)
@@ -162,7 +162,7 @@ function stage_intro_state:show_stage_splash_async()
   ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
 
   -- keep zone displayed for a moment
-  yield_delay(102)
+  yield_delay_frames(101)
 
   -- make banner exit to the top
   ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)

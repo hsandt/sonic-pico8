@@ -120,7 +120,7 @@ function stage_clear_state:play_stage_clear_sequence_async()
 
   -- stop BGM and play stage clear jingle
   music(audio.jingle_ids.stage_clear)
-  yield_delay(stage_clear_data.stage_clear_duration)
+  yield_delay_frames(stage_clear_data.stage_clear_duration)
 
   -- play result UI "calculation" (we don't have score so it's just checking
   --  if we have all the emeralds)
@@ -284,15 +284,15 @@ function stage_clear_state:assess_result_async()
         local light_color, dark_color = unpack(visual.emerald_colors[num])
         -- brightness level is: step 1 => 2, step 2 => 1, step 3 => 0 (or nil)
         self.result_emerald_brightness_levels[num] = 3 - step
-        yield_delay(10)  -- duration of a step
+        yield_delay_frames(9)  -- duration of a step
       end
     end
     -- clear table will reset brightness level to nil, interpreted as 0
     clear_table(self.result_emerald_brightness_levels)
-    yield_delay(10)  -- pause between emeralds
+    yield_delay_frames(9)  -- pause between emeralds
   end
 
-  yield_delay(30)
+  yield_delay_frames(30)
 
   -- retrieve labels from overlay (as we didn't store references as state members)
   local sonic_label = self.result_overlay.drawables_map["sonic"]
@@ -310,7 +310,7 @@ function stage_clear_state:assess_result_async()
   self.result_overlay:remove_drawable("through")
   self.result_overlay:remove_drawable("stage")
 
-  yield_delay(30)
+  yield_delay_frames(30)
 
   local got_all_emeralds = self.picked_emerald_count >= 8
 
@@ -422,7 +422,7 @@ function stage_clear_state:show_retry_screen_async()
   -- fade in (we start from everything black so skip max darkness 5)
   for i = 4, 0, -1 do
     self.postproc.darkness = i
-    yield_delay(5)
+    yield_delay_frames(4)
   end
 end
 

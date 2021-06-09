@@ -72,12 +72,12 @@ function titlemenu:play_opening_music_async()
   --   12 SPD * 4 frames/SPD/column * (4 patterns * 4 columns + 2 columns) = 864 frames
   -- and lasts:
   --   12 SPD * 4 frames/SPD/column * 1 column = 48 frames = 48 * 1000 / 60 = 800 ms
-  yield_delay(864)
+  yield_delay_frames(864)
   music(-1, 800)
 
   -- wait for music fade out to finish (48 frames), then wait a little more before
   --   starting attract mode (1s = 60 frames), similarly to Sonic 3
-  yield_delay(108)
+  yield_delay_frames(108)
 
   self.should_start_attract_mode = true
 end

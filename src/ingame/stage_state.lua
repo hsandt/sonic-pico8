@@ -796,7 +796,7 @@ function stage_state:play_pick_emerald_jingle_async()
   --  won't hear the step-by-step volume transition too much during the end of the jingle),
   --  so only wait 48 frames for now, then the remaining 16 frames after we incremented bgm
   --  volume once
-  yield_delay(48)
+  yield_delay_frames(48)
 
   -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
   --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
@@ -805,7 +805,7 @@ function stage_state:play_pick_emerald_jingle_async()
   volume.decrease_volume_for_track_range(0, 49, 1)
 
   -- wait the remaining 16 frames, the jingle should have ended just after that
-  yield_delay(16)
+  yield_delay_frames(16)
 
   self:reload_bgm_tracks()
 end
@@ -890,7 +890,7 @@ function stage_state:on_reached_goal_async()
 
   -- play goal plate animation and wait for it to end
   self:feedback_reached_goal()
-  yield_delay(stage_data.goal_rotating_anim_duration)
+  yield_delay_frames(stage_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
   self:stop_bgm(stage_data.bgm_fade_out_duration)

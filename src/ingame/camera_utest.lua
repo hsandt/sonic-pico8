@@ -22,18 +22,22 @@ describe('camera_class', function ()
           0,
           0,
           0,
+          0,
+          vector.zero(),
         },
         {
           cam.target_pc,
           cam.position,
-          cam.forward_offset,
+          cam.forward_signed_offset,
           cam.last_grounded_orientation,
           cam.frames_since_grounded_orientation_change,
           cam.confirmed_orientation,
           cam.frames_since_crouching,
           cam.look_down_offset,
-          cam.base_position_x,  -- #busted
-          cam.base_position_y,
+          cam.base_position.x,
+          cam.base_position.y,
+          cam.spin_dash_lag_timer,
+          cam.spin_dashing_position,
         })
     end)
 
@@ -54,10 +58,10 @@ describe('camera_class', function ()
       --  although it's a bit redundant with the actual init_position utest below
       local spawn_position = mock_curr_stage_data.spawn_location:to_center_position()
       assert.are_same(spawn_position, cam.position)
-      assert.are_equal(spawn_position.y, cam.base_position_y)  -- base position y sync
+      assert.are_equal(spawn_position.y, cam.base_position.y)  -- base position y sync
     end)
 
-    it('should initialize forward_offset to + camera_data.forward_distance ', function ()
+    it('should initialize forward_signed_offset to + camera_data.forward_distance ', function ()
       local mock_curr_stage_data = {
         -- doesn't matter for this test
         spawn_location = location(1, 2)
@@ -66,7 +70,7 @@ describe('camera_class', function ()
       local cam = camera_class()
       cam:setup_for_stage(mock_curr_stage_data)
 
-      assert.are_same(camera_data.forward_distance, cam.forward_offset)
+      assert.are_same(camera_data.forward_distance, cam.forward_signed_offset)
     end)
 
   end)
@@ -78,12 +82,13 @@ describe('camera_class', function ()
       cam:init_position(vector(10, 2))
 
       assert.are_same(vector(10, 2), cam.position)
-      assert.are_equal(2, cam.base_position_y)  -- base position y sync
+      assert.are_equal(10, cam.base_position.x)  -- base position x sync
+      assert.are_equal(2, cam.base_position.y)  -- base position y sync
     end)
 
   end)
 
-  describe('update_camera', function ()
+  describe('update', function ()
 
     -- add this to pos Y when Sonic is compact so you can place its actual center,
     --  while the camera will still target a few pixels above, i.e. the center as if Sonic was standing
@@ -138,7 +143,6 @@ describe('camera_class', function ()
       -- normally we should stub init_position and check call with cam.target_pc.position,
       --  but it was faster to just check the result
       assert.are_same(vector(140, 100), cam.position)
-      assert.are_equal(100, cam.base_position_y)
     end)
 
     it('(pc grounded, last orientation is not current) should change last_grounded_orientation and reset frames_since_grounded_orientation_change', function ()
@@ -291,16 +295,84 @@ describe('camera_class', function ()
       assert.are_equal(camera_data.max_look_down_distance, cam.look_down_offset)
     end)
 
-    -- below, make sure to test base_position_x instead of cam.position.x if you want to ignore the forward offset,
+    -- spin dash lag
+
+    it('(pc spin dashing) should set spin dash lag timer to max duration and store spin dashing position', function ()
+      cam.target_pc.motion_state = motion_states.spin_dashing
+      cam.target_pc.position = vector(10, 2)
+
+      cam:update()
+
+      assert.are_equal(camera_data.spin_dash_lag_duration, cam.spin_dash_lag_timer)
+      assert.are_equal(vector(10, 2), cam.spin_dashing_position)
+    end)
+
+    it('(pc stopped spin dashing but spin dash timer still > 0) should decrement spin dash lag timer', function ()
+      cam.target_pc.motion_state = motion_states.rolling
+      cam.spin_dash_lag_timer = 1
+
+      cam:update()
+
+      assert.are_equal(0, cam.spin_dash_lag_timer)
+    end)
+
+    it('(pc stopped spin dashing but spin dash timer still > 1) should target fictive character at spin dash position, orientation, grounded, velocity 0', function ()
+      -- pick the farthest state possible just to check we are ignoring this
+      cam.target_pc.motion_state = motion_states.air_spin
+      cam.target_pc.position = vector(60, 40)
+      cam.target_pc.orientation = horizontal_dirs.right
+
+      -- spin dash lag with stored spin dash parameters
+      cam.spin_dash_lag_timer = 2
+      cam.spin_dashing_position = vector(100, 80)
+      cam.spin_dashing_orientation = horizontal_dirs.left
+
+      -- fictive target is looking left, so negative sign
+      -- to simplify we don't test camera motion on top of that, so we pick a static state
+      --  where camera has already reached max extent = base forward distance toward left
+      -- in counter part we don't see the subtlety or simulating target being grounded
+      --  (as airborne mostly affects handling of Y), so mutating the test by commenting out
+      --  `is_target_grounded = true` still passes, but it's OK
+      cam:init_position(vector(100 - camera_data.forward_distance, 80))
+      cam.base_position.x = 100  -- must be set to start from correct position
+      cam.forward_signed_offset = - camera_data.forward_distance
+
+      cam:update()
+
+      assert.are_equal(1, cam.spin_dash_lag_timer)
+
+      assert.are_equal(100 - camera_data.forward_distance, cam.position.x)
+      assert.are_equal(80, cam.position.y)
+    end)
+
+    it('(pc not spin dashing and spin dash timer == 0) should not change spin dash lag timer', function ()
+      cam.target_pc.motion_state = motion_states.rolling
+      cam.spin_dash_lag_timer = 0
+
+      cam:update()
+
+      assert.are_equal(0, cam.spin_dash_lag_timer)
+    end)
+
+    -- below, make sure to test base_position.x instead of cam.position.x if you want to ignore the forward offset,
     --  and in particular the base forward offset which is always present due to orientation
 
-    it('should move the camera X so player X is on left edge if he goes beyond left edge', function ()
+    it('should move the camera X so player X is on left edge if he goes beyond left edge, but close enough (1px out)', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 - camera_data.window_half_width - 1, 80)
 
       cam:update()
 
-      assert.are_equal(120 - 1, cam.base_position_x)
+      assert.are_equal(120 - 1, cam.base_position.x)
+    end)
+
+    it('should move the camera X toward a position so player X is on left edge if he goes beyond left edge, but dx is abs clamped by camera_data.catchup_speed_x', function ()
+      cam:init_position(vector(120, 80))
+      cam.target_pc.position = vector(120 - camera_data.window_half_width - camera_data.catchup_speed_x - 1, 80)
+
+      cam:update()
+
+      assert.are_equal(120 - camera_data.catchup_speed_x, cam.base_position.x)
     end)
 
     it('should not move the camera on X if player X remains in window X (left edge)', function ()
@@ -309,7 +381,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(120, cam.base_position_x)
+      assert.are_equal(120, cam.base_position.x)
     end)
 
     it('should not move the camera on X if player X remains in window X (right edge)', function ()
@@ -318,23 +390,32 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(120, cam.base_position_x)
+      assert.are_equal(120, cam.base_position.x)
     end)
 
-    it('should move the camera X so player X is on right edge if he goes beyond right edge', function ()
+    it('should move the camera X so player X is on right edge if he goes beyond right edge, but close enough (1px out)', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.position = vector(120 + camera_data.window_half_width + 1, 80)
 
       cam:update()
 
-      assert.are_equal(120 + 1, cam.base_position_x)
+      assert.are_equal(120 + 1, cam.base_position.x)
+    end)
+
+    it('should move the camera X toward a position so player X is on right edge if he goes beyond right edge, but dx is abs clamped by camera_data.catchup_speed_x', function ()
+      cam:init_position(vector(120, 80))
+      cam.target_pc.position = vector(120 + camera_data.window_half_width + camera_data.catchup_speed_x + 1, 80)
+
+      cam:update()
+
+      assert.are_equal(120 + camera_data.catchup_speed_x, cam.base_position.x)
     end)
 
     -- forward base, positive X
 
     it('forward base: should increase forward offset toward + camera_data.forward_distance by catch up speed (not clamped yet) when character faces right (but not moving fast)', function ()
       cam:init_position(vector(120, 80))
-      cam.forward_offset = 0
+      cam.forward_signed_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
       -- we try to set state to falling to make sure we don't update
@@ -346,13 +427,14 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 + camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward base: should increase forward offset toward + camera_data.forward_distance by catch up speed (clamped) when character faces right (but not moving fast)', function ()
       cam:init_position(vector(120 + camera_data.forward_distance, 80))
-      cam.forward_offset = camera_data.forward_distance
+      cam.base_position.x = 120  -- must be set to start from correct position
+      cam.forward_signed_offset = camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
       cam.confirmed_orientation = horizontal_dirs.right
@@ -360,7 +442,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance, cam.position.x)
     end)
 
@@ -368,7 +450,7 @@ describe('camera_class', function ()
 
     it('forward base: should increase forward offset toward - camera_data.forward_distance by catch up speed (not clamped yet) when character faces left (but not moving fast)', function ()
       cam:init_position(vector(120, 80))
-      cam.forward_offset = 0
+      cam.forward_signed_offset = 0
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
       cam.confirmed_orientation = horizontal_dirs.left
@@ -376,13 +458,14 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(- camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 - camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(- camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 - camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward base: should increase forward offset toward - camera_data.forward_distance by catch up speed (clamped) when character faces left (but not moving fast)', function ()
       cam:init_position(vector(120 - camera_data.forward_distance, 80))
-      cam.forward_offset = - camera_data.forward_distance
+      cam.base_position.x = 120  -- must be set to start from correct position
+      cam.forward_signed_offset = - camera_data.forward_distance
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector.zero()
       cam.confirmed_orientation = horizontal_dirs.left
@@ -390,7 +473,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(- camera_data.forward_distance, cam.forward_offset)
+      assert.are_equal(- camera_data.forward_distance, cam.forward_signed_offset)
       assert.are_equal(120 - camera_data.forward_distance, cam.position.x)
     end)
 
@@ -408,8 +491,8 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 + camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward extension: should increase forward extension toward max by catch up speed when character reaches max_forward_ext_speed_x', function ()
@@ -423,8 +506,8 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 + camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 + camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward extension: should increase forward extension by catch up speed until half max when character stays at (forward_ext_min_speed_x + max_forward_ext_speed_x) / 2 for long', function ()
@@ -432,10 +515,11 @@ describe('camera_class', function ()
       --  everywhere
 
       -- simulate a camera that has already been moving toward half max offset and close to reaching it
-      cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
+      cam.forward_signed_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -443,7 +527,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.position.x)
     end)
 
@@ -452,10 +536,11 @@ describe('camera_class', function ()
       --  everywhere
 
       -- simulate a camera that has already been moving toward max offset and close to reaching it
-      cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
+      cam.forward_signed_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -463,7 +548,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.position.x)
     end)
 
@@ -471,8 +556,9 @@ describe('camera_class', function ()
       -- here we are reaching the max, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance - 0.1  -- just subtract something lower than camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.max_forward_ext_speed_x + 1, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -480,7 +566,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance + camera_data.forward_ext_max_distance, cam.position.x)
     end)
 
@@ -488,8 +574,9 @@ describe('camera_class', function ()
       -- here we are reaching the max, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 + 0.1  -- just add something lower than camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_distance + camera_data.forward_ext_max_distance / 2 + 0.1  -- just add something lower than camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -497,7 +584,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance + camera_data.forward_ext_max_distance / 2, cam.position.x)
     end)
 
@@ -505,8 +592,9 @@ describe('camera_class', function ()
       -- here we decrease back toward the opposite sign from the max,
       --  so the forward base offset doesn't have an impact
 
-      cam.forward_offset = camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector((camera_data.forward_ext_min_speed_x + camera_data.max_forward_ext_speed_x) / 2, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -514,16 +602,17 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 + camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(camera_data.forward_ext_max_distance - camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 + camera_data.forward_ext_max_distance - camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward extension: should decrease forward extension back to 0 when character goes below forward_ext_min_speed_x for long', function ()
       -- here we are reaching the new target 0, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance + 0.1  -- just something lower than camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_distance + 0.1  -- just something lower than camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(camera_data.forward_ext_min_speed_x - 1, 0)
       cam.confirmed_orientation = horizontal_dirs.right
@@ -531,7 +620,7 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(0 + camera_data.forward_distance, cam.forward_offset)
+      assert.are_equal(0 + camera_data.forward_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance, cam.position.x)
     end)
 
@@ -550,24 +639,25 @@ describe('camera_class', function ()
 
       cam:update()
 
-      assert.are_equal(-camera_data.forward_ext_catchup_speed_x, cam.forward_offset)
-      assert.are_equal(120 - camera_data.forward_ext_catchup_speed_x, cam.position.x)
+      assert.are_equal(-camera_data.forward_offset_catchup_speed_x, cam.forward_signed_offset)
+      assert.are_equal(120 - camera_data.forward_offset_catchup_speed_x, cam.position.x)
     end)
 
     it('forward extension: should increase forward extension toward NEGATIVE by catch up speed until max when character stays above -max_forward_ext_speed_x for long', function ()
       -- here we are reaching the negative max, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance - (camera_data.forward_ext_max_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_max_distance
+      cam.forward_signed_offset = camera_data.forward_distance - (camera_data.forward_ext_max_distance - 0.1)  -- just subtract something lower than camera_data.forward_ext_max_distance
       -- to reproduce the fast that the camera is more forward that it should be with window only,
       --  we must add the forward ext offset (else utest won't pass as camera will lag behind)
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-camera_data.max_forward_ext_speed_x, 0)
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance - camera_data.forward_ext_max_distance, cam.forward_offset)
+      assert.are_equal(camera_data.forward_distance - camera_data.forward_ext_max_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance - camera_data.forward_ext_max_distance, cam.position.x)
     end)
 
@@ -575,29 +665,31 @@ describe('camera_class', function ()
       -- here we are reaching the negative max, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance - camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_distance - camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
 
       cam:update()
 
-      assert.are_equal(camera_data.forward_distance - (camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), cam.forward_offset)
-      assert.are_equal(120 + camera_data.forward_distance - (camera_data.forward_ext_max_distance - camera_data.forward_ext_catchup_speed_x), cam.position.x)
+      assert.are_equal(camera_data.forward_distance - (camera_data.forward_ext_max_distance - camera_data.forward_offset_catchup_speed_x), cam.forward_signed_offset)
+      assert.are_equal(120 + camera_data.forward_distance - (camera_data.forward_ext_max_distance - camera_data.forward_offset_catchup_speed_x), cam.position.x)
     end)
 
     it('forward extension: should decrease forward extension (in abs) back to 0 when character goes below max_forward_ext_speed_x (in abs) for long', function ()
       -- here we are reaching the new target 0, so base forward offset contribution is felt, add it
       --  everywhere
 
-      cam.forward_offset = camera_data.forward_distance - 0.1  -- just something lower (in abs) than camera_data.forward_ext_max_distance
-      cam:init_position(vector(120 + cam.forward_offset, 80))
+      cam.forward_signed_offset = camera_data.forward_distance - 0.1  -- just something lower (in abs) than camera_data.forward_ext_max_distance
+      cam:init_position(vector(120 + cam.forward_signed_offset, 80))
+      cam.base_position.x = 120  -- must be set to start from correct position
       cam.target_pc.position = vector(120, 80)
       cam.target_pc.velocity = vector(-(camera_data.max_forward_ext_speed_x - 1), 0)
 
       cam:update()
 
-      assert.are_equal(0 + camera_data.forward_distance, cam.forward_offset)
+      assert.are_equal(0 + camera_data.forward_distance, cam.forward_signed_offset)
       assert.are_equal(120 + camera_data.forward_distance, cam.position.x)
     end)
 

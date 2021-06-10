@@ -24,6 +24,9 @@ local camera_data = {
   -- ((128 - 64) / 2) / 2 (PICO-8 scaling)
   window_half_height = 16,
 
+  -- catchup speed on X
+  catchup_speed_x = 8,
+
   -- ground speed from which fast catchup speed is used (when grounded only)
   fast_catchup_min_ground_speed = 4,
 
@@ -71,8 +74,8 @@ local camera_data = {
   -- at speeds between forward_ext_min_speed_x and max_forward_ext_speed_x, a ratio is applied
   forward_ext_max_distance = 32,
 
-  -- catchup speed on X to reach maximum forward extension (px/frame)
-  forward_ext_catchup_speed_x = 0.5,
+  -- catchup speed on X to reach maximum forward offset (base + extension) (px/frame)
+  forward_offset_catchup_speed_x = 0.5,
 
 
   -- Look down
@@ -86,6 +89,15 @@ local camera_data = {
 
   -- maximum vertical distance of camera moving down during look down (px)
   max_look_down_distance = 44,
+
+
+  -- Spin dash lag
+
+  -- duration of spin dash lag in frames
+  -- Note that we use the simple method recommended at the end of http://info.sonicretro.org/SPG:Camera#Spindash_Lag
+  --  therefore we just set timer to 16 frames and decrement each frame instead of 32 frames and catching up 2 frames
+  --  each frame
+  spin_dash_lag_duration = 16
 }
 
 return camera_data

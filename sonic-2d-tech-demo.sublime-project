@@ -71,9 +71,21 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: stage1 runtime",
+			"name": "Game: edit data: stage1 intro",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_stage1_runtime.p8"],
+			"cmd": ["pico8 -run data/data_stage1_intro.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage1 ingame",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_stage1_ingame.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage1 sonic",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_stage_sonic.p8"],
 			"working_dir": "${project_path}"
 		},
 		{

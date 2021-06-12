@@ -159,11 +159,11 @@ describe('player_char', function ()
   describe('setup', function ()
 
     setup(function ()
-      spy.on(animated_sprite, "play")
+      spy.on(player_char, "update_sprite_row_and_play_sprite_animation")
     end)
 
     teardown(function ()
-      animated_sprite.play:revert()
+      player_char.update_sprite_row_and_play_sprite_animation:revert()
     end)
 
     it('should reset the character state vars', function ()
@@ -200,6 +200,8 @@ describe('player_char', function ()
           0,
           false,
           0,
+          false,
+          0,
 
           {},  -- debug_character
         },
@@ -230,15 +232,18 @@ describe('player_char', function ()
           pc.can_interrupt_jump,
 
           pc.anim_run_speed,
+          -- to simplify we test the actual result of set_continuous_sprite_angle, not that we called it
           pc.continuous_sprite_angle,
+          pc.is_sprite_diagonal,
+          pc.sprite_angle,
           pc.should_play_spring_jump,
           pc.brake_anim_phase,
 
           pc.debug_rays,  -- debug_character
         }
       )
-      assert.spy(animated_sprite.play).was_called(1)
-      assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+      assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+      assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "idle")
     end)
 
   end)
@@ -680,7 +685,82 @@ describe('player_char', function ()
 
     end)
 
+    describe('set_continuous_sprite_angle', function ()
+
+      it('should set continuous sprite angle', function ()
+        pc.continuous_sprite_angle = 0
+
+        pc:set_continuous_sprite_angle(0.25)
+
+        assert.are_equal(0.25, pc.continuous_sprite_angle)
+      end)
+
+      it('(pc walking, facing right) should always set is_sprite_diagonal to false and sprite_angle to 0 even if angle is closer to diagonal direction', function ()
+        pc.anim_spr.current_anim_key = "brake_start"
+        pc.continuous_sprite_angle = 0
+        pc.orientation = horizontal_dirs.right
+
+        pc:set_continuous_sprite_angle(0.875)  -- diagonal
+
+        -- braking, so reset all angles
+        assert.is_false(pc.is_sprite_diagonal)
+        assert.are_equal(0, pc.sprite_angle)
+      end)
+
+      it('(pc walking, facing right) should set is_sprite_diagonal to false if angle is closer to cardinal direction, and sprite_angle to this cardinal angle', function ()
+        pc.anim_spr.current_anim_key = "walk"
+        pc.continuous_sprite_angle = 0
+        pc.orientation = horizontal_dirs.right
+
+        pc:set_continuous_sprite_angle(0.25 + 0.0624)  -- closer to 0.5 than 0.375
+
+        assert.is_false(pc.is_sprite_diagonal)
+        assert.are_equal(0.25, pc.sprite_angle)
+      end)
+
+      it('(pc walking, facing right) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle MINUS 45 deg (0.125 pico8 angle unit)', function ()
+        pc.anim_spr.current_anim_key = "walk"
+        pc.continuous_sprite_angle = 0
+        pc.orientation = horizontal_dirs.right
+
+        pc:set_continuous_sprite_angle(0.875 + 0.0624)  -- closer to 0.875 than 1 (0 modulo 1)
+
+        assert.is_true(pc.is_sprite_diagonal)
+        -- sprite is already rotated by 45 (in pico8 unit, 0.125), so the additional angle is only 0.875 - 0.125 = 0.75
+        assert.are_equal(0.75, pc.sprite_angle)
+      end)
+
+      it('(pc running, facing left) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle PLUS 45 deg (0.125 pico8 angle unit)', function ()
+        pc.anim_spr.current_anim_key = "run"
+        pc.continuous_sprite_angle = 0
+        pc.orientation = horizontal_dirs.left
+
+        pc:set_continuous_sprite_angle(0.875 + 0.0624)  -- closer to 0.875 than 1 (0 modulo 1)
+
+        assert.is_true(pc.is_sprite_diagonal)
+        -- sprite is already rotated by -45 due to flip x (in pico8 unit, -0.125), so the additional angle is only 0.875 - (- 0.125) = 1
+        assert.are_equal(1, pc.sprite_angle)
+      end)
+
+    end)
+
     describe('set_slope_angle_with_quadrant', function ()
+
+      setup(function ()
+        -- stub is fine too, but since it's a low-level method
+        --  that obviously sets a member, and some utests may still want to test
+        --  the final result, we prefer just spying
+        spy.on(player_char, "set_continuous_sprite_angle")
+      end)
+
+      teardown(function ()
+        player_char.set_continuous_sprite_angle:revert()
+      end)
+
+      -- called on init, so make sure to clear *before* each test
+      before_each(function ()
+        player_char.set_continuous_sprite_angle:clear()
+      end)
 
       -- slope angle
 
@@ -698,22 +778,27 @@ describe('player_char', function ()
 
       -- sprite angle
 
-      it('should not set sprite_angle if passed angle is nil', function ()
+      it('should not call set_continuous_sprite_angle if passed angle is nil', function ()
         pc.continuous_sprite_angle = 0.25
         pc:set_slope_angle_with_quadrant(nil)
-        assert.are_equal(0.25, pc.continuous_sprite_angle)
+
+        assert.spy(pc.set_continuous_sprite_angle).was_not_called()
       end)
 
-      it('should set sprite_angle to angle if not nil', function ()
+      it('should call set_continuous_sprite_angle with angle if not nil', function ()
         pc.continuous_sprite_angle = 0.25
         pc:set_slope_angle_with_quadrant(0.75)
-        assert.are_equal(0.75, pc.continuous_sprite_angle)
+
+        assert.spy(pc.set_continuous_sprite_angle).was_called(1)
+        assert.spy(pc.set_continuous_sprite_angle).was_called_with(match.ref(pc), 0.75)
       end)
 
-      it('should set sprite_angle to 0 when passing force_upward_sprite: true', function ()
+      it('should call set_continuous_sprite_angle with 0 when passing force_upward_sprite: true', function ()
         pc.continuous_sprite_angle = 0.25
         pc:set_slope_angle_with_quadrant(0.75, true)
-        assert.are_equal(0, pc.continuous_sprite_angle)
+
+        assert.spy(pc.set_continuous_sprite_angle).was_called(1)
+        assert.spy(pc.set_continuous_sprite_angle).was_called_with(match.ref(pc), 0)
       end)
 
       -- below also tests world.angle_to_quadrant implementation,
@@ -2390,57 +2475,6 @@ describe('player_char', function ()
             })
         end)
 
-        describe('#solo (stubbing reload_rolling_vs_spin_dash_sprites)', function ()
-
-          setup(function ()
-            stub(player_char, "reload_rolling_vs_spin_dash_sprites")
-          end)
-
-          teardown(function ()
-            player_char.reload_rolling_vs_spin_dash_sprites:revert()
-          end)
-
-          after_each(function ()
-            player_char.reload_rolling_vs_spin_dash_sprites:clear()
-          end)
-
-          it('(any previous state, pass air_spin) should call reload_rolling_vs_spin_dash_sprites', function ()
-            pc.motion_state = motion_states.air_spin
-
-            pc:enter_motion_state(motion_states.air_spin)
-
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
-          end)
-
-          it('(any previous state, pass rolling) should call reload_rolling_vs_spin_dash_sprites', function ()
-            pc.motion_state = motion_states.standing
-
-            pc:enter_motion_state(motion_states.rolling)
-
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc))
-          end)
-
-          it('(any previous state, pass spin_dashing) should call reload_rolling_vs_spin_dash_sprites with true', function ()
-            pc.motion_state = motion_states.crouching
-
-            pc:enter_motion_state(motion_states.spin_dashing)
-
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called(1)
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_called_with(match.ref(pc), true)
-          end)
-
-          it('(any previous state, pass crouching) should not call reload_rolling_vs_spin_dash_sprites with true', function ()
-            pc.motion_state = motion_states.standing
-
-            pc:enter_motion_state(motion_states.crouching)
-
-            assert.spy(player_char.reload_rolling_vs_spin_dash_sprites).was_not_called()
-          end)
-
-        end)
-
         it('(falling -> standing, velocity X = 0 on flat ground) should set ground speed to 0', function ()
           pc.motion_state = motion_states.falling
           pc.velocity.x = 0
@@ -2885,19 +2919,16 @@ describe('player_char', function ()
         setup(function ()
           stub(player_char, "enter_motion_state")
           stub(player_char, "play_low_priority_sfx")
-          stub(player_char, "reload_rotated_walk_and_crouch_sprites")
         end)
 
         teardown(function ()
           player_char.enter_motion_state:revert()
           player_char.play_low_priority_sfx:revert()
-          player_char.reload_rotated_walk_and_crouch_sprites:revert()
         end)
 
         after_each(function ()
           player_char.enter_motion_state:clear()
           player_char.play_low_priority_sfx:clear()
-          player_char.reload_rotated_walk_and_crouch_sprites:clear()
         end)
 
         before_each(function ()
@@ -2930,17 +2961,6 @@ describe('player_char', function ()
 
           assert.spy(player_char.enter_motion_state).was_called(1)
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.crouching)
-        end)
-
-        it('(standing) should also reload crouch sprites when crouching', function ()
-          pc.ground_speed = 0
-          -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
-          pc.move_intention.y = 1
-
-          pc:check_crouch_and_roll_start()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
         end)
 
         it('(standing) should not crouch nor start rolling if input down is pressed and abs ground speed (positive) is enough, but input x is also pressed', function ()
@@ -3026,10 +3046,9 @@ describe('player_char', function ()
           pc:check_crouch_and_roll_start()
 
           assert.spy(player_char.enter_motion_state).was_not_called()
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
         end)
 
-        it('(crouching) should stand up and reload idle sprite if input down is released', function ()
+        it('(crouching) should stand up if input down is released', function ()
           pc.motion_state = motion_states.crouching
           -- we don't set velocity, but on flat ground it would be vector(pc.ground_speed, 0)
           pc.move_intention.y = 0
@@ -3038,8 +3057,6 @@ describe('player_char', function ()
 
           assert.spy(player_char.enter_motion_state).was_called(1)
           assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
         end)
 
       end)
@@ -6404,7 +6421,7 @@ describe('player_char', function ()
           stub(player_char, "play_low_priority_sfx")
           stub(player_char, "release_spin_dash")
           stub(player_char, "enter_motion_state")
-          stub(animated_sprite, "play")
+          stub(player_char, "update_sprite_row_and_play_sprite_animation")
         end)
 
         teardown(function ()
@@ -6412,13 +6429,13 @@ describe('player_char', function ()
           player_char.play_low_priority_sfx:revert()
           player_char.release_spin_dash:revert()
           player_char.enter_motion_state:revert()
-          animated_sprite.play:revert()
+          player_char.update_sprite_row_and_play_sprite_animation:revert()
         end)
 
         -- since pc is init in before_each and init calls setup
         --   which calls pc.anim_spr:play("idle"), we must clear call count just after that
         before_each(function ()
-          animated_sprite.play:clear()
+          player_char.update_sprite_row_and_play_sprite_animation:clear()
         end)
 
         after_each(function ()
@@ -6550,8 +6567,8 @@ describe('player_char', function ()
 
           pc:check_spin_dash()
 
-          assert.spy(animated_sprite.play).was_called(1)
-          assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash", true)
+          assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+          assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spin_dash", true)
         end)
 
         it('(crouching or spin dashing, keep down with jump intention) should play spin dash rev sfx (low priority)', function ()
@@ -8359,21 +8376,18 @@ describe('player_char', function ()
         stub(stage_state, "extend_spring")
         spy.on(player_char, "enter_motion_state")
         stub(player_char, "play_low_priority_sfx")
-        stub(player_char, "reload_rotated_walk_and_crouch_sprites")
       end)
 
       teardown(function ()
         stage_state.extend_spring:revert()
         player_char.enter_motion_state:revert()
         player_char.play_low_priority_sfx:revert()
-        player_char.reload_rotated_walk_and_crouch_sprites:revert()
       end)
 
       after_each(function ()
         stage_state.extend_spring:clear()
         player_char.enter_motion_state:clear()
         player_char.play_low_priority_sfx:clear()
-        player_char.reload_rotated_walk_and_crouch_sprites:clear()
 
         mock_spring_up.extend:clear()
         mock_spring_left.extend:clear()
@@ -8394,13 +8408,6 @@ describe('player_char', function ()
       it('(spring up) should set should_play_spring_jump to true', function ()
         pc:trigger_spring(mock_spring_up)
         assert.is_true(pc.should_play_spring_jump)
-      end)
-
-      it('(spring up) should reload sprites for spring jump', function ()
-        pc:trigger_spring(mock_spring_up)
-
-        assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-        assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
       end)
 
       it('(spring left) should set orientation to left', function ()
@@ -8762,17 +8769,17 @@ describe('player_char', function ()
       setup(function ()
         -- spy.on would help testing more deeply, but we prefer utests independent
         --  from other modules nor animation data
-        stub(animated_sprite, "play")
+        stub(player_char, "update_sprite_row_and_play_sprite_animation")
       end)
 
       teardown(function ()
-        animated_sprite.play:revert()
+        player_char.update_sprite_row_and_play_sprite_animation:revert()
       end)
 
       -- since pc is init in before_each and init calls setup
       --   which calls pc.anim_spr:play("idle"), we must clear call count just after that
       before_each(function ()
-        animated_sprite.play:clear()
+        player_char.update_sprite_row_and_play_sprite_animation:clear()
       end)
 
       it('should play brake start animation (and preserve brake_anim_phase) when brake_anim_phase: 1 and return immediately', function ()
@@ -8783,8 +8790,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_start")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "brake_start")
 
         assert.are_equal(1, pc.brake_anim_phase)
       end)
@@ -8802,8 +8809,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_reverse")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "brake_reverse")
 
         assert.are_equal(2, pc.brake_anim_phase)
       end)
@@ -8821,11 +8828,11 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(2)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(2)
         -- tentative play -> not playing anymore
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "brake_reverse")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "brake_reverse")
         -- fallback based on motion_state
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "idle")
 
         assert.are_equal(0, pc.brake_anim_phase)
       end)
@@ -8836,8 +8843,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "idle")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "idle")
       end)
 
       it('should play walk anim with walk_anim_min_play_speed when standing and ground speed is lower than anim_run_speed in abs (clamping)', function ()
@@ -8847,8 +8854,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, pc_data.walk_anim_min_play_speed)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "walk", false, pc_data.walk_anim_min_play_speed)
       end)
 
       it('should play walk anim with last anim_run_speed when standing and ground speed is low', function ()
@@ -8858,8 +8865,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "walk", false, 2.9)
       end)
 
       it('should play run anim with last anim_run_speed when standing and ground speed is high', function ()
@@ -8869,8 +8876,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "run", false, 3.0)
       end)
 
       it('should play spring_jump when "falling upward" with should_play_spring_jump: true', function ()
@@ -8879,8 +8886,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spring_jump")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spring_jump")
       end)
 
       it('(low anim speed) should stop spring_jump anim and play walk anim at walk_anim_min_play_speed when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again) and anim run speed is lower than anim_run_speed in abs (clamping)', function ()
@@ -8891,8 +8898,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, pc_data.walk_anim_min_play_speed)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "walk", false, pc_data.walk_anim_min_play_speed)
       end)
 
       it('(low anim speed) should stop spring_jump anim and play walk anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
@@ -8903,8 +8910,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "walk", false, 2.9)
       end)
 
       it('(high anim speed) should stop spring_jump anim and play run anim when falling with should_play_spring_jump: true but velocity.y > 0 (falling down again)', function ()
@@ -8915,8 +8922,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "run", false, 3.0)
       end)
 
       it('(low anim speed) should play walk anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
@@ -8925,8 +8932,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "walk", false, 2.9)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "walk", false, 2.9)
       end)
 
       it('(high anim speed)should play run anim with last anim_run_speed when falling and should_play_spring_jump is false', function ()
@@ -8935,8 +8942,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "run", false, 3.0)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "run", false, 3.0)
       end)
 
       it('should play crouch anim when crouching (even when sliding)', function ()
@@ -8945,8 +8952,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "crouch")
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "crouch")
       end)
 
       it('should *not* play spin_dash anim when spin dashing', function ()
@@ -8955,7 +8962,7 @@ describe('player_char', function ()
         pc:check_play_anim()
 
         -- exceptionally not playing anim from here, see comment in method
-        assert.spy(animated_sprite.play).was_not_called()
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_not_called()
       end)
 
       it('(air spin with anim_run_speed below air_spin_anim_min_play_speed) should play spin anim at air_spin_anim_min_play_speed', function ()
@@ -8964,8 +8971,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, pc_data.air_spin_anim_min_play_speed)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spin", false, pc_data.air_spin_anim_min_play_speed)
       end)
 
       it('(air spin with anim_run_speed above air_spin_anim_min_play_speed) should play spin_fast anim at anim_run_speed', function ()
@@ -8974,8 +8981,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, pc_data.air_spin_anim_min_play_speed + 1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spin", false, pc_data.air_spin_anim_min_play_speed + 1)
       end)
 
       -- rolling uses the same animation as air_spin but with a different minimum, so we check this threshold instead
@@ -8986,8 +8993,8 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
-        assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, pc_data.rolling_spin_anim_min_play_speed)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spin", false, pc_data.rolling_spin_anim_min_play_speed)
       end)
 
       it('(rolling with anim_run_speed above rolling_spin_anim_min_play_speed) should play spin_fast anim at rolling_spin_anim_min_play_speed', function ()
@@ -8996,8 +9003,68 @@ describe('player_char', function ()
 
         pc:check_play_anim()
 
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
+        assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called_with(match.ref(pc), "spin", false, pc_data.rolling_spin_anim_min_play_speed + 1)
+      end)
+
+    end)
+
+    describe('update_sprite_row_and_play_sprite_animation', function ()
+
+      setup(function ()
+        stub(_G, "memcpy")
+        stub(animated_sprite, "play")
+      end)
+
+      teardown(function ()
+        memcpy:revert()
+        animated_sprite.play:revert()
+      end)
+
+      -- since pc is init in before_each and init calls setup
+      --  which calls update_sprite_row_and_play_sprite_animation which calls
+      --  memcpy and pc.anim_spr:play("idle"), we must clear call count just after that
+      before_each(function ()
+        memcpy:clear()
+        animated_sprite.play:clear()
+      end)
+
+      it('should play animation on anim_spr passing the same arguments', function ()
+        pc:update_sprite_row_and_play_sprite_animation("spin_dash", true, 2)
+
         assert.spy(animated_sprite.play).was_called(1)
-        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin", false, pc_data.rolling_spin_anim_min_play_speed + 1)
+        assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash", true, 2)
+      end)
+
+      it('(run) should cardinal row containing run sprites from general memory to spritesheet', function ()
+        pc:update_sprite_row_and_play_sprite_animation("run", true, 2)
+
+        assert.spy(memcpy).was_called(1)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1000, 0x5300, 0x400)
+      end)
+
+      it('(run, is_sprite_diagonal: true) should copy partial lines of diagonal run sprites from general memory to spritesheet', function ()
+        pc.is_sprite_diagonal = true
+
+        pc:update_sprite_row_and_play_sprite_animation("run", true, 2)
+
+        assert.spy(memcpy).was_called(16)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1000, 0x5400, 0x20)
+        assert.spy(memcpy).was_called_with(0x1040, 0x5420, 0x20)
+      end)
+
+      it('(spin_dash) should copy partial lines of spin dash sprites from general to spritesheet', function ()
+        pc:update_sprite_row_and_play_sprite_animation("spin_dash", true, 2)
+
+        assert.spy(memcpy).was_called(16)
+        -- too many calls to check them all, but test at least the first ones of each
+        -- to verify addr_offset is correct
+        assert.spy(memcpy).was_called_with(0x1000, 0x5b00, 0x28)
+        assert.spy(memcpy).was_called_with(0x1040, 0x5b28, 0x28)
       end)
 
     end)
@@ -9071,324 +9138,54 @@ describe('player_char', function ()
 
     end)
 
-    describe('reload_rotated_walk_and_crouch_sprites', function ()
-
-      setup(function ()
-        stub(_G, "memcpy")
-      end)
-
-      teardown(function ()
-        memcpy:revert()
-      end)
-
-      after_each(function ()
-        memcpy:clear()
-      end)
-
-      it('should copy non-rotated walk + idle + spring_jump (top) sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_walk_and_crouch_sprites()
-
-        assert.spy(memcpy).was_called(1)
-        assert.spy(memcpy).was_called_with(0x1000, 0x4b00, 0x400)
-      end)
-
-      it('(passing true) should copy rotated walk + crouch sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_walk_and_crouch_sprites(true)
-
-        assert.spy(memcpy).was_called(1)
-        assert.spy(memcpy).was_called_with(0x1000, 0x5380, 0x400)
-      end)
-
-    end)
-
-    describe('eload_rotated_run_sprites', function ()
-
-      setup(function ()
-        stub(_G, "memcpy")
-      end)
-
-      teardown(function ()
-        memcpy:revert()
-      end)
-
-      after_each(function ()
-        memcpy:clear()
-      end)
-
-      it('should copy non-rotated run sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_run_sprites()
-
-        assert.spy(memcpy).was_called(16)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1400, 0x4f00, 0x20)
-        assert.spy(memcpy).was_called_with(0x1440, 0x4f20, 0x20)
-      end)
-
-      it('(passing true) should copy rotated run sprites in general memory back to spritesheet', function ()
-        pc:reload_rotated_run_sprites(true)
-
-        assert.spy(memcpy).was_called(16)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1400, 0x5780, 0x20)
-        assert.spy(memcpy).was_called_with(0x1440, 0x57a0, 0x20)
-      end)
-
-    end)
-
-    describe('reload_rolling_vs_spin_dash_sprites', function ()
-
-      setup(function ()
-        stub(_G, "memcpy")
-      end)
-
-      teardown(function ()
-        memcpy:revert()
-      end)
-
-      after_each(function ()
-        memcpy:clear()
-      end)
-
-      it('should copy rolling run sprites in general memory back to spritesheet', function ()
-        pc:reload_rolling_vs_spin_dash_sprites()
-
-        assert.spy(memcpy).was_called(16)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1800, 0x5100, 0x28)
-        assert.spy(memcpy).was_called_with(0x1840, 0x5128, 0x28)
-      end)
-
-      it('(passing true) should copy spin dash sprites in general memory back to spritesheet', function ()
-        pc:reload_rolling_vs_spin_dash_sprites(true)
-
-        assert.spy(memcpy).was_called(16)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1800, 0x5980, 0x28)
-        assert.spy(memcpy).was_called_with(0x1840, 0x59a8, 0x28)
-      end)
-
-    end)
-
     describe('render', function ()
 
       setup(function ()
         stub(animated_sprite, "render")
         stub(pfx, "render")
-        stub(player_char, "reload_rotated_walk_and_crouch_sprites")
-        stub(player_char, "reload_rotated_run_sprites")
       end)
 
       teardown(function ()
         animated_sprite.render:revert()
         pfx.render:revert()
-        player_char.reload_rotated_walk_and_crouch_sprites:revert()
-        player_char.reload_rotated_run_sprites:revert()
       end)
 
       after_each(function ()
         animated_sprite.render:clear()
         pfx.render:clear()
-        player_char.reload_rotated_walk_and_crouch_sprites:clear()
-        player_char.reload_rotated_run_sprites:clear()
       end)
 
-      describe('(brake_start)', function ()
+      -- but it doesn't really matter, since render is not responsible for calculating sprite angle any more,
+      --  so no need to test various states any more to check for angle reset, etc. just set sprite_angle
+      --  to some multiple of 0.25, and test flip_x: true and false
 
-        before_each(function ()
-          pc.anim_spr.current_anim_key = "brake_start"
-        end)
+      it('(when character is facing left, closer to cardinal angle) should call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
+        pc.position = vector(12.5, 8.2)
+        pc.orientation = horizontal_dirs.left
+        -- optional, sprite_angle is what matters now
+        -- pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
+        -- pc.is_sprite_diagonal = false
+        pc.sprite_angle = 0.25
 
-        it('(when character is facing left, any angle) should only call render on sonic sprite data: idle with the character\'s position floored, flipped x, angle 0', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.left
-          pc.continuous_sprite_angle = 0.25
+        pc:render()
 
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- sprite is already rotated by 45, so the additional angle is 0
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0)
-        end)
-
-        it('(when character is facing right, any angle) should only call render on sonic sprite data: idle with the character\'s position floored, not flipped x, angle 0', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.right
-          pc.continuous_sprite_angle = 0.75
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- note that we don't apply modulo and count on render to detect that 1 == 0 [1], so we effectively pass 1
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0)
-        end)
-
+        assert.spy(animated_sprite.render).was_called(1)
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
       end)
 
-      describe('(walk)', function ()
+      it('(when character is facing right, closer to diagonal angle) should call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
+        pc.position = vector(12.5, 8.2)
+        pc.orientation = horizontal_dirs.right
+        -- optional, sprite_angle is what matters now
+        -- pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
+        -- pc.is_sprite_diagonal = true
+        -- sprite is already rotated by 45 = 0.125 pico8 angle unit, so the additional angle is 0.875 - 0.125 = 0.75
+        pc.sprite_angle = 0.75
 
-        before_each(function ()
-          pc.anim_spr.current_anim_key = "walk"
-        end)
+        pc:render()
 
-        it('(when character is facing left, closer to cardinal angle) should reload non-rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.left
-          pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
-        end)
-
-        it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.left
-          pc.continuous_sprite_angle = 0.0626  -- closer to 0.125 than 0
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- sprite is already rotated by 45, so the additional angle is 0
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
-        end)
-
-        it('(when character is facing right, closer to cardinal angle) should reload non-rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.right
-          pc.continuous_sprite_angle = 1 - 0.0624  -- closer to 1 (i.e. 0 modulo 1) than 0.875
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- note that we don't apply modulo and count on render to detect that 1 == 0 [1], so we effectively pass 1
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 1)
-        end)
-
-        it('(when character is facing right, closer to diagonal angle) should reload 45-degree rotated walk sprites and call render on sonic sprite data: idle with the character\'s position floored, not flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.right
-          pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc), true)
-          assert.spy(player_char.reload_rotated_run_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- sprite is already rotated by 45, so the additional angle is only 0.75
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0.75)
-        end)
-
-      end)
-
-      describe('(run)', function ()
-
-        before_each(function ()
-          pc.anim_spr.current_anim_key = "run"
-        end)
-
-        it('(when character is facing left, closer to cardinal angle) should reload non-rotated run sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.left
-          pc.continuous_sprite_angle = 0.25 - 0.0624  -- closer to 0.25 than 0.125
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_run_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_run_sprites).was_called_with(match.ref(pc))
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
-        end)
-
-        it('(when character is facing left, closer to diagonal angle) should reload 45-degree rotated run sprites and call render on sonic sprite data: idle with the character\'s position floored, flipped x, current slope angle rounded to closest 45-degree step MINUS 45 deg', function ()
-          pc.position = vector(12.5, 8.2)
-          pc.orientation = horizontal_dirs.left
-          pc.continuous_sprite_angle = 0.0626  -- closer to 0.125 than 0
-
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_run_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_run_sprites).was_called_with(match.ref(pc), true)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_not_called()
-
-          assert.spy(animated_sprite.render).was_called(1)
-          -- sprite is already rotated by 45, so the additional angle is 0
-          assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), true, false, 0.25)
-        end)
-
-      end)
-
-      describe('(idle)', function ()
-
-        before_each(function ()
-          pc.anim_spr.current_anim_key = "idle"
-        end)
-
-        it('should reload idle sprite among others', function ()
-          pc:render()
-
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called(1)
-          assert.spy(player_char.reload_rotated_walk_and_crouch_sprites).was_called_with(match.ref(pc))
-        end)
-
-      end)
-
-      describe('(spin_dash)', function ()
-
-        before_each(function ()
-          pc.anim_spr.current_anim_key = "spin_dash"
-        end)
-
-        -- note that we always update and render smoke pfx, since even after spin dash launch,
-        --  a few particles may remain; but we choose the most common situation, i.e. during spin dash anim
-
-        it('(when character is facing left) should render smoke_pfx in left direction', function ()
-          pc.orientation = horizontal_dirs.left
-
-          pc:render()
-
-          assert.spy(pfx.render).was_called(1)
-          -- TODO: either add left/right parameter here, or store it inside pfx on start()
-          assert.spy(pfx.render).was_called_with(match.ref(pc.smoke_pfx))
-        end)
-
-
-        it('(when character is facing right) should render smoke_pfx in right direction', function ()
-          pc.orientation = horizontal_dirs.right
-
-          pc:render()
-
-          assert.spy(pfx.render).was_called(1)
-          -- TODO: either add left/right parameter here, or store it inside pfx on start()
-          assert.spy(pfx.render).was_called_with(match.ref(pc.smoke_pfx))
-        end)
-
+        assert.spy(animated_sprite.render).was_called(1)
+        assert.spy(animated_sprite.render).was_called_with(match.ref(pc.anim_spr), vector(12, 8), false, false, 0.75)
       end)
 
     end)

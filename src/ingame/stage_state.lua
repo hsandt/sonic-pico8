@@ -209,8 +209,7 @@ function stage_state:reload_runtime_data()
   --  3. ideally we'd copy the whole spritesheet memory into general memory, then operate on it to move partial lines
   --     where we want; but that's more code, so unless you notice a particular lag on start, don't mind it
   for i = 0, 15 do
-    -- 4 run cycle sprites
-    reload(0x5b00 + i * 0x28, 0x1400 + i * 0x40, 0x28, "data_stage_sonic.p8")  -- next address: 0x4f00 + 0x200 = 0x5100
+    reload(0x5b00 + i * 0x28, 0x1400 + i * 0x40, 0x28, "data_stage_sonic.p8")
   end
 
   -- Total memory used by Sonic sprites: 0x1280

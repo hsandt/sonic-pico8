@@ -72,6 +72,9 @@ end
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
 -- continuous_sprite_angle  float           Sprite angle with high precision used internally. Reflects slope_angle when standing, but gradually moves toward 0 (upward) when airborne.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
+-- is_sprite_diagonal       bool            Derived from continuous_sprite_angle. True iff continuous angle is closer to diagonal (45-degree multiple).
+-- sprite_angle             float           Derived from continuous_sprite_angle. Sprite angle actually used for rendering. Rounded to multiple of 0.25. Takes 45-degree sprite variant into account.
+--                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
 
@@ -141,9 +144,16 @@ function player_char:setup()
   self.has_jumped_this_frame = false
   self.can_interrupt_jump = false
 
-  self.anim_spr:play("idle")
+  self:set_continuous_sprite_angle(0)
+  -- equivalent to:
+  -- self.continuous_sprite_angle = 0
+  -- self.is_sprite_diagonal = false
+  -- self.sprite_angle = 0
+
+  -- must be called after setting angle, as it checks if we need diagonal sprites
+  self:update_sprite_row_and_play_sprite_animation("idle")
   self.anim_run_speed = 0
-  self.continuous_sprite_angle = 0
+
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
 
@@ -314,6 +324,36 @@ function player_char:set_ground_tile_location(global_tile_loc)
   end
 end
 
+function player_char:set_continuous_sprite_angle(angle)
+  self.continuous_sprite_angle = angle
+
+  local sprite_angle = 0
+  local is_sprite_diagonal = false
+
+  if contains({"walk", "run"}, self.anim_spr.current_anim_key) then
+    -- snap render angle to a few set of values (45 degrees steps), classic style
+    --  (unlike Freedom Planet and Sonic Mania)
+    -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
+    --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
+    sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
+
+    -- a computed rotation of 45 degrees would result in an ugly sprite
+    --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
+    --  sprites when we want a better angle resolution
+    if sprite_angle % 0.25 ~= 0 then
+      is_sprite_diagonal = true
+
+      -- rotated sprite embeds a rotation of 45 degrees, so if not flipped, rotate by angle - 45 degrees
+      -- if flipped, the sprite is 45 degrees *behind* the horizontal left, so we must add 45 degrees instead
+      local flip_x = self.orientation == horizontal_dirs.left
+      sprite_angle = sprite_angle + (flip_x and 1 or -1) * 0.125
+    end
+  end
+
+  self.sprite_angle = sprite_angle
+  self.is_sprite_diagonal = is_sprite_diagonal
+end
+
 -- set slope angle and update quadrant
 -- if force_upward_sprite is true, set sprite angle to 0
 -- else, set sprite angle to angle (if not nil)
@@ -326,9 +366,9 @@ function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
   -- this is to prevent character sprite from switching straight upward immediately
   --  on fall
   if force_upward_sprite then
-    self.continuous_sprite_angle = 0
+    self:set_continuous_sprite_angle(0)
   elseif angle then
-    self.continuous_sprite_angle = angle
+    self:set_continuous_sprite_angle(angle)
   end
 
   self.quadrant = world.angle_to_quadrant(angle)
@@ -992,9 +1032,6 @@ function player_char:enter_motion_state(next_motion_state)
     self.should_jump = false
     self.should_play_spring_jump = false
     self.brake_anim_phase = 0
-
-    -- prepare spritesheet reload for rolling sprites
-    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
@@ -1022,12 +1059,6 @@ function player_char:enter_motion_state(next_motion_state)
       self.should_play_spring_jump = false
       self.brake_anim_phase = 0
     end
-
-    -- prepare spritesheet reload for rolling sprites
-    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing: nil]])
-  elseif next_motion_state == motion_states.spin_dashing then
-    -- prepare spritesheet reload for spin dash sprites
-    self:reload_rolling_vs_spin_dash_sprites(--[[spin_dashing:]] true)
   end
 end
 
@@ -1107,17 +1138,9 @@ function player_char:check_crouch_and_roll_start()
       -- same remark as above, no side effect as crouch is really like standing state except
       --  it shrinks the hitbox and allows spin dash
       self:enter_motion_state(motion_states.crouching)
-
-      -- prepare spritesheet reload for crouch sprites
-      self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching:]] true)
     end
   elseif self.motion_state ~= motion_states.standing then
     self:enter_motion_state(motion_states.standing)
-
-    -- prepare spritesheet reload for standing sprites (esp. idle)
-    -- note that if Sonic stands up on a slope 45-degrees, render will immediately reload the
-    --  rotated walk sprites...
-    self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
   end
 end
 
@@ -1930,7 +1953,7 @@ function player_char:check_spin_dash()
 
       -- exceptionally play anim from here instead of player_char:check_play_anim,
       --  because we must replay animation from start on every rev
-      self.anim_spr:play("spin_dash", --[[from_start:]] true)
+      self:update_sprite_row_and_play_sprite_animation("spin_dash", --[[from_start:]] true)
 
       -- hardcoded values as unlikely to change once set, and to spare characters
       self.smoke_pfx:start(self.position + vector(0, 5), self.orientation == horizontal_dirs.left)
@@ -2449,9 +2472,6 @@ function player_char:trigger_spring(spring_obj)
     self.velocity.y = -pc_data.spring_jump_speed_frame
     self:enter_motion_state(motion_states.falling)
     self.should_play_spring_jump = true
-
-    -- reload spring jump top sprite cells
-    self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
   else
     -- we assume horizontal spring here (spring down not supported)
 
@@ -2633,7 +2653,7 @@ function player_char:check_play_anim()
   -- brake anims can be played during standing but also falling, so make a global check
   --  giving priority to them
   if self.brake_anim_phase == 1 then
-    self.anim_spr:play("brake_start")
+    self:update_sprite_row_and_play_sprite_animation("brake_start")
 
     -- unlike Sonic 3:
     -- as long as brake anim has started, it gets priority over standing and falling
@@ -2647,7 +2667,7 @@ function player_char:check_play_anim()
     --  no input and anim is over
     return
   elseif self.brake_anim_phase == 2 then
-    self.anim_spr:play("brake_reverse")
+    self:update_sprite_row_and_play_sprite_animation("brake_reverse")
 
     -- as long as brake anim is playing, it gets priority over standing and falling
     -- brake anim ends with freeze_last, just to give us an extra frame to check
@@ -2664,15 +2684,15 @@ function player_char:check_play_anim()
   if self.motion_state == motion_states.standing then
     -- update ground animation based on speed
     if self.ground_speed == 0 then
-      self.anim_spr:play("idle")
+      self:update_sprite_row_and_play_sprite_animation("idle")
     else
       -- standing and moving: play walk cycle at low speed, run cycle at high speed
       -- we have access to self.ground_speed but self.anim_run_speed is shorter than
       --  abs(self.ground_speed), and the values are the same for normal to high speeds
       if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
-        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+        self:update_sprite_row_and_play_sprite_animation("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
       else
-        self.anim_spr:play("run", false, self.anim_run_speed)
+        self:update_sprite_row_and_play_sprite_animation("run", false, self.anim_run_speed)
       end
     end
   elseif self.motion_state == motion_states.falling then
@@ -2682,7 +2702,7 @@ function player_char:check_play_anim()
     end
 
     if self.should_play_spring_jump then
-      self.anim_spr:play("spring_jump")
+      self:update_sprite_row_and_play_sprite_animation("spring_jump")
     else
       -- normal fall -> run in the air (even if not working, just to avoid having Sonic falling idle
       --  e.g. when crumbling floor breaks beneath his feet; what Classic Sonic does, but we don't mind)
@@ -2690,26 +2710,114 @@ function player_char:check_play_anim()
       --  but we can use the stored anim_run_speed, which is the same except for very low speed
       -- (and we don't mind them as we are checking run cycle for high speeds)
       if self.anim_run_speed < pc_data.run_cycle_min_speed_frame then
-        self.anim_spr:play("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
+        self:update_sprite_row_and_play_sprite_animation("walk", false, max(pc_data.walk_anim_min_play_speed, self.anim_run_speed))
       else
         -- run_cycle_min_speed_frame > walk_anim_min_play_speed so no need to clamp here
-        self.anim_spr:play("run", false, self.anim_run_speed)
+        self:update_sprite_row_and_play_sprite_animation("run", false, self.anim_run_speed)
       end
     end
   elseif self.motion_state == motion_states.crouching then
     -- we don't mind about speed here, character can totally slide at low speed due to momentum or slope
-    self.anim_spr:play("crouch")
+    self:update_sprite_row_and_play_sprite_animation("crouch")
   elseif self.motion_state == motion_states.spin_dashing then
-    -- exceptionally we don't need to self.anim_spr:play("spin_dash"), it's already done on every rev
+    -- exceptionally we don't need to self:update_sprite_row_and_play_sprite_animation("spin_dash"), it's already done on every rev
     --  so we can also pass from_start: true
   else -- self.motion_state == motion_states.rolling and self.motion_state == motion_states.air_spin
     local min_play_speed = self.motion_state == motion_states.rolling and
       pc_data.rolling_spin_anim_min_play_speed or pc_data.air_spin_anim_min_play_speed
-    self.anim_spr:play("spin", false, max(min_play_speed, self.anim_run_speed))
+    self:update_sprite_row_and_play_sprite_animation("spin", false, max(min_play_speed, self.anim_run_speed))
   end
 end
 
--- update sprite angle (falling only)
+-- table associating sprite animation name to double row index (starting at 0) in Sonic spritesheet
+--  memory stored in general memory
+-- animations with diagonal (45-degree) sprite variants are indicated by a suffix "45"
+-- they are not new animations per se, since they use exactly the same sequence of sprites at the same positions,
+--  but we must reload the appropriate sprites
+-- use ["key"] syntax to protect member names against minification
+local sprite_anim_name_to_double_row_index_table = {
+  ["idle"] = 0,
+  ["walk"] = 0,
+  ["walk45"] = 1,
+  ["brake_start"]   = 3,
+  ["brake_reverse"] = 3,
+  ["run"]  = 2,
+  -- encode the fact that the sprites start at column index 8
+  -- remember we use double rows => 32 cells, so starting at cell 8 is actually a *quarter*
+  --  of the way toward the next double row, although it is half-way of a row on X, so +0.25
+  ["run45"]  = 2.25,
+  ["spin"] = 3,
+  ["crouch"] = 1,
+  ["spring_jump"] = 0,
+  ["spin_dash"] = 4,
+}
+
+-- helper to copy needed sprite (double) row in memory and play animation
+function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_start, speed)
+  -- Copy the first 8 rows = 4 double rows at once
+  -- Main Sonic sprites have been copied to general memory in stage_state:reload_runtime_data
+  -- We're copying them back, except we only copy the row (or partial row) we are interested in
+  -- Source addresses are the Dest addresses from reload_runtime_data + some offset if needed
+  -- Dest address is always row index 8 as we always play Sonic sprite animations on double row 8-9
+  --  (with spring_jump sprite exceptionally overlapping row 10)
+  -- 1 row = 0x200 so row index 8 starts at 0x1000 (middle of spritesheet)
+  -- Note that in the table below, double_row_index starts at 0 although the first double row of Sonic sprites
+  --  starts at row index 2 (it was just to preserve the cross sprite 0, although it doesn't really matter as we copy the sprites
+  --  elsewhere in runtime memory)
+
+  -- double_row_index  Dest    Source  Size    Content
+  -- 0                 0x1000  0x4b00  0x400   First double row of Sonic sprites (walk cycle, idle, spring jump top)
+  -- 1                 0x1000  0x4f00  0x400   Second double row of Sonic sprites (walk cycle 45 degrees, crouch 2 sprites)
+  -- 2                 0x1000  0x5300  0x400   Third double row of Sonic sprites (run cycle 0 and 45 degrees)
+  -- 3                 0x1000  0x5700  0x400   Fourth double row of Sonic sprites (air spin, brake 3 sprites)
+  -- 4                 0x1000  0x5b00  0x1400  Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
+
+  local anim_name_with_optional_suffix
+
+  -- is_sprite_diagonal already checks for "walk" and "run" so the suffixed name should be a valid entry
+  --  in the table
+  if self.is_sprite_diagonal then
+    -- those two animations have a 45-degree variant
+    -- indicate it with suffix "45"
+    anim_name_with_optional_suffix = anim_key.."45"
+  else
+    anim_name_with_optional_suffix = anim_key
+  end
+
+  local double_row_index = sprite_anim_name_to_double_row_index_table[anim_name_with_optional_suffix]
+
+  local start_address = 0x4b00 + double_row_index * 0x400
+
+  if double_row_index < 4 and flr(double_row_index) == double_row_index then
+    -- we can copy full row at once, back from general memory
+    -- advance by 2 rows = 0x400 bytes for every double row
+    memcpy(0x1000, start_address, 0x400)
+  else
+    -- the special case "run45" which has a fractional index, and the last (partial) row of spin_dash sprites
+    --  must be copied via 16 partial lines copy
+    -- run45 partial lines span over 8 cell lines = 8 * 4 bytes = 32 bytes = 0x20 bytes
+    -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
+    -- reversing the logic from reload_runtime_data, source addresses are chained (+0x20 or +0x28)
+    --  while dest addresses leave a gap and skip a full line each time (+0x40)
+    local length = anim_name_with_optional_suffix == "run45" and 0x20 or 0x28
+
+    -- note that the only reason we do this for run45 is to avoid playing a different animation "run45", storing
+    --  and restoring the current animation frame (to keep running cycle uninterrupted) each time a running character
+    --  moves from flat to diagonal ground, and vice-versa; it's simpler to copy the 45-degree sprites right onto
+    --  where they are when angle is cardinal
+
+    for i = 0, 15 do
+      -- the formula for start_address above still works! if double_row_index is fractional, we simply
+      --  add less than a full 0x400 (for 2.25, fractional part will be +0x100 to start 8 cells later)
+      -- for run45, start_address = 0x4300 + 0x100 = 0x4400
+      -- for spin_dash, start_address = 0x5b00
+      memcpy(0x1000 + i * 0x40, start_address + i * length, length)
+    end
+  end
+
+  self.anim_spr:play(anim_key, from_start, speed)
+end
+
 function player_char:check_update_sprite_angle()
   local angle = self.continuous_sprite_angle
   assert(0 <= angle and angle < 1, "player_char:update_sprite_angle: expecting modulo angle, got: "..angle)
@@ -2717,55 +2825,12 @@ function player_char:check_update_sprite_angle()
   if self.motion_state == motion_states.falling and angle ~= 0 then
     if angle < 0.5 then
       -- just apply friction calculation as usual
-      self.continuous_sprite_angle = max(0, abs(angle) - pc_data.sprite_angle_airborne_reset_speed_frame)
+      self:set_continuous_sprite_angle(max(0, abs(angle) - pc_data.sprite_angle_airborne_reset_speed_frame))
     else
       -- problem is we must rotate counter-clockwise toward 1 which is actually 0 modulo 1
       --  so we increase angle, clamp to 1 and % 1 so if we reached 1, we now have 0 instead
       self.continuous_sprite_angle = min(1, abs(angle) + pc_data.sprite_angle_airborne_reset_speed_frame) % 1
     end
-  end
-end
-
--- replace all Sonic walk sprites that have a 45-degree rotation variant
---  with either the non-rotated or the 45-degree rotation variant
--- also replace the idle + spring_jump (top) vs crouch sprites since they are
---  on the same row so it allows a single big copy operation
--- this is OK as Sonic only shows one sprite at a time (and there is no rotated
---  crouch sprite)
--- requirement: stage_state:reload_runtime_data must have been called
-function player_char:reload_rotated_walk_and_crouch_sprites(rotated_by_45_or_crouching)
-  -- see stage_state:reload_runtime_data for address explanation
-  -- basically we are copying sprites general memory (with the correct
-  --  address offset if rotated), back into the current spritesheet memory
-  -- following stage_state:reload_runtime_data, offset between built-in and runtime sprites
-  --  is 0x880
-  local addr_offset = rotated_by_45_or_crouching and 0x880 or 0
-
-  -- copy 6 walk sprites + idle + spring_jump top (if not rotated_by_45_or_crouching)
-  --  or 6 walk sprites (rotated) + crouch sprites from general memory to
-  --  current spritesheet memory
-  memcpy(0x1000, 0x4b00 + addr_offset, 0x400)  -- next address: 0x5700
-end
-
--- same as reload_rotated_sprites_walk, but for run sprites
-function player_char:reload_rotated_run_sprites(rotated_by_45)
-  local addr_offset = rotated_by_45 and 0x880 or 0
-
-  -- same as reload_rotated_sprites_walk, but we must iterate over partial lines
-  for i = 0, 15 do
-    -- 4 run cycle sprites
-    memcpy(0x1400 + i * 0x40, 0x4f00 + addr_offset + i * 0x20, 0x20)
-  end
-end
-
--- same as reload_rotated_run_sprites, but for rolling/spin dash sprites
-function player_char:reload_rolling_vs_spin_dash_sprites(spin_dashing)
-  local addr_offset = spin_dashing and 0x880 or 0
-
-  -- same as reload_rotated_sprites_walk, but we must iterate over partial lines
-  for i = 0, 15 do
-    -- 5 rolling / spin dashing sprites
-    memcpy(0x1800 + i * 0x40, 0x5100 + addr_offset + i * 0x28, 0x28)
   end
 end
 
@@ -2775,50 +2840,7 @@ function player_char:render()
   --  partial pixel position being sometimes one more pixel on the right due after 180-deg rotation
   local floored_position = vector(flr(self.position.x), flr(self.position.y))
   local flip_x = self.orientation == horizontal_dirs.left
-  local sprite_angle = 0
-
-  -- only walk and run can use rotated sprite
-  if contains({"walk", "run"}, self.anim_spr.current_anim_key) then
-    -- snap render angle to a few set of values (45 degrees steps), classic style
-    --  (unlike Freedom Planet and Sonic Mania)
-    -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
-    --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
-    sprite_angle = flr(8 * self.continuous_sprite_angle + 0.5) / 8
-
-    -- TODO OPTIMIZATION: store which sprite rows were loaded last, and only reload if needed
-
-    -- an computed rotation of 45 degrees would result in an ugly sprite
-    --  so we only use rotations multiple of 90 degrees, using handmade 45-degree
-    --  sprites when we want a better angle resolution
-    if sprite_angle % 0.25 == 0 then
-      -- closest 45-degree angle is already cardinal, we can safely rotate
-      -- still make sure we use non-rotated sprites in case we changed them earlier
-      if self.anim_spr.current_anim_key == "walk" then
-        self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
-      else  -- self.anim_spr.current_anim_key == "run"
-        self:reload_rotated_run_sprites(--[[rotated_by_45: nil]])
-      end
-    else
-      -- closest 45-degree angle is diagonal, reload 45-degree sprite variants
-      if self.anim_spr.current_anim_key == "walk" then
-        self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching:]] true)
-      else  -- self.anim_spr.current_anim_key == "run"
-        self:reload_rotated_run_sprites(--[[rotated_by_45:]] true)
-      end
-
-      -- rotated sprite embeds a rotation of 45 degrees, so if not flipped, rotate by angle - 45 degrees
-      -- if flipped, the sprite is 45 degrees *behind* the horizontal left, so we must add 45 degrees instead
-      sprite_angle = sprite_angle + (flip_x and 1 or -1) * 0.125
-    end
-  else
-    if self.anim_spr.current_anim_key == "idle" then
-      -- idle sprite is never rotated, and we need to reload it after a spin dash -> rolling -> standing again
-      --  as in this case we leave crouching without reloading the idle sprite in check_crouch_and_roll_start
-      self:reload_rotated_walk_and_crouch_sprites(--[[rotated_by_45_or_crouching: nil]])
-    end
-  end
-
-  self.anim_spr:render(floored_position, flip_x, false, sprite_angle)
+  self.anim_spr:render(floored_position, flip_x, false, self.sprite_angle)
   self.smoke_pfx:render()
 end
 

@@ -83,7 +83,7 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: stage1 sonic",
+			"name": "Game: edit data: stage sonic",
 			"shell": true,
 			"cmd": ["pico8 -run data/data_stage_sonic.p8"],
 			"working_dir": "${project_path}"

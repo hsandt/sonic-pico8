@@ -39,7 +39,8 @@ cd(export_folder)
     "data_bgm1.p8",
     "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
     "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
-    "data_stage1_runtime.p8"
+    "data_stage1_intro.p8", "data_stage1_ingame.p8",
+    "data_stage_sonic.p8"
   }
 
   -- PNG

@@ -94,6 +94,10 @@ function stage_state:on_enter()
   self.camera:setup_for_stage(self.curr_stage_data)
   self:check_reload_map_region()
 
+  -- must be done before spawn_player_char so the player character can access
+  --  the initial anim spritesheet in its init > update_sprite_row_and_play_sprite_animation
+  self:reload_runtime_data()
+
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
 
@@ -103,8 +107,6 @@ function stage_state:on_enter()
   self:reload_bgm()
   -- initial play bgm
   self:play_bgm()
-
-  self:reload_runtime_data()
 end
 
 -- reload background, HUD and character sprites from runtime data

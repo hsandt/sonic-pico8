@@ -75,6 +75,7 @@ end
 -- is_sprite_diagonal       bool            Derived from continuous_sprite_angle. True iff continuous angle is closer to diagonal (45-degree multiple).
 -- sprite_angle             float           Derived from continuous_sprite_angle. Sprite angle actually used for rendering. Rounded to multiple of 0.25. Takes 45-degree sprite variant into account.
 --                                          To avoid ugly sprite rotations, only a few angle steps are actually used on render.
+-- last_copied_double_row   float           Last sprite double row index copied to spritesheet memory, tracked to avoid copying it every frame
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
 
@@ -149,6 +150,10 @@ function player_char:setup()
   -- self.continuous_sprite_angle = 0
   -- self.is_sprite_diagonal = false
   -- self.sprite_angle = 0
+
+  -- no need to setup that, update_sprite_row_and_play_sprite_animation will set it to match idle sprite below
+  -- nil is not equal to any number, so the first call will always copy a row and initialize last_copied_double_row
+  -- self.last_copied_double_row = nil
 
   -- must be called after setting angle, as it checks if we need diagonal sprites
   self:update_sprite_row_and_play_sprite_animation("idle")
@@ -1208,7 +1213,6 @@ function player_char:update_platformer_motion_grounded()
 
   -- update position
   self.position:copy_assign(ground_motion_result.position)
-  -- printh("self.position ("..self.position..") ")
 
   -- character falls by default if finds no ground to stick to
   local should_fall = ground_motion_result.is_falling
@@ -2784,37 +2788,44 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
     anim_name_with_optional_suffix = anim_key
   end
 
+  -- find which double row (or half double row) to copy, and remember that for next time
   local double_row_index = sprite_anim_name_to_double_row_index_table[anim_name_with_optional_suffix]
 
-  local start_address = 0x4b00 + double_row_index * 0x400
+  -- only copy row if not already done to preserve CPU every frame
+  if self.last_copied_double_row ~= double_row_index then
+    self.last_copied_double_row = double_row_index
 
-  if double_row_index < 4 and flr(double_row_index) == double_row_index then
-    -- we can copy full row at once, back from general memory
-    -- advance by 2 rows = 0x400 bytes for every double row
-    memcpy(0x1000, start_address, 0x400)
-  else
-    -- the special case "run45" which has a fractional index, and the last (partial) row of spin_dash sprites
-    --  must be copied via 16 partial lines copy
-    -- run45 partial lines span over 8 cell lines = 8 * 4 bytes = 32 bytes = 0x20 bytes
-    -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
-    -- reversing the logic from reload_runtime_data, source addresses are chained (+0x20 or +0x28)
-    --  while dest addresses leave a gap and skip a full line each time (+0x40)
-    local length = anim_name_with_optional_suffix == "run45" and 0x20 or 0x28
+    local start_address = 0x4b00 + double_row_index * 0x400
 
-    -- note that the only reason we do this for run45 is to avoid playing a different animation "run45", storing
-    --  and restoring the current animation frame (to keep running cycle uninterrupted) each time a running character
-    --  moves from flat to diagonal ground, and vice-versa; it's simpler to copy the 45-degree sprites right onto
-    --  where they are when angle is cardinal
+    if double_row_index < 4 and flr(double_row_index) == double_row_index then
+      -- we can copy full row at once, back from general memory
+      -- advance by 2 rows = 0x400 bytes for every double row
+      memcpy(0x1000, start_address, 0x400)
+    else
+      -- the special case "run45" which has a fractional index, and the last (partial) row of spin_dash sprites
+      --  must be copied via 16 partial lines copy
+      -- run45 partial lines span over 8 cell lines = 8 * 4 bytes = 32 bytes = 0x20 bytes
+      -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
+      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x20 or +0x28)
+      --  while dest addresses leave a gap and skip a full line each time (+0x40)
+      local length = anim_name_with_optional_suffix == "run45" and 0x20 or 0x28
 
-    for i = 0, 15 do
-      -- the formula for start_address above still works! if double_row_index is fractional, we simply
-      --  add less than a full 0x400 (for 2.25, fractional part will be +0x100 to start 8 cells later)
-      -- for run45, start_address = 0x4300 + 0x100 = 0x4400
-      -- for spin_dash, start_address = 0x5b00
-      memcpy(0x1000 + i * 0x40, start_address + i * length, length)
+      -- note that the only reason we do this for run45 is to avoid playing a different animation "run45", storing
+      --  and restoring the current animation frame (to keep running cycle uninterrupted) each time a running character
+      --  moves from flat to diagonal ground, and vice-versa; it's simpler to copy the 45-degree sprites right onto
+      --  where they are when angle is cardinal
+
+      for i = 0, 15 do
+        -- the formula for start_address above still works! if double_row_index is fractional, we simply
+        --  add less than a full 0x400 (for 2.25, fractional part will be +0x100 to start 8 cells later)
+        -- for run45, start_address = 0x4300 + 0x100 = 0x4400
+        -- for spin_dash, start_address = 0x5b00
+        memcpy(0x1000 + i * 0x40, start_address + i * length, length)
+      end
     end
   end
 
+  -- already copied or not, play anim (important to still call it even if already played, to update speed or restart it)
   self.anim_spr:play(anim_key, from_start, speed)
 end
 

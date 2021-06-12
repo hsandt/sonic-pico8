@@ -9067,6 +9067,20 @@ describe('player_char', function ()
         assert.spy(memcpy).was_called_with(0x1040, 0x5b28, 0x28)
       end)
 
+      it('(spin_dash) should set last_copied_double_row to match anim', function ()
+        pc:update_sprite_row_and_play_sprite_animation("spin_dash")
+
+        assert.are_equal(pc.last_copied_double_row, 4)
+      end)
+
+      it('(spin_dash, already copied row) should not memcpy again at all', function ()
+        pc.last_copied_double_row = 4
+
+        pc:update_sprite_row_and_play_sprite_animation("spin_dash")
+
+        assert.spy(memcpy).was_not_called()
+      end)
+
     end)
 
     describe('check_update_sprite_angle', function ()

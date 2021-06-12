@@ -86,9 +86,8 @@ end
 function stage_clear_state:on_enter()
   -- simplified compared to stage_state
   -- we don't even need to reload runtime spritesheet since the stage_clear builtin spritesheet
-  --  now integrates the runtime spritesheet top rows from the start (and later, ingame may do the same,
-  --  since ultimately we only need the tile masks in the top rows for initial collision data loading,
-  --  and we could quick reload on stage start just for that)
+  --  now integrates the runtime spritesheet top rows from the start (as there is no physics during stage clear
+  --  so we don't need the collision masks as builtin data)
   -- we need the runtime sprites for goal plate and menu cursor in particular
 
   -- first, restore picked emerald data set in ingame, just before loading this cartridge

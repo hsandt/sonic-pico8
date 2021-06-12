@@ -132,7 +132,7 @@ describe('stage_clear_state', function ()
       it('should hardcode set camera position', function ()
         -- uses init_position under the hood, but check result directly to simplify
         assert.are_equal(vector(3392, 328), state.camera.position)
-        assert.are_equal(328, state.camera.base_position_y)
+        assert.are_equal(328, state.camera.base_position.y)
       end)
 
       it('should hardcode set loaded_map_region_coords', function ()

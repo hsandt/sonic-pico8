@@ -345,6 +345,7 @@ local mask_tile_ids = {
 --   (via picosonic_app_ingame > stage_state > player_char > world)
 --   so this will be initialized on game start, which is perfect for us as the initial
 --   spritesheet is loaded at that point, and it contains all the collision masks
+--   (in v3, it actually contains *only* collision masks)
 -- doing this later, after background data cartridge reload (in stage on_enter)
 --  would fail, as the collision mask sprites would be overwritten by the runtime background
 --  sprites (only meant to be drawn programmatically)

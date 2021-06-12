@@ -110,134 +110,120 @@ end
 -- reload background, HUD and character sprites from runtime data
 -- also store non-rotated and rotated sprites into general memory for swapping later
 function stage_state:reload_runtime_data()
-  -- reload runtime background+HUD sprites by copying spritesheet top from background data
-  --  cartridge to the top of the current spritesheet, just to overwrite
-  -- spritesheet starts at 0x0 in memory
-  -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
-  --  so 512 = 0x200 bytes per row,
-  --  so 1536 = 0x600 bytes
+  -- in v3, the builtin contains *only* collision masks so we must reload the *full* spritesheet
+  --  for stage ingame, hence reload memory length 0x2000
   -- NOTE: we are *not* reloading sprite flags (could do by copying 0x100 bytes from 0x3000-0x30ff)
-  --  which means our builtin spritesheet *must* contain any new flags brought by runtime extra tiles
-  --  (located in the 3 top rows of the spritesheet). Those are rare (only one-way platform tiles)
-  --  but without the flags, they won't behave properly. This means you must (unintuitively) place flags
-  --  on the mask tiles in the built-in spritesheet. To make it easier, you may edit the flags on a cartridge
-  --  containing all the sprites of interest, then copy-paste the __gff__ lines into the builtin .p8 cartridge
-  -- Later, you can move all mask tiles to another spritesheet to reload
-  --  on start instead.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
-  reload(0x0, 0x0, 0x600, runtime_data_path)
+  --  which means our builtin spritesheet *must* contain all the sprite flags.
+  -- in v3, this is terrible since the built-in data only shows collision masks, but works because we already
+  --  defined all the sprite flags during v2
+  -- if we start adding/moving tiles around and changing sprite flags, then I'd strongly recommend
+  --  setting the flags on the spritesheets actually showing the tiles, and copy the flags from them
+  --  with the addresses mentioned above
+  -- OR if you really need to spare code characters, copy-paste the __gff__ lines into the builtin .p8 cartridge
+  -- manually.
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame"..cartridge_ext
+  reload(0x0, 0x0, 0x2000, runtime_data_path)
 
-  -- the runtime spritesheet also contains 45-degree rotated sprite variants
-  --  for Sonic walk and run cycle, meant to replace the non-rotated equivalents
-  --  in the built-in spritesheet + crouch sprites
-  -- we don't want to reload data files (neither the built-in nor the runtime)
-  --  every time Sonic changes 1/8 rotation, so we copy both the non-rotated
-  --  and rotated variants now into in general memory, so we can swap them later
-  -- we do the same for the idle + spring_jump (top 2x2 cell) sprites vs runtime crouch sprites
+  -- Sonic spritesheet
 
-  -- 1st argument of memcpy is destination, and is always general memory address
-  --  (0x4300) + some offset
-  -- first, we need to spare 0x800 for reload_..._map_region methods
-  --  which use the general memory as temporary storage for patching operations
-  -- second, we prefer keeping memory compact by copying the sprites one after
-  --  the other in general memory, rather than following the spritesheet layout
-  --  (even if there is a hole after a rotated sprite because it made sprite
-  --  alignment look better, we don't have a similar hole in general memory)
-  -- so, we start at 0x4b00 and then simply add the length of the previous memcpy
-  --  operation to get the next dest address
+  -- The Sonic spritesheet contains all the sprites for Sonic, including 45-degree rotated variants.
+  -- There are all meant to be copied into rows of index 8-9 in runtime memory spritesheet,
+  --  at runtime when Sonic changes state and needs to play certain sprite animations.
+  -- However, reading memory directly from a cartridge data with reload() is a bit slow.
+  --  (with the fast-reload patch, it's fast enough to be called from times to times as during
+  --  stage region transitions, but Sonic can change state much faster than that; experience seems
+  --  to indicate that reloading data from the same cartridge multiple times in a row is faster
+  --  than reloading data from different cartridges, but we prefer not relying on that at the moment;
+  --  this property is useful to make the repeated reload below faster though)
+  -- Therefore we copy the content of the whole Sonic spritesheet in general memory for super-fast
+  --  copy from internal memory to internal memory at runtime.
 
-  -- the non-rotated variants are already in current memory, so just copy them
+  -- Address start/size calculation
+  --
+  -- Sprites are stored in memory line by line.
+  --  1 pixel = 4 bits (as we use 16 colors)
+  --  2 pixels = 8 bits = 1 byte
+  --  8 pixels = 4 bytes
+  -- 1 cell occupies 8x8 pixels, and needs 16 bytes.
+  -- A 2x2-cell sprite = 16x16 pixels = 256 pixels = 128 bytes = 0x80 bytes
+  -- This is useful to count the total memory required by a sprite, and works when dealing with a row fully occupied by sprites
+  --  to copy, as we don't care in which order pixels were copied.
+  --
+  -- However, when copying partial lines, it is imperative to think in terms of lines, partial or complete,
+  --  to determine start addresses and copy lengths:
+  -- 1 cell line = 8 pixels = 4 bytes
+  -- 1 line = 8*16 pixels = 128 pixels = 64 bytes = 0x40 bytes
+  -- 1 row = 8 lines = 0x200 bytes
+  -- 1 double row = 2 rows (what we actually use since our sprites are 2x2) needs 0x400 bytes
+  -- The first Sonic sprites are located on the left of row index 2, so at address offset 0x400
+  -- Spritesheet memory starts at 0x0, therefore the first address to copy from really is 0x400
 
-  -- the walk cycle sprites start at row 8, column 0 (counting from 0)
-  -- sprites are stored in memory line by line, 1 cell being 8x8 px, and
-  --  8px are represented by 4 bytes, so top-left address is at:
-  --  8 * 0x200 + 0 * 0x4 = 0x1000
+  -- Address mapping
+  --
+  -- General memory starts at 0x4300, but we use the first blocks of memory for temporary operations.
+  -- Then we start copying Sonic sprites. The first 4 double rows (8 rows) are easy to copy, as rows are fully occupied.
+  -- For the last double row (2 rows), there are only partially filled with Sonic sprites, so to avoid wasting memory copying
+  --  holes (which would result in stopping just before address 0x5f00, at 0x5eff, which is beyond the end of general memory
+  --  0x5dff), we only copy partial lines of just what we need (spanning over 10 cells / 5 spin dash sprites each time).
+  -- Note that we will also need to copy the partial lines back one by one to reconstruct the sprites properly in runtime
+  --  spritesheet memory.
+  --
+  -- Below, Dest is the address to copy sprites to in general memory (for later usage).
+  -- Source is the address to copy from data_stage_sonic.p8 cartridge, which contains the Sonic spritesheet.
+  -- As explained above in `Address start/size calculation`, it starts on row index 2, therefore at 0x400.
+  -- The first entry is just a reminder that temporary memory is used at the start of general memory.
+  -- We don't copy sprites there.
 
-  -- Original calculation when only storing 45-rotated sprites, now less relevant since crouch1
-  --  and crouch2 sprites occupy the remaining cells of the row, allowing us to do a contiguous copy
-  --  at once. But kept since it helps understanding how we cpy run cycle sprites, and later
-  --  spin dash sprites, which still need partial lines copy.
+  -- Dest    Source  Size    Content
+  -- 0x4300          0x800   Temporary memory for stage region patching (see reload_..._map_region methods)
+  -- 0x4b00  0x400   0x1000  First 4 double rows of Sonic sprites = first 8 rows of Sonic sprites (sprites occupy 2x2 cells)
+  -- 0x5b00  0x1400  0x280   Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
+  -- 0x5d80  0x1680          Free from here, use it if you need to copy more things that need to be available quickly
 
-  -- << old comment kept for partial line copy explanations
+  -- Total size for sprites: 0x1280
 
-  -- there are 6 walk sprites of span 2x2, which don't cover the whole row of 16 cells of 8x8
-  --  and need to copy 8 * 2 = 16 partial lines over 6 * 2 = 12 cells of 8x8, which makes
-  --  12 * 4 = 48 = 0x30 bytes per line
-  -- to go to the next line, advance px by px over 16 cells (number of cells in a row)
-  --  of 8x8, which makes 16 * 4 = 64 = 0x40 (it's also 0x200 / 8 since 0x200 advances
-  --  by 1 full row of sprites, each sprite containing 8 lines)
+-- Comment for RELOAD
 
-  -- we don't have to keep the same structure in general memory, as we don't debug it
-  --  visually, which means we can just paste partial lines of 0x30 one after the other
-  --  for the most compact memory (but represented with line breaks every 0x40 like
-  --  the spritesheet, it would look garbage due to the offset of 0x10 every line)
-  -- we could also keep the structure aligned by pasting every 0x40, then to fill the holes
-  --  (2 sprites of span 2x2 left at the end), we could place 2 run cycle sprites
-  --  but we'd still need to place the remaining 2 run cycle sprites 2 rows below,
-  --  occupying 2 partial lines, and if we want to use general memory for non-sprite
-  --  data later then we don't have the most compact memory as we'd have holes for each
-  --  partial line but the last one
+-- Below, Dest is the address to copy with on runtime memory. Spritesheet memory starts at 0x0, but we always copy
+--  Sonic sprites on row indices 8-9 (because we put a hole there in the stage spritesheets, and even kept the foot
+--  of Sonic jump sprite sticking out on row index 10 to complement!), so we start at 8*0x200 = 0x1000 (right in the middle
+--  of spritesheet memory).
+-- Of course we don't copy the temporary memory for stage region patching there, so Dest is not defined in the first entry.
 
-  -- >>
+-- END
 
-  -- we copy the 6 walk sprites + idle + spring_jump top at once from built-in data
-  -- we cover 2 rows of 0x200 = 0x400 bytes
-  memcpy(0x4b00, 0x1000, 0x400)  -- next address: 0x4f00
+  -- Copy the first 8 rows = 4 double rows at once
+  reload(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
 
-  -- the run cycle sprites still require partial line copy, and they start at row 10, column 0,
-  --  and there are 4 sprites of span 2x2, so their topleft address is at:
-  --  10 * 0x200 = 0x1400
-  -- and we need 8 * 2 = 16 partial lines over 4 * 2 = 8 cells of 8x8,
-  --  so 8 * 4 = 32 = 0x20 bytes per line
-  -- we still need to skip a full row to get the next partial line, so +0x40 on src address
-  --  every iteration
-  -- next address is 16 * 0x20 = 0x200 after start address
+  -- Starting from 0x1400 (see above):
+  -- Copy 16 partial lines covering 10 cells on X to make sure we get the 5 2x2-cell spin dash sprites
+  --  starting on row index 10
+  -- Each partial line covers 10 cell lines, so according to `Address start/size calculation` it takes
+  --  10 * 4 bytes = 40 bytes = 0x28 bytes
+  -- We need to skip a full row to get the next partial line, so each iteration advances by +0x40 on src address
+  -- However, we don't want to waste space in general memory (it's the whole point of copying partial lines),
+  --  so we only advance by the length we copy on dest address, i.e. 0x28 bytes each iteration
+  -- Performance note: don't worry about repeating reloads from cartridge because:
+  --  1. this only happens once on stage setup
+  --  2. reloading from same cartridge seems to keep it in some cache, making further reloads faster
+  --  3. ideally we'd copy the whole spritesheet memory into general memory, then operate on it to move partial lines
+  --     where we want; but that's more code, so unless you notice a particular lag on start, don't mind it
   for i = 0, 15 do
     -- 4 run cycle sprites
-    memcpy(0x4f00 + i * 0x20, 0x1400 + i * 0x40, 0x20)  -- next address: 0x4f00 + 0x200 = 0x5100
+    reload(0x5b00 + i * 0x28, 0x1400 + i * 0x40, 0x28, "data_stage_sonic.p8")  -- next address: 0x4f00 + 0x200 = 0x5100
   end
 
-  -- since adding spin dash we also do the same with rolling vs spin dashing:
-  --  they have the same number of sprites (5) and overlap exactly on the spritesheet,
-  --  so we copy 16 partial lines covering 5 sprites of span 2x2 starting at row 12, column 0:
-  --  - start (topleft): 12 * 0x200 = 0x1800
-  --  - length: 5 * 2 * 4 = 40 = 0x28 bytes
-  --  - iteration: next line, so +0x40
-  -- next address is 16 * 0x28 = 0x280 after start address
-  for i = 0, 15 do
-    -- 5 rolling sprites
-    memcpy(0x5100 + i * 0x28, 0x1800 + i * 0x40, 0x28)  -- next address: 0x5100 + 0x280 = 0x5380
-  end
+  -- Total memory used by Sonic sprites: 0x1280
 
-  -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
-  -- the dest addresses start just after the last memcpy above, at 0x5900
-  -- from here, the same principle applies, but the dest addresses are offset by 0x400 + 0x200 + 0x280 = 0x880
-  --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
-  --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
-
-  -- 6 walk cycle sprites (rotated) + crouch sprites
-  reload(0x5380, 0x1000, 0x400, runtime_data_path)  -- next address: 0x5780
-
-  -- next address is 16 * 0x20 = 0x200 after start address
-  for i = 0, 15 do
-    -- 4 run cycle sprites (rotated)
-    reload(0x5780 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)  -- next address: 0x5780 + 0x200 = 0x5980
-  end
-
-  -- next address is 16 * 0x28 = 0x280 after start address
-  for i = 0, 15 do
-    -- 5 spin dashing sprites
-    reload(0x5980 + i * 0x28, 0x1800 + i * 0x40, 0x28, runtime_data_path)  -- next address: 0x5980 + 0x280 = 0x5c00
-  end
-
-  -- Total memory used by backup and runtime sprites: 0xc00
-
-  -- Memory range left: 0x5c00-0x5dff
+  -- Memory range left: 0x5d80-0x5dff
+  -- We just have enough memory left for one 2x2 sprite!
+  -- However, we can still get four 1x1 sprites, useful for e.g. Ring animation.
 
   -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
   --  of course we can keep using it for general memory, but if we start using custom font,
-  --  since the first bytes are used for default parameters, I'll have to stop using addresses
-  --  before 0x5600, which is a bit tight!
+  --  since the first bytes are used for default parameters, I would have to stop using addresses
+  --  before 0x5600, and I don't have this margin unless I accept to lose performance by reloading
+  --  Sonic sprites directly from data_stage_sonic.p8 cartridge...
 end
 
 -- never called, we directly load stage_clear cartridge

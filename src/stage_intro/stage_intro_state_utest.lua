@@ -128,11 +128,12 @@ describe('stage_intro_state', function ()
         assert.spy(stage_intro_state.scan_current_region_to_spawn_waterfalls).was_called_with(match.ref(state))
       end)
 
-      it('should call reload for runtime data and stage1, map 01 (hardcoded)', function ()
+      it('should call reload for stage tiles, Sonic main sprites (general memory storage) and stage1, map 01 (hardcoded)', function ()
         state:on_enter()
 
-        assert.spy(reload).was_called(3)  -- normally 2, but another unrelated call for waterfalls
-        assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called(4)  -- normally 2, but another unrelated call for waterfalls
+        assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_intro.p8")
+        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
         assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_01.p8")
       end)
 

@@ -91,7 +91,7 @@ elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
   # symbols='cheat,tostring,dump,log,debug_menu'
-  symbols='assert,cheat,debug_menu'
+  symbols='cheat,debug_menu'
 elif [[ $config == 'tuner' ]]; then
   symbols='tuner,mouse'
 elif [[ $config == 'ultrafast' ]]; then

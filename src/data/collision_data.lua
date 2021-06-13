@@ -73,8 +73,8 @@ local mask_tile_angles = transform(
     [27] = {8, 0},  -- 8x6 used for spring right part (collider only)  -- TODO: reuse 2, it's the same!
 
     -- 8px-high rectangles (angle doesn't matter)
-    [28] = {8, 0},  -- 4x8 used for rock left part
-    [29] = {8, 0},  -- 8x8 used for rock right part and any full ground
+    [28] = {8, 0},  -- 4x8 unused (OLD rock left part mask)
+    [29] = {8, 0},  -- 8x8 used for full ground
     [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
     [31] = {8, 0},  -- 6x8 used for spring oriented right (ground part only, object is separate)
 
@@ -259,21 +259,20 @@ local mask_tile_ids = {
 
 -- rock
 -- (only left parts have partial colliders)
-  [168] = 28,  -- rock (top-left part)
-  [92]  = 29,  -- rock (top-middle part)
-  [93]  = 29,  -- rock (top-right part)
-  [184] = 28,  -- rock (small rock bottom-left part, can be connected to medium rock extension)
-  [108] = 29,  -- rock (small rock bottom-middle part, can be connected to medium rock extension)
-  [109] = 29,  -- rock (small rock bottom-right part, can be connected to medium rock extension)
-  [169] = 28,  -- rock (medium rock bottom-left part, can be connected to big rock extension)
-  [190] = 29,  -- rock (medium rock bottom-middle part, can be connected to big rock extension)
-  [191] = 29,  -- rock (medium rock bottom-right part, can be connected to big rock extension)
-  [185] = 28,  -- rock (big rock extension top-left part)
-  [206] = 29,  -- rock (big rock extension top-middle part)
-  [207] = 29,  -- rock (big rock extension top-right part)
-  [186] = 28,  -- rock (big rock bottom-left part)
-  [122] = 29,  -- rock (big rock bottom-middle part)
-  [123] = 29,  -- rock (big rock bottom-right part)
+  [176] =  4,  -- rock (small and medium top-left, 8x4 rect)
+  [177] =  4,  -- rock (small and medium top-right, 8x4 rect)
+  [192] = 29,  -- rock (small bottom-left = medium mid-left)
+  [193] = 29,  -- rock (small bottom-right = medium mid-right)
+  [208] = 29,  -- rock (medium bottom-left)
+  [209] = 29,  -- rock (medium bottom-right)
+  [162] = 29,  -- rock (big rock top-left)
+  [163] = 29,  -- rock (big rock top-right)
+  [178] = 29,  -- rock (big rock mid-left 1)
+  [179] = 29,  -- rock (big rock mid-right 1)
+  [194] = 29,  -- rock (big rock mid-left 2)
+  [195] = 29,  -- rock (big rock mid-right 2)
+  [210] = 29,  -- rock (big rock bottom-left)
+  [211] = 29,  -- rock (big rock bottom-right)
 
 -- loop (collider only)
 

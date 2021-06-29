@@ -68,12 +68,15 @@ local mask_tile_angles = transform(
     [25] = { 3, 8},
     [41] = { 4, 8},
 
+    -- ascending slope variant for first slope of pico-island
+    [44] = {4, -8}, -- bottom of regular 1:2 ascending slope
+    [28] = {4, -8},  -- top of regular 1:2 ascending slope, except at bottom where 1px was removed to allow easy fall-off
+
     -- 6px-high rectangles (angle doesn't matter)
     [26] = {8, 0},  -- 4x6 used for spring left part (collider only)
     [27] = {8, 0},  -- 8x6 used for spring right part (collider only)  -- TODO: reuse 2, it's the same!
 
     -- 8px-high rectangles (angle doesn't matter)
-    [28] = {8, 0},  -- 4x8 unused (OLD rock left part mask)
     [29] = {8, 0},  -- 8x8 used for full ground
     [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
     [31] = {8, 0},  -- 6x8 used for spring oriented right (ground part only, object is separate)
@@ -81,9 +84,8 @@ local mask_tile_angles = transform(
     -- test only, no corresponding visual tiles
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
     [43] = {8, -4},  -- mid slope ascending but starts 5px high unlike 15
-    [44] = {8,  0},  -- 4x4 block in bottom-right corner, useful for small mask testing (angle doesn't matter)
 
-    -- [45] = {45, {8, 0}},  -- empty tile (can be reused for visual sprite if needed)
+    -- [45], [46], [47]: empty
   },
   function (dx_dy)
     return atan2(dx_dy[1], dx_dy[2])
@@ -200,6 +202,10 @@ local mask_tile_ids = {
   [80] = 29,  -- wood (specular top 1-column)
   [83] = 29,  -- wood (specular top left)
   [84] = 29,  -- wood (specular top right)
+
+-- wood slope variant for first slope
+  [182] = 44,  -- wood (bottom of regular 1:2 ascending slope)
+  [166] = 28,  -- wood (top of regular 1:2 ascending slope)
 
 -- floating platform bottom (left and right)
   [124] = 29,

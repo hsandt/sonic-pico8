@@ -437,29 +437,6 @@ function stage_clear_state:render_stage_elements()
   self:render_environment_foreground()
 end
 
--- render the stage environment (tiles)
-function stage_clear_state:render_environment_midground()
-  -- possible optimize: don't draw the whole stage offset by camera,
-  --  instead just draw the portion of the level of interest
-  --  (and either keep camera offset or offset manually and subtract from camera offset)
-  -- that said, I didn't notice a performance drop by drawing the full tilemap
-  --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
-
-  -- only draw midground tiles
-  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-end
-
-function stage_clear_state:render_environment_foreground()
-  set_unique_transparency(colors.pink)
-
-  -- draw tiles always on foreground
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
-end
-
 -- render the goal plate upper body (similar to stage_state equivalent)
 function stage_clear_state:render_goal_plate()
   assert(self.goal_plate, "stage_clear_state:render_goal_plate: no goal plate spawned in stage")

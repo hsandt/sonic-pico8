@@ -243,11 +243,16 @@ function base_stage_state:render_environment_foreground()
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
-  local region_topleft_loc = self:get_region_topleft_location()
+
+  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
+  --  loops nor palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
+--#if ingame
 
   -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
   --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
   --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
+  local region_topleft_loc = self:get_region_topleft_location()
+
   self:set_camera_with_origin()
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     -- draw map subset just for the loop entrance
@@ -258,9 +263,6 @@ function base_stage_state:render_environment_foreground()
         sprite_masks.midground)
   end
 
-  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
-  --  palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
---#if ingame
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do
     -- top has pivot at its bottom-left = the top-left of the core
@@ -271,7 +273,9 @@ function base_stage_state:render_environment_foreground()
     -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
     visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
   end
+
 --#endif
+
 end
 
 return base_stage_state

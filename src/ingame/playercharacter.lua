@@ -331,7 +331,10 @@ end
 
 function player_char:set_continuous_sprite_angle(angle)
   self.continuous_sprite_angle = angle
+  self:update_sprite_angle_parameters()
+end
 
+function player_char:update_sprite_angle_parameters()
   local sprite_angle = 0
   local is_sprite_diagonal = false
 
@@ -2758,6 +2761,15 @@ local sprite_anim_name_to_double_row_index_table = {
 
 -- helper to copy needed sprite (double) row in memory and play animation
 function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_start, speed)
+  -- play anim (important to still call it even if already played, to update speed or restart it)
+  self.anim_spr:play(anim_key, from_start, speed)
+
+  -- now update sprite angle parameters
+  -- this must be done *after* playing animation as it checks the current anim key
+  --  and *before* copying the correct double row of sprites below, as this requires
+  --  is_sprite_diagonal updated for the latest anim
+  self:update_sprite_angle_parameters()
+
   -- Copy the first 8 rows = 4 double rows at once
   -- Main Sonic sprites have been copied to general memory in stage_state:reload_runtime_data
   -- We're copying them back, except we only copy the row (or partial row) we are interested in
@@ -2790,6 +2802,7 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
 
   -- find which double row (or half double row) to copy, and remember that for next time
   local double_row_index = sprite_anim_name_to_double_row_index_table[anim_name_with_optional_suffix]
+  assert(double_row_index, "sprite_anim_name_to_double_row_index_table has no entry for key: "..anim_name_with_optional_suffix)
 
   -- only copy row if not already done to preserve CPU every frame
   if self.last_copied_double_row ~= double_row_index then
@@ -2824,9 +2837,6 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
       end
     end
   end
-
-  -- already copied or not, play anim (important to still call it even if already played, to update speed or restart it)
-  self.anim_spr:play(anim_key, from_start, speed)
 end
 
 function player_char:check_update_sprite_angle()

@@ -687,6 +687,19 @@ describe('player_char', function ()
 
     describe('set_continuous_sprite_angle', function ()
 
+      setup(function ()
+        stub(player_char, "update_sprite_angle_parameters")
+      end)
+
+      teardown(function ()
+        player_char.update_sprite_angle_parameters:revert()
+      end)
+
+      -- may be called during init(), so prefer before_each
+      before_each(function ()
+        player_char.update_sprite_angle_parameters:clear()
+      end)
+
       it('should set continuous sprite angle', function ()
         pc.continuous_sprite_angle = 0
 
@@ -695,12 +708,23 @@ describe('player_char', function ()
         assert.are_equal(0.25, pc.continuous_sprite_angle)
       end)
 
+      it('should call update_sprite_angle_parameters', function ()
+        pc:set_continuous_sprite_angle(0.25)
+
+        assert.spy(pc.update_sprite_angle_parameters).was_called(1)
+        assert.spy(pc.update_sprite_angle_parameters).was_called_with(match.ref(pc))
+      end)
+
+    end)
+
+    describe('update_sprite_angle_parameters', function ()
+
       it('(pc walking, facing right) should always set is_sprite_diagonal to false and sprite_angle to 0 even if angle is closer to diagonal direction', function ()
         pc.anim_spr.current_anim_key = "brake_start"
-        pc.continuous_sprite_angle = 0
+        pc.continuous_sprite_angle = 0.875  -- diagonal
         pc.orientation = horizontal_dirs.right
 
-        pc:set_continuous_sprite_angle(0.875)  -- diagonal
+        pc:update_sprite_angle_parameters()
 
         -- braking, so reset all angles
         assert.is_false(pc.is_sprite_diagonal)
@@ -709,10 +733,10 @@ describe('player_char', function ()
 
       it('(pc walking, facing right) should set is_sprite_diagonal to false if angle is closer to cardinal direction, and sprite_angle to this cardinal angle', function ()
         pc.anim_spr.current_anim_key = "walk"
-        pc.continuous_sprite_angle = 0
+        pc.continuous_sprite_angle = 0.25 + 0.0624  -- closer to 0.5 than 0.375
         pc.orientation = horizontal_dirs.right
 
-        pc:set_continuous_sprite_angle(0.25 + 0.0624)  -- closer to 0.5 than 0.375
+        pc:update_sprite_angle_parameters()
 
         assert.is_false(pc.is_sprite_diagonal)
         assert.are_equal(0.25, pc.sprite_angle)
@@ -720,10 +744,10 @@ describe('player_char', function ()
 
       it('(pc walking, facing right) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle MINUS 45 deg (0.125 pico8 angle unit)', function ()
         pc.anim_spr.current_anim_key = "walk"
-        pc.continuous_sprite_angle = 0
+        pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
         pc.orientation = horizontal_dirs.right
 
-        pc:set_continuous_sprite_angle(0.875 + 0.0624)  -- closer to 0.875 than 1 (0 modulo 1)
+        pc:update_sprite_angle_parameters()
 
         assert.is_true(pc.is_sprite_diagonal)
         -- sprite is already rotated by 45 (in pico8 unit, 0.125), so the additional angle is only 0.875 - 0.125 = 0.75
@@ -732,10 +756,10 @@ describe('player_char', function ()
 
       it('(pc running, facing left) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle PLUS 45 deg (0.125 pico8 angle unit)', function ()
         pc.anim_spr.current_anim_key = "run"
-        pc.continuous_sprite_angle = 0
+        pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
         pc.orientation = horizontal_dirs.left
 
-        pc:set_continuous_sprite_angle(0.875 + 0.0624)  -- closer to 0.875 than 1 (0 modulo 1)
+        pc:update_sprite_angle_parameters()
 
         assert.is_true(pc.is_sprite_diagonal)
         -- sprite is already rotated by -45 due to flip x (in pico8 unit, -0.125), so the additional angle is only 0.875 - (- 0.125) = 1
@@ -9014,19 +9038,22 @@ describe('player_char', function ()
       setup(function ()
         stub(_G, "memcpy")
         stub(animated_sprite, "play")
+        stub(player_char, "update_sprite_angle_parameters")
       end)
 
       teardown(function ()
         memcpy:revert()
         animated_sprite.play:revert()
+        player_char.update_sprite_angle_parameters:revert()
       end)
 
       -- since pc is init in before_each and init calls setup
-      --  which calls update_sprite_row_and_play_sprite_animation which calls
-      --  memcpy and pc.anim_spr:play("idle"), we must clear call count just after that
+      --  which calls update_sprite_row_and_play_sprite_animation itself,
+      --  we must clear spies before_each
       before_each(function ()
         memcpy:clear()
         animated_sprite.play:clear()
+        player_char.update_sprite_angle_parameters:clear()
       end)
 
       it('should play animation on anim_spr passing the same arguments', function ()
@@ -9034,6 +9061,13 @@ describe('player_char', function ()
 
         assert.spy(animated_sprite.play).was_called(1)
         assert.spy(animated_sprite.play).was_called_with(match.ref(pc.anim_spr), "spin_dash", true, 2)
+      end)
+
+      it('should call update_sprite_angle_parameters', function ()
+        pc:update_sprite_row_and_play_sprite_animation("spin_dash", true, 2)
+
+        assert.spy(player_char.update_sprite_angle_parameters).was_called(1)
+        assert.spy(player_char.update_sprite_angle_parameters).was_called_with(match.ref(pc))
       end)
 
       it('(run) should cardinal row containing run sprites from general memory to spritesheet', function ()

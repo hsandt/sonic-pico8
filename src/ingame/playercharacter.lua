@@ -810,12 +810,14 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
         qcolumn_index0, collision_check_quadrant, ignore_reverse)
     end
 
-    -- a q-column height of 0 doesn't mean that there is ground just below relative offset qy = 0,
-    --  but that the q-column is empty and we don't know what is more below
+    -- if ground is found, including ground of height 0 thx to land_on_empty_qcolumn, slope_angle is never nil
+    --  so check that, it's more reliable than the ground height
+    -- if no ground is found (ground height is 0 and slope angle is nil),
+    --  we still don't know whether there is something below
     -- so don't do anything yet but check for the tile one level lower
     --  (unless we've reached end of iteration with the last tile, in which case
     --  the next tile would be too far to snap down anyway)
-    if qcolumn_height > 0 then
+    if slope_angle then
       -- get q-bottom of tile to compare heights
       -- when iterating q-upward (ceiling check) this is actually a q-top from character's perspective
       local current_tile_qbottom = world.get_tile_qbottom(curr_global_tile_loc, collision_check_quadrant)

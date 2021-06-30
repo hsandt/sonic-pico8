@@ -69,12 +69,12 @@ local mask_tile_angles = transform(
     [41] = { 4, 8},
 
     -- ascending slope variant for first slope of pico-island
-    [44] = {4, -8}, -- bottom of regular 1:2 ascending slope
+    [44] = {4, -8},  -- bottom of regular 1:2 ascending slope
     [28] = {4, -8},  -- top of regular 1:2 ascending slope, except at bottom where 1px was removed to allow easy fall-off
 
     -- 6px-high rectangles (angle doesn't matter)
-    [26] = {8, 0},  -- 4x6 used for spring left part (collider only)
-    [27] = {8, 0},  -- 8x6 used for spring right part (collider only)  -- TODO: reuse 2, it's the same!
+    [26] = {8, 0},     -- 4x6 used for spring left part (collider only)
+    -- [27] = {8, 0},  -- 8x6 used for spring right part (collider only) => same as [2], so removed to spare characters
 
     -- 8px-high rectangles (angle doesn't matter)
     [29] = {8, 0},  -- 8x8 used for full ground
@@ -91,6 +91,30 @@ local mask_tile_angles = transform(
     return atan2(dx_dy[1], dx_dy[2])
   end
 )
+
+-- set of mask tile ids for which land_on_empty_qcolumn = true
+-- those flags are important to prevent character from detecting the ground below empty q-columns,
+--  and instead consider empty q-columns like actual ground at q-height 0 with the same slope angle as the other q-columns
+-- it's particularly important to set on regular slope tiles that are repeated periodically to avoid slope factor resetting to 0
+--  each time the ground sensor detects flat ground below an empty column
+local mask_tile_land_on_empty_qcolumn_flags = {
+  -- low slope descending every 4px with flat ground at every step
+  [7] = true,  -- the 4 columns on the right are empty, but physically you should be able to walk on them
+    -- low slope ascending every 4px
+  [8] = true,  -- the 4 columns on the left are empty
+    -- mid slope descending every 2px,
+  [13] = true,  -- the 2 columns on the right are empty
+    -- mid slope ascending every 2px
+  [14] = true,-- the 2 columns on the left are empty
+    -- loop parts: bottom (from left to right)
+  [18] = true,-- the 2 columns on the right are empty
+  [19] = true,-- the 2 columns on the left are empty
+    -- loop parts: top (from left to right)
+  [34] = true,-- the 2 columns on the right are empty
+  [35] = true,-- the 2 columns on the left are empty
+  -- [22]/[28] and [25] vertical slopes don't really need this, we removed the top pixel to make fall-off easier,
+  --  but we don't need to stick the the left/right wall for longer
+}
 
 -- table of tile collision mask ids indexed by tile id
 local mask_tile_ids = {
@@ -161,7 +185,7 @@ local mask_tile_ids = {
 
 -- 6px-high rectangles (angle doesn't matter)
   [26] = 26,
-  [27] = 27,
+  [27] =  2,  -- 2 had same height mask as 27, so we're using this now (also removed from spritesheet)
 
 -- 8px-high rectangles (angle doesn't matter)
   [28] = 28,
@@ -252,7 +276,7 @@ local mask_tile_ids = {
 
 -- spring
   [74]  = 26,  -- normal: left part
-  [75]  = 27,  -- normal: right part
+  [75]  =  2,  -- normal: right part (2 had same height mask as 27, so we're using this now (also removed from spritesheet))
   [106] = 29,  -- extended: bottom-left part
   [107] = 29,  -- extended: bottom-right part
 -- extended higher parts (no collisions)
@@ -357,7 +381,7 @@ local mask_tile_ids = {
 -- could probably be done via transform too
 local tiles_collision_data = {}
 for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
-  tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])
+  tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id], mask_tile_land_on_empty_qcolumn_flags[mask_tile_id])
 end
 
 -- proxy getter is only here to make stubbing possible in tile_test_data

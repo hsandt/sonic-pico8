@@ -6,9 +6,7 @@ local world = {}
 -- return quadrant in which angle is contained (non-injective)
 function world.angle_to_quadrant(angle)
   -- priority to vertical quadrants at the boundaries like Classic Sonic
-  -- (so 45-deg slope is recognized as up/down)
-  -- note that in those edge cases, the tiles should always be a rectangle to avoid confusion
-  --  of which side the columns/rows are defined from
+  -- (so 45-deg slope is recognized as up/down, it's important if you're defining 45-deg slopes)
   -- nil angle (airborne) defaults to down so Sonic will try to "stand up" in the air
   if not angle or angle >= 0.875 or angle <= 0.125 then
     return directions.down
@@ -161,7 +159,7 @@ function world.compute_qcolumn_height_at(region_tile_location, qcolumn_index0, q
 
         local is_full_vertical_rectangle = tcd:is_full_vertical_rectangle()
         local is_full_horizontal_rectangle = tcd:is_full_horizontal_rectangle()
-        local is_full_rectangle = is_full_vertical_rectangle or is_full_horizontal_rectangle
+        local is_rectangle = tcd:is_rectangle()  -- remember that land_on_empty_qcolumn => false
 
         if quadrant % 2 == 1 then
           -- floor/ceiling (quadrant down/up)
@@ -176,15 +174,29 @@ function world.compute_qcolumn_height_at(region_tile_location, qcolumn_index0, q
             if ignore_reverse and not is_full_vertical_rectangle then
               return 0--, nil
             end
-            -- return all-or-nothing, always with angle
-            --  (not nil even if nothing, let ground motion set slope angle appropriately when falling)
-            return height > 0 and tile_size or 0, world.quadrant_to_right_angle(quadrant)
-          elseif is_full_rectangle then
+            -- return all-or-nothing
+            -- if all, return (height, slope angle)
+            -- if nothing, return (0, nil). This is important since we now support land_on_empty_qcolumn
+            --  and the only way to distinguish landing on a q-column of height 0 and finding no ground at all
+            --  if that the slope of no-ground is nil (we could also return height = nil by convention,
+            --  but we go this way for safety as slope angle wasn't used when falling anyway)
+            if height > 0 then
+              return tile_size, world.quadrant_to_right_angle(quadrant)
+            end
+          elseif is_rectangle then
             -- flat side of rectangle (or empty region near flat side)
-            return height, world.quadrant_to_right_angle(quadrant)
+            if height > 0 then
+              return height, world.quadrant_to_right_angle(quadrant)
+            end
+          else
+            -- normal side
+            -- return height and angle if height is positive,
+            -- or if height is 0, but we can land on an empty qcolumn to avoid detecting tile q-below
+            -- (the only way to distinguish no-ground from ground at height 0 is to pass a non-nil slope angle)
+            if height > 0 or tcd.land_on_empty_qcolumn and world.angle_to_quadrant(tcd.slope_angle) == quadrant then
+              return height, tcd.slope_angle
+            end
           end
-          -- normal side
-          return height, tcd.slope_angle
         else
           -- right wall/left wall (quadrant right/left)
           local width = tcd:get_width(qcolumn_index0)
@@ -193,13 +205,26 @@ function world.compute_qcolumn_height_at(region_tile_location, qcolumn_index0, q
             if ignore_reverse and not is_full_horizontal_rectangle then
               return 0--, nil
             end
-            return width > 0 and tile_size or 0, world.quadrant_to_right_angle(quadrant)
-          elseif is_full_rectangle then
+            -- return all-or-nothing
+            -- if all, return (width, slope angle)
+            -- if nothing, return (0, nil). This is important since we now support land_on_empty_qcolumn
+            if width > 0 then
+              return tile_size, world.quadrant_to_right_angle(quadrant)
+            end
+          elseif is_rectangle then
             -- flat side of rectangle (or empty region near flat side)
-            return width, world.quadrant_to_right_angle(quadrant)
+            if width > 0 then
+              return width, world.quadrant_to_right_angle(quadrant)
+            end
+          else
+            -- normal side
+            -- return width and angle if width is positive,
+            -- or if width is 0, but we can land on an empty qcolumn to avoid detecting tile q-below
+            -- (same thing as above with height)
+            if width > 0 or tcd.land_on_empty_qcolumn and world.angle_to_quadrant(tcd.slope_angle) == quadrant then
+              return width, tcd.slope_angle
+            end
           end
-          -- normal side
-          return width, tcd.slope_angle
         end
       end
 

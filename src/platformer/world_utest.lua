@@ -261,8 +261,9 @@ describe('world (with mock tiles data setup)', function ()
 
     end)
 
-    -- this unrealistic tile is useful to check all-or-nothing in both horizontal and vertical dirs
-    -- more realistically, you could have an ascending slope that only occupies the bottom-right corner of the tile
+    -- we kept bottom_right_quarter_tile_id for testing,
+    --  but we actually have a bottom-right tile in real game now,
+    --  flat_high_tile_left_id used for spring right, just taller
     describe('with tile_repr.bottom_right_quarter_tile_id offset by 2', function ()
 
       before_each(function ()
@@ -270,51 +271,54 @@ describe('world (with mock tiles data setup)', function ()
         mock_mset(1, 1, tile_repr.bottom_right_quarter_tile_id)
       end)
 
-      it('should return 0 on column 3 (quadrant down)', function ()
-        assert.are_same({0, 0}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
+      it('should return (0, nil) on column 3 (quadrant down)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
       end)
 
-      it('should return 4 on column 4 (quadrant down)', function ()
+      -- this one is kind of a bad example... because a quarter tile is not a full rectangle,
+      --  we cannot apply the quadrant formula, and must use the tcd angle, which happens to be 0
+      --  which works but only because we're on quadrant down!
+      it('should return (4, slope angle) on column 4 (quadrant down)', function ()
         assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.down)})
       end)
 
-      it('should return 0 (reverse: nothing) on column 3 (quadrant up)', function ()
-        assert.are_same({0, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
+      it('should return (0, nil) (reverse: nothing) on column 3 (quadrant up)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
       end)
 
-      it('should return 8 (reverse: all) on column 4 (quadrant up)', function ()
+      it('should return (8, right angle) (reverse: all) on column 4 (quadrant up)', function ()
         assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.up)})
       end)
 
-      it('should return 0 (ignore reverse) on column 3 (quadrant up)', function ()
+      it('should return (0, nil) (ignore reverse) on column 3 (quadrant up)', function ()
         assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up, true)})
       end)
 
-      it('should return 0 (ignore reverse) on column 4 (quadrant up)', function ()
+      it('should return (0, nil) (ignore reverse) on column 4 (quadrant up)', function ()
         assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.up, true)})
       end)
 
-      it('should return 0 on row 3 (quadrant right)', function ()
-        assert.are_same({0, 0}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
+      it('should return (0, nil) on row 3 (quadrant right)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
       end)
 
-      it('should return 4 on row 3 (quadrant right)', function ()
-        assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
+      it('should return (4, right angle) (partial rectangle) on row 3 (quadrant right)', function ()
+        assert.are_same({4, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
       end)
 
-      it('should return 0 (reverse: nothing) on row 3 (quadrant left)', function ()
-        assert.are_same({0, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
+      it('should return (0, nil) (reverse: nothing) on row 3 (quadrant left)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
       end)
 
-      it('should return 8 (reverse: all) on row 4 (quadrant left)', function ()
+      it('should return (8, right angle) (reverse: all) on row 4 (quadrant left)', function ()
         assert.are_same({8, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
       end)
 
-      it('should return 0 (ignore reverse) on row 3 (quadrant left)', function ()
+      it('should return (0, nil) (ignore reverse) on row 3 (quadrant left)', function ()
         assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left, true)})
       end)
 
-      it('should return 0 (ignore reverse) on row 4 (quadrant left)', function ()
+      it('should return (0, nil) (ignore reverse) on row 4 (quadrant left)', function ()
         assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left, true)})
       end)
 
@@ -326,20 +330,46 @@ describe('world (with mock tiles data setup)', function ()
         mock_mset(1, 1, tile_repr.visual_loop_topleft)
       end)
 
-      it('should return 8 on column 6 (quadrant down)', function ()
+      it('should return (8, right angle) (reverse all) on column 6 (quadrant down)', function ()
         assert.are_same({8, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
       end)
 
-      it('should return 4 on column 6 (quadrant up)', function ()
+      it('should return (4, slope angle) on column 6 (quadrant up)', function ()
         assert.are_same({4, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
       end)
 
-      it('should return 8 on row 6 (quadrant right)', function ()
+      it('should return (8, right angle) (reverse all) on row 6 (quadrant right)', function ()
         assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.right)})
       end)
 
-      it('should return 2 on row 6 (quadrant left)', function ()
+      it('should return (2, slope angle) on row 6 (quadrant left)', function ()
         assert.are_same({2, atan2(-8, 5)}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.left)})
+      end)
+
+    end)
+
+    describe('with full tile', function ()
+
+      before_each(function ()
+        mock_mset(1, 1, tile_repr.full_tile_id)
+      end)
+
+      -- full_tile_id allows us to test is_full_rectangle case
+
+      it('should return (8, right angle) (full rectangle) on any column (quadrant down)', function ()
+        assert.are_same({8, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
+      end)
+
+      it('should return (8, right angle) (full rectangle) on any column (quadrant up)', function ()
+        assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 2, directions.up)})
+      end)
+
+      it('should return (8, right angle) (full rectangle) on any column (quadrant left)', function ()
+        assert.are_same({8, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 7, directions.left)})
+      end)
+
+      it('should return (8, right angle) (full rectangle) on any column (quadrant right)', function ()
+        assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 0, directions.right)})
       end)
 
     end)
@@ -355,32 +385,64 @@ describe('world (with mock tiles data setup)', function ()
       --  because we are only testing the quadrant left/right + is_rectangle case
       --  and not up/down... but that would only be a hypothetical tile, we don't have such a thing
       --  right now in the game
-      it('should return 4 (rectangle) on column 6 (quadrant down)', function ()
+      it('should return (4, right angle) (rectangle) on column 6 (quadrant down)', function ()
         assert.are_same({4, 0}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down)})
       end)
 
-      it('should return 8 (reverse all) on column 6 (quadrant up)', function ()
+      it('should return (8, right angle) (reverse all) on column 6 (quadrant up)', function ()
         assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up)})
       end)
 
-      it('should return 0 (ignore reverse) on column 6 (quadrant up)', function ()
+      it('should return (0, nil) (ignore reverse) on column 6 (quadrant up)', function ()
         assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.up, true)})
       end)
 
-      it('should return 0 (rectangle) on row 3 (quadrant right)', function ()
-        assert.are_same({0, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
+      it('should return (0, nil) (empty part besides rectangle) on row 3 (quadrant right)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.right)})
       end)
 
-      it('should return 0 (rectangle) on row 4 (quadrant right)', function ()
+      it('should return (8, right angle) (rectangle) on row 4 (quadrant right)', function ()
         assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
       end)
 
-      it('should return 0 (rectangle) on row 3 (quadrant left)', function ()
-        assert.are_same({0, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
+      it('should return (0, nil) (empty part besides rectangle) on row 3 (quadrant left)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.left)})
       end)
 
-      it('should return 8 (rectangle) on row 4 (quadrant left)', function ()
+      it('should return (8, right angle) (rectangle) on row 4 (quadrant left)', function ()
         assert.are_same({8, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
+      end)
+
+    end)
+
+    describe('with last part of descending slope every 4px (to test land_on_empty_qcolumn)', function ()
+
+      before_each(function ()
+        mock_mset(1, 1, tile_repr.desc_slope_2px_last_id)
+      end)
+
+      it('should return (1, slope angle) (left part is not empty) on column 3 (quadrant down)', function ()
+        assert.are_same({1, atan2(8, 2)}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.down)})
+      end)
+
+      it('should return (0, *slope angle*) (right part empty but land_on_empty_qcolumn allows landing) on column 4 (quadrant down)', function ()
+        assert.are_same({0, atan2(8, 2)}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.down)})
+      end)
+
+      it('should return (8, right angle) (reverse non-empty column is flat ground) on column 3 (quadrant up)', function ()
+        assert.are_same({8, 0.5}, {world.compute_qcolumn_height_at(location(1, 1), 3, directions.up)})
+      end)
+
+      it('should return (0, nil) (empty column found on reverse check *ignores* land_on_empty_qcolumn) on column 4 (quadrant up)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.up)})
+      end)
+
+      it('should return (0, nil) (non-main quadrant check *ignores* land_on_empty_qcolumn) on row 0 (quadrant left)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 0, directions.left)})
+      end)
+
+      it('should return (4, slope) (kinda rare but testing the row of 4px from the right) on row 7 (quadrant left)', function ()
+        assert.are_same({4, atan2(8, 2)}, {world.compute_qcolumn_height_at(location(1, 1), 7, directions.left)})
       end)
 
     end)

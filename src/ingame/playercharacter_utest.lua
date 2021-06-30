@@ -2192,6 +2192,20 @@ describe('player_char', function ()
 
         end)
 
+        describe('with last part of descending slope every 4px (to test land_on_empty_qcolumn)', function ()
+
+          before_each(function ()
+            -- create a descending slope from (0, 7) to (3, 7) px then 4 ghost pixels of
+            -- ground that we can land on thx to land_on_empty_qcolumn
+            mock_mset(0, 0, tile_repr.desc_slope_2px_last_id)
+          end)
+
+          it('should return ground_query_info(location(0, 0), 0, atan2(8, 2)) if right sensors are 0 above empty column 4', function ()
+            assert.are_same(ground_query_info(location(0, 0), 0, atan2(8, 2)), pc:compute_closest_ground_query_info(vector(4, 8)))
+          end)
+
+        end)
+
       end)
 
       describe('check_escape_from_ground', function ()

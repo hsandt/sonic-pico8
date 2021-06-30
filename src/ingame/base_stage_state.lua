@@ -243,6 +243,11 @@ function base_stage_state:render_environment_foreground()
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
+--#if busted
+  if not self.curr_stage_data then
+    return
+  end
+--#endif
 
   -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
   --  loops nor palm trees at stage start anyway. Stage clear doesn't have them at stage end either.

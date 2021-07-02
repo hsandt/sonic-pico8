@@ -263,6 +263,9 @@ describe('player_char', function ()
       curr_stage_state.loaded_map_region_coords = vector(0, 0)
       flow.curr_state = curr_stage_state
 
+      -- create dummy app just for get_late_jump_max_delay
+      flow.curr_state.app = { get_late_jump_max_delay = function () return 5 end }
+
       -- recreate player character for each test (setup spies will need to refer to player_char,
       --  not the instance)
       pc = player_char()
@@ -2861,7 +2864,7 @@ describe('player_char', function ()
               it('(time_left_for_late_jump > 0) should call check_jump_intention for late jump', function ()
                 pc.motion_state = motion_states.standing
                 -- normally we should stub update_platformer_motion_grounded since the only way to get late jump timer
-                --  from a grounded state is that this method just initialised time_left_for_late_jump
+                --  from a grounded state is that this method just initialized time_left_for_late_jump
                 -- but it's already stubbed so we'd need to set some local variable target_time_left_for_late_jump used
                 --  in the stub definition... to simplify, just set it here
                 -- but because the timer is decremented once, we need at least 2 not 1 for it to work (we set 6 which would correspond
@@ -3425,13 +3428,14 @@ describe('player_char', function ()
                 assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
               end)
 
-              it('when rolling, for instance) should set time_left_for_late_jump to delay and late_jump_slope_angle to current slope angle', function ()
+              it('(when rolling, for instance) should set time_left_for_late_jump to delay and late_jump_slope_angle to current slope angle', function ()
                 pc.motion_state = motion_states.rolling
                 pc.slope_angle = 0.25
 
                 pc:update_platformer_motion_grounded()
 
-                assert.are_equal(pc_data.optional_jump_delay_after_fall, pc.time_left_for_late_jump)
+                -- see fake app table creation with get_late_jump_max_delay always returning 5
+                assert.are_equal(5, pc.time_left_for_late_jump)
                 assert.are_equal(0.25, pc.late_jump_slope_angle)
               end)
 

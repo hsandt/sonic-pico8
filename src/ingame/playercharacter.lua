@@ -68,7 +68,7 @@ end
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
 -- can_interrupt_jump       bool            can the character interrupted his jump once?
--- time_left_for_late_jump  int             (late jump feature only) number of frames left to do a late jump after falling. Initialised on fall, decrement each frame.
+-- time_left_for_late_jump  int             (late jump feature only) number of frames left to do a late jump after falling. Initialized on fall, decrement each frame.
 
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
@@ -1263,7 +1263,7 @@ function player_char:update_platformer_motion_grounded()
     -- if enabling late jump, track frames after falling naturally from ground (no spring jump, etc. which is
     --  done elsewhere in code)
     -- note that this also applies to rolling -> falling with air_spin
-    self.time_left_for_late_jump = pc_data.optional_jump_delay_after_fall
+    self.time_left_for_late_jump = flow.curr_state.app.get_late_jump_max_delay()
 
     -- track slope angle of current ground before we clear it due to fall/jump
     --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping

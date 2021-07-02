@@ -131,6 +131,12 @@ local pc_data = {
   --  which will give a value of 1.890625. for a hop, the initial speed will remain 2.
   jump_interrupt_speed_frame = 2,
 
+  -- Original feature, optional:
+  --  jump delay after fall: number of frames after falling off ground while walking during which the character
+  --  can still jump. The feature is disabled by default to match the original Sonic, but when enabled,
+  --  it uses this value.
+  optional_jump_delay_after_fall = 6,
+
   -- absolute vertical speed given by spring bounce (px/frame)
   -- from this and gravity we can deduce the max jump height: 116.71875
   --  (measurement with debug step: 112) ~ 14+ tiles at frame 45

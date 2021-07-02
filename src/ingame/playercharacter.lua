@@ -57,6 +57,7 @@ end
 -- velocity                 vector          current velocity in platformer mode (px/frame)
 -- debug_velocity (#cheat)  vector          current velocity in debug mode (m/s)
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
+-- late_jump_slope_angle    float           (late jump feature only) slope angle of the last ground
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 -- (#original_slope_features)
 -- spin_dash_rev            float           spin dash charge (aka revving) value (float to allow drag over time)
@@ -67,6 +68,7 @@ end
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
 -- can_interrupt_jump       bool            can the character interrupted his jump once?
+-- time_left_for_late_jump  int             (late jump feature only) number of frames left to do a late jump after falling. Initialised on fall, decrement each frame.
 
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
@@ -133,6 +135,7 @@ function player_char:setup()
   -- slope_angle starts at 0 instead of nil to match standing state above
   -- (if spawning in the air, fine, next update will reset angle to nil)
   self.slope_angle = 0
+  self.late_jump_slope_angle = 0
 --#if original_slope_features
   self.ascending_slope_time = 0
 --#endif
@@ -144,6 +147,7 @@ function player_char:setup()
   self.should_jump = false
   self.has_jumped_this_frame = false
   self.can_interrupt_jump = false
+  self.time_left_for_late_jump = 0
 
   self:set_continuous_sprite_angle(0)
   -- equivalent to:
@@ -449,7 +453,7 @@ function player_char:handle_input()
     if self.horizontal_control_lock_timer > 0 then
       -- decrement control lock frame timer
       -- normally it's better to update non-intention state vars
-      --  in a normal update method not _handle_input, but since we know
+      --  in a normal update method not handle_input, but since we know
       --  that both are updated at 60FPS, it shouldn't be a problem here
       self.horizontal_control_lock_timer = self.horizontal_control_lock_timer - 1
     end
@@ -1070,6 +1074,10 @@ function player_char:enter_motion_state(next_motion_state)
       self.brake_anim_phase = 0
     end
   end
+
+  if next_motion_state ~= motion_states.falling then
+    self.time_left_for_late_jump = 0
+  end
 end
 
 function player_char:update_collision_timer()
@@ -1093,9 +1101,21 @@ function player_char:update_platformer_motion()
   -- In the original game, pressing down and jump at the same time gives priority to jump.
   --  Releasing down and pressing jump during crouch gives also priority to spin dash.
   --  So checking jump before crouching is the correct order (you need 2 frames to crouch, then spin dash)
-  if self:is_grounded() then
+  if self:is_grounded() or self.time_left_for_late_jump > 0 then
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
     self:check_spin_dash()  -- this is exclusive with jumping, so there is no order conflict
+  end
+
+  -- decrement late jump timer if positive
+  -- make sure to do this *after* checking it above and *before* update_platformer_motion_grounded
+  -- because if we decrement it before checking it above, on the last frame allowed for late jump (time == 1),
+  --  we will call check_jump_intention (see below) but we need an extra frame to confirm the jump
+  --  and on the next update_platformer_motion, time == 0 and we won't enter the block above
+  -- if we decrement it after update_platformer_motion_grounded (before check_jump_intention),
+  --  since it can set time_left_for_late_jump, that would immediately decrement the initial value
+  --  so we'd need to add +1 to optional_jump_delay_after_fall (and we want initial value 1 to work already)
+  if self.time_left_for_late_jump > 0 then
+    self.time_left_for_late_jump = self.time_left_for_late_jump - 1
   end
 
   -- do not move check below inside the is_grounded() check above,
@@ -1111,6 +1131,12 @@ function player_char:update_platformer_motion()
     self:update_platformer_motion_grounded()
   else
     self:update_platformer_motion_airborne()
+  end
+
+  -- only allow jump preparation for next frame if still grounded,
+  --  or started falling recently with late jump feature enabled
+  if self:is_grounded() or self.time_left_for_late_jump > 0 then
+    self:check_jump_intention()
   end
 
 --#if ingame
@@ -1234,6 +1260,19 @@ function player_char:update_platformer_motion_grounded()
 
   if should_fall then
     local new_state
+    -- if enabling late jump, track frames after falling naturally from ground (no spring jump, etc. which is
+    --  done elsewhere in code)
+    -- note that this also applies to rolling -> falling with air_spin
+    self.time_left_for_late_jump = pc_data.optional_jump_delay_after_fall
+
+    -- track slope angle of current ground before we clear it due to fall/jump
+    --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping
+    --  sends character to tremendous heights)
+    -- this must be called before enter_motion_state so slope_angle is still set!
+    -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
+    --  as we won't be using when not doing late jump
+    self.late_jump_slope_angle = self.slope_angle
+
     -- in the original game, Sonic keeps crouching and spin dash during fall (possible using crouch slide
     --  or spin dashing on crumbling ground), but you cannot release spin dash during the fall...
     -- this is very rare, and we don't want to handle the case of air crouching to prevent spin dashing,
@@ -1255,8 +1294,8 @@ function player_char:update_platformer_motion_grounded()
     -- update slope angle (if needed)
     self:set_slope_angle_with_quadrant(ground_motion_result.slope_angle)
 
-    -- only allow jump preparation for next frame if not already falling
-    self:check_jump_intention()
+    -- we moved self:check_jump_intention() to after calling this method
+    --  because of the new time_left_for_late_jump
   end
 
   log("self.position: "..self.position, "trace")
@@ -1835,7 +1874,7 @@ local function ceiling_check_collider_distance_callback(curr_tile_loc, signed_di
   end
 end
 
--- actual body of _compute_signed_distance_to_closest_ceiling passed to iterate_over_collision_tiles
+-- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
 --  as no_collider_callback
 local function ceiling_check_no_collider_callback()
   -- end of iteration, and no ceiling found
@@ -1906,12 +1945,13 @@ function player_char:check_jump()
     -- apply initial jump speed for variable jump
     -- note: if the player is doing a hop, the vertical speed will be reset
     --  to the interrupt speed during the same frame in update_platformer_motion_airborne
-    --  via _check_hold_jump (we don't do it here so we centralize the check and
+    --  via check_hold_jump (we don't do it here so we centralize the check and
     --  don't apply gravity during such a frame)
     -- to support slopes, we use the ground normal (rotate right tangent ccw)
-    -- we don't have double jumps yet so we assume we are grounded here and
-    --  self.slope_angle is not nil
-    local jump_impulse = pc_data.initial_var_jump_speed_frame * vector.unit_from_angle(self.slope_angle):rotated_90_ccw()
+    -- either we are grounded and jumping along ground normal, or we are doing late jump
+    --  and jumping along last ground normal (defined via late_jump_slope_angle)
+    local jump_angle = self.time_left_for_late_jump > 0 and self.late_jump_slope_angle or self.slope_angle
+    local jump_impulse = pc_data.initial_var_jump_speed_frame * vector.unit_from_angle(jump_angle):rotated_90_ccw()
     self.velocity:add_inplace(jump_impulse)
     self:enter_motion_state(motion_states.air_spin)
     self.has_jumped_this_frame = true
@@ -2139,7 +2179,7 @@ function player_char:compute_air_motion_result()
     )
   end
 
-  -- initialize air motion result (do not floor coordinates, _advance_in_air_along will do it)
+  -- initialize air motion result (do not floor coordinates, advance_in_air_along will do it)
   local motion_result = motion.air_motion_result(
     nil,  -- start in air, so no ground tile
     vector(self.position.x, self.position.y),

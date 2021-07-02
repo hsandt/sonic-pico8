@@ -188,6 +188,7 @@ describe('player_char', function ()
           0,
           0,
           0,
+          0,
 
           vector.zero(),
           false,
@@ -195,6 +196,7 @@ describe('player_char', function ()
           false,
           false,
           false,
+          0,
 
           0,
           0,
@@ -221,6 +223,7 @@ describe('player_char', function ()
           pc.velocity,
           pc.debug_velocity,
           pc.slope_angle,
+          pc.late_jump_slope_angle,
           pc.ascending_slope_time,
           pc.spin_dash_rev,
 
@@ -230,6 +233,7 @@ describe('player_char', function ()
           pc.should_jump,
           pc.has_jumped_this_frame,
           pc.can_interrupt_jump,
+          pc.time_left_for_late_jump,
 
           pc.anim_run_speed,
           -- to simplify we test the actual result of set_continuous_sprite_angle, not that we called it
@@ -2617,6 +2621,16 @@ describe('player_char', function ()
           assert.are_same(vector(10, 20 - pc_data.center_height_standing + pc_data.center_height_compact), pc.position)
         end)
 
+        it('(entering any state other than falling) should reset time_left_for_late_jump', function ()
+          pc.motion_state = motion_states.falling
+          pc.time_left_for_late_jump = 5
+
+          -- let's simulate character confirming a late jump
+          pc:enter_motion_state(motion_states.air_spin)
+
+          assert.are_equal(0, pc.time_left_for_late_jump)
+        end)
+
       end)
 
       describe('update_collision_timer', function ()
@@ -2648,6 +2662,7 @@ describe('player_char', function ()
           stub(player_char, "check_launch_ramp")
           stub(player_char, "check_emerald")
           stub(player_char, "check_loop_external_triggers")
+          stub(player_char, "check_jump_intention")
         end)
 
         teardown(function ()
@@ -2657,6 +2672,7 @@ describe('player_char', function ()
           player_char.check_launch_ramp:revert()
           player_char.check_emerald:revert()
           player_char.check_loop_external_triggers:revert()
+          player_char.check_jump_intention:revert()
         end)
 
         after_each(function ()
@@ -2666,6 +2682,7 @@ describe('player_char', function ()
           player_char.check_launch_ramp:clear()
           player_char.check_emerald:clear()
           player_char.check_loop_external_triggers:clear()
+          player_char.check_jump_intention:clear()
         end)
 
         it('(#debug_character) should clear debug rays from previous frame', function ()
@@ -2707,10 +2724,25 @@ describe('player_char', function ()
             assert.spy(player_char.check_jump).was_called_with(match.ref(pc))
           end)
 
-          it('(when motion state is airborne) should call check_jump', function ()
+          it('(when motion state is airborne, time_left_for_late_jump == 0) should not call check_jump', function ()
             pc.motion_state = motion_states.falling  -- or any airborne state
+            pc.time_left_for_late_jump = 0
+
             pc:update_platformer_motion()
+
             assert.spy(player_char.check_jump).was_not_called()
+            assert.are_equal(0, pc.time_left_for_late_jump)
+          end)
+
+          it('(when motion state is airborne, time_left_for_late_jump > 0) should still call check_jump', function ()
+            pc.motion_state = motion_states.falling  -- or any airborne state
+            pc.time_left_for_late_jump = 2
+
+            pc:update_platformer_motion()
+
+            assert.spy(player_char.check_jump).was_called(1)
+            assert.spy(player_char.check_jump).was_called_with(match.ref(pc))
+            assert.are_equal(1, pc.time_left_for_late_jump)
           end)
 
           it('should call check_spring (after motion)', function ()
@@ -2756,7 +2788,7 @@ describe('player_char', function ()
 
         end)
 
-        describe('(update_platformer_motion_grounded sets motion state to air_spin)', function ()
+        describe('(update_platformer_motion_grounded sets motion state to air_spin, update_platformer_motion_airborne stubbed)', function ()
 
           local update_platformer_motion_grounded_mock
           local update_platformer_motion_airborne_stub
@@ -2815,6 +2847,32 @@ describe('player_char', function ()
                 assert.spy(update_platformer_motion_grounded_mock).was_called(1)
                 assert.spy(update_platformer_motion_grounded_mock).was_called_with(match.ref(pc))
                 assert.spy(update_platformer_motion_airborne_stub).was_not_called()
+              end)
+
+              it('(time_left_for_late_jump == 0) should not call check_jump_intention for late jump', function ()
+                pc.motion_state = motion_states.standing
+                pc.time_left_for_late_jump = 0
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_jump_intention).was_not_called()
+              end)
+
+              it('(time_left_for_late_jump > 0) should call check_jump_intention for late jump', function ()
+                pc.motion_state = motion_states.standing
+                -- normally we should stub update_platformer_motion_grounded since the only way to get late jump timer
+                --  from a grounded state is that this method just initialised time_left_for_late_jump
+                -- but it's already stubbed so we'd need to set some local variable target_time_left_for_late_jump used
+                --  in the stub definition... to simplify, just set it here
+                -- but because the timer is decremented once, we need at least 2 not 1 for it to work (we set 6 which would correspond
+                --  to an initial value of 5 after decrement)
+                -- it's not very clean but simpler than doing the exact stub
+                pc.time_left_for_late_jump = 6
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_jump_intention).was_called(1)
+                assert.spy(player_char.check_jump_intention).was_called_with(match.ref(pc))
               end)
 
             end)
@@ -2877,6 +2935,28 @@ describe('player_char', function ()
                 assert.spy(update_platformer_motion_grounded_mock).was_not_called()
               end)
 
+              it('(time_left_for_late_jump == 0) should not call check_jump_intention for late jump', function ()
+                pc.motion_state = motion_states.air_spin
+                pc.time_left_for_late_jump = 0
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_jump_intention).was_not_called()
+              end)
+
+              it('(time_left_for_late_jump > 0) should call check_jump_intention for late jump', function ()
+                pc.motion_state = motion_states.air_spin
+                -- counter decrement so need at least 2 to remain positive afterwards
+                -- we're supposed to have set jump intention *last* frame
+                -- note that it's possible to be in air_spin with late jump, but we must have fallen from rolling
+                pc.time_left_for_late_jump = 2
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_jump_intention).was_called(1)
+                assert.spy(player_char.check_jump_intention).was_called_with(match.ref(pc))
+              end)
+
             end)
 
           end)
@@ -2888,6 +2968,7 @@ describe('player_char', function ()
             setup(function ()
               check_jump_mock = stub(player_char, "check_jump", function ()
                 pc.motion_state = motion_states.air_spin
+                pc.time_left_for_late_jump = 0  -- in reality should also reset this timer
               end)
             end)
 
@@ -2917,6 +2998,17 @@ describe('player_char', function ()
                 assert.spy(update_platformer_motion_airborne_stub).was_called(1)
                 assert.spy(update_platformer_motion_airborne_stub).was_called_with(match.ref(pc))
                 assert.spy(update_platformer_motion_grounded_mock).was_not_called()
+              end)
+
+              it('(time_left_for_late_jump > 0) should not call check_jump_intention anyway as character is jumping now', function ()
+                pc.motion_state = motion_states.air_spin
+                -- just to show that this timer will be reset as we're confirming jump (it must be a late jump since timer was positive)
+                --  and so we don't check for jump intention again
+                pc.time_left_for_late_jump = 2
+
+                pc:update_platformer_motion()
+
+                assert.spy(player_char.check_jump_intention).was_not_called()
               end)
 
             end)
@@ -3162,13 +3254,10 @@ describe('player_char', function ()
 
       end)
 
-      -- bugfix history:
-      --  ^ use fractional speed to check that fractional moves are supported
       describe('update_platformer_motion_grounded (when update_velocity sets ground_speed to 2.5)', function ()
 
         local update_ground_speed_mock
         local enter_motion_state_stub
-        local check_jump_intention_stub
         local compute_ground_motion_result_mock
 
         -- allows to modify the mock update_ground_speed without restubbing it for every test section
@@ -3184,7 +3273,6 @@ describe('player_char', function ()
             self.ground_speed = new_ground_speed
           end)
           enter_motion_state_stub = stub(player_char, "enter_motion_state")
-          check_jump_intention_stub = stub(player_char, "check_jump_intention")
         end)
 
         teardown(function ()
@@ -3193,7 +3281,6 @@ describe('player_char', function ()
           update_ground_speed_mock:revert()
           enter_motion_state_stub:revert()
           player_char.set_ground_tile_location:revert()
-          check_jump_intention_stub:revert()
         end)
 
         after_each(function ()
@@ -3202,7 +3289,6 @@ describe('player_char', function ()
           update_ground_speed_mock:clear()
           enter_motion_state_stub:clear()
           player_char.set_ground_tile_location:clear()
-          check_jump_intention_stub:clear()
         end)
 
         it('should call update_ground_speed', function ()
@@ -3266,12 +3352,10 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
           end)
 
-          it('should call check_jump_intention, not enter_motion_state (not falling)', function ()
+          it('should not call enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
-            assert.spy(check_jump_intention_stub).was_called(1)
-            assert.spy(check_jump_intention_stub).was_called_with(match.ref(pc))
             assert.spy(enter_motion_state_stub).was_not_called()
           end)
 
@@ -3341,6 +3425,16 @@ describe('player_char', function ()
                 assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
               end)
 
+              it('when rolling, for instance) should set time_left_for_late_jump to delay and late_jump_slope_angle to current slope angle', function ()
+                pc.motion_state = motion_states.rolling
+                pc.slope_angle = 0.25
+
+                pc:update_platformer_motion_grounded()
+
+                assert.are_equal(pc_data.optional_jump_delay_after_fall, pc.time_left_for_late_jump)
+                assert.are_equal(0.25, pc.late_jump_slope_angle)
+              end)
+
             end)
 
             describe('(update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
@@ -3396,12 +3490,10 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call check_jump_intention, not enter_motion_state (not falling)', function ()
+          it('should not call enter_motion_state (not falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
-            assert.spy(check_jump_intention_stub).was_called(1)
-            assert.spy(check_jump_intention_stub).was_called_with(match.ref(pc))
             assert.spy(enter_motion_state_stub).was_not_called()
           end)
 
@@ -3505,16 +3597,15 @@ describe('player_char', function ()
             assert.are_same({-2.5, vector(-2.5*cos(1/6), 2.5*sqrt(3)/2)}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
+          it('should call enter_motion_state with falling state (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
-            assert.spy(check_jump_intention_stub).was_not_called()
           end)
 
-          it('(when rolling) should call enter_motion_state with air_spin state, not call check_jump_intention (falling)', function ()
+          it('(when rolling) should call enter_motion_state with air_spin state (falling)', function ()
             pc.motion_state = motion_states.rolling
 
             pc:update_platformer_motion_grounded()
@@ -3522,7 +3613,6 @@ describe('player_char', function ()
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
-            assert.spy(check_jump_intention_stub).was_not_called()
           end)
 
           it('should set the position to vector(3, 4)', function ()
@@ -3573,16 +3663,15 @@ describe('player_char', function ()
             assert.are_same({0, vector.zero()}, {pc.ground_speed, pc.velocity})
           end)
 
-          it('should call enter_motion_state with falling state, not call check_jump_intention (falling)', function ()
+          it('should call enter_motion_state with falling state (falling)', function ()
             pc:update_platformer_motion_grounded()
 
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.falling)
-            assert.spy(check_jump_intention_stub).was_not_called()
           end)
 
-          it('(when rolling) should call enter_motion_state with air_spin state, not call check_jump_intention (falling)', function ()
+          it('(when rolling) should call enter_motion_state with air_spin state (falling)', function ()
             pc.motion_state = motion_states.rolling
 
             pc:update_platformer_motion_grounded()
@@ -3590,7 +3679,6 @@ describe('player_char', function ()
             -- implementation
             assert.spy(enter_motion_state_stub).was_called(1)
             assert.spy(enter_motion_state_stub).was_called_with(match.ref(pc), motion_states.air_spin)
-            assert.spy(check_jump_intention_stub).was_not_called()
           end)
 
           it('should set the position to vector(3, 4)', function ()
@@ -6434,6 +6522,19 @@ describe('player_char', function ()
           pc.velocity = vector(2, -2)
           pc.should_jump = true
           pc.slope_angle = 0.125
+
+          pc:check_jump()
+
+          assert.is_true(almost_eq_with_message(2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.x))
+          assert.is_true(almost_eq_with_message(-2 - pc_data.initial_var_jump_speed_frame / sqrt(2), pc.velocity.y))
+        end)
+
+        it('(should do late jump) should add impulse along previous ground normal using late_jump_slope_angle', function ()
+          pc.velocity = vector(2, -2)
+          pc.should_jump = true
+          pc.time_left_for_late_jump = 1
+          pc.slope_angle = nil  -- unused, and actually nil in the air
+          pc.late_jump_slope_angle = 0.125  -- same angle as above so we can copy the assertions of the utest above
 
           pc:check_jump()
 

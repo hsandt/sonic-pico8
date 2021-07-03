@@ -15,54 +15,47 @@ function picosonic_app_ingame:instantiate_gamestates() -- override (mandatory)
   return {stage_state()}
 end
 
--- made local (equivalent of file static in C++) so the static menuitem callback late_jump_delay_callback,
+-- made local (equivalent of file static in C++) so the static menuitem callback late_jump_feature_callback,
 --  which doesn't take a self parameter, can access it without accessing singleton flow.curr_state.app...
 -- this is OK because there is only one picosonic app (and seriously this could be a singleton anyway)
 -- in counterpart, you need to provide a getter to it
-local late_jump_max_delay
+local enable_late_jump_feature
 
-
-function picosonic_app_ingame.get_late_jump_max_delay()
-  return late_jump_max_delay
+function picosonic_app_ingame.get_enable_late_jump_feature()
+  return enable_late_jump_feature
 end
 
 -- to allow circular referencing, we must declare the second function before defining it
-local create_late_jump_delay_menuitem
+local create_late_jump_feature_menuitem
 
-local function late_jump_delay_callback(b)
+local function late_jump_feature_callback(b)
   -- normally we should check bitmask with band/&, but to spare characters we exploit the undocumented
   --  fact that only the last button press mask is used
   if b == 1 or b == 2 then
-    if b == 1 then
-      -- pressing left -> decrease and wrap around
-      late_jump_max_delay = (late_jump_max_delay - 1) % pc_data.max_late_jump_max_delay
-    elseif b == 2 then
-      -- pressing right -> increase and wrap around
-      late_jump_max_delay = (late_jump_max_delay + 1) % pc_data.max_late_jump_max_delay
-    end
+    -- pressing left or right -> toggle feature
+    enable_late_jump_feature = not enable_late_jump_feature
 
     -- update menuitem label (we have no choice but to recreate the whole menuitem)
-    create_late_jump_delay_menuitem()
+    create_late_jump_feature_menuitem()
 
     -- don't close pause menu after that
     return true
   end
 end
 
-create_late_jump_delay_menuitem = function()
-  -- create/replace menuitem showing the value, as PICO-8 doesn't have a native way to show a tuned variable
-  menuitem(1, "late jmp delay:"..late_jump_max_delay, late_jump_delay_callback)
+create_late_jump_feature_menuitem = function()
+  -- create/replace menuitem to update the label, as PICO-8 doesn't have a native way to show a variable
+  menuitem(1, "late jump: <"..(enable_late_jump_feature and " on" or "off")..">", late_jump_feature_callback)
 end
 
 function picosonic_app_ingame:on_post_start() -- override (optional)
   picosonic_app_base.on_post_start(self)
 
   -- Original feature: late jump
-  -- See playercharacter_data -> default_late_jump_max_delay for more info
-  -- We initialize the value to default, but after that it's tunable via menuitem below
+  -- Enable by default (see playercharacter_data > late_jump_max_delay)
   -- Note that it's not currently stored as player preference, so it resets each time you restart ingame
-  late_jump_max_delay = pc_data.default_late_jump_max_delay
-  create_late_jump_delay_menuitem()
+  enable_late_jump_feature = true
+  create_late_jump_feature_menuitem()
 
   menuitem(3, "warp to start", function()
     assert(flow.curr_state.type == ':stage')

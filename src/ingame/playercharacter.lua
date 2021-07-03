@@ -1260,18 +1260,22 @@ function player_char:update_platformer_motion_grounded()
 
   if should_fall then
     local new_state
-    -- if enabling late jump, track frames after falling naturally from ground (no spring jump, etc. which is
-    --  done elsewhere in code)
-    -- note that this also applies to rolling -> falling with air_spin
-    self.time_left_for_late_jump = flow.curr_state.app.get_late_jump_max_delay()
 
-    -- track slope angle of current ground before we clear it due to fall/jump
-    --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping
-    --  sends character to tremendous heights)
-    -- this must be called before enter_motion_state so slope_angle is still set!
-    -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
-    --  as we won't be using when not doing late jump
-    self.late_jump_slope_angle = self.slope_angle
+    -- if enabling late jump, track frames after falling naturally from ground (no spring jump, etc. which is
+    --  done elsewhere in code). This also applies to rolling -> falling with air_spin.
+    -- note that it's the only place where we check for the feature. In other places, we keep decrementing the timer
+    --  and applying late jump. This is simpler and avoids having a frozen timer that is resumed later in bad places.
+    if flow.curr_state.app.get_enable_late_jump_feature() then
+      self.time_left_for_late_jump = pc_data.late_jump_max_delay
+
+      -- track slope angle of current ground before we clear it due to fall/jump
+      --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping
+      --  sends character to tremendous heights)
+      -- this must be called before enter_motion_state so slope_angle is still set!
+      -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
+      --  as we won't be using when not doing late jump
+      self.late_jump_slope_angle = self.slope_angle
+    end
 
     -- in the original game, Sonic keeps crouching and spin dash during fall (possible using crouch slide
     --  or spin dashing on crumbling ground), but you cannot release spin dash during the fall...

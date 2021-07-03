@@ -46,7 +46,7 @@ describe('picosonic_app_ingame', function ()
 
     it('should initialize late_jump_max_delay to default', function ()
       app:on_post_start()
-      assert.are_equal(pc_data.max_late_jump_max_delay, app.get_late_jump_max_delay())
+      assert.is_true(app.get_enable_late_jump_feature())
     end)
 
     it('should create 4 menu items', function ()

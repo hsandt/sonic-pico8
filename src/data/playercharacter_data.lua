@@ -136,13 +136,8 @@ local pc_data = {
   --  can still jump.
   -- It comes from modern platformers but was not present in Classic Sonic
   -- I found it useful for tricky jumps required to get some emeralds,
-  --  but purists may want to disable it, so I made the value tunable in picosonic_app_ingame:on_post_start.
-  -- I still store the default value here to find it more easily, though.
-  -- Note that the "max" here means the max delay allowed for the player to wait, not the max tunable value.
-  default_late_jump_max_delay = 6,
-
-  -- Max value allowed when tuning Late jump max delay above
-  max_late_jump_max_delay = 6,
+  --  but purists may want to disable it, so I added a menuitem for that in picosonic_app_ingame:on_post_start.
+  late_jump_max_delay = 6,
 
   -- absolute vertical speed given by spring bounce (px/frame)
   -- from this and gravity we can deduce the max jump height: 116.71875

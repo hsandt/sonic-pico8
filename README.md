@@ -90,6 +90,19 @@ Stage gimmicks:
 * Loop
 * Launch ramp
 
+## Notable physics differences
+
+* It is possible to control horizontal acceleration after jumping out of a roll. This was considered to be a better user experience, and actually recommended by the Sonic Physics Guide despite being unlike the original games.
+* Late jump: as in modern platforms, the character can jump up to 6 frames after falling off ground, for more permissive jumps from a platform ledge. This can be disabled in the Pause menu for a more "classic" experience.
+* Pixel step-by-step approach: currently, character motion is computed pixel by pixel. This is very precise and avoids relying on ground escape, but is also very CPU expensive (the main reason behind FPS dropping to 30) and can get the character stuck if one calculation is wrong. It will probably be replaced with bigger steps and ground escape in the future.
+
+## Notable camera differences
+
+Because PICO-8 has a square view of 128x128 pixels, and the game is more about exploration than moving toward the right, camera was adjusted to make navgiation a little easier.
+
+* Camera is fundamentally centered on X, but moves toward the direction Sonic is facing. When Sonic is running, camera moves even more forward to show what is ahead
+* Spin dash lag is implemented by freezing then releasing the camera, instead of the more complex recording and playing of character positions during the start of the spin dash
+
 ## Controls
 
 You can play with keyboard or gamepad with those inputs:
@@ -108,6 +121,7 @@ If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad T
 
 In the pause menu (toggled with Enter/Start), if you are in-game, you can select the following options:
 
+* Late jump: press left/right to toggle the Late jump feature ON/OFF (default: ON)
 * Warp to start: restart stage from beginning keeping collected emeralds
 * Retry from zero: restart stage losing emeralds collected so far
 * Back to title: go back to title menu

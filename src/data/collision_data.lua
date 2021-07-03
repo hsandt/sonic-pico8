@@ -85,7 +85,10 @@ local mask_tile_angles = transform(
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
     [43] = {8, -4},  -- mid slope ascending but starts 5px high unlike 15
 
-    -- [45], [46], [47]: empty
+    -- 0 slope bump (ground with uniform height 1px)
+    [45] = {8, 0},
+
+    -- [46], [47]: empty
   },
   function (dx_dy)
     return atan2(dx_dy[1], dx_dy[2])
@@ -198,7 +201,8 @@ local mask_tile_ids = {
   [43] = 43,
   [44] = 44,
 
--- [45] = 45,  -- empty tile
+-- 0 slope bump (ground with uniform height 1px)
+  [45] = 45,
 
 --(proto)
 --#endif
@@ -265,6 +269,10 @@ local mask_tile_ids = {
   [87] = 29,
   [88] = 29,
   [89] = 29,
+
+  -- 0 slope bumps (grass ground with uniform height 1px)
+  [160] = 45,
+  [161] = 45,
 
 -- leaves
   [94]  = 29,  -- wood (specular bottom left) with first leaves

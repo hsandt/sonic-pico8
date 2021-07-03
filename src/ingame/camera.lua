@@ -274,34 +274,38 @@ function camera_class:update()
   -- SPG confirms this even when airborne, see GIF and comment about "5px offset while sonic is curled"
   --  on http://info.sonicretro.org/SPG:Camera#In_the_Air
   local adjusted_target_pc_pos_y = target_pos.y + self.target_pc:get_center_height() - pc_data.center_height_standing
+  local dy
 
   -- unlike original game we simply use the current center position even when compact (curled)
   --  instead of the ghost standing center position
   if self.target_pc:is_grounded() then
     -- on the ground, stick to y as much as possible
-    local target_base_y = adjusted_target_pc_pos_y - camera_data.window_center_offset_y
-    local dy = target_base_y - self.base_position.y
+    -- we recently added a mini-window of -1/+1 around target y though, to avoid vertical camera jitter
+    --  when character is running on ground with small bumps of 1px
+    -- (Sonic 3 actually has the jitter, but 1px on Genesis is much less remarkable, on PICO-8 with its
+    --  half resolution it would be like a 2x jitter on Genesis)
+    local target_base_y = mid(self.base_position.y,
+      adjusted_target_pc_pos_y - camera_data.window_center_offset_y - 1,
+      adjusted_target_pc_pos_y - camera_data.window_center_offset_y + 1)
+    dy = target_base_y - self.base_position.y
 
     -- clamp abs dy with catchup speed (which depends on ground speed)
     local catchup_speed_y = abs(self.target_pc.ground_speed) < camera_data.fast_catchup_min_ground_speed and
       camera_data.slow_catchup_speed_y or camera_data.fast_catchup_speed_y
     dy = sgn(dy) * min(abs(dy), catchup_speed_y)
-
-    -- apply move
-    self.base_position.y = self.base_position.y + dy
   else
     -- in the air apply vertical window (stick to top and bottom edges)
     local target_base_y = mid(self.base_position.y,
       adjusted_target_pc_pos_y - camera_data.window_center_offset_y - camera_data.window_half_height,
       adjusted_target_pc_pos_y - camera_data.window_center_offset_y + camera_data.window_half_height)
-    local dy = target_base_y - self.base_position.y
+    dy = target_base_y - self.base_position.y
 
     -- clamp abs dy with fast catchup speed
     dy = sgn(dy) * min(abs(dy), camera_data.fast_catchup_speed_y)
-
-    -- apply move to base y
-    self.base_position.y = self.base_position.y + dy
   end
+
+  -- apply move to base y
+  self.base_position.y = self.base_position.y + dy
 
   -- apply look down offset
   self.position.y = self.base_position.y + self.look_down_offset

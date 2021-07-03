@@ -703,7 +703,8 @@ describe('camera_class', function ()
       -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
       --  fast vertically... but it should be possible on a very high slope. Here we imagine a wall where we move
       --  at ground speed 3.5, 100% vertically!
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y + 0.5))
+      -- we recently changed the test with -0.5 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 - 0.5 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y + 0.5))
 
       cam:update()
 
@@ -716,7 +717,8 @@ describe('camera_class', function ()
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y + 0.5))
+      -- we recently changed the test with -0.5 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 - 0.5 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y + 0.5))
 
       cam:update()
 
@@ -728,7 +730,8 @@ describe('camera_class', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y - 0.5))
+      -- we recently changed the test with -1 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 - 1 + camera_data.window_center_offset_y - (camera_data.slow_catchup_speed_y - 0.5))
 
       cam:update()
 
@@ -739,7 +742,8 @@ describe('camera_class', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -camera_data.fast_catchup_min_ground_speed
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y - 0.5))
+      -- we recently changed the test with -1 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 - 1 + camera_data.window_center_offset_y - (camera_data.fast_catchup_speed_y - 0.5))
 
       cam:update()
 
@@ -772,7 +776,8 @@ describe('camera_class', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed - 0.5
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y - 0.5))
+      -- we recently changed the test with +1 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 + 1 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y - 0.5))
 
       cam:update()
 
@@ -783,7 +788,8 @@ describe('camera_class', function ()
       cam:init_position(vector(120, 80))
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = -camera_data.fast_catchup_min_ground_speed
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y - 0.5))
+      -- we recently changed the test with +1 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 + 1 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y - 0.5))
 
       cam:update()
 
@@ -797,7 +803,8 @@ describe('camera_class', function ()
       -- it's hard to find realistic values for such a motion, where you're move slowly on a slope but still
       --  fast vertically... but it should be possible on a very high slope. Here we imagine a wall where we move
       --  at ground speed 3.5, 100% vertically!
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y + 0.5))
+      -- we recently changed the test with +0.5 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 + 0.5 + camera_data.window_center_offset_y + (camera_data.slow_catchup_speed_y + 0.5))
 
       cam:update()
 
@@ -810,7 +817,8 @@ describe('camera_class', function ()
       cam.target_pc.motion_state = motion_states.standing
       cam.target_pc.ground_speed = camera_data.fast_catchup_min_ground_speed
       -- unrealistic, we have ground speed 4 but still move by more than 8, impossible even on vertical wall... but good for testing
-      cam.target_pc.position = vector(120, 80 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y + 0.5))
+      -- we recently changed the test with +0.5 since adding the new vertical mini-window of -1/+1
+      cam.target_pc.position = vector(120, 80 + 0.5 + camera_data.window_center_offset_y + (camera_data.fast_catchup_speed_y + 0.5))
 
       cam:update()
 

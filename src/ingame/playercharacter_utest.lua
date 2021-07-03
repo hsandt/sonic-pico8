@@ -2435,7 +2435,6 @@ describe('player_char', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
-          pc.brake_anim_phase = 1
 
           -- character starts standing
           pc:enter_motion_state(motion_states.air_spin)
@@ -2445,14 +2444,12 @@ describe('player_char', function ()
               0,
               false,
               false,
-              0,
             },
             {
               pc.motion_state,
               pc.ground_speed,
               pc.should_jump,
               pc.should_play_spring_jump,
-              pc.brake_anim_phase,
             })
         end)
 
@@ -2498,7 +2495,6 @@ describe('player_char', function ()
           pc.ground_speed = 10
           pc.should_jump = true
           pc.should_play_spring_jump = true
-          pc.brake_anim_phase = 1
 
           pc.motion_state = motion_states.falling
 
@@ -2509,14 +2505,12 @@ describe('player_char', function ()
               false,
               false,
               false,
-              0,
             },
             {
               pc.motion_state,
               pc.has_jumped_this_frame,
               pc.can_interrupt_jump,
               pc.should_play_spring_jump,
-              pc.brake_anim_phase,
             })
         end)
 
@@ -2624,11 +2618,22 @@ describe('player_char', function ()
           assert.are_same(vector(10, 20 - pc_data.center_height_standing + pc_data.center_height_compact), pc.position)
         end)
 
+        it('(entering any state other than standing and falling) should reset brake_anim_phase', function ()
+          -- simulate character braking
+          pc.motion_state = motion_states.standing
+          pc.brake_anim_phase = 1
+
+          -- simulate character rolling (possible to chain during brake)
+          pc:enter_motion_state(motion_states.rolling)
+
+          assert.are_equal(0, pc.brake_anim_phase)
+        end)
+
         it('(entering any state other than falling) should reset time_left_for_late_jump', function ()
           pc.motion_state = motion_states.falling
           pc.time_left_for_late_jump = 5
 
-          -- let's simulate character confirming a late jump
+          -- simulate character confirming a late jump
           pc:enter_motion_state(motion_states.air_spin)
 
           assert.are_equal(0, pc.time_left_for_late_jump)

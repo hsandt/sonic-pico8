@@ -1045,7 +1045,6 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_speed = 0
     self.should_jump = false
     self.should_play_spring_jump = false
-    self.brake_anim_phase = 0
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
@@ -1071,10 +1070,16 @@ function player_char:enter_motion_state(next_motion_state)
       self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
       self.can_interrupt_jump = false
       self.should_play_spring_jump = false
-      self.brake_anim_phase = 0
     end
   end
 
+  -- reset brake anim unless standing (actually walking) or falling (which exceptionally allows brake anim)
+  -- the most common case is to brake, then immediately try to crouch to roll -> we should show roll animation
+  if next_motion_state ~= motion_states.standing and next_motion_state ~= motion_states.falling then
+    self.brake_anim_phase = 0
+  end
+
+  -- reset late jump timer if not falling any more
   if next_motion_state ~= motion_states.falling then
     self.time_left_for_late_jump = 0
   end
@@ -2731,6 +2736,7 @@ function player_char:check_play_anim()
       return
     else
       self.brake_anim_phase = 0
+      printh("enter self.brake_anim_phase: "..nice_dump(self.brake_anim_phase))
     end
   end
 

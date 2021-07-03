@@ -76,6 +76,20 @@ Version: 5.3
 * Spin dash
 * When you collect all emeralds...
 
+### Notable physics differences
+
+* Preservation of velocity when landing on slopes is more organic and uses vector projection, while the [SPG](https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) denotes different formulas based on the slope angle and the relationship between horizontal and vertical speed. This is very perceptible when jumping on the first two slopes.
+* It is possible to control horizontal acceleration after jumping out of a roll. This was considered to be a better user experience, and actually recommended by the Sonic Physics Guide despite being unlike the original games.
+* Late jump: as in modern platforms, the character can jump up to 6 frames after falling off ground, for more permissive jumps from a platform ledge. This can be disabled in the Pause menu for a more "classic" experience.
+* Pixel step-by-step approach: currently, character motion is computed pixel by pixel. This is very precise and avoids relying on ground escape, but is also very CPU expensive (the main reason behind FPS dropping to 30) and can get the character stuck if one calculation is wrong. It will probably be replaced with bigger steps and ground escape in the future.
+
+### Notable camera differences
+
+Because PICO-8 has a square view of 128x128 pixels, and the game is more about exploration than moving toward the right, camera was adjusted to make navgiation a little easier.
+
+* Camera is fundamentally centered on X, but moves toward the direction Sonic is facing. When Sonic is running, camera moves even more forward to show what is ahead
+* Spin dash lag is implemented by freezing then releasing the camera, instead of the more complex recording and playing of character positions during the start of the spin dash
+
 ## Content
 
 There is a single demo stage which covers the first part of Angel Island Act 1. Scale is close to 1:1, but Sonic is slightly smaller (relatively to the environment) than in the original game.
@@ -89,19 +103,6 @@ Stage gimmicks:
 * Spring (vertical and horizontal)
 * Loop
 * Launch ramp
-
-## Notable physics differences
-
-* It is possible to control horizontal acceleration after jumping out of a roll. This was considered to be a better user experience, and actually recommended by the Sonic Physics Guide despite being unlike the original games.
-* Late jump: as in modern platforms, the character can jump up to 6 frames after falling off ground, for more permissive jumps from a platform ledge. This can be disabled in the Pause menu for a more "classic" experience.
-* Pixel step-by-step approach: currently, character motion is computed pixel by pixel. This is very precise and avoids relying on ground escape, but is also very CPU expensive (the main reason behind FPS dropping to 30) and can get the character stuck if one calculation is wrong. It will probably be replaced with bigger steps and ground escape in the future.
-
-## Notable camera differences
-
-Because PICO-8 has a square view of 128x128 pixels, and the game is more about exploration than moving toward the right, camera was adjusted to make navgiation a little easier.
-
-* Camera is fundamentally centered on X, but moves toward the direction Sonic is facing. When Sonic is running, camera moves even more forward to show what is ahead
-* Spin dash lag is implemented by freezing then releasing the camera, instead of the more complex recording and playing of character positions during the start of the spin dash
 
 ## Controls
 

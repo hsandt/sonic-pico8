@@ -1052,6 +1052,13 @@ function player_char:enter_motion_state(next_motion_state)
       -- SPG (https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) says original calculation either preserves vx or
       --  uses vy * sin * some factor depending on angle range (possibly to reduce CPU)
       --  but for now we keep this as it's physically logical and feels good enough
+      -- The difference is very perceptible when jumping on the first two slopes of pico island
+      -- - When landing on the first, very low slope with vx = 0 Sonic will retain momentum and descend left,
+      --   while in Sonic 3 he would stop moving at once
+      -- - When landing on the second slope, resulting velocity will smoothly change with vx, going through 0,
+      --   while in Sonic 3, the behavior completely changes when |vx| crosses |vy|: when going to the left fast enough,
+      --   Sonic will only preserve vx and keep going to the left; when going not fast enough, vy * sin is used
+      --   and Sonic goes down to the right; he can never just stop.
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
 
       -- we have just reached the ground (and possibly escaped),

@@ -25,6 +25,8 @@ function picosonic_app_ingame.get_enable_late_jump_feature()
   return enable_late_jump_feature
 end
 
+--#ifn debug_menu
+
 -- to allow circular referencing, we must declare the second function before defining it
 local create_late_jump_feature_menuitem
 
@@ -48,6 +50,8 @@ create_late_jump_feature_menuitem = function()
   menuitem(1, "late jump: <"..(enable_late_jump_feature and " on" or "off")..">", late_jump_feature_callback)
 end
 
+--#endif
+
 function picosonic_app_ingame:on_post_start() -- override (optional)
   picosonic_app_base.on_post_start(self)
 
@@ -55,7 +59,11 @@ function picosonic_app_ingame:on_post_start() -- override (optional)
   -- Enable by default (see playercharacter_data > late_jump_max_delay)
   -- Note that it's not currently stored as player preference, so it resets each time you restart ingame
   enable_late_jump_feature = true
+
+--#ifn debug_menu
+  -- default debug menu adds "debug pause" as item 1, so don't overwrite it if present
   create_late_jump_feature_menuitem()
+--#endif
 
   menuitem(3, "warp to start", function()
     assert(flow.curr_state.type == ':stage')

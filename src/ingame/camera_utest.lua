@@ -53,10 +53,10 @@ describe('camera_class', function ()
       local cam = camera_class()
       cam:setup_for_stage(mock_curr_stage_data)
 
-      -- normally we should stub init_position and verify we called it passing the spawn center position,
+      -- normally we should stub init_position and verify we called it passing the spawn topleft position,
       --  but this test was written before init_position was extracted, so we kept checking the final result
       --  although it's a bit redundant with the actual init_position utest below
-      local spawn_position = mock_curr_stage_data.spawn_location:to_center_position()
+      local spawn_position = mock_curr_stage_data.spawn_location:to_topleft_position()
       assert.are_same(spawn_position, cam.position)
       assert.are_equal(spawn_position.y, cam.base_position.y)  -- base position y sync
     end)

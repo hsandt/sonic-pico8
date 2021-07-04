@@ -58,7 +58,8 @@ function camera_class:setup_for_stage(data)
   -- warp the camera to spawn location (anywhere in the starting region will be enough
   --  so the tilemap region is loaded properly for collision detection; but centering it
   --  on the character first makes sense, since with the window system several positions are possible)
-  self:init_position(data.spawn_location:to_center_position())
+  -- topleft position is passed to match behavior of stage_state:spawn_player_char
+  self:init_position(data.spawn_location:to_topleft_position())
 
   -- prepare forward base offset set for future character (we assume it will be facing right)
   --  just so camera doesn't move just on start (this is quick, would probably

@@ -1027,7 +1027,7 @@ describe('stage_state', function ()
              state:spawn_player_char()
             local player_char = state.player_char
             assert.is_not_nil(player_char)
-            local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
+            local spawn_position = state.curr_stage_data.spawn_location:to_topleft_position()
 
             -- interface
             assert.are_equal(spawn_position, player_char.position)

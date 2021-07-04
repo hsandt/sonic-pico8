@@ -283,7 +283,10 @@ end
 
 -- spawn the player character at the stage spawn location
 function stage_state:spawn_player_char()
-  local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
+  -- note we switched from center to topleft position because it gave better initial positions
+  --  (with ground bumps, center was higher in the air or too deep inside ground, while topleft
+  --  was just 1px from the surface, allowing immediate escape from ground)
+  local spawn_position = self.curr_stage_data.spawn_location:to_topleft_position()
   self.player_char = player_char()
   self.player_char:spawn_at(spawn_position)
 end

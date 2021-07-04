@@ -17,6 +17,7 @@ local tile_repr = {
   desc_slope_45_id = 16,
   desc_slope_2px_id = 1,       -- low slope descending every 4px, from height 7 to 6, 2px total on connection
   desc_slope_2px_last_id = 7,  -- last part of low slope descending every 4px, from height 1 to 0, the last columns being empty
+  desc_slope_4px_last_id_loop_variant = 164, -- (loop variant) last part of medium slope descending every 2px, from height 3 to 0, the last columns being empty
   -- because of the new convention of placing special sprite flags on visual tiles,
   --  for meaningful tests we separate both tiles and check that flags are verified
   --  on the right sprites. tilemap testing loop functionality should place the visual

@@ -2128,48 +2128,59 @@ describe('player_char', function ()
 
         end)
 
-        describe('with bottom/side loop tile', function ()
+        describe('with bottom/side loop tile + unrelated tile that ignores active_loop_layer', function ()
 
           before_each(function ()
             -- place loop tiles, but remember the loop areas give them meaning
-            mock_mset(0, 0, tile_repr.visual_loop_bottomleft)
-            mock_mset(1, 0, tile_repr.visual_loop_bottomright)
+            mock_mset(1, 0, tile_repr.visual_loop_bottomleft)
+            mock_mset(2, 0, tile_repr.visual_loop_bottomright)
+
+            -- real case where I had a slope just at the left limit of the exit area,
+            --  but inside, and collision on it was ignored until I added ignore_loop_layer flag
+            mock_mset(0, 0, tile_repr.desc_slope_4px_last_id_loop_variant)
 
             -- customize loop areas locally. We are redefining a table so that won't affect
             --  the original data table in stage_data.lua. To simplify we don't redefine everything,
             --  but if we need to for the tests we'll just add the missing members
             flow.curr_state.curr_stage_data = {
               -- a bit tight honestly because I placed to corners too close to each other, but
-              --  can get away with narrow rectangles; as long as the trigger corners are not at
+              --  can get away with narrow rectangles; as long as the trigger (top) corners are not at
               --  the bottom
-              loop_exit_areas = {location_rect(0, -3, 0, 0)},
-              loop_entrance_areas = {location_rect(1, -3, 1, 0)}
+              loop_exit_areas = {location_rect(0, -3, 1, 0)},
+              loop_entrance_areas = {location_rect(2, -3, 2, 0)}
             }
           end)
 
           it('(entrance active) position on exit should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
             pc.active_loop_layer = 1
             -- interface
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(4, 4)))
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(8 + 4, 4)))
           end)
 
           it('(entrance active) position on entrance should return actual ground_query_info() as entrance is solid', function ()
             pc.active_loop_layer = 1
             -- interface
-            assert.are_same(ground_query_info(location(1, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(12, 4)))
+            assert.are_same(ground_query_info(location(2, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(16 + 4, 4)))
           end)
 
           it('(exit active) position on exit should return actual ground_query_info() as exit is solid', function ()
             pc.active_loop_layer = 2
             -- interface
             -- slight dissymetry due to pixel coord being considered at the top left... so we are 2px inside the step at 3, not 4
-            assert.are_same(ground_query_info(location(0, 0), -2, atan2(8, 5)), pc:compute_closest_ground_query_info(vector(3, 4)))
+            assert.are_same(ground_query_info(location(1, 0), -2, atan2(8, 5)), pc:compute_closest_ground_query_info(vector(8 + 3, 4)))
           end)
 
           it('(exit active) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
             pc.active_loop_layer = 2
             -- interface
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(12, 4)))
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(16 + 4, 4)))
+          end)
+
+          it('(even with entrance active ie exit inactive) position on ignore_loop_layer tile inside exit area should return actual ground_query_info()', function ()
+            pc.active_loop_layer = 1
+            -- interface
+            -- at x = 3, column is detected, which has height 2, and y = 4 @ tile (-1, 0), so dy = 8 - 4 - 2 = 2
+            assert.are_same(ground_query_info(location(0, 0), 2, atan2(8, 4)), pc:compute_closest_ground_query_info(vector(3, 4)))
           end)
 
         end)

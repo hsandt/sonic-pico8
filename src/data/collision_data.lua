@@ -274,6 +274,9 @@ local mask_tile_ids = {
   [160] = 45,
   [161] = 45,
 
+  -- loop variant of last mid slope descending every 2px
+  [164] = 13,
+
 -- leaves
   [94]  = 29,  -- wood (specular bottom left) with first leaves
   [95]  = 29,  -- wood (specular bottom right) with first leaves

@@ -153,10 +153,6 @@ function mock_mset(x, y, v)
   -- just check if the mock of height_array exists and is active
   assert(collision_data.get_tile_collision_data and not collision_data.get_tile_collision_data.reverted, "mock_mset: tile_test_data.setup has not been called since the last tile_test_data.teardown")
   mset(x, y, v)
-  printh("")
-  printh("x: "..nice_dump(x))
-  printh("y: "..nice_dump(y))
-  printh("v: "..nice_dump(v))
 end
 
 --#endif

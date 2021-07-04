@@ -200,10 +200,7 @@ local waterfall_color_cycle = {
   {colors.blue,      colors.blue,      colors.white,     colors.dark_blue},
 }
 
-function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
-  -- waterfall sprite contains black
-  palt(colors.black, false)
-
+function base_stage_state:set_color_palette_for_waterfall_animation()
   local period = 0.5
   local ratio = (t() % period) / period
   local step_count = #waterfall_color_cycle
@@ -213,6 +210,13 @@ function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_t
   pal(colors.indigo, new_colors[2])
   pal(colors.blue, new_colors[3])
   pal(colors.white, new_colors[4])
+end
+
+function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
+  -- waterfall sprite contains black
+  palt(colors.black, false)
+
+  self:set_color_palette_for_waterfall_animation()
 
   for j = top_tile_to_draw, bottom_tile_to_draw do
     spr(stage_data.waterfall_sprite_id, tile_size * waterfall_global_location_i, tile_size * j)
@@ -230,10 +234,17 @@ function base_stage_state:render_environment_midground()
   --  so I guess map is already optimized to only draw what's on camera
   set_unique_transparency(colors.pink)
 
+  -- waterfall sprites are now placed as tiles of the tilemap, so we apply the waterfall color swap animation
+  --  directly on them
+  self:set_color_palette_for_waterfall_animation()
+
   -- only draw midground tiles
   --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
+
+  -- clear palette swap, or Sonic will inherit from the waterfall blue color swapping!
+  pal()
 end
 
 function base_stage_state:render_environment_foreground()

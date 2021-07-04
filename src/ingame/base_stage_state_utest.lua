@@ -253,21 +253,25 @@ describe('base_base_stage_state', function ()
       setup(function ()
         tile_test_data.setup()
 
+        stub(base_stage_state, "set_color_palette_for_waterfall_animation")
         stub(base_stage_state, "set_camera_with_origin")
         stub(base_stage_state, "set_camera_with_region_origin")
         stub(sprite_data, "render")
         stub(_G, "spr")
         stub(_G, "map")
+        stub(_G, "set_unique_transparency")
       end)
 
       teardown(function ()
         tile_test_data.teardown()
 
+        base_stage_state.set_color_palette_for_waterfall_animation:revert()
         base_stage_state.set_camera_with_origin:revert()
         base_stage_state.set_camera_with_region_origin:revert()
         sprite_data.render:revert()
         spr:revert()
         map:revert()
+        set_unique_transparency:revert()
       end)
 
       before_each(function ()
@@ -296,20 +300,28 @@ describe('base_base_stage_state', function ()
       after_each(function ()
         pico8:clear_map()
 
+        base_stage_state.set_color_palette_for_waterfall_animation:clear()
         base_stage_state.set_camera_with_origin:clear()
         base_stage_state.set_camera_with_region_origin:clear()
         sprite_data.render:clear()
         spr:clear()
         map:clear()
+        set_unique_transparency:clear()
       end)
 
-      it('render_environment_midground should call map for all midground sprites', function ()
+      it('render_environment_midground should call set_unique_transparency, set_color_palette_for_waterfall_animation, set_camera_with_region_origin and map for all midground sprites', function ()
         -- note that we reverted to using map for performance, so this test doesn't need to be
         --  in the tile test data setup context anymore
         state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(0, 0)
 
         state:render_environment_midground()
+
+        assert.spy(set_unique_transparency).was_called(1)
+        assert.spy(set_unique_transparency).was_called_with(colors.pink)
+
+        assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called(1)
+        assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called_with(match.ref(state))
 
         assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
         assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))

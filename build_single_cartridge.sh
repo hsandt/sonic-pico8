@@ -104,7 +104,9 @@ elif [[ $config == 'sandbox' ]]; then
 elif [[ $config == 'assert' ]]; then
   symbols='assert,tostring,dump'
 elif [[ $config == 'profiler' ]]; then
-  symbols='profiler,debug_menu'
+  # symbols='profiler,debug_menu'
+  # profiler is too heavy right now, cannot build, so use lightweight version
+  symbols='profiler_lightweight,cheat'
 elif [[ $config == 'recorder' ]]; then
   symbols='recorder,tostring,log'
 fi

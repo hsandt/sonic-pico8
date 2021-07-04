@@ -20,6 +20,10 @@ local vlogger = require("engine/debug/visual_logger")
 local mouse = require("engine/ui/mouse")
 --#endif
 
+--#if profiler_lightweight
+local outline = require("engine/ui/outline")
+--#endif
+
 local visual = require("resources/visual_common")
 
 local picosonic_app_base = derived_class(gameapp)
@@ -76,8 +80,15 @@ function picosonic_app_base:on_render() -- override
 --#endif
 
 --#if mouse
-  -- always draw cursor on top
+  -- always draw cursor on top of the rest (except for profiling)
   mouse:render()
+--#endif
+
+--#if profiler_lightweight
+  -- when profiler is too heavy due to the whole UI module it uses, use this
+  -- it is drawn after the rest so it can take mouse render into account if used in real game
+  -- print total CPU
+  outline.print_with_outline("cpu: "..stat(1), 2, 10, colors.orange, colors. black)
 --#endif
 end
 

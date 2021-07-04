@@ -222,6 +222,8 @@ local mask_tile_ids = {
 -- full tiles
 
 -- wood
+  -- ! 167 and 168 look like 218 and 219 but they are reversed to background tiles,
+  -- ! so those have no collisions!
   [218] = 29,  -- wood (specular middle left)
   [219] = 29,  -- wood (specular middle right)
   [235] = 29,  -- wood (generic)
@@ -273,6 +275,10 @@ local mask_tile_ids = {
   -- 0 slope bumps (grass ground with uniform height 1px)
   [160] = 45,
   [161] = 45,
+
+  -- 0 slope bumps (grass ground with uniform height 1px) with wood wall behind
+  [213] = 45,
+  [214] = 45,
 
   -- loop variant of last mid slope descending every 2px
   [164] = 13,

@@ -6,7 +6,7 @@ sprite_flags = {
   -- unused3 = 3,
   -- unused4 = 4,
   spring = 5,              -- spring
-  midground = 6,           -- midground sprite (should be drawn after programmatical background)
+  midground = 6,           -- midground sprite (should be drawn after programmatical background, and includes tilemap BG)
   foreground = 7,          -- foreground sprite (should be drawn last)
 }
 

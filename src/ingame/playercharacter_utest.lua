@@ -9215,16 +9215,13 @@ describe('player_char', function ()
         assert.spy(memcpy).was_called_with(0x1000, 0x5300, 0x400)
       end)
 
-      it('(run, is_sprite_diagonal: true) should copy partial lines of diagonal run sprites from general memory to spritesheet', function ()
+      it('(run, is_sprite_diagonal: true) should still copy diagonal run sprites as part of 2 full rows to simplify, from general memory to spritesheet', function ()
         pc.is_sprite_diagonal = true
 
         pc:update_sprite_row_and_play_sprite_animation("run", true, 2)
 
-        assert.spy(memcpy).was_called(16)
-        -- too many calls to check them all, but test at least the first ones of each
-        -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1000, 0x5400, 0x20)
-        assert.spy(memcpy).was_called_with(0x1040, 0x5420, 0x20)
+        assert.spy(memcpy).was_called(1)
+        assert.spy(memcpy).was_called_with(0x1000, 0x5320, 0x400)
       end)
 
       it('(spin_dash) should copy partial lines of spin dash sprites from general to spritesheet', function ()

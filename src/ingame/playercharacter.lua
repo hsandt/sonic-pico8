@@ -2743,7 +2743,6 @@ function player_char:check_play_anim()
       return
     else
       self.brake_anim_phase = 0
-      printh("enter self.brake_anim_phase: "..nice_dump(self.brake_anim_phase))
     end
   end
 
@@ -2808,10 +2807,10 @@ local sprite_anim_name_to_double_row_index_table = {
   ["brake_start"]   = 3,
   ["brake_reverse"] = 3,
   ["run"]  = 2,
-  -- encode the fact that the sprites start at column index 8
-  -- remember we use double rows => 32 cells, so starting at cell 8 is actually a *quarter*
-  --  of the way toward the next double row, although it is half-way of a row on X, so +0.25
-  ["run45"]  = 2.25,
+  -- encode the fact that the sprites start halfway on the first line of run sprites
+  -- remember we use double sprite rows => 16 lines, so 1 line = 1/16 of a double sprite row memory,
+  --  and half a line = 1/32 of that, hence + 1/32 (we could use manually add +0x20 if not relying on a pure factor)
+  ["run45"]  = 2 + 1/32,
   ["spin"] = 3,
   ["crouch"] = 1,
   ["spring_jump"] = 0,
@@ -2869,30 +2868,25 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
 
     local start_address = 0x4b00 + double_row_index * 0x400
 
-    if double_row_index < 4 and flr(double_row_index) == double_row_index then
-      -- we can copy full row at once, back from general memory
-      -- advance by 2 rows = 0x400 bytes for every double row
+    if double_row_index < 4 then
+      -- if anim is anything but spin_dash, we can copy 2 full rows at once, back from general memory
+      -- note that we do this even for run45 which is a set of 4 sprites located on the right half of the spritesheet
+      -- this is because we already computed the correct start address thx to the fractional double_row_index,
+      --  and offsetting the whole run sprite set by half a line (+0x20 -> 0x5320) effectively moves the run45 sprites
+      --  to the left half of the spritesheet, losing the 1st (half) line of non-rotated run sprites, and ending
+      --  with an extra half line of irrelevant air+spin sprites copied from the line just after the last run45 sprites line
+      -- we could also copy the 16 half lines manually but it's simpler to just copy unused contiguous memory
+      --  as lons as we have a single operation
       memcpy(0x1000, start_address, 0x400)
     else
-      -- the special case "run45" which has a fractional index, and the last (partial) row of spin_dash sprites
-      --  must be copied via 16 partial lines copy
-      -- run45 partial lines span over 8 cell lines = 8 * 4 bytes = 32 bytes = 0x20 bytes
+      -- special case for spin_dash sprites which, for compactness, are only copied by half lines in general memory,
+      --  se we must copy 16 half lines back to runtime spritesheet memory
       -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
-      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x20 or +0x28)
+      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x28)
       --  while dest addresses leave a gap and skip a full line each time (+0x40)
-      local length = anim_name_with_optional_suffix == "run45" and 0x20 or 0x28
-
-      -- note that the only reason we do this for run45 is to avoid playing a different animation "run45", storing
-      --  and restoring the current animation frame (to keep running cycle uninterrupted) each time a running character
-      --  moves from flat to diagonal ground, and vice-versa; it's simpler to copy the 45-degree sprites right onto
-      --  where they are when angle is cardinal
-
       for i = 0, 15 do
-        -- the formula for start_address above still works! if double_row_index is fractional, we simply
-        --  add less than a full 0x400 (for 2.25, fractional part will be +0x100 to start 8 cells later)
-        -- for run45, start_address = 0x4300 + 0x100 = 0x4400
         -- for spin_dash, start_address = 0x5b00
-        memcpy(0x1000 + i * 0x40, start_address + i * length, length)
+        memcpy(0x1000 + i * 0x40, start_address + i * 0x28, 0x28)
       end
     end
   end

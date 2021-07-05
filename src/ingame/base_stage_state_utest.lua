@@ -24,12 +24,10 @@ describe('base_base_stage_state', function ()
       assert.are_same({
           camera_class(),
           {},
-          {},
         },
         {
           state.camera,
           state.palm_tree_leaves_core_global_locations,
-          state.waterfall_global_locations_i,
         })
     end)
 
@@ -202,47 +200,6 @@ describe('base_base_stage_state', function ()
         assert.are_same(location(64, 32), state:get_region_topleft_location())
       end)
 
-    end)
-
-
-    -- background
-
-    describe('scan_current_region_to_spawn_waterfalls', function ()
-
-      -- setup is too early, stage state will start afterward in before_each,
-      --  and its on_enter will call scan_current_region_to_spawn_waterfalls, making it hard
-      --  to test in isolation. Hence before_each.
-      before_each(function ()
-        -- We're not using tile_test_data.setup here since we're manually checking for sprite id 0
-        --  so don't use mock_mset
-        -- Only leave the first and last tiles empty, so 2 waterfalls to register
-        -- Note that map_region_tile_width = 128
-        mset(0, 0, 0)  -- optional as default tile sprite id is 0, just to be explicit
-        for i=1,126 do
-          mset(i, 0, 21)
-        end
-        mset(127, 0, 0)  -- optional as default tile sprite id is 0, just to be explicit
-
-        -- mock stage dimensions, not too big to avoid test too long
-        --  (just 2 regions so we can check that location conversion works)
-        state.curr_stage_data = {
-          tile_width = 128,     -- 1 region per row
-          tile_height = 32 * 2  -- 2 regions per column
-        }
-
-        state.loaded_map_region_coords = vector(1, 0)  -- will add 128 to each i
-      end)
-
-      after_each(function ()
-        pico8:clear_map()
-      end)
-
-      it('should add waterfall global location i for every empty top tile', function ()
-        state:scan_current_region_to_spawn_waterfalls()
-
-        -- verify the offset of 128 on i as we are in region (1, 0)
-        assert.are_same({128 + 0, 128 + 127}, state.waterfall_global_locations_i)
-      end)
     end)
 
 

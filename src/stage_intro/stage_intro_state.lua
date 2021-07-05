@@ -50,17 +50,6 @@ function stage_intro_state:on_enter()
 
   self.camera:setup_for_stage(self.curr_stage_data)
 
-  -- Waterfall
-  -- Only stage_state needs to cover all top regions, so reload_map_region and spawn_waterfalls
-  --  have only been defined on stage_state, similarly to spawn_objects_in_all_map_regions.
-  -- For stage intro, we use a lightweight version where we just load the top-left region
-  --  with hardcoded coords, then scan the region ourselves.
-  -- This is similar to the manual scan of stage_clear_state:on_enter to spawn just the goal plate.
-  -- Do this before final region loading below, so we end up with region (0, 1) as we want
-  reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(0, 0))
-  self.loaded_map_region_coords = vector(3, 1)
-  self:scan_current_region_to_spawn_waterfalls()
-
   -- for now, just hardcode region loading/coords to simplify, as we know the intro
   -- only takes place in the region (0, 1)
   reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(0, 1))
@@ -106,7 +95,6 @@ end
 function stage_intro_state:render()
   -- no need to floor camera position like stage_state, since we don't really move on X
   visual_stage.render_background(self.camera.position)
-  self:render_waterfalls()
   self:render_stage_elements()
   self:render_overlay()
   self.postproc:apply()

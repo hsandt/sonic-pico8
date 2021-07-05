@@ -22,13 +22,6 @@ function base_stage_state:init()
   self.palm_tree_leaves_core_global_locations = {}
 --#endif
 
---#ifn stage_clear
-  -- waterfall: list of global locations i of every column where we should draw a waterfall
-  --  going down. We don't need to store full location with j because waterfall always
-  --  start at j=0
-  self.waterfall_global_locations_i = {}
---#endif
-
 -- don't initialize loaded region coords (we don't know in which region player character will spawn),
 --  each child class on_enter will set them in on_enter
 -- self.loaded_map_region_coords = nil
@@ -137,60 +130,7 @@ function base_stage_state:get_region_topleft_location()
 end
 
 
---#ifn stage_clear
-
--- background
-
-function base_stage_state:scan_current_region_to_spawn_waterfalls()
-  -- iterate over the top row
-  for i = 0, map_region_tile_width - 1 do
-    -- here we already have region (i, 0), so no need to convert for mget
-    local tile_sprite_id = mget(i, 0)
-    if tile_sprite_id == 0 then
-      -- this top tile is empty, waterfall should fall from here
-      -- we do need to convert location now since spawn methods work in global coordinates
-      local region_loc = location(i, 0)
-      local global_loc = self:region_to_global_location(region_loc)
-      add(self.waterfall_global_locations_i, global_loc.i)
-    end
-  end
-end
-
---#endif
-
-
 -- render
-
--- render waterfalls
--- usually in visual_state, this one requires some extra info and to track time,
---  so it was easier to put in base_stage_state
-function base_stage_state:render_waterfalls()
-  self:set_camera_with_origin()
-
-  local camera_pos = self.camera.position
-  local left_edge = camera_pos.x - screen_width / 2
-  local right_edge = camera_pos.x + screen_width / 2
-  local top_tile_to_draw, bottom_tile_to_draw
-
-  for waterfall_global_location_i in all(self.waterfall_global_locations_i) do
-    -- extract the horizontal part of the check in camera_class:is_rect_visible
-    -- proper check on right edge is flr(right_edge) >= ... + 1 but we know the rhs is integer
-    --  so we just do this to spare characters
-    if left_edge < tile_size * (waterfall_global_location_i + 1) and
-        right_edge > tile_size * waterfall_global_location_i then
-
-      -- lazy evaluation (to spare cpu when no waterfall is visible)
-      if not top_tile_to_draw then
-        -- flr on one side, ceil on the other, so we are sure to draw a sprite as long
-        --  as it's even partially visible
-        top_tile_to_draw = flr((camera_pos.y - screen_height / 2) / tile_size)
-        bottom_tile_to_draw = ceil((camera_pos.y + screen_height / 2) / tile_size) - 1
-      end
-
-      self:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
-    end
-  end
-end
 
 local waterfall_color_cycle = {
   -- original colors : dark_blue, indigo, blue, white
@@ -210,19 +150,6 @@ function base_stage_state:set_color_palette_for_waterfall_animation()
   pal(colors.indigo, new_colors[2])
   pal(colors.blue, new_colors[3])
   pal(colors.white, new_colors[4])
-end
-
-function base_stage_state:draw_waterfall(waterfall_global_location_i, top_tile_to_draw, bottom_tile_to_draw)
-  -- waterfall sprite contains black
-  palt(colors.black, false)
-
-  self:set_color_palette_for_waterfall_animation()
-
-  for j = top_tile_to_draw, bottom_tile_to_draw do
-    spr(stage_data.waterfall_sprite_id, tile_size * waterfall_global_location_i, tile_size * j)
-  end
-
-  pal()
 end
 
 -- render the stage environment (tiles)

@@ -71,7 +71,6 @@ function stage_state:on_enter()
   if self.enable_spawn_objects then
     self:spawn_objects_in_all_map_regions()
     self:restore_picked_emerald_data()
-    self:spawn_waterfalls()
   end
 --#endif
 
@@ -81,7 +80,6 @@ function stage_state:on_enter()
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
   self:restore_picked_emerald_data()
-  self:spawn_waterfalls()
 --#endif
 --#pico8]]
 
@@ -272,7 +270,6 @@ function stage_state:render()
   -- background parallax layers use precise calculation and will sometimes move parallax
   --  during sub-pixel motion, causing visual instability => so floor camera position
   visual_stage.render_background(self.camera:get_floored_position())
-  self:render_waterfalls()
   self:render_stage_elements()
   self:render_fx()
   self:render_hud()
@@ -683,18 +680,6 @@ function stage_state:spawn_objects_in_all_map_regions()
       self:reload_map_region(vector(u, v))
       self:scan_current_region_to_spawn_objects()
     end
-  end
-end
-
-function base_stage_state:spawn_waterfalls()
-  -- scan the top of each top region to find open ceilings (no tile on the first row)
-  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
-
-  -- iterate over all full regions at the top (first row of regions, v = 0)
-  for u = 0, region_count_per_row - 1 do
-    -- load region and scan it for any object to spawn
-    self:reload_map_region(vector(u, 0))
-    self:scan_current_region_to_spawn_waterfalls()
   end
 end
 

@@ -11,9 +11,6 @@ local stage_data = {
 
   -- Visual
 
-  -- waterfall sprite id
-  waterfall_sprite_id = 39,
-
   -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)
   goal_rotating_anim_duration = 120,
 

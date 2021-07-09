@@ -22,7 +22,7 @@ help() {
 }
 
 usage() {
-  echo "Usage: build_single_cartridge.sh CARTRIDGE_SUFFIX [CONFIG]
+  echo "Usage: build_single_cartridge.sh CARTRIDGE_SUFFIX [CONFIG] [OPTIONS]
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
@@ -33,17 +33,24 @@ ARGUMENTS
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
 
+  -i, --itest               Pass this option to build an itest instead of a normal game cartridge.
+
   -h, --help                Show this help message
 "
 }
 
 # Default parameters
 config='debug'
+itest=false
 
 # Read arguments
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -i | --itest )
+      itest=true
+      shift # past argument
+      ;;
     -h | --help )
       help
       exit 0
@@ -73,6 +80,11 @@ fi
 
 if [[ ${#positional_args[@]} -ge 2 ]]; then
   config="${positional_args[1]}"
+fi
+
+# itest cartridges enforce special config 'itest' and ignore passed config
+if [[ "$itest" == true ]]; then
+  config='itest'
 fi
 
 # Define build output folder from config
@@ -109,6 +121,10 @@ elif [[ $config == 'profiler' ]]; then
   symbols='profiler_lightweight,cheat'
 elif [[ $config == 'recorder' ]]; then
   symbols='recorder,tostring,log'
+elif [[ $config == 'itest' ]]; then
+  # cheat needed to set debug motion mode; remove if not testing and you need to spare chars
+  # symbols='itest,proto,tostring,cheat'
+  symbols='itest,proto,tostring'
 fi
 
 # we always add a symbol for the cartridge suffix in case
@@ -135,6 +151,16 @@ else
   builtin_data_suffix="$cartridge_suffix"
 fi
 
+if [[ "$itest" == true ]]; then
+  main_prefix='itest_'
+  required_relative_dirpath="itests/${cartridge_suffix}"
+  cartridge_extra_suffix='itest_all_'
+else
+  main_prefix=''
+  required_relative_dirpath=''
+  cartridge_extra_suffix=''
+fi
+
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
@@ -142,17 +168,19 @@ fi
 # Build cartridge
 # See data/cartridges.txt for the list of cartridge names
 # metadata really counts for the entry cartridge (titlemenu)
-"$picoboots_scripts_path/build_cartridge.sh"             \
-  "$game_src_path" main_${cartridge_suffix}.lua          \
-  -d "$data_path/builtin_data_${builtin_data_suffix}.p8" \
-  -M "$data_path/metadata.p8"                            \
-  -a "$author" -t "$title ($cartridge_suffix)"           \
-  -p "$build_output_path"                                \
-  -o "${cartridge_stem}_${cartridge_suffix}"             \
-  -c "$config"                                           \
-  --no-append-config                                     \
-  -s "$symbols"                                          \
-  --minify-level 3                                       \
+"$picoboots_scripts_path/build_cartridge.sh"                              \
+  "$game_src_path"                                                        \
+  ${main_prefix}main_${cartridge_suffix}.lua                         \
+  ${required_relative_dirpath}                                            \
+  -d "$data_path/builtin_data_${builtin_data_suffix}.p8"                  \
+  -M "$data_path/metadata.p8"                                             \
+  -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})" \
+  -p "$build_output_path"                                                 \
+  -o "${cartridge_stem}_${cartridge_extra_suffix}${cartridge_suffix}"     \
+  -c "$config"                                                            \
+  --no-append-config                                                      \
+  -s "$symbols"                                                           \
+  --minify-level 3                                                        \
   --unify "_${cartridge_suffix}"
 
 if [[ $? -ne 0 ]]; then

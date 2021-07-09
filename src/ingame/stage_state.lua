@@ -272,7 +272,10 @@ function stage_state:render()
   visual_stage.render_background(self.camera:get_floored_position())
   self:render_stage_elements()
   self:render_fx()
+--#ifn itest
   self:render_hud()
+--(!itest)
+--#endif
 end
 
 
@@ -1050,6 +1053,8 @@ function stage_state:render_goal_plate()
   end
 end
 
+--#ifn itest
+
 -- render the hud:
 --  - emeralds obtained
 --  - character debug info (#debug_character only)
@@ -1074,6 +1079,8 @@ function stage_state:render_hud()
 --#endif
 end
 
+--(!itest)
+--#endif
 
 -- audio
 

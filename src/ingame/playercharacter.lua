@@ -1279,13 +1279,9 @@ function player_char:update_platformer_motion_grounded()
     --  done elsewhere in code). This also applies to rolling -> falling with air_spin.
     -- note that it's the only place where we check for the feature. In other places, we keep decrementing the timer
     --  and applying late jump. This is simpler and avoids having a frozen timer that is resumed later in bad places.
---#if attract_mode
+--#ifn attract_mode
     -- picosonic_app_attract_mode doesn't have get_enable_late_jump_feature, and we want
-    --  the attract mode recording the always play the same way anyway, so just pass a constant here
-    --  (true since it's enabled by default, but false is fine too, since we don't rely on late jump
-    --  in the recorded sequence)
-    if true then
---#else
+    --  the attract mode recording the always play the same way anyway, so just skip the test altogether
     if flow.curr_state.app.get_enable_late_jump_feature() then
 --#endif
       self.time_left_for_late_jump = pc_data.late_jump_max_delay
@@ -1297,7 +1293,9 @@ function player_char:update_platformer_motion_grounded()
       -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
       --  as we won't be using when not doing late jump
       self.late_jump_slope_angle = self.slope_angle
+--#ifn attract_mode
     end
+--#endif
 
     -- in the original game, Sonic keeps crouching and spin dash during fall (possible using crouch slide
     --  or spin dashing on crumbling ground), but you cannot release spin dash during the fall...

@@ -59,109 +59,124 @@ local function attract_mode_scenario_async()
   --  (when combined with ingame code which includes background rendering unlike our itests)
   --  so we just manually set character intention and wait between actions with yield_delay
 
-  -- run to the right at max speed!
-  pc.move_intention.x = 1
-  app:yield_delay_s(5)
-
-  -- jump above first spring with a small jump
-  pc.jump_intention = true
-  app:yield_delay_s(0.5)
-
-  -- jump on top of higher platform and above second spring with a big jump (max jump requires holding 0.5s)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
-  app:yield_delay_s(0.5)
-  pc.hold_jump_intention = false
-
-  -- the following was recorded using #recorder
-  -- see explanations at the end
-
-  -- Sonic will jump above the 2 rocks, perform a spin dash, land, run through the loop and roll at the top
   yield_delay_frames(84)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(318)
   pc.jump_intention = true
   pc.hold_jump_intention = true
-  yield_delay_frames(8)
+  yield_delay_frames(4)
   pc.hold_jump_intention = false
-  yield_delay_frames(2)
+  yield_delay_frames(10)
   pc.move_intention = vector(0, 0)
-  yield_delay_frames(8)
+  yield_delay_frames(16)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(26)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(14)
+  pc.hold_jump_intention = false
+  yield_delay_frames(90)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(6)
+  pc.move_intention = vector(0, 0)
+  pc.hold_jump_intention = false
+  yield_delay_frames(6)
   pc.move_intention = vector(-1, 0)
   yield_delay_frames(4)
   pc.move_intention = vector(0, 0)
-  yield_delay_frames(32)
+  yield_delay_frames(36)
+  pc.move_intention = vector(1, 0)
   pc.jump_intention = true
   pc.hold_jump_intention = true
-  yield_delay_frames(4)
-  pc.move_intention = vector(1, 0)
-  yield_delay_frames(4)
+  yield_delay_frames(6)
   pc.hold_jump_intention = false
-  yield_delay_frames(14)
+  yield_delay_frames(6)
   pc.move_intention = vector(0, 0)
-  yield_delay_frames(24)
-  pc.move_intention = vector(1, 0)
-  yield_delay_frames(14)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
   yield_delay_frames(8)
-  pc.hold_jump_intention = false
+  pc.move_intention = vector(1, 0)
   yield_delay_frames(12)
   pc.move_intention = vector(0, 0)
+  yield_delay_frames(16)
+  pc.move_intention = vector(1, 0)
   yield_delay_frames(10)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(10)
+  pc.move_intention = vector(0, 0)
+  pc.hold_jump_intention = false
+  yield_delay_frames(21)
   pc.move_intention = vector(-1, 0)
-  yield_delay_frames(26)
+  yield_delay_frames(6)
   pc.move_intention = vector(0, 0)
-  yield_delay_frames(5)
-  pc.move_intention = vector(1, 0)
-  yield_delay_frames(3)
-  pc.move_intention = vector(0, 0)
-  yield_delay_frames(11)
-  pc.move_intention = vector(0, 1)
-  yield_delay_frames(15)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
-  yield_delay_frames(5)
-  pc.hold_jump_intention = false
-  yield_delay_frames(3)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
-  yield_delay_frames(5)
-  pc.hold_jump_intention = false
-  yield_delay_frames(1)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
-  yield_delay_frames(5)
-  pc.hold_jump_intention = false
-  yield_delay_frames(3)
-  pc.jump_intention = true
-  pc.hold_jump_intention = true
-  yield_delay_frames(5)
-  pc.hold_jump_intention = false
-  yield_delay_frames(1)
-  pc.move_intention = vector(0, 0)
-  yield_delay_frames(9)
-  pc.move_intention = vector(1, 0)
-  yield_delay_frames(112)
-  pc.move_intention = vector(1, 1)
-  yield_delay_frames(2)
-  pc.move_intention = vector(0, 1)
+  yield_delay_frames(16)
+  pc.move_intention = vector(-1, 0)
   yield_delay_frames(8)
   pc.move_intention = vector(0, 0)
+  yield_delay_frames(25)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(4)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(14)
+  pc.move_intention = vector(0, 1)
+  yield_delay_frames(14)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(3)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(2)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(2)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(2)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(5)
+  pc.hold_jump_intention = false
+  yield_delay_frames(3)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(4)
+  pc.hold_jump_intention = false
+  yield_delay_frames(4)
+  pc.jump_intention = true
+  pc.hold_jump_intention = true
+  yield_delay_frames(4)
+  pc.hold_jump_intention = false
+  yield_delay_frames(2)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(21)
+  pc.move_intention = vector(1, 0)
+  yield_delay_frames(94)
+  pc.move_intention = vector(0, 1)
+  yield_delay_frames(4)
+  pc.move_intention = vector(0, 0)
+  yield_delay_frames(30)
 
-  -- if you want to record futher from this point:
+  -- if you want to record a demo yourself:
+  -- 0. comment/remove any previous input order you don't need in the list above
   -- 1. uncomment the block of code below
   -- 2. build and run 'attract_mode' cartridge with 'recorder' config
   -- 3. it will automatically play the section above, then give control to human
   -- 4. from here, play what you want to demonstrate in attract mode
-  -- 5. close the game and open .lexaloffle/pico-8/carts/picosonic/v[version]_recorder/picosonic_attract_mode_log.p8l
+  -- 5. close the game and open (on Linux) .lexaloffle/pico-8/carts/picosonic/v[version]_recorder/picosonic_attract_mode_log.p8l
   -- 6. remove first line with "START RECORDING HUMAN INPUT" then all line prefixes "[recorder] "
-  -- 7. copy-paste the resulting lines below `total_frames = 0`
+  -- 7. copy-paste the resulting lines just above this comment block
 
   -- pc.control_mode = control_modes.human
   -- log(total_frames..": START RECORDING HUMAN INPUT", "recorder")
   -- total_frames = 0  -- reset total frames as we want relative delays since last record
-
-  -- leave some time to let Sonic roll after the loop
-  app:yield_delay_s(0.5)
 
   -- end demo, go back to title menu
   load('picosonic_titlemenu')

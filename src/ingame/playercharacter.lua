@@ -1063,6 +1063,12 @@ function player_char:enter_motion_state(next_motion_state)
       --   and Sonic goes down to the right; he can never just stop.
       self.ground_speed = self.velocity:dot(vector.unit_from_angle(self.slope_angle))
 
+      -- immediately update velocity to avoid keeping old air velocity while grounded,
+      --  which would result in chained jump being very low, or even going downward, due to
+      --  downward velocity remaining when cumulated with jump impulse
+      -- note that this is the same formula as in update_platformer_motion_grounded
+      self.velocity:copy_assign(self.ground_speed * vector.unit_from_angle(self.slope_angle))
+
       -- we have just reached the ground (and possibly escaped),
       --  reset values airborne vars
       self.has_jumped_this_frame = false  -- optional since consumed immediately in update_platformer_motion_airborne
@@ -1116,6 +1122,8 @@ function player_char:update_platformer_motion()
   --  Releasing down and pressing jump during crouch gives also priority to spin dash.
   --  So checking jump before crouching is the correct order (you need 2 frames to crouch, then spin dash)
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
+    if self.time_left_for_late_jump > 0 then
+    end
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
     self:check_spin_dash()  -- this is exclusive with jumping, so there is no order conflict
   end
@@ -1150,6 +1158,8 @@ function player_char:update_platformer_motion()
   -- only allow jump preparation for next frame if still grounded,
   --  or started falling recently with late jump feature enabled
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
+    if self.time_left_for_late_jump > 0 then
+    end
     self:check_jump_intention()
   end
 
@@ -2603,7 +2613,7 @@ function player_char:trigger_launch_ramp_effect()
 
   local new_speed = min(pc_data.launch_ramp_speed_max_launch_speed, self.ground_speed * pc_data.launch_ramp_speed_multiplier)
 
-  self.velocity = new_speed * vector.unit_from_angle(pc_data.launch_ramp_velocity_angle)
+  self.velocity:copy_assign(new_speed * vector.unit_from_angle(pc_data.launch_ramp_velocity_angle))
   self:enter_motion_state(motion_states.falling)
 
   -- just reuse spring jump animation since in Sonic 3, launch ramp also uses 3D animation

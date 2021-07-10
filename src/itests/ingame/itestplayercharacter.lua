@@ -341,12 +341,10 @@ expect pc_velocity 0.84375 2.625
 
 --]=]
 
---[=[
-
--- this test is now failing by 1 frame because jump is interrupted on frame 3 only...
--- not sure why, otherwise hoping works fine in real game
+--#if busted
+-- this test is working again
 itest_dsl_parser.register(
-  'platformer hop flat', [[
+  'platformer hop flat apogee', [[
 @stage #
 .
 #
@@ -362,6 +360,24 @@ expect pc_ground_spd 0
 expect pc_velocity 0 -0.03125
 ]])
 
+itest_dsl_parser.register(
+  'platformer hop flat landing', [[
+@stage #
+.
+#
+
+warp 4 8
+jump
+stop_jump
+wait 39
+
+expect pc_bottom_pos 4 8
+expect pc_motion_state standing
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+--#endif
+
 -- calculation notes
 
 -- wait for apogee (frame 20) and stop
@@ -373,12 +389,58 @@ expect pc_velocity 0 -0.03125
 -- at frame 21: pos (4, 8 - 19.21875), velocity (0, 0.078125), air_spin -> starts going down
 -- at frame 38: pos (4, 8 - 1.15625), velocity (0, 1.9375), air_spin ->  about to land
 -- at frame 39: pos (4, 8), velocity (0, 0), standing -> has landed
+-- (note: last air velocity was 2.046875 but immediately set to projection on ground on landing, which is 0 here)
 
 -- => apogee at y = 8 - 19.296875 = -11.296875
 
---]=]
+-- This test was added to identify a bug when jumping exactly on landing frame, where old landing air velocity
+-- was preserved and summed with jump impulse, causing a very low jump when chaining 2 hops, or imperceptible jump
+-- (vy = -0.0625) when chaining 2 full jumps
+-- We would fail with:
+--[[
+For gameplay value 'player character bottom position':
+Expected ~~ with eps: 0.015625.
+Passed in:
+vector(4, 6.796875)
+Expected:
+vector(4, 6)
 
---[=[
+For gameplay value 'player character velocity':
+Expected ~~ with eps: 0.015625.
+Passed in:
+vector(0.0, -1.203125)
+Expected:
+vector(0, -2)
+--]]
+-- but after setting velocity to match projected ground speed in enter_motion_state(standing),
+-- the test passed.
+itest_dsl_parser.register(
+  '#solo platformer hop chain', [[
+@stage #
+.
+#
+
+warp 4 8
+jump
+stop_jump
+wait 38
+jump
+stop_jump
+wait 2
+
+expect pc_bottom_pos 4 6
+expect pc_motion_state air_spin
+expect pc_ground_spd 0
+expect pc_velocity 0 -2
+]])
+
+-- timing notes:
+-- must set jump intention after 38 frames so it's ready for the check at the end of frame #39 (wait 1),
+-- so at the start of frame #40, check_jump confirms the 2nd hop
+-- we must then wait yet another frame to get the actual jump and velocity update until end of frame #40,
+-- hence wait 2
+
+--#if busted
 
 itest_dsl_parser.register(
   'platformer jump start flat', [[
@@ -502,6 +564,7 @@ expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+--#endif
 
 -- if the player presses the jump button in mid-air, the character should not
 --  jump again when he lands on the ground (later, it will trigger a special action)
@@ -528,7 +591,7 @@ expect pc_velocity 0 0
 -- and wait an extra frame to see if Sonic will jump due to holding jump input,
 -- so stop at frame 40
 
-
+--[=[
 itest_dsl_parser.register(
   'platformer jump air accel', [[
 @stage #
@@ -546,6 +609,9 @@ expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 1.359375 -0.078125
 ]])
+--]=]
+
+--#if busted
 
 itest_dsl_parser.register(
   'platformer air right wall block', [[
@@ -659,6 +725,10 @@ expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity -0.09375 -1.125
 ]])
+
+--#endif
+
+--[=[
 
 itest_dsl_parser.register(
   'platformer air ceiling block', [[
@@ -849,6 +919,8 @@ expect pc_velocity 0 0.984375
 ]])
 --#endif
 
+--[=[
+
 -- variant after discovering:
 --  #189 BUG MOTION walking up loop stopping midway falls in wall right without safety offset
 -- WIP
@@ -870,6 +942,8 @@ expect pc_bottom_pos 15 8
 expect pc_motion_state standing
 expect pc_velocity 0 0.984375
 ]])
+
+--]=]
 
 --[=[
 
@@ -908,10 +982,8 @@ expect pc_motion_state falling
 expect pc_velocity 0 -5
 ]])
 
---]=]
-
 itest_dsl_parser.register(
-  '#solo stand on one-way', [[
+  'stand on one-way', [[
 @stage #
 .
 o
@@ -923,6 +995,8 @@ expect pc_bottom_pos 4 8
 expect pc_motion_state standing
 expect pc_velocity 0 0
 ]])
+
+--]=]
 
 --#if busted
 itest_dsl_parser.register(

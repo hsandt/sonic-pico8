@@ -90,6 +90,12 @@ Because PICO-8 has a square view of 128x128 pixels, and the game is more about e
 * Camera is fundamentally centered on X, but moves toward the direction Sonic is facing. When Sonic is running, camera moves even more forward to show what is ahead
 * Spin dash lag is implemented by freezing then releasing the camera, instead of the more complex recording and playing of character positions during the start of the spin dash
 
+### Notable sprite differences
+
+* Sonic uses the "jump fall" sprite from Sonic CD/Mania as spring jump sprite (although it's not technically correct since it shouldn't be used for upward motion)
+
+* I reversed the order the Brake sprites so it made more sense visually. Now, Sonic just plays a short 2-sprite brake animation when you start moving in the opposite direction of running. If you keep moving in the opposite direction, it shows the "reverse brake" sprite, which gives more the impression than Sonic is doing a complete turn and sprinting in the opposite direction.
+
 ## Content
 
 There is a single demo stage which covers the first part of Angel Island Act 1. Scale is close to 1:1, but Sonic is slightly smaller (relatively to the environment) than in the original game.

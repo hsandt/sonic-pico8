@@ -158,26 +158,38 @@ end
 
 -- render the stage environment (tiles)
 function base_stage_state:render_environment_midground()
+  self:set_camera_with_region_origin()
+  self:render_environment_midground_static()
+  self:render_environment_midground_waterfall()
+end
+
+-- render the stage environment (tiles)
+function base_stage_state:render_environment_midground_static()
+  set_unique_transparency(colors.pink)
+
+  -- only draw midground tiles that don't need waterfall color swapping animation
+  --  note that we are drawing loop entrance tiles even though they will be (they'll be drawn on foreground later)
   -- possible optimize: don't draw the whole stage offset by camera,
   --  instead just draw the portion of the level of interest
   --  (and either keep camera offset or offset manually and subtract from camera offset)
   -- that said, I didn't notice a performance drop by drawing the full tilemap
   --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
+end
 
+-- render the stage environment (tiles)
+function base_stage_state:render_environment_midground_waterfall()
 --#ifn itest
   -- waterfall sprites are now placed as tiles of the tilemap, so we apply the waterfall color swap animation
   --  directly on them
   self:set_color_palette_for_waterfall_animation()
 --#endif
 
-  -- only draw midground tiles
-  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
+  -- only draw midground tiles that need waterfall color swapping animation
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.waterfall)
 
 --#ifn itest
-  -- clear palette swap, or Sonic will inherit from the waterfall blue color swapping!
+  -- clear palette swap, or Sonic (and rocks, etc.) will inherit from the waterfall blue color swapping!
   pal()
 --#endif
 end

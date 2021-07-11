@@ -205,14 +205,52 @@ describe('base_base_stage_state', function ()
 
     -- render
 
-    describe('(with tile_test_data)', function ()
+
+    describe('render_environment_midground', function ()
 
       setup(function ()
         tile_test_data.setup()
 
-        stub(base_stage_state, "set_color_palette_for_waterfall_animation")
-        stub(base_stage_state, "set_camera_with_origin")
         stub(base_stage_state, "set_camera_with_region_origin")
+        stub(base_stage_state, "render_environment_midground_static")
+        stub(base_stage_state, "render_environment_midground_waterfall")
+      end)
+
+      teardown(function ()
+        base_stage_state.set_camera_with_region_origin:revert()
+        base_stage_state.render_environment_midground_static:revert()
+        base_stage_state.render_environment_midground_waterfall:revert()
+      end)
+
+      after_each(function ()
+        pico8:clear_map()
+
+        base_stage_state.set_camera_with_region_origin:clear()
+        base_stage_state.render_environment_midground_static:clear()
+        base_stage_state.render_environment_midground_waterfall:clear()
+      end)
+
+      it('should call set_camera_with_region_origin, render_environment_midground_static, render_environment_midground_waterfall', function ()
+        state:render_environment_midground()
+
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+
+        assert.spy(base_stage_state.render_environment_midground_static).was_called(1)
+        assert.spy(base_stage_state.render_environment_midground_static).was_called_with(match.ref(state))
+
+        assert.spy(base_stage_state.render_environment_midground_waterfall).was_called(1)
+        assert.spy(base_stage_state.render_environment_midground_waterfall).was_called_with(match.ref(state))
+      end)
+
+    end)
+
+    describe('(with tile_test_data)', function ()
+
+      setup(function ()
+        stub(base_stage_state, "set_color_palette_for_waterfall_animation")
+        stub(base_stage_state, "set_camera_with_region_origin")
+        stub(base_stage_state, "set_camera_with_origin")
         stub(sprite_data, "render")
         stub(_G, "spr")
         stub(_G, "map")
@@ -223,8 +261,8 @@ describe('base_base_stage_state', function ()
         tile_test_data.teardown()
 
         base_stage_state.set_color_palette_for_waterfall_animation:revert()
-        base_stage_state.set_camera_with_origin:revert()
         base_stage_state.set_camera_with_region_origin:revert()
+        base_stage_state.set_camera_with_origin:revert()
         sprite_data.render:revert()
         spr:revert()
         map:revert()
@@ -258,33 +296,42 @@ describe('base_base_stage_state', function ()
         pico8:clear_map()
 
         base_stage_state.set_color_palette_for_waterfall_animation:clear()
-        base_stage_state.set_camera_with_origin:clear()
         base_stage_state.set_camera_with_region_origin:clear()
+        base_stage_state.set_camera_with_origin:clear()
         sprite_data.render:clear()
         spr:clear()
         map:clear()
         set_unique_transparency:clear()
       end)
 
-      it('render_environment_midground should call set_unique_transparency, set_color_palette_for_waterfall_animation, set_camera_with_region_origin and map for all midground sprites', function ()
+      it('render_environment_midground_static should call set_unique_transparency and map for all midground sprites', function ()
         -- note that we reverted to using map for performance, so this test doesn't need to be
         --  in the tile test data setup context anymore
         state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(0, 0)
 
-        state:render_environment_midground()
+        state:render_environment_midground_static()
 
         assert.spy(set_unique_transparency).was_called(1)
         assert.spy(set_unique_transparency).was_called_with(colors.pink)
 
+        assert.spy(map).was_called(1)
+        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
+      end)
+
+      it('render_environment_midground_waterfall should call set_color_palette_for_waterfall_animation and map for all waterfall sprites', function ()
+        -- note that we reverted to using map for performance, so this test doesn't need to be
+        --  in the tile test data setup context anymore
+        state.camera:init_position(vector(0, 0))
+        state.loaded_map_region_coords = vector(0, 0)
+
+        state:render_environment_midground_waterfall()
+
         assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called(1)
         assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called_with(match.ref(state))
 
-        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
-        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-
         assert.spy(map).was_called(1)
-        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
+        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.waterfall)
       end)
 
       it('render_environment_foreground should call spr on tiles present on screen', function ()

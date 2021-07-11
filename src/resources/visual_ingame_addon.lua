@@ -38,8 +38,9 @@ local ingame_sprite_data_t = {
   palm_tree_leaves_top = sprite_data(sprite_id_location(12, 12), tile_vector(1, 2), vector(0, 16), colors.pink),
   -- right side pivot is located at top-right of core
   -- left side is a mirror of right side, and must be placed just on the left of the core
-  -- we need multicolor transparency to exclude waterfall sprites located in the same rectangle for compactness
-  palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), {colors.pink, colors.dark_blue, colors.indigo, colors.blue, colors.white}),
+  -- no multicolor transparency right now, but if you add sprites on the top-left of the palm tree leaves for compactness on the spritesheet,
+  --  you can, but they must have no common colors with the leaves, and you must add all of their unique colors to the transparency list {color1, color2, ...}
+  palm_tree_leaves_right = sprite_data(sprite_id_location(13, 12), tile_vector(3, 4), vector(0, 16), colors.pink),
 
   -- RUNTIME SPRITES (stage-specific and common runtime)
   -- below need runtime sprites to be reloaded, overwriting collision masks

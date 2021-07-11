@@ -158,7 +158,7 @@ local function attract_mode_scenario_async()
   pc.move_intention = vector(0, 1)
   yield_delay_frames(4)
   pc.move_intention = vector(0, 0)
-  yield_delay_frames(30)
+  yield_delay_frames(24)
 
   -- if you want to record a demo yourself:
   -- 0. comment/remove any previous input order you don't need in the list above
@@ -174,8 +174,8 @@ local function attract_mode_scenario_async()
   -- log(total_frames..": START RECORDING HUMAN INPUT", "recorder")
   -- total_frames = 0  -- reset total frames as we want relative delays since last record
 
-  -- end demo, go back to title menu
-  load('picosonic_titlemenu')
+  -- end demo, exit attract mode with fade out (if not already due to input)
+  app:exit_attract_mode()
 end
 
 function _init()

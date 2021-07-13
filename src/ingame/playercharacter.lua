@@ -878,11 +878,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       --  if so, we return from the caller
       if result then
 --#if debug_character
-        -- ceiling only returns true, and we are only interested in debugging ground sensor rays anyway,
-        --  so only consider ground sensor result which should be a proper ground_query_info
-        if type(result) == "table" then
-          add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
-        end
+      -- store debug ray for hit or no-hit (we may have found ground/ceiling which happens to be too far)
+      add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
 --#endif
         return result
       end
@@ -896,7 +893,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       assert(curr_global_tile_loc == last_global_tile_loc or is_oneway)
     end
 
-    -- check fo end of iteration (reached last tile)
+    -- check for end of iteration (reached last tile)
     -- we do a simple check in PICO-8 release:
 --[[#pico8
 --#ifn assert
@@ -921,10 +918,8 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       local result = no_collider_callback()
 
 --#if debug_character
-        -- see similar code above with collider_distance_callback call
-        if type(result) == "table" then
-          add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
-        end
+      -- store debug ray for no-hit (result.signed_distance will just be some max detection distance + 1)
+      add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = false})
 --#endif
 
       -- this is the final check so return the result whatever it is
@@ -2992,7 +2987,7 @@ function player_char:debug_draw_rays()
       --  a cardinal unit vector to get the penultimate pixel)
       local before_end_pos = end_pos - debug_ray.direction
       line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.pink)
-      mset(end_pos.x, end_pos.y, colors.red)
+      pset(end_pos.x, end_pos.y, colors.red)
     end
   end
 end

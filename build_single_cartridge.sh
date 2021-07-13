@@ -99,7 +99,7 @@ if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
   # symbols='assert,tostring,dump,log,debug_menu,debug_character'
-  symbols='tostring,dump,log,debug_character'
+  symbols='tostring,dump,log,debug_menu,debug_character'
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then

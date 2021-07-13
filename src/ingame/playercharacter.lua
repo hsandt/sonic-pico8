@@ -2979,15 +2979,20 @@ function player_char:debug_draw_rays()
   for debug_ray in all(self.debug_rays) do
     local start = debug_ray.start
     local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction
-    if debug_ray.distance <= 0 then
-      -- inside ground, ray will be all read up to surface
-      line(start.x, start.y, end_pos.x, end_pos.y, colors.red)
-    else
-      -- q-above ground, ray will be blue except the last pixel (subtract direction which is
-      --  a cardinal unit vector to get the penultimate pixel)
+
+    if debug_ray.hit then
+      -- hit, q-above ground (if distance > 0) or from inside ground (if distance <= 0),
+      --  ray will be pink except the last pixel which will be red
+      -- (subtract direction which is a cardinal unit vector to get the penultimate pixel)
       local before_end_pos = end_pos - debug_ray.direction
       line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.pink)
       pset(end_pos.x, end_pos.y, colors.red)
+    else
+      -- no-hit, draw full ray in white to distinguish from hit case
+      -- I tried different colors from distance <= 0 vs > 0, but unfortunately
+      --  they were hard to distinguish from the midground
+      --  so you'll have to guess the distance sign by looking at the environment
+      line(start.x, start.y, end_pos.x, end_pos.y, colors.white)
     end
   end
 end

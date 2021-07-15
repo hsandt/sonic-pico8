@@ -578,28 +578,6 @@ describe('stage_clear_state', function ()
             map:clear()
           end)
 
-          it('render_environment_midground should call map for all midground sprites', function ()
-            state:render_environment_midground()
-
-            assert.spy(stage_clear_state.set_camera_with_region_origin).was_called(1)
-            assert.spy(stage_clear_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-
-            assert.spy(map).was_called(1)
-            assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-          end)
-
-          it('render_environment_foreground should call spr on tiles present on screen', function ()
-            state:render_environment_foreground()
-
-            -- we can't check call order, but set camera methods should be called consistently with map!
-            assert.spy(stage_clear_state.set_camera_with_region_origin).was_called(1)
-            assert.spy(stage_clear_state.set_camera_with_region_origin).was_called_with(match.ref(state))
-
-            assert.spy(map).was_called(1)
-
-            assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
-          end)
-
         end)  -- (with tile_test_data)
 
         describe('extra render methods (no-crash only)', function ()

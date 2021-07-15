@@ -203,6 +203,8 @@ function base_stage_state:render_environment_foreground()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
 --#if busted
+  -- stage_clear_state has no curr_stage_data, but the preprocessing stripping below with #ingame
+  --  is not enough as busted doesn't know about it - so add a busted-only early return
   if not self.curr_stage_data then
     return
   end

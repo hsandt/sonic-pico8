@@ -202,13 +202,9 @@ function base_stage_state:render_environment_foreground()
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
---#if busted
-  -- stage_clear_state has no curr_stage_data, but the preprocessing stripping below with #ingame
-  --  is not enough as busted doesn't know about it - so add a busted-only early return
-  if not self.curr_stage_data then
-    return
-  end
---#endif
+  -- note: stage_clear_state has no curr_stage_data and we used to return early if #busted
+  --  to make utests work, but now we are not testing base_stage_state methods anymore
+  --  in the sub-classes, so it's not needed anymore
 
   -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
   --  loops nor palm trees at stage start anyway. Stage clear doesn't have them at stage end either.

@@ -179,7 +179,7 @@ describe('player_char', function ()
           1,
           0,
 
-          location(-1, -1),
+          nil,
           vector(-1, -1),
           0,
           0,
@@ -474,14 +474,17 @@ describe('player_char', function ()
 
       setup(function ()
         stub(player_char, "enter_motion_state")
+        stub(player_char, "check_escape_from_ground")
       end)
 
       teardown(function ()
         player_char.enter_motion_state:revert()
+        player_char.check_escape_from_ground:revert()
       end)
 
       after_each(function ()
         player_char.enter_motion_state:clear()
+        player_char.check_escape_from_ground:clear()
       end)
 
       it('should set the character\'s position', function ()
@@ -489,52 +492,20 @@ describe('player_char', function ()
         assert.are_same(vector(56, 12), pc.position)
       end)
 
-      describe('(check_escape_from_ground returns false)', function ()
+      it('should call enter_motion_state(motion_states.falling)', function ()
+        pc:spawn_at(vector(56, 12))
 
-        local check_escape_from_ground_mock
-
-        setup(function ()
-          check_escape_from_ground_mock = stub(player_char, "check_escape_from_ground", function (self)
-            return false
-          end)
-        end)
-
-        teardown(function ()
-          check_escape_from_ground_mock:revert()
-        end)
-
-        it('should call check_escape_from_ground and enter_motion_state(motion_states.falling)', function ()
-          pc:spawn_at(vector(56, 12))
-
-          -- implementation
-          assert.spy(check_escape_from_ground_mock).was_called(1)
-          assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(pc))
-        end)
-
+        -- implementation
+        assert.spy(player_char.enter_motion_state).was_called(1)
+        assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
       end)
 
-      describe('(check_escape_from_ground returns true)', function ()
+      it('should call check_escape_from_ground', function ()
+        pc:spawn_at(vector(56, 12))
 
-        local check_escape_from_ground_mock
-
-        setup(function ()
-          check_escape_from_ground_mock = stub(player_char, "check_escape_from_ground", function (self)
-            return true
-          end)
-        end)
-
-        teardown(function ()
-          check_escape_from_ground_mock:revert()
-        end)
-
-        it('should call check_escape_from_ground', function ()
-          pc:spawn_at(vector(56, 12))
-
-          -- implementation
-          assert.spy(check_escape_from_ground_mock).was_called(1)
-          assert.spy(check_escape_from_ground_mock).was_called_with(match.ref(pc))
-        end)
-
+        -- implementation
+        assert.spy(player_char.check_escape_from_ground).was_called(1)
+        assert.spy(player_char.check_escape_from_ground).was_called_with(match.ref(pc))
       end)
 
     end)
@@ -726,7 +697,7 @@ describe('player_char', function ()
 
     describe('update_sprite_angle_parameters', function ()
 
-      it('(pc walking, facing right) should always set is_sprite_diagonal to false and sprite_angle to 0 even if angle is closer to diagonal direction', function ()
+      it('(pc brake_start, facing right) should always set is_sprite_diagonal to false and sprite_angle to 0 even if angle is closer to diagonal direction', function ()
         pc.anim_spr.current_anim_key = "brake_start"
         pc.continuous_sprite_angle = 0.875  -- diagonal
         pc.orientation = horizontal_dirs.right
@@ -736,6 +707,17 @@ describe('player_char', function ()
         -- braking, so reset all angles
         assert.is_false(pc.is_sprite_diagonal)
         assert.are_equal(0, pc.sprite_angle)
+      end)
+
+      it('(pc idle, facing right) should round to closest cardinal direction and therefore not diagonal even if angle is closer to diagonal direction', function ()
+        pc.anim_spr.current_anim_key = "idle"
+        pc.continuous_sprite_angle = 0.125  -- exact diagonal to demonstrate (note that we round up -> 0.25 not 0)
+        pc.orientation = horizontal_dirs.right
+
+        pc:update_sprite_angle_parameters()
+
+        assert.is_false(pc.is_sprite_diagonal)
+        assert.are_equal(0.25, pc.sprite_angle)
       end)
 
       it('(pc walking, facing right) should set is_sprite_diagonal to false if angle is closer to cardinal direction, and sprite_angle to this cardinal angle', function ()
@@ -2255,18 +2237,15 @@ describe('player_char', function ()
             mock_mset(1, 1, tile_repr.full_tile_id)
           end)
 
-          it('should reset state vars to airborne convention when character is not touching ground at all, and enter state falling', function ()
+          it('should reset do nothing when no ground is detected', function ()
             pc:set_bottom_center(vector(12, 6))
             pc:check_escape_from_ground()
 
             -- interface
             assert.are_same({vector(12, 6), nil}, {pc:get_bottom_center(), pc.ground_tile_location})
-
-            assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.falling)
           end)
 
-          it('should do nothing when character is just on top of the ground, update slope to 0 and enter state standing', function ()
+          it('(when character is just on top of the ground, already grounded) keep position, set ground tile location, slope angle to 0', function ()
             pc:set_bottom_center(vector(12, 8))
             pc:check_escape_from_ground()
 
@@ -2277,12 +2256,9 @@ describe('player_char', function ()
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
-
-            assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0 and enter state standing', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 0', function ()
             pc:set_bottom_center(vector(12, 9))
             pc:check_escape_from_ground()
 
@@ -2293,12 +2269,9 @@ describe('player_char', function ()
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
-
-            assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
-          it('should move the character q-upward (to the left on right wall) just enough to escape ground if character is inside q-ground, update slope to 0 and enter state standing', function ()
+          it('should move the character q-upward (to the left on right wall) just enough to escape ground if character is inside q-ground, update slope to 0', function ()
             pc.quadrant = directions.right
             pc:set_bottom_center(vector(9, 12))
             pc:check_escape_from_ground()
@@ -2310,12 +2283,9 @@ describe('player_char', function ()
             assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
-
-            assert.spy(player_char.enter_motion_state).was_called(1)
-            assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
           end)
 
-          it('should reset state vars to too deep convention when character is too deep inside the ground and enter state falling', function ()
+          it('should reset state vars to too deep convention when character is too deep inside the ground', function ()
             pc:set_bottom_center(vector(12, 13))
             pc:check_escape_from_ground()
 
@@ -2326,6 +2296,22 @@ describe('player_char', function ()
             assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+          end)
+
+          it('(when character detects ground, already grounded) not enter state', function ()
+            pc.motion_state = motion_states.rolling
+            pc:set_bottom_center(vector(12, 8))  -- touch ground
+
+            pc:check_escape_from_ground()
+
+            assert.spy(player_char.enter_motion_state).was_not_called()
+          end)
+
+          it('(when character detects ground, not grounded) enter state standing', function ()
+            pc.motion_state = motion_states.falling
+            pc:set_bottom_center(vector(12, 8))  -- touch ground
+
+            pc:check_escape_from_ground()
 
             assert.spy(player_char.enter_motion_state).was_called(1)
             assert.spy(player_char.enter_motion_state).was_called_with(match.ref(pc), motion_states.standing)
@@ -6836,6 +6822,7 @@ describe('player_char', function ()
           -- (tile_test_data + mset), so we prefer stubbing as we don't check ground_tile_location directly
           stub(player_char, "set_ground_tile_location")
           spy.on(player_char, "set_slope_angle_with_quadrant")
+          stub(player_char, "check_escape_from_ground")
         end)
 
         teardown(function ()
@@ -6843,6 +6830,7 @@ describe('player_char', function ()
           player_char.check_hold_jump:revert()
           player_char.set_ground_tile_location:revert()
           player_char.set_slope_angle_with_quadrant:revert()
+          player_char.check_escape_from_ground:revert()
         end)
 
         before_each(function ()
@@ -6853,6 +6841,7 @@ describe('player_char', function ()
           player_char.check_hold_jump:clear()
           player_char.set_ground_tile_location:clear()
           player_char.set_slope_angle_with_quadrant:clear()
+          player_char.check_escape_from_ground:clear()
         end)
 
         describe('(when _compute_air_motion_result returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
@@ -7217,6 +7206,15 @@ describe('player_char', function ()
 
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
+          end)
+
+          it('should call check_escape_from_ground', function ()
+            pc:update_platformer_motion_airborne()
+
+            -- timing note: after updating the state, so check escape can be done from the new position
+            --  but we cannot easily test call order
+            assert.spy(pc.check_escape_from_ground).was_called(1)
+            assert.spy(pc.check_escape_from_ground).was_called_with(match.ref(pc))
           end)
 
         end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)

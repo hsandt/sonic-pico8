@@ -121,9 +121,9 @@ function player_char:setup()
   self.active_loop_layer = 1
   self.ignore_launch_ramp_timer = 0
 
-  -- impossible value makes sure that first set_ground_tile_location
-  --  will trigger change event
-  self.ground_tile_location = location(-1, -1)
+  -- no ground -> nil
+  -- self.ground_tile_location = nil  -- commented out to spare characters
+  -- undefined position convention
   self.position = vector(-1, -1)
   self.ground_speed = 0
   self.horizontal_control_lock_timer = 0
@@ -234,8 +234,14 @@ end
 function player_char:warp_to(position)
   self.position = position
 
-  -- character is initialized standing, but let him fall if he is spawned in the air
-  -- if grounded, also allows to set ground tile properly
+  -- start falling, then call check_escape_from_ground
+  -- if no ground is found, character will just fall
+  -- otherwise (even if just touching ground), state will be set to standing
+  -- note that unlike running, we never snap down
+  -- we could also not set motion state at all, as the next update will detect no ground
+  --  and start character fall if needed (but if late jump feature is enabled, it may allow
+  --  player to oddly jump in the air just after warping)
+  self:enter_motion_state(motion_states.falling)
   self:check_escape_from_ground()
 end
 
@@ -342,7 +348,16 @@ function player_char:update_sprite_angle_parameters()
   local sprite_angle = 0
   local is_sprite_diagonal = false
 
-  if contains({"walk", "run"}, self.anim_spr.current_anim_key) then
+  if self.anim_spr.current_anim_key == "idle" then
+    -- snap render angle to a few set of values (90 degrees steps)
+    -- originally we always used angle = 0 as Sonic cannot normally be idle on a wall or ceiling,
+    --  but in edge cases (speed reaches 0 for 1 frame on a slope, Sonic get stuck inside wall and
+    --  we want to debug quadrant) it can happen and then it's more useful to show at least
+    --  the correct 90-degree rotation (as we don't have 45-deg sprite variants)
+    -- 90 degrees is 0.25 = 1/4, so by multiplying by 4, each integer represent a 90-degree step
+    --  we just need to add 0.5 before flooring to effectively round to the closest step, then go back
+    sprite_angle = flr(4 * self.continuous_sprite_angle + 0.5) / 4
+  elseif contains({"walk", "run"}, self.anim_spr.current_anim_key) then
     -- snap render angle to a few set of values (45 degrees steps), classic style
     --  (unlike Freedom Planet and Sonic Mania)
     -- 45 degrees is 0.125 = 1/8, so by multiplying by 8, each integer represent a 45-degree step
@@ -987,10 +1002,10 @@ end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside
 -- if ground is detected and the character can escape, update the slope angle with the angle of the new ground
--- if the character cannot escape or is in the air, still reset all values to be safe
---  (e.g. on initial warp it allows us to set ground_tile_location to a proper value instead of default location(0, 0))
--- finally, enter standing state if the character was either touching the ground or inside it (even too deep),
---  else enter falling state
+-- if the character is too deep in ground and cannot escape, set tile to nil and angle to 0 by convention
+-- if ground is detected but character was airborne, enter standing state
+-- if no ground is detected, do nothing. Do not even enter airborne state. Either the caller must enter it
+--  by default before calling this method, or they should count on the next frame update to start character fall.
 function player_char:check_escape_from_ground()
   local query_info = self:compute_ground_sensors_query_info(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
@@ -1018,10 +1033,12 @@ function player_char:check_escape_from_ground()
       self.ground_tile_location = nil
       self:set_slope_angle_with_quadrant(0)
     end
-    self:enter_motion_state(motion_states.standing)
-  else
-    -- character in the air, reset
-    self:enter_motion_state(motion_states.falling)
+    -- if airborne, simulate landing
+    -- if already grounded, don't change state in case we were rolling etc.
+    --  (it never happends with pixel step motion, but it can with big step / frame by frame motion)
+    if not self:is_grounded() then
+      self:enter_motion_state(motion_states.standing)
+    end
   end
 end
 
@@ -1076,6 +1093,7 @@ function player_char:enter_motion_state(next_motion_state)
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
       -- Momentum: transfer part of airborne velocity tangential to slope to ground speed (self.slope_angle must have been set previously)
+      --  using a projection on the ground
       -- do not clamp ground speed! this allows us to spin dash, fall a bit, land and run at high speed!
       -- SPG (https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) says original calculation either preserves vx or
       --  uses vy * sin * some factor depending on angle range (possibly to reduce CPU)
@@ -2167,6 +2185,19 @@ function player_char:update_platformer_motion_airborne()
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
     -- always stand on ground, if we want to roll we'll switch to rolling on next frame
     self:enter_motion_state(motion_states.standing)
+
+    -- check for escape if needed, since we may have updated orientation on landing,
+    --  causing the character pivot to be offset and their feet to enter the ground
+    --  due to imperfection of how different slope tiles are connected with each other
+    --  (can happen when jumping onto curve/loop walls)
+    -- Known issue: on the first loop, you can jump so you hit the top-right part,
+    --  then fall on the right middle, and it will "bump" you to the left with
+    --  a velocity on X quite high, and your character facing left, with control lock
+    --  for a moment. I couldn't debug the exact cause, but the behavior apparently
+    --  apparently appeared after adding this. However, this check is important
+    --  to reduce odds of entering a curved wall/loop on fall, so I prefer having
+    --  the bump glitch, as long as character doesn't enter walls.
+    self:check_escape_from_ground()
   end
 
   log("self.position: "..self.position, "trace")
@@ -2317,7 +2348,6 @@ function player_char:advance_in_air_along(ref_motion_result, velocity, coord)
     -- since subpixels are always counted to the right, the subpixel test below is asymmetrical
     --   but this is correct, we will simply move backward a bit when moving left
     local are_subpixels_left = initial_position_coord + velocity:get(coord) > ref_motion_result.position:get(coord)
-    -- local are_subpixels_left = initial_position_coord + max_pixel_distance > ref_motion_result.position:get(coord)
     if are_subpixels_left then
       -- character has not been blocked and has some subpixels left to go
       --  *only* when moving in the positive sense (right/up),
@@ -2450,7 +2480,7 @@ function player_char:next_air_step(direction, ref_motion_result)
           --  plus we may have started adjusting the position above (if quadrant is left or right)
           --  causing a weird result if we go on; but there are currently no visible issues in game
           ref_motion_result.tile_location = query_info.tile_location
-          log("is landing at adjusted y: "..next_position_candidate.y..", setting slope angle to "..query_info.slope_angle, "trace2")
+          log("is landing at adjusted pos x: "..next_position_candidate.x..", y: "..next_position_candidate.y..", setting slope angle to "..query_info.slope_angle, "trace2")
         else
           ref_motion_result.is_blocked_by_wall = true
           log("is blocked by wall", "trace2")

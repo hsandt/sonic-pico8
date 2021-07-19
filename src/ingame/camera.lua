@@ -74,7 +74,11 @@ end
 -- only used by setup_for_stage at runtime, it was useful to extract for the various utests
 --  so they could start with a base position y matching the initial position
 function camera_class:init_position(initial_position)
-  self.position = initial_position
+  -- copy by value to avoid changing initial_position in case it was not just a temporary value
+  -- we used to copy by reference, and this triggered the infamous bug of debug mode -> exit debug mode
+  --  inside ground -> character moves in a linear fashion due to camera position being the same as character
+  --  position!
+  self.position:copy_assign(initial_position)
   -- immediately sync base position x/y, which needs a starting point
   -- note that this is not the final position, as x will need to receive the base forward offset
   --  for current character orientation; but currently this happens immediately on stage start, so not perceptible

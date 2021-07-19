@@ -77,13 +77,19 @@ describe('camera_class', function ()
 
   describe('init_position', function ()
 
-    it('should initialize camera at future character spawn position (+ estimated future forward base offset)', function ()
+    it('should initialize camera at *copy* of passed position', function ()
+      local original_position = vector(10, 2)
+
       local cam = camera_class()
-      cam:init_position(vector(10, 2))
+      cam:init_position(original_position)
 
       assert.are_same(vector(10, 2), cam.position)
       assert.are_equal(10, cam.base_position.x)  -- base position x sync
       assert.are_equal(2, cam.base_position.y)  -- base position y sync
+
+      -- extra test to verify that we copied by value; we must not modify target position!
+      cam.position.x = 99
+      assert.are_same(vector(10, 2), original_position)
     end)
 
   end)

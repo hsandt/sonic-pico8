@@ -3034,6 +3034,8 @@ function player_char:debug_print_info()
   api.print("slope: "..tostr(self.slope_angle), 8, 106, colors.white)
   api.print("x: "..self.position.x, 8, 112, colors.white)
   api.print("y: "..self.position.y, 8, 118, colors.white)
+  api.print("vx: "..self.velocity.x, 58, 112, colors.white)
+  api.print("vy: "..self.velocity.y, 58, 118, colors.white)
 end
 --#endif
 

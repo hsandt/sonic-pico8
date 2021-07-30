@@ -120,10 +120,26 @@ function tile_collision_data:is_rectangle()
   return true
 end
 
+--#if debug_collision_mask
+function tile_collision_data:debug_render(global_tile_location)
+  -- note: this only works if we reloaded the collision mask sprites at the top of the spritesheet,
+  --  which means runtime sprites like emerald pick up FX will be messed up!
+  spr(self.mask_tile_id_loc:to_sprite_id(), tile_size * global_tile_location.i, tile_size * global_tile_location.j)
+end
+--#endif
+
 -- return tuple (interior_v, interior_h) for a slope angle
+-- ! This function makes the slope angle actually important even for rectangular tiles
+-- ! unless it's a full square 8x8, you need to set the most meaningful angle so the interior
+-- ! corresponds to the side where the collision mask is filled (or the longest, if dealing
+-- ! with a partial rectangle on both sides), so the reverse + all-or-nothing check makes sense
+-- ! in world.compute_qcolumn_height_at (this means partial rectangles won't detect reverse in both
+-- ! directions, so avoid costruction a geometry where the character can touch the shortest side
+-- ! from the reverse direction).
+-- ! This really happened with vertical rectangle spring right mask, and was fixed with slope angle.
 function tile_collision_data.slope_angle_to_interiors(slope_angle)
   assert(slope_angle % 1 == slope_angle)
-  -- in edge cases (square angles), interior direction is arbitrary
+  -- in edge cases (square angles 0, 0.25, 0.5, 0.75), one of the interior directions is arbitrary
   local is_slope_angle_down = slope_angle < 0.25 or slope_angle >= 0.75
   local interior_v = is_slope_angle_down and vertical_dirs.down or vertical_dirs.up
   local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left

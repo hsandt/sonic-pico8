@@ -222,6 +222,8 @@ describe('stage_state', function ()
       it('should all stage runtime data copy Sonic sprite variants into general memory for quick runtime reload', function ()
         state:reload_runtime_data()
 
+        -- note that debug_collision_mask adds an extra reload for collision masks,
+        --  but we stripped it from busted by surrounding it with #pico8
         assert.spy(reload).was_called(18)
 
         -- general runtime data
@@ -1615,6 +1617,7 @@ describe('stage_state', function ()
             stub(stage_state, "render_player_char")
             stub(stage_state, "render_environment_foreground")
             stub(stage_state, "debug_render_trigger")
+            stub(player_char, "debug_draw_tile_collision_masks")
             stub(player_char, "debug_draw_rays")
           end)
 
@@ -1626,6 +1629,7 @@ describe('stage_state', function ()
             stage_state.render_player_char:revert()
             stage_state.render_environment_foreground:revert()
             stage_state.debug_render_trigger:revert()
+            player_char.debug_draw_tile_collision_masks:revert()
             player_char.debug_draw_rays:revert()
           end)
 
@@ -1637,6 +1641,7 @@ describe('stage_state', function ()
             stage_state.render_player_char:clear()
             stage_state.render_environment_foreground:clear()
             stage_state.debug_render_trigger:clear()
+            player_char.debug_draw_tile_collision_masks:clear()
             player_char.debug_draw_rays:clear()
           end)
 
@@ -1658,6 +1663,10 @@ describe('stage_state', function ()
             assert.spy(state.debug_render_trigger).was_called(1)
             assert.spy(state.debug_render_trigger).was_called_with(match.ref(state))
             -- #debug_trigger only end
+            -- #debug_collision_mask only
+            assert.spy(player_char.debug_draw_tile_collision_masks).was_called(1)
+            assert.spy(player_char.debug_draw_tile_collision_masks).was_called_with(match.ref(state.player_char))
+            -- #debug_collision_mask only end
             -- #debug_character only
             assert.spy(player_char.debug_draw_rays).was_called(1)
             assert.spy(player_char.debug_draw_rays).was_called_with(match.ref(state.player_char))

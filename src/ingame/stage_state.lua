@@ -223,6 +223,22 @@ function stage_state:reload_runtime_data()
   --  since the first bytes are used for default parameters, I would have to stop using addresses
   --  before 0x5600, and I don't have this margin unless I accept to lose performance by reloading
   --  Sonic sprites directly from data_stage_sonic.p8 cartridge...
+
+-- put in pico8 only to avoid polluting unit test counting reload calls
+--[[#pico8
+
+--#if debug_collision_mask
+  -- exceptionally overwrite the top of the spritesheet with tile collision mask sprites again,
+  --  so we can debug them with tile_collision_data:debug_render
+  -- the collision masks are located in the built-in data of ingame cartridge (also stage_intro),
+  --  so just reload data from the current cartridge (pass no filename)
+  -- spritesheet is located at 0x0
+  -- there are 3 lines of collision masks, so we need to copy 3 * 0x200 = 0x600 bytes
+  -- !! this will mess up runtime sprites like the emerald pick up FX !!
+  reload(0x0, 0x0, 0x600)
+--#endif
+
+--#pico8]]
 end
 
 -- never called, we directly load stage_clear cartridge
@@ -994,6 +1010,9 @@ function stage_state:render_stage_elements()
   self:render_environment_foreground()
 --#if debug_trigger
   self:debug_render_trigger()
+--#endif
+--#if debug_collision_mask
+  self.player_char:debug_draw_tile_collision_masks()
 --#endif
 --#if debug_character
   self.player_char:debug_draw_rays()

@@ -99,12 +99,14 @@ if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
   # symbols='assert,tostring,dump,log,debug_menu,debug_character'
-  symbols='tostring,dump,log,debug_menu,debug_character,cheat'
+  # symbols='tostring,dump,log,debug_menu,debug_character,cheat'
+  # symbols='debug_menu,debug_character,cheat'
+  symbols='tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat'
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then
   # symbols='cheat,tostring,dump,log,debug_menu'
-  symbols='cheat,tostring,debug_menu'
+  symbols='cheat,tostring,dump,debug_menu'
 elif [[ $config == 'tuner' ]]; then
   symbols='tuner,mouse'
 elif [[ $config == 'ultrafast' ]]; then
@@ -114,7 +116,8 @@ elif [[ $config == 'cheat-ultrafast' ]]; then
 elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
-  symbols='assert,tostring,dump'
+  # symbols='assert,tostring,dump'
+  symbols='assert,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
   # symbols='profiler,debug_menu'
   # profiler is too heavy right now, cannot build, so use lightweight version

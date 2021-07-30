@@ -225,7 +225,7 @@ describe('world (with mock tiles data setup)', function ()
 
   end)
 
-  describe('_compute_qcolumn_height_at', function ()
+  describe('compute_qcolumn_height_at', function ()
 
     it('should return (0, nil) if tile location is outside map area except on the left (any quadrant)', function ()
       assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(128, 2), 0, directions.down)})

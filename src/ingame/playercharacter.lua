@@ -11,6 +11,10 @@ local audio = require("resources/audio")
 local visual = require("resources/visual_common")
 -- we should require ingameadd-on in main, as early as possible
 
+--#if debug_character
+local outline = require("engine/ui/outline")
+--#endif
+
 local player_char = new_class()
 
 -- helper for spin dash dust
@@ -84,7 +88,11 @@ end
 -- smoke_pfx                pfx             particle system used to render smoke during spin dash charge
 
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
--- debug_rays (debug_character)     {...}   rays to draw for debug render this frame
+-- debug_rays (#debug_character)    {start = vector, direction_vector = vector, distance = number, hit = bool}
+--                                          rays to draw for debug render this frame
+-- debug_mask_global_tile_locations (#debug_collision_mask)
+--                                  {tile_location}
+--                                          tile locations on which we should debug render collision mask
 function player_char:init()
 --#if cheat
   self.debug_move_max_speed = pc_data.debug_move_max_speed
@@ -168,6 +176,10 @@ function player_char:setup()
 
 --#if debug_character
   self.debug_rays = {}
+--#endif
+
+--#if debug_collision_mask
+  self.debug_mask_global_tile_locations = {}
 --#endif
 end
 
@@ -402,6 +414,18 @@ function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
 end
 
 function player_char:update()
+
+--#if debug_collision_mask
+  clear_table(self.debug_mask_global_tile_locations)
+--#endif
+
+--#if debug_character
+  -- clear the debug rays to start anew for this frame (don't clear them after rendering
+  --  so you can continue seeing them during debug pause)
+  -- OPTIMIZE: pool the rays instead (you can also make them proper structs)
+  clear_table(self.debug_rays)
+--#endif
+
 -- in stage_intro cartridge, we want Sonic to stay idle, so no input
 --  but update physics and render as usual
 --#if ingame
@@ -860,6 +884,16 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- make sure to convert the global tile location into region coordinates
       qcolumn_height, slope_angle = world.compute_qcolumn_height_at(curr_global_tile_loc - region_topleft_loc,
         qcolumn_index0, collision_check_quadrant, ignore_reverse)
+
+--#if debug_collision_mask
+      -- add global tile location (to avoid unstability on frames where we change regions)
+      --  to debug render, if there was a collision tile
+      -- (remember that with land_on_empty_qcolumn feature, qcolumn_height may be 0 yet there is a collision tile,
+      --  so testing slope_angle is more reliable)
+      if slope_angle then
+        add(pc.debug_mask_global_tile_locations, curr_global_tile_loc)
+      end
+--#endif
     end
 
     -- if ground is found, including ground of height 0 thx to land_on_empty_qcolumn, slope_angle is never nil
@@ -1152,12 +1186,9 @@ end
 
 -- update velocity, position and state based on current motion state
 function player_char:update_platformer_motion()
---#if debug_character
-  -- clear the debug rays to start anew for this frame (don't clear them after rendering
-  --  so you can continue seeing them during debug pause)
-  -- OPTIMIZE: pool the rays instead (you can also make them proper structs)
-  clear_table(self.debug_rays)
---#endif
+  -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
+  -- I started working on this before this page appeared though, so the order may not exactly be the same
+  -- Nevertheless, it's working quite well.
 
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
@@ -3029,13 +3060,43 @@ end
 
 function player_char:debug_print_info()
   -- debug info
-  api.print("state: "..self.motion_state, 8, 94, colors.white)
-  api.print("quadrant: "..tostr(self.quadrant), 8, 100, colors.white)
-  api.print("slope: "..tostr(self.slope_angle), 8, 106, colors.white)
-  api.print("x: "..self.position.x, 8, 112, colors.white)
-  api.print("y: "..self.position.y, 8, 118, colors.white)
-  api.print("vx: "..self.velocity.x, 58, 112, colors.white)
-  api.print("vy: "..self.velocity.y, 58, 118, colors.white)
+  outline.print_with_outline("state: "..self.motion_state, 8, 94, colors.white, colors.black)
+  outline.print_with_outline("quadrant: "..tostr(self.quadrant), 8, 100, colors.white, colors.black)
+  outline.print_with_outline("slope: "..tostr(self.slope_angle), 8, 106, colors.white, colors.black)
+  outline.print_with_outline("tile: "..(self.ground_tile_location and self.ground_tile_location.i..", "..self.ground_tile_location.j or "[nil]"),
+    68, 106, colors.white, colors.black)
+  outline.print_with_outline("x: "..self.position.x, 8, 112, colors.white, colors.black)
+  outline.print_with_outline("y: "..self.position.y, 8, 118, colors.white, colors.black)
+  outline.print_with_outline("vx: "..self.velocity.x, 68, 112, colors.white, colors.black)
+  outline.print_with_outline("vy: "..self.velocity.y, 68, 118, colors.white, colors.black)
+end
+--#endif
+
+--#if debug_collision_mask
+function player_char:debug_draw_tile_collision_masks()
+  local curr_stage_state = flow.curr_state
+  assert(curr_stage_state.type == ':stage')
+
+  local region_topleft_loc = curr_stage_state:get_region_topleft_location()
+
+  -- debug "raycasts"
+  for debug_mask_global_tile_location in all(self.debug_mask_global_tile_locations) do
+    local debug_mask_region_tile_location = debug_mask_global_tile_location - region_topleft_loc
+    local tile_id = mget(debug_mask_region_tile_location.i, debug_mask_region_tile_location.j)
+    local tile_collision_flag = fget(tile_id, sprite_flags.collision)
+    if tile_collision_flag then
+      -- get the tile collision mask
+      local tcd = collision_data.get_tile_collision_data(tile_id)
+      assert(tcd, "collision_data.tiles_collision_data does not contain entry for sprite id: "..tile_id..", yet it has the collision flag set")
+
+      if tcd then
+        tcd:debug_render(debug_mask_global_tile_location)
+      end
+    else
+      assert(false, "region tile location "..debug_mask_region_tile_location.." with tile id "..tile_id.." was added to debug_mask_region_tile_locations "..
+        "but it has no collision flag")
+    end
+  end
 end
 --#endif
 

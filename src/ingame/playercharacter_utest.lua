@@ -206,6 +206,7 @@ describe('player_char', function ()
           0,
 
           {},  -- debug_character
+          {},  -- debug_collision_mask
         },
         {
           pc.control_mode,
@@ -244,6 +245,7 @@ describe('player_char', function ()
           pc.brake_anim_phase,
 
           pc.debug_rays,  -- debug_character
+          pc.debug_mask_global_tile_locations,  -- debug_collision_mask
         }
       )
       assert.spy(player_char.update_sprite_row_and_play_sprite_animation).was_called(1)
@@ -903,6 +905,22 @@ describe('player_char', function ()
         player_char.update_anim:clear()
         animated_sprite.update:clear()
         pfx.update:clear()
+      end)
+
+      it('(#debug_collision_mask) should clear debug tile locations from previous frame', function ()
+        pc.debug_mask_global_tile_locations = {"dummy"}
+
+        pc:update()
+
+        assert.are_same({}, pc.debug_mask_global_tile_locations)
+      end)
+
+      it('(#debug_character) should clear debug rays from previous frame', function ()
+        pc.debug_rays = {"dummy"}
+
+        pc:update()
+
+        assert.are_same({}, pc.debug_rays)
       end)
 
       it('should call handle_input, update_motion, update_anim, update animated sprite, update smoke pfx', function ()
@@ -1667,6 +1685,24 @@ describe('player_char', function ()
             pc.quadrant = directions.left
 
             assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(10, 12)))
+          end)
+
+          -- #debug_collision_mask below
+
+          it('(#debug_collision_mask) should not add debug tile location if no tile found)', function ()
+            -- raycast down on the left of the tile, so miss it
+            pc.quadrant = directions.down
+            pc:compute_closest_ground_query_info(vector(7, 8))
+
+            assert.are_same({}, pc.debug_mask_global_tile_locations)
+          end)
+
+          it('(#debug_collision_mask) should add debug tile location if tile found)', function ()
+            -- raycast down just on the left of the tile, so hit it
+            pc.quadrant = directions.down
+            pc:compute_closest_ground_query_info(vector(8, 8))
+
+            assert.are_same({location(1, 1)}, pc.debug_mask_global_tile_locations)
           end)
 
           -- #debug_character below
@@ -2688,14 +2724,6 @@ describe('player_char', function ()
           player_char.check_emerald:clear()
           player_char.check_loop_external_triggers:clear()
           player_char.check_jump_intention:clear()
-        end)
-
-        it('(#debug_character) should clear debug rays from previous frame', function ()
-          pc.debug_rays = {"dummy"}
-
-          pc:update_platformer_motion()
-
-          assert.are_same({}, pc.debug_rays)
         end)
 
         describe('(check_jump and check_spin_dash stubbed)', function ()

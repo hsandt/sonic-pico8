@@ -43,8 +43,8 @@ describe('tile_collision_data', function ()
   describe('init', function ()
 
     it('should create a tile_collision_data with reciprocal arrays and slope angle', function ()
-      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down, true)
-      assert.are_same({10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), true}, {tcd.mask_tile_id_loc, tcd.height_array, tcd.width_array, tcd.slope_angle, tcd.land_on_empty_qcolumn})
+      local tcd = tile_collision_data(sprite_id_location(1, 0), {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), horizontal_dirs.right, vertical_dirs.down, true)
+      assert.are_same({sprite_id_location(1, 0), {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4), true}, {tcd.mask_tile_id_loc, tcd.height_array, tcd.width_array, tcd.slope_angle, tcd.land_on_empty_qcolumn})
     end)
 
   end)
@@ -52,7 +52,7 @@ describe('tile_collision_data', function ()
   describe('get_height', function ()
 
     it('should return the height at the given column index', function ()
-      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
+      local tcd = tile_collision_data(sprite_id_location(1, 0), {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
       assert.are_equal(2, tcd:get_height(2))
     end)
 
@@ -61,7 +61,7 @@ describe('tile_collision_data', function ()
   describe('get_width', function ()
 
     it('should return the width at the given column index', function ()
-      local tcd = tile_collision_data(10, {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
+      local tcd = tile_collision_data(sprite_id_location(1, 0), {0, 1, 2, 2, 3, 3, 4, 4}, {0, 0, 0, 0, 2, 4, 6, 7}, atan2(8, -4))
       assert.are_equal(2, tcd:get_width(4))
     end)
 
@@ -75,17 +75,17 @@ describe('tile_collision_data', function ()
     --  define the same tiles!
 
     it('should return true when empty (abnormal case though)', function ()
-      local tcd = tile_collision_data(20, {0, 0, 0, 0, 0, 0, 0, 0}, "unused", 0)
+      local tcd = tile_collision_data(sprite_id_location(2, 0), {0, 0, 0, 0, 0, 0, 0, 0}, "unused", 0)
       assert.is_true(tcd:is_full_vertical_rectangle())
     end)
 
     it('should return true when made of empty/full columns', function ()
-      local tcd = tile_collision_data(30, {8, 8, 8, 0, 0, 0, 0, 0}, "unused", 0.75)
+      local tcd = tile_collision_data(sprite_id_location(3, 0), {8, 8, 8, 0, 0, 0, 0, 0}, "unused", 0.75)
       assert.is_true(tcd:is_full_vertical_rectangle())
     end)
 
     it('should return false when not made of empty/full columns only', function ()
-      local tcd = tile_collision_data(40, {4, 4, 4, 4, 3, 3, 3, 3}, "unused", atan2(8, -1))
+      local tcd = tile_collision_data(sprite_id_location(4, 0), {4, 4, 4, 4, 3, 3, 3, 3}, "unused", atan2(8, -1))
       assert.is_false(tcd:is_full_vertical_rectangle())
     end)
 
@@ -96,17 +96,17 @@ describe('tile_collision_data', function ()
     -- same, no need to define columns
 
     it('should return true when empty', function ()
-      local tcd = tile_collision_data(50, "unused", {0, 0, 0, 0, 0, 0, 0, 0}, 0)
+      local tcd = tile_collision_data(sprite_id_location(5, 0), "unused", {0, 0, 0, 0, 0, 0, 0, 0}, 0)
       assert.is_true(tcd:is_full_horizontal_rectangle())
     end)
 
     it('should return true when made of empty/full rows', function ()
-      local tcd = tile_collision_data(60, "unused", {0, 0, 0, 0, 0, 8, 8, 8}, 0)
+      local tcd = tile_collision_data(sprite_id_location(6, 0), "unused", {0, 0, 0, 0, 0, 8, 8, 8}, 0)
       assert.is_true(tcd:is_full_horizontal_rectangle())
     end)
 
     it('should return false when not made of empty/full rows only', function ()
-      local tcd = tile_collision_data(70, "unused", {0, 0, 0, 0, 4, 8, 8, 8}, atan2(8, -1))
+      local tcd = tile_collision_data(sprite_id_location(7, 0), "unused", {0, 0, 0, 0, 4, 8, 8, 8}, atan2(8, -1))
       assert.is_false(tcd:is_full_horizontal_rectangle())
     end)
 
@@ -117,28 +117,54 @@ describe('tile_collision_data', function ()
     -- we're only testing columns, so to simplify we don't define rows
 
     it('should return true when empty (abnormal case though)', function ()
-      local tcd = tile_collision_data(50, {0, 0, 0, 0, 0, 0, 0, 0}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
+      local tcd = tile_collision_data(sprite_id_location(5, 0), {0, 0, 0, 0, 0, 0, 0, 0}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
       assert.is_true(tcd:is_rectangle())
     end)
 
     it('should return true when made of empty/full columns', function ()
-      local tcd = tile_collision_data(60, {0, 0, 0, 0, 0, 8, 8, 8}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
+      local tcd = tile_collision_data(sprite_id_location(6, 0), {0, 0, 0, 0, 0, 8, 8, 8}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
       assert.is_true(tcd:is_rectangle())
     end)
 
     it('should return true when made of empty/partial columns, but all of same height', function ()
-      local tcd = tile_collision_data(60, {5, 5, 5, 5, 5, 0, 0, 0}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
+      local tcd = tile_collision_data(sprite_id_location(6, 0), {5, 5, 5, 5, 5, 0, 0, 0}, "unused", 0, vertical_dirs.down, horizontal_dirs.right)
       assert.is_true(tcd:is_rectangle())
     end)
 
     it('should return false when made of at least two columns of different heights', function ()
-      local tcd = tile_collision_data(70, {0, 0, 0, 0, 4, 7, 7, 7}, "unused", atan2(8, -1), vertical_dirs.down, horizontal_dirs.right)
+      local tcd = tile_collision_data(sprite_id_location(7, 0), {0, 0, 0, 0, 4, 7, 7, 7}, "unused", atan2(8, -1), vertical_dirs.down, horizontal_dirs.right)
       assert.is_false(tcd:is_rectangle())
     end)
 
     it('should return true when made of empty/partial columns all of same height, but land_on_empty_qcolumn is true', function ()
-      local tcd = tile_collision_data(60, {1, 1, 1, 1, 1, 1, 0, 0}, "unused", 0, true, vertical_dirs.down, horizontal_dirs.right, true)
+      local tcd = tile_collision_data(sprite_id_location(6, 0), {1, 1, 1, 1, 1, 1, 0, 0}, "unused", 0, true, vertical_dirs.down, horizontal_dirs.right, true)
       assert.is_false(tcd:is_rectangle())
+    end)
+
+  end)
+
+  describe('(#debug_collision_mask) debug_render', function ()
+
+    setup(function ()
+      stub(_G, "spr")
+    end)
+
+    teardown(function ()
+      spr:revert()
+    end)
+
+    after_each(function ()
+      spr:clear()
+    end)
+
+    it('should call spr with mask_tile_id', function ()
+      -- sprite id = 16 + 1 = 17, args after the 1st one don't matter
+      local tcd = tile_collision_data(sprite_id_location(1, 1), "unused", "unused", 0, vertical_dirs.down, horizontal_dirs.right)
+
+      tcd:debug_render(location(2, 4))
+
+      assert.spy(spr).was_called(1)
+      assert.spy(spr).was_called_with(17, 8 * 2, 8 * 4)
     end)
 
   end)

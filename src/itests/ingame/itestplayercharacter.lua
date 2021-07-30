@@ -210,6 +210,8 @@ Frame       Ground Speed     Velocity     Bottom Pos
 -- on this slope, divide ground speed in *sqrt(2) on x and y, hence velocity
 -- y snaps to integer floor so it's just deduced from x as 15
 
+--]=]
+
 
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
@@ -228,6 +230,51 @@ expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+
+-- trying to reproduce crash in vector.__add due to adding scalar 0 to vector
+-- fixed! forgot to get dir_vectors
+-- now still useful like utest above to test wall blocking movement, including subpixel cut, if any
+itest_dsl_parser.register(
+  '#solo run into wall right', [[
+@stage #
+...#
+####
+
+warp 4 8
+move right
+wait 60
+
+expect pc_bottom_pos 21 8
+expect pc_motion_state standing
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+-- note: start position matters to test tunnel effect
+-- if we start at 4 we touch the wall (it may be a bug, that should happen at 5)
+-- at 3 we enter wall by 3px (!) so good to test deep wall escape
+itest_dsl_parser.register(
+  '#solo spin dash into wall right', [[
+@stage #
+.#
+##
+
+warp 3 8
+wait 1
+crouch
+wait 1
+jump
+wait 1
+stop_crouch
+wait 60
+
+expect pc_bottom_pos 5 8
+expect pc_motion_state standing
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+--[=[
 
 -- calculation notes
 
@@ -304,6 +351,8 @@ expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
 
+--]=]
+
 
 -- bugfix history:
 -- ! identified bug in _update_platformer_motion where absence of elseif
@@ -339,7 +388,6 @@ expect pc_velocity 0.84375 2.625
 -- gravity during 24 frames: accel = 0.109375 * (24 * 25 / 2), velocity = 0.109375 * 24 = 2.625
 -- at frame 60: pos (39.859375, 8 + 32.8125), velocity (0.84375, 2.625), falling
 
---]=]
 
 --#if busted
 -- this test is working again
@@ -415,7 +463,7 @@ vector(0, -2)
 -- but after setting velocity to match projected ground speed in enter_motion_state(standing),
 -- the test passed.
 itest_dsl_parser.register(
-  '#solo platformer hop chain', [[
+  'platformer hop chain', [[
 @stage #
 .
 #

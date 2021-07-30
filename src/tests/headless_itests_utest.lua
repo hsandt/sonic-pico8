@@ -64,9 +64,9 @@ logging.logger.active_categories = {
   ['itest'] = true,
   -- ['log'] = true,
   -- ['ui'] = true,
-  ['frame'] = true,
-  ['trace'] = true,
-  ['trace2'] = true,
+  -- ['frame'] = true,
+  -- ['trace'] = true,
+  -- ['trace2'] = true,
   ['spring'] = true,
 
   -- game

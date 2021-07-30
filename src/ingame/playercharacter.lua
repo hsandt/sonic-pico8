@@ -203,6 +203,13 @@ end
 
 -- return quadrant tangent right (forward) unit vector
 function player_char:get_quadrant_right()
+  -- OPTIMIZE CHARS note: this is literally rotate_dir_90_ccw from direction_ext.lua
+  -- I believe I inlined it to spare characters, but depending on the number of usages
+  --  it may be worth or not requiring that helper (but that may include other things too,
+  --  growing code size).
+  -- For now, there are only 2 usages (one indirect usage in compute_closest_wall_query_info
+  --  that can inline either rotate_dir_90_cw or rotate_dir_90_ccw with a formula),
+  --  so we decided to keep inlining both.
   return dir_vectors[(self.quadrant - 1) % 4]
 end
 
@@ -747,12 +754,13 @@ end
 -- return the position of the ground sensor in quadrant_horizontal_dir when the character center is at center_position
 -- subpixels are ignored
 function player_char:get_ground_sensor_position_from(center_position, quadrant_horizontal_dir)
-
-  -- ignore subpixels from center position in qx (collision checks use Sonic's integer position,
-  -- but we keep exact qy coordinate to get the exact ground sensor qy, and thus exact distance to ground)
   local x = center_position.x
   local y = center_position.y
 
+  -- ignore subpixels from center position in qx (collision checks use Sonic's integer position,
+  -- but we keep exact qy coordinate to get the exact ground sensor qy, and thus exact distance to ground)
+  -- this is important to avoid assert in iterate_over_collision_tiles as the qx value will be used
+  --  as (integer) index to get qcolumn height
   -- vertical: up (1) and down (3)
   if self.quadrant % 2 == 1 then
     x = flr(x)
@@ -766,10 +774,51 @@ function player_char:get_ground_sensor_position_from(center_position, quadrant_h
   --  rotate proper vector (initially horizontal) for quadrant compatibility, but make sure to apply coord flooring
   --  *afterward* so it applies to the final coord and we don't rotate a +2.5 -> +2 into a -2 instead of having -3
   local offset_qx_vector = self:quadrant_rotated(pc_data.ground_sensor_extent_x * horizontal_dir_vectors[quadrant_horizontal_dir])
-  -- brutal way to floor coordinates are rotation, without having to extract qx, recreating (qx, 0) vector and rotating again
+  -- brutal way to floor coordinates after rotation, without having to extract qx, recreating (qx, 0) vector and rotating again
   offset_qx_vector = vector(flr(offset_qx_vector.x), flr(offset_qx_vector.y))
 
   return qx_floored_bottom_center + offset_qx_vector
+end
+
+-- Return the position of the wall sensor position when checking wall in quadrant_horizontal_dir
+--  (relatively to current quadrant) and character center is at center_position.
+-- Note that quadrant_horizontal_dir is unused, but in the future we may merge this method with
+--  get_ground_sensor_position_from and also move the wall sensor position to the front of Sonic,
+--  so it would become useful eventually.
+function player_char:get_wall_sensor_position_from(center_position, quadrant_horizontal_dir)
+  local x = center_position.x
+  local y = center_position.y
+
+  -- ignore subpixels from center position in qx (see get_ground_sensor_position_from)
+  -- however, since it's a wall, the test is reversed: up and down means walls are checked with horizontal
+  --  raycast where qx is actually y, which must be floored
+  if self.quadrant % 2 == 0 then
+    x = flr(x)
+  else
+    y = flr(y)
+  end
+
+  local qx_floored_center_position = vector(x, y)
+
+  -- http://info.sonicretro.org/SPG:Solid_Tiles#Wall_Sensors_.28E_and_F.29
+  -- On flat ground, lower the wall sensor position so Sonic can detect low steps as in Marble Zone
+  -- (in pico island that will just be vertical springs placed on the ground)
+  -- Note that compute_closest_wall_query_info already has a parameter sensor_offset_qy
+  --  for that, so consider using it instead
+  if self.slope_angle == 0 then
+    -- normally we should use a clean constant, but at this point we just hardcode the offset
+    -- more exactly, unlike the original games we don't set the wall sensor qy lower when compact,
+    --  because it made the wall sensor very low when rolling, and combined with spin dash it was easy
+    --  to hit a very low slope (esp. in a loop) and get blocked for no reason
+    -- instead, we always place the wall sensor 6px above the ground
+    -- (ideal to detect vertical spring of height 6px while not detecting low ground in loops at high speed)
+    return qx_floored_center_position + (self:get_center_height() - 6) * self:get_quadrant_down()
+  else
+    -- return copy of vector for safety
+    -- in practice, it's not modified in-place, but we prefer satefy to saving compressed chars
+    --  unless we're really tight on budget
+    return qx_floored_center_position:copy()
+  end
 end
 
 -- helper method for compute_closest_ground_query_info and is_blocked_by_ceiling_at

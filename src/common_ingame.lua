@@ -8,7 +8,6 @@ require("engine/core/angle")  -- used by playercharacter, so technically not nee
 require("engine/core/vector_ext_angle")
 require("engine/core/table_helper")
 
-
 --#if minify_level3
 
 --#if itest

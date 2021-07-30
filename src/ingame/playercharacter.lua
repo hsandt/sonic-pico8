@@ -928,7 +928,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       if result then
 --#if debug_character
       -- store debug ray for hit or no-hit (we may have found ground/ceiling which happens to be too far)
-      add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
+      add(pc.debug_rays, {start = sensor_position, direction_vector = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
 --#endif
         return result
       end
@@ -968,7 +968,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
 --#if debug_character
       -- store debug ray for no-hit (result.signed_distance will just be some max detection distance + 1)
-      add(pc.debug_rays, {start = sensor_position, direction = collision_check_quadrant_down, distance = result.signed_distance, hit = false})
+      add(pc.debug_rays, {start = sensor_position, direction_vector = collision_check_quadrant_down, distance = result.signed_distance, hit = false})
 --#endif
 
       -- this is the final check so return the result whatever it is
@@ -3038,22 +3038,40 @@ end
 function player_char:debug_draw_rays()
   -- debug "raycasts"
   for debug_ray in all(self.debug_rays) do
-    local start = debug_ray.start
-    local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction
+    local start_pos = debug_ray.start
+    local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction_vector
+
+    -- if direction is left or up and the start / end position qx (x for left, y for up)
+    --  is at integer coordinate, then we must draw the corresponding pixel one pixel to the left/up
+    -- this is because start / end position is actually at a crosspoint (for qx; qy is always floored
+    --  and corresponds to an exact q-column index already), therefore when doing a symmetrical test
+    --  like wall left/right, the source is exactly at the same position, but at an integer qx = 1,
+    --  it should only cover qx = 0- when going left, but qx = 1+ when going right
+    -- same for the end position
+    -- this should fix the raycast stopping right before a left wall when blocked by left wall
+    --  (same for ceiling)
+    if debug_ray.direction_vector.x == -1 then
+      -- left
+      start_pos.x = ceil(start_pos.x) - 1
+      end_pos.x = ceil(end_pos.x) - 1
+    elseif debug_ray.direction_vector.y == -1 then
+      -- up
+      start_pos.y = ceil(start_pos.y) - 1
+      end_pos.y = ceil(end_pos.y) - 1
+    end
 
     if debug_ray.hit then
       -- hit, q-above ground (if distance > 0) or from inside ground (if distance <= 0),
       --  ray will be pink except the last pixel which will be red
       -- (subtract direction which is a cardinal unit vector to get the penultimate pixel)
-      local before_end_pos = end_pos - debug_ray.direction
-      line(start.x, start.y, before_end_pos.x, before_end_pos.y, colors.pink)
+      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, colors.pink)
       pset(end_pos.x, end_pos.y, colors.red)
     else
       -- no-hit, draw full ray in white to distinguish from hit case
       -- I tried different colors from distance <= 0 vs > 0, but unfortunately
       --  they were hard to distinguish from the midground
       --  so you'll have to guess the distance sign by looking at the environment
-      line(start.x, start.y, end_pos.x, end_pos.y, colors.white)
+      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, colors.white)
     end
   end
 end

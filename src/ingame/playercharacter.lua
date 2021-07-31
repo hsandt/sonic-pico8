@@ -1336,8 +1336,7 @@ function player_char:enter_motion_state(next_motion_state)
       -- immediately update velocity to avoid keeping old air velocity while grounded,
       --  which would result in chained jump being very low, or even going downward, due to
       --  downward velocity remaining when cumulated with jump impulse
-      -- note that this is the same formula as in update_platformer_motion_grounded
-      self.velocity:copy_assign(self.ground_speed * vector.unit_from_angle(self.slope_angle))
+      self.velocity:copy_assign(self:compute_velocity_from_ground_speed())
 
       -- we have just reached the ground (and possibly escaped),
       --  reset values airborne vars
@@ -1531,7 +1530,7 @@ function player_char:update_platformer_motion_grounded()
   -- update velocity based on new ground speed and old slope angle (positive clockwise and top-left origin, so +cos, -sin)
   -- we must use the old slope because if character is leaving ground (falling)
   --  this frame, new slope angle will be nil
-  self.velocity:copy_assign(self.ground_speed * vector.unit_from_angle(self.slope_angle))
+  self.velocity:copy_assign(self:compute_velocity_from_ground_speed())
 
   -- update position
   self.position:copy_assign(ground_motion_result.position)
@@ -1855,6 +1854,12 @@ function player_char:clamp_ground_speed(previous_ground_speed)
   end
 end
 
+-- return velocity when grounded based on slope
+-- self.ground_speed and self.slope_angle must be set
+function player_char:compute_velocity_from_ground_speed()
+  return self.ground_speed * vector.unit_from_angle(self.slope_angle)
+end
+
 -- return {next_position: vector, is_blocked: bool, is_falling: bool} where
 --  - next_position is the position of the character next frame considering his current ground speed
 --  - is_blocked is true iff the character encounters a wall during this motion
@@ -1939,7 +1944,7 @@ function player_char:compute_ground_motion_result()
   --  with x/y with the correct sign for addition to x/y position later
   local ground_velocity_projected_on_quadrant_right = ground_based_signed_distance_qx * self:get_quadrant_right()
   -- equivalent to dot expression below, but more compact than it:
-  -- local ground_velocity_projected_on_quadrant_right = quadrant_right:dot(self.ground_speed * vector.unit_from_angle(self.slope_angle)) * quadrant_right
+  -- local ground_velocity_projected_on_quadrant_right = quadrant_right:dot(self:compute_velocity_from_ground_speed()) * quadrant_right
   local projected_velocity_qx = world.get_quadrant_x_coord(ground_velocity_projected_on_quadrant_right, quadrant)
 
   -- max_distance_qx is always integer

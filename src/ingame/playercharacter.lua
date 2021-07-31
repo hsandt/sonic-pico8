@@ -839,7 +839,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
   -- apply sensor offset along check quadrant down (only used for ceiling, so actually upward to get head top position)
   local sensor_position = sensor_position_base + sensor_offset_qy * collision_check_quadrant_down
 
-  assert(world.get_quadrant_x_coord(sensor_position, collision_check_quadrant) % 1 == 0, "iterate_over_collision_tiles: sensor_position qx must be floored, found "..sensor_position)
+  assert(world.get_quadrant_x_coord(sensor_position, collision_check_quadrant) % 1 == 0, "iterate_over_collision_tiles: sensor_position qx for collision_check_quadrant: "..collision_check_quadrant.." must be floored, found "..sensor_position)
 
   -- deduce start and last tile from offset from the sensor position
   --  always oriented with check quadrant (by convention we check from q-top to q-bottom)
@@ -961,10 +961,22 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- PICO-8 Y sign is positive up, so to get the current relative height of the sensor
       --  in the current tile, you need the opposite of (quadrant-signed) (sensor_position.qy - current_tile_qbottom)
       -- then subtract qcolumn_height and you get the signed distance to the current ground q-column
+      -- SYMMETRY NOTE: we decided to *not* subtract 1 when collision_check_quadrants is "positive" ie right or down,
+      --  although that would be the thing to do if we take the convention that sensor position covers a full pixel,
+      --  and we want the distance to that full pixel (actually its edge in the collision_check_quadrant direction)
+      -- Instead, we picked the convention that the sensor position is a CROSS between 4 pixels, so we don't need to do that
+      --  and results are symmetrical. When sensor position is on the top pixel of a ground column, distance is 0.
+      -- For wall detection, sensor position does not need the +/-0.5 with flooring hack to be at visually symmetrical pixels:
+      --  since it's on a cross, it's already placed symmetrically. Therefore the +/-0.5 hack is only needed to place
+      --  *ground* sensors on *qx*, i.e. the direction orthogonal to the raycast direction aka collision_check_quadrant.
+      -- Test along collision_check_quadrant itself never needs it.
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
       -- even when checking downward, we cannot detect one-way platforms from below their surface (signed distance < 0)
       -- this way, we don't step up or get blocked by them as ceiling inadvertently, but can still just land on them
+      -- NEW PHYSICS: this will break once we switch to big steps in the airborne update, because
+      --  the -1 threshold is meant to catch any step when landing on a one-way platform (we are advancing on
+      --  integer pixels so we're definitely going through -1, hence < not <=)
       if is_oneway and signed_distance_to_closest_collider < -1 then
         signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
       end
@@ -1081,6 +1093,137 @@ function player_char:compute_closest_ground_query_info(sensor_position)
   -- we are effectively finding the tiles covered (even partially) by the q-vertical segment between the edge positions
   --  where the character can snap up (escape) and snap down
   return iterate_over_collision_tiles(self, self.quadrant, - (pc_data.max_ground_escape_height + 1), pc_data.max_ground_snap_height, sensor_position, 0, ground_check_collider_distance_callback, ground_check_no_collider_callback)
+end
+
+-- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
+--  as collider_distance_callback
+-- return "ground query info" although it's ceiling, because depending on the angle, character may actually adhere, making it
+--  a q-up ground
+-- return nil if no clear result and we must continue to iterate (until the last tile)
+local function ceiling_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_ceiling, slope_angle)
+  -- previous calculations already reversed sign of distance to match convention (> 0 when not touching, < 0 when inside)
+  if signed_distance_to_closest_ceiling <= 0 then
+    -- head (or body) just touching or inside ceiling
+    return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_ceiling, slope_angle)
+  else
+    -- head far touching ceiling or has some gap from ceiling
+    -- unlike ground, we never "step q-down" onto ceiling, the ceiling check only results in collision with movement interruption
+    --  or ceiling adherence, but then character started going inside ceiling (distance <= 0), therefore distance is never > 0
+    --  unless we reached ceiling_check_no_collider_callback and then it's the max + 1
+    -- TODO OPTIMIZE CPU: I'm pretty sure we can stop the search here since we found a ceiling, it's just too far,
+    --  and there's no chance we'll find a ceiling *closer* from here one.
+    -- So we can probably, like ceiling_check_no_collider_callback, do:
+    --   return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+    -- but I'll wait for the rest of new physics to work before trying that.
+    return nil
+  end
+end
+
+-- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
+--  as no_collider_callback
+local function ceiling_check_no_collider_callback()
+  -- end of iteration, and no ceiling found
+  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+end
+
+-- similar to compute_closest_ground_query_info, but for ceiling
+-- return ground_query_info(tile_location, signed_distance, slope_angle) (see compute_closest_ground_query_info for more info)
+-- note that we return a query info with negative sign (inside ceiling) even if the detected obstacle is lower than one step up's height,
+--  because we assume that if the character could step this up, it would have and the passed
+--  sensor_position would be the resulting position, so only higher tiles will be considered
+--  so the step up itself will be ignored (e.g. when moving from a flat ground to an ascending slope)
+function player_char:compute_closest_ceiling_query_info(sensor_position)
+  assert(world.get_quadrant_x_coord(sensor_position, self.quadrant) % 1 == 0, "player_char:compute_closest_ceiling_query_info: sensor_position qx must be floored")
+
+  -- oppose_dir since we check ceiling by detecting tiles q-above, and their q-column height matters
+  --  when measured from the q-top (e.g. if there's a top half-tile maybe character head is not hitting it
+  --  depending on the exact distance; if q-bottom based, it's considered reverse so full q-height and character
+  --  head will hit it as soon as it enters the tile)
+
+  -- top must be q-above bottom or we will get stuck in infinite loop
+  -- (because to reduce tokens we compare locations directly instead of sub_qy(curr_tile_qj, last_tile_qy, quadrant_opp) >= 0
+  --  which would ensure loop end)
+
+  -- we must at least start checking ceiling 1 px above foot sensor (because when foot is just on top of tile,
+  --  the current sensor tile is actually the tile *below* the character, which is often a full tile and will bypass
+  --  ignore_reverse (see world.compute_qcolumn_height_at); in practice +4/+8 is a good offset, we pick max_ground_escape_height + 1 = 5
+  --  because it allows us to effectively check the q-higher pixels not already checked in compute_closest_ground_query_info)
+
+  -- finally, we check actual collision at head top position, so we pass an offset of self:get_full_height() (argument 5)
+  --  from here, we need:
+  --  - (max_ground_escape_height + 1 - full_height) offset for first tile according to explanation above + the fact that we consider this offset from sensor_position base + offset (full_height)
+  --  - no offset for last tile since we end checking at head top exactly, so argument 3 is 0
+  local full_height = self:get_full_height()
+  return iterate_over_collision_tiles(self, oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
+end
+
+-- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
+--  as collider_distance_callback
+local function wall_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
+  -- OPTIMIZE CHARS
+  -- currently implementation is exactly the same as ceiling_check_collider_distance_callback
+  --  so if it works, just merge both functions into some no_snap_down_check_collider_distance_callback and
+  --  use that for both wall and ceiling detection!
+  -- note that we want to block character and floor its position (at least on qx) when just touching wall,
+  --  so if wall is just at the limit of the raycast test we still detect it, hence <= instead of <
+  if signed_distance_to_closest_wall <= ceil(pc_data.ground_sensor_extent_x) then
+    -- touching or inside wall
+    return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
+  else
+    -- we noted in the ceiling version that maybe we should return like the check_no_collider_callback
+    --  but didn't want to change the implementation yet
+    -- wall detection is new though, so let's run the risk as stopping the tile iteration early may benefit CPU
+    return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
+  end
+end
+
+-- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
+--  as no_collider_callback
+local function wall_check_no_collider_callback()
+  -- end of iteration, and no wall found
+  -- by convention pass a distance bigger than the raycast length (ceil(pc_data.ground_sensor_extent_x))
+  return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
+end
+
+-- "raycast" from wall sensor_position: vector toward q-left or q-right
+--  (based on quadrant_hdir: horizontal_dirs, itself based on movement direction relative to q-ground)
+--  and return ground_query_info(tile_location, signed_distance, slope_angle)
+--    - tile_location is the location of the detected tile (or nil), but it is not used for walls
+--    - signed_distance is positive when not touching wall, negative when inside wall (and needs escape)
+--      if nothing is detected, by convention we return ceil(pc_data.ground_sensor_extent_x) + 1
+--      (1 above raycast length)
+--    - slope_angle is the angle of the detected tile (or nil), but it is not used for walls
+function player_char:compute_closest_wall_query_info(sensor_position, quadrant_hdir)
+  -- collision_check_quadrant:
+  -- if going q-left, we must detect collision in quadrant rotated 90 clockwise from q-down, else 90 counter-clockwise
+  -- to avoid requiring direction_ext, we inline both rotate_dir_90_cw and rotate_dir_90_ccw with a subtle formula
+  --  (note that get_quadrant_right inlines rotate_dir_90_ccw too)
+  -- rotate_dir_90_cw(direction) => (direction + 1) % 4
+  -- rotate_dir_90_ccw(direction) => (direction - 1) % 4
+  local rotate_sign = quadrant_hdir == horizontal_dirs.left and 1 or -1
+
+  -- start_tile_offset_qy: 0 since we already "raycast" from character center which should be far enough from the wall surface
+  --  if character didn't "enter" wall at a speed too high (max ground speed is 3 though, so it may happen, be careful)
+
+  -- last_tile_offset_qy: ceil(ground_sensor_extent_x) + 1 = 4 as we want to detect walls *at least* as far as
+  --  the character half-width so we can block him early enough
+
+  -- sensor_position_base: the passed sensor_position
+  --  note that we must simulate a motion big step to get the future next position, then check wall
+  --  from that predicted position (and if we're blocked the real next position will be adjusted to touch wall)
+
+  -- sensor_offset_qy: 0 since no offset required
+  -- (there is an offset on qx though, which is already embedded in wall sensor position)
+
+  return iterate_over_collision_tiles(self,
+    --[[collision_check_quadrant]] (self.quadrant + rotate_sign) % 4,  -- here we inline rotate_dir_90_(c)cw
+    --[[start_tile_offset_qy]] 0,
+    --[[last_tile_offset_qy]] ceil(pc_data.ground_sensor_extent_x), -- CONVENTION detect LEFT wall on touch? -- just enough to detect wall after ground sensor
+    --[[sensor_position_base]] sensor_position,
+    --[[sensor_offset_qy]] 0,
+    --[[collider_distance_callback]] wall_check_collider_distance_callback,
+    --[[no_collider_callback]] wall_check_no_collider_callback--[[,]]
+    --[[ignore_reverse_on_start_tile: false]])
 end
 
 -- verifies if character is inside ground, and push him upward outside if inside but not too deep inside

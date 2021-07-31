@@ -1682,16 +1682,16 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), 2, 0.25), pc:compute_closest_ground_query_info(vector(6, 12)))
           end)
 
-          it('(right wall) should return ground_query_info(location(1, 1), -2, 0.25) if 2 pixels inside the wall', function ()
+          it('(right wall) should return ground_query_info(location(1, 1), -max_ground_escape_height, 0.25) if max_ground_escape_height pixels inside the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_same(ground_query_info(location(1, 1), -2, 0.25), pc:compute_closest_ground_query_info(vector(10, 12)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.25), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height, 12)))
           end)
 
           it('(right wall) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(14, 12)))
+            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height + 1, 12)))
           end)
 
           -- ceiling
@@ -1708,16 +1708,16 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), 2, 0.5), pc:compute_closest_ground_query_info(vector(12, 18)))
           end)
 
-          it('(ceiling) should return ground_query_info(location(1, 1), -2, 0.5) if 2 pixels inside the wall', function ()
+          it('(ceiling) should return ground_query_info(location(1, 1), -max_ground_escape_height, 0.5) if max_ground_escape_height pixels inside the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_same(ground_query_info(location(1, 1), -2, 0.5), pc:compute_closest_ground_query_info(vector(12, 14)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.5), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height)))
           end)
 
           it('(ceiling) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(12, 8)))
+            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height - 1)))
           end)
 
           -- left wall
@@ -1734,16 +1734,16 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), 2, 0.75), pc:compute_closest_ground_query_info(vector(18, 12)))
           end)
 
-          it('(left wall) should return ground_query_info(location(1, 1), -2, 0.75) if 2 pixels inside the wall', function ()
+          it('(left wall) should return ground_query_info(location(1, 1), -max_ground_escape_height, 0.75) if max_ground_escape_height pixels inside the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_same(ground_query_info(location(1, 1), -2, 0.75), pc:compute_closest_ground_query_info(vector(14, 12)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.75), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height, 12)))
           end)
 
           it('(left wall) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(10, 12)))
+            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height - 1, 12)))
           end)
 
           -- #debug_collision_mask below
@@ -1772,8 +1772,8 @@ describe('player_char', function ()
 
             assert.are_same({{
               start = vector(12, 8 - (pc_data.max_ground_snap_height + 2)),
-              direction = vector(0, 1),  -- unit down
-              distance = pc_data.max_ground_escape_height + 1,
+              direction_vector = vector(0, 1),  -- unit down
+              distance = pc_data.max_ground_snap_height + 1,
               hit = false
             }}, pc.debug_rays)
           end)
@@ -1784,7 +1784,7 @@ describe('player_char', function ()
 
             assert.are_same({{
               start = vector(6, 12),
-              direction = vector(1, 0),  -- unit right
+              direction_vector = vector(1, 0),  -- unit right
               distance = 2,
               hit = true
             }}, pc.debug_rays)
@@ -1966,8 +1966,8 @@ describe('player_char', function ()
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if max_ground_snap_height + 1 below the bottom', function ()
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_escape_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
+          it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
+            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -2300,6 +2300,187 @@ describe('player_char', function ()
           end)
 
         end)
+
+      end)
+
+      describe('compute_closest_wall_query_info', function ()
+
+        describe('with full flat tile', function ()
+
+          before_each(function ()
+            -- create a full tile at (1, 1), i.e. (8, 8) to (15, 15) px
+            mock_mset(1, 1, tile_repr.full_tile_id)
+          end)
+
+          -- QUADRANT DOWN (testing walls on left and right)
+
+          -- missing tile as too high or too low
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if just at wall height but slightly up', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8, 7), horizontal_dirs.right))
+          end)
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if just at wall height but slightly down', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8, 16), horizontal_dirs.right))
+          end)
+
+          -- detect right wall
+
+          -- far
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x) + 1)', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x) - 1, 12), horizontal_dirs.right))
+          end)
+
+          -- just within reach
+
+          it('should return ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x), 0.25) if distant from wall by ceil(pc_data.ground_sensor_extent_x)', function ()
+            assert.are_same(ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x), 0.25), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.right))
+          end)
+
+          -- inside, just before other side
+
+          -- when going inside tile, the only limit to detection is going to the other side of the tile (since start_tile_offset_qy = 0)
+          --  ie position reached 8 + 8 = 16. So we're just gonna test hardcoded positions just before and just after
+
+          it('should return ground_query_info(location(1, 1), -7.9, 0.25) if inside tile, just before the end of the tile', function ()
+            assert.are_same(ground_query_info(location(1, 1), -7.9, 0.25), pc:compute_closest_wall_query_info(vector(15.9, 12), horizontal_dirs.right))
+          end)
+
+          -- other side
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if just on the other side of the tile', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(16, 12), horizontal_dirs.right))
+          end)
+
+          -- detect left wall
+
+          -- far
+
+          -- note the slight dissymmetry here: because integer positions are considered to belong to the pixel on the right,
+          --  and in player_char:compute_closest_wall_query_info we are passing last_tile_offset_qy = ceil(pc_data.ground_sensor_extent_x) exactly
+          --  we already lose track of the wall when ceil(pc_data.ground_sensor_extent_x) away from it
+          -- it's not a problem because we only care about walls when getting *inside them* (signed distance < 0), not when touching them
+          --  (in player_char:compute_ground_motion_result we check wall_query_info.signed_distance < ceil(pc_data.ground_sensor_extent_x) not <=)
+          -- if we need to exact check wall touch for some reason, to make it work on the left direction you'll need to pass
+          --  last_tile_offset_qy = ceil(pc_data.ground_sensor_extent_x) + 1
+          it('(checking left wall) should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x))', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(16 + ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.left))
+          end)
+
+          -- just within reach
+
+          -- related to the note on the test above, to actually detect left wall we need to go slightly closer to it, hence -0.5
+          --  (-0.1 is enough, but it causes float imprecisions making test fail)
+          it('(checking left wall) should return ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) - 0.5, 0.75) if distant from wall by ceil(pc_data.ground_sensor_extent_x) - 0.5', function ()
+            assert.are_same(ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) - 0.5, 0.75), pc:compute_closest_wall_query_info(vector(16 + ceil(pc_data.ground_sensor_extent_x) - 0.5, 12), horizontal_dirs.left))
+          end)
+
+          -- inside, just before other side
+
+          -- when going inside tile, the only limit to detection is going to the other side of the tile (since start_tile_offset_qy = 0)
+          --  ie position reached 8 + 8 = 16. So we're just gonna test hardcoded positions just before and just after
+
+          -- however, for the same dissymmetry reason as above, we still detect the tile at 8 since it's on the right side of it
+          -- so 8 is considered inside, while 7.9 is considered outside
+
+          it('(checking left wall) should return ground_query_info(location(1, 1), -9, 0.75) if inside tile, just before the end of the tile', function ()
+            assert.are_same(ground_query_info(location(1, 1), -8, 0.75), pc:compute_closest_wall_query_info(vector(8, 12), horizontal_dirs.left))
+          end)
+
+          -- other side
+
+          it('(checking left wall) should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if just on the other side of the tile', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(7.9, 12), horizontal_dirs.left))
+          end)
+
+
+          -- other quadrants (just one test to be safe, since the utests on other compute_closest_..._query_info methods
+          --  have showed that the quadrant rotation system was good already; not testing left and right directions every time either)
+
+          -- QUADRANT RIGHT
+
+          it('(quadrant right, check q-left, so raycast down) should return ground_query_info(location(1, 1), 2, 0) if 2px from the wall below', function ()
+            pc.quadrant = directions.right
+
+            assert.are_same(ground_query_info(location(1, 1), 2, 0), pc:compute_closest_wall_query_info(vector(12, 8 - 2), horizontal_dirs.left))
+          end)
+
+          -- CEILING
+
+          it('(ceiling, check q-right, so raycast left) should return ground_query_info(location(1, 1), 1, 0.75) if 1px from the wall on the left', function ()
+            pc.quadrant = directions.up
+
+            assert.are_same(ground_query_info(location(1, 1), 1, 0.75), pc:compute_closest_wall_query_info(vector(16 + 1, 12), horizontal_dirs.right))
+          end)
+
+          -- QUADRANT LEFT
+
+          it('(left wall, checking q-left, so raycast up) should return ground_query_info(location(1, 1), -2, 0.5) if 2 px inside the wall above', function ()
+            pc.quadrant = directions.left
+
+            assert.are_same(ground_query_info(location(1, 1), -2, 0.5), pc:compute_closest_wall_query_info(vector(12, 16 - 2), horizontal_dirs.left))
+          end)
+
+          -- no need to test debug methods again
+
+        end)
+
+        -- after that, just check one-way to verify we DON'T detect it as a wall
+
+        describe('with one-way tile', function ()
+
+          before_each(function ()
+            mock_mset(1, 1, tile_repr.oneway_platform_left)
+          end)
+
+          -- QUADRANT DOWN
+
+          -- detect right wall
+
+          -- far
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x) + 1)', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x) - 1, 12), horizontal_dirs.right))
+          end)
+
+          -- just within reach
+
+          it('should return NO WALL INFO even if distant from wall by ceil(pc_data.ground_sensor_extent_x)', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.right))
+          end)
+
+          -- inside, just before other side
+
+          it('should return NO WALL INFO even if inside tile, just before the end of the tile', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(15.9, 12), horizontal_dirs.right))
+          end)
+
+          -- other side
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if just on the other side of the tile', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(16, 12), horizontal_dirs.right))
+          end)
+
+          -- no need to test left wall
+
+          -- QUADRANT RIGHT
+
+          -- this is the only other interesting test with one-way tile: it shows that if we are running on a wall and hitting
+          --  a one-way platform in the absolute down direction, we can indeed land on it (although it doesn't really happen in pico island, it's logical)
+
+          it('(quadrant right, check q-left, so raycast down) should actually detect the one-way platform when 2px from the one-way platform below', function ()
+            pc.quadrant = directions.right
+
+            assert.are_same(ground_query_info(location(1, 1), 2, 0), pc:compute_closest_wall_query_info(vector(12, 8 - 2), horizontal_dirs.left))
+          end)
+
+        end)
+
+        -- wall is based on ground check, so no need to check all the other cases like 2 full flat tiles
+        -- although in theory we *should* since loop slope tiles ended up being the main cause of issues
+        --  with wall check, forcing us to raise the wall sensor position, it was much easier to catch
+        --  during real ingame playtesting
 
       end)
 
@@ -6413,9 +6594,13 @@ describe('player_char', function ()
           end)
 
           it('should return ground_query_info(location(1, 0), - character height - 0.1, 0.5) for sensor position just above the bottom-center of the tile', function ()
-            -- with new implementation, we check tile even at foot level
+            -- max_ground_escape_height is quite big now so we start checking ceiling quite high (8px above ground sensor, which is reused for ceiling check) so make sure to parameterize this test
+            -- currently, 0 - (pc_data.max_ground_escape_height + 1 - pc_data.full_height_standing) = 8
+            -- with 7.999 or less we miss the tile
+            -- -16 should also be parameterized but it's a bit cumbersome, and easy to arrange to match actual result
+            --  (unlike the method params which completely change the result), so we kept it this way
             -- remember that we are detection ceiling so quadrant is up, and angle is 0.5 (180 deg)
-            assert.are_same(ground_query_info(location(1, 0), -16.1, 0.5), pc:compute_closest_ceiling_query_info(vector(12, 7.9)))
+            assert.are_same(ground_query_info(location(1, 0), -16, 0.5), pc:compute_closest_ceiling_query_info(vector(12, 0 - (pc_data.max_ground_escape_height + 1 - pc_data.full_height_standing))))
           end)
 
           it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) for sensor position on the left of the tile', function ()
@@ -6501,19 +6686,19 @@ describe('player_char', function ()
             assert.is_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ceiling_query_info(vector(4, 4)))
           end)
 
-          it('should return ground_query_info(location(0, 0), -character height - 2, 0.5) for quadrant right, offset sensor position (head) 2 px reverse-q(left)-inside tile', function ()
+          it('should return ground_query_info(location(0, 0), -character height, 0.5) for quadrant right, offset sensor position (head) at the right limit so it still detects the tile', function ()
             -- this test makes sure that we do *not* ignore reverse full height for initial tile if
             --  that are full horizontal rectangle (see world.compute_qcolumn_height_at)
             --  since slope_angle_to_interiors has a bias 0 -> right so onceiling check,
             --  we check on left which is reverse of tile interior_h
             --  (if bias was for left, then the test above would check this instead)
             pc.quadrant = directions.right
-            -- note that we also detect ceiling on (5, 4) although it is symmetrical to the (3, 4)
-            --  test for quadrant left, due to the fact that pixel x = 0 is considered still in tile i = 0
-            -- we can fix the disymmetry with some .5 pixel extent in qy in both ground distance and ceiling check
-            --  (as in the qx direction with ground sensor extent) but we don't mind since Classic Sonic itself
-            --  has an odd size collider in reality
-            assert.is_same(ground_query_info(location(0, 0), -18, 0.75), pc:compute_closest_ceiling_query_info(vector(6, 4)))
+            -- max_ground_escape_height is quite big now so we start checking ceiling quite high (8px above ground sensor, which is reused for ceiling check) so make sure to parameterize this test
+            -- currently, 0 - (pc_data.max_ground_escape_height + 1 - pc_data.full_height_standing) = 8
+            -- with 7.999 or less we miss the tile
+            -- -16 should also be parameterized but it's a bit cumbersome, and easy to arrange to match actual result
+            --  (unlike the method params which completely change the result), so we kept it this way
+            assert.is_same(ground_query_info(location(0, 0), -16, 0.75), pc:compute_closest_ceiling_query_info(vector(0 - (pc_data.max_ground_escape_height + 1 - pc_data.full_height_standing), 4)))
           end)
 
         end)

@@ -2303,7 +2303,7 @@ describe('player_char', function ()
 
       end)
 
-      describe('#solo compute_closest_ceiling_query_info', function ()
+      describe('compute_closest_ceiling_query_info', function ()
 
         setup(function ()
           stub(player_char, "get_full_height", function ()
@@ -2953,6 +2953,11 @@ describe('player_char', function ()
 
           assert.are_equal(0, pc.ground_speed)
         end)
+
+        -- note: the tests below check velocity transfer, which used to be computed directly in the method
+        -- since, it has been extracted to compute_velocity_from_ground_speed, but it was easier to keep
+        --  the general checks than doing weird stubs on a simple math function, although it means those utests
+        --  are overlapping the utests for compute_velocity_from_ground_speed
 
         it('(falling -> standing, velocity X = 2 on flat ground) should transfer velocity X completely to ground speed', function ()
           pc.motion_state = motion_states.falling
@@ -3714,6 +3719,10 @@ describe('player_char', function ()
         end)
 
         after_each(function ()
+          -- hacky way to restore the original stub behavior of update_ground_speed after every test
+          --  that could modify it
+          new_ground_speed = -2.5
+
           player_char.set_slope_angle_with_quadrant:clear()
 
           update_ground_speed_mock:clear()
@@ -3750,6 +3759,9 @@ describe('player_char', function ()
           after_each(function ()
             compute_ground_motion_result_mock:clear()
           end)
+
+          -- note: these tests test in particular the behavior of compute_velocity_from_ground_speed,
+          --  but they were written before it was extracted, so just kept like this
 
           it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
             pc:update_platformer_motion_grounded()
@@ -3809,14 +3821,10 @@ describe('player_char', function ()
 
             describe('(update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed / 2)', function ()
 
-              setup(function ()
+              -- rely on after_each above to reset new_ground_speed
+              before_each(function ()
                 -- something lower than pc_data.ceiling_adherence_min_ground_speed in abs value
                 new_ground_speed = -pc_data.ceiling_adherence_min_ground_speed / 2
-              end)
-
-              teardown(function ()
-                -- pretty hacky way to restore the original stub of update_ground_speed for further tests below
-                new_ground_speed = -2.5
               end)
 
               it('should enter falling state thanks to Falling and Sliding Off condition', function ()
@@ -3882,14 +3890,10 @@ describe('player_char', function ()
 
             describe('(update_ground_speed sets ground speed to -pc_data.ceiling_adherence_min_ground_speed)', function ()
 
-              setup(function ()
+              -- rely on after_each above to reset new_ground_speed
+              before_each(function ()
                 -- exactly pc_data.ceiling_adherence_min_ground_speed in abs value to test exact comparison
                 new_ground_speed = -pc_data.ceiling_adherence_min_ground_speed
-              end)
-
-              teardown(function ()
-                -- pretty hacky way to restore the original stub of update_ground_speed for further tests below
-                new_ground_speed = -2.5
               end)
 
               it('should not enter falling (nor air_spin) state, escaping Falling and Sliding Off condition', function ()
@@ -4027,6 +4031,9 @@ describe('player_char', function ()
             compute_ground_motion_result_mock:clear()
           end)
 
+          -- note: these tests test in particular the behavior of compute_velocity_from_ground_speed,
+          --  but they were written before it was extracted, so just kept like this
+
           it('should keep updated ground speed and set velocity frame according to ground speed (not blocked)', function ()
             pc:update_platformer_motion_grounded()
             -- interface: relying on update_ground_speed implementation
@@ -4073,6 +4080,27 @@ describe('player_char', function ()
             -- this only works because enter_motion_state is stubbed
             -- if it was spied, it would still call set_slope_angle_with_quadrant inside
             assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
+          end)
+
+          describe('(ground speed is set to 0)', function ()
+
+            -- rely on after_each above to reset new_ground_speed
+            before_each(function ()
+              new_ground_speed = 0
+            end)
+
+            it('(on ceiling/wall-ceiling) should NOT set horizontal control lock timer even when falling due to low speed on non-down quadrant because already falling due to no ground detected', function ()
+              pc.ground_speed = 0
+              pc.slope_angle = 0.25
+              pc.quadrant = directions.right
+
+              pc:update_platformer_motion_grounded()
+
+              -- note that enter_motion_state is still called, but due to normal fall
+              -- this test passes thanks to the extra `not should_fall` condition just before setting horizontal_control_lock_timer
+              assert.are_equal(0, pc.horizontal_control_lock_timer)
+            end)
+
           end)
 
         end)
@@ -4996,6 +5024,19 @@ describe('player_char', function ()
           pc:clamp_ground_speed(pc_data.max_running_ground_speed + 10)
           assert.are_equal(pc_data.max_running_ground_speed + 5, pc.ground_speed)
         end)
+
+      end)
+
+      describe('compute_velocity_from_ground_speed', function ()
+
+        it('should return a vector of magnitude |self.ground_speed|, direction along self.slope_angle, following ground speed sign as sense', function ()
+          pc.ground_speed = 3
+          pc.slope_angle = 0.25
+          assert.is_true(almost_eq_with_message(vector(0, -3), pc:compute_velocity_from_ground_speed()))
+        end)
+
+        -- no need to test other orientations, since the method relies on vector.unit_from_angle,
+        --  so the utests for the latter are already doing the job
 
       end)
 

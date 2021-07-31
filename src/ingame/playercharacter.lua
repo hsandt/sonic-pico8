@@ -1483,6 +1483,10 @@ end
 
 -- update motion following platformer grounded motion rules
 function player_char:update_platformer_motion_grounded()
+  -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
+  -- I started working on this before this page appeared though, so the order may not exactly be the same
+  -- Nevertheless, it's working quite well.
+
   self:update_ground_speed()
 
   local ground_motion_result = self:compute_ground_motion_result()
@@ -1539,7 +1543,9 @@ function player_char:update_platformer_motion_grounded()
   local should_fall = ground_motion_result.is_falling
 
   -- SPG: Falling and Sliding Off Of Walls And Ceilings
-  if self.quadrant ~= directions.down and abs(self.ground_speed) < pc_data.ceiling_adherence_min_ground_speed then
+  -- if we are already falling due to lack of ground, do not check this
+  -- this means we won't trigger horizontal control lock even if going under adherence speed if falling naturally this frame
+  if not should_fall and self.quadrant ~= directions.down and abs(self.ground_speed) < pc_data.ceiling_adherence_min_ground_speed then
     -- Only falling when on straight wall, wall-ceiling or ceiling
     -- Note that at this point, we haven't set slope angle and we were grounded so it should not be nil
     if self.slope_angle >= 0.25 and self.slope_angle <= 0.75 then
@@ -2344,6 +2350,14 @@ end
 
 -- update motion following platformer airborne motion rules
 function player_char:update_platformer_motion_airborne()
+  -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
+  -- I started working on this before this page appeared though, so the order may not exactly be the same
+  -- For instance, I update gravity before air drag, so air drag actually checks the new velocity y,
+  --  although the difference is not perceptible.
+  -- There are also some flow differences, e.g. we call check_update_sprite_angle in update_anim
+  --  then check for falling state inside, instead of making it part of the airborne update
+  -- Nevertheless, it's working quite well.
+
   if self.has_jumped_this_frame then
     -- do not apply gravity on first frame of jump, and consume has_jumped_this_frame
     self.has_jumped_this_frame = false

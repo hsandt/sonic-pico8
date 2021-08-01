@@ -41,7 +41,10 @@ local tile_repr = {
   visual_loop_bottomright = 100,
   mask_loop_bottomright = 20,
   visual_loop_bottomright_steepest = 102,
-  spring_up_repr_tile_id = 74,                   -- add 1 to get right, must match value in visual
+  spring_up_repr_tile_id = 74,           -- add 1 to get right, must match value in visual
+  spring_right_mask_repr_tile_id = 31,   -- added to get collision 2px away from spring right
+                                         -- we don't need to test the spring functionality, hence just mask
+                                         -- (actual spring right has id 173 in game)
   grass_top_decoration1 = 76,            -- no collider, just to test foreground
   oneway_platform_left = 35,             -- left side of one-way platform top part
 }
@@ -70,6 +73,7 @@ tile_repr.tile_symbol_to_ids = {
   ['i']  = tile_repr.visual_loop_bottomright_steepest,
   ['s']  = tile_repr.spring_up_repr_tile_id,
   ['S']  = tile_repr.spring_up_repr_tile_id + 1,
+  [']']  = tile_repr.spring_right_mask_repr_tile_id,
   ['o']  = tile_repr.oneway_platform_left,
 }
 

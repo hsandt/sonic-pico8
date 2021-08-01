@@ -415,6 +415,34 @@ describe('world (with mock tiles data setup)', function ()
 
     end)
 
+    describe('with vertical rectangle filled at 3/4 on the left (aka spring right mask or rect 6x8 on the left)', function ()
+
+      before_each(function ()
+        mock_mset(1, 1, tile_repr.spring_right_mask_repr_tile_id)
+      end)
+
+      it('should return (8, right angle) (rectangle) on column 5 (quadrant down)', function ()
+        assert.are_same({8, 0}, {world.compute_qcolumn_height_at(location(1, 1), 5, directions.down)})
+      end)
+
+      it('should return (0, nil) (empty part besides rectangle) on column 6 (quadrant down)', function ()
+        assert.are_same({0, nil}, {world.compute_qcolumn_height_at(location(1, 1), 6, directions.down, true)})
+      end)
+
+      it('should return (8, right angle) (reverse all) on row 4 (quadrant right)', function ()
+        assert.are_same({8, 0.25}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.right)})
+      end)
+
+      -- the very test that helped us fix the 2px offset (away) during collision with spring right
+      -- normally we should even add a symmetrical test with rectangles with interior right and up,
+      --  but now that we've understood that the slope angle matters for non-8x8 rectangles to define
+      --  the interior, it's OK
+      it('should return (6, right angle) (rectangle) on row 4 (quadrant left)', function ()
+        assert.are_same({6, 0.75}, {world.compute_qcolumn_height_at(location(1, 1), 4, directions.left)})
+      end)
+
+    end)
+
     describe('with last part of descending slope every 4px (to test land_on_empty_qcolumn)', function ()
 
       before_each(function ()

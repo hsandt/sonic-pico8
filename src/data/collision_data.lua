@@ -72,14 +72,14 @@ local mask_tile_angles = transform(
     [44] = {4, -8},  -- bottom of regular 1:2 ascending slope
     [28] = {4, -8},  -- top of regular 1:2 ascending slope, except at bottom where 1px was removed to allow easy fall-off
 
-    -- 6px-high rectangles (angle doesn't matter)
-    [26] = {8, 0},     -- 4x6 used for spring left part (collider only)
-    -- [27] = {8, 0},  -- 8x6 used for spring right part (collider only) => same as [2], so removed to spare characters
+    -- 6px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
+    [26] = {0, -8},    -- 4x6 used for spring oriented up - left part (collider only)
+    -- [27] = {8, 0},  -- 8x6 used for spring oriented up - right part (collider only) => same as [2], so removed to spare characters
 
-    -- 8px-high rectangles (angle doesn't matter)
-    [29] = {8, 0},  -- 8x8 used for full ground
-    [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
-    [31] = {8, 0},  -- 6x8 used for spring oriented right (ground part only, object is separate)
+    -- 8px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
+    [29] = {8, 0},   -- 8x8 used for full ground
+    [30] = {0, -8},  -- 6x8 used for spring oriented left (ground part only, object is separate)
+    [31] = {0, 8},   -- 6x8 used for spring oriented right (ground part only, object is separate)
 
     -- test only, no corresponding visual tiles
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
@@ -292,14 +292,15 @@ local mask_tile_ids = {
 -- other shapes
 
 -- spring
-  [74]  = 26,  -- normal: left part
-  [75]  =  2,  -- normal: right part (2 had same height mask as 27, so we're using this now (also removed from spritesheet))
-  [106] = 29,  -- extended: bottom-left part
-  [107] = 29,  -- extended: bottom-right part
--- extended higher parts (no collisions)
+  [74]  = 26,  -- spring oriented up - normal: left part
+  [75]  =  2,  -- spring oriented up - normal: right part (2 had same height mask as 27, so we're using this now (also removed from spritesheet))
+-- extended parts (kept for reference, but not the spring sprite is fully rendered via spring:render in both states,
+--  and the collision doesn't change, so the tilemap is never modified so we keep using the 2 tiles above for collision)
 --[[
-  [90] = 0,    -- spring extended: top-left part (we only collide with bottom)
-  [91] = 0,    -- spring extended: top-right part (we only collide with bottom)
+  [106] = 26,  -- spring oriented up - extended: bottom-left part
+  [107] =  2,  -- spring oriented up - extended: bottom-right part
+  [90]  = 0,   -- spring oriented up - extended: top-left part (we only collide with bottom)
+  [91]  = 0,   -- spring oriented up - extended: top-right part (we only collide with bottom)
 --]]
   [202] = 30,  -- spring oriented left representative tile (still collides to avoid "falling inside")
   [173] = 31,  -- spring oriented right representative tile (still collides to avoid "falling inside")

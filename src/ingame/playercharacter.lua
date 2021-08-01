@@ -785,6 +785,8 @@ end
 -- Note that quadrant_horizontal_dir is unused, but in the future we may merge this method with
 --  get_ground_sensor_position_from and also move the wall sensor position to the front of Sonic,
 --  so it would become useful eventually.
+-- OPTIMIZE CHARS: if you're NOT moving wall sensor position to Sonic front eventually,
+--  just remove quadrant_horizontal_dir from parameters and call site
 function player_char:get_wall_sensor_position_from(center_position, quadrant_horizontal_dir)
   local x = center_position.x
   local y = center_position.y
@@ -1049,10 +1051,9 @@ local function ground_check_collider_distance_callback(tile_location, signed_dis
     -- return edge case (nil, -pc_data.max_ground_escape_height - 1, 0)
     -- the slope angle 0 allows to still have character stand straight (world) up visually,
     --  but he's probably stuck inside the ground...
-    -- by convention, we will set ground tile location to nil
-    -- the reason is that we don't need to pass tile_location since when character is inside ground
-    --  we don't expect tile surface effect like loop layer trigger or spike damage to happen
-    return motion.ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0)
+    -- the new convention is to set ground tile location to the tile location found to avoid crashing
+    --  on next update_platformer_motion_grounded
+    return motion.ground_query_info(tile_location, -pc_data.max_ground_escape_height - 1, 0)
   elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
     -- ground found, and close enough to snap up/down, return ground query info
     --  to allow snapping + set slope angle
@@ -1205,8 +1206,10 @@ function player_char:compute_closest_wall_query_info(sensor_position, quadrant_h
   -- start_tile_offset_qy: 0 since we already "raycast" from character center which should be far enough from the wall surface
   --  if character didn't "enter" wall at a speed too high (max ground speed is 3 though, so it may happen, be careful)
 
-  -- last_tile_offset_qy: ceil(ground_sensor_extent_x) + 1 = 4 as we want to detect walls *at least* as far as
-  --  the character half-width so we can block him early enough
+  -- last_tile_offset_qy: ceil(ground_sensor_extent_x) as we want to detect walls as close as the ground sensors
+  --  can detect, as those would be blocking us (no need to +1 unless we absolutely want to detect walls on the
+  --  absolute LEFT when we are just touching them; this particularity is due to dissymmetry of pixels,
+  --  where a pixel position is considered to contain the bottom/right position but not the top/left one)
 
   -- sensor_position_base: the passed sensor_position
   --  note that we must simulate a motion big step to get the future next position, then check wall
@@ -1218,7 +1221,7 @@ function player_char:compute_closest_wall_query_info(sensor_position, quadrant_h
   return iterate_over_collision_tiles(self,
     --[[collision_check_quadrant]] (self.quadrant + rotate_sign) % 4,  -- here we inline rotate_dir_90_(c)cw
     --[[start_tile_offset_qy]] 0,
-    --[[last_tile_offset_qy]] ceil(pc_data.ground_sensor_extent_x), -- CONVENTION detect LEFT wall on touch? -- just enough to detect wall after ground sensor
+    --[[last_tile_offset_qy]] ceil(pc_data.ground_sensor_extent_x),
     --[[sensor_position_base]] sensor_position,
     --[[sensor_offset_qy]] 0,
     --[[collider_distance_callback]] wall_check_collider_distance_callback,
@@ -1254,9 +1257,10 @@ function player_char:check_escape_from_ground()
       self:set_slope_angle_with_quadrant(next_slope_angle)
     else
       -- too deep to escape, stay there
-      -- by convention, set ground tile location to nil (see ground_check_collider_distance_callback)
-      -- by slope angle to 0 to stand upward
-      self.ground_tile_location = nil
+      -- the new convention is to set ground tile location to the tile location found to avoid crashing
+      --  on next update_platformer_motion_grounded, and slope angle to 0 to stand upward
+      --  (see ground_check_collider_distance_callback)
+      self:set_ground_tile_location(query_info.tile_location)
       self:set_slope_angle_with_quadrant(0)
     end
     -- if airborne, simulate landing

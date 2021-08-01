@@ -1645,19 +1645,22 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0), pc:compute_closest_ground_query_info(vector(15, 8 + pc_data.max_ground_escape_height)))
           end)
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if max_ground_escape_height + 2 inside', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 8 + pc_data.max_ground_escape_height + 2)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if max_ground_escape_height + 2 inside', function ()
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 8 + pc_data.max_ground_escape_height + 2)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
-          it('should return ground_query_info(nil, - max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), - max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
             -- we really check 1 extra px above max_ground_escape_height, so even that far from the ground above we still see it as a step too high, not ceiling
-            assert.are_same(ground_query_info(nil, - pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
+            assert.are_same(ground_query_info(location(1, 1), - pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
           -- step up distance reached, character considered in the air
@@ -1688,10 +1691,11 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.25), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height, 12)))
           end)
 
-          it('(right wall) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+          -- new convention is returning tile when deep inside ground
+          it('(right wall) should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.right
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height + 1, 12)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height + 1, 12)))
           end)
 
           -- ceiling
@@ -1714,10 +1718,11 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.5), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height)))
           end)
 
-          it('(ceiling) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+          -- new convention is returning tile when deep inside ground
+          it('(ceiling) should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.up
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height - 1)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height - 1)))
           end)
 
           -- left wall
@@ -1740,10 +1745,11 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height, 0.75), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height, 12)))
           end)
 
-          it('(left wall) should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
+          -- new convention is returning tile when deep inside ground
+          it('(left wall) should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if too far inside the wall', function ()
             pc.quadrant = directions.left
 
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height - 1, 12)))
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height - 1, 12)))
           end)
 
           -- #debug_collision_mask below
@@ -1876,8 +1882,9 @@ describe('player_char', function ()
           --  the current tile because current column is just at max_ground_escape_height,
           --  only to land inside the tile above
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(4, 8 + pc_data.max_ground_escape_height)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(0, 0), -max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
+            assert.are_same(ground_query_info(location(0, 0), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(4, 8 + pc_data.max_ground_escape_height)))
           end)
 
         end)
@@ -1956,17 +1963,20 @@ describe('player_char', function ()
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if max_ground_escape_height - 1 below the bottom', function ()
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if max_ground_escape_height below the bottom', function ()
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), max_ground_snap_height + 1, location(1, 1)) if max_ground_escape_height + 1 below the bottom', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
           end)
 
@@ -2047,8 +2057,9 @@ describe('player_char', function ()
 
           -- step up distance reached, character considered in the air
 
-          it('should return ground_query_info(nil, -max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
-            assert.are_same(ground_query_info(nil, -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
+          -- new convention is returning tile when deep inside ground
+          it('should return ground_query_info(location(1, 1), -max_ground_escape_height - 1, 0) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
+            assert.are_same(ground_query_info(location(1, 1), -pc_data.max_ground_escape_height - 1, 0), pc:compute_closest_ground_query_info(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
           end)
 
         end)
@@ -2719,11 +2730,12 @@ describe('player_char', function ()
           end)
 
           it('should reset state vars to too deep convention when character is too deep inside the ground', function ()
-            pc:set_bottom_center(vector(12, 13))
+            pc:set_bottom_center(vector(12, 8 + pc_data.max_ground_escape_height + 1))
             pc:check_escape_from_ground()
 
             -- interface
-            assert.are_same({vector(12, 13), nil}, {pc:get_bottom_center(), pc.ground_tile_location})
+            -- new convention is returning tile when deep inside ground
+            assert.are_same({vector(12, 8 + pc_data.max_ground_escape_height + 1), location(1, 1)}, {pc:get_bottom_center(), pc.ground_tile_location})
 
             -- when nil, we don't use the set callback for ground tile location
             assert.spy(player_char.set_ground_tile_location).was_not_called()
@@ -2763,7 +2775,7 @@ describe('player_char', function ()
             mock_mset(1, 1, tile_repr.desc_slope_45_id)
           end)
 
-          it('should reset state vars to airborne convention when character is not touching ground at all, and return false', function ()
+          it('should not call set_ground_tile_location nor set_slope_angle_with_quadrant', function ()
             pc:set_bottom_center(vector(15, 10))
             pc:check_escape_from_ground()
 
@@ -2771,11 +2783,10 @@ describe('player_char', function ()
             assert.are_same(vector(15, 10), pc:get_bottom_center())
 
             assert.spy(player_char.set_ground_tile_location).was_not_called()
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
 
-          it('should do nothing when character is just on top of the ground, update slope to 1-45/360 and return true', function ()
+          it('should do nothing when character is just on top of the ground, update slope to 1-45/360', function ()
             pc:set_bottom_center(vector(15, 12))
             pc:check_escape_from_ground()
 
@@ -2788,7 +2799,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 1-45/360)
           end)
 
-          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 1-45/360 and return true', function ()
+          it('should move the character upward just enough to escape ground if character is inside ground, update slope to 1-45/360', function ()
             pc:set_bottom_center(vector(15, 13))
             pc:check_escape_from_ground()
 
@@ -2801,14 +2812,16 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 1-45/360)
           end)
 
-          it('should reset state vars to too deep convention when character is too deep inside the ground, and return true', function ()
-            pc:set_bottom_center(vector(11, 13))
+          it('should set tile location to ground location and angle to 0 when character is too deep inside the ground', function ()
+            pc:set_bottom_center(vector(11, 8 + pc_data.max_ground_escape_height + 1))
             pc:check_escape_from_ground()
 
             -- interface
-            assert.are_same(vector(11, 13), pc:get_bottom_center())
+            assert.are_same(vector(11, 8 + pc_data.max_ground_escape_height + 1), pc:get_bottom_center())
 
-            assert.spy(player_char.set_ground_tile_location).was_not_called()
+            -- new convention is returning tile when deep inside ground
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)

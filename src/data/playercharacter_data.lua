@@ -198,9 +198,12 @@ local pc_data = {
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  (px)
-  --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
+  --  compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
-  max_ground_escape_height = 4,
+  -- this used to be 4, which was enough with pixel step physics, but since we use big steps now,
+  --  we had to increase it to 7 since it's much easier to step into the ground, esp. in a loop
+  -- 5 is enough for running, but 7 required for fast spin dash
+  max_ground_escape_height = 7,
 
   -- max vertical distance allowed to snap to a lower ground while running (on step or curve)
   -- a.k.a. max step down
@@ -246,6 +249,11 @@ local pc_data = {
 
   -- factor applied to floor part of spin dash rev to contribute to spin dash launch speed (px/frame)
   -- SPG divides rev by 2, so in PICO-8 units we must divide by 4, so multiply by 0.25
+  -- from the parameters above we can deduce the maximum spin dash launch speed
+  -- (although very hard to even get close to by a human):
+  --   spin_dash_base_speed + spin_dash_rev_max * spin_dash_rev_increase_factor
+  -- = 4 + 8 * 0.25
+  -- = 6
   spin_dash_rev_increase_factor = 0.25,
 
 

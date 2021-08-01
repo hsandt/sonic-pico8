@@ -1172,8 +1172,9 @@ local function wall_check_collider_distance_callback(curr_tile_loc, signed_dista
     return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
   else
     -- we noted in the ceiling version that maybe we should return like the check_no_collider_callback
-    --  but didn't want to change the implementation yet
-    -- wall detection is new though, so let's run the risk as stopping the tile iteration early may benefit CPU
+    --  but didn't want to change the implementation on existing code yet
+    -- wall detection is new though, so let's return the same as wall_check_no_collider_callback,
+    --  running the risk of stopping the tile iteration early, as it may benefit CPU
     return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
   end
 end
@@ -1875,138 +1876,169 @@ end
 --  - is_blocked is true iff the character encounters a wall during this motion
 --  - is_falling is true iff the character leaves the ground just by running during this motion
 function player_char:compute_ground_motion_result()
-  -- if character is not moving, he is not blocked nor falling (we assume the environment is static)
+  assert(self.ground_tile_location, "compute_ground_motion_result: self.ground_tile_location not set")
+
+  -- if character is not moving, immediately return result with same position,
+  --  ground location, slope angle, not blocked nor falling (we assume the environment is static)
   if self.ground_speed == 0 then
     return motion.ground_motion_result(
-      self.ground_tile_location,
-      self.position,
+      self.ground_tile_location:copy(),
+      self.position:copy(),
       self.slope_angle,
       false,
       false
     )
-
   end
 
-  -- from here we will be considering positions, velocities, angles relatively
-  --  to the current quadrant to allow Sonic to walk on walls and ceilings
-  -- when quadrant is rotated by 0.25 (90 degrees CCW), the following transformations occur:
-  -- - ground move intention x <-> y (+x -> -y, -x -> +y, +y -> +x, -y -> -x)
-  --   ("intention" matters because we apply a forward rotation as Sonic will try to run on walls and ceilings
-  --    this is different from transposing an *existing* vector to another frame, which would have the backward (reverse)
-  --    transformation such as +x -> +y)
-  --   because the sign of x/y changes, the way we add values also matter, so in some cases
-  --    x + dx would become y - dy and a simple transposition is not enough
-  --   therefore, it is more reliable to add rotated vectors, even if only one component is non-zero,
-  --    and then extract x/y from this vector
-  --   we then call these coordinates "quadrant x" and "quadrant y", but note that they still
-  --    follow the positive axis sense of PICO-8 (only ground_speed and ground_based_signed_distance_qx are
-  --    based on ground orientation, CCW positive)
-  -- - existing slope angle -> slope angle - 0.25
-  -- when quadrant is rotated by 0.5 (e.g. floor to ceiling), x <-> -x and y <-> -y
-  --   and slope angle -> slope angle - 0.5 (these ops are reflective so we don't need to care about reverse transformation as above)
-  -- a few examples of quadrant variables:
-  -- - quadrant horizontal direction: is it left or right from Sonic's point of view?
-  --   (on a left wall, moving up is "left" and moving down is "right"
-  --    on the ceiling, moving left is "right" and moving right is "left")
-  -- - quadrant horizontal axis: horizontal for quadrants up and down, vertical for quadrants left and right
-  --   (we also define the forward as the counter-clockwise direction in any case, e.g. right on quadrant down
-  --    and down on quadrant left)
-  -- - quadrant vertical axis: orthogonal to quadrant horizontal axis
-  --   (we also define "up" as the direction pointing outside the quadrant interior)
-  -- - quadrant height: the collision mask column height, in the quadrant's own frame
-  --   (when quadrant is left or right, this is effectively a row width, where the row extends from left/right resp.)
-  -- - quadrant slope angle: the slope angle subtracted by the quadrant's angle (quadrant down having angle 0, then steps of 0.25 counter-clockwise)
-  -- - quadrant columns are rows on walls
-  -- we prefix values with "q" or "q-" for "quadrant", e.g. "qx" and "qy"
-  -- we even name floors, walls and ceilings "q-wall" to express the fact they are blocking Sonic's motion
-  --  relatively to his current quadrant, acting as walls, but may be any solid tile
+  -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
+  -- We're following the indicated order by checking wall before ground
+  -- However we're not checking roll here, we're doing this earlier, at the same time as checking spin dash
 
-  -- initialise result with floored coords, it's not to easily visualize
-  --  pixel by pixel motion at integer coordinates (we will reinject subpixels
-  --  if character didn't touch a wall)
-  -- we do this on both coordinates to simplify, but note that Sonic always snaps
-  --  to the ground quadrant height, so the quadrant vertical coordinate (qy) is already integer,
-  --  so it really matters for qx (but to reduce tokens we don't add a condition based on quadrant)
-  -- note that quadrant left and right motion is not completely symmetrical
-  --  since flr is asymmetrical so there may be up to a 1px difference in how we hit stuff on
-  --  the left or right (Classic Sonic has a collider with odd width, it may be actually symmetrical
-  --  on collision checks)
-  local floored_x = flr(self.position.x)
-  local floored_y = flr(self.position.y)
-  local motion_result = motion.ground_motion_result(
-    self.ground_tile_location,
-    vector(floored_x, floored_y),
-    self.slope_angle,
-    false,
-    false
-  )
+  -- Big step method:
+  -- 1. apply full velocity to get hypothetical position next frame in the absence of collisions
+  -- 2. escape from any wall (in the allowed range)
+  -- 3. snap to / escape from any ground (in the allowed range)
 
-  local quadrant = self.quadrant
+  -- Step 1: future position prediction
+
+  -- Compute next position after velocity is applied, if there were no obstacles
+  -- We have *not* updated self.velocity yet at this point (compute_velocity_from_ground_speed will
+  --  do it after checking if blocked so it knows if it should force set velocity to 0),
+  --  but we can still compute the expected velocity in the absence of collisions in advance,
+  --  using compute_velocity_from_ground_speed
+  local next_position = self.position + self:compute_velocity_from_ground_speed()
+  local is_blocked = false
+  local is_falling = false
+
+  -- Step 2: wall check
+
+  -- do a wall raycast in the direction of ground speed
   local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
-  local qx = world.get_quadrant_x_coord(self.position, quadrant)
+  local sensor_position_base = self:get_wall_sensor_position_from(next_position, quadrant_horizontal_dir)
+  local wall_query_info = self:compute_closest_wall_query_info(sensor_position_base, quadrant_horizontal_dir)
 
-  -- only full pixels matter for collisions, but subpixels (of last position + delta motion)
-  --  may sum up to a full pixel,
-  --  so first estimate how many full pixel columns the character may actually explore this frame
-  local ground_based_signed_distance_qx = self.ground_speed * cos(self.slope_angle - world.quadrant_to_right_angle(quadrant))
-  -- but ground_based_signed_distance_qx is positive when walking a right wall up or ceiling left,
-  --  which is opposite of the x/y sign convention; project on quadrant right unit vector to get vector
-  --  with x/y with the correct sign for addition to x/y position later
-  local ground_velocity_projected_on_quadrant_right = ground_based_signed_distance_qx * self:get_quadrant_right()
-  -- equivalent to dot expression below, but more compact than it:
-  -- local ground_velocity_projected_on_quadrant_right = quadrant_right:dot(self:compute_velocity_from_ground_speed()) * quadrant_right
-  local projected_velocity_qx = world.get_quadrant_x_coord(ground_velocity_projected_on_quadrant_right, quadrant)
+  if wall_query_info.tile_location then
+    -- We detected a wall, but it doesn't mean we should stop:
+    -- a. future position may be just touching a wall on the right (when raycasting over ceil(pc_data.ground_sensor_extent_x)
+    --  we can only detect touched walls on the right due to pixel asymmetry)
+    --  we ignore his case by checking `< ceil(pc_data.ground_sensor_extent_x)` (although stopping right at that distance is no big deal)
+    --  OPTIMIZE CHARS: you can remove this condition if too tight on budget
+    -- b. future position may be "too much inside wall to escape". Actually, we should try to escape anyway,
+    --  but in this case we shouldn't because of a quirk in the detection: we detect the tile in the start position
+    --  of the raycast, so if an object collision mask partially occupies a tile, like the left part of the spring oriented up,
+    --  and we have our back turned to that object, we are actually still detecting it BEHIND us with a big negative distance
+    --  like -7.5 as if we were inside. Therefore, trying to escape this would drag the character backward into the spring.
+    --  To fix this, we either need to
+    --  (i) add some threshold on negative distance (here, -6), or
+    --  (ii) pass ignore_reverse_on_start_tile: true in the call to iterate_over_collision_tiles in compute_closest_wall_query_info,
+    --  exactly as we're doing in compute_closest_ceiling_query_info. Originally, I didn't choose (ii) because I was afraid I would
+    --  miss legit tile reverse detection in some places. I tried it though just to see, and in practice I could not
+    --  find any places where behavior was unexpected or different from (i). But (i) still makes sense in terms of
+    --  escape range, so I kept it.
+    --  OPTIMIZE CHARS: you can remove this condition and replace it with [[ignore_reverse_on_start_tile:]] true in compute_closest_wall_query_info
+    --   if too tight on budget
+    --  If you remove both conditions, you can remove the if entirely!
 
-  -- max_distance_qx is always integer
-  local max_distance_qx = player_char.compute_max_pixel_distance(qx, projected_velocity_qx)
+    -- To simplify, we're just passing 6 hardcoded and not as pc_data, for once.
+    -- Remember that we're raycasting from the character center, so 6 is actually super deep already, it means the character's front
+    --  is around 9 pixels inside the wall already, which is bigger than tile_size = 8! So enough to cover even the fastest spin dash
+    --  (max spin dash launch speed is 6).
+    -- OPTIMIZE CHARS: consider storing ceil(pc_data.ground_sensor_extent_x) in a variable in pc_data (either precomputed or hardcoded)
+    --  that you'd reuse *everywhere*
+    if -6 <= wall_query_info.signed_distance and wall_query_info.signed_distance < ceil(pc_data.ground_sensor_extent_x) then
+      -- we're in good range to escape wall
 
-  -- iterate pixel by pixel on the qx direction until max possible distance is reached
-  --  only stopping if the character is blocked by a q-wall (not if falling, since we want
-  --  him to continue moving in the air as far as possible; in edge cases, he may even
-  --  touch the ground again some pixels farther)
-  local qhorizontal_distance_before_step = 0
-  while qhorizontal_distance_before_step < max_distance_qx and not motion_result.is_blocked do
-    self:next_ground_step(quadrant_horizontal_dir, motion_result)
-    qhorizontal_distance_before_step = qhorizontal_distance_before_step + 1
-  end
+      -- remember we raycast from character center, but to get the escape vector we need to know the actual
+      --  distance from character *front* to wall, so subtract the distance from center to front
+      -- we really want to *subtract* in that direction: result is negative, but wall quadrant is an *interior* normal
+      --  so the escape vector will be in the sense of the *exterior* normal so we can escape
+      -- considering the test above, signed_distance_to_closest_wall must be < 0
+      local signed_distance_to_closest_wall = wall_query_info.signed_distance - ceil(pc_data.ground_sensor_extent_x)
+      log("signed_distance_to_closest_wall: "..signed_distance_to_closest_wall, "trace2")
 
-  -- check if we need to add or cut subpixels
-  if not motion_result.is_blocked then
-    -- since subpixels are always counted to the right/down, the subpixel test below is asymmetrical
-    --   but this is correct, we will simply move backward a bit when moving left/up
-    local are_subpixels_left = qx + projected_velocity_qx > world.get_quadrant_x_coord(motion_result.position, quadrant)
+      -- same trick as compute_closest_wall_query_info to inline rotate_dir_90_(c)cw
+      -- OPTIMIZE CHARS: see if it's worth factorizing it as a function to spare characters
+      --  or even pre-compute the wall quadrant and use it both here, and pass it to compute_closest_wall_query_info
+      --  (for usage as collision_check_quadrant) called above
+      local rotate_sign = self.ground_speed < 0 and 1 or -1
+      local wall_quadrant = dir_vectors[(self.quadrant + rotate_sign) % 4]
+      local vector_to_closest_wall = signed_distance_to_closest_wall * wall_quadrant
 
-    if are_subpixels_left then
-      -- character has not been blocked and has some subpixels left to go
-      -- unlike Classic Sonic, and *only* when moving right/down, we decide to check if those
-      --   subpixels would leak to hitting a q-wall on the right/down, and cut them if so,
-      --   blocking the character on the spot (we just reuse the result of the extra step,
-      --   since is_falling doesn't change if is_blocked is true)
-      -- when moving left/up, the subpixels are a small "backward" motion to the right/down and should
-      --  never hit a wall back
-      local is_blocked_by_extra_step = false
-      if projected_velocity_qx > 0 then
-        local extra_step_motion_result = motion_result:copy()
-        self:next_ground_step(quadrant_horizontal_dir, extra_step_motion_result)
-        if extra_step_motion_result.is_blocked then
-          motion_result = extra_step_motion_result
-          is_blocked_by_extra_step = true
-        end
-      end
+      -- Escape wall
 
-      -- unless moving right/down and hitting a q-wall due to subpixels, apply the remaining subpixels
-      --   as they cannot affect collision anymore. when moving left/up, they go a little backward
-      if not is_blocked_by_extra_step then
-        -- character has not touched a q-wall at all, so add the remaining subpixels
-        --   (it's simpler to just recompute the full motion in qx; don't touch qy though,
-        --   as it depends on the shape of the ground - we floored it earlier but it should
-        --   have been integer from the start so it shouldn't have changed anything)
-        -- do not apply other changes (like slope) since technically we have not reached
-        --   the next tile yet, only advanced of some subpixels
-        world.set_position_quadrant_x(motion_result.position, qx + projected_velocity_qx, quadrant)
-      end
+      -- Note that sensor position preserves pixel fraction on qy (expected wall normal axis:
+      --  we consider the wall quadrant to define qx/qy here, not character quadrant)
+      --  so we can get the exact distance to closest wall.
+      -- This means that even when we enter wall by a fraction of pixel, we'll escape from it perfectly.
+      -- In addition, we don't need to floor the result's qy, similarly to how we perfectly snap
+      --  to ground thanks to ground sensor position preserving qy fraction.
+      next_position:add_inplace(vector_to_closest_wall)
+
+      -- Remember we're blocked so we can reset ground speed
+      is_blocked = true
     end
   end
+
+  -- Step 3: ground check
+
+  -- check if next position is inside/above ground
+  local query_info = self:compute_ground_sensors_query_info(next_position)
+  local signed_distance_to_closest_ground = query_info.signed_distance
+  log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace2")
+
+  -- signed distance is useful, but for quadrant vector ops we need actual vectors
+  --  to get the right escape motions (e.g. on floor, signed distance > 0 <=> offset dy < 0 from ground,
+  --  but on left wall, signed distance > 0 <=> offset dx > 0)
+  -- signed distance is from character to ground, so get unit vector for quadrant down
+  local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
+
+  if signed_distance_to_closest_ground < 0 then
+    -- Next position is inside ground, but are we close to surface enough?
+    if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
+      -- Close enough to surface => Step up
+      next_position:add_inplace(vector_to_closest_ground)
+    end
+  elseif signed_distance_to_closest_ground >= 0 then
+    -- Next position is above or just touching ground, should we leave ground or step down?
+    if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
+      -- Close enough to step down, but first check angle difference
+
+      -- Original slope feature: Take-Off Angle Difference
+      -- When character could normally step down, but the new ground has an angle too low
+      --  compared to the previous ground, character still falls off.
+      -- Exceptionally not inside --#if original_slope_features because it fixes character NOT falling off
+      --  the first curved slope (before the 1st spring) when running or even spin dashing to the left
+      --  (no ugly glitch, but Sonic literally sticks to the ground unless the speed is so high that
+      --  the big step goes too far to detect the slope's first tile on the first frame leaving the ground)
+      -- In the original, Sonic just runs on the steep descending slope as if nothing, and also exceptionally
+      --  preserves his sprite angle, but that would have required extra code. Besides, when running fast and spin dashing
+      --  he's actually falling off.
+      -- When running toward the left, angle diff has opposite sign, so multiply by horizontal sign to counter this
+      -- Note that character was grounded last frame since we're calling compute_ground_motion_result,
+      --  so self.slope_angle is not nil
+      local signed_angle_delta = compute_signed_angle_between(query_info.slope_angle, self.slope_angle)
+
+      -- note the `>` comparison: if difference is just at threshold, we don't fall-off
+      if horizontal_dir_signs[quadrant_horizontal_dir] * signed_angle_delta > pc_data.take_off_angle_difference then
+        -- Step fall due to angle difference aka angle-based Take-Off
+        is_falling = true
+      else
+        -- Step down
+        next_position:add_inplace(vector_to_closest_ground)
+      end
+    else
+      -- Ground is too far to step down, fall
+      is_falling = true
+    end
+  end
+
+  local motion_result = motion.ground_motion_result(
+    query_info.tile_location,
+    next_position,
+    query_info.slope_angle,
+    is_blocked,
+    is_falling
+  )
 
   return motion_result
 end
@@ -2020,129 +2052,6 @@ end
 --  and that is intended
 function player_char.compute_max_pixel_distance(initial_position_coord, velocity_coord)
   return abs(flr(initial_position_coord + velocity_coord) - flr(initial_position_coord))
-end
-
--- update ref_motion_result: motion.ground_motion_result for a character trying to move
---  by 1 pixel step in quadrant_horizontal_dir, taking obstacles into account
--- if character is blocked, it doesn't update the position and flag is_blocked
--- if character is falling, it updates the position and flag is_falling
--- ground_motion_result.position's qx should be floored for these steps
---  (some functions assert when giving subpixel coordinates)
-function player_char:next_ground_step(quadrant_horizontal_dir, ref_motion_result)
-  log("  next_ground_step: "..joinstr(", ", quadrant_horizontal_dir, ref_motion_result), "trace2")
-
-  -- compute candidate position on next step. only flat slopes supported
-  local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
-  local next_position_candidate = ref_motion_result.position + step_vec
-
-  log("step_vec: "..step_vec, "trace2")
-  log("next_position_candidate: "..next_position_candidate, "trace2")
-
-  -- check if next position is inside/above ground
-  local query_info = self:compute_ground_sensors_query_info(next_position_candidate)
-  local signed_distance_to_closest_ground = query_info.signed_distance
-
-  log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace2")
-
-  -- signed distance is useful, but for quadrant vector ops we need actual vectors
-  --  to get the right signs (e.g. on floor, signed distance > 0 <=> offset dy < 0 from ground,
-  --  but on left wall, signed distance > 0 <=> offset dx > 0)
-  -- signed distance is from character to ground, so get unit vector for quadrant down
-  local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
-
-  -- merge < 0 and == 0 cases together to spare tokens
-  -- when 0, next_position_candidate.y will simply not change
-  if signed_distance_to_closest_ground < 0 then
-    -- position is inside ground, check if we can step up during this step
-    -- (note that we kept the name max_ground_escape_height but in quadrant left and right,
-    --  the escape is done on the X axis so technically we escape row width)
-    -- refactor: code is similar to check_escape_from_ground and above all next_air_step
-    if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
-      -- step up or step flat
-      next_position_candidate:add_inplace(vector_to_closest_ground)
-      -- if we left the ground during a previous step, cancel that
-      --  (fall, then touch ground or step up to land, very rare)
-      ref_motion_result.is_falling = false
-    else
-      -- step blocked: step up is too high, character is blocked
-      -- if character left the ground during a previous step, let it this way;
-      --  character will simply hit the wall, then fall
-      ref_motion_result.is_blocked = true
-    end
-  elseif signed_distance_to_closest_ground >= 0 then
-    -- position is above ground, check if we can step down during this step
-    -- (step down is during ground motion only)
-    if signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
-      -- if character has fallen during previous step, prevent step down AND no need to check for angle take-off
-      --  note he can still re-land, but only by entering the ground i.e. signed distance to ground < 0, as in block above
-      -- otherwise, character is still grounded, so check for angle take-off, and if not taking off, step down
-      if not ref_motion_result.is_falling then
-        -- Original slope feature: Take-Off Angle Difference
-        -- When character falls when running from to ground, he could normally step down,
-        --  but the new ground is a descending slope too steep compared to previous slope angle.
-        -- Exceptionally not inside --#if original_slope_features because it really fixes glitches
-        --  when character moves at low speed from flat ground to steep descending slope
-        -- In the original, Sonic just runs on the steep descending slope as if nothing, and also exceptionally
-        --  preserves his sprite angle, but that would have required extra code.
-        -- Make sure to check if we are not already falling so slope angle exists (alternatively check that ref_motion_result.slope_angle is not nil)
-        -- When running toward the left, angle diff has opposite sign, so multiply by horizontal sign to counter this
-        -- Note that character is not falling, so grounded (during step), so ref_motion_result.slope_angle is not nil
-        local signed_angle_delta = compute_signed_angle_between(query_info.slope_angle, ref_motion_result.slope_angle)
-        if horizontal_dir_signs[quadrant_horizontal_dir] * signed_angle_delta > pc_data.take_off_angle_difference then
-          -- step fall due to angle difference aka angle-based Take-Off
-          ref_motion_result.is_falling = true
-        else
-          -- step down
-          next_position_candidate:add_inplace(vector_to_closest_ground)
-        end
-      end
-    else
-      -- step fall: step down is too low, character will fall
-      -- in some rare instances, character may find ground again farther, so don't stop the outside loop yet
-      --  (but he'll need to really enter the ground i.e. signed distance to ground < 0)
-      -- caution: we are not updating qy at all, which means the character starts
-      --  "walking horizontally in the air". in sonic games, we would expect
-      --  momentum to take over and send the character along qy, preserving
-      --  velocity qvy from last frame (e.g. when running off a slope)
-      -- consider reusing the last delta qy (e.g. vector_to_closest_ground qy)
-      --  and applying it this frame
-      -- but we tested and since we lose a single frame of step max, it's not perceptible:
-      --  on the next airborne frames, the velocity and full air motion is more important and works
-      --  as expected when running off a slope
-      ref_motion_result.is_falling = true
-    end
-  end
-
-  if not ref_motion_result.is_blocked then
-    -- character is not blocked by a steep q-step up/q-wall, but we need to check if it is
-    --  blocked by a q-ceiling too low; in the extreme case, a diagonal tile pattern
-    --  ->X
-    --   X
-    --  is also considered a ceiling and ignoring it will let Sonic go through and fall
-    -- (unlike Classic Sonic, we do check for ceilings even when Sonic is grounded;
-    --  this case rarely happens in normally constructed levels though; and q-ceilings
-    --  even more rare)
-    ref_motion_result.is_blocked = self:is_blocked_by_ceiling_at(next_position_candidate)
-
-    -- only advance if character is still not blocked (else, preserve previous position,
-    --  which should be floored)
-    -- this only works because the q-wall sensors are 1px farther from the character center
-    --  than the ground sensors; if there were even farther, we'd even need to
-    --  move the position backward by hypothetical wall_sensor_extent_x - ground_sensor_extent_x - 1
-    --  when ref_motion_result.is_blocked (and adapt y)
-    -- in addition, because a step is no more than 1px, if we were blocked this step
-    --  we have not moved at all and therefore there is no need to update slope angle
-    if not ref_motion_result.is_blocked then
-      ref_motion_result.position = next_position_candidate
-      if ref_motion_result.is_falling then
-        ref_motion_result.tile_location = nil
-        ref_motion_result.slope_angle = nil
-      else
-        ref_motion_result.tile_location = query_info.tile_location
-        ref_motion_result.slope_angle = query_info.slope_angle
-      end
-    end
-  end
 end
 
 -- return true iff the character cannot stand in his full height (based on ground_sensor_extent_x)
@@ -2621,7 +2530,7 @@ function player_char:next_air_step(direction, ref_motion_result)
         -- I used to check direction == directions.down only, and indeed if you step 1px down,
         --  the penetration distance will be no more than 1 and you will always snap to ground.
         -- But this didn't work when direction left/right hit the slope.
-        -- refactor: code is similar to check_escape_from_ground and above all next_ground_step
+        -- refactor: code is similar to check_escape_from_ground and above all the now removed next_ground_step
         if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
           next_position_candidate.y = next_position_candidate.y + signed_distance_to_closest_ground
           -- landing: the character has just set foot on ground, flag it and initialize slope angle

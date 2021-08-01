@@ -2594,6 +2594,24 @@ describe('player_char', function ()
 
         end)
 
+        -- added to cover wall_check_collider_distance_callback else case
+        --  (detect wall but too far)
+        describe('with partial rectangle vertically', function ()
+
+          before_each(function ()
+            -- this tile is the collision mash for the spring up (left part), which is a partial rectangle in both dirs,
+            --  but we're particularly interested in it not covering the whole width
+            mock_mset(1, 1, tile_repr.flat_high_tile_left_id)
+          end)
+
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if tile is detected but q-column is too far (via wall_check_collider_distance_callback)', function ()
+            -- any x is good at long as the front of the wall raycast enters location(1, 1), ie from 5 to 8.9
+            -- below 5 it will still work but not going through wall_check_collider_distance_callback, rather wall_check_no_collider_callback
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8.9, 12), horizontal_dirs.right))
+          end)
+
+        end)
+
         -- after that, just check one-way to verify we DON'T detect it as a wall
 
         describe('with one-way tile', function ()
@@ -2737,8 +2755,9 @@ describe('player_char', function ()
             -- new convention is returning tile when deep inside ground
             assert.are_same({vector(12, 8 + pc_data.max_ground_escape_height + 1), location(1, 1)}, {pc:get_bottom_center(), pc.ground_tile_location})
 
-            -- when nil, we don't use the set callback for ground tile location
-            assert.spy(player_char.set_ground_tile_location).was_not_called()
+            -- new convention is returning tile when deep inside ground
+            assert.spy(player_char.set_ground_tile_location).was_called(1)
+            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
           end)
@@ -3112,6 +3131,11 @@ describe('player_char', function ()
       describe('update_platformer_motion', function ()
 
         setup(function ()
+          -- we're not interested in the 2 update methods, but stubbing them
+          --  allows us to test the rest without having to worry about setting up all vars
+          --  to avoid assert/errors (e.g. ground tile location must be set or update_platformer_motion_grounded will fail)
+          stub(player_char, "update_platformer_motion_grounded")
+          stub(player_char, "update_platformer_motion_airborne")
           stub(player_char, "check_crouch_and_roll_start")
           stub(player_char, "check_roll_end")
           stub(player_char, "check_spring")
@@ -3122,6 +3146,8 @@ describe('player_char', function ()
         end)
 
         teardown(function ()
+          player_char.update_platformer_motion_grounded:revert()
+          player_char.update_platformer_motion_airborne:revert()
           player_char.check_crouch_and_roll_start:revert()
           player_char.check_roll_end:revert()
           player_char.check_spring:revert()
@@ -3132,6 +3158,8 @@ describe('player_char', function ()
         end)
 
         after_each(function ()
+          player_char.update_platformer_motion_grounded:clear()
+          player_char.update_platformer_motion_airborne:clear()
           player_char.check_crouch_and_roll_start:clear()
           player_char.check_roll_end:clear()
           player_char.check_spring:clear()
@@ -3743,12 +3771,33 @@ describe('player_char', function ()
           player_char.set_ground_tile_location:clear()
         end)
 
-        it('should call update_ground_speed', function ()
-          pc:update_platformer_motion_grounded()
+        describe('(stub compute_ground_motion_result)', function ()
 
-          -- implementation
-          assert.spy(update_ground_speed_mock).was_called(1)
-          assert.spy(update_ground_speed_mock).was_called_with(match.ref(pc))
+          setup(function ()
+            stub(player_char, "compute_ground_motion_result", function (self)
+              -- return anything with correct type, this stub is just to avoid crashes due to incomplete setup
+              return motion.ground_motion_result(
+                location(0, 0),
+                vector(0, 0),
+                0,
+                false,
+                false
+              )
+            end)
+          end)
+
+          teardown(function ()
+            player_char.compute_ground_motion_result:revert()
+          end)
+
+          it('should call update_ground_speed', function ()
+            pc:update_platformer_motion_grounded()
+
+            -- implementation
+            assert.spy(update_ground_speed_mock).was_called(1)
+            assert.spy(update_ground_speed_mock).was_called_with(match.ref(pc))
+          end)
+
         end)
 
         describe('(when compute_ground_motion_result returns a motion result with position vector(3, 4), slope_angle: 0.25, is_blocked: false, is_falling: false)', function ()
@@ -5057,8 +5106,6 @@ describe('player_char', function ()
 
         describe('(when ground_speed is 0)', function ()
 
-          -- bugfix history:
-          --  + method was returning a tuple instead of a table
           it('should return the current ground tile location, position and slope, is_blocked: false, is_falling: false', function ()
             pc.ground_tile_location = location(0, 1)
             pc.position = vector(3, 4)
@@ -5144,1583 +5191,345 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when _next_ground_step moves motion_result.position by 1px in the quadrant_horizontal_dir without blocking nor falling)', function ()
-
-          local next_ground_step_mock
+        describe('(when compute_closest_wall_query_info finds no wall in any horizontal direction)', function ()
 
           setup(function ()
-            next_ground_step_mock = stub(player_char, "next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
-              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
-              motion_result.position = motion_result.position + step_vec
-              -- to simplify, we say the new tile location is where the new position is
-              --  to be exact, it should be at the location of sensor closest to ground,
-              --  which may be in a different location that center position, but easier for testing
-              motion_result.tile_location = motion_result.position:to_location()
-              motion_result.slope_angle = (world.quadrant_to_right_angle(self.quadrant) - 0.01) % 1
+            stub(player_char, "compute_closest_wall_query_info", function (self, next_position, quadrant_horizontal_dir)
+              return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
             end)
           end)
 
           teardown(function ()
-            next_ground_step_mock:revert()
+            player_char.compute_closest_wall_query_info:revert()
           end)
 
-          -- bugfix history:
-          -- +  failed because case where we add subpixels without reaching next full pixel didn't set slope_angle
-          -- ?? failed I tried to fix it (see above), but actually subpixels should not be taken into account for ground slope detection
-          it('(vector(3, 4) at speed 0.5) should return vector(3.5, 4), slope: 0, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = 0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 0
-            -- but as there is no blocking, the remaining subpixels will still be added
+          describe('(when compute_ground_sensors_query_info finds ground at signed distance 0, slope angle 0, at next position)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(3.5, 4),
-                0,                  -- character has not moved by a full pixel, so visible position and slope remains the same
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                -- simplified stub that always return location matching position
+                --  in reality, ground sensors are offset on qx so we may detect the tile a little farther than where center is
+                return motion.ground_query_info(next_position:to_location(), 0, 0)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run on flat ground (same tile)
+            it('(vector(3, 4) at speed 0.5) should return vector(3, 4), slope: 0, is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(3, 4)
+              pc.ground_speed = 0.5
+
+              assert.are_same(motion.ground_motion_result(
+                  location(0, 0),
+                  vector(3.5, 4),
+                  0,                  -- character has not moved by a full pixel, so visible position and slope remains the same
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          -- bugfix history:
-          -- ?? same reason as test above
-          it('(vector(3, 4) at speed 1 on slope cos 0.5) should return vector(3.5, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 1  -- * slope cos = 0.5
+          describe('(when compute_ground_sensors_query_info finds ground at signed distance 1, slope angle atan2(8, 4), at next position)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(3.5, 4),
-                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                return motion.ground_query_info(next_position:to_location(), 1, atan2(8, 4))
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run from flat ground and find new descending slope on next tile
+            it('(vector(7, 4) at speed 3 on slope (8, 4)) should return location(1, 0), vector(7 + 3, 4 + 1), slope: atan2(8, 4), is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(7, 4)
+              pc.slope_angle = 0
+              pc.ground_speed = 3
+
+              assert.are_same(motion.ground_motion_result(
+                  location(1, 0),
+                  vector(7 + 3, 4 + 1),  -- advance by 3 to the right, then snap down by 1
+                  atan2(8, 4),
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(vector(3.5, 4) at speed 0.5) should return vector(0.5, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3.5, 4)
-            pc.ground_speed = 0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
+          describe('(when compute_ground_sensors_query_info finds ground at signed distance 1 - sin(atan2(8, 4)) * 3, slope: 0, at next position)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(4, 4),
-                1-0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                -- signed distance is just the right amount to escape and snap up to an integer y (tile mask column)
+                return motion.ground_query_info(next_position:to_location(), 1 - sin(atan2(8, 4)) * 3, atan2(8, 4))
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run on descending slope and snap up on same tile (1, 1)
+            it('(vector(8, 4) at speed 3 on slope (8, 4)) should return vector(8 + 3 * cos(atan2(8, 4)), 4 + 1), slope: atan2(8, 4), is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(1, 0)
+              pc.position = vector(8, 4)
+              pc.slope_angle = atan2(8, 4)
+              pc.ground_speed = 3
+
+              assert.are_same(motion.ground_motion_result(
+                  location(1, 0),
+                  vector(8 + 3 * cos(atan2(8, 4)), 4 + 1),  -- we went down by 1 + fraction and snapped up to clear the fraction
+                  atan2(8, 4),
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(vector(3, 4) at speed -2.5) should return vector(0.5, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = -2.5
+          describe('(when compute_ground_sensors_query_info finds ground at signed distance sin(atan2(8, 4)) * 3, slope: 0, at next position)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(0.5, 4),
-                1-0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                -- signed distance = 1 + fraction, it is the right amount to snap down by 1px + just enough to reach flat ground integer y (4)
+                return motion.ground_query_info(next_position:to_location(), sin(atan2(8, 4)) * 3, 0)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run left, leaving descending slope and snapping down to flat ground
+            it('(vector(8, 4) at speed -3) should return vector(8 - 3 * cos(atan2(8, 4)), 4), is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(1, 0)
+              pc.position = vector(8, 4)
+              pc.slope_angle = atan2(8, 4)
+              pc.ground_speed = -3
+
+              assert.are_same(motion.ground_motion_result(
+                  location(0, 0),
+                  vector(8 - 3 * cos(atan2(8, 4)), 4),  -- we went down by sin(atan2(8, 4)) * 3 = 1 + fraction
+                  0,
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(right wall, vector(3, 4) at speed 2 (going up) on slope cos 0.5) should return vector(3, 3), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 2  -- * slope cos = 1
+          describe('(when compute_ground_sensors_query_info finds ground at signed distance sin(atan2(8, 4)) * 3, slope: 0, at next position)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(3, 3),
-                0.25-0.01,               -- character has not moved by a full pixel, so visible position and slope remains the same
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                -- signed distance = + fraction, it is the right amount to snap down
+                return motion.ground_query_info(next_position:to_location(), 1 - 2 * cos(atan2(4, -8)), atan2(4, -8))
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run on right wall absolute steep ascending slope / low q-descending slope, snap down to px column
+            it('(right wall, vector(3, 4) at speed 2 (going up) on slope (4, -8)) should return vector(3 + 1, 4 + 2 * sin(atan2(4, -8))), is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(3, 4)
+              pc.quadrant = directions.right
+              pc.slope_angle = atan2(4, -8)
+              pc.ground_speed = 2
+
+              assert.are_same(motion.ground_motion_result(
+                  location(0, 0),
+                  vector(3 + 1, 4 + 2 * sin(atan2(4, -8))),
+                  atan2(4, -8),
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(ceiling, vector(3, 4) at speed 2 (going up) on slope cos 0.5) should return vector(2, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.5-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 2  -- * slope cos = 1
+          -- we'll skip left wall and ceiling utests, it seems robust enough
 
-            -- unfortunately native Lua has small calculation errors
-            -- so we must check for almost equal on result position x
-            local result = pc:compute_ground_motion_result()
-            assert.is_true(almost_eq_with_message(2, result.position.x))
+          -- FALLING due to lack of ground
 
-            -- then set that position to expected value and check the rest
-            -- with an are_equal to cover all members
-            result.position.x = 2
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(2, 4),
-                0.5-0.01,
-                false,
-                false
-              ),
-              result
-            )
+          describe('(when compute_ground_sensors_query_info finds no ground at next position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run from flat ground to void
+            it('(vector(7, 4) at speed 3) should return vector(7, 4), slope: 0, is_blocked: false, is_falling: true', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(7, 4)
+              pc.ground_speed = 3
+
+              assert.are_same(motion.ground_motion_result(
+                  nil,
+                  vector(7 + 3, 4),
+                  nil,
+                  false,
+                  true
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(left wall, vector(3, 4) at speed 2 (going down) on slope cos 0.5) should return vector(3, 5), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 2  -- * slope cos = 1
+          -- FALLING OFF due to difference of angle
 
-            -- unfortunately native Lua has small calculation errors
-            -- so we must check for almost equal on result position y
-            local result = pc:compute_ground_motion_result()
-            assert.is_true(almost_eq_with_message(5, result.position.y))
+          describe('(when compute_ground_sensors_query_info finds ground close to step down normally, but angle difference is above fall-off threshold)', function ()
 
-            -- then set that position to expected value and check the rest
-            -- with an are_equal to cover all members
-            result.position.y = 5
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(3, 5),
-                0.75-0.01,
-                false,
-                false
-              ),
-              result
-            )
+            setup(function ()
+              stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+                -- `- 0.1` to verify < comparison
+                return motion.ground_query_info(location(1, 0), 2, - pc_data.take_off_angle_difference - 0.1)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ground_sensors_query_info:revert()
+            end)
+
+            -- run from flat ground to void
+            it('(vector(7, 4) at speed 3) should return vector(7 + 3, 4), slope: - pc_data.take_off_angle_difference, is_blocked: false, is_falling: true', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(7, 4)
+              pc.ground_speed = 3
+
+              assert.are_same(motion.ground_motion_result(
+                  location(1, 0),
+                  vector(7 + 3, 4),
+                  - pc_data.take_off_angle_difference - 0.1,
+                  false,
+                  true
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
         end)
 
-        describe('(when _next_ground_step moves motion_result.position by 1px in the quadrant_quadrant_horizontal_dir, but blocks when motion_result.position.x < -4 (moving left) or x >= 5 (moving right) or y < -4 (moving up) or y >= 5 (moving down))', function ()
-
-          local next_ground_step_mock
+        -- this time we'll focus on wall, so stub the ground check first to return a standard "on ground"
+        --  (we are not too interested in combined cases like hitting wall + falling since rare)
+        describe('(when compute_ground_sensors_query_info finds ground at signed distance 0, slope angle 0, at next position)', function ()
 
           setup(function ()
-            next_ground_step_mock = stub(player_char, "next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
-
-              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
-              -- x/y < -4 <=> x/y <= -5 for an integer as passed to step functions,
-              --   but we want to make clear that flooring is asymmetrical
-              --   and that for floating coordinates, -4.01 is already hitting the left wall
-              if motion_result.position.x < -4 and step_vec.x < 0 or motion_result.position.x >= 5 and step_vec.x > 0 or
-                  motion_result.position.y < -4 and step_vec.y < 0 or motion_result.position.y >= 5 and step_vec.y > 0 then
-                motion_result.is_blocked = true
-              else
-                motion_result.position = motion_result.position + step_vec
-                -- to simplify, we say the new tile location is where the new position is
-                motion_result.tile_location = motion_result.position:to_location()
-                motion_result.slope_angle = (world.quadrant_to_right_angle(self.quadrant) + 0.01) % 1
-              end
+            stub(player_char, "compute_ground_sensors_query_info", function (self, next_position)
+              return motion.ground_query_info(location(1, 0), 0, 0)
             end)
           end)
 
           teardown(function ()
-            next_ground_step_mock:revert()
+            player_char.compute_ground_sensors_query_info:revert()
           end)
 
-          it('(vector(3.5, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3.5, 4)
-            pc.ground_speed = 1.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 2
+          describe('(when compute_closest_wall_query_info detects just touching wall)', function ()
 
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-3.5, 4) at speed -1.5) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-3.5, 4)
-            pc.ground_speed = -1.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 2
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- bugfix history: + the test revealed that is_blocked should be false when just touching a wall on arrival
-          --  so I added a check to only check a wall on an extra column farther if there are subpixels left in motion
-          it('(vector(4.5, 4) at speed 0.5) should return vector(5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4.5, 4)
-            pc.ground_speed = 0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- the negative motion equivalent is not symmetrical due to flooring
-          it('(vector(-4, 4) at speed -0.1) should return vector(-5, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-4, 4)
-            pc.ground_speed = -1
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- bugfix history: < replaced self.ground_speed with distance_x in are_subpixels_left evaluation
-          it('(vector(4.5, 4) at speed 1 on slope cos 0.5) should return vector(5, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            -- this is the same as the test above (we just reach the wall edge without being blocked),
-            -- but we make sure that are_subpixels_left check takes the slope factor into account
-            pc.position = vector(4.5, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 1    -- * slope cos = -0.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,  -- new slope angle, no relation with initial one
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- the negative motion equivalent is not symmetrical due to flooring
-          -- in particular, to update the slope angle, we need to change of full pixel
-          it('(vector(-4, 4) at speed -2 on slope cos 0.5) should return vector(-5, 4), is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-4, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = -2   -- * slope cos = -1
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,  -- new slope angle, no relation with initial one
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(4, 4) at speed 1.5) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 4)
-            pc.ground_speed = 1.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-            -- the character will just touch the wall but because it has some extra subpixels
-            --  going "into" the wall, we floor them and consider character as blocked
-            --  (unlike Classic Sonic that would simply ignore subpixels)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-4, 4) at speed -1.5) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-4, 4)
-            pc.ground_speed = -1.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-            -- the character will just touch the wall but because it has some extra subpixels
-            --  going "into" the wall, we floor them and consider character as blocked
-            --  (unlike Classic Sonic that would simply ignore subpixels)
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- bugfix history:
-          -- ?? same reason as test far above where "character has not moved by a full pixel" so slope should not change
-          it('(vector(4, 4) at speed 1.5 on slope cos 0.5) should return vector(4.75, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 1.5  -- * slope cos = 0.75
-            -- this time, due to the slope cos, charaacter doesn't reach the wall and is not blocked
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(4.75, 4),
-                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-4.1, 4) at speed -1.5 on slope cos 0.5) should return vector(-4.85, 4), slope before blocked, is_blocked: false, is_falling: false', function ()
-            -- start under -4 so we don't change full pixel and preserve slope angle
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(-4.1, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = -1.5  -- * slope cos = -0.75
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(-4.85, 4),
-                1-1/6,               -- character has not moved by a full pixel, so visible position and slope remains the same
-                false,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(4, 4) at speed 3 on slope cos 0.5) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = 3  -- * slope cos = 1.5
-            -- but here, even with the slope cos, charaacter will hit wall
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-4, 4) at speed 3 on slope cos 0.5) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-4, 4)
-            pc.slope_angle = 1-1/6  -- cos(-pi/3) = 1/2
-            pc.ground_speed = -3  -- * slope cos = -1.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          -- bugfix history:
-          -- + it failed until I added the subpixels check at the end of the method
-          --   (also fixed in v1: subpixel cut when max_column_distance is 0 and blocked on next column)
-          it('(vector(5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(5, 4)
-            pc.ground_speed = 0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 0
-            -- the character is already touching the wall, so any motion, even of just a few subpixels,
-            --  is considered blocked
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0,  -- character couldn't move at all, so we preserved the initial slope angle
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-5, 4) at speed 0.5) should return vector(-5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(-5, 4)
-            pc.ground_speed = -0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 0
-            -- the character is already touching the wall, so any motion, even of just a few subpixels,
-            --  is considered blocked
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(-5, 4),
-                0,  -- character couldn't move at all, so we preserved the initial slope angle
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(5.5, 4) at speed 0.5) should return vector(5, 4), slope before moving, is_blocked: true, is_falling: false', function ()
-            -- this is possible e.g. if character walked along 1.5 from x=4
-            -- to reduce computation we didn't check an extra column for a wall
-            --  at that time, but starting next frame we will, effectively clamping
-            --  the character to x=5
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(5.5, 4)
-            pc.ground_speed = 0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-            -- but we will be blocked by the wall anyway
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),  -- this works on the *right* thanks to subpixel cut working "inside" a wall
-                0,  -- character couldn't move and went back, so we preserved the initial slope angle
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-5.5, 4) at speed -0.5) should return vector(-6, 4), slope before moving, is_blocked: false, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(-5.5, 4)
-            pc.ground_speed = -0.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-            -- but we will be blocked by the wall anyway
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(-6, 4),  -- we are already inside the wall, floored to -6
-                0,  -- character only snap to floored x, so we preserved the slope angle
-                false,  -- no wall detected from inside!
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-5.5, 4) at speed -1) should return vector(-6, 4), slope before moving, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(-5.5, 4)
-            pc.ground_speed = -1
-            -- we assume compute_max_pixel_distance is correct, so it should return 1
-            -- but we will be blocked by the wall anyway
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(-6, 4),  -- we are already inside the wall, floored to -6
-                0,  -- character only snap to floored x, so we preserved the slope angle
-                true,  -- wall detected from inside if moving 1 full pixel toward the next column on the left
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(3, 4) at speed 3) should return vector(5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = 3.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at x=5 instead of 6.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(-3, 4) at speed -3) should return vector(-5, 4), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-3, 4)
-            pc.ground_speed = -3.5
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at x=-5 instead of -6.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 4),
-                0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(right wall, vector(3, -3) at speed 3 (moving up)) should return vector(3, -5), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, -1)
-            pc.position = vector(3, -3)
-            pc.ground_speed = 3.5
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at y=-5 instead of -6.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, -1),
-                vector(3, -5),
-                0.25 + 0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(ceiling, vector(-3, 3) at speed 3 (moving left)) should return vector(-5, 3), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(-1, 0)
-            pc.position = vector(-3, 3)
-            pc.ground_speed = 3.5
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.5
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at x=-5 instead of -6.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(-1, 0),
-                vector(-5, 3),
-                0.5 + 0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(left wall, vector(3, 3) at speed 3 (moving down)) should return vector(3, 5), slope before blocked, is_blocked: true, is_falling: false', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 3)
-            pc.ground_speed = 3.5
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- but because of the blocking, we stop at y=5 instead of 6.5
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 0),
-                vector(3, 5),
-                0.75 + 0.01,
-                true,
-                false
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-        end)
-
-        -- bugfix history: the mock was wrong (was using updated position instead of original_position)
-        describe('. (when _next_ground_step moves motion_result.position by 1px in the quadrant_horizontal_dir on x/y < 7, falls on 5 <= x/y < 7 and blocks on x/y >= 7 with x/y matching step direction)', function ()
-
-          local next_ground_step_mock
-
-          setup(function ()
-            next_ground_step_mock = stub(player_char, "next_ground_step", function (self, quadrant_horizontal_dir, motion_result)
-              local step_vec = self:quadrant_rotated(horizontal_dir_vectors[quadrant_horizontal_dir])
-              local original_position = motion_result.position
-              -- quadrant_rotated busted implementation has perfect precision, so don't worry about checking ~= 0
-              if step_vec.x ~= 0 then
-                if original_position.x < 7 then
-                  motion_result.position = original_position + step_vec
-                  motion_result.slope_angle = 0.25
-                end
-                if original_position.x >= 5 then
-                  if original_position.x < 7 then
-                    motion_result.is_falling = true
-                    motion_result.slope_angle = nil  -- mimic actual implementation
-                  else
-                    motion_result.is_blocked = true
-                  end
-                end
-              else  -- moving on y (quadrant is left or right)
-                if original_position.y < 7 then
-                  motion_result.position = original_position + step_vec
-                  motion_result.slope_angle = 0.25
-                end
-                if original_position.y >= 5 then
-                  if original_position.y < 7 then
-                    motion_result.is_falling = true
-                    motion_result.slope_angle = nil  -- mimic actual implementation
-                  else
-                    motion_result.is_blocked = true
-                  end
-                end
-              end
-
-              if motion_result.is_falling then
-                -- falling, no tile should be set (or we'll assert in ground_motion_result:init!)
-                motion_result.tile_location = nil
-              else
-                -- to simplify, we say the new tile location is where the new position is
-                -- normally we only *modify* tile_location when there is actually some motion
-                --  but result is the same as long as the initial tile location matched the position
-                motion_result.tile_location = motion_result.position:to_location()
-              end
+            setup(function ()
+              stub(player_char, "compute_closest_wall_query_info", function (self, next_position, quadrant_horizontal_dir)
+                -- we simulate a tilemap like this:
+                -- .#
+                -- ##
+                -- where pc starts at (2, 4) on tile (0, 0), and moves by 2px to the right, with front just touching wall on (1, 0)
+                -- we're currently raycasting from center and using convention that signed distance is from center, not front
+                --  so we must offset all signed distances by ceil(pc_data.ground_sensor_extent_x)
+                -- wall should have slope 0.25 on the right... but it doesn't matter here, we don't use it
+                return motion.ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) + 1, 0.25)
+              end)
             end)
+
+            teardown(function ()
+              player_char.compute_closest_wall_query_info:revert()
+            end)
+
+            -- run on flat ground and just touch wall => NOT blocking yet
+            it('(vector(2, 4) at speed 2) should return vector(2 + 2, 4), slope: 0, is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(2, 4)
+              pc.ground_speed = 2
+
+              assert.are_same(motion.ground_motion_result(
+                  location(1, 0),
+                  vector(2 + 2, 4),
+                  0,
+                  false,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          teardown(function ()
-            next_ground_step_mock:revert()
+          describe('(when compute_closest_wall_query_info finds ground at signed distance -0.2, slope angle 0, at next position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_closest_wall_query_info", function (self, next_position)
+                -- we simulate a tilemap like this:
+                -- .#
+                -- ##
+                -- where pc starts at (2, 4) on tile (0, 0), and moves by 2.2px to the right, just entering wall on (1, 0)
+                -- 0.1 works too, but causes floating imprecisions in busted
+                return motion.ground_query_info(location(1, 0), ceil(pc_data.ground_sensor_extent_x) - 0.2, 0.25)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_closest_wall_query_info:revert()
+            end)
+
+            -- run on flat ground and entering wall by fraction of pixel => BLOCK
+            it('(vector(2, 4) at speed 2) should return vector(2 + 2, 4), slope: 0, is_blocked: false, is_falling: false', function ()
+              pc.ground_tile_location = location(0, 0)
+              pc.position = vector(2, 4)
+              pc.ground_speed = 2.2  -- extra 0.1 to enter wall, so we can check escape wall
+
+              assert.are_same(motion.ground_motion_result(
+                  location(1, 0),
+                  vector(2 + 2, 4),
+                  0,
+                  true,
+                  false
+                ),
+                pc:compute_ground_motion_result()
+              )
+            end)
+
           end)
 
-          it('(vector(3, 4) at speed 3) should return nil, vector(6, 4), slope_angle: nil, is_blocked: false, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = 3
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling but not blocked, so we continue running in the air until x=6
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(6, 4),
-                nil,
-                false,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(vector(3, 4) at speed 5) should return nil, vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = 5
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling then blocked on 7
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(7, 4),
-                nil,
-                true,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(right wall, vector(4, 3) at speed -3 (moving down)) should return nil, vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 3)
-            pc.ground_speed = -3
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling but not blocked, so we continue running in the air until y=6
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(4, 6),
-                nil,
-                false,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(right wall, vector(4, 3) at speed -5 (moving down)) should return nil, vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 3)
-            pc.ground_speed = -5
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling then blocked on 7
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(4, 7),
-                nil,
-                true,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(ceiling, vector(3, 4) at speed -3 (moving right)) should return nil, vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = -3
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.5
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling but not blocked, so we continue running in the air until x=6
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(6, 4),
-                nil,
-                false,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(ceiling, vector(3, 4) at speed -5 (moving right)) should return nil, vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(3, 4)
-            pc.ground_speed = -5
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.5
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling then blocked on 7
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(7, 4),
-                nil,
-                true,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(left wall, vector(4, 3) at speed 3 (moving down)) should return nil, vector(4, 6), slope_angle: nil, is_blocked: false, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 3)
-            pc.ground_speed = 3
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling but not blocked, so we continue running in the air until y=6
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(4, 6),
-                nil,
-                false,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-          it('(left wall, vector(4, 3) at speed 5 (moving down)) should return nil, vector(7, 4), slope_angle: nil, is_blocked: true, is_falling: true', function ()
-            pc.ground_tile_location = location(0, 0)
-            pc.position = vector(4, 3)
-            pc.ground_speed = 5
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75
-
-            -- we assume compute_max_pixel_distance is correct, so it should return 3
-            -- we are falling then blocked on 7
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(4, 7),
-                nil,
-                true,
-                true
-              ),
-              pc:compute_ground_motion_result()
-            )
-          end)
-
-        end)
+        end)  -- stub compute_ground_sensors_query_info
 
       end)  -- compute_ground_motion_result
-
-      describe('next_ground_step', function ()
-
-        -- for these utests, we assume that compute_ground_sensors_query_info and
-        --  _is_blocked_by_ceiling are correct,
-        --  so rather than mocking them, so we setup simple tiles to walk on
-
-        describe('(with flat ground)', function ()
-
-          before_each(function ()
-            -- .
-            -- #
-            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile
-          end)
-
-          -- in the tests below, we can use pc_data.center_height_standing directly instead
-          --  of pc:get_center_height()
-          --  because the character is not compact (e.g. no air spin)
-
-          it('when stepping left with the right sensor still on the ground, decrement x', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(-1, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step flat
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(-2, 8 - pc_data.center_height_standing),
-                0,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping right with the left sensor still on the ground, increment x', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(9, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step flat
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(10, 8 - pc_data.center_height_standing),
-                0,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping left leaving the ground, decrement x and fall', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(-2, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step fall
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(-3, 8 - pc_data.center_height_standing),
-                nil,
-                false,
-                true
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping right leaving the ground, increment x and fall', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(10, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step fall
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(11, 8 - pc_data.center_height_standing),
-                nil,
-                false,
-                true
-              ),
-              motion_result
-            )
-          end)
-
-          -- this behaviour changed with #132, we don't step down after falling when just touching ground
-          it('when stepping right after fall but just touching ground, increment x but do not cancel fall', function ()
-            local motion_result = motion.ground_motion_result(
-              nil,
-              vector(-3, 8 - pc_data.center_height_standing),
-              nil,
-              false,
-              true
-            )
-
-            -- step land (very rare)
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(-2, 8 - pc_data.center_height_standing),
-                nil,
-                false,
-                true  -- still falling
-              ),
-              motion_result
-            )
-          end)
-
-          -- we still wanted to test the case where character lands back on ground (what happened
-          --  above before #132 fix), but we need to place another tile just high enough so step
-          --  gets at least 1px inside ground... a bit cumbersome, so we cheat and assume character
-          --  is 1px lower from the start (although impossible as it should have left ground),
-          --  so character steps up
-          it('when stepping right back on the ground, increment x and cancel fall', function ()
-            local motion_result = motion.ground_motion_result(
-              nil,
-              vector(-3, 9 - pc_data.center_height_standing),
-              nil,
-              false,
-              true
-            )
-
-            -- step land (very rare)
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(-2, 8 - pc_data.center_height_standing),  -- go up 1px to step up ground again
-                0,
-                false,
-                false  -- landed back after a step falling
-              ),
-              motion_result
-            )
-          end)
-
-          -- for other quadrants we only test the most common cases
-
-          it('(right wall) when stepping q-right (up) with the q-left sensor still on the ground, DEcrement y', function ()
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(0 - pc_data.center_height_standing, 12),
-              0,
-              false,
-              false
-            )
-
-            -- step flat
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(0 - pc_data.center_height_standing, 11),
-                0.25,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('(right wall) when stepping q-right (up) with the q-left sensor leaving the ground, DEcrement y and fall', function ()
-            pc.quadrant = directions.right
-            pc.slope_angle = 0.25
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(0 - pc_data.center_height_standing, 6),
-              0,
-              false,
-              false
-            )
-
-            -- step fall
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(0 - pc_data.center_height_standing, 5),
-                nil,
-                false,
-                true
-              ),
-              motion_result
-            )
-          end)
-
-          it('(ceiling) when stepping q-right (left) with the q-left sensor still on the ground, DEcrement x', function ()
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.25
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(-1, 16 + pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step flat
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(-2, 16 + pc_data.center_height_standing),
-                0.5,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('(ceiling) when stepping q-right (left) with the q-left sensor leaving the ground, DEcrement x and fall', function ()
-            pc.quadrant = directions.up
-            pc.slope_angle = 0.25
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(-2, 16 + pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step fall
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(-3, 16 + pc_data.center_height_standing),
-                nil,
-                false,
-                true
-              ),
-              motion_result
-            )
-          end)
-
-          it('(left wall) when stepping q-right (down) with the q-left sensor still on the ground, INcrement y', function ()
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(8 + pc_data.center_height_standing, 15),
-              0.75,
-              false,
-              false
-            )
-
-            -- step flat
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(8 + pc_data.center_height_standing, 16),
-                0.75,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('(left wall) when stepping q-right (down) with the q-left sensor leaving the ground, INcrement y and fall', function ()
-            pc.quadrant = directions.left
-            pc.slope_angle = 0.75
-
-            -- remember to place the character on the left of the tile at (0, 1) as if walking on its left side
-            -- this means the center offset should be subtracted from X this time
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(0 - pc_data.center_height_standing, 16),
-              0,
-              false,
-              false
-            )
-
-            -- step fall
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(0 - pc_data.center_height_standing, 17),
-                nil,
-                false,
-                true
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        describe('(with walls)', function ()
-
-          before_each(function ()
-            -- # #
-            -- ###
-            mock_mset(0, 0, tile_repr.full_tile_id)  -- full tile (left wall)
-            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile
-            mock_mset(1, 1, tile_repr.full_tile_id)  -- full tile
-            mock_mset(2, 0, tile_repr.full_tile_id)  -- full tile
-            mock_mset(2, 1, tile_repr.full_tile_id)  -- full tile (right wall)
-          end)
-
-          it('when stepping left and hitting the wall, preserve x and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(11, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step block
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(11, 8 - pc_data.center_height_standing),
-                0,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping right and hitting the wall, preserve x and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(13, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step block
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(13, 8 - pc_data.center_height_standing),
-                0,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        describe('(with wall without ground below)', function ()
-
-          before_each(function ()
-            --  #
-            -- #
-            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (ground)
-            mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (wall without ground below)
-          end)
-
-          -- it will fail until compute_closest_ground_query_info
-          --  detects upper-level tiles as suggested in the note
-          it('when stepping right on the ground and hitting the non-supported wall, preserve x and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(5, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step block
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(5, 8 - pc_data.center_height_standing),
-                0,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        describe('(with head wall)', function ()
-
-          before_each(function ()
-            --  #
-            -- =
-            mock_mset(0, 1, tile_repr.half_tile_id)  -- bottom half-tile
-            mock_mset(1, 0, tile_repr.full_tile_id)  -- full tile (head wall)
-          end)
-
-          -- it will fail until compute_closest_ground_query_info
-          --  detects upper-level tiles as suggested in the note
-          it('when stepping right on the half-tile and hitting the head wall, preserve x and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(5, 12 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step block
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(0, 1),
-                vector(5, 12 - pc_data.center_height_standing),
-                0,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        -- added to test fix #132 BUG MOTION/VISUAL running from flat to steep descending slope causes glitch
-        describe('(with steepest curve then flat ground)', function ()
-
-          before_each(function ()
-            -- ..
-            -- i#
-            mock_mset(0, 1, tile_repr.visual_loop_bottomright_steepest)
-            mock_mset(1, 1, tile_repr.full_tile_id)
-          end)
-
-          -- case: step fall due to angle
-          it('when stepping from flat ground onto very steep descending ground, angle diff is enough to still fall', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(6, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step to left "onto" curve (actually above)
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(5, 8 - pc_data.center_height_standing),
-                nil,
-                false,
-                true  -- now falling
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        -- added after fixing #132 as I noticed my angle comparison was incorrect when one angle was above 0, and the other just below 0 (~0.9)
-        -- it was fixed by using the new compute_signed_angle_between
-        describe('(with steepest curve then flat ground)', function ()
-
-          before_each(function ()
-            -- >-
-            mock_mset(0, 0, tile_repr.desc_slope_2px_id)
-            mock_mset(1, 0, tile_repr.flat_high_tile_id)
-          end)
-
-          -- case: no step fall as angle difference is small
-          it('when stepping from low descending ground onto flat ground, angle diff is not enough to fall', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 0),
-              -- > tile last column has height 6, so gap of 2
-              vector(10, 2 - pc_data.center_height_standing),
-              atan2(8, 2),
-              false,
-              false
-            )
-
-            -- step to right onto flat high tile
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 0),
-                vector(11, 2 - pc_data.center_height_standing),
-                0,
-                false,
-                false  -- still grounded
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        -- bugfix history:
-        -- = itest of player running on flat ground when ascending a slope showed that when removing supporting ground,
-        --   character would be blocked at the bottom of the slope, so I isolated just that part into a utest
-        describe('(with non-supported ascending slope)', function ()
-
-          before_each(function ()
-            --  /
-            -- #
-            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (ground)
-            mock_mset(1, 0, tile_repr.asc_slope_45_id)  -- ascending slope 45
-          end)
-
-          it('when stepping right from the bottom of the ascending slope, increment x and adjust y', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 1),
-              vector(5, 8 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            -- step down
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 0),
-                vector(6, 7 - pc_data.center_height_standing),
-                45/360,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        describe('(with ascending slope and wall)', function ()
-
-          before_each(function ()
-            -- # #
-            -- #/#
-            mock_mset(0, 0, tile_repr.full_tile_id)  -- full tile (high wall, needed to block motion to the left as right sensor makes the character quite high on the slope)
-            mock_mset(0, 1, tile_repr.full_tile_id)  -- full tile (wall)
-            mock_mset(1, 1, tile_repr.asc_slope_45_id)  -- ascending slope 45
-            mock_mset(2, 0, tile_repr.full_tile_id)  -- full tile (wall)
-          end)
-
-          it('when stepping left on the ascending slope without leaving the ground, decrement x and adjust y', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(12, 9 - pc_data.center_height_standing),
-              45/360,
-              false,
-              false
-            )
-
-            -- step down
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(11, 10 - pc_data.center_height_standing),
-                45/360,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          -- case: after step fall, we are close to ground again but not inside yet
-          -- This variant was added after testing case #132: initial utest passed, but during
-          --  actual gameplay, the character sometimes relanded immediately on the slope after taking off,
-          --  defeating the feature.
-          -- But for the unit test we don't need such a complex scenario, any ground will do.
-          it('when already falling from previous step, do not step down', function ()
-            local motion_result = motion.ground_motion_result(
-              nil,  -- no ground
-              vector(12, 9 - pc_data.center_height_standing),
-              nil,  -- no ground, so no angle
-              false,
-              true  -- previously falling
-            )
-
-            -- step down
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                nil,
-                vector(11, 9 - pc_data.center_height_standing),  -- don't step down, so keep Y
-                nil,
-                false,
-                true  -- still falling
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping right on the ascending slope without leaving the ground, decrement x and adjust y', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(12, 9 - pc_data.center_height_standing),
-              45/360,
-              false,
-              false
-            )
-
-            -- step up
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(13, 8 - pc_data.center_height_standing),
-                45/360,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping right on the ascending slope and hitting the right wall, preserve x and y and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(13, 10 - pc_data.center_height_standing),
-              -45/360,
-              false,
-              false
-            )
-
-            -- step up blocked
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(13, 10 - pc_data.center_height_standing),
-                -45/360,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-          it('when stepping left on the ascending slope and hitting the left wall, preserve x and y and block', function ()
-            local motion_result = motion.ground_motion_result(
-              location(1, 1),
-              vector(11, 10 - pc_data.center_height_standing),
-              -45/360,
-              false,
-              false
-            )
-
-            -- step down blocked
-            pc:next_ground_step(horizontal_dirs.left, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 1),
-                vector(11, 10 - pc_data.center_height_standing),
-                -45/360,
-                true,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-        describe('(with two tiles in a row)', function ()
-
-          before_each(function ()
-            -- ##
-            mock_mset(0, 0, tile_repr.full_tile_id)
-            mock_mset(1, 0, tile_repr.full_tile_id)
-          end)
-
-          it('when stepping right on a new tile, increment x and update tile location to new tile', function ()
-            local motion_result = motion.ground_motion_result(
-              location(0, 0),
-              vector(5, 0 - pc_data.center_height_standing),
-              0,
-              false,
-              false
-            )
-
-            pc:next_ground_step(horizontal_dirs.right, motion_result)
-
-            assert.are_same(motion.ground_motion_result(
-                location(1, 0),
-                vector(6, 0 - pc_data.center_height_standing),
-                0,
-                false,
-                false
-              ),
-              motion_result
-            )
-          end)
-
-        end)
-
-      end)  -- _next_ground_step
 
       describe('is_blocked_by_ceiling_at', function ()
 

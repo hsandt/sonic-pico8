@@ -1907,77 +1907,13 @@ function player_char:compute_ground_motion_result()
   --  but we can still compute the expected velocity in the absence of collisions in advance,
   --  using compute_velocity_from_ground_speed
   local next_position = self.position + self:compute_velocity_from_ground_speed()
-  local is_blocked = false
   local is_falling = false
 
   -- Step 2: wall check
 
   -- do a wall raycast in the direction of ground speed
   local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
-  local sensor_position_base = self:get_wall_sensor_position_from(next_position, quadrant_horizontal_dir)
-  local wall_query_info = self:compute_closest_wall_query_info(sensor_position_base, quadrant_horizontal_dir)
-
-  if wall_query_info.tile_location then
-    -- We detected a wall, but it doesn't mean we should stop:
-    -- a. future position may be just touching a wall on the right (when raycasting over ceil(pc_data.ground_sensor_extent_x)
-    --  we can only detect touched walls on the right due to pixel asymmetry)
-    --  we ignore his case by checking `< ceil(pc_data.ground_sensor_extent_x)` (although stopping right at that distance is no big deal)
-    --  OPTIMIZE CHARS: you can remove this condition if too tight on budget
-    -- b. future position may be "too much inside wall to escape". Actually, we should try to escape anyway,
-    --  but in this case we shouldn't because of a quirk in the detection: we detect the tile in the start position
-    --  of the raycast, so if an object collision mask partially occupies a tile, like the left part of the spring oriented up,
-    --  and we have our back turned to that object, we are actually still detecting it BEHIND us with a big negative distance
-    --  like -7.5 as if we were inside. Therefore, trying to escape this would drag the character backward into the spring.
-    --  To fix this, we either need to
-    --  (i) add some threshold on negative distance (here, -6), or
-    --  (ii) pass ignore_reverse_on_start_tile: true in the call to iterate_over_collision_tiles in compute_closest_wall_query_info,
-    --  exactly as we're doing in compute_closest_ceiling_query_info. Originally, I didn't choose (ii) because I was afraid I would
-    --  miss legit tile reverse detection in some places. I tried it though just to see, and in practice I could not
-    --  find any places where behavior was unexpected or different from (i). But (i) still makes sense in terms of
-    --  escape range, so I kept it.
-    --  OPTIMIZE CHARS: you can remove this condition and replace it with [[ignore_reverse_on_start_tile:]] true in compute_closest_wall_query_info
-    --   if too tight on budget
-    --  If you remove both conditions, you can remove the if entirely!
-
-    -- To simplify, we're just passing 6 hardcoded and not as pc_data, for once.
-    -- Remember that we're raycasting from the character center, so 6 is actually super deep already, it means the character's front
-    --  is around 9 pixels inside the wall already, which is bigger than tile_size = 8! So enough to cover even the fastest spin dash
-    --  (max spin dash launch speed is 6).
-    -- OPTIMIZE CHARS: consider storing ceil(pc_data.ground_sensor_extent_x) in a variable in pc_data (either precomputed or hardcoded)
-    --  that you'd reuse *everywhere*
-    if -6 <= wall_query_info.signed_distance and wall_query_info.signed_distance < ceil(pc_data.ground_sensor_extent_x) then
-      -- we're in good range to escape wall
-
-      -- remember we raycast from character center, but to get the escape vector we need to know the actual
-      --  distance from character *front* to wall, so subtract the distance from center to front
-      -- we really want to *subtract* in that direction: result is negative, but wall quadrant is an *interior* normal
-      --  so the escape vector will be in the sense of the *exterior* normal so we can escape
-      -- considering the test above, signed_distance_to_closest_wall must be < 0
-      local signed_distance_to_closest_wall = wall_query_info.signed_distance - ceil(pc_data.ground_sensor_extent_x)
-      log("signed_distance_to_closest_wall: "..signed_distance_to_closest_wall, "trace2")
-
-      -- same trick as compute_closest_wall_query_info to inline rotate_dir_90_(c)cw
-      -- OPTIMIZE CHARS: see if it's worth factorizing it as a function to spare characters
-      --  or even pre-compute the wall quadrant and use it both here, and pass it to compute_closest_wall_query_info
-      --  (for usage as collision_check_quadrant) called above
-      local rotate_sign = self.ground_speed < 0 and 1 or -1
-      local wall_quadrant = dir_vectors[(self.quadrant + rotate_sign) % 4]
-      local vector_to_closest_wall = signed_distance_to_closest_wall * wall_quadrant
-
-      -- Escape wall
-
-      -- Note that sensor position preserves pixel fraction on qy (expected wall normal axis:
-      --  we consider the wall quadrant to define qx/qy here, not character quadrant)
-      --  so we can get the exact distance to closest wall.
-      -- This means that even when we enter wall by a fraction of pixel, we'll escape from it perfectly.
-      -- In addition, we don't need to floor the result's qy, similarly to how we perfectly snap
-      --  to ground thanks to ground sensor position preserving qy fraction.
-      next_position:add_inplace(vector_to_closest_wall)
-
-      -- Remember we're blocked so we can reset ground speed
-      is_blocked = true
-    end
-  end
+  local is_blocked = self:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
 
   -- Step 3: ground check
 
@@ -2041,6 +1977,80 @@ function player_char:compute_ground_motion_result()
   )
 
   return motion_result
+end
+
+-- check for wall in relative quadrant_horizontal_dir when character center is at next position
+-- update next position in-place to escape any wall entered
+-- return true if escaping wall this way, else falsy value
+function player_char:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
+  local sensor_position_base = self:get_wall_sensor_position_from(next_position, quadrant_horizontal_dir)
+  local wall_query_info = self:compute_closest_wall_query_info(sensor_position_base, quadrant_horizontal_dir)
+
+  if wall_query_info.tile_location then
+    -- We detected a wall, but it doesn't mean we should stop:
+    -- a. future position may be just touching a wall on the right (when raycasting over ceil(pc_data.ground_sensor_extent_x)
+    --  we can only detect touched walls on the right due to pixel asymmetry)
+    --  we ignore his case by checking `< ceil(pc_data.ground_sensor_extent_x)` (although stopping right at that distance is no big deal)
+    --  OPTIMIZE CHARS: you can remove this condition if too tight on budget
+    -- b. future position may be "too much inside wall to escape". Actually, we should try to escape anyway,
+    --  but in this case we shouldn't because of a quirk in the detection: we detect the tile in the start position
+    --  of the raycast, so if an object collision mask partially occupies a tile, like the left part of the spring oriented up,
+    --  and we have our back turned to that object, we are actually still detecting it BEHIND us with a big negative distance
+    --  like -7.5 as if we were inside. Therefore, trying to escape this would drag the character backward into the spring.
+    --  To fix this, we either need to
+    --  (i) add some threshold on negative distance (here, -6), or
+    --  (ii) pass ignore_reverse_on_start_tile: true in the call to iterate_over_collision_tiles in compute_closest_wall_query_info,
+    --  exactly as we're doing in compute_closest_ceiling_query_info. Originally, I didn't choose (ii) because I was afraid I would
+    --  miss legit tile reverse detection in some places. I tried it though just to see, and in practice I could not
+    --  find any places where behavior was unexpected or different from (i). But (i) still makes sense in terms of
+    --  escape range, so I kept it.
+    --  OPTIMIZE CHARS: you can remove this condition and replace it with [[ignore_reverse_on_start_tile:]] true in compute_closest_wall_query_info
+    --   if too tight on budget
+    --  If you remove both conditions, you can remove the if entirely!
+
+    -- To simplify, we're just passing 6 hardcoded and not as pc_data, for once.
+    -- Remember that we're raycasting from the character center, so 6 is actually super deep already, it means the character's front
+    --  is around 9 pixels inside the wall already, which is bigger than tile_size = 8! So enough to cover even the fastest spin dash
+    --  (max spin dash launch speed is 6).
+    -- OPTIMIZE CHARS: consider storing ceil(pc_data.ground_sensor_extent_x) in a variable in pc_data (either precomputed or hardcoded)
+    --  that you'd reuse *everywhere*
+    if -6 <= wall_query_info.signed_distance and wall_query_info.signed_distance < ceil(pc_data.ground_sensor_extent_x) then
+      -- we're in good range to escape wall
+
+      -- remember we raycast from character center, but to get the escape vector we need to know the actual
+      --  distance from character *front* to wall, so subtract the distance from center to front
+      -- we really want to *subtract* in that direction: result is negative, but wall quadrant is an *interior* normal
+      --  so the escape vector will be in the sense of the *exterior* normal so we can escape
+      -- considering the test above, signed_distance_to_closest_wall must be < 0
+      local signed_distance_to_closest_wall = wall_query_info.signed_distance - ceil(pc_data.ground_sensor_extent_x)
+      log("signed_distance_to_closest_wall: "..signed_distance_to_closest_wall, "trace2")
+
+      -- same trick as compute_closest_wall_query_info to inline rotate_dir_90_(c)cw
+      -- OPTIMIZE CHARS: see if it's worth factorizing it as a function to spare characters
+      --  or even pre-compute the wall quadrant and use it both here, and pass it to compute_closest_wall_query_info
+      --  (for usage as collision_check_quadrant) called above
+      local rotate_sign = self.ground_speed < 0 and 1 or -1
+      local wall_quadrant = dir_vectors[(self.quadrant + rotate_sign) % 4]
+      local vector_to_closest_wall = signed_distance_to_closest_wall * wall_quadrant
+
+      -- Escape wall
+
+      -- Note that sensor position preserves pixel fraction on qy (expected wall normal axis:
+      --  we consider the wall quadrant to define qx/qy here, not character quadrant)
+      --  so we can get the exact distance to closest wall.
+      -- This means that even when we enter wall by a fraction of pixel, we'll escape from it perfectly.
+      -- In addition, we don't need to floor the result's qy, similarly to how we perfectly snap
+      --  to ground thanks to ground sensor position preserving qy fraction.
+      next_position:add_inplace(vector_to_closest_wall)
+
+      -- Return true so caller can remember character was blocked and reset ground speed
+      return true
+    end
+  end
+
+  -- not commented out for now to maintain utests validity,
+  --  but if you need to spare characters, comment this out and change utests to check for nil / no value
+  return false
 end
 
 -- return the number of new pixel q-columns explored when moving from initial_position_coord (x or y)

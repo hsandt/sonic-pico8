@@ -5453,6 +5453,12 @@ describe('player_char', function ()
             player_char.compute_ground_sensors_query_info:revert()
           end)
 
+          -- note that tests below stub compute_closest_wall_query_info, but since the utests were written,
+          --  we've extracted the block calling it into check_escape_wall_and_update_next_position
+          -- but now that the utests exist and cover all cases, we don't need to rewrite tests to stub
+          --  check_escape_wall_and_update_next_position and make proper utests for check_escape_wall_and_update_next_position
+          --  itself, so we keep testing compute_ground_motion_result
+
           describe('(when compute_closest_wall_query_info detects just touching wall)', function ()
 
             setup(function ()

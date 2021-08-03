@@ -213,6 +213,7 @@ Frame       Ground Speed     Velocity     Bottom Pos
 --]=]
 
 
+--#if busted
 -- bugfix history:
 -- + revealed that spawn_at was not resetting state vars, so added _setup method
 itest_dsl_parser.register(
@@ -230,12 +231,36 @@ expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+--#endif
 
 -- trying to reproduce crash in vector.__add due to adding scalar 0 to vector
 -- fixed! forgot to get dir_vectors
 -- now still useful like utest above to test wall blocking movement, including subpixel cut, if any
 itest_dsl_parser.register(
-  '#solo run into wall right', [[
+  'jump into wall left', [[
+@stage #
+#.
+#.
+#.
+#.
+##
+
+warp 12 32
+move left
+jump
+wait 60
+
+expect pc_bottom_pos 11 32
+expect pc_motion_state standing
+expect pc_ground_spd 0
+expect pc_velocity 0 0
+]])
+
+--#if busted
+-- trying to bug when switching to big step for air motion:
+-- Sonic enters wall too much by 2px or so, but only when jumping into LEFT wall!
+itest_dsl_parser.register(
+  'run into wall right', [[
 @stage #
 ...#
 ####
@@ -249,12 +274,14 @@ expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+--#endif
 
+--#if busted
 -- note: start position matters to test tunnel effect
 -- if we start at 4 we touch the wall (it may be a bug, that should happen at 5)
 -- at 3 we enter wall by 3px (!) so good to test deep wall escape
 itest_dsl_parser.register(
-  '#solo spin dash into wall right', [[
+  'spin dash into wall right', [[
 @stage #
 .#
 ##
@@ -273,6 +300,7 @@ expect pc_motion_state standing
 expect pc_ground_spd 0
 expect pc_velocity 0 0
 ]])
+--#endif
 
 --[=[
 
@@ -360,6 +388,7 @@ expect pc_velocity 0 0
 -- * revealed that new system always flooring pixel position x caused leaving cliff
 --  frame later, adding a grounded frame with friction
 
+--#if busted
 -- this test is now failing, I suspect air friction to mess up X...
 itest_dsl_parser.register(
   'platformer fall cliff', [[
@@ -378,6 +407,7 @@ expect pc_motion_state falling
 expect pc_ground_spd 0
 expect pc_velocity 0.84375 2.625
 ]])
+--#endif
 
 -- calculation notes:
 -- at frame 1: pos (17.9453125, 8), velocity (0.796875, 0), standing
@@ -462,6 +492,7 @@ vector(0, -2)
 --]]
 -- but after setting velocity to match projected ground speed in enter_motion_state(standing),
 -- the test passed.
+--#if busted
 itest_dsl_parser.register(
   'platformer hop chain', [[
 @stage #
@@ -481,6 +512,7 @@ expect pc_motion_state air_spin
 expect pc_ground_spd 0
 expect pc_velocity 0 -2
 ]])
+--#endif
 
 -- timing notes:
 -- must set jump intention after 38 frames so it's ready for the check at the end of frame #39 (wait 1),
@@ -1045,6 +1077,20 @@ expect pc_velocity 0 0
 ]])
 
 --]=]
+
+itest_dsl_parser.register(
+  '#solo land on one-way at high speed', [[
+@stage #
+.
+o
+
+warp 4 -20
+wait 25
+
+expect pc_bottom_pos 4 8
+expect pc_motion_state standing
+expect pc_velocity 0 0
+]])
 
 --#if busted
 itest_dsl_parser.register(

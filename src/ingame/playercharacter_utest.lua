@@ -1646,20 +1646,20 @@ describe('player_char', function ()
           end)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 inside', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 inside', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 8 + pc_data.max_ground_escape_height + 1)))
           end)
 
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
             -- we really check 1 extra px above max_ground_escape_height, so even that far from the ground above we still see it as a step too high, not ceiling
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) (clamped) if max_ground_escape_height - 1 below the bottom', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
@@ -1692,7 +1692,7 @@ describe('player_char', function ()
           end)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo (right wall) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
+          it('(right wall) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
             pc.quadrant = directions.right
 
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(8 + pc_data.max_ground_escape_height + 1, 12)))
@@ -1719,7 +1719,7 @@ describe('player_char', function ()
           end)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo (ceiling) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
+          it('(ceiling) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
             pc.quadrant = directions.up
 
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(12, 16 - pc_data.max_ground_escape_height - 1)))
@@ -1746,7 +1746,7 @@ describe('player_char', function ()
           end)
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo (left wall) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
+          it('(left wall) should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if too far inside the wall', function ()
             pc.quadrant = directions.left
 
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(16 - pc_data.max_ground_escape_height - 1, 12)))
@@ -1828,17 +1828,18 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(1, 1), -1, 0), pc:compute_closest_ground_query_info(vector(12, 8 + 1)))
           end)
 
-          -- below the top by more than 1px (for now ignored, but will very soon change convention to snap up to one-way as with any other ground)
+          -- below the top by more than 1px (new convention is to still detect one-way to allow big step fall in airborne physics)
 
-          it('#solo should return ground_query_info(nil, max_ground_snap_height + 1, nil) if 1.1 (<= max_ground_escape_height) inside vertically', function ()
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(12, 8 + 1.1)))
+          it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if 1.25 (<= max_ground_escape_height) inside vertically', function ()
+            -- used to be -1.1, but -1.25 avoids floating imprecisions
+            assert.are_same(ground_query_info(location(1, 1), -1.25, 0), pc:compute_closest_ground_query_info(vector(12, 8 + 1.25)))
           end)
 
-          it('#solo should return ground_query_info(nil, max_ground_snap_height + 1, nil) if 3 (<= max_ground_escape_height) inside vertically', function ()
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(12, 8 + 3)))
+          it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if 3 (<= max_ground_escape_height) inside vertically', function ()
+            assert.are_same(ground_query_info(location(1, 1), -3, 0), pc:compute_closest_ground_query_info(vector(12, 8 + 3)))
           end)
 
-          -- below by more than step up distance (still ignoring it)
+          -- below by more than step up distance (ignoring it like normal ground)
 
           it('should return ground_query_info(nil, max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the bottom', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height + 1)))
@@ -1883,7 +1884,7 @@ describe('player_char', function ()
           --  only to land inside the tile above
 
           -- convention v3 is returning nothing/too far to snap when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 inside, including max_ground_escape_height in current tile', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(4, 8 + pc_data.max_ground_escape_height)))
           end)
 
@@ -1964,12 +1965,12 @@ describe('player_char', function ()
           -- beyond the tile, still detecting it until step up is reached, including the +1 up to detect a wall (step up too high)
 
           -- new convention is returning tile when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height - 1 below the bottom', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height - 1 below the bottom', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height - 1)))
           end)
 
           -- new convention is returning tile when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height below the bottom', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(15, 16 + pc_data.max_ground_escape_height)))
           end)
 
@@ -2058,7 +2059,7 @@ describe('player_char', function ()
           -- step up distance reached, character considered in the air
 
           -- new convention is returning tile when deep inside ground
-          it('#solo should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
+          it('should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) if max_ground_escape_height + 1 below the top of column 0 but only max_ground_snap_height below the bottom of column 0 (of the tile)', function ()
             assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(8, 15 + pc_data.max_ground_escape_height + 1)))
           end)
 
@@ -2285,10 +2286,10 @@ describe('player_char', function ()
             assert.are_same(ground_query_info(location(0, 0), 0, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(4, 2)))
           end)
 
-          it('(ignoring ramp) position below ramp by more than 1px should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) because it is one-way', function ()
+          it('(ignoring ramp) position below ramp by more than 1px should STILL return ground_query_info() with non-nil tile location because we changed the one-way convention to allow snap up as usual', function ()
             pc.ignore_launch_ramp_timer = 0
             -- same shape as tile_repr.visual_loop_bottomright, so expect same signed distance
-            assert.are_same(ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil), pc:compute_closest_ground_query_info(vector(4, 4)))
+            assert.are_same(ground_query_info(location(0, 0), -2, atan2(8, -5)), pc:compute_closest_ground_query_info(vector(4, 4)))
           end)
 
           it('(ignoring ramp) position on entrance should return ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil) as if there were nothing', function ()
@@ -2752,14 +2753,12 @@ describe('player_char', function ()
             pc:check_escape_from_ground()
 
             -- interface
-            -- new convention is returning tile when deep inside ground
-            assert.are_same({vector(12, 8 + pc_data.max_ground_escape_height + 1), location(1, 1)}, {pc:get_bottom_center(), pc.ground_tile_location})
+            -- convention v3 is returning nothing/too far to snap when deep inside ground
+            assert.are_same({vector(12, 8 + pc_data.max_ground_escape_height + 1), nil}, {pc:get_bottom_center(), pc.ground_tile_location})
 
-            -- new convention is returning tile when deep inside ground
-            assert.spy(player_char.set_ground_tile_location).was_called(1)
-            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+            -- convention v3 is doing nothing to escape when deep inside ground
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
 
           it('(when character detects ground, already grounded) not enter state', function ()
@@ -2839,10 +2838,9 @@ describe('player_char', function ()
             assert.are_same(vector(11, 8 + pc_data.max_ground_escape_height + 1), pc:get_bottom_center())
 
             -- new convention is returning tile when deep inside ground
-            assert.spy(player_char.set_ground_tile_location).was_called(1)
-            assert.spy(player_char.set_ground_tile_location).was_called_with(match.ref(pc), location(1, 1))
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
-            assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0)
+            -- convention v3 is returning nothing/too far to snap when deep inside ground
+            assert.spy(player_char.set_ground_tile_location).was_not_called()
+            assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
           end)
 
         end)

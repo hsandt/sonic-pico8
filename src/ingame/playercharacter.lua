@@ -974,15 +974,6 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       -- Test along collision_check_quadrant itself never needs it.
       local signed_distance_to_closest_collider = world.sub_qy(current_tile_qbottom, world.get_quadrant_y_coord(sensor_position, collision_check_quadrant), collision_check_quadrant) - qcolumn_height
 
-      -- even when checking downward, we cannot detect one-way platforms from below their surface (signed distance < 0)
-      -- this way, we don't step up or get blocked by them as ceiling inadvertently, but can still just land on them
-      -- NEW PHYSICS: this will break once we switch to big steps in the airborne update, because
-      --  the -1 threshold is meant to catch any step when landing on a one-way platform (we are advancing on
-      --  integer pixels so we're definitely going through -1, hence < not <=)
-      if is_oneway and signed_distance_to_closest_collider < -1 then
-        signed_distance_to_closest_collider = pc_data.max_ground_snap_height + 1
-      end
-
       -- callback returns ground query info, let it decide how to handle presence of collider
       local result = collider_distance_callback(curr_global_tile_loc, signed_distance_to_closest_collider, slope_angle)
 

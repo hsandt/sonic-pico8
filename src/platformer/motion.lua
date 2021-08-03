@@ -41,6 +41,7 @@ function ground_motion_result:init(tile_location, position, slope_angle, is_bloc
   --  it's possible to have no ground tile location and not is_falling
   --  when _check_escape_from_ground found character too deep inside ground,
   --  so it can have the grounded animation with slope 0 but no specific tile to walk on
+  assert((tile_location == nil) == is_falling, "tile location is "..stringify(tile_location).." but is_falling is "..tostr(is_falling))
   assert(type(slope_angle) == "number" or slope_angle == nil)
   self.tile_location = tile_location
   self.position = position

@@ -1043,6 +1043,16 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 end
 
 -- actual body of compute_closest_ground_query_info passed to iterate_over_collision_tiles
+--  as no_collider_callback
+-- defined before ground_check_collider_distance_callback to make it callable from there
+local function ground_check_no_collider_callback()
+  -- end of iteration, and no ground found or too far below to snap q-down
+  -- return edge case for ground considered too far below
+  --  (pc_data.max_ground_snap_height + 1, nil)
+  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+end
+
+-- actual body of compute_closest_ground_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
 -- return nil if no clear result and we must continue to iterate (until the last tile)
 local function ground_check_collider_distance_callback(tile_location, signed_distance_to_closest_ground, slope_angle)
@@ -1051,23 +1061,15 @@ local function ground_check_collider_distance_callback(tile_location, signed_dis
     -- return edge case (nil, -pc_data.max_ground_escape_height - 1, 0)
     -- the slope angle 0 allows to still have character stand straight (world) up visually,
     --  but he's probably stuck inside the ground...
-    -- the new convention is to set ground tile location to the tile location found to avoid crashing
-    --  on next update_platformer_motion_grounded
-    return motion.ground_query_info(tile_location, -pc_data.max_ground_escape_height - 1, 0)
+    -- convention v3 is to ignore ground completely is too deep inside
+    --  to avoid walking with head on ceiling or inside one-way platform when a little too low
+    -- to spare characters just reuse no collider callback directly
+    return ground_check_no_collider_callback()
   elseif signed_distance_to_closest_ground <= pc_data.max_ground_snap_height then
     -- ground found, and close enough to snap up/down, return ground query info
     --  to allow snapping + set slope angle
     return motion.ground_query_info(tile_location, signed_distance_to_closest_ground, slope_angle)
   end
-end
-
--- actual body of compute_closest_ground_query_info passed to iterate_over_collision_tiles
---  as no_collider_callback
-local function ground_check_no_collider_callback()
-  -- end of iteration, and no ground found or too far below to snap q-down
-  -- return edge case for ground considered too far below
-  --  (pc_data.max_ground_snap_height + 1, nil)
-  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
 end
 
 -- return ground_query_info(tile_location, signed_distance, slope_angle) where:
@@ -1097,6 +1099,14 @@ function player_char:compute_closest_ground_query_info(sensor_position)
 end
 
 -- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
+--  as no_collider_callback
+-- defined before ceiling_check_collider_distance_callback to make it callable from there
+local function ceiling_check_no_collider_callback()
+  -- end of iteration, and no ceiling found
+  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+end
+
+-- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
 -- return "ground query info" although it's ceiling, because depending on the angle, character may actually adhere, making it
 --  a q-up ground
@@ -1116,15 +1126,10 @@ local function ceiling_check_collider_distance_callback(curr_tile_loc, signed_di
     -- So we can probably, like ceiling_check_no_collider_callback, do:
     --   return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
     -- but I'll wait for the rest of new physics to work before trying that.
+    -- when you're ready, just uncomment this:
+    -- return ceiling_check_no_collider_callback()
     return nil
   end
-end
-
--- actual body of compute_closest_ceiling_query_info passed to iterate_over_collision_tiles
---  as no_collider_callback
-local function ceiling_check_no_collider_callback()
-  -- end of iteration, and no ceiling found
-  return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
 end
 
 -- similar to compute_closest_ground_query_info, but for ceiling
@@ -1159,6 +1164,15 @@ function player_char:compute_closest_ceiling_query_info(sensor_position)
 end
 
 -- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
+--  as no_collider_callback
+-- defined before wall_check_no_collider_callback to make it callable from there
+local function wall_check_no_collider_callback()
+  -- end of iteration, and no wall found
+  -- by convention pass a distance bigger than the raycast length (ceil(pc_data.ground_sensor_extent_x))
+  return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
+end
+
+-- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
 local function wall_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
   -- OPTIMIZE CHARS
@@ -1175,16 +1189,9 @@ local function wall_check_collider_distance_callback(curr_tile_loc, signed_dista
     --  but didn't want to change the implementation on existing code yet
     -- wall detection is new though, so let's return the same as wall_check_no_collider_callback,
     --  running the risk of stopping the tile iteration early, as it may benefit CPU
-    return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
+    -- to spare characters, reuse no collider callback
+    return wall_check_no_collider_callback()
   end
-end
-
--- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
---  as no_collider_callback
-local function wall_check_no_collider_callback()
-  -- end of iteration, and no wall found
-  -- by convention pass a distance bigger than the raycast length (ceil(pc_data.ground_sensor_extent_x))
-  return motion.ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil)
 end
 
 -- "raycast" from wall sensor_position: vector toward q-left or q-right
@@ -1236,34 +1243,28 @@ end
 -- if ground is detected but character was airborne, enter standing state
 -- if no ground is detected, do nothing. Do not even enter airborne state. Either the caller must enter it
 --  by default before calling this method, or they should count on the next frame update to start character fall.
+-- note that unlike other escape methods, exceptionally we do care about the "touch" case
+-- this is because the method is called after warp, where we'd like an instant landing (but that's optional,
+--  character would fall and land in 1 frame without this anyway)
 function player_char:check_escape_from_ground()
   local query_info = self:compute_ground_sensors_query_info(self.position)
   local signed_distance_to_closest_ground, next_slope_angle = query_info.signed_distance, query_info.slope_angle
-  if signed_distance_to_closest_ground <= 0 then
+  if - pc_data.max_ground_escape_height <= signed_distance_to_closest_ground and signed_distance_to_closest_ground <= 0 then
     -- character is either just touching ground (signed_distance_to_closest_ground == 0)
-    --  or inside ground, so check how deep he is inside ground
-    if - signed_distance_to_closest_ground <= pc_data.max_ground_escape_height then
-      -- close to surface enough to escape
-      -- snap character q-upward to ground q-top (it does nothing if already touching ground)
-      -- (we currently only check_escape_from_ground after a warp where quadrant is down,
-      --  but this can prove useful if using this for ceiling adherence later; currently
-      --  we just use a manual offset when landing on a non-down quadrant to fix
-      --  #129 BUG MOTION curve_run_up_fall_in_wall as check_escape_from_ground even with quadrant
-      --  gives a different result, pushing out too much and ending quadrant down again)
-      local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
-      self.position:add_inplace(vector_to_closest_ground)
-      -- register ground tile for later
-      self:set_ground_tile_location(query_info.tile_location)
-      -- set slope angle to new ground
-      self:set_slope_angle_with_quadrant(next_slope_angle)
-    else
-      -- too deep to escape, stay there
-      -- the new convention is to set ground tile location to the tile location found to avoid crashing
-      --  on next update_platformer_motion_grounded, and slope angle to 0 to stand upward
-      --  (see ground_check_collider_distance_callback)
-      self:set_ground_tile_location(query_info.tile_location)
-      self:set_slope_angle_with_quadrant(0)
-    end
+    --  or inside ground and enough close to surface to escape
+    -- snap character q-upward to ground q-top (it does nothing if already touching ground)
+    -- (we currently only check_escape_from_ground after a warp where quadrant is down,
+    --  but this can prove useful if using this for ceiling adherence later; currently
+    --  we just use a manual offset when landing on a non-down quadrant to fix
+    --  #129 BUG MOTION curve_run_up_fall_in_wall as check_escape_from_ground even with quadrant
+    --  gives a different result, pushing out too much and ending quadrant down again)
+    local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
+    self.position:add_inplace(vector_to_closest_ground)
+    -- register ground tile for later
+    self:set_ground_tile_location(query_info.tile_location)
+    -- set slope angle to new ground
+    self:set_slope_angle_with_quadrant(next_slope_angle)
+
     -- if airborne, simulate landing
     -- if already grounded, don't change state in case we were rolling etc.
     --  (it never happends with pixel step motion, but it can with big step / frame by frame motion)
@@ -1271,6 +1272,10 @@ function player_char:check_escape_from_ground()
       self:enter_motion_state(motion_states.standing)
     end
   end
+  -- note: if inside ground but too deep to escape:
+  -- convention v3 is to ignore ground completely is too deep inside
+  --  to avoid walking with head on ceiling or inside one-way platform when a little too low
+  -- since in this context we must not do anything when no ground is detected, do nothing
 end
 
 -- enter motion state, reset state vars appropriately
@@ -1897,7 +1902,7 @@ function player_char:compute_ground_motion_result()
   -- Big step method:
   -- 1. apply full velocity to get hypothetical position next frame in the absence of collisions
   -- 2. escape from any wall (in the allowed range)
-  -- 3. snap to / escape from any ground (in the allowed range)
+  -- 3. snap to / escape from any ground (in the allowed range), or fall if no ground / angle difference too big
 
   -- Step 1: future position prediction
 
@@ -1968,8 +1973,9 @@ function player_char:compute_ground_motion_result()
     end
   end
 
+  -- make sure to only pass tile location if not falling, to avoid assert on invalid result construction
   local motion_result = motion.ground_motion_result(
-    query_info.tile_location,
+    not is_falling and query_info.tile_location or nil,  -- don't reverse that ternary! `and nil or ...` won't work!
     next_position,
     query_info.slope_angle,
     is_blocked,

@@ -73,8 +73,15 @@ local mask_tile_angles = transform(
     [28] = {4, -8},  -- top of regular 1:2 ascending slope, except at bottom where 1px was removed to allow easy fall-off
 
     -- 6px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
-    [26] = {0, -8},    -- 4x6 used for spring oriented up - left part (collider only)
-    -- [27] = {8, 0},  -- 8x6 used for spring oriented up - right part (collider only) => same as [2], so removed to spare characters
+    -- we used a hack here because [26] is a partial rectangle with interior horizontal: right and interior vertical: down
+    --  and we need both to be found correctly by tile_collision_data.slope_angle_to_interiors so the collision reverse
+    --  check in world.compute_qcolumn_height_at is done correctly (if interior horizontal is incorrect, Sonic gets
+    --  blocked before touching left part as in former issue with spring right; if interior vertical is incorrect, Sonic
+    --  floats above spring up left part and cannot trigger it there)
+    -- the actual slope angle doesn't matter as we can never land on a spring, but to make sense we pick something
+    --  almost horizontal, but with coords just enough to get x > 0 and y < 0 => interior is down-right
+    [26] = {8, -0.0625}, -- 4x6 used for spring oriented up - left part (collider only)
+    -- [27] = {8, 0},    -- 8x6 used for spring oriented up - right part (collider only) => same as [2], so removed to spare characters
 
     -- 8px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
     [29] = {8, 0},   -- 8x8 used for full ground

@@ -2748,7 +2748,7 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.25)
           end)
 
-          it('should reset state vars to too deep convention when character is too deep inside the ground', function ()
+          it('should do nothing when character is too deep inside the ground', function ()
             pc:set_bottom_center(vector(12, 8 + pc_data.max_ground_escape_height + 1))
             pc:check_escape_from_ground()
 
@@ -2830,14 +2830,14 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 1-45/360)
           end)
 
-          it('should set tile location to ground location and angle to 0 when character is too deep inside the ground', function ()
-            pc:set_bottom_center(vector(11, 8 + pc_data.max_ground_escape_height + 1))
+          it('do nothing when character is too deep inside the ground', function ()
+            pc:set_bottom_center(vector(15, 12 + pc_data.max_ground_escape_height + 1))
             pc:check_escape_from_ground()
 
             -- interface
-            assert.are_same(vector(11, 8 + pc_data.max_ground_escape_height + 1), pc:get_bottom_center())
+            -- convention v3 is returning nothing/too far to snap when deep inside ground
+            assert.are_same(vector(15, 12 + pc_data.max_ground_escape_height + 1), pc:get_bottom_center())
 
-            -- new convention is returning tile when deep inside ground
             -- convention v3 is returning nothing/too far to snap when deep inside ground
             assert.spy(player_char.set_ground_tile_location).was_not_called()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_not_called()
@@ -5983,10 +5983,13 @@ describe('player_char', function ()
           player_char.check_escape_from_ground:clear()
         end)
 
-        describe('(when compute_air_motion_result returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
+        describe('(when check_air_collisions sets position and returns a motion result with position vector(2, 8), is_blocked_by_ceiling: false, is_blocked_by_wall: false, is_landing: false)', function ()
 
           setup(function ()
-            compute_air_motion_result_mock = stub(player_char, "compute_air_motion_result", function (self)
+            stub(player_char, "check_air_collisions", function (self)
+              -- check_air_collisions must update position in-place
+              self.position = vector(4, 8)
+
               return motion.air_motion_result(
                 nil,
                 vector(4, 8),  -- make sure it's far enough from stage left edge to avoid soft clamping
@@ -5999,11 +6002,11 @@ describe('player_char', function ()
           end)
 
           teardown(function ()
-            compute_air_motion_result_mock:revert()
+            player_char.check_air_collisions:revert()
           end)
 
           after_each(function ()
-            compute_air_motion_result_mock:clear()
+            player_char.check_air_collisions:clear()
           end)
 
           it('should set velocity y to -jump_interrupt_speed_frame on first frame of hop if velocity.y is not already greater, and clear has_jumped_this_frame flag', function ()
@@ -6183,7 +6186,7 @@ describe('player_char', function ()
           -- bugfix history:
           -- .
           it('should update position with air motion result position', function ()
-            pc.position = vector(0, 0)  -- doesn't matter, since we mock compute_air_motion_result
+            pc.position = vector(0, 0)  -- doesn't matter, since we stub check_air_collisions
 
             pc:update_platformer_motion_airborne()
 
@@ -6202,13 +6205,15 @@ describe('player_char', function ()
             assert.are_equal(-10, pc.velocity.y)
           end)
 
-        end)  -- compute_air_motion_result_mock (vector(2, 8), false, false, false)
+        end)  -- stub check_air_collisions (vector(2, 8), false, false, false)
 
-        describe('(when compute_air_motion_result returns a motion result with is_blocked_by_wall: false, is_blocked_by_ceiling: true) '..
+        describe('(when check_air_collisions sets position and returns a motion result with is_blocked_by_wall: false, is_blocked_by_ceiling: true) '..
             '(when apply_air_drag multiplies velocity x by 0.9 no matter what)', function ()
 
           setup(function ()
-            stub(player_char, "compute_air_motion_result", function (self)
+            stub(player_char, "check_air_collisions", function (self)
+              self.position = vector(4, 8)
+
               return motion.air_motion_result(
                 nil,
                 vector(4, 8),
@@ -6224,12 +6229,12 @@ describe('player_char', function ()
           end)
 
           teardown(function ()
-            player_char.compute_air_motion_result:revert()
+            player_char.check_air_collisions:revert()
             player_char.apply_air_drag:revert()
           end)
 
           after_each(function ()
-            player_char.compute_air_motion_result:clear()
+            player_char.check_air_collisions:clear()
             player_char.apply_air_drag:clear()
           end)
 
@@ -6258,12 +6263,14 @@ describe('player_char', function ()
             assert.are_equal(9, pc.velocity.x)
           end)
 
-        end)  -- compute_air_motion_result_mock (is_blocked_by_ceiling: true)
+        end)  -- stub check_air_collisions (is_blocked_by_ceiling: true)
 
-        describe('(when compute_air_motion_result returns a motion result with is_blocked_by_wall: true, is_blocked_by_ceiling: false)', function ()
+        describe('(when check_air_collisions sets position and returns a motion result with is_blocked_by_wall: true, is_blocked_by_ceiling: false)', function ()
 
           setup(function ()
-            compute_air_motion_result_mock = stub(player_char, "compute_air_motion_result", function (self)
+            stub(player_char, "check_air_collisions", function (self)
+              self.position = vector(4, 8)
+
               return motion.air_motion_result(
                 nil,
                 vector(4, 8),
@@ -6276,11 +6283,11 @@ describe('player_char', function ()
           end)
 
           teardown(function ()
-            compute_air_motion_result_mock:revert()
+            player_char.check_air_collisions:revert()
           end)
 
           after_each(function ()
-            compute_air_motion_result_mock:clear()
+            player_char.check_air_collisions:clear()
           end)
 
           it('should preserve velocity.y', function ()
@@ -6305,10 +6312,11 @@ describe('player_char', function ()
 
         end)
 
-        describe('(when compute_air_motion_result returns a motion result with is_landing: true, slope_angle: 0.5)', function ()
+        describe('(when check_air_collisions sets position and returns a motion result with is_landing: true, slope_angle: 0.5)', function ()
 
           setup(function ()
-            compute_air_motion_result_mock = stub(player_char, "compute_air_motion_result", function (self)
+            stub(player_char, "check_air_collisions", function (self)
+              self.position = vector(4, 8)
               return motion.air_motion_result(
                 location(0, 1),
                 vector(4, 8),
@@ -6321,11 +6329,11 @@ describe('player_char', function ()
           end)
 
           teardown(function ()
-            compute_air_motion_result_mock:revert()
+            player_char.check_air_collisions:revert()
           end)
 
           after_each(function ()
-            compute_air_motion_result_mock:clear()
+            player_char.check_air_collisions:clear()
           end)
 
           it('should call player_char.set_ground_tile_location with location(0, 1)', function ()
@@ -6347,6 +6355,9 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
           end)
 
+          -- we're experimenting with NOT calling check_escape_from_ground after landing + rotation
+          --  right now it works well, not sure why but I suspect immediately after landing we move again a little
+          --  next frame, then re-snap properly... debug to be sure
           it('should call check_escape_from_ground', function ()
             pc:update_platformer_motion_airborne()
 
@@ -6356,14 +6367,15 @@ describe('player_char', function ()
             assert.spy(pc.check_escape_from_ground).was_called_with(match.ref(pc))
           end)
 
-        end)  -- compute_air_motion_result_mock (is_blocked_by_wall: true)
+        end)  -- stub check_air_collisions (is_blocked_by_wall: true)
 
-        describe('(when compute_ground_motion_result returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
-
-          local compute_ground_motion_result_mock
+        describe('(when check_air_collisions sets position and returns a motion result with position vector(*2.5*, 4), slope_angle: 0, is_blocked: false, is_falling: false)', function ()
 
           setup(function ()
-            stub(player_char, "compute_air_motion_result", function (self)
+
+            stub(player_char, "check_air_collisions", function (self)
+              self.position = vector(2.5, 0)
+
               return motion.air_motion_result(
                 nil,
                 vector(2.5, 0),  -- flr(2.5) must be < pc_data.ground_sensor_extent_x
@@ -6376,11 +6388,11 @@ describe('player_char', function ()
           end)
 
           teardown(function ()
-            player_char.compute_air_motion_result:revert()
+            player_char.check_air_collisions:revert()
           end)
 
           after_each(function ()
-            player_char.compute_air_motion_result:clear()
+            player_char.check_air_collisions:clear()
           end)
 
           it('should clamp character position X to stage left boundary (including half-width offset)', function ()
@@ -6738,64 +6750,254 @@ describe('player_char', function ()
     end)
 
     describe('check_air_collisions', function ()
-    end)
 
-    describe('compute_air_motion_result', function ()
+      it('(when velocity is zero) should not change position and eturn air_motion_result with current position and no hits', function ()
+        pc.position = vector(4, 4)
 
-      it('(when velocity is zero) should return air_motion_result with initial position and no hits', function ()
-        pc.position = vector(4, 8)
+        local result = pc:check_air_collisions()
+
+        assert.are_same(vector(4, 4), pc.position)
         assert.are_same(motion.air_motion_result(
             nil,
-            vector(4, 8),
+            vector(4, 4),
             false,
             false,
             false,
             nil
-          ), pc:compute_air_motion_result())
+          ), result)
       end)
 
-      describe('(when _advance_in_air_along returns an air_motion_result with full motion done along x, half motion done with hit ceiling along y)', function ()
+      -- for compute_ground_motion_result we stubbed compute_closest_wall_query_info,
+      --  but since we extracted check_escape_wall_and_update_next_position which is even higher level,
+      --  so for these utests we will directly stub check_escape_wall_and_update_next_position
+      describe('(when check_escape_wall_and_update_next_position returns false)', function ()
 
         setup(function ()
-          advance_in_air_along_mock = stub(player_char, "advance_in_air_along", function (self, ref_motion_result, velocity, coord)
-            if coord == "x" then
-              local motion = vector(velocity.x, 0)
-              ref_motion_result.position = ref_motion_result.position + motion
-            else  -- coord == "y"
-              -- to make sure we are calling _advance_in_air_along on x before y, we add a check here:
-              --  if we have already moved from initial pos.y = 8 (see test below), block any motion along y
-              if ref_motion_result.position.y == 8 then
-                local motion = vector(0, velocity.y / 2)
-                ref_motion_result.position = ref_motion_result.position + motion
-              end
-              ref_motion_result.is_blocked_by_ceiling = true
-            end
+          stub(player_char, "check_escape_wall_and_update_next_position", function (self, next_position, quadrant_horizontal_dir)
+            return false
           end)
         end)
 
         teardown(function ()
-          advance_in_air_along_mock:revert()
+          player_char.check_escape_wall_and_update_next_position:revert()
         end)
 
-        after_each(function ()
-          advance_in_air_along_mock:clear()
+        describe('(when compute_ground_sensors_query_info finds no ground at position)', function ()
+
+          setup(function ()
+            stub(player_char, "compute_ground_sensors_query_info", function (self, center_position)
+              return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+            end)
+          end)
+
+          teardown(function ()
+            player_char.compute_ground_sensors_query_info:revert()
+          end)
+
+          describe('(when compute_ceiling_sensors_query_info finds no ceiling at position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ceiling_sensors_query_info", function (self, center_position)
+                return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ceiling_sensors_query_info:revert()
+            end)
+
+            it('(velocity diagonal) should not change position and return air_motion_result with current position and no hits', function ()
+              pc.position = vector(4, 4)
+              -- non-zero velocity avoid early return and actually run collision checks,
+              --  but remember that check_air_collisions only tries to escape colliders,
+              --  the motion must have already been applied by called, i.e. (4, 8) is the final position already!
+              pc.velocity = vector(5, -12)
+
+              local result = pc:check_air_collisions()
+
+              assert.are_same(vector(4, 4), pc.position)
+              assert.are_same(motion.air_motion_result(
+                  nil,
+                  vector(4, 4),  -- no obstacle, so add full velocity
+                  false,
+                  false,
+                  false,
+                  nil
+                ), result)
+            end)
+
+          end)
+
+          describe('(when compute_ceiling_sensors_query_info finds horizontal ceiling at position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ceiling_sensors_query_info", function (self, center_position)
+                return motion.ground_query_info(location(0, 0), -3, 0.5)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ceiling_sensors_query_info:revert()
+            end)
+
+            it('(velocity upward) should snap position to ceiling and return air_motion_result with new position and hit ceiling', function ()
+              pc.position = vector(4, 4)
+              -- remember that sheer angle allow ceiling adherence landing, so to avoid this case we use orthogonal angle
+              pc.velocity = vector(0, -8)
+
+              local result = pc:check_air_collisions()
+
+              -- y = 4, escape by -3 in quadrant up ie 3 downward => new y = 4 + 3 = 7
+              assert.are_same(vector(4, 7), pc.position)
+              assert.are_same(motion.air_motion_result(
+                  nil,  -- this is ground tile location, so not set if hitting ceiling (with no adherence)
+                  vector(4, 7),
+                  false,
+                  true,  -- hit ceiling
+                  false,
+                  nil
+                ), result)
+            end)
+
+          end)
+
+          describe('(when compute_ceiling_sensors_query_info finds ceiling at angle ceiling adherence limit (included) at position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ceiling_sensors_query_info", function (self, center_position)
+                return motion.ground_query_info(location(0, 0), -3, 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ceiling_sensors_query_info:revert()
+            end)
+
+            it('(velocity upward) should snap position to ceiling and return air_motion_result with new position and hit ceiling', function ()
+              pc.position = vector(4, 4)
+              pc.velocity = vector(0, -8)
+
+              local result = pc:check_air_collisions()
+
+              -- y = 4, escape by -3 in quadrant up ie 3 downward => new y = 4 + 3 = 7
+              assert.are_same(vector(4, 7), pc.position)
+              assert.are_same(motion.air_motion_result(
+                  location(0, 0),  -- ground tile location is set when landing on ceiling
+                  vector(4, 7),
+                  false,
+                  false,  -- NO hit ceiling when landing on ceiling
+                  true,   -- is landing (on ceiling!)
+                  0.25 + pc_data.ceiling_adherence_catch_range_from_vertical
+                ), result)
+            end)
+
+          end)
+
         end)
 
-        it('(when velocity is zero) should return air_motion_result with initial position and no hits', function ()
-          pc.position = vector(4.5, 8)
-          pc.velocity = vector(5, -12)
+        describe('(when compute_ground_sensors_query_info finds ground at position, character inside but not too deep)', function ()
 
-          -- character should advance of (5, -6) resulting in pos (9.5, 2)
+          setup(function ()
+            stub(player_char, "compute_ground_sensors_query_info", function (self, center_position)
+              return motion.ground_query_info(location(0, 0), -pc_data.max_ground_escape_height, atan2(8, 4))
+            end)
+          end)
 
-          -- interface: check that the final result is correct
-          assert.are_same(motion.air_motion_result(
-              nil,
-              vector(9.5, 2),
-              false,
-              true,  -- hit ceiling
-              false,
-              nil
-            ), pc:compute_air_motion_result())
+          teardown(function ()
+            player_char.compute_ground_sensors_query_info:revert()
+          end)
+
+          describe('(when compute_ceiling_sensors_query_info finds no ceiling at position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ceiling_sensors_query_info", function (self, center_position)
+                return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ceiling_sensors_query_info:revert()
+            end)
+
+            it('(velocity downward) should snap position to ground and return air_motion_result with new position and landing', function ()
+              pc.position = vector(4, 8)
+              pc.velocity = vector(0, 1)
+
+              local result = pc:check_air_collisions()
+
+              assert.are_same(vector(4, 8 - pc_data.max_ground_escape_height), pc.position)
+              assert.are_same(motion.air_motion_result(
+                  location(0, 0),
+                  vector(4, 8 - pc_data.max_ground_escape_height),
+                  false,
+                  false,
+                  true,
+                  atan2(8, 4)
+                ), result)
+            end)
+
+          end)
+
+        end)
+
+      end)
+
+      describe('(when check_escape_wall_and_update_next_position snaps character to left and return true)', function ()
+
+        setup(function ()
+          stub(player_char, "check_escape_wall_and_update_next_position", function (self, next_position, quadrant_horizontal_dir)
+            self.position.x = 2
+            return true
+          end)
+        end)
+
+        teardown(function ()
+          player_char.check_escape_wall_and_update_next_position:revert()
+        end)
+
+        describe('(when compute_ground_sensors_query_info finds no ground at position)', function ()
+
+          setup(function ()
+            stub(player_char, "compute_ground_sensors_query_info", function (self, center_position)
+              return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+            end)
+          end)
+
+          teardown(function ()
+            player_char.compute_ground_sensors_query_info:revert()
+          end)
+
+          describe('(when compute_ceiling_sensors_query_info finds no ceiling at position)', function ()
+
+            setup(function ()
+              stub(player_char, "compute_ceiling_sensors_query_info", function (self, center_position)
+                return motion.ground_query_info(nil, pc_data.max_ground_snap_height + 1, nil)
+              end)
+            end)
+
+            teardown(function ()
+              player_char.compute_ceiling_sensors_query_info:revert()
+            end)
+
+            it('(velocity right) should snap position to left and return air_motion_result with new position and hit wall', function ()
+              pc.position = vector(4, 4)
+              pc.velocity = vector(1, 0)
+
+              local result = pc:check_air_collisions()
+
+              assert.are_same(vector(2, 4), pc.position)
+              assert.are_same(motion.air_motion_result(
+                  nil,
+                  vector(2, 4),
+                  true,  -- hit wall
+                  false,
+                  false,
+                  nil
+                ), result)
+            end)
+
+          end)
+
         end)
 
       end)

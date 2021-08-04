@@ -2216,6 +2216,8 @@ function player_char:update_platformer_motion_airborne()
   --  then check for falling state inside, instead of making it part of the airborne update
   -- Nevertheless, it's working quite well.
 
+  -- TODO: follow Main_Game_Loop and update gravity AFTER applying velocity
+  -- this will remove the need for has_jumped_this_frame member while preserving behavior
   if self.has_jumped_this_frame then
     -- do not apply gravity on first frame of jump, and consume has_jumped_this_frame
     self.has_jumped_this_frame = false
@@ -2248,9 +2250,13 @@ function player_char:update_platformer_motion_airborne()
     self.velocity.y = pc_data.max_air_velocity_y
   end
 
-  -- apply air motion
+  -- apply air motion without caring about obstacles to start with (step 5 in SPG Main Loop)
+  self.position:add_inplace(self.velocity)
 
-  local air_motion_result = self:compute_air_motion_result()
+  -- we're supposed to apply gravity here
+
+  -- check for air collisions (wall, ceiling, ground) and update position in-place
+  local air_motion_result = self:check_air_collisions()
 
   -- FIX to top-left corner enter during jump lies here, or when is_blocked_by_wall is set...
   -- since motion is not considered up, we are only blocked by wall...
@@ -2265,7 +2271,7 @@ function player_char:update_platformer_motion_airborne()
 
   -- check for stage left edge soft block
   -- see update_platformer_motion_grounded
-  if flr(air_motion_result.position.x) < pc_data.ground_sensor_extent_x then
+  if flr(self.position.x) < pc_data.ground_sensor_extent_x then
     -- clamp position to stage left edge and clamp velocity x to 0
     -- note that in theory we should update the air motion result
     --  tile location and slope angle to match the new position,
@@ -2273,11 +2279,9 @@ function player_char:update_platformer_motion_airborne()
     --  nothing on the left of the stage so basically we already have
     --  the ground info we need, worst case character will fall 1 extra frame
     --  then land
-    air_motion_result.position.x = ceil(pc_data.ground_sensor_extent_x)
+    self.position.x = ceil(pc_data.ground_sensor_extent_x)
     self.velocity.x = max(0, self.velocity.x)
   end
-
-  self.position = air_motion_result.position
 
   if air_motion_result.is_landing then
     -- register new ground tile, update slope angle and enter standing state
@@ -2285,6 +2289,11 @@ function player_char:update_platformer_motion_airborne()
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
     -- always stand on ground, if we want to roll we'll switch to rolling on next frame
     self:enter_motion_state(motion_states.standing)
+
+    -- TODO: with big step method we still do an initial ground escape,
+    -- but with orientation change the second escape is still needed...
+    -- however, we could totally merge them by first orientating character and THEN escaping
+    -- the ground, I guess?
 
     -- check for escape if needed, since we may have updated orientation on landing,
     --  causing the character pivot to be offset and their feet to enter the ground
@@ -2297,7 +2306,8 @@ function player_char:update_platformer_motion_airborne()
     --  apparently appeared after adding this. However, this check is important
     --  to reduce odds of entering a curved wall/loop on fall, so I prefer having
     --  the bump glitch, as long as character doesn't enter walls.
-    self:check_escape_from_ground()
+    -- DISABLED TO SEE: for now, it works!
+    -- self:check_escape_from_ground()
   end
 
   log("self.position: "..self.position, "trace")
@@ -2351,57 +2361,126 @@ function player_char:clamp_air_velocity_x(previous_velocity_x)
   end
 end
 
--- return {next_position: vector, is_blocked_by_ceiling: bool, is_blocked_by_wall: bool, is_landing: bool} where
+-- check for air collisions with wall and ground, and apply escape vector in-place on self.position
+-- return {next_position: vector, is_blocked_by_wall: bool, is_blocked_by_ceiling: bool, is_landing: bool} where
 --  - next_position is the position of the character next frame considering his current (air) velocity
 --  - is_blocked_by_ceiling is true iff the character encounters a ceiling during this motion
 --  - is_blocked_by_wall is true iff the character encounters a wall during this motion
 --  - is_landing is true iff the character touches a ground from above during this motion
-function player_char:compute_air_motion_result()
+function player_char:check_air_collisions()
   -- if character is not moving, he is not blocked nor landing (we assume the environment is static)
-  -- this is pretty rare in the air, but could happen when being pushed upward by fans
+  -- this is pretty rare in the air, but could happen at the apogee
   if self.velocity:is_zero() then
     return motion.air_motion_result(
-      nil,  -- start in air, so no ground tile
-      self.position,
-      false,
-      false,
-      false,
-      nil
+      nil,    -- start in air, so no ground tile
+      -- TODO: since we're working directly on self.position, no need to return position in air motion result
+      --  unlike ground motion result, so remove member altogether
+      self.position:copy(),
+      false,  -- is_blocked_by_wall
+      false,  -- is_blocked_by_ceiling
+      false,  -- is_landing
+      nil     -- slope_angle
     )
   end
 
-  -- initialize air motion result (do not floor coordinates, advance_in_air_along will do it)
-  local motion_result = motion.air_motion_result(
-    nil,  -- start in air, so no ground tile
-    vector(self.position.x, self.position.y),
-    false,
-    false,
-    false,
-    nil
+  -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
+  -- We're following the indicated order by checking wall before ground
+
+  -- Big step method:
+  -- 1. escape from any wall and remember being blocked by it
+  -- 2. escape from any ground and remember landing
+  -- 2. escape from any ceiling and remember being blocked by it
+
+  -- There is no position prediction step in this case, because the caller must already
+  --  have updated the position to next position (assuming no obstacles at first)
+
+  local ground_tile_location-- = nil
+  local is_blocked_by_wall = false
+  local is_blocked_by_ceiling = false
+  local is_landing = false
+  local slope_angle-- = nil
+
+  -- Step 1: wall check
+
+  -- if moving horizontally, do a wall raycast in the direction of velocity X, from current position
+  if self.velocity.x ~= 0 then
+    local quadrant_horizontal_dir = signed_speed_to_dir(self.velocity.x)
+    is_blocked_by_wall = self:check_escape_wall_and_update_next_position(self.position, quadrant_horizontal_dir)
+  end
+
+  -- Step 2: ground check (if going down)
+
+  if self.velocity.y > 0 then
+    -- check if next position is inside/above ground
+    -- (same as compute_ground_motion_result)
+
+    -- REFACTOR: this really is check_escape_from_ground, consider reusing this method here,
+    --  although we're setting vars more than actually changing state (except for self.position)
+    --  so this may need to readjust method to return something like vector_to_closest_ground or nil
+    local ground_query_info = self:compute_ground_sensors_query_info(self.position)
+    local signed_distance_to_closest_ground = ground_query_info.signed_distance
+    log("signed_distance_to_closest_ground: "..signed_distance_to_closest_ground, "trace2")
+
+    -- to spare characters, instead of checking if we detected a tile, then check distance,
+    --  we just check if distance is negative - that should only be true when a tile was found
+    --  (new convention makes sure to always set tile position even if too deep inside ground)
+    -- convention v3 is to ignore ground completely if too deep inside
+    --  to avoid walking with head on ceiling or inside one-way platform when a little too low,
+    --  so check for ideal range here
+    if - pc_data.max_ground_escape_height <= signed_distance_to_closest_ground and signed_distance_to_closest_ground < 0 then
+      assert(ground_query_info.tile_location, "signed_distance_to_closest_ground < 0 yet ground_query_info.tile_location is not set")
+
+      -- Next position is inside ground, close enough to surface => Step up
+      -- (same as compute_ground_motion_result)
+      -- Note that enter_motion_state contains its own code to adjust center position based on becoming (un)compact
+      local vector_to_closest_ground = signed_distance_to_closest_ground * self:get_quadrant_down()
+      self.position:add_inplace(vector_to_closest_ground)
+
+      is_landing = true
+      ground_tile_location = ground_query_info.tile_location  -- no need to :copy(), we won't reuse ground_query_info
+      slope_angle = ground_query_info.slope_angle
+    end
+    -- unlike compute_ground_motion_result, we don't care about the else case, where we hover over ground
+    --  or just touch it, as we don't want to step down, and we only consider we are landing when
+    --  entering ground by at least a fraction of pixel
+  elseif self.velocity.y < 0 then
+    local ceiling_query_info = self:compute_ceiling_sensors_query_info(self.position)
+    local signed_distance_to_closest_ceiling = ceiling_query_info.signed_distance
+
+    if signed_distance_to_closest_ceiling < 0 then
+      assert(ceiling_query_info.tile_location, "signed_distance_to_closest_ground < 0 yet ceiling_query_info.tile_location is not set")
+      assert(ceiling_query_info.slope_angle > 0.25 and ceiling_query_info.slope_angle < 0.75,
+        "detected ceiling with slope angle expected between 0.25 and 0.75 excluded, got: "..ceiling_query_info.slope_angle..
+        " (we don't check for those bounds in ceiling adherence check so Sonic may adhere to unwanted walls)")
+      -- Hit ceiling
+      -- Whether we can land or not, we must escape (there is no max ceiling escape distance, so just do it)
+      -- Remember to oppose direction of quadrant down to get quadrant up used for ceiling raycast (hence `-`)
+      local vector_to_closest_ceiling = - signed_distance_to_closest_ceiling * self:get_quadrant_down()
+      self.position:add_inplace(vector_to_closest_ceiling)
+
+      if ceiling_query_info.slope_angle <= 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical or
+          ceiling_query_info.slope_angle >= 0.75 - pc_data.ceiling_adherence_catch_range_from_vertical then
+        -- Character lands on ceiling aka ceiling adherence catch (we changed convention to match ground
+        --  and only land when entering ceiling by at least a fraction of pixel; otherwise, no extra condition on velocity)
+        -- Note that enter_motion_state contains its own code to adjust center position based on becoming (un)compact
+        ground_tile_location = ceiling_query_info.tile_location
+        is_landing = true
+        slope_angle = ceiling_query_info.slope_angle
+      else
+        -- Cannot land, just get blocked by ceiling (will reset velocity Y)
+        is_blocked_by_ceiling = true
+      end
+    end
+  end
+
+  return motion.air_motion_result(
+    ground_tile_location,
+    self.position:copy(),
+    is_blocked_by_wall,
+    is_blocked_by_ceiling,
+    is_landing,
+    slope_angle
   )
-
-  -- from here, unlike ground motion, there are 3 ways to iterate:
-  -- a. describe a Bresenham's line, stepping on x and y, for the best precision
-  -- b. step on x until you reach the max distance x, then step on y (may hit wall you wouldn't have with a. or c.)
-  -- c. step on y until you reach the max distance y, then step on x (may hit ceiling you wouldn't have with a. or b.)
-  -- and 1 way without iteration:
-  -- d. compute final position of air motion at the end of the frame, and escape from x and y if needed
-
-  -- We choose b. which is precise enough while always finishing with a potential landing
-  -- Initially we used c., but Sonic tended to fly above descending slopes as the X motion was applied
-  --  after Y motion, including snapping, causing a ladder-shaped motion above the slope where the final position
-  --  was always above the ground.
-  -- Note, however, that this is a temporary fix: where we add quadrants, X and Y will have more symmetrical roles
-  --  and we can expect similar issues when trying to land with high speed adherence on a 90-deg wall.
-  -- Ultimately, I think it will work better with either d. or an Unreal-style multi-mode step approach
-  --  (i.e. if landing in the middle of the Y move, finish the remaining part of motion as standing,
-  --  following the ground as usual).
-  self:advance_in_air_along(motion_result, self.velocity, "x")
-  log("=> "..motion_result, "trace2")
-  self:advance_in_air_along(motion_result, self.velocity, "y")
-  log("=> "..motion_result, "trace2")
-
-  return motion_result
 end
 
 -- TODO: factorize with compute_ground_motion_result?
@@ -2544,6 +2623,11 @@ function player_char:next_air_step(direction, ref_motion_result)
           -- if this step is blocked by landing, there is no extra motion,
           --  but character will enter standing state
           ref_motion_result.is_landing, ref_motion_result.slope_angle = true, query_info.slope_angle
+
+          -- IS IT IMPORTANT?
+          -- SHOULD THIS BE INTEGRATED IN THE NEW AIRBORNE PHYSICS?
+          -- First, try without and see if critical or not, since we got the new "perfect" escape system
+
           -- WALL LANDING ADJUSTMENT OFFSET
           -- as part of the bigger adherence system, but for now very simplified
           --  to fix #129 BUG MOTION curve_run_up_fall_in_wall:
@@ -2594,6 +2678,8 @@ function player_char:next_air_step(direction, ref_motion_result)
     end
   end
 
+  -- SUPER IMPORTANT!
+  -- THIS MUST BE INTEGRATED IN THE NEW AIRBORNE PHYSICS!
   -- Ceiling check
   -- It is necessary during horizontal motion to complement
   --  ground sensors, the edge case being when the bottom of the character matches
@@ -2645,6 +2731,8 @@ function player_char:next_air_step(direction, ref_motion_result)
 --#endif
 
       -- ceiling adherence
+      -- SUPER IMPORTANT!
+      -- THIS MUST BE INTEGRATED IN THE NEW AIRBORNE PHYSICS!
       -- https://info.sonicretro.org/SPG:Slope_Physics#When_Going_Upward
       if ceiling_query_info.slope_angle <= 0.25 + pc_data.ceiling_adherence_catch_range_from_vertical or
           ceiling_query_info.slope_angle >= 0.75 - pc_data.ceiling_adherence_catch_range_from_vertical then

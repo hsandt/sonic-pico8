@@ -982,7 +982,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       if result then
 --#if debug_character
       -- store debug ray for hit or no-hit (we may have found ground/ceiling which happens to be too far)
-      add(pc.debug_rays, {start = sensor_position:copy(), direction_vector = collision_check_quadrant_down, distance = result.signed_distance, hit = result.tile_location ~= nil})
+      add(pc.debug_rays, {start = sensor_position:copy(), direction_vector = collision_check_quadrant_down:copy(), distance = result.signed_distance, hit = result.tile_location ~= nil})
 --#endif
         return result
       end
@@ -1022,7 +1022,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
 
 --#if debug_character
       -- store debug ray for no-hit (result.signed_distance will just be some max detection distance + 1)
-      add(pc.debug_rays, {start = sensor_position:copy(), direction_vector = collision_check_quadrant_down, distance = result.signed_distance, hit = false})
+      add(pc.debug_rays, {start = sensor_position:copy(), direction_vector = collision_check_quadrant_down:copy(), distance = result.signed_distance, hit = false})
 --#endif
 
       -- this is the final check so return the result whatever it is
@@ -2848,7 +2848,7 @@ end
 function player_char:debug_draw_rays()
   -- debug "raycasts"
   for debug_ray in all(self.debug_rays) do
-    local start_pos = debug_ray.start
+    local start_pos = debug_ray.start:copy()
     local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction_vector
 
     -- if direction is left or up and the start / end position qx (x for left, y for up)

@@ -2022,11 +2022,7 @@ function player_char:check_escape_wall_and_update_next_position(next_position, q
       local signed_distance_to_closest_wall = wall_query_info.signed_distance - ceil(pc_data.ground_sensor_extent_x)
       log("signed_distance_to_closest_wall: "..signed_distance_to_closest_wall, "trace2")
 
-      -- same trick as compute_closest_wall_query_info to inline rotate_dir_90_(c)cw
-      -- OPTIMIZE CHARS: see if it's worth factorizing it as a function to spare characters
-      --  or even pre-compute the wall quadrant and use it both here, and pass it to compute_closest_wall_query_info
-      --  (for usage as collision_check_quadrant) called above
-      local rotate_sign = self.ground_speed < 0 and 1 or -1
+      local rotate_sign = quadrant_horizontal_dir == horizontal_dirs.left and 1 or -1
       local wall_quadrant = dir_vectors[(self.quadrant + rotate_sign) % 4]
       local vector_to_closest_wall = signed_distance_to_closest_wall * wall_quadrant
 

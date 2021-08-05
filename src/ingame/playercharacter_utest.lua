@@ -5403,6 +5403,8 @@ describe('player_char', function ()
           describe('(when compute_closest_wall_query_info detects just touching wall)', function ()
 
             setup(function ()
+              -- note that compute_closest_wall_query_info may now be called TWICE
+              --  but we are not changing quadrant here so it won't happen, and anyway the result would be the same the 2nd time
               stub(player_char, "compute_closest_wall_query_info", function (self, next_position, quadrant_horizontal_dir)
                 -- we simulate a tilemap like this:
                 -- .#
@@ -5410,6 +5412,9 @@ describe('player_char', function ()
                 -- where pc starts at (2, 4) on tile (0, 0), and moves by 2px to the right, with front just touching wall on (1, 0)
                 -- we're currently raycasting from center and using convention that signed distance is from center, not front
                 --  so we must offset all signed distances by ceil(pc_data.ground_sensor_extent_x)
+                -- note that since we raycast up to ceil(pc_data.ground_sensor_extent_x) (not +1)
+                --  only the right raycast can find touching wall, left raycast will ignore it due to pixel dissymmetry
+                -- in both cases, we ignore the result
                 -- wall should have slope 0.25 on the right... but it doesn't matter here, we don't use it
                 return motion.ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) + 1, 0.25)
               end)
@@ -5475,6 +5480,70 @@ describe('player_char', function ()
           end)
 
         end)  -- stub compute_ground_sensors_query_info
+
+        -- this time don't stub, go with mock map testing, just because we need to test
+        describe('with 2 full flat tiles', function ()
+
+          setup(function ()
+            -- don't stub but still spy.on to verify it's called twice
+            spy.on(player_char, "check_escape_wall_and_update_next_position")
+          end)
+
+          teardown(function ()
+            player_char.check_escape_wall_and_update_next_position:revert()
+          end)
+
+          before_each(function ()
+            -- let's prepare map to test character entering ground diagonally and escaping
+            -- ..
+            -- .\
+            -- Normally at (0, 0) you'd have a steep slope (desc_slope_45_id \ is not enough as 45 degree
+            --  is still considered quadrant down), but I couldn't find a test tile to use.
+            -- Fortunately it doesn't matter, compute_ground_motion_result only cares about the next frame position
+            --  so we only need to set the next tile at (1, 1)
+            -- mock_mset(0, 1, tile_repr.full_tile_id)
+            -- mock_mset(1, 1, tile_repr.full_tile_id)
+            mock_mset(1, 1, tile_repr.visual_loop_bottomleft)
+            -- mock_mset(1, 1, tile_repr.desc_slope_45_id)
+          end)
+
+          -- added to fix #265 BUG PHYSICS character still blocked in loop after powerful spin dash
+          -- character is rolling down the slope
+          --  => center at (10, 1))
+          -- it will enter the flat ground and must escape properly WITHOUT being blockd by wall thx to 2nd wall check block cancel
+          -- this reproduces a real situation encountered at the end of a loop when launched at high speed by spin dash
+          it('(vector(10, 1) at speed 6) should return vector(7 + sqrt(2) * 6, 2), slope: 0, is_blocked: false, is_falling: false', function ()
+            -- simulate a steep tile here as a little before the end of a loop
+            -- quadrant is the most important
+            pc.ground_tile_location = location(0, 0)
+            pc.quadrant = directions.left
+            pc.slope_angle = atan2(7, 8)  -- very much to the right, almost 45 degrees, but still quadrant left
+
+            pc.motion_state = motion_states.rolling
+            pc.position = vector(8, 5)  -- no precise calculation, I adjusted until I got the result I wanted...
+            pc.ground_speed = 6
+
+            -- result check
+            assert.are_same(motion.ground_motion_result(
+                location(1, 1),
+                vector(16, 7),  -- didn't calculate, just watched result and reinjected... wall snap floored y, ground snap (quadrant left) floored x
+                atan2(8, 5),
+                false,
+                false
+              ),
+              pc:compute_ground_motion_result()
+            )
+
+            -- call check
+            -- just to check we used check_escape_wall_and_update_next_position twice indeed
+            assert.spy(player_char.check_escape_wall_and_update_next_position).was_called(2)
+            -- first call with predicted position without obstacles
+            assert.spy(player_char.check_escape_wall_and_update_next_position).was_called_with(match.ref(pc), vector(8 + 6 * cos(atan2(7, 8)), 5 + 6 * sin(atan2(7, 8))), horizontal_dirs.right)
+            -- second call with position after escaping ground
+            assert.spy(player_char.check_escape_wall_and_update_next_position).was_called_with(match.ref(pc), vector(16, 7), horizontal_dirs.right)
+          end)
+
+        end)
 
       end)  -- compute_ground_motion_result
 

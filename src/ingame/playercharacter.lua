@@ -1151,6 +1151,7 @@ function player_char:compute_closest_ceiling_query_info(sensor_position)
   --  - (max_ground_escape_height + 1 - full_height) offset for first tile according to explanation above + the fact that we consider this offset from sensor_position base + offset (full_height)
   --  - no offset for last tile since we end checking at head top exactly, so argument 3 is 0
   local full_height = self:get_full_height()
+  assert(pc_data.max_ground_escape_height + 1 - full_height <= 0, "max_ground_escape_height: "..pc_data.max_ground_escape_height.." is too high, risk of infinite loop (only ends thx to number wrapping), consider clamping start_tile_offset_qy")
   return iterate_over_collision_tiles(self, oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 
@@ -1887,13 +1888,27 @@ function player_char:compute_ground_motion_result()
   end
 
   -- SPG note: http://info.sonicretro.org/SPG:Main_Game_Loop
-  -- We're following the indicated order by checking wall before ground
-  -- However we're not checking roll here, we're doing this earlier, at the same time as checking spin dash
+  -- We're following the indicated order by checking ground BEFORE wall (and updating quadrant for wall check)
+  --  because it prevented stepping up on tiles of height 6 (wall sensor height) to 7 (max ground escape height)
+  --  like the spring oriented up.
+  -- But we added an EXTRA wall check AFTER ground check, using the new quadrant (and position),
+  --  to avoid wall raycasting into what was previously a wall, but is now a ground, when moving at fast speed
+  --  (esp. with spin dash) inside a loop.
+  -- I also tried checking wall AFTER ground check but NOT BEFORE. It still required me to increase the
+  --  max escape distance to 8, and character was stepping up springs (unless moving by less than 1 pixel into them).
+  -- In addition, we're not checking roll here, we're doing this earlier, at the same time as checking spin dash
 
   -- Big step method:
   -- 1. apply full velocity to get hypothetical position next frame in the absence of collisions
-  -- 2. escape from any wall (in the allowed range)
-  -- 3. snap to / escape from any ground (in the allowed range), or fall if no ground / angle difference too big
+  -- 2. check for wall collisions (only recognized if started entering wall)
+  -- 3. check for ground collisions (with new position from 2) to snap to / escape from ground,
+  --    or fall if no ground / angle difference too big
+  -- 4. if found wall and changed quadrant, check for wall collisions again (with new position and quadrant from 3) and cancel wall detection
+  --    if not touching wall (this time, we recognize touching wall as collision since 2 made us escape)
+
+  local is_falling = false
+  local previous_quadrant = self.quadrant
+  local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
 
   -- Step 1: future position prediction
 
@@ -1903,15 +1918,13 @@ function player_char:compute_ground_motion_result()
   --  but we can still compute the expected velocity in the absence of collisions in advance,
   --  using compute_velocity_from_ground_speed
   local next_position = self.position + self:compute_velocity_from_ground_speed()
-  local is_falling = false
 
-  -- Step 2: wall check
+  -- Step 2: 1st wall check (always)
 
-  -- do a wall raycast in the direction of ground speed
-  local quadrant_horizontal_dir = signed_speed_to_dir(self.ground_speed)
+  -- do a wall raycast in the q-direction of ground speed
   local is_blocked = self:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
 
-  -- Step 3: ground check
+  -- Step 2: ground check
 
   -- check if next position is inside/above ground
   local query_info = self:compute_ground_sensors_query_info(next_position)
@@ -1962,6 +1975,28 @@ function player_char:compute_ground_motion_result()
       -- Ground is too far to step down, fall
       is_falling = true
     end
+  end
+
+  -- Step 4: 2nd wall check (only if found wall in step 2, but found ground with different quadrant in step 3)
+
+  -- At this point self.quadrant has not been changed YET, but we can still
+  --  predict it from the slope angle to compare previous and new quadrant
+  -- Note that even if we don't enter this block and update quadrant now, it will be updated
+  --  by the caller of this method afterward
+  if is_blocked and previous_quadrant ~= world.angle_to_quadrant(query_info.slope_angle) then
+    -- Since we want to apply wall check with new quadrant, to make it meaningful we must update the ground tile location
+    --  so the raycasts are more likely to be oriented toward the new character forward and not hit unwanted ground as wall
+    --  (and slope angle to be consistent, but check_escape_wall_and_update_next_position doesn't use it anyway;
+    --  OPTIMIZE CHARS: you can remove the lines setting it if you need to spare characters)
+    if is_falling then
+      self.ground_tile_location = nil
+      self:set_slope_angle_with_quadrant(nil)
+    else
+      self:set_ground_tile_location(query_info.tile_location)
+      self:set_slope_angle_with_quadrant(query_info.slope_angle)
+    end
+
+    is_blocked = self:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
   end
 
   -- make sure to only pass tile location if not falling, to avoid assert on invalid result construction
@@ -2321,7 +2356,7 @@ function player_char:check_air_collisions()
   if self.velocity:is_zero() then
     return motion.air_motion_result(
       nil,    -- start in air, so no ground tile
-      -- TODO: since we're working directly on self.position, no need to return position in air motion result
+      -- TODO OPTIMIZE CHARS: since we're working directly on self.position, no need to return position in air motion result
       --  unlike ground motion result, so remove member altogether
       self.position:copy(),
       false,  -- is_blocked_by_wall
@@ -2336,8 +2371,13 @@ function player_char:check_air_collisions()
 
   -- Big step method:
   -- 1. escape from any wall and remember being blocked by it
-  -- 2. escape from any ground and remember landing
-  -- 2. escape from any ceiling and remember being blocked by it
+  -- 2a. (going down) escape from any ground and remember landing
+  -- 2b. (going up) escape from any ceiling and remember being blocked by it
+
+  -- Note that there is no extra wall check after that unlike compute_ground_motion_result
+  --  because even if we landed and changed quadrant (from air quadrant which is always down) and happen to stop
+  --  touching a wall with new quadrant, the effect of blocking would just be to lose velocity X,
+  --  but velocity Y would still contribute to landing ground speed, so we would not brutally stop motion as on ground.
 
   -- There is no position prediction step in this case, because the caller must already
   --  have updated the position to next position (assuming no obstacles at first)
@@ -2356,10 +2396,11 @@ function player_char:check_air_collisions()
     is_blocked_by_wall = self:check_escape_wall_and_update_next_position(self.position, quadrant_horizontal_dir)
   end
 
-  -- Step 2: ground check (if going down)
-
   if self.velocity.y > 0 then
-    -- check if next position is inside/above ground
+    -- Step 2a: ground check
+    -- Note that we just check going down to simplify while original game may accept going slightly up at sheer angle
+
+    -- Check if next position is inside/above ground
     -- (same as compute_ground_motion_result)
 
     -- REFACTOR: this really is check_escape_from_ground, consider reusing this method here,
@@ -2392,6 +2433,9 @@ function player_char:check_air_collisions()
     --  or just touch it, as we don't want to step down, and we only consider we are landing when
     --  entering ground by at least a fraction of pixel
   elseif self.velocity.y < 0 then
+    -- Step 2a: ceiling check
+    -- Note that we just check going up to simplify while original game may accept going slightly down at sheer angle
+
     local ceiling_query_info = self:compute_ceiling_sensors_query_info(self.position)
     local signed_distance_to_closest_ceiling = ceiling_query_info.signed_distance
 
@@ -2845,9 +2889,25 @@ function player_char:play_low_priority_sfx(n)
 end
 
 --#if debug_character
+local debug_ray_colors_hit = {
+  colors.green,  -- first wall check
+  colors.pink,   -- ground check (left sensor)
+  colors.pink,   -- ground check (right sensor)
+  colors.blue,   -- second wall check (optional)
+}
+
+local debug_ray_colors_no_hit = {
+  colors.yellow,  -- first wall check
+  colors.white,    -- ground check (left sensor)
+  colors.white,    -- ground check (right sensor)
+  colors.peach,   -- second wall check (optional)
+}
+
 function player_char:debug_draw_rays()
   -- debug "raycasts"
+  local i = 0
   for debug_ray in all(self.debug_rays) do
+    i = i + 1
     local start_pos = debug_ray.start:copy()
     local end_pos = debug_ray.start + debug_ray.distance * debug_ray.direction_vector
 
@@ -2874,14 +2934,14 @@ function player_char:debug_draw_rays()
       -- hit, q-above ground (if distance > 0) or from inside ground (if distance <= 0),
       --  ray will be pink except the last pixel which will be red
       -- (subtract direction which is a cardinal unit vector to get the penultimate pixel)
-      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, colors.pink)
+      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, debug_ray_colors_hit[i])
       pset(end_pos.x, end_pos.y, colors.red)
     else
       -- no-hit, draw full ray in white to distinguish from hit case
       -- I tried different colors from distance <= 0 vs > 0, but unfortunately
       --  they were hard to distinguish from the midground
       --  so you'll have to guess the distance sign by looking at the environment
-      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, colors.white)
+      line(start_pos.x, start_pos.y, end_pos.x, end_pos.y, debug_ray_colors_no_hit[i])
     end
   end
 end

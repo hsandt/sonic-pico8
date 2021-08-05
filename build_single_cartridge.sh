@@ -117,7 +117,7 @@ elif [[ $config == 'sandbox' ]]; then
   symbols='assert,deprecated,sandbox'
 elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
-  symbols='assert,debug_collision_mask'
+  symbols='assert,tostring,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
   # symbols='profiler,debug_menu'
   # profiler is too heavy right now, cannot build, so use lightweight version

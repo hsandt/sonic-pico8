@@ -35,7 +35,9 @@ local stage_data = {
       -- dimensions in tiles (128 * number of chained maps per row, 32 * number of chained maps per column,
       --  extra tiles on width for goal area)
       -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
-      tile_width = 128 * 3 + 48,
+      -- note that tile_width does not take into account the extra tiles added off-camera after the goal,
+      --  to prevent Sonic from falling into the void
+      tile_width = 128 * 3 + 46,
       tile_height = 32 * 2,
 
       -- where the player character spawns on stage start (region (0, 1))

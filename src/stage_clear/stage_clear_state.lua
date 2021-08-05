@@ -98,7 +98,7 @@ function stage_clear_state:on_enter()
   -- Instead we just set the position directly to values observed at the end
   --  of ingame cartridge, just before loading stage_clear. This allows us to use base_stage_state methods
   --  relying on the camera position.
-  self.camera:init_position(vector(3392, 328))
+  self.camera:init_position(vector(3376, 328))
 
   -- Hardcoded: we know that goal is in region (3, 1)
   reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(3, 1))

@@ -63,16 +63,17 @@ local air_motion_result = new_struct()
 motion.air_motion_result = air_motion_result
 
 -- tile_location          location|nil location of ground tile at the end of motion (nil if no ground i.e. not is_landing)
--- position               vector       position at the end of motion
 -- is_blocked_by_wall     bool         was the character blocked by a left/right wall during motion?
 -- is_blocked_by_ceiling  bool         was the character blocked by a ceiling during motion?
 -- is_landing             bool         has the character landed at the end of this motion?
 -- slope_angle            float|nil    slope angle of the final position (nil unless is_landing is true)
-function air_motion_result:init(tile_location, position, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle)
+
+-- note: we removed member position since air_motion_result is now only returned by check_air_collisions
+--  which is done in-place on character current position
+function air_motion_result:init(tile_location, is_blocked_by_wall, is_blocked_by_ceiling, is_landing, slope_angle)
   assert((tile_location ~= nil) == is_landing, "tile location is "..stringify(tile_location).." but is_landing is "..tostr(is_landing))
   assert(type(is_blocked_by_wall) == "boolean")
   self.tile_location = tile_location
-  self.position = position
   self.is_blocked_by_wall = is_blocked_by_wall
   self.is_blocked_by_ceiling = is_blocked_by_ceiling
   self.is_landing = is_landing
@@ -93,7 +94,7 @@ end
 --#if tostring
 function air_motion_result:_tostring()
   return "air_motion_result("..joinstr(", ",
-    self.tile_location, self.position, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"
+    self.tile_location, self.is_blocked_by_wall, self.is_blocked_by_ceiling, self.is_landing, self.slope_angle)..")"
 end
 --#endif
 

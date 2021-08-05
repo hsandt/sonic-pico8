@@ -5942,11 +5942,10 @@ describe('player_char', function ()
           setup(function ()
             stub(player_char, "check_air_collisions", function (self)
               -- check_air_collisions must update position in-place
-              self.position = vector(4, 8)
+              self.position = vector(4, 8)  -- make sure it's far enough from stage left edge to avoid soft clamping
 
               return motion.air_motion_result(
                 nil,
-                vector(4, 8),  -- make sure it's far enough from stage left edge to avoid soft clamping
                 false,
                 false,
                 false,
@@ -6170,7 +6169,6 @@ describe('player_char', function ()
 
               return motion.air_motion_result(
                 nil,
-                vector(4, 8),
                 false, -- not the focus, but verified
                 true,  -- focus in this test
                 false,
@@ -6227,7 +6225,6 @@ describe('player_char', function ()
 
               return motion.air_motion_result(
                 nil,
-                vector(4, 8),
                 true,  -- focus in this test
                 false, -- not the focus, but verified
                 false,
@@ -6273,7 +6270,6 @@ describe('player_char', function ()
               self.position = vector(4, 8)
               return motion.air_motion_result(
                 location(0, 1),
-                vector(4, 8),
                 false,
                 false,
                 true,  -- focus in this test
@@ -6316,11 +6312,10 @@ describe('player_char', function ()
           setup(function ()
 
             stub(player_char, "check_air_collisions", function (self)
-              self.position = vector(2.5, 0)
+              self.position = vector(2.5, 0)  -- flr(2.5) must be < pc_data.ground_sensor_extent_x
 
               return motion.air_motion_result(
                 nil,
-                vector(2.5, 0),  -- flr(2.5) must be < pc_data.ground_sensor_extent_x
                 false,
                 false,
                 false,
@@ -6701,7 +6696,6 @@ describe('player_char', function ()
         assert.are_same(vector(4, 4), pc.position)
         assert.are_same(motion.air_motion_result(
             nil,
-            vector(4, 4),
             false,
             false,
             false,
@@ -6760,7 +6754,6 @@ describe('player_char', function ()
               assert.are_same(vector(4, 4), pc.position)
               assert.are_same(motion.air_motion_result(
                   nil,
-                  vector(4, 4),  -- no obstacle, so add full velocity
                   false,
                   false,
                   false,
@@ -6793,7 +6786,6 @@ describe('player_char', function ()
               assert.are_same(vector(4, 7), pc.position)
               assert.are_same(motion.air_motion_result(
                   nil,  -- this is ground tile location, so not set if hitting ceiling (with no adherence)
-                  vector(4, 7),
                   false,
                   true,  -- hit ceiling
                   false,
@@ -6825,7 +6817,6 @@ describe('player_char', function ()
               assert.are_same(vector(4, 7), pc.position)
               assert.are_same(motion.air_motion_result(
                   location(0, 0),  -- ground tile location is set when landing on ceiling
-                  vector(4, 7),
                   false,
                   false,  -- NO hit ceiling when landing on ceiling
                   true,   -- is landing (on ceiling!)
@@ -6870,7 +6861,6 @@ describe('player_char', function ()
               assert.are_same(vector(4, 8 - pc_data.max_ground_escape_height), pc.position)
               assert.are_same(motion.air_motion_result(
                   location(0, 0),
-                  vector(4, 8 - pc_data.max_ground_escape_height),
                   false,
                   false,
                   true,
@@ -6930,7 +6920,6 @@ describe('player_char', function ()
               assert.are_same(vector(2, 4), pc.position)
               assert.are_same(motion.air_motion_result(
                   nil,
-                  vector(2, 4),
                   true,  -- hit wall
                   false,
                   false,

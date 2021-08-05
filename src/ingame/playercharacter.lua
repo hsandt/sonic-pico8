@@ -2356,9 +2356,6 @@ function player_char:check_air_collisions()
   if self.velocity:is_zero() then
     return motion.air_motion_result(
       nil,    -- start in air, so no ground tile
-      -- TODO OPTIMIZE CHARS: since we're working directly on self.position, no need to return position in air motion result
-      --  unlike ground motion result, so remove member altogether
-      self.position:copy(),
       false,  -- is_blocked_by_wall
       false,  -- is_blocked_by_ceiling
       false,  -- is_landing
@@ -2467,7 +2464,6 @@ function player_char:check_air_collisions()
 
   return motion.air_motion_result(
     ground_tile_location,
-    self.position:copy(),
     is_blocked_by_wall,
     is_blocked_by_ceiling,
     is_landing,

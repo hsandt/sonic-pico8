@@ -164,7 +164,7 @@ function stage_clear_state:render()
     -- phase 0: stage result
 
     -- see set_camera_with_origin for value explanation (we must pass camera position)
-    visual_stage.render_background(vector(3392, 328))
+    visual_stage.render_background(vector(3376, 328))
     self:render_stage_elements()
   else
     -- phase 1: retry menu
@@ -221,14 +221,6 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
       end
     end
   end
-end
-
-
--- camera methods, also simplified versions of stage_stage equivalent
-
--- same as stage_state:region_to_global_location but short enough to copy
-function stage_clear_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
 end
 
 

@@ -36,6 +36,11 @@ function base_stage_state:get_map_region_filename(u, v)
   return "data_stage"..self.curr_stage_id.."_"..u..v..cartridge_ext
 end
 
+-- this one is used by #stage_clear
+function base_stage_state:region_to_global_location(region_loc)
+  return region_loc + self:get_region_topleft_location()
+end
+
 
 --#ifn stage_clear
 
@@ -45,9 +50,6 @@ function base_stage_state:global_to_region_location(global_loc)
   return global_loc - self:get_region_topleft_location()
 end
 
-function base_stage_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
-end
 
 -- queries
 

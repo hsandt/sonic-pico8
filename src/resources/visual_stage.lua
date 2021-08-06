@@ -196,17 +196,8 @@ function visual_stage.draw_background_forest_bottom(camera_pos, horizon_line_dy)
     local hole_y0 = y0 + tile_offset_j_cycle[i + 1] * tile_size
     visual.sprite_data_t.background_forest_bottom_hole:render(vector(x0, hole_y0))
     -- light shaft
-    local light_shaft_start = vector(x0 - 1, hole_y0 + 2 * tile_size + 4)
-    line(light_shaft_start.x, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 7, colors.dark_green)
-    line(light_shaft_start.x + 1, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 8, colors.green)
-    -- add bits of yellow to make the ray shinier
-    for k = 0, 2 do
-      pset(light_shaft_start.x - 3 - 6 * k, light_shaft_start.y + 2 + 3 * k, colors.yellow)
-    end
-    line(light_shaft_start.x, light_shaft_start.y + 1, light_shaft_start.x - 14, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 2, light_shaft_start.x - 13, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x + 1, light_shaft_start.y + 2, light_shaft_start.x - 11, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 3, light_shaft_start.x - 10, light_shaft_start.y + 9, colors.dark_green)
+    -- located 3 tiles to the left, 2 tiles down of hole -> (-3*8, 2*8) = (-24, 16)
+    visual.sprite_data_t.background_forest_bottom_lightshaft:render(vector(x0 - 24, hole_y0 + 16))
   end
 end
 

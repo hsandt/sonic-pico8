@@ -174,7 +174,7 @@ fi
 # metadata really counts for the entry cartridge (titlemenu)
 "$picoboots_scripts_path/build_cartridge.sh"                              \
   "$game_src_path"                                                        \
-  ${main_prefix}main_${cartridge_suffix}.lua                         \
+  ${main_prefix}main_${cartridge_suffix}.lua                              \
   ${required_relative_dirpath}                                            \
   -d "$data_path/builtin_data_${builtin_data_suffix}.p8"                  \
   -M "$data_path/metadata.p8"                                             \

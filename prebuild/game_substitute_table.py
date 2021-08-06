@@ -92,3 +92,10 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
         'pc_slope':        6,
     },
 }
+
+
+# table of constants specific to the game
+# complements the generic engine arg substitute table in replace_strings.py
+# format: {name1: value1, name2: value2, ...}
+GAME_CONSTANT_SUBSTITUTE_TABLE = {
+}

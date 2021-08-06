@@ -6,6 +6,7 @@
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
+game_prebuild_path="$(dirname "$0")/prebuild"
 game_src_path="$(dirname "$0")/src"
 data_path="$(dirname "$0")/data"
 build_dir_path="$(dirname "$0")/build"
@@ -183,6 +184,7 @@ fi
   -c "$config"                                                            \
   --no-append-config                                                      \
   -s "$symbols"                                                           \
+  -r "$game_prebuild_path"                                                \
   --minify-level 3                                                        \
   --unify "_${cartridge_suffix}"
 

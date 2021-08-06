@@ -1312,34 +1312,34 @@
 			]
 		},
 		{
-			"name": "Engine: Postbuild: test add_metadata",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_add_metadata"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test add_require",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_add_require"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test analyze",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_analyze"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test preprocess",
+			"name": "Engine: Prebuild: test preprocess",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test replace_strings",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_replace_strings"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test generate_ordered_require_file",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test add_require",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_add_require"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -1360,23 +1360,15 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test generate_dependency_graph",
+			"name": "Engine: Postbuild: test add_metadata",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"cmd": ["python3 -m scripts.test_add_metadata"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test generate_ordered_require_file",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test adapt_for_png",
+			"name": "Engine: Export: test adapt_for_png",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_adapt_for_png"],
@@ -1384,7 +1376,7 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test patch_pico8_js",
+			"name": "Engine: Export: test patch_pico8_js",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_patch_pico8_js"],
@@ -1392,11 +1384,19 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Python (legacy): test replace_strings",
-			"working_dir": "${project_path}",
+			"name": "Engine: Doc: test generate_dependency_graph",
+			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m prebuild.test_replace_strings"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Doc: test analyze",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_analyze"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{

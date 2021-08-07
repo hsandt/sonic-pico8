@@ -6,7 +6,6 @@
 
 local picosonic_app_base = require("application/picosonic_app_base")
 
-local pc_data = require("data/playercharacter_data")
 local stage_state = require("ingame/stage_state")
 
 local picosonic_app_ingame = derived_class(picosonic_app_base)

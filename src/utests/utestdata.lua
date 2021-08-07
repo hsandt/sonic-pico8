@@ -1,4 +1,5 @@
 require("engine/test/p8utest")
+local pc_sprite_data = require("data/playercharacter_sprite_data")
 local tile_collision_data = require("data/tile_collision_data")
 
 -- data to test
@@ -6,7 +7,7 @@ local collision_data = require("data/collision_data")
 -- this one is not checked although we could verify that sprites are not empty or something
 -- but it's useful to check definition sanity (e.g. animation with 0 sprites, in particular
 -- after minification if keys are not protected with ["key"] syntax)
-local pc_data = require("data/playercharacter_data")
+local pc_numerical_data = require("data/playercharacter_numerical_data")
 
 check('sprite_id_location(1, 2) (loop top-left) should have collision flag set', function (utest_name)
   local sprite_id = sprite_id_location(1, 2):to_sprite_id()
@@ -38,5 +39,5 @@ check('tile_collision_data.read_height_array on sprite_id_location(4, 0) return 
 end)
 
 check('sonic_animated_sprite_data_table preserved key "idle"', function (utest_name)
-  assert_log(utest_name, pc_data.sonic_animated_sprite_data_table["idle"] ~= nil, 'Expected pc_data.sonic_animated_sprite_data_table["idle"] to not be nil')
+  assert_log(utest_name, pc_sprite_data.sonic_animated_sprite_data_table["idle"] ~= nil, 'Expected pc_sprite_data.sonic_animated_sprite_data_table["idle"] to not be nil')
 end)

@@ -3,7 +3,7 @@ local camera_class = require("ingame/camera")
 
 local camera_data = require("data/camera_data")
 local player_char = require("ingame/playercharacter")
-local pc_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_numerical_data")
 
 describe('camera_class', function ()
 

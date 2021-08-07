@@ -2,7 +2,6 @@ require("test/bustedhelper_ingame")
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 
 local picosonic_app_base = require("application/picosonic_app_base")
-local pc_data = require("data/playercharacter_data")
 local stage_state = require("ingame/stage_state")
 
 describe('picosonic_app_ingame', function ()

@@ -8,7 +8,8 @@ local location_rect = require("engine/core/location_rect")
 local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
-local pc_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_numerical_data")
+local pc_sprite_data = require("data/playercharacter_sprite_data")
 local emerald = require("ingame/emerald")
 local pfx = require("ingame/pfx")
 local stage_state = require("ingame/stage_state")
@@ -76,11 +77,11 @@ describe('player_char', function ()
           pc_data.debug_move_friction,
           -- setup will modify anim_spr state, but we stubbed it so it's still
           --  has the value on init now
-          animated_sprite(pc_data.sonic_animated_sprite_data_table),
+          animated_sprite(pc_sprite_data.sonic_animated_sprite_data_table),
           pfx(pc_data.spin_dash_dust_spawn_period_frames,
             pc_data.spin_dash_dust_spawn_count,
             pc_data.spin_dash_dust_lifetime_frames,
-            pc_data.spin_dash_dust_base_init_velocity,
+            vector(pc_data.spin_dash_dust_base_init_velocity_x, pc_data.spin_dash_dust_base_init_velocity_y),
             pc_data.spin_dash_dust_max_deviation,
             pc_data.spin_dash_dust_base_max_size,
             player_char.pfx_size_ratio_over_lifetime),

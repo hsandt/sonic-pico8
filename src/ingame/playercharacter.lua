@@ -3,7 +3,8 @@ local input = require("engine/input/input")
 local animated_sprite = require("engine/render/animated_sprite")
 
 local collision_data = require("data/collision_data")
-local pc_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_numerical_data")
+local pc_sprite_data = require("data/playercharacter_sprite_data")
 local pfx = require("ingame/pfx")
 local motion = require("platformer/motion")
 local world = require("platformer/world")
@@ -101,11 +102,11 @@ function player_char:init()
   self.debug_move_friction = pc_data.debug_move_friction
 --#endif
 
-  self.anim_spr = animated_sprite(pc_data.sonic_animated_sprite_data_table)
+  self.anim_spr = animated_sprite(pc_sprite_data.sonic_animated_sprite_data_table)
   self.smoke_pfx = pfx(pc_data.spin_dash_dust_spawn_period_frames,
     pc_data.spin_dash_dust_spawn_count,
     pc_data.spin_dash_dust_lifetime_frames,
-    pc_data.spin_dash_dust_base_init_velocity,
+    vector(pc_data.spin_dash_dust_base_init_velocity_x, pc_data.spin_dash_dust_base_init_velocity_y),
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
     player_char.pfx_size_ratio_over_lifetime)

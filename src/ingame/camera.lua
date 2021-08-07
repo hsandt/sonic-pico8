@@ -1,6 +1,6 @@
 local camera_data = require("data/camera_data")
 
-local pc_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_numerical_data")
 
 local camera_class = new_class()
 

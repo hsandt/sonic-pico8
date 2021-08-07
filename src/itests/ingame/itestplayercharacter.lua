@@ -1,9 +1,6 @@
 -- gamestates: stage
 local itest_dsl = require("itest/itest_dsl")
 local itest_dsl_parser = itest_dsl.itest_dsl_parser
-local input = require("engine/input/input")
-local flow = require("engine/application/flow")
-local pc_data = require("data/playercharacter_data")
 
 local itest
 

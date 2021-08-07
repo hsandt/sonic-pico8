@@ -1,3 +1,7 @@
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
+
 -- camera parameters
 
 local camera_data = {
@@ -101,3 +105,6 @@ local camera_data = {
 }
 
 return camera_data
+
+--(game_constants)
+--#endif

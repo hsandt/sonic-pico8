@@ -37,7 +37,6 @@ local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 
 local player_char = require("ingame/playercharacter")
-local pc_data = require("data/playercharacter_data")
 
 local tile_repr = require("test_data/tile_representation")
 --#if busted

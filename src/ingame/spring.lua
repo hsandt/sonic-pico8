@@ -1,4 +1,4 @@
-local stage_data = require("data/stage_data")
+local stage_common_data = require("data/stage_common_data")
 local world = require("platformer/world")
 -- visual requires ingame add-on to have access to spring sprite data
 local visual = require("resources/visual_common")
@@ -24,7 +24,7 @@ end
 function spring:extend()
   -- if spring was already extended, simply reset the timer
   -- collision mask doesn't change anyway
-  self.extended_timer = stage_data.spring_extend_duration
+  self.extended_timer = stage_common_data.spring_extend_duration
 end
 
 function spring:update()

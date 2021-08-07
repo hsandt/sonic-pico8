@@ -134,7 +134,7 @@ describe('camera_class', function ()
       pc = player_char()
 
       cam = camera_class()
-      cam.stage_data = mock_curr_stage_data
+      cam.curr_stage_data = mock_curr_stage_data
       cam.target_pc = pc
     end)
 
@@ -1009,7 +1009,7 @@ describe('camera_class', function ()
       }
 
       cam = camera_class()
-      cam.stage_data = mock_curr_stage_data
+      cam.curr_stage_data = mock_curr_stage_data
     end)
 
     it('should return complement of margin 50 for pixel scale for x = 9 * tile_size + .9', function ()

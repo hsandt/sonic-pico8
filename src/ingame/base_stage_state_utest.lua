@@ -91,14 +91,14 @@ describe('base_base_stage_state', function ()
     describe('is_tile_in_area', function ()
 
       it('should return true for tile in one of the entrance areas', function ()
-        -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+        -- this depends on stage_data[1].loop_entrance_areas content and
         --  location_rect:contains correctness
         assert.is_true(state:is_tile_in_area(location(4, 4),
           {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))
       end)
 
       it('should return false for tile not in any of the entrance areas', function ()
-        -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+        -- this depends on stage_data[1].loop_entrance_areas content and
         --  location_rect:contains correctness
         assert.is_true(state:is_tile_in_area(location(5, 5),
           {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))

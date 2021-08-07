@@ -167,7 +167,9 @@ fi
 
 # Define list of data module paths, separated by space (Python argparse nargs='*')
 game_constant_module_paths_string="${game_src_path}/data/camera_data.lua \
-${game_src_path}/data/playercharacter_numerical_data.lua"
+${game_src_path}/data/playercharacter_numerical_data.lua \
+${game_src_path}/data/stage_clear_data.lua \
+${game_src_path}/data/stage_common_data.lua"
 
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name

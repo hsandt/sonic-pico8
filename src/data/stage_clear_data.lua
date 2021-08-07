@@ -1,3 +1,7 @@
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
+
 local stage_clear_data = {
 
   -- stage clear sequence timing
@@ -23,3 +27,6 @@ local stage_clear_data = {
 }
 
 return stage_clear_data
+
+--(game_constants)
+--#endif

@@ -1,6 +1,5 @@
 local gamestate = require("engine/application/gamestate")
 
-local stage_data = require("data/stage_data")
 local camera_class = require("ingame/camera")
 local visual = require("resources/visual_common")
 

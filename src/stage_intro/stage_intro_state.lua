@@ -22,7 +22,7 @@ function stage_intro_state:init()
   self.curr_stage_id = 1
 
   -- data
-  self.curr_stage_data = stage_data.for_stage[1]
+  self.curr_stage_data = stage_data[1]
 
   -- render
 

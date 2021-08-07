@@ -6,6 +6,7 @@ local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
+local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
@@ -22,7 +23,7 @@ function stage_state:init()
   self.curr_stage_id = 1
 
   -- reference to current stage data (derived from curr_stage_id)
-  self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
+  self.curr_stage_data = stage_data[self.curr_stage_id]
 
   -- player character
   -- self.player_char = nil  -- commented out to spare characters
@@ -747,7 +748,7 @@ function stage_state:check_emerald_pick_area(position)
     -- max xy distance check <=> inside square area (simplified version of AABB)
     local delta = position - em:get_center()
     local max_distance = max(abs(delta.x), abs(delta.y))
-    if max_distance < stage_data.emerald_pick_radius then
+    if max_distance < stage_common_data.emerald_pick_radius then
       return em
     end
   end
@@ -884,11 +885,11 @@ function stage_state:on_reached_goal_async()
 
   -- play goal plate animation and wait for it to end
   self:feedback_reached_goal()
-  yield_delay_frames(stage_data.goal_rotating_anim_duration)
+  yield_delay_frames(stage_common_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
-  self:stop_bgm(stage_data.bgm_fade_out_duration)
-  self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
+  self:stop_bgm(stage_common_data.bgm_fade_out_duration)
+  self.app:yield_delay_s(stage_common_data.bgm_fade_out_duration)
 
   -- take advantage of the dead time to load the stage_clear cartridge,
   --  which is a super-stripped version of ingame that doesn't know about

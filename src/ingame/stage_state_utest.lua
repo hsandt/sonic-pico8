@@ -72,7 +72,7 @@ describe('stage_state', function ()
         assert.are_same({
             ':stage',
             1,
-            stage_data.for_stage[1],
+            stage_data[1],
             nil,
             false,
             {},

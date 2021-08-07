@@ -59,7 +59,7 @@ describe('stage_intro_state', function ()
       it('should initialize members', function ()
         assert.are_same({
             ':stage_intro',
-            stage_data.for_stage[1],
+            stage_data[1],
             camera_class(),
             overlay(),
             postprocess(),

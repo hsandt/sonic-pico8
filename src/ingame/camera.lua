@@ -53,7 +53,7 @@ end
 -- setup camera for stage data
 function camera_class:setup_for_stage(data)
   -- store ref for later
-  self.stage_data = data
+  self.curr_stage_data = data
 
   -- warp the camera to spawn location (anywhere in the starting region will be enough
   --  so the tilemap region is loaded properly for collision detection; but centering it
@@ -317,7 +317,7 @@ function camera_class:update()
 
   -- clamp on level edges
   -- we are handling the center so we need to offset by screen_width/height
-  self.position.x = mid(screen_width / 2, self.position.x, self.stage_data.tile_width * tile_size - screen_width / 2)
+  self.position.x = mid(screen_width / 2, self.position.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)
 
   -- Y has dynamic clamping so compute it from camera_bottom_limit_margin_keypoints
   local dynamic_bottom_limit = self:get_bottom_limit_at_x(self.position.x)
@@ -337,7 +337,7 @@ function camera_class:get_bottom_limit_at_x(x)
   -- first, evaluate piecewise constant curve, considering each keypoint is placed
   --  at the *end* of a constant region
   -- iterate from left to right
-  for keypoint in all(self.stage_data.camera_bottom_limit_margin_keypoints) do
+  for keypoint in all(self.curr_stage_data.camera_bottom_limit_margin_keypoints) do
     -- check if X is before next keypoint X since it indicates the end
     if x < keypoint.x * tile_size then
       -- we are in the right region since we iterated from left to right
@@ -349,7 +349,7 @@ function camera_class:get_bottom_limit_at_x(x)
 
   -- whether we reached the end and kept margin 0 or found a specific margin,
   --  return the complemented value at pixel scale for the bottom limit as Y
-  return (self.stage_data.tile_height - bottom_limit_tile_margin) * tile_size
+  return (self.curr_stage_data.tile_height - bottom_limit_tile_margin) * tile_size
 end
 
 -- return true if a rectangle with diagonal corners at (topleft, bottomright)

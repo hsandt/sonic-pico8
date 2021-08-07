@@ -1131,7 +1131,7 @@ function stage_state:play_bgm()
   -- Angel Island BGM currently uses only 3 channels so it's pretty safe
   --  as there is always a channel left for SFX, but in case we add a 4th one
   --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
-  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
+  music(stage_common_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 function stage_state:stop_bgm(fade_duration)

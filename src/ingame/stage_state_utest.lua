@@ -14,6 +14,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 
 local picosonic_app = require("application/picosonic_app_ingame")
 local camera_data = require("data/camera_data")
+local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local base_stage_state = require("ingame/base_stage_state")
 local camera_class = require("ingame/camera")
@@ -1928,7 +1929,7 @@ describe('stage_state', function ()
           it('play_bgm should start level bgm', function ()
             state:play_bgm()
 
-            assert.are_same({music=state.curr_stage_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
+            assert.are_same({music=stage_common_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
           end)
 
           it('stop_bgm should stop level bgm if started, else do nothing', function ()

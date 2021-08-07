@@ -20,6 +20,13 @@ local stage_common_data = {
 
   -- Audio
 
+  -- bgm id
+  -- with the new dynamic bgm cartridge reload system,
+  --  we have separate cartridges containing the bgm
+  --  and it always starts at 0, covering not more than patterns 0-49
+  --  (to guarantee space for SFX)
+  bgm_id = 0,
+  
   -- duration of bgm fade out after reaching goal (s)
   bgm_fade_out_duration = 1.0,
 }

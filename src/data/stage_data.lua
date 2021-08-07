@@ -11,25 +11,19 @@ local stage_data = {
     -- they will be divided by 128 or 32 and ceiled to deduce the extended map grid to load
     -- note that tile_width does not take into account the extra tiles added off-camera after the goal,
     --  to prevent Sonic from falling into the void
-    tile_width = 128 * 3 + 46,
-    tile_height = 32 * 2,
+    tile_width  = 430, -- 128 * 3 + 46,
+    tile_height = 64,  -- 32 * 2,
 
     -- where the player character spawns on stage start (region (0, 1))
     -- ! structs are still accessed by ref in Lua, OK but make sure to always copy
     -- or apply a conversion method, never assign them directly to a variable that may change
     -- note that spawn location -> topleft position so this tile is actually the ground where Sonic will stand
-    spawn_location = location(5, 32+15),
+    spawn_location = location(5, 47),  -- location(5, 32+15),
 
     -- the x to reach to finish the stage
     -- remove it with new goal soon
-    goal_x = (3*128 + 48)*8,  -- after 3 regions of 128 tiles, in the middle of the partial final region
+    goal_x = 3456,  -- (3*128 + 48)*8,  -- after 3 regions of 128 tiles, in the middle of the partial final region
 
-    -- bgm id
-    -- with the new dynamic bgm cartridge reload system,
-    --  we have separate cartridges containing the bgm
-    --  and it always starts at 0, covering not more than patterns 0-49
-    --  (to guarantee space for SFX)
-    bgm_id = 0,
 
     -- camera data
 
@@ -70,20 +64,26 @@ local stage_data = {
 
     loop_exit_areas = {
       -- lower loop (read in region (1, 1))
-      location_rect(128 + 94, 32 + 12, 128 + 100, 32 + 22),
+      -- location_rect(128 + 94, 32 + 12, 128 + 100, 32 + 22),
+      location_rect(222, 44, 228, 54),
       -- upper loop 1 (read in region (2, 0))
-      location_rect(256 + 81, 20, 256 + 87, 30),
+      -- location_rect(256 + 81, 20, 256 + 87, 30),
+      location_rect(337, 20, 343, 30),
       -- upper loop 2 (read in region (2, 0) and (2, 1))
-      location_rect(256 + 105, 28, 256 + 111, 32 + 5),
+      -- location_rect(256 + 105, 28, 256 + 111, 32 + 5),
+      location_rect(361, 28, 367, 37),
     },
 
     loop_entrance_areas = {
       -- small loop (read in region (1, 1))
-      location_rect(128 + 101, 32 + 12, 128 + 106, 32 + 22),
+      -- location_rect(128 + 101, 32 + 12, 128 + 106, 32 + 22),
+      location_rect(229, 44, 234, 54),
       -- upper loop 1 (read in region (2, 0))
-      location_rect(256 + 88, 20, 256 + 93, 30),
+      -- location_rect(256 + 88, 20, 256 + 93, 30),
+      location_rect(344, 20, 349, 30),
       -- upper loop 2 (read in region (2, 0) and (2, 1))
-      location_rect(256 + 112, 28, 256 + 117, 32 + 5),
+      -- location_rect(256 + 112, 28, 256 + 117, 32 + 5),
+      location_rect(368, 28, 373, 37),
     }
   }
 }

@@ -1526,7 +1526,17 @@ describe('stage_state', function ()
 
           local corunner
 
+          setup(function ()
+            stub(_G, "load")
+          end)
+
+          teardown(function ()
+            _G.load:revert()
+          end)
+
           before_each(function ()
+            _G.load:clear()
+
             state.goal_plate = goal_plate(location(100, 0))
             state.spawned_emerald_locations = {1, 2, 3, 4, 5, 6, 7, 8}
 

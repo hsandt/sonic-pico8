@@ -26,7 +26,7 @@ local stage_clear_data = {
   delay_after_zigzag_fadeout = 1.0,
 }
 
-return stage_clear_data
-
 --(game_constants)
 --#endif
+
+return stage_clear_data

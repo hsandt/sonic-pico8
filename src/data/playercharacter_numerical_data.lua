@@ -316,7 +316,7 @@ local pc_data = {
   spin_dash_dust_base_max_size = 4.1,
 }
 
-return pc_data
-
 --(game_constants)
 --#endif
+
+return pc_data

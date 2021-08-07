@@ -104,7 +104,7 @@ local camera_data = {
   spin_dash_lag_duration = 16
 }
 
-return camera_data
-
 --(game_constants)
 --#endif
+
+return camera_data

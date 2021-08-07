@@ -26,12 +26,12 @@ local stage_common_data = {
   --  and it always starts at 0, covering not more than patterns 0-49
   --  (to guarantee space for SFX)
   bgm_id = 0,
-  
+
   -- duration of bgm fade out after reaching goal (s)
   bgm_fade_out_duration = 1.0,
 }
 
-return stage_common_data
-
 --(game_constants)
 --#endif
+
+return stage_common_data

@@ -355,50 +355,6 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_quadrant_horizontal', function ()
-
-      it('should return vector(1, 0) when quadrant is down, passing right', function ()
-        pc.quadrant = directions.down
-        assert.are_same(vector(1, 0), pc:get_quadrant_horizontal(horizontal_dirs.right))
-      end)
-
-      it('should return vector(-1, 0) when quadrant is down, passing left', function ()
-        pc.quadrant = directions.down
-        assert.are_same(vector(-1, 0), pc:get_quadrant_horizontal(horizontal_dirs.left))
-      end)
-
-      it('should return vector(-1, 0) when quadrant is up, passing right', function ()
-        pc.quadrant = directions.up
-        assert.are_same(vector(-1, 0), pc:get_quadrant_horizontal(horizontal_dirs.right))
-      end)
-
-      it('should return vector(1, 0) when quadrant is down, passing left', function ()
-        pc.quadrant = directions.up
-        assert.are_same(vector(1, 0), pc:get_quadrant_horizontal(horizontal_dirs.left))
-      end)
-
-      it('should return vector(0, -1) when quadrant is right, , passing right', function ()
-        pc.quadrant = directions.right
-        assert.are_same(vector(0, -1), pc:get_quadrant_horizontal(horizontal_dirs.right))
-      end)
-
-      it('should return vector(0, 1) when quadrant is down, passing left', function ()
-        pc.quadrant = directions.right
-        assert.are_same(vector(0, 1), pc:get_quadrant_horizontal(horizontal_dirs.left))
-      end)
-
-      it('should return vector(0, 1) when quadrant is left, passing right', function ()
-        pc.quadrant = directions.left
-        assert.are_same(vector(0, 1), pc:get_quadrant_horizontal(horizontal_dirs.right))
-      end)
-
-      it('should return vector(0, -1) when quadrant is down, passing left', function ()
-        pc.quadrant = directions.left
-        assert.are_same(vector(0, -1), pc:get_quadrant_horizontal(horizontal_dirs.left))
-      end)
-
-    end)
-
     describe('get_quadrant_down', function ()
 
       it('should return vector(0, 1) when quadrant is down', function ()

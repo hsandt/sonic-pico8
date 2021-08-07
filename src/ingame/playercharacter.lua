@@ -211,15 +211,6 @@ function player_char:get_horizontal(horizontal_dir)
   return (self.quadrant - horizontal_dir_signs[horizontal_dir]) % 4
 end
 
--- return quadrant of relative tangent, left or right unit vector, depending on horizontal_dir
--- equivalent to returning quadrant down, rotated by 90 degrees cw if horizontal_dir is left,
---  and by 90 degrees ccw if horizontal_dir is right
-function player_char:get_quadrant_horizontal(horizontal_dir)
-  -- See formula of rotate_dir_90_cw in direction_ext.lua (not included for minimal chars usage)
-  -- => we want + 1 for CW, so when dir is left, so we must oppose the horizontal sign, hence `-`
-  return dir_vectors[(self.quadrant - horizontal_dir_signs[horizontal_dir]) % 4]
-end
-
 -- return quadrant normal down (interior) unit vector
 function player_char:get_quadrant_down()
   return dir_vectors[self.quadrant]

@@ -202,16 +202,22 @@ function player_char:get_full_height()
   return self:is_compact() and pc_data.full_height_compact or pc_data.full_height_standing
 end
 
--- return quadrant tangent right (forward) unit vector
-function player_char:get_quadrant_right()
-  -- OPTIMIZE CHARS note: this is literally rotate_dir_90_ccw from direction_ext.lua
-  -- I believe I inlined it to spare characters, but depending on the number of usages
-  --  it may be worth or not requiring that helper (but that may include other things too,
-  --  growing code size).
-  -- For now, there are only 2 usages (one indirect usage in compute_closest_wall_query_info
-  --  that can inline either rotate_dir_90_cw or rotate_dir_90_ccw with a formula),
-  --  so we decided to keep inlining both.
-  return dir_vectors[(self.quadrant - 1) % 4]
+-- return horizontal direction relative to quadrant in world direction, depending on horizontal_dir
+-- equivalent to returning quadrant down, rotated by 90 degrees cw if horizontal_dir is left,
+--  and by 90 degrees ccw if horizontal_dir is right
+function player_char:get_horizontal(horizontal_dir)
+  -- See formula of rotate_dir_90_cw in direction_ext.lua (not included for minimal chars usage)
+  -- => we want + 1 for CW, so when dir is left, so we must oppose the horizontal sign, hence `-`
+  return (self.quadrant - horizontal_dir_signs[horizontal_dir]) % 4
+end
+
+-- return quadrant of relative tangent, left or right unit vector, depending on horizontal_dir
+-- equivalent to returning quadrant down, rotated by 90 degrees cw if horizontal_dir is left,
+--  and by 90 degrees ccw if horizontal_dir is right
+function player_char:get_quadrant_horizontal(horizontal_dir)
+  -- See formula of rotate_dir_90_cw in direction_ext.lua (not included for minimal chars usage)
+  -- => we want + 1 for CW, so when dir is left, so we must oppose the horizontal sign, hence `-`
+  return dir_vectors[(self.quadrant - horizontal_dir_signs[horizontal_dir]) % 4]
 end
 
 -- return quadrant normal down (interior) unit vector
@@ -1195,11 +1201,7 @@ end
 function player_char:compute_closest_wall_query_info(sensor_position, quadrant_hdir)
   -- collision_check_quadrant:
   -- if going q-left, we must detect collision in quadrant rotated 90 clockwise from q-down, else 90 counter-clockwise
-  -- to avoid requiring direction_ext, we inline both rotate_dir_90_cw and rotate_dir_90_ccw with a subtle formula
-  --  (note that get_quadrant_right inlines rotate_dir_90_ccw too)
-  -- rotate_dir_90_cw(direction) => (direction + 1) % 4
-  -- rotate_dir_90_ccw(direction) => (direction - 1) % 4
-  local rotate_sign = quadrant_hdir == horizontal_dirs.left and 1 or -1
+  -- => self:get_horizontal(quadrant_hdir)
 
   -- start_tile_offset_qy: 0 since we already "raycast" from character center which should be far enough from the wall surface
   --  if character didn't "enter" wall at a speed too high (max ground speed is 3 though, so it may happen, be careful)
@@ -1217,7 +1219,7 @@ function player_char:compute_closest_wall_query_info(sensor_position, quadrant_h
   -- (there is an offset on qx though, which is already embedded in wall sensor position)
 
   return iterate_over_collision_tiles(self,
-    --[[collision_check_quadrant]] (self.quadrant + rotate_sign) % 4,  -- here we inline rotate_dir_90_(c)cw
+    --[[collision_check_quadrant]] self:get_horizontal(quadrant_hdir),
     --[[start_tile_offset_qy]] 0,
     --[[last_tile_offset_qy]] ceil(pc_data.ground_sensor_extent_x),
     --[[sensor_position_base]] sensor_position,
@@ -2055,8 +2057,7 @@ function player_char:check_escape_wall_and_update_next_position(next_position, q
       local signed_distance_to_closest_wall = wall_query_info.signed_distance - ceil(pc_data.ground_sensor_extent_x)
       log("signed_distance_to_closest_wall: "..signed_distance_to_closest_wall, "trace2")
 
-      local rotate_sign = quadrant_horizontal_dir == horizontal_dirs.left and 1 or -1
-      local wall_quadrant = dir_vectors[(self.quadrant + rotate_sign) % 4]
+      local wall_quadrant = dir_vectors[self:get_horizontal(quadrant_horizontal_dir)]
       local vector_to_closest_wall = signed_distance_to_closest_wall * wall_quadrant
 
       -- Escape wall

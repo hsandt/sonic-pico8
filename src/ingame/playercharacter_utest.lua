@@ -311,26 +311,90 @@ describe('player_char', function ()
 
     end)
 
-    describe('get_quadrant_right', function ()
+    describe('get_horizontal', function ()
 
-      it('should return vector(1, 0) when quadrant is down', function ()
+      it('should return directions.right when quadrant is down, passing right', function ()
         pc.quadrant = directions.down
-        assert.are_same(vector(1, 0), pc:get_quadrant_right())
+        assert.are_same(directions.right, pc:get_horizontal(horizontal_dirs.right))
       end)
 
-      it('should return vector(-1, 0) when quadrant is up', function ()
+      it('should return directions.left when quadrant is down, passing left', function ()
+        pc.quadrant = directions.down
+        assert.are_same(directions.left, pc:get_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return directions.left when quadrant is up, passing right', function ()
         pc.quadrant = directions.up
-        assert.are_same(vector(-1, 0), pc:get_quadrant_right())
+        assert.are_same(directions.left, pc:get_horizontal(horizontal_dirs.right))
       end)
 
-      it('should return vector(0, -1) when quadrant is right', function ()
+      it('should return directions.right when quadrant is down, passing left', function ()
+        pc.quadrant = directions.up
+        assert.are_same(directions.right, pc:get_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return directions.up when quadrant is right, , passing right', function ()
         pc.quadrant = directions.right
-        assert.are_same(vector(0, -1), pc:get_quadrant_right())
+        assert.are_same(directions.up, pc:get_horizontal(horizontal_dirs.right))
       end)
 
-      it('should return vector(0, 1) when quadrant is left', function ()
+      it('should return directions.down when quadrant is down, passing left', function ()
+        pc.quadrant = directions.right
+        assert.are_same(directions.down, pc:get_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return directions.down when quadrant is left, passing right', function ()
         pc.quadrant = directions.left
-        assert.are_same(vector(0, 1), pc:get_quadrant_right())
+        assert.are_same(directions.down, pc:get_horizontal(horizontal_dirs.right))
+      end)
+
+      it('should return directions.up when quadrant is down, passing left', function ()
+        pc.quadrant = directions.left
+        assert.are_same(directions.up, pc:get_horizontal(horizontal_dirs.left))
+      end)
+
+    end)
+
+    describe('get_quadrant_horizontal', function ()
+
+      it('should return vector(1, 0) when quadrant is down, passing right', function ()
+        pc.quadrant = directions.down
+        assert.are_same(vector(1, 0), pc:get_quadrant_horizontal(horizontal_dirs.right))
+      end)
+
+      it('should return vector(-1, 0) when quadrant is down, passing left', function ()
+        pc.quadrant = directions.down
+        assert.are_same(vector(-1, 0), pc:get_quadrant_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return vector(-1, 0) when quadrant is up, passing right', function ()
+        pc.quadrant = directions.up
+        assert.are_same(vector(-1, 0), pc:get_quadrant_horizontal(horizontal_dirs.right))
+      end)
+
+      it('should return vector(1, 0) when quadrant is down, passing left', function ()
+        pc.quadrant = directions.up
+        assert.are_same(vector(1, 0), pc:get_quadrant_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return vector(0, -1) when quadrant is right, , passing right', function ()
+        pc.quadrant = directions.right
+        assert.are_same(vector(0, -1), pc:get_quadrant_horizontal(horizontal_dirs.right))
+      end)
+
+      it('should return vector(0, 1) when quadrant is down, passing left', function ()
+        pc.quadrant = directions.right
+        assert.are_same(vector(0, 1), pc:get_quadrant_horizontal(horizontal_dirs.left))
+      end)
+
+      it('should return vector(0, 1) when quadrant is left, passing right', function ()
+        pc.quadrant = directions.left
+        assert.are_same(vector(0, 1), pc:get_quadrant_horizontal(horizontal_dirs.right))
+      end)
+
+      it('should return vector(0, -1) when quadrant is down, passing left', function ()
+        pc.quadrant = directions.left
+        assert.are_same(vector(0, -1), pc:get_quadrant_horizontal(horizontal_dirs.left))
       end)
 
     end)

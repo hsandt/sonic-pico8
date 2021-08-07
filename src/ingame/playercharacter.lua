@@ -783,12 +783,9 @@ end
 
 -- Return the position of the wall sensor position when checking wall in quadrant_horizontal_dir
 --  (relatively to current quadrant) and character center is at center_position.
--- Note that quadrant_horizontal_dir is unused, but in the future we may merge this method with
---  get_ground_sensor_position_from and also move the wall sensor position to the front of Sonic,
---  so it would become useful eventually.
--- OPTIMIZE CHARS: if you're NOT moving wall sensor position to Sonic front eventually,
---  just remove quadrant_horizontal_dir from parameters and call site
-function player_char:get_wall_sensor_position_from(center_position, quadrant_horizontal_dir)
+-- Note that in the future, we may merge this method with get_ground_sensor_position_from and
+--  also move the wall sensor position to the front of Sonic; if so, re-add parameter quadrant_horizontal_dir,
+function player_char:get_wall_sensor_position_from(center_position)
   local x = center_position.x
   local y = center_position.y
 
@@ -2016,7 +2013,7 @@ end
 -- update next position in-place to escape any wall entered
 -- return true if escaping wall this way, else falsy value
 function player_char:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
-  local sensor_position_base = self:get_wall_sensor_position_from(next_position, quadrant_horizontal_dir)
+  local sensor_position_base = self:get_wall_sensor_position_from(next_position)
   local wall_query_info = self:compute_closest_wall_query_info(sensor_position_base, quadrant_horizontal_dir)
 
   if wall_query_info.tile_location then

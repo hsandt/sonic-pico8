@@ -1465,59 +1465,36 @@ describe('player_char', function ()
 
       describe('get_wall_sensor_position_from', function ()
 
-        it('should return the position 2px below center, y floored, when horizontal dir is left', function ()
+        it('should return the position 2px below center, y floored', function ()
           -- floor only y
           -- lower raycast by 8 - 6 = 2
-          assert.are_same(vector(10.9, 12), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(10.9, 12), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
-        it('should return the position 2px below center, y floored, when horizontal dir is right', function ()
-          -- currently raycast from center axis, so no change between left and right
-          assert.are_same(vector(10.9, 12), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.right))
-        end)
-
-        it('(right wall) should return the position 2px to the right of center (q-down of center), x floored, when horizontal dir is left', function ()
+        it('(right wall) should return the position 2px to the right of center (q-down of center), x floored', function ()
           pc.quadrant = directions.right
-          assert.are_same(vector(12, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(12, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
-        it('(right wall) should return the position 2px to the right of center (q-down of center), x floored, when horizontal dir is right', function ()
-          -- currently raycast from center axis, so no change between left and right
-          pc.quadrant = directions.right
-          assert.are_same(vector(12, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.right))
-        end)
-
-        it('(ceiling) should return the position 2px to the up of center (q-down of center), y floored, when horizontal dir is left', function ()
+        it('(ceiling) should return the position 2px to the up of center (q-down of center), y floored', function ()
           pc.quadrant = directions.up
-          assert.are_same(vector(10.9, 8), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(10.9, 8), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
-        it('(ceiling) should return the position 2px to the up of center (q-down of center), y floored, when horizontal dir is right', function ()
-          -- currently raycast from center axis, so no change between left and right
-          pc.quadrant = directions.up
-          assert.are_same(vector(10.9, 8), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.left))
-        end)
-
-        it('(left wall) should return the position 2px to the left of center (q-down of center), x floored, when horizontal dir is left', function ()
+        it('(left wall) should return the position 2px to the left of center (q-down of center), x floored', function ()
           pc.quadrant = directions.left
-          assert.are_same(vector(8, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.left))
+          assert.are_same(vector(8, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
-        it('(left wall) should return the position 2px to the left of center (q-down of center), x floored, when horizontal dir is right', function ()
-          -- currently raycast from center axis, so no change between left and right
-          pc.quadrant = directions.left
-          assert.are_same(vector(8, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.right))
-        end)
-
-        it('(non-0 slope) should return the center position, y floored, when horizontal dir is left or right', function ()
+        it('(non-0 slope) should return the center position, y floored or right', function ()
           pc.slope_angle = 0.25
-          assert.are_same(vector(10.9, 10), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.right))
+          assert.are_same(vector(10.9, 10), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
-        it('(left wall, non-0 slope) should return the center position, x floored, when horizontal dir is left or right', function ()
+        it('(left wall, non-0 slope) should return the center position, x floored', function ()
           pc.quadrant = directions.left
           pc.slope_angle = 0.25
-          assert.are_same(vector(10, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9), horizontal_dirs.right))
+          assert.are_same(vector(10, 10.9), pc:get_wall_sensor_position_from(vector(10.9, 10.9)))
         end)
 
       end)

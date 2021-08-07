@@ -2438,14 +2438,15 @@ describe('player_char', function ()
 
           -- far
 
-          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x) + 1)', function ()
-            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x) - 1, 12), horizontal_dirs.right))
+          -- new convention is to ignore touching walls until we really enter them, on the right too (so symmetrical with left)
+          it('should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x)', function ()
+            assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.right))
           end)
 
           -- just within reach
 
-          it('should return ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x), 0.25) if distant from wall by ceil(pc_data.ground_sensor_extent_x)', function ()
-            assert.are_same(ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x), 0.25), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.right))
+          it('should return ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) + 0.5, 0.25) if distant from wall by ceil(pc_data.ground_sensor_extent_x) - 0.5', function ()
+            assert.are_same(ground_query_info(location(1, 1), ceil(pc_data.ground_sensor_extent_x) - 0.5, 0.25), pc:compute_closest_wall_query_info(vector(8 - ceil(pc_data.ground_sensor_extent_x) + 0.5, 12), horizontal_dirs.right))
           end)
 
           -- inside, just before other side
@@ -2467,13 +2468,7 @@ describe('player_char', function ()
 
           -- far
 
-          -- note the slight dissymmetry here: because integer positions are considered to belong to the pixel on the right,
-          --  and in player_char:compute_closest_wall_query_info we are passing last_tile_offset_qy = ceil(pc_data.ground_sensor_extent_x) exactly
-          --  we already lose track of the wall when ceil(pc_data.ground_sensor_extent_x) away from it
-          -- it's not a problem because we only care about walls when getting *inside them* (signed distance < 0), not when touching them
-          --  (in player_char:compute_ground_motion_result we check wall_query_info.signed_distance < ceil(pc_data.ground_sensor_extent_x) not <=)
-          -- if we need to exact check wall touch for some reason, to make it work on the left direction you'll need to pass
-          --  last_tile_offset_qy = ceil(pc_data.ground_sensor_extent_x) + 1
+          -- with new convention, we're ignoring wall touch (ceil(pc_data.ground_sensor_extent_x) away) on right side too, so now symmetrical
           it('(checking left wall) should return ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil) if distant from wall by ceil(pc_data.ground_sensor_extent_x))', function ()
             assert.are_same(ground_query_info(nil, ceil(pc_data.ground_sensor_extent_x) + 1, nil), pc:compute_closest_wall_query_info(vector(16 + ceil(pc_data.ground_sensor_extent_x), 12), horizontal_dirs.left))
           end)

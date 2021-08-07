@@ -1168,7 +1168,8 @@ local function wall_check_collider_distance_callback(curr_tile_loc, signed_dista
   --  use that for both wall and ceiling detection!
   -- note that we want to block character and floor its position (at least on qx) when just touching wall,
   --  so if wall is just at the limit of the raycast test we still detect it, hence <= instead of <
-  if signed_distance_to_closest_wall <= ceil(pc_data.ground_sensor_extent_x) then
+  -- if signed_distance_to_closest_wall <= ceil(pc_data.ground_sensor_extent_x) then
+  if signed_distance_to_closest_wall < ceil(pc_data.ground_sensor_extent_x) then
     -- touching or inside wall
     return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
   else

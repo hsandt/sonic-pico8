@@ -1162,13 +1162,8 @@ end
 -- actual body of compute_closest_wall_query_info passed to iterate_over_collision_tiles
 --  as collider_distance_callback
 local function wall_check_collider_distance_callback(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
-  -- OPTIMIZE CHARS
-  -- currently implementation is exactly the same as ceiling_check_collider_distance_callback
-  --  so if it works, just merge both functions into some no_snap_down_check_collider_distance_callback and
-  --  use that for both wall and ceiling detection!
-  -- note that we want to block character and floor its position (at least on qx) when just touching wall,
-  --  so if wall is just at the limit of the raycast test we still detect it, hence <= instead of <
-  -- if signed_distance_to_closest_wall <= ceil(pc_data.ground_sensor_extent_x) then
+  -- note that we want to block character and floor its position (at least on qx) when just *entering* wall,
+  --  not if just touching wall (makes left and right symmetrical), hence <
   if signed_distance_to_closest_wall < ceil(pc_data.ground_sensor_extent_x) then
     -- touching or inside wall
     return motion.ground_query_info(curr_tile_loc, signed_distance_to_closest_wall, slope_angle)
@@ -1969,6 +1964,9 @@ function player_char:compute_ground_motion_result()
     end
   end
 
+  -- don't reverse that ternary! `and nil or ...` won't work!
+  local next_ground_tile_location = not is_falling and query_info.tile_location or nil
+
   -- Step 4: 2nd wall check (only if found wall in step 2, but found ground with different quadrant in step 3)
 
   -- At this point self.quadrant has not been changed YET, but we can still
@@ -1978,22 +1976,32 @@ function player_char:compute_ground_motion_result()
   if is_blocked and previous_quadrant ~= world.angle_to_quadrant(query_info.slope_angle) then
     -- Since we want to apply wall check with new quadrant, to make it meaningful we must update the ground tile location
     --  so the raycasts are more likely to be oriented toward the new character forward and not hit unwanted ground as wall
-    --  (and slope angle to be consistent, but check_escape_wall_and_update_next_position doesn't use it anyway;
-    --  OPTIMIZE CHARS: you can remove the lines setting it if you need to spare characters)
-    if is_falling then
-      self.ground_tile_location = nil
-      self:set_slope_angle_with_quadrant(nil)
-    else
-      self:set_ground_tile_location(query_info.tile_location)
-      self:set_slope_angle_with_quadrant(query_info.slope_angle)
-    end
+    self:set_ground_tile_location(next_ground_tile_location)
+
+    -- In principle we should also update the slope angle to be consistent, but check_escape_wall_and_update_next_position
+    --  doesn't use it anyway, so we commented out to spare characters, but kept for understanding
+    -- if is_falling then
+    --   self:set_slope_angle_with_quadrant(nil)
+    -- else
+    --   self:set_slope_angle_with_quadrant(query_info.slope_angle)
+    -- end
 
     is_blocked = self:check_escape_wall_and_update_next_position(next_position, quadrant_horizontal_dir)
+
+    -- what's interesting is that we noticed that not doing all of this
+    --  (set_ground_tile_location + check_escape_wall_and_update_next_position)
+    --  and just clearing flag: is_blocked = false
+    -- works too, thx to the quadrant check: we don't change quadrant often, and if we do,
+    --  we can tolerate ignoring walls and going through for 1 frame; the next frame is unlikely to
+    --  change quadrant *again*, and therefore will detect any wall normally
+    -- OPTIMIZE CHARS: so consider this alternative if you need to release more characters,
+    --  as it showed no issues in the game (and it even passes our utest to fix #265, as long as you only
+    --  check the final result and not count spy calls!)
   end
 
   -- make sure to only pass tile location if not falling, to avoid assert on invalid result construction
   local motion_result = motion.ground_motion_result(
-    not is_falling and query_info.tile_location or nil,  -- don't reverse that ternary! `and nil or ...` won't work!
+    next_ground_tile_location,
     next_position,
     query_info.slope_angle,
     is_blocked,

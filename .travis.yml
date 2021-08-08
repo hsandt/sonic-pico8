@@ -73,6 +73,11 @@ script:
   - |
     for cartridge in $CARTRIDGES; do
       ITEST_CARTRIDGE_SUFFIX="$cartridge" ./test.sh -f headless_itests
+      if [[ $? -ne 0 ]]; then
+        echo ""
+        echo "Headless itests failed for cartridge "$cartridge", STOP."
+        exit 1
+      fi
     done
   # coverage
   - bash <(curl -s https://codecov.io/bash)

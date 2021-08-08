@@ -28,11 +28,9 @@ local visual = require("resources/visual_common")
 
 local picosonic_app_base = derived_class(gameapp)
 
---#if release
 function picosonic_app_base:init()
   gameapp.init(self, fps60)
 end
---#endif
 
 function picosonic_app_base:on_post_start() -- override
   extcmd("set_title","Pico Sonic")

@@ -12,6 +12,9 @@ local collision_data = {}
 --  depending on how we interpretr pixel ladders, we prefer setting them manually to get the slope factor we want
 local mask_tile_angles = transform(
   {
+    -- TODO OPTIMIZE CHARS: consider removing key as long as the first entries start at [1] and there is no hole
+    -- unfortunately this requires reordering the keys in a non-semantic manner, so check how many chars you really gain
+
     -- low slope descending every 4px with flat ground at every step
     [1]  = {8, 2},
     [2]  = {8, 0},  -- flat tile 6px high

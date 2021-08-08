@@ -191,10 +191,6 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast"]
 				},
 				{
-					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox"]
-				},
-				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert"]
 				},
@@ -288,6 +284,14 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear release"]
 				}
 			]
+		},
+		{
+			"name": "Game: build cartridge sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh sandbox sandbox"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "Game: build full game",
@@ -413,10 +417,6 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
 				},
 				{
-					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
-				},
-				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
 				},
@@ -520,6 +520,14 @@
 			]
 		},
 		{
+			"name": "Game: build and run sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh sandbox sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh sandbox sandbox)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: build and run full game",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -617,10 +625,6 @@
 				{
 					"name": "ingame cheat-ultrafast",
 					"cmd": ["./run_cartridge.sh ingame cheat-ultrafast"]
-				},
-				{
-					"name": "ingame sandbox",
-					"cmd": ["./run_cartridge.sh ingame sandbox"]
 				},
 				{
 					"name": "ingame assert",
@@ -897,6 +901,13 @@
 					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release png"]
 				}
 			]
+		},
+		{
+			"name": "Game: install cartridge sandbox (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge_with_data.sh sandbox sandbox"],
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "Game: install all cartridges (with data)",

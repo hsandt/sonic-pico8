@@ -115,7 +115,8 @@ elif [[ $config == 'ultrafast' ]]; then
 elif [[ $config == 'cheat-ultrafast' ]]; then
   symbols='cheat,ultrafast,debug_menu'
 elif [[ $config == 'sandbox' ]]; then
-  symbols='assert,deprecated,sandbox'
+  # symbols='assert,deprecated,sandbox'
+  symbols='sandbox,assert,tuner,mouse'
 elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
   symbols='assert,tostring,debug_collision_mask'
@@ -141,28 +142,35 @@ fi
 symbols+="$cartridge_suffix"
 
 # Define builtin data to use (in most cases it's just the cartridge suffix)
-if [[ $cartridge_suffix == 'attract_mode' ]]; then
-  # attract mode reuses same data as ingame, so no need for dedicated data cartridge
-  builtin_data_suffix="ingame"
-  # we must also define the ingame symbols to have access to all ingame code
-  # (as opposed to stage_intro / stage_clear code)
-  symbols+=",ingame"
+if [[ $cartridge_suffix == 'sandbox' ]]; then
+  # for now we just need to test Sonic sprites in sandbox (e.g. rotation)
+  # data_filebasename="data_stage_sonic"
+  data_filebasename="data_stage1_ingame"
 else
-  if [[ $cartridge_suffix == 'ingame' ]]; then
-    # add symbol #normal_mode to distinguish from attract_mode, as both define #ingame
-    symbols+=",normal_mode"
+  if [[ $cartridge_suffix == 'attract_mode' ]]; then
+    # attract mode reuses same data as ingame, so no need for dedicated data cartridge
+    builtin_data_suffix="ingame"
+    # we must also define the ingame symbols to have access to all ingame code
+    # (as opposed to stage_intro / stage_clear code)
+    symbols+=",ingame"
+  else
+    if [[ $cartridge_suffix == 'ingame' ]]; then
+      # add symbol #normal_mode to distinguish from attract_mode, as both define #ingame
+      symbols+=",normal_mode"
+    fi
+    builtin_data_suffix="$cartridge_suffix"
   fi
-  builtin_data_suffix="$cartridge_suffix"
-fi
 
-if [[ "$itest" == true ]]; then
-  main_prefix='itest_'
-  required_relative_dirpath="itests/${cartridge_suffix}"
-  cartridge_extra_suffix='itest_all_'
-else
-  main_prefix=''
-  required_relative_dirpath=''
-  cartridge_extra_suffix=''
+  if [[ "$itest" == true ]]; then
+    main_prefix='itest_'
+    required_relative_dirpath="itests/${cartridge_suffix}"
+    cartridge_extra_suffix='itest_all_'
+  else
+    main_prefix=''
+    required_relative_dirpath=''
+    cartridge_extra_suffix=''
+  fi
+  data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
 
 # Define list of data module paths, separated by space (Python argparse nargs='*')
@@ -182,7 +190,7 @@ ${game_src_path}/data/stage_common_data.lua"
   "$game_src_path"                                                        \
   ${main_prefix}main_${cartridge_suffix}.lua                              \
   ${required_relative_dirpath}                                            \
-  -d "$data_path/builtin_data_${builtin_data_suffix}.p8"                  \
+  -d "${data_path}/${data_filebasename}.p8"                               \
   -M "$data_path/metadata.p8"                                             \
   -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})" \
   -p "$build_output_path"                                                 \

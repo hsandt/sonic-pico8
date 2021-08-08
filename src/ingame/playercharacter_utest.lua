@@ -709,7 +709,7 @@ describe('player_char', function ()
         assert.are_equal(0.75, pc.sprite_angle)
       end)
 
-      it('(pc running, facing left) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle PLUS 45 deg (0.125 pico8 angle unit)', function ()
+      it('(pc running, facing left) should set is_sprite_diagonal to true if angle is closer to diagonal direction, and sprite_angle to this diagonal angle PLUS 45 deg (0.125 pico8 angle unit) = 1 -> 0 with modulo', function ()
         pc.anim_spr.current_anim_key = "run"
         pc.continuous_sprite_angle = 0.875 + 0.0624  -- closer to 0.875 than 1 (0 modulo 1)
         pc.orientation = horizontal_dirs.left
@@ -718,7 +718,8 @@ describe('player_char', function ()
 
         assert.is_true(pc.is_sprite_diagonal)
         -- sprite is already rotated by -45 due to flip x (in pico8 unit, -0.125), so the additional angle is only 0.875 - (- 0.125) = 1
-        assert.are_equal(1, pc.sprite_angle)
+        -- since using spr_r90 we decided to modulo 1 early, so although calculation gave 1, stored member is 0
+        assert.are_equal(0, pc.sprite_angle)
       end)
 
     end)

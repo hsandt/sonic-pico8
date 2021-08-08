@@ -394,7 +394,7 @@ function player_char:update_sprite_angle_parameters()
     end
   end
 
-  self.sprite_angle = sprite_angle
+  self.sprite_angle = sprite_angle % 1
   self.is_sprite_diagonal = is_sprite_diagonal
 end
 
@@ -402,7 +402,7 @@ end
 -- if force_upward_sprite is true, set sprite angle to 0
 -- else, set sprite angle to angle (if not nil)
 function player_char:set_slope_angle_with_quadrant(angle, force_upward_sprite)
-  assert(angle == nil or 0 <= angle and angle <= 1, "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (apply % 1 is needed)")
+  assert(angle == nil or 0 <= angle and angle < 1, "player_char:set_slope_angle_with_quadrant: angle is "..tostr(angle)..", should be nil or between 0 and 1 (excluded), please apply % 1 if needed")
 
   self.slope_angle = angle
 
@@ -1146,7 +1146,9 @@ function player_char:compute_closest_ceiling_query_info(sensor_position)
   --  - (max_ground_escape_height + 1 - full_height) offset for first tile according to explanation above + the fact that we consider this offset from sensor_position base + offset (full_height)
   --  - no offset for last tile since we end checking at head top exactly, so argument 3 is 0
   local full_height = self:get_full_height()
-  assert(pc_data.max_ground_escape_height + 1 - full_height <= 0, "max_ground_escape_height: "..pc_data.max_ground_escape_height.." is too high, risk of infinite loop (only ends thx to number wrapping), consider clamping start_tile_offset_qy")
+  -- the pc_data constant will be replaced in-line by replace_strings if game constant info is passed correctly
+  --  ("text "..number.." text" will fail to pass luamin although correct, and adding tostr() is a waste)
+  assert(pc_data.max_ground_escape_height + 1 - full_height <= 0, "max_ground_escape_height: pc_data.max_ground_escape_height is too high, risk of infinite loop (only ends thx to number wrapping), consider clamping start_tile_offset_qy")
   return iterate_over_collision_tiles(self, oppose_dir(self.quadrant), pc_data.max_ground_escape_height + 1 - full_height, 0, sensor_position, full_height, ceiling_check_collider_distance_callback, ceiling_check_no_collider_callback, --[[ignore_reverse_on_start_tile:]] true)
 end
 

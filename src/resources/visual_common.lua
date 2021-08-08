@@ -36,22 +36,22 @@ local visual = {
 local sprite_data_t = transform(
   {
     -- sprite_data(id_loc: sprite_id_location([1], [2]), span: nil (currently all sprites below are 1x1),
-    --             pivot: vector([3], [4]), transparent_color_arg: [5]),
-    -- parameters:     {id_loc(2), pivot(2), transparent_color}
+    --             pivot: vector([3], [4]), transparent_color_arg: colors.pink),
+    -- parameters:     {id_loc(2), pivot(2)}
 
     -- COMMON INITIAL SPRITES
 --#if mouse
-    cursor           = {     9, 0,     0, 0,       colors.pink},
+    cursor           = {     9, 0,     0, 0},
 --#endif
 
     -- ANIMATION SPRITES
-    emerald_pick_fx1 = {    12, 0,     4, 4,       colors.pink},
-    emerald_pick_fx2 = {    13, 0,     4, 4,       colors.pink},
-    emerald_pick_fx3 = {    14, 0,     4, 4,       colors.pink},
-    emerald_pick_fx4 = {    15, 0,     4, 4,       colors.pink},
+    emerald_pick_fx1 = {    12, 0,     4, 4},
+    emerald_pick_fx2 = {    13, 0,     4, 4},
+    emerald_pick_fx3 = {    14, 0,     4, 4},
+    emerald_pick_fx4 = {    15, 0,     4, 4},
   },
   function (params)
-    return sprite_data(sprite_id_location(params[1], params[2]), nil, vector(params[3], params[4]), params[5])
+    return sprite_data(sprite_id_location(params[1], params[2]), nil, vector(params[3], params[4]), colors.pink)
   end
 )
 

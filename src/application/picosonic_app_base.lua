@@ -46,12 +46,18 @@ function picosonic_app_base:on_post_start() -- override
 --#endif
 end
 
+--#if itest
 function picosonic_app_base:on_reset() -- override
 --#if mouse
   mouse:set_cursor_sprite_data(nil)
 --#endif
 end
+--#endif
 
+-- TODO OPTIMIZE CHARS: support N || operations in preprocess.py (using manual parsing)
+-- then add --#if profiler || visual_logger || tuner around the whole definition to strip it
+-- completely from release
+-- Same for on_render below
 function picosonic_app_base:on_update() -- override
 --#if profiler
   profiler.window:update()

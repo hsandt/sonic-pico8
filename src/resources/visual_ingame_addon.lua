@@ -32,6 +32,7 @@ local ingame_visual = {
   -- emerald_repr_sprite_id will be derived from sprite data, see below
 }
 
+-- TODO OPTIMIZE CHARS: a transform would probably reduce chars count
 local ingame_sprite_data_t = {
   -- palm tree extension sprites
   -- top pivot is located at top-left of core

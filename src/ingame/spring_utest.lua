@@ -149,7 +149,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(18, 10), false, true, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(22, 10), false, true, 0.25)
     end)
 
     it('(right, extended_timer > 0) should draw spring extended sprite data from top-left location, flipped y and rotated by 90 with offset adjustment', function ()
@@ -159,7 +159,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 10), false, true, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(22, 10), false, true, 0.25)
     end)
 
   end)

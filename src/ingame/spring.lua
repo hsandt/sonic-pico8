@@ -80,15 +80,6 @@ function spring:render()
     -- however, flip is applied *before* rotation so we need to flip on Y to actually flip on X
     flip_y = true
     angle = 0.25
-
-    -- unfortunately using flip Y has the side effect of messing up visual pivot,
-    --  so we must offset adjusted pivot (which is still correct for physics trigger check)
-    --  depending on whether sprite is extended or not
-    if self.extended_timer > 0 then
-      adjusted_pivot.x = adjusted_pivot.x + 4
-    else
-      adjusted_pivot.x = adjusted_pivot.x - 4  -- 6-4 = 2 so we now got the same adjusted pivot as left
-    end
   end
 
   if self.extended_timer > 0 then

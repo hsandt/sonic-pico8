@@ -28,9 +28,11 @@ local visual = require("resources/visual_common")
 
 local picosonic_app_base = derived_class(gameapp)
 
+--#if release
 function picosonic_app_base:init()
   gameapp.init(self, fps60)
 end
+--#endif
 
 function picosonic_app_base:on_post_start() -- override
   extcmd("set_title","Pico Sonic")
@@ -54,10 +56,11 @@ function picosonic_app_base:on_reset() -- override
 end
 --#endif
 
--- TODO OPTIMIZE CHARS: support N || operations in preprocess.py (using manual parsing)
--- then add --#if profiler || visual_logger || tuner around the whole definition to strip it
--- completely from release
--- Same for on_render below
+-- Note that if you add support for 2+ OR statements in preprocess.py, it will be more correct
+--  to use `--#if profiler || visual_logger || tuner` so non-release builds that don't use those
+--  don't define on_update either; but the most important is to strip code from release anyway.
+-- Same remark for on_render below
+--#ifn release
 function picosonic_app_base:on_update() -- override
 --#if profiler
   profiler.window:update()
@@ -71,7 +74,9 @@ function picosonic_app_base:on_update() -- override
   codetuner:update_window()
 --#endif
 end
+--#endif
 
+--#ifn release
 function picosonic_app_base:on_render() -- override
 --#if profiler
   profiler.window:render()
@@ -97,5 +102,6 @@ function picosonic_app_base:on_render() -- override
   outline.print_with_outline("cpu: "..stat(1), 2, 10, colors.orange, colors. black)
 --#endif
 end
+--#endif
 
 return picosonic_app_base

@@ -130,6 +130,13 @@ elif [[ $config == 'itest' ]]; then
   # cheat needed to set debug motion mode; remove if not testing and you need to spare chars
   # symbols='itest,proto,tostring,cheat'
   symbols='itest,proto,tostring'
+elif [[ $config == 'release' ]]; then
+  # usually release has no symbols except those that help making the code more compact
+  # in this game project we define 'release' as a special symbol for that
+  # most fo the time, we could replace `#if release` with
+  # `#if debug_option1 || debug_option2 || debug_option3 ` but the problem is that
+  # 2+ OR statements syntax is not supported by preprocess.py yet
+  symbols='release'
 fi
 
 # we always add a symbol for the cartridge suffix in case

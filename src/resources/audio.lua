@@ -1,3 +1,7 @@
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
+
 local audio = {}
 
 audio.sfx_ids = {
@@ -31,5 +35,8 @@ audio.music_ids = {
   -- builtin_data_titlemenu only (overlaps stage bgm in data_bgm1.p8)
   title = 0,
 }
+
+--(game_constants)
+--#endif
 
 return audio

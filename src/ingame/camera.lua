@@ -315,6 +315,11 @@ function camera_class:update()
   -- apply look down offset
   self.position.y = self.base_position.y + self.look_down_offset
 
+  -- compressed chars note: we now replace constants and even game constant expressions
+  --  like 'screen_width / 2' => 64,
+  --  so don't worry about characters if you want to write values semantically,
+  --  but make sure to write the expressions with spaces exactly as in GAME_CONSTANT_SUBSTITUTE_TABLE
+
   -- clamp on level edges
   -- we are handling the center so we need to offset by screen_width/height
   self.position.x = mid(screen_width / 2, self.position.x, self.curr_stage_data.tile_width * tile_size - screen_width / 2)

@@ -98,4 +98,8 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
 # complements the generic engine arg substitute table in replace_strings.py
 # format: {name1: value1, name2: value2, ...}
 GAME_CONSTANT_SUBSTITUTE_TABLE = {
+    # note that we are confident we'll ONLY using first as a priority expression,
+    # never in higher priority operations like (contrived example) `true ^ screen_width / 2`
+    'screen_width / 2': 64,
+    'screen_height / 2': 64,
 }

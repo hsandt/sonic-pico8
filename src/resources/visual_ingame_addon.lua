@@ -3,35 +3,6 @@ local visual = require("resources/visual_common")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 
--- visual for in-game only
--- it uses the add-on system, which means you only need to require it along with visual_common,
---  but only get the return value of visual_common named `visual` here
--- it will automatically add extra information to `visual`
-local ingame_visual = {
-  spring_up_repr_tile_id = 74,              -- add 1 to get right part, must match value in tile_representation
-                                            --  and location in ingame_sprite_data_t.spring
-  spring_left_repr_tile_id = 202,           -- just representing spring oriented to left on tilemap,
-                                            --  we use the generic sprite rotated for rendering
-  spring_right_repr_tile_id = 173,          -- just representing spring oriented to right on tilemap,
-                                            --  we use the generic sprite rotated for rendering
-
-  -- hiding leaves, must be known to detect emerald surrounded by them and render an extra hiding leaf
-  --  on top of the emerald itself (via tilemap)
-  hiding_leaves_id = 234,
-
-  -- palm tree top representative tile is drawn via tilemap, so id is enough
-  --  for extension sprites drawn around it, see ingame_sprite_data_t.palm_tree_leaves*
-  palm_tree_leaves_core_id = 236,
-
-  -- launch ramp last tile
-  launch_ramp_last_tile_id = 229,
-
-  -- goal plate base id (representative tile used to generate animated sprite)
-  goal_plate_base_id = 226,
-
-  -- emerald_repr_sprite_id will be derived from sprite data, see below
-}
-
 local ingame_sprite_data_t = transform(
   {
     -- sprite_data(id_loc: sprite_id_location([1], [2]), span: tile_vector([3], [4]), pivot: vector([5], [6]), transparent_color_arg: colors.pink),
@@ -74,7 +45,7 @@ local ingame_sprite_data_t = transform(
 
 -- derived data: the representative sprite of an emerald (the one placed on the tilemap)
 --  in the left part of the sprite, so convert id location (which is at top-left) to sprite ID
-ingame_visual.emerald_repr_sprite_id = ingame_sprite_data_t.emerald.id_loc:to_sprite_id()
+visual.emerald_repr_sprite_id = ingame_sprite_data_t.emerald.id_loc:to_sprite_id()
 
 local ingame_animated_sprite_data_t = {
   goal_plate = {
@@ -99,6 +70,5 @@ local ingame_animated_sprite_data_t = {
   }
 }
 
-merge(visual, ingame_visual)
 merge(visual.sprite_data_t, ingame_sprite_data_t)
 merge(visual.animated_sprite_data_t, ingame_animated_sprite_data_t)

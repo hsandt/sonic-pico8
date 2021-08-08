@@ -8,9 +8,10 @@ local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
 local tile_repr = require("test_data/tile_representation")
 
--- some tiles are defined in visual_ingame_addon for use in real game, but they are not in tile_representation.lua
+-- some tiles are defined in visual_ingame_numerical_data for use in real game, but they are not in tile_representation.lua
 --  to avoid redundancy or because we didn't need them in itests yet
-local visual = require("resources/visual_common")
+visual_ingame_data = require("resources/visual_ingame_numerical_data")
+
 -- we should require ingameadd-on in main
 
 local mock_raw_tile_collision_data = {
@@ -51,7 +52,7 @@ local mock_raw_tile_collision_data = {
   [tile_repr.spring_up_repr_tile_id] = {tile_repr.flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
   [tile_repr.spring_up_repr_tile_id + 1] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
   [tile_repr.spring_right_mask_repr_tile_id] = {tile_repr.spring_right_mask_repr_tile_id, {8, 8, 8, 8, 8, 8, 0, 0}, {6, 6, 6, 6, 6, 6, 6, 6}, atan2(0, 8)},
-  [visual.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
+  [visual_ingame_data.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
   [tile_repr.oneway_platform_left] = {tile_repr.oneway_platform_left, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
 }
 
@@ -129,7 +130,7 @@ function tile_test_data.setup()
   fset(tile_repr.spring_right_mask_repr_tile_id, sprite_masks.collision + sprite_masks.midground)
 
   -- ramp (last tile is one-way)
-  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
+  fset(visual_ingame_data.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
 
   -- one-way platform
   fset(tile_repr.oneway_platform_left, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)

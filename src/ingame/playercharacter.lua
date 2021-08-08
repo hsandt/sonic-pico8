@@ -896,7 +896,7 @@ local function iterate_over_collision_tiles(pc, collision_check_quadrant, start_
       --  a. ramps just after launching
       --  b. loops on inactive layer from PC's point-of-view
       --  c. one-way platforms unless we check collision downward
-      if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual.launch_ramp_last_tile_id or
+      if pc.ignore_launch_ramp_timer > 0 and visual_tile_id == visual_ingame_data.launch_ramp_last_tile_id or
           not ignore_loop_layer and
             (pc.active_loop_layer == 1 and curr_stage_state:is_tile_in_loop_exit(curr_global_tile_loc) or
              pc.active_loop_layer == 2 and curr_stage_state:is_tile_in_loop_entrance(curr_global_tile_loc)) or
@@ -2539,7 +2539,7 @@ function player_char:check_launch_ramp()
     local ground_tile_region_loc = curr_stage_state:global_to_region_location(self.ground_tile_location)
     local ground_visual_tile_id = mget(ground_tile_region_loc.i, ground_tile_region_loc.j)
 
-    if ground_visual_tile_id == visual.launch_ramp_last_tile_id then
+    if ground_visual_tile_id == visual_ingame_data.launch_ramp_last_tile_id then
       self:trigger_launch_ramp_effect()
     end
   end

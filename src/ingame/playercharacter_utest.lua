@@ -18,6 +18,7 @@ local ground_query_info = motion.ground_query_info
 local world = require("platformer/world")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
@@ -2219,7 +2220,7 @@ describe('player_char', function ()
         describe('with ramp tile', function ()
 
           before_each(function ()
-            mock_mset(0, 0, visual.launch_ramp_last_tile_id)
+            mock_mset(0, 0, visual_ingame_data.launch_ramp_last_tile_id)
           end)
 
           it('(not ignoring ramp) position on ramp should return actual ground_query_info() as it would be detected', function ()
@@ -6427,7 +6428,7 @@ describe('player_char', function ()
         end)
 
         before_each(function ()
-          mock_mset(2, 0, visual.launch_ramp_last_tile_id)
+          mock_mset(2, 0, visual_ingame_data.launch_ramp_last_tile_id)
         end)
 
         it('should not call trigger_launch_ramp_effect when ground tile location points to a launch_ramp tile but ground speed is too low', function ()

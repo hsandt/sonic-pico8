@@ -21,6 +21,7 @@ local base_stage_state = require("ingame/base_stage_state")
 local goal_plate = require("ingame/goal_plate")
 local titlemenu = require("menu/titlemenu")
 local visual = require("resources/visual_common")
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
@@ -208,9 +209,9 @@ describe('stage_clear_state', function ()
         -- we're not using tile_test_data.setup here
         --  (since objects are checked directly by id, not using collision data)
         --  so don't use mock_mset
-        mset(1, 1, visual.goal_plate_base_id)
-        mset(2, 2, visual.goal_plate_base_id)
-        mset(3, 3, visual.goal_plate_base_id)
+        mset(1, 1, visual_ingame_data.goal_plate_base_id)
+        mset(2, 2, visual_ingame_data.goal_plate_base_id)
+        mset(3, 3, visual_ingame_data.goal_plate_base_id)
 
         -- mock stage dimensions, not too big to avoid test too long
         --  (just 2 regions so we can check that location conversion works)

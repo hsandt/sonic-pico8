@@ -13,6 +13,7 @@ local menu = require("menu/menu_with_sfx")
 local audio = require("resources/audio")
 local ui_animation = require("ui/ui_animation")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 local stage_clear_state = derived_class(base_stage_state)
@@ -209,7 +210,7 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
 
       -- there is only one object type we are interested in, the goal plate,
       --  so check it manually instead of using a table of spawn callbacks as in stage_state
-      if tile_sprite_id == visual.goal_plate_base_id then
+      if tile_sprite_id == visual_ingame_data.goal_plate_base_id then
         -- tile has been recognized as a representative tile for object spawning
         --  apply callback now
 

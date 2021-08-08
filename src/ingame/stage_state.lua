@@ -9,6 +9,7 @@ local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 local stage_state = derived_class(base_stage_state)
@@ -329,8 +330,8 @@ function stage_state:spawn_emerald_at(global_loc)
   --  and must store that info for later (to mset during every region reload)
   local region_loc = self:global_to_region_location(global_loc)
   local s = mget(region_loc.i, region_loc.j)
-  if mget(region_loc.i + 1, region_loc.j) == visual.hiding_leaves_id then
-    add(self.overlap_tiles, {global_loc, visual.hiding_leaves_id})
+  if mget(region_loc.i + 1, region_loc.j) == visual_ingame_data.hiding_leaves_id then
+    add(self.overlap_tiles, {global_loc, visual_ingame_data.hiding_leaves_id})
   end
 
   log("added emerald #"..#self.emeralds, "emerald")
@@ -361,12 +362,14 @@ stage_state.spawn_spring_right_at = generate_spawn_spring_dir_at_callback(direct
 
 -- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
 stage_state.spawn_object_callbacks_by_tile_id = {
+  -- emerald sprite id is computed via sprite location so not replaced numerical constants like the rest
+  --  (but once we're settled, could be added to visual_ingame_numerical_data.lua for more compact code)
   [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
-  [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
-  [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
-  [visual.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
-  [visual.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
-  [visual.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
+  [visual_ingame_data.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
+  [visual_ingame_data.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+  [visual_ingame_data.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
+  [visual_ingame_data.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
+  [visual_ingame_data.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
 }
 
 -- proxy for table above, mostly to ease testing

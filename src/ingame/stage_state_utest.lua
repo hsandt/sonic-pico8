@@ -25,6 +25,7 @@ local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 describe('stage_state', function ()
@@ -274,14 +275,14 @@ describe('stage_state', function ()
       it('(hiding leaves on the right) should add overlap tile hiding leaves on emerald location', function ()
         state.loaded_map_region_coords = vector(1, 0.5)
         -- region coords: place hiding leaves just on right of emerald
-        mset(5 + 1, 17, visual.hiding_leaves_id)
+        mset(5 + 1, 17, visual_ingame_data.hiding_leaves_id)
         state.overlap_tiles = {"dummy"}
 
         -- '128 +' and '16 +' because region u = 1 and v = 0.5 (we could also write 33 = 32 + 1, but
         --  16 is the real reference = topleft.j for v = 0.5)
         state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
-        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual.hiding_leaves_id}}, state.overlap_tiles)
+        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual_ingame_data.hiding_leaves_id}}, state.overlap_tiles)
       end)
 
     end)
@@ -850,12 +851,12 @@ describe('stage_state', function ()
         assert.are_equal(stage_state.spawn_emerald_at, state:get_spawn_object_callback(visual.emerald_repr_sprite_id))
       end)
 
-      it('should return stage_state.spawn_palm_tree_leaves_at for visual.palm_tree_leaves_core_id', function ()
-        assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual.palm_tree_leaves_core_id))
+      it('should return stage_state.spawn_palm_tree_leaves_at for visual_ingame_data.palm_tree_leaves_core_id', function ()
+        assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual_ingame_data.palm_tree_leaves_core_id))
       end)
 
-      it('should return stage_state.spawn_goal_plate_at for visual.goal_plate_base_id', function ()
-        assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual.goal_plate_base_id))
+      it('should return stage_state.spawn_goal_plate_at for visual_ingame_data.goal_plate_base_id', function ()
+        assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual_ingame_data.goal_plate_base_id))
       end)
 
     end)

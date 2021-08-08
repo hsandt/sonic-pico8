@@ -1,6 +1,7 @@
 local gamestate = require("engine/application/gamestate")
 
 local camera_class = require("ingame/camera")
+local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
 
 -- abstract base class for stage_state, stage_intro_state and stage_clear_state
@@ -47,6 +48,19 @@ end
 
 function base_stage_state:global_to_region_location(global_loc)
   return global_loc - self:get_region_topleft_location()
+end
+
+
+-- spawn
+
+-- spawn the player character at the stage spawn location
+function base_stage_state:spawn_player_char()
+  -- note we switched from center to topleft position because it gave better initial positions
+  --  (with ground bumps, center was higher in the air or too deep inside ground, while topleft
+  --  was just 1px from the surface, allowing immediate escape from ground)
+  local spawn_position = self.curr_stage_data.spawn_location:to_topleft_position()
+  self.player_char = player_char()
+  self.player_char:spawn_at(spawn_position)
 end
 
 

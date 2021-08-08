@@ -78,14 +78,6 @@ end
 
 -- setup
 
--- spawn the player character at the stage spawn location
--- (no unit test yet, will probably change for custom intro scene later)
-function stage_intro_state:spawn_player_char()
-  local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
-  self.player_char = player_char()
-  self.player_char:spawn_at(spawn_position)
-end
-
 function stage_intro_state:update()
   self.player_char:update()
   self.camera:update()

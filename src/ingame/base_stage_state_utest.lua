@@ -11,6 +11,7 @@ local sprite_data = require("engine/render/sprite_data")
 -- same remark as for bustedhelper, we just pick picosonic_app_ingame for convenience
 local picosonic_app = require("application/picosonic_app_ingame")
 local camera_class = require("ingame/camera")
+local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
@@ -84,6 +85,40 @@ describe('base_base_stage_state', function ()
         it('region loc (0, 1) + (2, 3) => (2, 4)', function ()
           assert.are_equal(location(2, 4), state:region_to_global_location(location(0, 1)))
         end)
+      end)
+
+    end)
+
+    describe('spawn_player_char', function ()
+
+      setup(function ()
+        stub(player_char, "spawn_at")
+      end)
+
+      teardown(function ()
+        player_char.spawn_at:revert()
+      end)
+
+      before_each(function ()
+        -- clear count before test as entering stage will auto-spawn character once
+        player_char.spawn_at:clear()
+
+        -- dummy data for test to work
+        state.curr_stage_data = {
+          spawn_location = location(5, 47)
+        }
+      end)
+
+      it('should spawn the player character at the stage spawn location', function ()
+        state:spawn_player_char()
+
+        local player_char = state.player_char
+        assert.is_not_nil(player_char)
+
+        local spawn_position = state.curr_stage_data.spawn_location:to_topleft_position()
+
+        assert.spy(player_char.spawn_at).was_called(1)
+        assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
       end)
 
     end)

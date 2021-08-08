@@ -976,39 +976,6 @@ describe('stage_state', function ()
           flow:change_state(state)
         end)
 
-        describe('spawn_player_char', function ()
-
-          setup(function ()
-            spy.on(player_char, "spawn_at")
-          end)
-
-          teardown(function ()
-            player_char.spawn_at:revert()
-          end)
-
-          before_each(function ()
-            -- clear count before test as entering stage will auto-spawn character once
-            player_char.spawn_at:clear()
-          end)
-
-          it('should spawn the player character at the stage spawn location', function ()
-             state:spawn_player_char()
-            local player_char = state.player_char
-            assert.is_not_nil(player_char)
-            local spawn_position = state.curr_stage_data.spawn_location:to_topleft_position()
-
-            -- interface
-            assert.are_equal(spawn_position, player_char.position)
-            -- we haven't initialized any map in busted, so the character is falling in the air and spawn_at detected this
-            assert.are_equal(motion_states.falling, player_char.motion_state)
-
-            -- implementation
-            assert.spy(player_char.spawn_at).was_called(1)
-            assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
-          end)
-
-        end)
-
         describe('update_fx', function ()
 
           setup(function ()

@@ -4,7 +4,6 @@ local base_stage_state = require("ingame/base_stage_state")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
-local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
 local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
@@ -297,16 +296,6 @@ end
 
 
 -- setup
-
--- spawn the player character at the stage spawn location
-function stage_state:spawn_player_char()
-  -- note we switched from center to topleft position because it gave better initial positions
-  --  (with ground bumps, center was higher in the air or too deep inside ground, while topleft
-  --  was just 1px from the surface, allowing immediate escape from ground)
-  local spawn_position = self.curr_stage_data.spawn_location:to_topleft_position()
-  self.player_char = player_char()
-  self.player_char:spawn_at(spawn_position)
-end
 
 function stage_state:spawn_emerald_at(global_loc)
   -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag

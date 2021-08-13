@@ -81,7 +81,13 @@ function stage_state:on_enter()
 --[[#pico8
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
+
+--#if normal_mode
+--(attract mode doesn't care about remembering picked emeralds)
   self:restore_picked_emerald_data()
+--#endif
+
+--(ifn itest)
 --#endif
 --#pico8]]
 
@@ -274,11 +280,14 @@ function stage_state:update()
 
   self.player_char:update()
 
+--#if normal_mode
+--(attract mode never reaches goal)
   self:check_reached_goal()
 
   if self.goal_plate then
     self.goal_plate:update()
   end
+--#endif
 
   self.camera:update()
   self:check_reload_map_region()
@@ -854,6 +863,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
   end
 end
 
+--#if normal_mode
+--(attract mode never reaches goal nor remembers picked emeralds)
+
 function stage_state:check_reached_goal()
   if not self.has_player_char_reached_goal and self.goal_plate and
 --[[#pico8
@@ -959,6 +971,9 @@ function stage_state:feedback_reached_goal()
   -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
+
+--(normal_mode)
+--#endif
 
 -- fx
 

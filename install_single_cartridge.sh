@@ -18,8 +18,8 @@
 data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
-if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
-    echo "build.sh takes 1 to 2 params, provided $#:
+if ! [[ $# -ge 1 &&  $# -le 4 ]] ; then
+    echo "install_single_cartridge.sh takes 1 to 3 params + option value, provided $#:
     \$1: cartridge_suffix (see data/cartridges.txt for the list of cartridge names)
     \$2: config ('debug', 'release', etc. Default: 'debug')
     -i, --itest:  Pass this option to build an itest instead of a normal game cartridge."
@@ -33,7 +33,7 @@ cartridge_suffix="$1"; shift
 config="$1"; shift
 # ! This is a short version for the usual while-case syntax, but in counterpart
 # ! it doesn't support reordering (--itest must be after config)
-if [[ $1 == '-i' || $i == '--itest' ]]; then
+if [[ $1 == '-i' || $1 == '--itest' ]]; then
   itest=true
   shift
 fi

@@ -21,7 +21,7 @@ cartridge_suffix="$1"; shift
 config="$1"; shift
 # ! This is a short version for the usual while-case syntax, but in counterpart
 # ! it doesn't support reordering (--itest must be after config)
-if [[ $1 == '-i' || $i == '--itest' ]]; then
+if [[ $1 == '-i' || $1 == '--itest' ]]; then
   itest=true
   shift
 fi

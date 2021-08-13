@@ -5,7 +5,7 @@
 
 # check that source and output paths have been provided
 if [[ $# -lt 2 ]] ; then
-    echo "build.sh takes 2 params, provided $#:
+    echo "run.sh takes 2 params, provided $#:
     \$1: representative file base name (used to deduce the main source file and the output path)
     \$2: config ('debug' or 'release')"
     exit 1

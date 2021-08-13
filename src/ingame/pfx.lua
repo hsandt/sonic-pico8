@@ -1,3 +1,7 @@
+--#if pfx
+--(you should surround any require pfx with #if pfx yourself, but in case you didn't we also
+-- strip the file's content)
+
 local pfx = new_class()
 
 local particle = require("ingame/particle")
@@ -96,5 +100,7 @@ function pfx:render()
   -- particles can live after pfx stopped emitting, so don't check for self.is_emitting here
   foreach(self.particles, particle.render)
 end
+
+--#endif
 
 return pfx

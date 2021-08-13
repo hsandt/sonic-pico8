@@ -5,7 +5,9 @@ local animated_sprite = require("engine/render/animated_sprite")
 local collision_data = require("data/collision_data")
 local pc_data = require("data/playercharacter_numerical_data")
 local pc_sprite_data = require("data/playercharacter_sprite_data")
+--#if pfx
 local pfx = require("ingame/pfx")
+--#endif
 local motion = require("platformer/motion")
 local world = require("platformer/world")
 local audio = require("resources/audio")
@@ -18,6 +20,7 @@ local outline = require("engine/ui/outline")
 
 local player_char = new_class()
 
+--#if pfx
 -- helper for spin dash dust
 function player_char.pfx_size_ratio_over_lifetime(life_ratio)
   -- make size grow quickly at start of lifetime, but shrink again around 1/3 of lifetime
@@ -31,6 +34,7 @@ function player_char.pfx_size_ratio_over_lifetime(life_ratio)
   -- linear piece start at 1 at junction, ends at 0 at 1
   return 1 - (life_ratio - junction) / (1 - junction)
 end
+--#endif
 
 -- parameters cached from PC data
 
@@ -86,7 +90,7 @@ end
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
 
--- smoke_pfx                pfx             particle system used to render smoke during spin dash charge
+-- smoke_pfx (#pfx)         pfx             particle system used to render smoke during spin dash charge
 
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (#debug_character)    {start = vector, direction_vector = vector, distance = number, hit = bool}
@@ -103,6 +107,8 @@ function player_char:init()
 --#endif
 
   self.anim_spr = animated_sprite(pc_sprite_data.sonic_animated_sprite_data_table)
+
+--#if pfx
   self.smoke_pfx = pfx(pc_data.spin_dash_dust_spawn_period_frames,
     pc_data.spin_dash_dust_spawn_count,
     pc_data.spin_dash_dust_lifetime_frames,
@@ -110,6 +116,7 @@ function player_char:init()
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
     player_char.pfx_size_ratio_over_lifetime)
+--#endif
 
 --#if cheat
   -- exceptionally not in setup, because this member but be persistent persist after warping
@@ -454,7 +461,10 @@ function player_char:update()
   self:update_motion()
   self:update_anim()
   self.anim_spr:update()
+
+--#if pfx
   self.smoke_pfx:update()
+--#endif
 end
 
 --#if ingame
@@ -2174,8 +2184,10 @@ function player_char:check_spin_dash()
       --  because we must replay animation from start on every rev
       self:update_sprite_row_and_play_sprite_animation("spin_dash", --[[from_start:]] true)
 
+--#if pfx
       -- hardcoded values as unlikely to change once set, and to spare characters
       self.smoke_pfx:start(self.position + vector(0, 5), self.orientation == horizontal_dirs.left)
+--#endif
 
       -- audio
       self:play_low_priority_sfx(audio.sfx_ids.spin_dash_rev)
@@ -2199,8 +2211,10 @@ function player_char:release_spin_dash()
   -- set ground speed using base launch speed and rev contribution
   self.ground_speed = dir_sign * (pc_data.spin_dash_base_speed + flr(self.spin_dash_rev) * pc_data.spin_dash_rev_increase_factor)
 
+--#if pfx
   -- visual
   self.smoke_pfx:stop()
+--#endif
 
   -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
@@ -2871,7 +2885,9 @@ function player_char:render()
   local floored_position = vector(flr(self.position.x), flr(self.position.y))
   local flip_x = self.orientation == horizontal_dirs.left
   self.anim_spr:render(floored_position, flip_x, false, self.sprite_angle)
+--#if pfx
   self.smoke_pfx:render()
+--#endif
 end
 
 -- play sfx on channel 3, only if a jingle is not already playing there

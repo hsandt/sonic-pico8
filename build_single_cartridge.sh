@@ -102,7 +102,7 @@ if [[ $config == 'debug' ]]; then
   # symbols='assert,tostring,dump,log,debug_menu,debug_character'
   # symbols='tostring,dump,log,debug_menu,debug_character,cheat'
   # symbols='debug_menu,debug_character,cheat'
-  symbols='tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat'
+  symbols='tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat,pfx'
 elif [[ $config == 'debug-ultrafast' ]]; then
   symbols='assert,tostring,dump,log,cheat,ultrafast'
 elif [[ $config == 'cheat' ]]; then

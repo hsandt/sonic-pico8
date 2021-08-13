@@ -163,10 +163,7 @@ function base_stage_state:set_color_palette_for_waterfall_animation()
   local step_count = #waterfall_color_cycle
   local step = min(flr(ratio * step_count) + 1, step_count)
   local new_colors = waterfall_color_cycle[step]
-  pal(colors.dark_blue, new_colors[1])
-  pal(colors.indigo, new_colors[2])
-  pal(colors.blue, new_colors[3])
-  pal(colors.white, new_colors[4])
+  swap_colors({colors.dark_blue, colors.indigo, colors.blue, colors.white}, new_colors)
 end
 
 --#endif

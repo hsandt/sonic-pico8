@@ -149,8 +149,7 @@ function titlemenu:draw_background()
   --  just in case, max to step_count)
   local step = min(flr(ratio * step_count) + 1, step_count)
   local new_colors = visual.water_shimmer_color_cycle[step]
-  pal(colors.red, new_colors[1])
-  pal(colors.yellow, new_colors[2])
+  swap_colors({colors.red, colors.yellow}, new_colors)
   visual.sprite_data_t.angel_island_bg:render(vector(0, 88))
   pal()
 end

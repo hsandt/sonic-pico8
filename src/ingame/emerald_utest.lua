@@ -54,6 +54,9 @@ describe('emerald', function ()
 
   describe('set_color_palette (static)', function ()
 
+    -- now all is done via swap_colors, but this utest was written before so we kept the test
+    --  checking actual pal() calls inside
+
     setup(function ()
       stub(_G, "pal")
     end)

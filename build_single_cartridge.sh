@@ -209,6 +209,7 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
   -s "$symbols"                                                           \
   -g "$game_constant_module_paths_string"                                 \
   -r "$game_prebuild_path"                                                \
+  -v version="$version"                                                   \
   --minify-level 3                                                        \
   --unify "_${cartridge_suffix}"
 

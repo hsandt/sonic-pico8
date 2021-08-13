@@ -8,6 +8,7 @@ local spring = require("ingame/spring")
 local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -906,11 +907,11 @@ function stage_state:restore_picked_emerald_data()
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in 0x5dff, see store_picked_emerald_data below
-  local picked_emerald_byte = peek(0x5dff)
+  -- It is stored in picked_emerald_address (0x5dff), see store_picked_emerald_data below
+  local picked_emerald_byte = peek(memory.picked_emerald_address)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(0x5dff, 0)
+  poke(memory.picked_emerald_address, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -934,7 +935,7 @@ function stage_state:store_picked_emerald_data()
   -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
   --  is occupied non-rotated/rotated walk/run sprite variants... but it was annoying to offset
   --  picked emerald byte address every time I added a runtime sprite, so I decided to use the
-  --  *last* byte (0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
+  --  *last* byte (picked_emerald_address = 0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
   --  left). When saving data in persistent memory (so player can continue emerald hunting later),
   --  it won't even be a problem since we will use a very different address in the persistent block.
   -- We could also use persistent memory, considering we may save emeralds collected by player
@@ -949,7 +950,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x5dff, picked_emerald_bytes)
+  poke(memory.picked_emerald_address, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()

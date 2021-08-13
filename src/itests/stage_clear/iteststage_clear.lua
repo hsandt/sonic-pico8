@@ -7,7 +7,7 @@ local visual_ingame_data = require("resources/visual_ingame_numerical_data")  --
 -- testing credits is easier than entering stage
 --  because stage in on another cartridge (ingame),
 --  and itest builds are done separately (so we'd need to stub load)
-itest_manager:register_itest('player waits',
+itest_manager:register_itest('(stage clear) player waits',
     {':stage_clear'}, function ()
 
   -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap

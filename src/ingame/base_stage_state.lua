@@ -33,7 +33,7 @@ end
 -- return map filename for current stage and given region coordinates (u: int, v: int)
 --  do not try this with transitional regions, instead we'll patch them from individual regions
 function base_stage_state:get_map_region_filename(u, v)
-  return "data_stage"..self.curr_stage_id.."_"..u..v..cartridge_ext
+  return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
 end
 
 -- this one is used by #stage_clear

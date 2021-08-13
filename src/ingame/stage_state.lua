@@ -129,7 +129,7 @@ function stage_state:reload_runtime_data()
   --  with the addresses mentioned above
   -- OR if you really need to spare code characters, copy-paste the __gff__ lines into the builtin .p8 cartridge
   -- manually.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame"..cartridge_ext
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame.p8"
   reload(0x0, 0x0, 0x2000, runtime_data_path)
 
   -- Sonic spritesheet
@@ -1118,7 +1118,7 @@ function stage_state:reload_bgm()
   --  => 40 * 4 = 160 = 0xa0 bytes
   -- the bgm should start at pattern 0 on both source and
   --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..cartridge_ext)
+  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
 
   -- we also need the music sfx referenced by the patterns
   self:reload_bgm_tracks()
@@ -1131,7 +1131,7 @@ function stage_state:reload_bgm_tracks()
   --  => 50 * 68 = 3400 = 0xd48 bytes
   -- the bgm sfx should start at index 0 on both source and
   --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..cartridge_ext)
+  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
 end
 
 function stage_state:play_bgm()

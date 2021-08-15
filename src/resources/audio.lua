@@ -27,12 +27,12 @@ audio.sfx_ids = {
 }
 
 audio.jingle_ids = {
-  -- builtin_data_stage_clear only (overlaps stage bgm in data_bgm1.p8)
+  -- builtin_data_stage_clear only (overlaps stage bgm in builtin_data_ingame.p8)
   stage_clear = 0,
 }
 
 audio.music_ids = {
-  -- builtin_data_titlemenu only (overlaps stage bgm in data_bgm1.p8)
+  -- builtin_data_titlemenu only (overlaps stage bgm in builtin_data_ingame.p8)
   title = 0,
 }
 

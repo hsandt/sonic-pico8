@@ -109,8 +109,6 @@ function stage_state:on_enter()
 
   self.has_player_char_reached_goal = false
 
-  -- reload bgm only once, then we can play bgm whenever we want for this stage
-  self:reload_bgm()
   -- initial play bgm
   self:play_bgm()
 end
@@ -775,8 +773,8 @@ end
 function stage_state:play_pick_emerald_jingle_async()
   -- reduce bgm volume by half (notes have volume from 0 to 4, so decrement all sound volumes by 2)
   --  to make the pick emerald jingle stand out
-  -- the music sfx take maximum 50 entries (out of 64), so cover all tracks from 0 to 49
-  volume.decrease_volume_for_track_range(0, 49, 2)
+  -- the music sfx take maximum 46 entries (out of 64), so cover all tracks from 8 to 53
+  volume.decrease_volume_for_track_range(8, 53, 2)
 
   -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
   -- this has high priority so we don't use sound.play_low_priority_sfx unlike PC SFX,
@@ -795,11 +793,11 @@ function stage_state:play_pick_emerald_jingle_async()
   --  volume once
   yield_delay_frames(48)
 
-  -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
+  -- unfortunately we cannot reincrement volume as some values were clamped to 0 during decrease
   --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
   --  then reset without decrementing to retrieve the original volume
   self:reload_bgm_tracks()
-  volume.decrease_volume_for_track_range(0, 49, 1)
+  volume.decrease_volume_for_track_range(8, 53, 1)
 
   -- wait the remaining 16 frames, the jingle should have ended just after that
   yield_delay_frames(16)
@@ -1112,20 +1110,17 @@ end
 
 -- audio
 
-function stage_state:reload_bgm()
-  -- reload music patterns from bgm cartridge memory
-  -- we guarantee that the bgm will take maximum 40 patterns (out of 64)
-  --  => 40 * 4 = 160 = 0xa0 bytes
-  -- the bgm should start at pattern 0 on both source and
-  --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..".p8")
-
-  -- we also need the music sfx referenced by the patterns
-  self:reload_bgm_tracks()
-end
-
 function stage_state:reload_bgm_tracks()
-  -- reload sfx from bgm cartridge memory
+  -- Note: bgm is now integrated in builtin data as we've reached the max cartridge limit of 16
+  -- We still kept this method, as besides loading music tracks on stage start (which is not needed
+  --  anymore), we were also using it to restore volume during the pick emerald jingle
+  --  (see play_pick_emerald_jingle_async), so it's still useful, but now needs a mere
+  -- We cannot use memcpy since memory has been modified in-place, so still reload,
+  --  but with no argument so it gets memory directly from the current original cartridge file
+  --  (not that builtin_data_ingame.p8 doesn't exist in distribution, since it has been integrated
+  --  inside picosonic_ingame cartridge)
+
+  -- Reload sfx from builtin data ingame cartridge memory (must be current one)
   -- we guarantee that the music sfx will take maximum 46 entries (out of 64),
   --  skip 0-7 (custom instruments reserved to normal SFX) use 8-53 for music tracks
   -- https://pico-8.fandom.com/wiki/Memory says 1 sfx = 68 bytes, so we must copy:
@@ -1133,7 +1128,7 @@ function stage_state:reload_bgm_tracks()
   -- the bgm sfx should start at index 8 (after custom instruments) on both source and
   --  current cartridge, so use copy memory from 8 * 68 = 544 = +0x220 after start of sfx section,
   --  i.e. 0x3200 + 0x220 = 0x3420
-  reload(0x3420, 0x3420, 0xc38, "data_bgm"..self.curr_stage_id..".p8")
+  reload(0x3420, 0x3420, 0xc38)
 end
 
 function stage_state:play_bgm()

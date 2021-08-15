@@ -28,7 +28,7 @@ pico sonic is a fan game distributed for free and is not endorsed by Sega. Sega 
 
 ## Compatibility
 
-Works with PICO-8 0.2.0i ~ 0.2.1b.
+Works with PICO-8 0.2.2.
 
 ## Features
 

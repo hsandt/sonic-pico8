@@ -1863,7 +1863,7 @@ describe('stage_state', function ()
             state:reload_bgm_tracks()
 
             assert.spy(reload).was_called(1)
-            assert.spy(reload).was_called_with(0x3420, 0x3420, 0xc38)
+            assert.spy(reload).was_called_with(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
           end)
 
           it('play_bgm should start level bgm', function ()

@@ -1115,10 +1115,21 @@ function stage_state:reload_bgm_tracks()
   -- We still kept this method, as besides loading music tracks on stage start (which is not needed
   --  anymore), we were also using it to restore volume during the pick emerald jingle
   --  (see play_pick_emerald_jingle_async), so it's still useful, but now needs a mere
-  -- We cannot use memcpy since memory has been modified in-place, so still reload,
-  --  but with no argument so it gets memory directly from the current original cartridge file
-  --  (not that builtin_data_ingame.p8 doesn't exist in distribution, since it has been integrated
-  --  inside picosonic_ingame cartridge)
+  -- We cannot use memcpy since memory has been modified in-place, so still reload.
+
+  -- !! PICO-8 PATCH vs COMPRESSED CHARS
+  -- Normally, we should call reload without filename argument so it gets memory directly from the
+  --  current original cartridge file.
+  -- But because this method is called during play_pick_emerald_jingle_async which happens
+  --  mid-game, and due to a quirk, our fast-reload patch only works consistently with reload()
+  --  taking filename argument, we still pass the ingame cartridge filename just to get fast reload
+  --  and not interrupt the game flow! (when not passing filename, game may freeze or not on reload
+  --  depending on the last cartridge reloaded)
+  -- (note that builtin_data_ingame.p8 doesn't exist in distribution, since it has been integrated
+  --  inside picosonic_ingame cartridge, so we really load the ingame cartridge)
+  -- Ideally, we'd improve the fast reload patch to cover reload from current cartridge file
+  --  (and possibly make load fast too), but for now this is the easiest approach,
+  --  at the cost of a few extra compressed characters
 
   -- Reload sfx from builtin data ingame cartridge memory (must be current one)
   -- we guarantee that the music sfx will take maximum 46 entries (out of 64),
@@ -1128,7 +1139,7 @@ function stage_state:reload_bgm_tracks()
   -- the bgm sfx should start at index 8 (after custom instruments) on both source and
   --  current cartridge, so use copy memory from 8 * 68 = 544 = +0x220 after start of sfx section,
   --  i.e. 0x3200 + 0x220 = 0x3420
-  reload(0x3420, 0x3420, 0xc38)
+  reload(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
 end
 
 function stage_state:play_bgm()

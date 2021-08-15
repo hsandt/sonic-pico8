@@ -1126,12 +1126,14 @@ end
 
 function stage_state:reload_bgm_tracks()
   -- reload sfx from bgm cartridge memory
-  -- we guarantee that the music sfx will take maximum 50 entries (out of 64),
-  --  potentially 0-7 for custom instruments and 8-49 for music tracks
-  --  => 50 * 68 = 3400 = 0xd48 bytes
-  -- the bgm sfx should start at index 0 on both source and
-  --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..".p8")
+  -- we guarantee that the music sfx will take maximum 46 entries (out of 64),
+  --  skip 0-7 (custom instruments reserved to normal SFX) use 8-53 for music tracks
+  -- https://pico-8.fandom.com/wiki/Memory says 1 sfx = 68 bytes, so we must copy:
+  --  => 46 * 68 = 3400 = 0xc38 bytes
+  -- the bgm sfx should start at index 8 (after custom instruments) on both source and
+  --  current cartridge, so use copy memory from 8 * 68 = 544 = +0x220 after start of sfx section,
+  --  i.e. 0x3200 + 0x220 = 0x3420
+  reload(0x3420, 0x3420, 0xc38, "data_bgm"..self.curr_stage_id..".p8")
 end
 
 function stage_state:play_bgm()

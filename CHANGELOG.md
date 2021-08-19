@@ -26,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Stage physics/visual: offset last emerald (orange) by 5px to the right
 - Stage physics/visual: replaced very low slopes with 1px bumps that are still considered flat ground to avoid slowing down character when running on them, while keeping the funny up-and-down motion
 - Stage visual: hide emerald behind leaves to make harder to find
+- Stage visual: improved forest hole lightshaft in background (now sprite instead of procedurally generated)
 - Stage visual: fixed one-way platform grass appearing in front of character
-- Stage visual: fixed hole in tilemap
 - Stage visual: fixed background parallax to only move when camera moves by an integer pixel, not pixel fractions
 - Character physics: fixed detecting flat ground when running down slopes where some columns of the collision mask are empty
 - Character physics & Optimization: big overhaul with switch to "big steps" method instead of the expensive "pixel step" method. This applies to both grounded and airborne motion. First move by the full motion you'd expect on a single frame, ignoring obstacles. Then detect wall, ground and ceiling, if meaningful considering the current speed (with an extra final wall check if grounded). This effectively reduced complexity from O(speed) to O(1) and allows the game to run at 60 FPS consistently (with only a few 30 FPS drops when reloading memory e.g. to change region)

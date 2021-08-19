@@ -18,10 +18,12 @@ usage() {
 
 ARGUMENTS
   CARTRIDGE_SUFFIX          Cartridge to build for the multi-cartridge game
-                            'titlemenu', 'stage_intro', ingame' or 'stage_clear'
+                            See data/cartridges.txt for the list of cartridge names
 
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
+
+  -i, --itest               Pass this option to build an itest instead of a normal game cartridge.
 
   -h, --help                Show this help message
 "
@@ -34,6 +36,10 @@ config='debug'
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -i | --itest )
+      itest=true
+      shift # past argument
+      ;;
     -h | --help )
       help
       exit 0
@@ -65,8 +71,16 @@ if [[ ${#positional_args[@]} -ge 2 ]]; then
   config="${positional_args[1]}"
 fi
 
+if [[ "$itest" == true ]]; then
+  # itest cartridges enforce special config 'itest' and ignore passed config
+  config='itest'
+  options='--itest'
+else
+  options=''
+fi
+
 # Immediately export to carts to allow multi-cartridge loading
-"$game_scripts_path/build_single_cartridge.sh" "$cartridge_suffix" "$config"
+"$game_scripts_path/build_single_cartridge.sh" "$cartridge_suffix" "$config" $options
 
 if [[ $? -ne 0 ]]; then
   echo ""
@@ -74,4 +88,4 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-"$game_scripts_path/install_single_cartridge_with_data.sh" "$cartridge_suffix" "$config"
+"$game_scripts_path/install_single_cartridge_with_data.sh" "$cartridge_suffix" "$config" $options

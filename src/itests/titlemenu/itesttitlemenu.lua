@@ -31,3 +31,26 @@ itest_manager:register_itest('player select credits, confirm',
   end)
 
 end)
+
+-- testing entering attract mode after a long time
+itest_manager:register_itest('attract mode starts after opening jingle',
+    {':titlemenu'}, function ()
+
+  -- enter title menu
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':titlemenu')
+  end)
+
+  -- opening jingle except fade out
+  wait(864 / 60)
+
+  -- fade out + small delay
+  wait(108 / 60)
+
+  -- we cannot really test load(), so just return true
+  -- a human can still verify that "load cartridge: picosonic_attract_mode" was printed
+  final_assert(function ()
+    return true
+  end)
+
+end)

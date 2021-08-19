@@ -1,3 +1,7 @@
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
+
 local audio = {}
 
 audio.sfx_ids = {
@@ -10,24 +14,29 @@ audio.sfx_ids = {
   got_all_emeralds = 56,
 
   -- builtin_data_ingame only
+  jump = 55,
+  spring_jump = 56,
+  roll = 57,
+  brake = 58,
   -- because it plays on 4th channel over low-volume bgm,
   --  pick emerald jingle is considered an sfx
-  pick_emerald = 57,
-  goal_reached = 58,
-  jump = 59,
-  spring_jump = 60,
-  roll = 61,
-  brake = 62,
+  pick_emerald = 59,
+  goal_reached = 60,
+  spin_dash_rev = 61,
+  spin_dash_release = 62
 }
 
 audio.jingle_ids = {
-  -- builtin_data_stage_clear only (overlaps stage bgm in data_bgm1.p8)
+  -- builtin_data_stage_clear only (overlaps stage bgm in builtin_data_ingame.p8)
   stage_clear = 0,
 }
 
 audio.music_ids = {
-  -- builtin_data_titlemenu only (overlaps stage bgm in data_bgm1.p8)
+  -- builtin_data_titlemenu only (overlaps stage bgm in builtin_data_ingame.p8)
   title = 0,
 }
+
+--(game_constants)
+--#endif
 
 return audio

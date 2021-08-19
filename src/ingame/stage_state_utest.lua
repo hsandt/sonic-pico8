@@ -14,6 +14,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 
 local picosonic_app = require("application/picosonic_app_ingame")
 local camera_data = require("data/camera_data")
+local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local base_stage_state = require("ingame/base_stage_state")
 local camera_class = require("ingame/camera")
@@ -24,6 +25,7 @@ local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 describe('stage_state', function ()
@@ -72,9 +74,10 @@ describe('stage_state', function ()
         assert.are_same({
             ':stage',
             1,
-            stage_data.for_stage[1],
+            stage_data[1],
             nil,
             false,
+            {},
             {},
             {},
             {},
@@ -94,6 +97,7 @@ describe('stage_state', function ()
             state.emeralds,
             state.picked_emerald_numbers_set,
             state.emerald_pick_fxs,
+            state.overlap_tiles,
             state.springs,
             state.loaded_map_region_coords,
             -- itest only
@@ -114,36 +118,33 @@ describe('stage_state', function ()
     describe('on_enter', function ()
 
       setup(function ()
+        stub(stage_state, "reload_runtime_data")
         stub(stage_state, "spawn_player_char")
         stub(stage_state, "play_bgm")
-        stub(stage_state, "reload_bgm")
         stub(stage_state, "spawn_objects_in_all_map_regions")
         stub(stage_state, "restore_picked_emerald_data")
         stub(camera_class, "setup_for_stage")
         stub(stage_state, "check_reload_map_region")
-        stub(stage_state, "reload_runtime_data")
       end)
 
       teardown(function ()
+        stage_state.reload_runtime_data:revert()
         stage_state.spawn_player_char:revert()
         stage_state.play_bgm:revert()
-        stage_state.reload_bgm:revert()
         stage_state.spawn_objects_in_all_map_regions:revert()
         stage_state.restore_picked_emerald_data:revert()
         camera_class.setup_for_stage:revert()
         stage_state.check_reload_map_region:revert()
-        stage_state.reload_runtime_data:revert()
       end)
 
       after_each(function ()
+        stage_state.reload_runtime_data:clear()
         stage_state.spawn_player_char:clear()
         stage_state.play_bgm:clear()
-        stage_state.reload_bgm:clear()
         stage_state.spawn_objects_in_all_map_regions:clear()
         stage_state.restore_picked_emerald_data:clear()
         camera_class.setup_for_stage:clear()
         stage_state.check_reload_map_region:clear()
-        stage_state.reload_runtime_data:clear()
       end)
 
       before_each(function ()
@@ -170,6 +171,11 @@ describe('stage_state', function ()
         assert.spy(state.check_reload_map_region).was_called_with(match.ref(state))
       end)
 
+      it('should call reload_runtime_data', function ()
+        assert.spy(state.reload_runtime_data).was_called(1)
+        assert.spy(state.reload_runtime_data).was_called_with(match.ref(state))
+      end)
+
       it('should call spawn_player_char', function ()
         assert.spy(stage_state.spawn_player_char).was_called(1)
         assert.spy(stage_state.spawn_player_char).was_called_with(match.ref(state))
@@ -183,19 +189,9 @@ describe('stage_state', function ()
         assert.is_false(state.has_player_char_reached_goal)
       end)
 
-      it('should call reload_bgm', function ()
-        assert.spy(state.reload_bgm).was_called(1)
-        assert.spy(state.reload_bgm).was_called_with(match.ref(state))
-      end)
-
       it('should call play_bgm', function ()
         assert.spy(state.play_bgm).was_called(1)
         assert.spy(state.play_bgm).was_called_with(match.ref(state))
-      end)
-
-      it('should call reload_runtime_data', function ()
-        assert.spy(state.reload_runtime_data).was_called(1)
-        assert.spy(state.reload_runtime_data).was_called_with(match.ref(state))
       end)
 
     end)
@@ -204,42 +200,33 @@ describe('stage_state', function ()
 
       setup(function ()
         stub(_G, "reload")
-        stub(_G, "memcpy")
       end)
 
       teardown(function ()
         reload:revert()
-        memcpy:revert()
       end)
 
       after_each(function ()
         reload:clear()
-        memcpy:clear()
       end)
 
-      it('should reload stage runtime data into spritesheet top, and rotated sprite variants into general memory', function ()
+      it('should all stage runtime data copy Sonic sprite variants into general memory for quick runtime reload', function ()
         state:reload_runtime_data()
 
-        assert.spy(reload).was_called(33)
-        assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5800, 0x1008, 0x30, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5830, 0x1048, 0x30, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x20, "data_stage1_runtime.p8")
-        assert.spy(reload).was_called_with(0x5b20, 0x1440, 0x20, "data_stage1_runtime.p8")
-        -- this has become too long since we copy line by line, so we stopped checking
-        --  individual calls, except the first ones
-      end)
+        -- note that debug_collision_mask adds an extra reload for collision masks,
+        --  but we stripped it from busted by surrounding it with #pico8
+        assert.spy(reload).was_called(18)
 
-      it('should copy non-rotated sprite variants into general memory', function ()
-        state:reload_runtime_data()
+        -- general runtime data
+        assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_ingame.p8")
 
-        assert.spy(memcpy).was_called(32)
-        -- this has become too long since we copy line by line, so we stopped checking
-        --  individual calls, except the first ones
-        assert.spy(memcpy).was_called_with(0x5300, 0x1008, 0x30)
-        assert.spy(memcpy).was_called_with(0x5330, 0x1048, 0x30)
-        assert.spy(memcpy).was_called_with(0x5600, 0x1400, 0x20)
-        assert.spy(memcpy).was_called_with(0x5620, 0x1440, 0x20)
+        -- sprites occupying full rows
+        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
+
+        -- spin dash sprites
+        -- just test the first iterations...
+        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x28, "data_stage_sonic.p8")
+        assert.spy(reload).was_called_with(0x5b28, 0x1440, 0x28, "data_stage_sonic.p8")
       end)
 
     end)
@@ -247,19 +234,44 @@ describe('stage_state', function ()
     describe('spawn_emerald_at', function ()
 
       it('should store emerald global location', function ()
-        state:spawn_emerald_at(location(1, 33))
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
         assert.are_same({
-          location(1, 33),
+          location(128 + 5, 16 + 17),
         }, state.spawned_emerald_locations)
       end)
 
       it('should spawn and store emerald objects for each emerald tile', function ()
-        state:spawn_emerald_at(location(1, 33))
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
         assert.are_same({
-          emerald(1, location(1, 33)),
+          emerald(1, location(128 + 5, 16 + 17)),
         }, state.emeralds)
+      end)
+
+      it('(no hiding leaves on the right) should not add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({}, state.overlap_tiles)
+      end)
+
+      it('(hiding leaves on the right) should add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+        -- region coords: place hiding leaves just on right of emerald
+        mset(5 + 1, 17, visual_ingame_data.hiding_leaves_id)
+        state.overlap_tiles = {"dummy"}
+
+        -- '128 +' and '16 +' because region u = 1 and v = 0.5 (we could also write 33 = 32 + 1, but
+        --  16 is the real reference = topleft.j for v = 0.5)
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual_ingame_data.hiding_leaves_id}}, state.overlap_tiles)
       end)
 
     end)
@@ -668,6 +680,14 @@ describe('stage_state', function ()
 
     end)
 
+    -- there are currently no utests for:
+    --  - reload_horizontal_half_of_map_region
+    --  - reload_vertical_half_of_map_region
+    --  - reload_quarter_of_map_region
+    -- we could add them, but experience showed that it was easy to mess up addresses
+    --  and that utests would not help a lot with that, so testing in real game is probably best for those
+    -- however utests can still be useful for syntax and trivial error checking
+
     describe('reload_map_region', function ()
 
       setup(function ()
@@ -747,12 +767,17 @@ describe('stage_state', function ()
           end
           return vector(0, 0)
         end)
-        stub(stage_state, "reload_map_region")
+        stub(stage_state, "reload_map_region", function (self, new_map_region_coords)
+          -- minimal stub just to change member that must be used by statements below
+          self.loaded_map_region_coords = new_map_region_coords
+        end)
+        stub(_G, "mset")
       end)
 
       teardown(function ()
         stage_state.get_map_region_coords:revert()
         stage_state.reload_map_region:revert()
+        mset:revert()
       end)
 
       before_each(function ()
@@ -760,12 +785,13 @@ describe('stage_state', function ()
         state.player_char = {position = vector(0, 0)}
         -- at least set some camera position used in get_map_region_coords stub
         --  so we can verify we are passing it correctly
-        state.camera.position = vector(200, 64)
+        state.camera:init_position(vector(200, 64))
       end)
 
       after_each(function ()
         stage_state.get_map_region_coords:clear()
         stage_state.reload_map_region:clear()
+        mset:clear()
       end)
 
       it('should call reload_map_region with (1, 0.5)', function ()
@@ -784,6 +810,28 @@ describe('stage_state', function ()
         assert.spy(stage_state.reload_map_region).was_not_called()
       end)
 
+      it('should mset overlap tiles at region coordinates inside current region range', function ()
+        -- note that check_reload_map_region will *move* to region (1, 0.5)
+        state.loaded_map_region_coords = vector(0, 0)
+        state.overlap_tiles = {{location(128 + 5, 16 + 17), 24}}
+
+        state:check_reload_map_region()
+
+        assert.spy(mset).was_called(1)
+        assert.spy(mset).was_called_with(5, 17, 24)
+      end)
+
+      it('should *not* mset overlap tiles at region coordinates outside current region range', function ()
+        -- note that check_reload_map_region will *move* to region (1, 0.5)
+        state.loaded_map_region_coords = vector(0, 0)
+        -- too much on the left! region coords would be (-5, 17) which are outside current map!
+        state.overlap_tiles = {{location(128 - 5, 16 + 17), 24}}
+
+        state:check_reload_map_region()
+
+        assert.spy(mset).was_not_called()
+      end)
+
     end)
 
     describe('get_spawn_object_callback', function ()
@@ -792,12 +840,12 @@ describe('stage_state', function ()
         assert.are_equal(stage_state.spawn_emerald_at, state:get_spawn_object_callback(visual.emerald_repr_sprite_id))
       end)
 
-      it('should return stage_state.spawn_palm_tree_leaves_at for visual.palm_tree_leaves_core_id', function ()
-        assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual.palm_tree_leaves_core_id))
+      it('should return stage_state.spawn_palm_tree_leaves_at for visual_ingame_data.palm_tree_leaves_core_id', function ()
+        assert.are_equal(stage_state.spawn_palm_tree_leaves_at, state:get_spawn_object_callback(visual_ingame_data.palm_tree_leaves_core_id))
       end)
 
-      it('should return stage_state.spawn_goal_plate_at for visual.goal_plate_base_id', function ()
-        assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual.goal_plate_base_id))
+      it('should return stage_state.spawn_goal_plate_at for visual_ingame_data.goal_plate_base_id', function ()
+        assert.are_equal(stage_state.spawn_goal_plate_at, state:get_spawn_object_callback(visual_ingame_data.goal_plate_base_id))
       end)
 
     end)
@@ -847,11 +895,11 @@ describe('stage_state', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x5d00, 73)
+        poke(0x5dff, 73)
       end)
 
       after_each(function ()
-        poke(0x5d00, 0)
+        poke(0x5dff, 0)
       end)
 
       it('should read 1 byte in general memory representing picked emeralds bitset', function ()
@@ -875,7 +923,7 @@ describe('stage_state', function ()
       it('should clear picked emerald transitional memory', function ()
         state:restore_picked_emerald_data()
 
-        assert.are_equal(0, peek(0x5d00))
+        assert.are_equal(0, peek(0x5dff))
       end)
 
     end)
@@ -916,39 +964,6 @@ describe('stage_state', function ()
 
         before_each(function ()
           flow:change_state(state)
-        end)
-
-        describe('spawn_player_char', function ()
-
-          setup(function ()
-            spy.on(player_char, "spawn_at")
-          end)
-
-          teardown(function ()
-            player_char.spawn_at:revert()
-          end)
-
-          before_each(function ()
-            -- clear count before test as entering stage will auto-spawn character once
-            player_char.spawn_at:clear()
-          end)
-
-          it('should spawn the player character at the stage spawn location', function ()
-             state:spawn_player_char()
-            local player_char = state.player_char
-            assert.is_not_nil(player_char)
-            local spawn_position = state.curr_stage_data.spawn_location:to_center_position()
-
-            -- interface
-            assert.are_equal(spawn_position, player_char.position)
-            -- we haven't initialized any map in busted, so the character is falling in the air and spawn_at detected this
-            assert.are_equal(motion_states.falling, player_char.motion_state)
-
-            -- implementation
-            assert.spy(player_char.spawn_at).was_called(1)
-            assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
-          end)
-
         end)
 
         describe('update_fx', function ()
@@ -1158,9 +1173,13 @@ describe('stage_state', function ()
           end)
 
           it('should call render_background, render_stage_elements, render_fx, render_hud', function ()
+            -- to test camera position flooring
+            state.camera:init_position(vector(60.1, 380.9))
+
             state:render()
+
             assert.spy(visual_stage.render_background).was_called(1)
-            assert.spy(visual_stage.render_background).was_called_with(state.camera.position)
+            assert.spy(visual_stage.render_background).was_called_with(vector(60, 380))  -- floored coords
             assert.spy(stage_state.render_stage_elements).was_called(1)
             assert.spy(stage_state.render_stage_elements).was_called_with(match.ref(state))
             assert.spy(stage_state.render_fx).was_called(1)
@@ -1291,18 +1310,13 @@ describe('stage_state', function ()
             state.emeralds = {
               emerald(1, location(0, 0)),
               emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
+              emerald(8, location(0, 1)),
             }
           end)
 
           it('should add an emerald number to the picked set', function ()
             state.picked_emerald_numbers_set = {
               [4] = true
-            }
-            state.emeralds = {
-              emerald(1, location(0, 0)),
-              emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
             }
             state:character_pick_emerald(state.emeralds[2])
             assert.are_same({[2] = true, [4] = true}, state.picked_emerald_numbers_set)
@@ -1313,25 +1327,20 @@ describe('stage_state', function ()
               emerald_fx(1, vector(0, 0))
             }
 
-            state:character_pick_emerald(state.emeralds[2])
+            state:character_pick_emerald(state.emeralds[3])
 
-            -- emerald 2 was at location (1, 0),
-            --  so its center was at (12, 4)
+            -- emerald 2 was at location (0, 1),
+            --  so its center was at (4, 12)
             assert.are_same({
                 emerald_fx(1, vector(0, 0)),
-                emerald_fx(2, vector(12, 4))
+                emerald_fx(8, vector(4 + 5, 12))  -- pfx also follow emerald 8 center adjustment of X+5
               },
               state.emerald_pick_fxs)
           end)
 
           it('should remove an emerald from the sequence', function ()
-            state.emeralds = {
-              emerald(1, location(0, 0)),
-              emerald(2, location(1, 0)),
-              emerald(3, location(0, 1)),
-            }
             state:character_pick_emerald(state.emeralds[2])
-            assert.are_same({emerald(1, location(0, 0)), emerald(3, location(0, 1))}, state.emeralds)
+            assert.are_same({emerald(1, location(0, 0)), emerald(8, location(0, 1))}, state.emeralds)
           end)
 
           it('should play character_pick_emerald sfx', function ()
@@ -1475,7 +1484,17 @@ describe('stage_state', function ()
 
           local corunner
 
+          setup(function ()
+            stub(_G, "load")
+          end)
+
+          teardown(function ()
+            _G.load:revert()
+          end)
+
           before_each(function ()
+            _G.load:clear()
+
             state.goal_plate = goal_plate(location(100, 0))
             state.spawned_emerald_locations = {1, 2, 3, 4, 5, 6, 7, 8}
 
@@ -1513,7 +1532,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x5d00))
+            assert.are_equal(73, peek(0x5dff))
           end)
 
         end)
@@ -1566,6 +1585,7 @@ describe('stage_state', function ()
             stub(stage_state, "render_player_char")
             stub(stage_state, "render_environment_foreground")
             stub(stage_state, "debug_render_trigger")
+            stub(player_char, "debug_draw_tile_collision_masks")
             stub(player_char, "debug_draw_rays")
           end)
 
@@ -1577,6 +1597,7 @@ describe('stage_state', function ()
             stage_state.render_player_char:revert()
             stage_state.render_environment_foreground:revert()
             stage_state.debug_render_trigger:revert()
+            player_char.debug_draw_tile_collision_masks:revert()
             player_char.debug_draw_rays:revert()
           end)
 
@@ -1588,6 +1609,7 @@ describe('stage_state', function ()
             stage_state.render_player_char:clear()
             stage_state.render_environment_foreground:clear()
             stage_state.debug_render_trigger:clear()
+            player_char.debug_draw_tile_collision_masks:clear()
             player_char.debug_draw_rays:clear()
           end)
 
@@ -1609,6 +1631,10 @@ describe('stage_state', function ()
             assert.spy(state.debug_render_trigger).was_called(1)
             assert.spy(state.debug_render_trigger).was_called_with(match.ref(state))
             -- #debug_trigger only end
+            -- #debug_collision_mask only
+            assert.spy(player_char.debug_draw_tile_collision_masks).was_called(1)
+            assert.spy(player_char.debug_draw_tile_collision_masks).was_called_with(match.ref(state.player_char))
+            -- #debug_collision_mask only end
             -- #debug_character only
             assert.spy(player_char.debug_draw_rays).was_called(1)
             assert.spy(player_char.debug_draw_rays).was_called_with(match.ref(state.player_char))
@@ -1674,7 +1700,7 @@ describe('stage_state', function ()
               emerald(2, location(2, 0)),
               emerald(3, location(8, 0)),  -- on right edge of screen, not visible
             }
-            state.camera.position = vector(0, 0)
+            state.camera:init_position(vector(0, 0))
 
             state:render_emeralds()
 
@@ -1711,7 +1737,7 @@ describe('stage_state', function ()
               spring(directions.left, location(2, 0)),
               spring(directions.right, location(8, 0)),  -- on right edge of screen, not visible
             }
-            state.camera.position = vector(0, 0)
+            state.camera:init_position(vector(0, 0))
 
             state:render_springs()
 
@@ -1825,42 +1851,17 @@ describe('stage_state', function ()
             pico8.current_music = nil
           end)
 
-          describe('state audio methods', function ()
-
-            setup(function ()
-              stub(stage_state, "reload_bgm_tracks")
-            end)
-
-            teardown(function ()
-              stage_state.reload_bgm_tracks:revert()
-            end)
-
-            before_each(function ()
-              stage_state.reload_bgm_tracks:clear()
-            end)
-
-            it('reload_bgm should reload music memory from bgm cartridge and call reload_bgm_tracks', function ()
-              state:reload_bgm()
-
-              assert.spy(reload).was_called(1)
-              assert.spy(reload).was_called_with(0x3100, 0x3100, 0xa0, "data_bgm1.p8")
-              assert.spy(stage_state.reload_bgm_tracks).was_called(1)
-              assert.spy(stage_state.reload_bgm_tracks).was_called_with(match.ref(state))
-            end)
-
-          end)
-
           it('reload_bgm_tracks should reload sfx from bgm cartridge', function ()
             state:reload_bgm_tracks()
 
             assert.spy(reload).was_called(1)
-            assert.spy(reload).was_called_with(0x3200, 0x3200, 0xd48, "data_bgm1.p8")
+            assert.spy(reload).was_called_with(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
           end)
 
           it('play_bgm should start level bgm', function ()
             state:play_bgm()
 
-            assert.are_same({music=state.curr_stage_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
+            assert.are_same({music=stage_common_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)
           end)
 
           it('stop_bgm should stop level bgm if started, else do nothing', function ()

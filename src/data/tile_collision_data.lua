@@ -7,35 +7,41 @@ local tile = {}
 --  tile_collision_data makes it possible to check for collision with ground very easily
 local tile_collision_data = new_struct()
 
--- mask_tile_id_loc sprite_id_location    sprite location of the collision mask for this tile on the spritesheet
---                                        taken directly from raw_tile_collision_data
--- height_array     [int]    sequence of column heights of a tile collision mask per column index,
---                          counting index from the left
---                         if tile vertical interior is down, a column rises from the bottom (floor)
---                         if tile vertical interior is up, a column falls from the top (ceiling)
--- width_array      [int]    sequence of row widths of a tile collision mask per row index,
---                          counting index from the top
---                         if tile horizontal interior is left, a row is filled from the left (left wall or desc slope)
---                         if tile horizontal interior is up, a row is filled from the right (right wall or asc slope)
---                        note: knowing height_array and knowing width_array is equivalent (reciprocity)
---                         we simply store both for faster access
--- slope_angle      float    slope angle in turn ratio (0.0 to 1.0 excluded, positive clockwise)
---                         it also determines the interior:
---                         0    to 0.25: horizontal interior right, vertical interior down (flat or asc slope)
---                         0.25 to 0.5:  horizontal interior right, vertical interior up   (ceiling right corner or flat)
---                         0.5  to 0.75: horizontal interior left,  vertical interior up   (ceiling flat or left corner)
---                         0.75 to 1:    horizontal interior left,  vertical interior down (desc slope or flat)
--- interior_v       vertical_dirs     vertical direction of the tile's interior
---                                 (up for ceiling, down for floor)
--- interior_h       horizontal_dirs   horizontal direction of the tile's interior
---                                 (left for desc slope or left ceiling, asc slope or right ceiling)
-function tile_collision_data:init(mask_tile_id_loc, height_array, width_array, slope_angle, interior_v, interior_h)
+-- mask_tile_id_loc      sprite_id_location    sprite location of the collision mask for this tile on the spritesheet
+--                                              taken directly from raw_tile_collision_data
+-- height_array          [int]                 sequence of column heights of a tile collision mask per column index,
+--                                              counting index from the left
+--                                              if tile vertical interior is down, a column rises from the bottom (floor)
+--                                              if tile vertical interior is up, a column falls from the top (ceiling)
+-- width_array           [int]                sequence of row widths of a tile collision mask per row index,
+--                                             counting index from the top
+--                                             if tile horizontal interior is left, a row is filled from the left (left wall or desc slope)
+--                                             if tile horizontal interior is up, a row is filled from the right (right wall or asc slope)
+--                                             note: knowing height_array and knowing width_array is equivalent (reciprocity)
+--                                             we simply store both for faster access
+-- slope_angle           float                slope angle in turn ratio (0.0 to 1.0 excluded, positive clockwise)
+--                                             it also determines the interior:
+--                                             0    to 0.25: horizontal interior right, vertical interior down (flat or asc slope)
+--                                             0.25 to 0.5:  horizontal interior right, vertical interior up   (ceiling right corner or flat)
+--                                             0.5  to 0.75: horizontal interior left,  vertical interior up   (ceiling flat or left corner)
+--                                             0.75 to 1:    horizontal interior left,  vertical interior down (desc slope or flat)
+-- interior_v            vertical_dirs        vertical direction of the tile's interior
+--                                             (up for ceiling, down for floor)
+-- interior_h            horizontal_dirs      horizontal direction of the tile's interior
+--                                             (left for desc slope or left ceiling, asc slope or right ceiling)
+-- land_on_empty_qcolumn  bool                when true, character will land on an empty q-column with height 0 and same slope angle as other columns
+--                                             (unless falling in reverse direction i.e. from the interior)
+--                                             note that this only applies to the q-columns in the main quadrant direction (the q-down direction
+--                                             defined by the slope angle via world.angle_to_quadrant)
+--                                            default: nil (acts like false)
+function tile_collision_data:init(mask_tile_id_loc, height_array, width_array, slope_angle, interior_v, interior_h, land_on_empty_qcolumn)
   self.mask_tile_id_loc = mask_tile_id_loc
   self.height_array = height_array
   self.width_array = width_array
   self.slope_angle = slope_angle
   self.interior_v = interior_v
   self.interior_h = interior_h
+  self.land_on_empty_qcolumn = land_on_empty_qcolumn  -- `or false` cut to spare characters, as nil behaves like false in bool tests
 end
 
 -- return the height for a column index starting at 0, from left to right
@@ -53,7 +59,7 @@ local function is_full_or_empty(array)
   -- check if all values in array are 8 / any value is not 8
   --  (there are no any/all helper functions yet, only contains with is any + ==)
 
-  -- check columns first
+  -- check all columns/rows
   for v in all(array) do
     if v ~= 0 and v ~= 8 then
       return false
@@ -79,17 +85,68 @@ function tile_collision_data:is_full_horizontal_rectangle()
   return is_full_or_empty(self.width_array)
 end
 
+-- return true iff tile is only made of empty columns, and columns with all the same non-zero height
+--  this is equivalent to having only empty rows, and rows with all the same non-zero width
+--  in practice, those columns/rows should be contiguous (else the row widths/column heights cannot be defined)
+--  and the tile is a rectangle (partial or full in any direction; also if empty, but that's a degenerated case)
+function tile_collision_data:is_rectangle()
+  -- if empty columns are considerer 0-height ground, then (reasonably) assuming we have at least one
+  --  non-empty column, we have technically 2 columns with different heights, so we're not a rectangle
+  -- this will allow very low slopes made of 1 row of pixel to be considered like rectangles,
+  --  preventing the usage of their manually defined slope angle
+  if self.land_on_empty_qcolumn then
+    return false
+  end
+
+  local non_empty_column_height_found
+
+  -- check columns, will be enough
+  for v in all(self.height_array) do
+    if v ~= 0 then
+      -- non-empty, we need to check if height matches all heights found so far
+      if non_empty_column_height_found then
+        -- it's not the first column found, let's compare with previous height found
+        if v ~= non_empty_column_height_found then
+          -- height mismatch, this cannot be a rectangle
+          return false
+        end
+      else
+        -- first column found, remember height for later
+        non_empty_column_height_found = v
+      end
+    end
+  end
+
+  return true
+end
+
+--#if debug_collision_mask
+function tile_collision_data:debug_render(global_tile_location)
+  -- note: this only works if we reloaded the collision mask sprites at the top of the spritesheet,
+  --  which means runtime sprites like emerald pick up FX will be messed up!
+  spr(self.mask_tile_id_loc:to_sprite_id(), tile_size * global_tile_location.i, tile_size * global_tile_location.j)
+end
+--#endif
+
 -- return tuple (interior_v, interior_h) for a slope angle
+-- ! This function makes the slope angle actually important even for rectangular tiles
+-- ! unless it's a full square 8x8, you need to set the most meaningful angle so the interior
+-- ! corresponds to the side where the collision mask is filled (or the longest, if dealing
+-- ! with a partial rectangle on both sides), so the reverse + all-or-nothing check makes sense
+-- ! in world.compute_qcolumn_height_at (this means partial rectangles won't detect reverse in both
+-- ! directions, so avoid costruction a geometry where the character can touch the shortest side
+-- ! from the reverse direction).
+-- ! This really happened with vertical rectangle spring right mask, and was fixed with slope angle.
 function tile_collision_data.slope_angle_to_interiors(slope_angle)
   assert(slope_angle % 1 == slope_angle)
-  -- in edge cases (square angles), interior direction is arbitrary
+  -- in edge cases (square angles 0, 0.25, 0.5, 0.75), one of the interior directions is arbitrary
   local is_slope_angle_down = slope_angle < 0.25 or slope_angle >= 0.75
   local interior_v = is_slope_angle_down and vertical_dirs.down or vertical_dirs.up
   local interior_h = slope_angle < 0.5 and horizontal_dirs.right or horizontal_dirs.left
   return interior_v, interior_h
 end
 
-function tile_collision_data.from_raw_tile_collision_data(mask_tile_id, slope_angle)
+function tile_collision_data.from_raw_tile_collision_data(mask_tile_id, slope_angle, land_on_empty_qcolumn)
   assert(slope_angle >= 0 and slope_angle < 1, "tile_collision_data.from_raw_tile_collision_data: slope_angle is "..slope_angle..", please apply `% 1` before passing")
   -- we don't mind edge cases (slope angle at 0, 0.25, 0.5 or 0.75 exactly)
   --  and assume the code will handle any arbitrary decision on interior_h/v
@@ -103,7 +160,8 @@ function tile_collision_data.from_raw_tile_collision_data(mask_tile_id, slope_an
     tile_collision_data.read_width_array(mask_tile_id_loc, interior_h),
     slope_angle,
     interior_v,
-    interior_h
+    interior_h,
+    land_on_empty_qcolumn
   )
 end
 

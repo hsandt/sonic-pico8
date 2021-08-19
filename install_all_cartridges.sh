@@ -4,49 +4,56 @@
 # This is required if you need to play with multiple carts,
 #  as other carts will only be loaded in PICO-8 carts location
 
-# Usage: install_all_cartridges.sh config [png]
+# Usage: install_all_cartridges.sh config [--itest]
 #   config            build config (e.g. 'debug' or 'release')
-#   png               if passed, the .png cartridges are installed
+#   -i, --itest       pass this option to build an itest instead of a normal game cartridge
 
 # Currently only supported on Linux
-
-# png option is legacy for p8tool. It works in theory but in practice,
-#  since p8tool fails to build .p8.png properly, png will be directly
-#  saved from PICO-8 with export_game_release.p8 into PICO-8 carts folder
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
 data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
-if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
-    echo "build.sh takes 1 or 2 params, provided $#:
+if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
+    echo "install_all_cartridges.sh takes 1 or 2 params + option value, provided $#:
     \$1: config ('debug', 'release', etc.)
-    \$2: optional suffix ('png' for .png cartridge install)"
+    -i, --itest:  Pass this option to build an itest instead of a normal game cartridge."
     exit 1
 fi
 
 # Configuration: cartridge
+cartridge_stem="picosonic"
 version=`cat "$data_path/version.txt"`
 config="$1"; shift
-
-# option "png" will export the png cartridge
-if [[ $1 = "png" ]] ; then
-  suffix=".png"
-else
-  suffix=""
+# ! This is a short version for the usual while-case syntax, but in counterpart
+# ! it doesn't support reordering (--itest must be after config)
+if [[ $1 == '-i' || $1 == '--itest' ]]; then
+  itest=true
+  shift
 fi
 
-cartridge_list="titlemenu stage_intro ingame stage_clear"
+if [[ "$itest" == true ]]; then
+  # itest cartridges enforce special config 'itest' and ignore passed config
+  config='itest'
+  options='--itest'
+else
+  options=''
+fi
+
+# cartridges.txt lists cartridge names, one line per cartridge
+# newlines act like separators for iteration just like spaces,
+# so this is equivalent to `cartridge_list="titlemenu stage_intro ..."`
+cartridge_list=`cat "$data_path/cartridges.txt"`
 
 for cartridge in $cartridge_list; do
-  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix"
+  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" $options
 done
 
 # recompute same install dirpath as used in install_single_cartridge.sh
 # (no need to mkdir -p "${install_dirpath}", it must have been created in said script)
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
-install_dirpath="${carts_dirpath}/picosonic/v${version}_${config}"
+install_dirpath="${carts_dirpath}/${cartridge_stem}/v${version}_${config}"
 
 # Also copy data cartridges
 echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."

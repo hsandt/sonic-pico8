@@ -4,6 +4,9 @@ __lua__
 -- picosonic builtin data: titlemenu
 -- by leyn
 
+-- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+import "spritesheet_titlemenu.png"
+
 -- this section will be overwritten during build
 __gfx__
 00000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee5eeeeeee77778eeeeeeeeeeee8eeeeeeeeeeeeeeeeee8eeeeeeeeee

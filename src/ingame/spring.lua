@@ -1,4 +1,4 @@
-local stage_data = require("data/stage_data")
+local stage_common_data = require("data/stage_common_data")
 local world = require("platformer/world")
 -- visual requires ingame add-on to have access to spring sprite data
 local visual = require("resources/visual_common")
@@ -24,7 +24,7 @@ end
 function spring:extend()
   -- if spring was already extended, simply reset the timer
   -- collision mask doesn't change anyway
-  self.extended_timer = stage_data.spring_extend_duration
+  self.extended_timer = stage_common_data.spring_extend_duration
 end
 
 function spring:update()
@@ -80,15 +80,6 @@ function spring:render()
     -- however, flip is applied *before* rotation so we need to flip on Y to actually flip on X
     flip_y = true
     angle = 0.25
-
-    -- unfortunately using flip Y has the side effect of messing up visual pivot,
-    --  so we must offset adjusted pivot (which is still correct for physics trigger check)
-    --  depending on whether sprite is extended or not
-    if self.extended_timer > 0 then
-      adjusted_pivot.x = adjusted_pivot.x + 4
-    else
-      adjusted_pivot.x = adjusted_pivot.x - 4  -- 6-4 = 2 so we now got the same adjusted pivot as left
-    end
   end
 
   if self.extended_timer > 0 then

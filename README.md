@@ -14,7 +14,7 @@ develop
 
 ![The 8 Pico Emeralds displayed in circle, each color corresponding to a color on the PICO-8 logo](doc/all_emeralds.png?raw=true)
 
-**pico sonic** is a partial demake of Sonic the Hedgehog 3 made with PICO-8. It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System) which have sprites closer to what PICO-8's resolution and color palette, and the GBA titles which have more clear-cut graphics.
+**pico sonic** is a partial demake of Sonic the Hedgehog 3 made with [PICO-8](https://www.lexaloffle.com/pico-8.php). It features a simplified version of Angel Island Act 1 with some tweaks. Various classic Sonic games were used as reference, including the 8-bit games (Game Gear and Master System), which have sprites closer to PICO-8's resolution and color palette, and the GBA titles, which have more clear-cut graphics.
 
 The project was started as a personal challenge and was meant to be a fully-fledged fan game, but I eventually dropped many features to focus on Sonic's main movements and the exploration of the stage. Consider it a technical demo with some exploration challenge.
 
@@ -28,7 +28,7 @@ pico sonic is a fan game distributed for free and is not endorsed by Sega. Sega 
 
 ## Compatibility
 
-Works with PICO-8 0.2.0i ~ 0.2.1b.
+Works with PICO-8 0.2.2.
 
 ## Features
 
@@ -76,6 +76,26 @@ Version: 5.3
 * Spin dash
 * When you collect all emeralds...
 
+### Notable physics differences
+
+* Preservation of velocity when landing on slopes is more organic and uses vector projection, while the [SPG](https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) denotes different formulas based on the slope angle and the relationship between horizontal and vertical speed. This is very perceptible when jumping on the first two slopes.
+* It is possible to control horizontal acceleration after jumping out of a roll. This was considered to be a better user experience, and actually recommended by the Sonic Physics Guide despite being unlike the original games.
+* Late jump: as in modern platforms, the character can jump up to 6 frames after falling off ground, for more permissive jumps from a platform ledge. This can be disabled in the Pause menu for a more "classic" experience.
+* Pixel step-by-step approach: currently, character motion is computed pixel by pixel. This is very precise and avoids relying on ground escape, but is also very CPU expensive (the main reason behind FPS dropping to 30) and can get the character stuck if one calculation is wrong. It will probably be replaced with bigger steps and ground escape in the future.
+
+### Notable camera differences
+
+Because PICO-8 has a square view of 128x128 pixels, and the game is more about exploration than moving toward the right, camera was adjusted to make navgiation a little easier.
+
+* Camera is fundamentally centered on X, but moves toward the direction Sonic is facing. When Sonic is running, camera moves even more forward to show what is ahead
+* Spin dash lag is implemented by freezing then releasing the camera, instead of the more complex recording and playing of character positions during the start of the spin dash
+
+### Notable sprite differences
+
+* Sonic uses the "jump fall" sprite from Sonic CD/Mania as spring jump sprite (although it's not technically correct since it shouldn't be used for upward motion)
+
+* I reversed the order the Brake sprites so it made more sense visually. Now, Sonic just plays a short 2-sprite brake animation when you start moving in the opposite direction of running. If you keep moving in the opposite direction, it shows the "reverse brake" sprite, which gives more the impression than Sonic is doing a complete turn and sprinting in the opposite direction.
+
 ## Content
 
 There is a single demo stage which covers the first part of Angel Island Act 1. Scale is close to 1:1, but Sonic is slightly smaller (relatively to the environment) than in the original game.
@@ -108,6 +128,7 @@ If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad T
 
 In the pause menu (toggled with Enter/Start), if you are in-game, you can select the following options:
 
+* Late jump: press left/right to toggle the Late jump feature ON/OFF (default: ON)
 * Warp to start: restart stage from beginning keeping collected emeralds
 * Retry from zero: restart stage losing emeralds collected so far
 * Back to title: go back to title menu

@@ -22,7 +22,7 @@ function stage_intro_state:init()
   self.curr_stage_id = 1
 
   -- data
-  self.curr_stage_data = stage_data.for_stage[1]
+  self.curr_stage_data = stage_data[1]
 
   -- render
 
@@ -35,16 +35,18 @@ function stage_intro_state:init()
 end
 
 function stage_intro_state:on_enter()
-  -- like the original stage_state, we need to have collision masks in builtin spritesheet,
-  --  then load runtime spritesheet top portion
-  -- of course, if we manage to isolate collision masks in their own spritesheet we could reload
-  --  them (and reload the original builtin back) in some collision data method dedicated to this
-  --  whole process (instead of relying on collision_data calling
-  --  tile_collision_data.from_raw_tile_collision_data in outer scope, so early enough to be before
-  --  loading runtime spritesheet...). Or we could have a custom intro cinematics that doesn't use physics
-  --  at all and so no tile collision data is needed.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
-  reload(0x0, 0x0, 0x600, runtime_data_path)
+  -- like the original stage_state, we need to have collision masks in builtin spritesheet
+  -- in v3, the builtin contains *only* collision masks so we must reload the *full* spritesheet
+  --  for stage intro, hence reload memory length 0x2000
+  -- alternatively, like stage clear, we could have a custom intro cinematics that doesn't use physics
+  --  at all, and so no tile collision data is needed and we can just set intro spritesheet as built-in data
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_intro.p8"
+  reload(0x0, 0x0, 0x2000, runtime_data_path)
+
+  -- Reduced version of Sonic sprite copy, copied from stage_state:reload_runtime_data
+  --  We know Sonic doesn't spin dash during the intro, so storing the main sprites in general memory will be enough
+  -- Copy the first 8 rows = 4 double rows at once
+  reload(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
 
   self.camera:setup_for_stage(self.curr_stage_data)
 
@@ -76,14 +78,6 @@ end
 
 -- setup
 
--- spawn the player character at the stage spawn location
--- (no unit test yet, will probably change for custom intro scene later)
-function stage_intro_state:spawn_player_char()
-  local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
-  self.player_char = player_char()
-  self.player_char:spawn_at(spawn_position)
-end
-
 function stage_intro_state:update()
   self.player_char:update()
   self.camera:update()
@@ -91,6 +85,7 @@ function stage_intro_state:update()
 end
 
 function stage_intro_state:render()
+  -- no need to floor camera position like stage_state, since we don't really move on X
   visual_stage.render_background(self.camera.position)
   self:render_stage_elements()
   self:render_overlay()
@@ -123,7 +118,7 @@ function stage_intro_state:show_stage_splash_async()
   -- fade in
   for i = 5, 0, -1 do
     self.postproc.darkness = i
-    yield_delay(7)
+    yield_delay_frames(6)
   end
 
   self.app:yield_delay_s(stage_intro_data.show_stage_splash_delay)
@@ -149,7 +144,7 @@ function stage_intro_state:show_stage_splash_async()
   ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
 
   -- keep zone displayed for a moment
-  yield_delay(102)
+  yield_delay_frames(101)
 
   -- make banner exit to the top
   ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)

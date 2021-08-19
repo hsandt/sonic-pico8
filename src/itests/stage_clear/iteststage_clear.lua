@@ -2,12 +2,12 @@
 local itest_manager = require("engine/test/itest_manager")
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
-local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")  -- we should require ingameadd-on in main
 
 -- testing credits is easier than entering stage
 --  because stage in on another cartridge (ingame),
 --  and itest builds are done separately (so we'd need to stub load)
-itest_manager:register_itest('player waits',
+itest_manager:register_itest('(stage clear) player waits',
     {':stage_clear'}, function ()
 
   -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap
@@ -17,7 +17,7 @@ itest_manager:register_itest('player waits',
     poke(0x4300, 73)
 
     -- simulate goal plate in level (which starts empty) so render doesn't fail
-    mset(64, 16, visual.goal_plate_base_id)
+    mset(64, 16, visual_ingame_data.goal_plate_base_id)
 
     flow:change_gamestate_by_type(':stage_clear')
   end)

@@ -11,6 +11,7 @@ local sprite_data = require("engine/render/sprite_data")
 -- same remark as for bustedhelper, we just pick picosonic_app_ingame for convenience
 local picosonic_app = require("application/picosonic_app_ingame")
 local camera_class = require("ingame/camera")
+local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
@@ -49,13 +50,13 @@ describe('base_base_stage_state', function ()
     describe('set_camera_with_origin', function ()
 
       it('should set the pico8 camera so that it is centered on the camera position, with origin (0, 0) by default', function ()
-        state.camera.position = vector(24, 13)
+        state.camera:init_position(vector(24, 13))
         state:set_camera_with_origin()
         assert.are_same(vector(24 - 128 / 2, 13 - 128 / 2), vector(pico8.camera_x, pico8.camera_y))
       end)
 
       it('should set the pico8 camera so that it is centered on the camera position, with custom origin subtracted', function ()
-        state.camera.position = vector(24, 13)
+        state.camera:init_position(vector(24, 13))
         state:set_camera_with_origin(vector(10, 20))
         assert.are_same(vector(24 - 128 / 2 - 10, 13 - 128 / 2 - 20), vector(pico8.camera_x, pico8.camera_y))
       end)
@@ -88,17 +89,51 @@ describe('base_base_stage_state', function ()
 
     end)
 
+    describe('spawn_player_char', function ()
+
+      setup(function ()
+        stub(player_char, "spawn_at")
+      end)
+
+      teardown(function ()
+        player_char.spawn_at:revert()
+      end)
+
+      before_each(function ()
+        -- clear count before test as entering stage will auto-spawn character once
+        player_char.spawn_at:clear()
+
+        -- dummy data for test to work
+        state.curr_stage_data = {
+          spawn_location = location(5, 47)
+        }
+      end)
+
+      it('should spawn the player character at the stage spawn location', function ()
+        state:spawn_player_char()
+
+        local player_char = state.player_char
+        assert.is_not_nil(player_char)
+
+        local spawn_position = state.curr_stage_data.spawn_location:to_topleft_position()
+
+        assert.spy(player_char.spawn_at).was_called(1)
+        assert.spy(player_char.spawn_at).was_called_with(match.ref(state.player_char), spawn_position)
+      end)
+
+    end)
+
     describe('is_tile_in_area', function ()
 
       it('should return true for tile in one of the entrance areas', function ()
-        -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+        -- this depends on stage_data[1].loop_entrance_areas content and
         --  location_rect:contains correctness
         assert.is_true(state:is_tile_in_area(location(4, 4),
           {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))
       end)
 
       it('should return false for tile not in any of the entrance areas', function ()
-        -- this depends on stage_data.for_stage[1].loop_entrance_areas content and
+        -- this depends on stage_data[1].loop_entrance_areas content and
         --  location_rect:contains correctness
         assert.is_true(state:is_tile_in_area(location(5, 5),
           {location_rect(0, 0, 2, 2), location_rect(4, 4, 6, 6)}))
@@ -205,26 +240,68 @@ describe('base_base_stage_state', function ()
 
     -- render
 
-    describe('(with tile_test_data)', function ()
+
+    describe('render_environment_midground', function ()
 
       setup(function ()
         tile_test_data.setup()
 
-        stub(base_stage_state, "set_camera_with_origin")
         stub(base_stage_state, "set_camera_with_region_origin")
+        stub(base_stage_state, "render_environment_midground_static")
+        stub(base_stage_state, "render_environment_midground_waterfall")
+      end)
+
+      teardown(function ()
+        base_stage_state.set_camera_with_region_origin:revert()
+        base_stage_state.render_environment_midground_static:revert()
+        base_stage_state.render_environment_midground_waterfall:revert()
+      end)
+
+      after_each(function ()
+        pico8:clear_map()
+
+        base_stage_state.set_camera_with_region_origin:clear()
+        base_stage_state.render_environment_midground_static:clear()
+        base_stage_state.render_environment_midground_waterfall:clear()
+      end)
+
+      it('should call set_camera_with_region_origin, render_environment_midground_static, render_environment_midground_waterfall', function ()
+        state:render_environment_midground()
+
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+
+        assert.spy(base_stage_state.render_environment_midground_static).was_called(1)
+        assert.spy(base_stage_state.render_environment_midground_static).was_called_with(match.ref(state))
+
+        assert.spy(base_stage_state.render_environment_midground_waterfall).was_called(1)
+        assert.spy(base_stage_state.render_environment_midground_waterfall).was_called_with(match.ref(state))
+      end)
+
+    end)
+
+    describe('(with tile_test_data)', function ()
+
+      setup(function ()
+        stub(base_stage_state, "set_color_palette_for_waterfall_animation")
+        stub(base_stage_state, "set_camera_with_region_origin")
+        stub(base_stage_state, "set_camera_with_origin")
         stub(sprite_data, "render")
         stub(_G, "spr")
         stub(_G, "map")
+        stub(_G, "set_unique_transparency")
       end)
 
       teardown(function ()
         tile_test_data.teardown()
 
-        base_stage_state.set_camera_with_origin:revert()
+        base_stage_state.set_color_palette_for_waterfall_animation:revert()
         base_stage_state.set_camera_with_region_origin:revert()
+        base_stage_state.set_camera_with_origin:revert()
         sprite_data.render:revert()
         spr:revert()
         map:revert()
+        set_unique_transparency:revert()
       end)
 
       before_each(function ()
@@ -253,31 +330,51 @@ describe('base_base_stage_state', function ()
       after_each(function ()
         pico8:clear_map()
 
-        base_stage_state.set_camera_with_origin:clear()
+        base_stage_state.set_color_palette_for_waterfall_animation:clear()
         base_stage_state.set_camera_with_region_origin:clear()
+        base_stage_state.set_camera_with_origin:clear()
         sprite_data.render:clear()
         spr:clear()
         map:clear()
+        set_unique_transparency:clear()
       end)
 
-      it('render_environment_midground should call map for all midground sprites', function ()
+      it('render_environment_midground_static should call set_unique_transparency and map for all midground sprites', function ()
         -- note that we reverted to using map for performance, so this test doesn't need to be
         --  in the tile test data setup context anymore
-        state.camera.position = vector(0, 0)
+        state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(0, 0)
 
-        state:render_environment_midground()
+        state:render_environment_midground_static()
 
-        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
-        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+        assert.spy(set_unique_transparency).was_called(1)
+        assert.spy(set_unique_transparency).was_called_with(colors.pink)
 
         assert.spy(map).was_called(1)
         assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
       end)
 
-      it('render_environment_foreground should call spr on tiles present on screen', function ()
+      it('render_environment_midground_waterfall should call set_color_palette_for_waterfall_animation and map for all waterfall sprites', function ()
+        -- note that we reverted to using map for performance, so this test doesn't need to be
+        --  in the tile test data setup context anymore
+        state.camera:init_position(vector(0, 0))
+        state.loaded_map_region_coords = vector(0, 0)
+
+        state:render_environment_midground_waterfall()
+
+        assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called(1)
+        assert.spy(base_stage_state.set_color_palette_for_waterfall_animation).was_called_with(match.ref(state))
+
+        assert.spy(map).was_called(1)
+        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.waterfall)
+      end)
+
+      it('(ingame state) render_environment_foreground should call spr on tiles present on screen', function ()
+        -- simulate an ingame state
+        state.type = ':stage'
+
         -- this test was copy-pasted from render_environment_midground
-        state.camera.position = vector(0, 0)
+        state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(2, 1)
 
         state:render_environment_foreground()
@@ -307,6 +404,25 @@ describe('base_base_stage_state', function ()
         assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 11, 8 * 2))
         -- left (right flipped x)
         assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 10, 8 * 2), true)
+      end)
+
+      it('(non-ingame state) render_environment_foreground should call spr on tiles present on screen', function ()
+        -- simulate a non-ingame state
+        state.type = ':stage_clear'
+
+        -- this test was copy-pasted from render_environment_midground
+        state.camera:init_position(vector(0, 0))
+        state.loaded_map_region_coords = vector(2, 1)
+
+        state:render_environment_foreground()
+
+        -- we can't check call order, but set camera methods should be called consistently with map!
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+
+        assert.spy(map).was_called(1)
+
+        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
       end)
 
     end)  -- (with tile_test_data)

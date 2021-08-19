@@ -4,11 +4,13 @@ local base_stage_state = require("ingame/base_stage_state")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
-local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
+local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 local stage_state = derived_class(base_stage_state)
@@ -22,7 +24,7 @@ function stage_state:init()
   self.curr_stage_id = 1
 
   -- reference to current stage data (derived from curr_stage_id)
-  self.curr_stage_data = stage_data.for_stage[self.curr_stage_id]
+  self.curr_stage_data = stage_data[self.curr_stage_id]
 
   -- player character
   -- self.player_char = nil  -- commented out to spare characters
@@ -38,6 +40,13 @@ function stage_state:init()
   self.picked_emerald_numbers_set = {}
   -- list of emerald pick fxs playing (currently no pooling, just add and delete)
   self.emerald_pick_fxs = {}
+
+  -- overlap tiles: tiles that are overlapping another tile in the tilemap and cannot be defined directly
+  --  in tilemap data, but can be stored in advance and mset on every region reload
+  -- they can be midground or foreground, it's the sprite flag that decides how they are rendered
+  --  since they are rendered as part of the tilemap
+  -- format: {{global tile location, sprite_id}, ...}
+  self.overlap_tiles = {}
 
   -- spring objects
   self.springs = {}
@@ -55,10 +64,6 @@ end
 --#endif
 
 function stage_state:on_enter()
-  -- don't initialize loaded region coords to force first
-  --  (we don't know in which region player character will spawn)
-  -- self.loaded_map_region_coords = nil
-
   -- to avoid scanning object tiles to spawn new objects every time a new region is loaded,
   --  we preload all map regions on stage start and spawn
 
@@ -76,7 +81,13 @@ function stage_state:on_enter()
 --[[#pico8
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
+
+--#if normal_mode
+--(attract mode doesn't care about remembering picked emeralds)
   self:restore_picked_emerald_data()
+--#endif
+
+--(ifn itest)
 --#endif
 --#pico8]]
 
@@ -89,118 +100,151 @@ function stage_state:on_enter()
   self.camera:setup_for_stage(self.curr_stage_data)
   self:check_reload_map_region()
 
+  -- must be done before spawn_player_char so the player character can access
+  --  the initial anim spritesheet in its init > update_sprite_row_and_play_sprite_animation
+  self:reload_runtime_data()
+
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
 
   self.has_player_char_reached_goal = false
 
-  -- reload bgm only once, then we can play bgm whenever we want for this stage
-  self:reload_bgm()
   -- initial play bgm
   self:play_bgm()
-
-  self:reload_runtime_data()
 end
 
 -- reload background, HUD and character sprites from runtime data
 -- also store non-rotated and rotated sprites into general memory for swapping later
 function stage_state:reload_runtime_data()
-  -- reload runtime background+HUD sprites by copying spritesheet top from background data
-  --  cartridge to the top of the current spritesheet, just to overwrite
-  -- spritesheet starts at 0x0 in memory
-  -- we need to copy 3 rows of 16 sprites, 32 = 0x20 bytes per sprite,
-  --  so 512 = 0x200 bytes per row,
-  --  so 1536 = 0x600 bytes
+  -- in v3, the builtin contains *only* collision masks so we must reload the *full* spritesheet
+  --  for stage ingame, hence reload memory length 0x2000
   -- NOTE: we are *not* reloading sprite flags (could do by copying 0x100 bytes from 0x3000-0x30ff)
-  --  which means our builtin spritesheet *must* contain any new flags brought by runtime extra tiles
-  --  (located in the 3 top rows of the spritesheet). Those are rare (only one-way platform tiles)
-  --  but without the flags, they won't behave properly. This means you must (unintuitively) place flags
-  --  on the mask tiles in the built-in spritesheet. To make it easier, you may edit the flags on a cartridge
-  --  containing all the sprites of interest, then copy-paste the __gff__ lines into the builtin .p8 cartridge
-  -- Later, you can move all mask tiles to another spritesheet to reload
-  --  on start instead.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_runtime"..cartridge_ext
-  reload(0x0, 0x0, 0x600, runtime_data_path)
+  --  which means our builtin spritesheet *must* contain all the sprite flags.
+  -- in v3, this is terrible since the built-in data only shows collision masks, but works because we already
+  --  defined all the sprite flags during v2
+  -- if we start adding/moving tiles around and changing sprite flags, then I'd strongly recommend
+  --  setting the flags on the spritesheets actually showing the tiles, and copy the flags from them
+  --  with the addresses mentioned above
+  -- OR if you really need to spare code characters, copy-paste the __gff__ lines into the builtin .p8 cartridge
+  -- manually.
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame.p8"
+  reload(0x0, 0x0, 0x2000, runtime_data_path)
 
-  -- the runtime spritesheet also contains 45-degree rotated sprite variants
-  --  for Sonic walk and run cycle, meant to replace the non-rotated equivalents
-  --  in the built-in spritesheet
-  -- we don't want to reload data files (neither the built-in nor the runtime)
-  --  every time Sonic changes 1/8 rotation, so we copy both the non-rotated
-  --  and rotated variants now into in general memory, so we can swap them later
+  -- Sonic spritesheet
 
-  -- 1st argument of memcpy is destination, and is always general memory address
-  --  (0x4300) + some offset
-  -- first, we need to spare 0x1000 for reload_..._map_region methods
-  --  which use the general memory as temporary storage for patching operations
-  -- second, we prefer keeping memory compact by copying the sprites one after
-  --  the other in general memory, rather than following the spritesheet layout
-  --  (even if there is a hole after a rotated sprite because it made sprite
-  --  alignment look better, we don't have a similar hole in general memory)
-  -- so, we start at 0x5300 and then simply add the length of the previous memcpy
-  --  operation to get the next dest address
+  -- The Sonic spritesheet contains all the sprites for Sonic, including 45-degree rotated variants.
+  -- There are all meant to be copied into rows of index 8-9 in runtime memory spritesheet,
+  --  at runtime when Sonic changes state and needs to play certain sprite animations.
+  -- However, reading memory directly from a cartridge data with reload() is a bit slow.
+  --  (with the fast-reload patch, it's fast enough to be called from times to times as during
+  --  stage region transitions, but Sonic can change state much faster than that; experience seems
+  --  to indicate that reloading data from the same cartridge multiple times in a row is faster
+  --  than reloading data from different cartridges, but we prefer not relying on that at the moment;
+  --  this property is useful to make the repeated reload below faster though)
+  -- Therefore we copy the content of the whole Sonic spritesheet in general memory for super-fast
+  --  copy from internal memory to internal memory at runtime.
 
-  -- the non-rotated variants are already in current memory, so just copy them
+  -- Address start/size calculation
+  --
+  -- Sprites are stored in memory line by line.
+  --  1 pixel = 4 bits (as we use 16 colors)
+  --  2 pixels = 8 bits = 1 byte
+  --  8 pixels = 4 bytes
+  -- 1 cell occupies 8x8 pixels, and needs 16 bytes.
+  -- A 2x2-cell sprite = 16x16 pixels = 256 pixels = 128 bytes = 0x80 bytes
+  -- This is useful to count the total memory required by a sprite, and works when dealing with a row fully occupied by sprites
+  --  to copy, as we don't care in which order pixels were copied.
+  --
+  -- However, when copying partial lines, it is imperative to think in terms of lines, partial or complete,
+  --  to determine start addresses and copy lengths:
+  -- 1 cell line = 8 pixels = 4 bytes
+  -- 1 line = 8*16 pixels = 128 pixels = 64 bytes = 0x40 bytes
+  -- 1 row = 8 lines = 0x200 bytes
+  -- 1 double row = 2 rows (what we actually use since our sprites are 2x2) needs 0x400 bytes
+  -- The first Sonic sprites are located on the left of row index 2, so at address offset 0x400
+  -- Spritesheet memory starts at 0x0, therefore the first address to copy from really is 0x400
 
-  -- the walk cycle sprites start at row 8, column 2 (counting from 0)
-  -- sprites are stored in memory line by line, 1 cell being 8x8 px, and
-  --  8px are represented by 4 bytes, so top-left address is at:
-  --  8 * 0x200 + 2 * 0x4 = 0x1008
-  -- there are 6 walk sprites of span 2x2, which don't cover the whole row of 16 cells of 8x8
-  --  and need to copy 8 * 2 = 16 partial lines over 6 * 2 = 12 cells of 8x8, which makes
-  --  12 * 4 = 48 = 0x30 bytes per line
-  -- to go to the next line, advance px by px over 16 cells (number of cells in a row)
-  --  of 8x8, which makes 16 * 4 = 64 = 0x40 (it's also 0x200 / 8 since 0x200 advances
-  --  by 1 full row of sprites, each sprite containing 8 lines)
+  -- Address mapping
+  --
+  -- General memory starts at 0x4300, but we use the first blocks of memory for temporary operations.
+  -- Then we start copying Sonic sprites. The first 4 double rows (8 rows) are easy to copy, as rows are fully occupied.
+  -- For the last double row (2 rows), there are only partially filled with Sonic sprites, so to avoid wasting memory copying
+  --  holes (which would result in stopping just before address 0x5f00, at 0x5eff, which is beyond the end of general memory
+  --  0x5dff), we only copy partial lines of just what we need (spanning over 10 cells / 5 spin dash sprites each time).
+  -- Note that we will also need to copy the partial lines back one by one to reconstruct the sprites properly in runtime
+  --  spritesheet memory.
+  --
+  -- Below, Dest is the address to copy sprites to in general memory (for later usage).
+  -- Source is the address to copy from data_stage_sonic.p8 cartridge, which contains the Sonic spritesheet.
+  -- As explained above in `Address start/size calculation`, it starts on row index 2, therefore at 0x400.
+  -- The first entry is just a reminder that temporary memory is used at the start of general memory.
+  -- We don't copy sprites there.
 
-  -- we don't have to keep the same structure in general memory, as we don't debug it
-  --  visually, which means we can just paste partial lines of 0x30 one after the other
-  --  for the most compact memory (but represented with line breaks every 0x40 like
-  --  the spritesheet, it would look garbage due to the offset of 0x10 every line)
-  -- we could also keep the structure aligned by pasting every 0x40, then to fill the holes
-  --  (2 sprites of span 2x2 left at the end), we could place 2 run cycle sprites
-  --  but we'd still need to place the remaining 2 run cycle sprites 2 rows below,
-  --  occupying 2 partial lines, and if we want to use general memory for non-sprite
-  --  data later then we don't have the most compact memory as we'd have holes for each
-  --  partial line but the last one
+  -- Dest    Source  Size    Content
+  -- 0x4300          0x800   Temporary memory for stage region patching (see reload_..._map_region methods)
+  -- 0x4b00  0x400   0x1000  First 4 double rows of Sonic sprites = first 8 rows of Sonic sprites (sprites occupy 2x2 cells)
+  -- 0x5b00  0x1400  0x280   Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
+  -- 0x5d80  0x1680          Free from here, use it if you need to copy more things that need to be available quickly
 
-  -- the run cycle sprites follow the same logic, but they start at row 10, column 0,
-  --  and there are 4 sprites of span 2x2, so their topleft address is at:
-  --  10 * 0x200 = 0x1400
-  -- and we need 8 * 2 = 16 partial lines over 4 * 2 = 8 cells of 8x8,
-  --  so 8 * 4 = 32 = 0x20 bytes per line
+  -- Total size for sprites: 0x1280
 
-  -- to make code shorter, let's copy in parallel the 16 lines for the walk and run sprites
-  -- each time, we advance dest address by the same value as copied length, so 0x30 and 0x20
-  --  resp.
+-- Comment for RELOAD
+
+-- Below, Dest is the address to copy with on runtime memory. Spritesheet memory starts at 0x0, but we always copy
+--  Sonic sprites on row indices 8-9 (because we put a hole there in the stage spritesheets, and even kept the foot
+--  of Sonic jump sprite sticking out on row index 10 to complement!), so we start at 8*0x200 = 0x1000 (right in the middle
+--  of spritesheet memory).
+-- Of course we don't copy the temporary memory for stage region patching there, so Dest is not defined in the first entry.
+
+-- END
+
+  -- Copy the first 8 rows = 4 double rows at once
+  reload(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
+
+  -- Starting from 0x1400 (see above):
+  -- Copy 16 partial lines covering 10 cells on X to make sure we get the 5 2x2-cell spin dash sprites
+  --  starting on row index 10
+  -- Each partial line covers 10 cell lines, so according to `Address start/size calculation` it takes
+  --  10 * 4 bytes = 40 bytes = 0x28 bytes
+  -- We need to skip a full row to get the next partial line, so each iteration advances by +0x40 on src address
+  -- However, we don't want to waste space in general memory (it's the whole point of copying partial lines),
+  --  so we only advance by the length we copy on dest address, i.e. 0x28 bytes each iteration
+  -- Performance note: don't worry about repeating reloads from cartridge because:
+  --  1. this only happens once on stage setup
+  --  2. reloading from same cartridge seems to keep it in some cache, making further reloads faster
+  --  3. ideally we'd copy the whole spritesheet memory into general memory, then operate on it to move partial lines
+  --     where we want; but that's more code, so unless you notice a particular lag on start, don't mind it
   for i = 0, 15 do
-    -- 6 walk cycle sprites
-    memcpy(0x5300 + i * 0x30, 0x1008 + i * 0x40, 0x30)
-
-    -- 4 run cycle sprites
-    memcpy(0x5600 + i * 0x20, 0x1400 + i * 0x40, 0x20)
+    reload(0x5b00 + i * 0x28, 0x1400 + i * 0x40, 0x28, "data_stage_sonic.p8")
   end
 
-  -- the rotated sprite variants are in the runtime data, so reload them from that cartridge
-  -- the dest addresses start just after the last memcpy above, at 0x5800
-  -- from here, the same principle applies, but the dest addresses are offset by 0x300
-  --  (the src addresses are the same because the runtime spritesheet's rotated sprite variants
-  --  are located at the same location as their non-rotated equivalents in the built-in spritesheet)
+  -- Total memory used by Sonic sprites: 0x1280
 
-  for i = 0, 15 do
-    -- 6 walk cycle sprites (rotated)
-    reload(0x5800 + i * 0x30, 0x1008 + i * 0x40, 0x30, runtime_data_path)
+  -- Memory range left: 0x5d80-0x5dff
+  -- We just have enough memory left for one 2x2 sprite!
+  -- However, we can still get four 1x1 sprites, useful for e.g. Ring animation.
 
-    -- 4 run cycle sprites (rotated)
-    reload(0x5b00 + i * 0x20, 0x1400 + i * 0x40, 0x20, runtime_data_path)
-  end
-
-  -- we check that we arrive at 0x5d00, and the general memory ends at 0x5dff,
-  --  so we just have a little margin!
   -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
   --  of course we can keep using it for general memory, but if we start using custom font,
-  --  since the first bytes are used for default parameters, I'll have to stop using addresses
-  --  before 0x5600
+  --  since the first bytes are used for default parameters, I would have to stop using addresses
+  --  before 0x5600, and I don't have this margin unless I accept to lose performance by reloading
+  --  Sonic sprites directly from data_stage_sonic.p8 cartridge...
+
+-- put in pico8 only to avoid polluting unit test counting reload calls
+--[[#pico8
+
+--#if debug_collision_mask
+  -- exceptionally overwrite the top of the spritesheet with tile collision mask sprites again,
+  --  so we can debug them with tile_collision_data:debug_render
+  -- the collision masks are located in the built-in data of ingame cartridge (also stage_intro),
+  --  so just reload data from the current cartridge (pass no filename)
+  -- spritesheet is located at 0x0
+  -- there are 3 lines of collision masks, so we need to copy 3 * 0x200 = 0x600 bytes
+  -- !! this will mess up runtime sprites like the emerald pick up FX !!
+  reload(0x0, 0x0, 0x600)
+--#endif
+
+--#pico8]]
 end
 
 -- never called, we directly load stage_clear cartridge
@@ -234,32 +278,33 @@ function stage_state:update()
 
   self.player_char:update()
 
+--#if normal_mode
+--(attract mode never reaches goal)
   self:check_reached_goal()
 
   if self.goal_plate then
     self.goal_plate:update()
   end
+--#endif
 
   self.camera:update()
   self:check_reload_map_region()
 end
 
 function stage_state:render()
-  visual_stage.render_background(self.camera.position)
+  -- background parallax layers use precise calculation and will sometimes move parallax
+  --  during sub-pixel motion, causing visual instability => so floor camera position
+  visual_stage.render_background(self.camera:get_floored_position())
   self:render_stage_elements()
   self:render_fx()
+--#ifn itest
   self:render_hud()
+--(!itest)
+--#endif
 end
 
 
 -- setup
-
--- spawn the player character at the stage spawn location
-function stage_state:spawn_player_char()
-  local spawn_position = self.curr_stage_data.spawn_location:to_center_position()
-  self.player_char = player_char()
-  self.player_char:spawn_at(spawn_position)
-end
 
 function stage_state:spawn_emerald_at(global_loc)
   -- no need to mset(i, j, 0) because emerald sprites don't have the midground/foreground flag
@@ -285,6 +330,17 @@ function stage_state:spawn_emerald_at(global_loc)
   -- but regions are always preloaded for object spawning in the same order, so
   -- for given emerald locations, their colors are deterministic
   add(self.emeralds, emerald(#self.spawned_emerald_locations, global_loc))
+
+  -- if emerald is surrounded by hiding leaves (we only check if there's one on the right)
+  --  we must draw an extra hiding leaves sprite on top of the emerald
+  -- but to make it cheaper, we mset it directly onto the tilemap
+  -- except tilemap is reloaded from file on region reload, so we cannot mset now,
+  --  and must store that info for later (to mset during every region reload)
+  local region_loc = self:global_to_region_location(global_loc)
+  local s = mget(region_loc.i, region_loc.j)
+  if mget(region_loc.i + 1, region_loc.j) == visual_ingame_data.hiding_leaves_id then
+    add(self.overlap_tiles, {global_loc, visual_ingame_data.hiding_leaves_id})
+  end
 
   log("added emerald #"..#self.emeralds, "emerald")
 end
@@ -314,12 +370,14 @@ stage_state.spawn_spring_right_at = generate_spawn_spring_dir_at_callback(direct
 
 -- register spawn object callbacks by tile id to find them easily in scan_current_region_to_spawn_objects
 stage_state.spawn_object_callbacks_by_tile_id = {
+  -- emerald sprite id is computed via sprite location so not replaced numerical constants like the rest
+  --  (but once we're settled, could be added to visual_ingame_numerical_data.lua for more compact code)
   [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
-  [visual.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
-  [visual.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
-  [visual.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
-  [visual.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
-  [visual.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
+  [visual_ingame_data.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
+  [visual_ingame_data.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+  [visual_ingame_data.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
+  [visual_ingame_data.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
+  [visual_ingame_data.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
 }
 
 -- proxy for table above, mostly to ease testing
@@ -435,10 +493,6 @@ function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
   -- in order to copy the horizontal half of a tilemap (64x32 tiles), we need to copy
   --  32 lines of 64 tiles, one by one
 
-  -- reloading from an external file 32 times is too slow, so we store the whole
-  --  external tilemap first into general memory 0x4300, to process it later
-  reload(0x4300, 0x2000, 0x1000, filename)
-
   -- depending on whether we copy from their left half to our right half, or reversely,
   --  we set the source and destination addresses differently
   -- a line contains 128 = 0x80 tiles so:
@@ -453,9 +507,33 @@ function stage_state:reload_horizontal_half_of_map_region(dest_hdir, filename)
     temp_source_addr0 = temp_source_addr0 + 0x40
   end
 
-  -- copy 32 lines of length 64 = 0x40
-  for j = 0, 31 do
+  -- reloading from an external file 32 times is too slow, so we store parts of
+  --  the external tilemap in general memory, then copy half-lines from it one by one
+  --  with local memory copy operations only
+  -- we used to copy the full tilemap, but to avoid using too much of general memory
+  --  as temporary memory for one-time operations, we prefer splitting the load of 0x1000 bytes
+  --  in 2: first copy the upper part, second copy the lower part into the same location,
+  --  0x800 bytes each (so it uses as much temp memory as reload_quarter_of_map_region)
+  -- with fast reload, reload is relatively fast and therefore 2 reloads at runtime are OK,
+  --  there is only a slight CPU increment but this will make sense to optimize (e.g. slicing the op
+  --  over 2 frames) when we reached 60 FPS
+  --  (but we couldn't do 32 reloads, as even with fast reload, a half-second freeze would be perceived)
+  -- for now we just put everything at the start of general memory 0x4300
+  reload(0x4300, 0x2000, 0x800, filename)
+
+  -- copy first 16 lines of length 64 = 0x40
+  for j = 0, 15 do
     memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + j * 0x80, 0x40)
+  end
+
+  -- same as before, but add 0x800 to source addresses to access the lower part of the map
+  reload(0x4300, 0x2800, 0x800, filename)
+
+  -- copy last 16 lines of length 64 = 0x40
+  -- note that we reuse the same temporary address, so make sure to restart index at 0
+  --  just for the temporary address offset
+  for j = 16, 31 do
+    memcpy(dest_addr0 + j * 0x80, temp_source_addr0 + (j-16) * 0x80, 0x40)
   end
 end
 
@@ -596,6 +674,18 @@ function stage_state:check_reload_map_region()
   if self.loaded_map_region_coords ~= new_map_region_coords then
     -- current map region changed, must reload
     self:reload_map_region(new_map_region_coords)
+
+    for overlap_tile_info in all(self.overlap_tiles) do
+      local global_loc, sprite_id = unpack(overlap_tile_info)
+      local region_loc = self:global_to_region_location(global_loc)
+      -- OPTIMIZE CHARS: region coords range check is to be cleaner,
+      --  but PICO-8 can handle an mset outside the 128x32 tiles, just do nothing
+      --  So you can remove this check if it really costs too many characters
+      if region_loc.i >= 0 and region_loc.i < map_region_tile_width and
+          region_loc.j >= 0 and region_loc.j < map_region_tile_height then
+        mset(region_loc.i, region_loc.j, sprite_id)
+      end
+    end
   end
 end
 
@@ -658,7 +748,7 @@ function stage_state:check_emerald_pick_area(position)
     -- max xy distance check <=> inside square area (simplified version of AABB)
     local delta = position - em:get_center()
     local max_distance = max(abs(delta.x), abs(delta.y))
-    if max_distance < stage_data.emerald_pick_radius then
+    if max_distance < stage_common_data.emerald_pick_radius then
       return em
     end
   end
@@ -669,7 +759,7 @@ function stage_state:character_pick_emerald(em)
   self.picked_emerald_numbers_set[em.number] = true
 
   -- add emerald pick FX at emerald position and play it immediately
-  local pfx = emerald_fx(em.number, em.location:to_center_position())
+  local pfx = emerald_fx(em.number, em:get_center())
   add(self.emerald_pick_fxs, pfx)
 
   -- remove emerald from sequence (use del to make sure
@@ -683,8 +773,8 @@ end
 function stage_state:play_pick_emerald_jingle_async()
   -- reduce bgm volume by half (notes have volume from 0 to 4, so decrement all sound volumes by 2)
   --  to make the pick emerald jingle stand out
-  -- the music sfx take maximum 50 entries (out of 64), so cover all tracks from 0 to 49
-  volume.decrease_volume_for_track_range(0, 49, 2)
+  -- the music sfx take maximum 46 entries (out of 64), so cover all tracks from 8 to 53
+  volume.decrease_volume_for_track_range(8, 53, 2)
 
   -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
   -- this has high priority so we don't use sound.play_low_priority_sfx unlike PC SFX,
@@ -701,16 +791,16 @@ function stage_state:play_pick_emerald_jingle_async()
   --  won't hear the step-by-step volume transition too much during the end of the jingle),
   --  so only wait 48 frames for now, then the remaining 16 frames after we incremented bgm
   --  volume once
-  yield_delay(48)
+  yield_delay_frames(48)
 
-  -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
+  -- unfortunately we cannot reincrement volume as some values were clamped to 0 during decrease
   --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
   --  then reset without decrementing to retrieve the original volume
   self:reload_bgm_tracks()
-  volume.decrease_volume_for_track_range(0, 49, 1)
+  volume.decrease_volume_for_track_range(8, 53, 1)
 
   -- wait the remaining 16 frames, the jingle should have ended just after that
-  yield_delay(16)
+  yield_delay_frames(16)
 
   self:reload_bgm_tracks()
 end
@@ -771,6 +861,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
   end
 end
 
+--#if normal_mode
+--(attract mode never reaches goal nor remembers picked emeralds)
+
 function stage_state:check_reached_goal()
   if not self.has_player_char_reached_goal and self.goal_plate and
 --[[#pico8
@@ -795,11 +888,11 @@ function stage_state:on_reached_goal_async()
 
   -- play goal plate animation and wait for it to end
   self:feedback_reached_goal()
-  yield_delay(stage_data.goal_rotating_anim_duration)
+  yield_delay_frames(stage_common_data.goal_rotating_anim_duration)
   self.goal_plate.anim_spr:play("sonic")
 
-  self:stop_bgm(stage_data.bgm_fade_out_duration)
-  self.app:yield_delay_s(stage_data.bgm_fade_out_duration)
+  self:stop_bgm(stage_common_data.bgm_fade_out_duration)
+  self.app:yield_delay_s(stage_common_data.bgm_fade_out_duration)
 
   -- take advantage of the dead time to load the stage_clear cartridge,
   --  which is a super-stripped version of ingame that doesn't know about
@@ -824,11 +917,11 @@ function stage_state:restore_picked_emerald_data()
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in 0x5d00, see store_picked_emerald_data below
-  local picked_emerald_byte = peek(0x5d00)
+  -- It is stored in picked_emerald_address (0x5dff), see store_picked_emerald_data below
+  local picked_emerald_byte = peek(memory.picked_emerald_address)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(0x5d00, 0)
+  poke(memory.picked_emerald_address, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -848,8 +941,13 @@ end
 function stage_state:store_picked_emerald_data()
   -- General memory is persistent during a single session, so a good fit to store data
   --  across cartridges, although this behavior is undocumented.
-  -- However, 0x4300-0x52ff is occupied by runtime regions, and 0x5300-0x5cff
-  --  is occupied non-rotated/rotated walk/run sprite variants, so store 1 byte at 0x5d00.
+  -- We only need to store 1 byte = 8 bits, 1 bit per emerald, so we just poke one byte.
+  -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
+  --  is occupied non-rotated/rotated walk/run sprite variants... but it was annoying to offset
+  --  picked emerald byte address every time I added a runtime sprite, so I decided to use the
+  --  *last* byte (picked_emerald_address = 0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
+  --  left). When saving data in persistent memory (so player can continue emerald hunting later),
+  --  it won't even be a problem since we will use a very different address in the persistent block.
   -- We could also use persistent memory, considering we may save emeralds collected by player
   --  on next run (but for now we don't, so player always starts game from zero)
   --
@@ -862,7 +960,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x5d00, picked_emerald_bytes)
+  poke(memory.picked_emerald_address, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()
@@ -871,6 +969,9 @@ function stage_state:feedback_reached_goal()
   -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
+
+--(normal_mode)
+--#endif
 
 -- fx
 
@@ -885,6 +986,9 @@ function stage_state:update_fx()
     end
   end
 
+  -- normally we should deactivate pfx and reuse it for pooling,
+  --  but deleting them was simpler (fewer characters) and single-time operation
+  --- so CPU cost is OK
   for pfx in all(to_delete) do
     del(self.emerald_pick_fxs, pfx)
   end
@@ -914,16 +1018,12 @@ function stage_state:render_stage_elements()
 --#if debug_trigger
   self:debug_render_trigger()
 --#endif
+--#if debug_collision_mask
+  self.player_char:debug_draw_tile_collision_masks()
+--#endif
 --#if debug_character
   self.player_char:debug_draw_rays()
 --#endif
-end
-
--- same kind of helper as base_stage_state:global_to_region_location and region_to_global_location,
---  but for mset
-function stage_state:mset_global_to_region(global_loc_i, global_loc_j, sprite_id)
-  local region_loc = location(global_loc_i, global_loc_j) - self:get_region_topleft_location()
-  mset(region_loc.i, region_loc.j, sprite_id)
 end
 
 -- render the player character at its current position
@@ -979,6 +1079,8 @@ function stage_state:render_goal_plate()
   end
 end
 
+--#ifn itest
+
 -- render the hud:
 --  - emeralds obtained
 --  - character debug info (#debug_character only)
@@ -1003,29 +1105,41 @@ function stage_state:render_hud()
 --#endif
 end
 
+--(!itest)
+--#endif
 
 -- audio
 
-function stage_state:reload_bgm()
-  -- reload music patterns from bgm cartridge memory
-  -- we guarantee that the bgm will take maximum 40 patterns (out of 64)
-  --  => 40 * 4 = 160 = 0xa0 bytes
-  -- the bgm should start at pattern 0 on both source and
-  --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..cartridge_ext)
-
-  -- we also need the music sfx referenced by the patterns
-  self:reload_bgm_tracks()
-end
-
 function stage_state:reload_bgm_tracks()
-  -- reload sfx from bgm cartridge memory
-  -- we guarantee that the music sfx will take maximum 50 entries (out of 64),
-  --  potentially 0-7 for custom instruments and 8-49 for music tracks
-  --  => 50 * 68 = 3400 = 0xd48 bytes
-  -- the bgm sfx should start at index 0 on both source and
-  --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..cartridge_ext)
+  -- Note: bgm is now integrated in builtin data as we've reached the max cartridge limit of 16
+  -- We still kept this method, as besides loading music tracks on stage start (which is not needed
+  --  anymore), we were also using it to restore volume during the pick emerald jingle
+  --  (see play_pick_emerald_jingle_async), so it's still useful, but now needs a mere
+  -- We cannot use memcpy since memory has been modified in-place, so still reload.
+
+  -- !! PICO-8 PATCH vs COMPRESSED CHARS
+  -- Normally, we should call reload without filename argument so it gets memory directly from the
+  --  current original cartridge file.
+  -- But because this method is called during play_pick_emerald_jingle_async which happens
+  --  mid-game, and due to a quirk, our fast-reload patch only works consistently with reload()
+  --  taking filename argument, we still pass the ingame cartridge filename just to get fast reload
+  --  and not interrupt the game flow! (when not passing filename, game may freeze or not on reload
+  --  depending on the last cartridge reloaded)
+  -- (note that builtin_data_ingame.p8 doesn't exist in distribution, since it has been integrated
+  --  inside picosonic_ingame cartridge, so we really load the ingame cartridge)
+  -- Ideally, we'd improve the fast reload patch to cover reload from current cartridge file
+  --  (and possibly make load fast too), but for now this is the easiest approach,
+  --  at the cost of a few extra compressed characters
+
+  -- Reload sfx from builtin data ingame cartridge memory (must be current one)
+  -- we guarantee that the music sfx will take maximum 46 entries (out of 64),
+  --  skip 0-7 (custom instruments reserved to normal SFX) use 8-53 for music tracks
+  -- https://pico-8.fandom.com/wiki/Memory says 1 sfx = 68 bytes, so we must copy:
+  --  => 46 * 68 = 3400 = 0xc38 bytes
+  -- the bgm sfx should start at index 8 (after custom instruments) on both source and
+  --  current cartridge, so use copy memory from 8 * 68 = 544 = +0x220 after start of sfx section,
+  --  i.e. 0x3200 + 0x220 = 0x3420
+  reload(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
 end
 
 function stage_state:play_bgm()
@@ -1033,7 +1147,7 @@ function stage_state:play_bgm()
   -- Angel Island BGM currently uses only 3 channels so it's pretty safe
   --  as there is always a channel left for SFX, but in case we add a 4th one
   --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
-  music(self.curr_stage_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
+  music(stage_common_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
 end
 
 function stage_state:stop_bgm(fade_duration)

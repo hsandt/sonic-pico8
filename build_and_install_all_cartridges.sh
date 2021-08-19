@@ -13,11 +13,13 @@ help() {
 }
 
 usage() {
-  echo "Usage: build_and_install_all_cartridges.sh [CONFIG]
+  echo "Usage: build_and_install_all_cartridges.sh [CONFIG] [OPTIONS]
 
 ARGUMENTS
   CONFIG                    Build config. Determines defined preprocess symbols.
                             (default: 'debug')
+
+  -i, --itest               Pass this option to build an itest instead of a normal game cartridge.
 
   -h, --help                Show this help message
 "
@@ -30,6 +32,10 @@ config='debug'
 # https://stackoverflow.com/questions/192249/how-do-i-parse-command-line-arguments-in-bash
 while [[ $# -gt 0 ]]; do
   case $1 in
+    -i | --itest )
+      itest=true
+      shift # past argument
+      ;;
     -h | --help )
       help
       exit 0
@@ -57,5 +63,13 @@ if [[ ${#positional_args[@]} -ge 1 ]]; then
   config="${positional_args[0]}"
 fi
 
-"$game_scripts_path/build_all_cartridges.sh" "$config"
-"$game_scripts_path/install_all_cartridges.sh" "$config"
+if [[ "$itest" == true ]]; then
+  # itest cartridges enforce special config 'itest' and ignore passed config
+  config='itest'
+  options='--itest'
+else
+  options=''
+fi
+
+"$game_scripts_path/build_all_cartridges.sh" "$config" $options
+"$game_scripts_path/install_all_cartridges.sh" "$config" $options

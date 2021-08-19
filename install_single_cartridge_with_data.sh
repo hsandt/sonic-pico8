@@ -4,16 +4,12 @@
 # This is required if you changed data or build for the first time for a given config,
 #  as install_single_cartridge.sh will not copy data along and is not reliable alone.
 
-# Usage: install_single_cartridge_with_data.sh config [png]
-#   cartridge_suffix  'titlemenu', 'stage_intro', 'ingame' or 'stage_clear'
+# Usage: install_single_cartridge_with_data.sh config [--itest]
+#   cartridge_suffix  see data/cartridges.txt for the list of cartridge names
 #   config            build config (e.g. 'debug' or 'release'. Default: 'debug')
-#   png 		          if passed, the .png cartridge is installed
+#   -i, --itest       pass this option to build an itest instead of a normal game cartridge
 
 # Currently only supported on Linux
-
-# png option is legacy for p8tool. It works in theory but in practice,
-#  since p8tool fails to build .p8.png properly, png will be directly
-#  saved from PICO-8 with export_game_release.p8 into PICO-8 carts folder
 
 # Configuration: paths
 game_scripts_path="$(dirname "$0")"
@@ -21,10 +17,11 @@ data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
 if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
-    echo "build.sh takes 1 or 2 params, provided $#:
-    \$1: cartridge_suffix ('titlemenu', 'stage_intro', 'ingame' or 'stage_clear')
+    echo "install_single_cartridge_with_data.sh takes 1 or 3 params + option value, provided $#:
+    \$1: cartridge_suffix (see data/cartridges.txt for the list of cartridge names)
     \$2: config ('debug', 'release', etc. Default: 'debug')
-    \$3: optional suffix ('png' for .png cartridge install)"
+    -i, --itest:  Pass this option to build an itest instead of a normal game cartridge."
+
     exit 1
 fi
 
@@ -32,18 +29,25 @@ fi
 version=`cat "$data_path/version.txt"`
 cartridge_suffix="$1"; shift
 config="$1"; shift
+# ! This is a short version for the usual while-case syntax, but in counterpart
+# ! it doesn't support reordering (--itest must be after config)
+if [[ $1 == '-i' || $1 == '--itest' ]]; then
+  itest=true
+  shift
+fi
 
-# option "png" will export the png cartridge
-if [[ $1 = "png" ]] ; then
-	suffix=".png"
+if [[ "$itest" == true ]]; then
+  # itest cartridges enforce special config 'itest' and ignore passed config
+  config='itest'
+  options='--itest'
 else
-	suffix=""
+  options=''
 fi
 
 # note that we don't add the data/data_stage*.p8 cartridges because
 # install_single_cartridge.sh for ingame will install all data cartridges anyway
 # (and said script is really meant for built cartridges as it refers to build path)
-"$game_scripts_path/install_single_cartridge.sh" "$cartridge_suffix" "$config" "$suffix"
+"$game_scripts_path/install_single_cartridge.sh" "$cartridge_suffix" "$config" $options
 
 # recompute same install dirpath as used in install_single_cartridge.sh
 # (no need to mkdir -p "${install_dirpath}", it must have been created in said script)

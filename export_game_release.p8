@@ -11,7 +11,7 @@ __lua__
 
 -- #version
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "5.4"
+local version = "6.0"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"
@@ -20,7 +20,10 @@ cd(export_folder)
 
   local entry_cartridge = "picosonic_titlemenu.p8"
 
+  -- #cartridge (tagged to easily find what code to change when adding a new cartridge,
+  -- and because this script cannot access external files like cartridges.txt)
   local additional_main_cartridges_list = {
+    "picosonic_attract_mode.p8",
     "picosonic_stage_intro.p8",
     "picosonic_ingame.p8",
     "picosonic_stage_clear.p8",
@@ -33,10 +36,10 @@ cd(export_folder)
   end
 
   local data_cartridges_list = {
-    "data_bgm1.p8",
     "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
     "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
-    "data_stage1_runtime.p8"
+    "data_stage1_intro.p8", "data_stage1_ingame.p8",
+    "data_stage_sonic.p8"
   }
 
   -- PNG

@@ -9,14 +9,15 @@
 
 # Configuration: paths
 picoboots_scripts_path="$(dirname "$0")/pico-boots/scripts"
+picoboots_plates_path="$(dirname "$0")/pico-boots/plates"
 game_scripts_path="$(dirname "$0")"
 data_path="$(dirname "$0")/data"
-local_plates_path="$(dirname "$0")/plates"
 # Linux only
 carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
 config_plates_dirpath="$HOME/.lexaloffle/pico-8/plates"
 
 # Configuration: cartridge
+pico8_version=`cat "$data_path/pico8_version.txt"`
 version=`cat "$data_path/version.txt"`
 export_folder="$carts_dirpath/picosonic/v${version}_release"
 cartridge_basename="picosonic_v${version}_release"
@@ -48,8 +49,9 @@ rm -rf "${p8_folder}/"*
 # continuing to show old folder in system bin. Make sure to place blob * outside ""
 rm -rf "${png_folder}/"*
 
-# Cleanup bin folder as a bug in PICO-8 makes it accumulate files in .zip for each export (even homonymous files!)
-# and we want to remove any extraneous files too
+# Cleanup bin folder as we want to remove any extraneous files too
+# Note: PICO-8 used to accumulate files in .zip for each export (even homonymous files!),
+# making this mandatory, but this was fixed in 0.2.2. We still decided to keep the line to be clean.
 rm -rf "${bin_folder}/"*
 
 # p8 cartridges can be distributed as such, so just copy them to the folder to zip later
@@ -67,9 +69,9 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-# Copy custom template to PICO-8 config plates folder as "picosonic_template.html"
+# Copy custom template to PICO-8 config plates folder as "${cartridge_basename}_template.html"
 # (just to avoid conflicts with other games)
-cp "${local_plates_path}/custom_template.html" "${config_plates_dirpath}/picosonic_template.html"
+cp "${picoboots_plates_path}/custom_template.html" "${config_plates_dirpath}/${cartridge_basename}_template.html"
 
 # Export via PICO-8 editor: PNG cartridges, binaries, HTML
 pico8 -x "$game_scripts_path/export_game_release.p8"
@@ -94,7 +96,7 @@ if [[ ! -d "$bin_folder" || ! $(ls -A "$bin_folder") ]]; then
 fi
 
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
-patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
+patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$pico8_version\" \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"
 

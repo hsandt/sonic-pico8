@@ -12,7 +12,9 @@ local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 local audio = require("resources/audio")
 local ui_animation = require("ui/ui_animation")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 
 local stage_clear_state = derived_class(base_stage_state)
@@ -44,13 +46,13 @@ end
 
 function stage_clear_state.retry_from_zero_async()
   -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
-  poke(0x5d00, 0)
+  poke(memory.picked_emerald_address, 0)
   stage_clear_state.retry_stage_async()
 end
 
 function stage_clear_state.back_to_titlemenu_async()
   -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
-  poke(0x5d00, 0)
+  poke(memory.picked_emerald_address, 0)
 
   -- zigzag fadeout will also give time to player to hear confirm SFX
   flow.curr_state:zigzag_fade_out_async()
@@ -86,9 +88,8 @@ end
 function stage_clear_state:on_enter()
   -- simplified compared to stage_state
   -- we don't even need to reload runtime spritesheet since the stage_clear builtin spritesheet
-  --  now integrates the runtime spritesheet top rows from the start (and later, ingame may do the same,
-  --  since ultimately we only need the tile masks in the top rows for initial collision data loading,
-  --  and we could quick reload on stage start just for that)
+  --  now integrates the runtime spritesheet top rows from the start (as there is no physics during stage clear
+  --  so we don't need the collision masks as builtin data)
   -- we need the runtime sprites for goal plate and menu cursor in particular
 
   -- first, restore picked emerald data set in ingame, just before loading this cartridge
@@ -99,8 +100,7 @@ function stage_clear_state:on_enter()
   -- Instead we just set the position directly to values observed at the end
   --  of ingame cartridge, just before loading stage_clear. This allows us to use base_stage_state methods
   --  relying on the camera position.
-  self.camera.position.x = 3392
-  self.camera.position.y = 328
+  self.camera:init_position(vector(3376, 328))
 
   -- Hardcoded: we know that goal is in region (3, 1)
   reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(3, 1))
@@ -121,7 +121,7 @@ function stage_clear_state:play_stage_clear_sequence_async()
 
   -- stop BGM and play stage clear jingle
   music(audio.jingle_ids.stage_clear)
-  yield_delay(stage_clear_data.stage_clear_duration)
+  yield_delay_frames(stage_clear_data.stage_clear_duration)
 
   -- play result UI "calculation" (we don't have score so it's just checking
   --  if we have all the emeralds)
@@ -166,7 +166,7 @@ function stage_clear_state:render()
     -- phase 0: stage result
 
     -- see set_camera_with_origin for value explanation (we must pass camera position)
-    visual_stage.render_background(vector(3392, 328))
+    visual_stage.render_background(vector(3376, 328))
     self:render_stage_elements()
   else
     -- phase 1: retry menu
@@ -211,7 +211,7 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
 
       -- there is only one object type we are interested in, the goal plate,
       --  so check it manually instead of using a table of spawn callbacks as in stage_state
-      if tile_sprite_id == visual.goal_plate_base_id then
+      if tile_sprite_id == visual_ingame_data.goal_plate_base_id then
         -- tile has been recognized as a representative tile for object spawning
         --  apply callback now
 
@@ -226,14 +226,6 @@ function stage_clear_state:scan_current_region_to_spawn_objects()
 end
 
 
--- camera methods, also simplified versions of stage_stage equivalent
-
--- same as stage_state:region_to_global_location but short enough to copy
-function stage_clear_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
-end
-
-
 -- actual stage clear sequence functions
 
 function stage_clear_state:restore_picked_emerald_data()
@@ -241,7 +233,7 @@ function stage_clear_state:restore_picked_emerald_data()
   --  cartridge was loaded
   -- similar to stage_state:restore_picked_emerald_data, but we don't remove emerald objects
   --  and cache the picked count for assessment
-  local picked_emerald_byte = peek(0x5d00)
+  local picked_emerald_byte = peek(memory.picked_emerald_address)
 
   -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
   for i = 1, 8 do
@@ -285,15 +277,15 @@ function stage_clear_state:assess_result_async()
         local light_color, dark_color = unpack(visual.emerald_colors[num])
         -- brightness level is: step 1 => 2, step 2 => 1, step 3 => 0 (or nil)
         self.result_emerald_brightness_levels[num] = 3 - step
-        yield_delay(10)  -- duration of a step
+        yield_delay_frames(9)  -- duration of a step
       end
     end
     -- clear table will reset brightness level to nil, interpreted as 0
     clear_table(self.result_emerald_brightness_levels)
-    yield_delay(10)  -- pause between emeralds
+    yield_delay_frames(9)  -- pause between emeralds
   end
 
-  yield_delay(30)
+  yield_delay_frames(30)
 
   -- retrieve labels from overlay (as we didn't store references as state members)
   local sonic_label = self.result_overlay.drawables_map["sonic"]
@@ -311,7 +303,7 @@ function stage_clear_state:assess_result_async()
   self.result_overlay:remove_drawable("through")
   self.result_overlay:remove_drawable("stage")
 
-  yield_delay(30)
+  yield_delay_frames(30)
 
   local got_all_emeralds = self.picked_emerald_count >= 8
 
@@ -423,7 +415,7 @@ function stage_clear_state:show_retry_screen_async()
   -- fade in (we start from everything black so skip max darkness 5)
   for i = 4, 0, -1 do
     self.postproc.darkness = i
-    yield_delay(5)
+    yield_delay_frames(4)
   end
 end
 
@@ -437,29 +429,6 @@ function stage_clear_state:render_stage_elements()
   self:render_environment_midground()
   self:render_goal_plate()
   self:render_environment_foreground()
-end
-
--- render the stage environment (tiles)
-function stage_clear_state:render_environment_midground()
-  -- possible optimize: don't draw the whole stage offset by camera,
-  --  instead just draw the portion of the level of interest
-  --  (and either keep camera offset or offset manually and subtract from camera offset)
-  -- that said, I didn't notice a performance drop by drawing the full tilemap
-  --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
-
-  -- only draw midground tiles
-  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
-end
-
-function stage_clear_state:render_environment_foreground()
-  set_unique_transparency(colors.pink)
-
-  -- draw tiles always on foreground
-  self:set_camera_with_region_origin()
-  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 end
 
 -- render the goal plate upper body (similar to stage_state equivalent)

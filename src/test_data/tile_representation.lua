@@ -7,7 +7,7 @@ local tile_repr = {
   no_tile_id = 0,
   full_tile_id = 29,
   flat_high_tile_left_id = 26,
-  flat_high_tile_id = 27,  -- TODO: use 2, it's the same
+  flat_high_tile_id = 2,
   half_tile_id = 4,
   flat_low_tile_id = 6,
   bottom_right_quarter_tile_id = 44,  -- test only
@@ -15,7 +15,9 @@ local tile_repr = {
   asc_slope_22_upper_level_id = 43,  -- test only
   asc_slope_45_id = 21,
   desc_slope_45_id = 16,
-  desc_slope_2px_id = 1,  -- low slope descending every 4px, from height 7 to 6, 2px total on connection
+  desc_slope_2px_id = 1,       -- low slope descending every 4px, from height 7 to 6, 2px total on connection
+  desc_slope_2px_last_id = 7,  -- last part of low slope descending every 4px, from height 1 to 0, the last columns being empty
+  desc_slope_4px_last_id_loop_variant = 164, -- (loop variant) last part of medium slope descending every 2px, from height 3 to 0, the last columns being empty
   -- because of the new convention of placing special sprite flags on visual tiles,
   --  for meaningful tests we separate both tiles and check that flags are verified
   --  on the right sprites. tilemap testing loop functionality should place the visual
@@ -39,7 +41,10 @@ local tile_repr = {
   visual_loop_bottomright = 100,
   mask_loop_bottomright = 20,
   visual_loop_bottomright_steepest = 102,
-  spring_up_repr_tile_id = 74,                   -- add 1 to get right, must match value in visual
+  spring_up_repr_tile_id = 74,           -- add 1 to get right, must match value in visual
+  spring_right_mask_repr_tile_id = 31,   -- added to get collision 2px away from spring right
+                                         -- we don't need to test the spring functionality, hence just mask
+                                         -- (actual spring right has id 173 in game)
   grass_top_decoration1 = 76,            -- no collider, just to test foreground
   oneway_platform_left = 35,             -- left side of one-way platform top part
 }
@@ -68,6 +73,7 @@ tile_repr.tile_symbol_to_ids = {
   ['i']  = tile_repr.visual_loop_bottomright_steepest,
   ['s']  = tile_repr.spring_up_repr_tile_id,
   ['S']  = tile_repr.spring_up_repr_tile_id + 1,
+  [']']  = tile_repr.spring_right_mask_repr_tile_id,
   ['o']  = tile_repr.oneway_platform_left,
 }
 

@@ -1,0 +1,5 @@
+titlemenu
+stage_intro
+ingame
+stage_clear
+attract_mode

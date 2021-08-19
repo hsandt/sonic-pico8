@@ -43,37 +43,43 @@
 		{
 			"name": "Game: edit built-in data: titlemenu",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_titlemenu.p8"],
+			"cmd": ["pico8 -run data/builtin_data_titlemenu.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: ingame",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_ingame.p8"],
+			"cmd": ["pico8 -run data/builtin_data_ingame.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_intro",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_stage_intro.p8"],
+			"cmd": ["pico8 -run data/builtin_data_stage_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_clear",
 			"shell": true,
-			"cmd": ["pico8 data/builtin_data_stage_clear.p8"],
+			"cmd": ["pico8 -run data/builtin_data_stage_clear.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: bgm",
+			"name": "Game: edit data: stage1 intro",
 			"shell": true,
-			"cmd": ["pico8 data/data_bgm1.p8"],
+			"cmd": ["pico8 -run data/data_stage1_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: stage1 runtime",
+			"name": "Game: edit data: stage1 ingame",
 			"shell": true,
-			"cmd": ["pico8 data/data_stage1_runtime.p8"],
+			"cmd": ["pico8 -run data/data_stage1_ingame.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage sonic",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_stage_sonic.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
@@ -84,35 +90,35 @@
 			[
 				{
 					"name": "00",
-					"cmd": ["pico8 data/data_stage1_00.p8"],
+					"cmd": ["pico8 -run data/data_stage1_00.p8"],
 				},
 				{
 					"name": "01",
-					"cmd": ["pico8 data/data_stage1_01.p8"],
+					"cmd": ["pico8 -run data/data_stage1_01.p8"],
 				},
 				{
 					"name": "10",
-					"cmd": ["pico8 data/data_stage1_10.p8"],
+					"cmd": ["pico8 -run data/data_stage1_10.p8"],
 				},
 				{
 					"name": "11",
-					"cmd": ["pico8 data/data_stage1_11.p8"],
+					"cmd": ["pico8 -run data/data_stage1_11.p8"],
 				},
 				{
 					"name": "20",
-					"cmd": ["pico8 data/data_stage1_20.p8"],
+					"cmd": ["pico8 -run data/data_stage1_20.p8"],
 				},
 				{
 					"name": "21",
-					"cmd": ["pico8 data/data_stage1_21.p8"],
+					"cmd": ["pico8 -run data/data_stage1_21.p8"],
 				},
 				{
 					"name": "30",
-					"cmd": ["pico8 data/data_stage1_30.p8"],
+					"cmd": ["pico8 -run data/data_stage1_30.p8"],
 				},
 				{
 					"name": "31",
-					"cmd": ["pico8 data/data_stage1_31.p8"],
+					"cmd": ["pico8 -run data/data_stage1_31.p8"],
 				},
 			]
 		},
@@ -141,7 +147,7 @@
 				},
 				{
 					"name": "release",
-					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu release"]
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu release"],
 				}
 			]
 		},
@@ -179,10 +185,6 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast"]
 				},
 				{
-					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox"]
-				},
-				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert"]
 				},
@@ -193,6 +195,41 @@
 				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame release"]
+				}
+			]
+		},
+		{
+			"name": "Game: build cartridge attract_mode",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode tuner"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode recorder"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode release"]
 				}
 			]
 		},
@@ -243,6 +280,14 @@
 			]
 		},
 		{
+			"name": "Game: build cartridge sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh sandbox sandbox"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: build full game",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -269,7 +314,7 @@
 			"name": "Game: build itests titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh titlemenu"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu itest --itest"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -277,7 +322,7 @@
 			"name": "Game: build itests ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh ingame"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame itest --itest"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -285,7 +330,7 @@
 			"name": "Game: build itests stage_intro",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh stage_intro"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro itest --itest"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -293,7 +338,7 @@
 			"name": "Game: build itests stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh stage_clear"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear itest --itest"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -366,10 +411,6 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame cheat-ultrafast && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame cheat-ultrafast)"]
 				},
 				{
-					"name": "sandbox",
-					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame sandbox)"]
-				},
-				{
 					"name": "assert",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame assert)"]
 				},
@@ -380,6 +421,41 @@
 				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame release)"]
+				},
+			]
+		},
+		{
+			"name": "Game: build and run attract_mode",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode debug)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode debug && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode debug)"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode tuner)"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode assert)"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode profiler)"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode recorder && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode recorder)"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh attract_mode release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh attract_mode release)"]
 				},
 			]
 		},
@@ -438,6 +514,14 @@
 			]
 		},
 		{
+			"name": "Game: build and run sandbox",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh sandbox sandbox && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh sandbox sandbox)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Game: build and run full game",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -468,7 +552,7 @@
 			"name": "Game: build and run itests titlemenu",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh titlemenu && (./pico-boots/scripts/reload.sh || ./run_itest.sh titlemenu)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu itest --itest && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu itest --itest)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -476,7 +560,7 @@
 			"name": "Game: build and run itests ingame",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh ingame && (./pico-boots/scripts/reload.sh || ./run_itest.sh ingame)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh ingame itest --itest && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh ingame itest --itest)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -484,7 +568,7 @@
 			"name": "Game: build and run itests stage_intro",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh stage_intro && (./pico-boots/scripts/reload.sh || ./run_itest.sh stage_intro)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro itest --itest && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro itest --itest)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -492,7 +576,7 @@
 			"name": "Game: build and run itests stage_clear",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_itest.sh stage_clear && (./pico-boots/scripts/reload.sh || ./run_itest.sh stage_clear)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear itest --itest && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear itest --itest)"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax",
 		},
@@ -537,10 +621,6 @@
 					"cmd": ["./run_cartridge.sh ingame cheat-ultrafast"]
 				},
 				{
-					"name": "ingame sandbox",
-					"cmd": ["./run_cartridge.sh ingame sandbox"]
-				},
-				{
 					"name": "ingame assert",
 					"cmd": ["./run_cartridge.sh ingame assert"]
 				},
@@ -551,6 +631,30 @@
 				{
 					"name": "ingame release",
 					"cmd": ["./run_cartridge.sh ingame release"]
+				},
+				{
+					"name": "attract_mode debug",
+					"cmd": ["./run_cartridge.sh attract_mode debug"]
+				},
+				{
+					"name": "attract_mode tuner",
+					"cmd": ["./run_cartridge.sh attract_mode tuner"]
+				},
+				{
+					"name": "attract_mode assert",
+					"cmd": ["./run_cartridge.sh attract_mode assert"]
+				},
+				{
+					"name": "attract_mode profiler",
+					"cmd": ["./run_cartridge.sh attract_mode profiler"]
+				},
+				{
+					"name": "attract_mode recorder",
+					"cmd": ["./run_cartridge.sh attract_mode recorder"]
+				},
+				{
+					"name": "attract_mode release",
+					"cmd": ["./run_cartridge.sh attract_mode release"]
 				},
 				{
 					"name": "titlemenu debug",
@@ -598,11 +702,11 @@
 				},
 				{
 					"name": "itests titlemenu",
-					"cmd": ["./run_itest.sh titlemenu"],
+					"cmd": ["./run_cartridge.sh titlemenu itest --itest"],
 				},
 				{
 					"name": "itests ingame",
-					"cmd": ["./run_itest.sh ingame"],
+					"cmd": ["./run_cartridge.sh ingame itest --itest"],
 				},
 				{
 					"name": "pico8 utests",
@@ -699,6 +803,40 @@
 			]
 		},
 		{
+			"name": "Game: install cartridge attract_mode (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge_with_data.sh attract_mode debug"],
+			"syntax": "Packages/Python/Python.sublime-syntax",
+			"variants":
+			[
+				{
+					"name": "debug",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode debug"]
+				},
+				{
+					"name": "tuner",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode tuner"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode assert"]
+				},
+				{
+					"name": "profiler",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode profiler"]
+				},
+				{
+					"name": "recorder",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode recorder"]
+				},
+				{
+					"name": "release",
+					"cmd": ["./install_single_cartridge_with_data.sh attract_mode release"]
+				}
+			]
+		},
+		{
 			"name": "Game: install cartridge stage_intro (with data)",
 			"working_dir": "${project_path}",
 			"shell": true,
@@ -757,6 +895,13 @@
 					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release png"]
 				}
 			]
+		},
+		{
+			"name": "Game: install cartridge sandbox (with data)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./install_single_cartridge_with_data.sh sandbox sandbox"],
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "Game: install all cartridges (with data)",
@@ -983,6 +1128,51 @@
 					}
 				},
 				{
+					"name": "headless_itests attract_mode",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (render)",
+					"cmd": ["./test.sh -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode (render + coverage)",
+					"cmd": ["./test.sh -C -f headless_itests"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode - solo",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode"
+					}
+				},
+				{
+					"name": "headless_itests attract_mode - solo (render)",
+					"cmd": ["./test.sh -f headless_itests -m solo"],
+					"env": {
+						"ITEST_CARTRIDGE_SUFFIX": "attract_mode",
+						"ENABLE_RENDER": "1"
+					}
+				},
+				{
 					"name": "headless_itests stage_intro",
 					"cmd": ["./test.sh -f headless_itests"],
 					"env": {
@@ -1127,34 +1317,34 @@
 			]
 		},
 		{
-			"name": "Engine: Postbuild: test add_metadata",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_add_metadata"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test add_require",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_add_require"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test analyze",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_analyze"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test preprocess",
+			"name": "Engine: Prebuild: test preprocess",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_preprocess"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test replace_strings",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_replace_strings"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test generate_ordered_require_file",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Prebuild: test add_require",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_add_require"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -1175,23 +1365,15 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test generate_dependency_graph",
+			"name": "Engine: Postbuild: test add_metadata",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"cmd": ["python3 -m scripts.test_add_metadata"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test generate_ordered_require_file",
-			"working_dir": "${project_path}/pico-boots",
-			"shell": true,
-			"cmd": ["python3 -m scripts.test_generate_ordered_require_file"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
-			"syntax": "Packages/Python/Python.sublime-syntax"
-		},
-		{
-			"name": "Engine: Postbuild: test adapt_for_png",
+			"name": "Engine: Export: test adapt_for_png",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_adapt_for_png"],
@@ -1199,7 +1381,7 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Engine: Postbuild: test patch_pico8_js",
+			"name": "Engine: Export: test patch_pico8_js",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_patch_pico8_js"],
@@ -1207,11 +1389,27 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Python (legacy): test replace_strings",
-			"working_dir": "${project_path}",
+			"name": "Engine: Tool: test offset bgm tracks",
+			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
-			"cmd": ["python3 -m prebuild.test_replace_strings"],
-			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?, (.*)",
+			"cmd": ["python3 -m scripts.test_offset_bgm_tracks"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Doc: test generate_dependency_graph",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_generate_dependency_graph"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Doc: test analyze",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_analyze"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{

@@ -19,16 +19,20 @@ function emerald.set_color_palette(number, brightness)
   --  so we must replace the last two with our custom colors
   local light_color, dark_color = unpack(visual.emerald_colors[number])
 
-  if brightness == 0 then
-    pal(colors.red, light_color)
-    pal(colors.dark_purple, dark_color)
-  elseif brightness == 1 then
-    pal(colors.red, colors.white)
-    pal(colors.dark_purple, light_color)
-  else  -- brightness == 2
-    pal(colors.red, colors.white)
-    pal(colors.dark_purple, colors.white)
-  end
+  local brightness_color_swap = {
+    -- original colors : red, dark_purple
+    {light_color,  dark_color},
+    {colors.white, light_color},
+    {colors.white, colors.white},
+  }
+
+  -- brightness starts at 0, index starts at 1, so add 1
+  assert(0 <= brightness and brightness <= 2, "invalid brightness: "..brightness)
+  -- local new_colors = brightness_color_swap[brightness + 1]
+  swap_colors({colors.red, colors.dark_purple}, brightness_color_swap[brightness + 1])
+
+  -- pal(colors.red, brightness_color_swap[brightness + 1][1])
+  -- pal(colors.dark_purple, brightness_color_swap[brightness + 1][2])
 end
 
 -- static (as used by render_hud even without a proper emerald object)
@@ -65,7 +69,15 @@ end
 --#endif
 
 function emerald:get_center()
-  return self.location:to_center_position()
+  local center_position = self.location:to_center_position()
+
+  -- visual trick: last emerald (above spring) is offset compared to spring sprite,
+  --  so adjust position to place it above spring center (this also affects picking collision)
+  if self.number == 8 then
+    center_position:add_inplace(vector(5, 0))
+  end
+
+  return center_position
 end
 
 function emerald:get_render_bounding_corners()

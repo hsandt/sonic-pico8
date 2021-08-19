@@ -23,7 +23,7 @@ local stage_state = require("ingame/stage_state")
 
 local picosonic_app_ingame = require("application/picosonic_app_ingame")
 local player_char = require("ingame/playercharacter")
-local pc_data = require("data/playercharacter_data")
+local pc_data = require("data/playercharacter_numerical_data")
 local tile_repr = require("test_data/tile_representation")
 local tile_test_data = require("test_data/tile_test_data")
 
@@ -887,16 +887,18 @@ expect
         assert.are_same(vector(-1, 0), state.player_char.move_intention)
 
         -- we have not passed time so the character cannot have reached expected position
-        -- note we are testing as busted, so we get the almost_eq messages
+        -- OLD note: we are testing as busted, so we get the almost_eq messages
         -- since we added quadrants, even integer coordinates receive float transformation,
         --  hence the .0 on passed position
+        -- (since we removed .0 and . in front of numbers as much as possible to reduce compressed chars count,
+        --  and so float operation was detected, in this particular case we won't have the float points anymore)
         -- local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected objects to be almost equal with eps: 0.015625.\n"..
         --   "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
         --   "\nFor gameplay value 'player character velocity':\nExpected objects to be almost equal with eps: 0.015625.\n"..
         --   "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         -- shorter version in assertions.lua
         local expected_message = "\nFor gameplay value 'player character bottom position':\nExpected ~~ with eps: 0.015625.\n"..
-          "Passed in:\nvector(12.0, 45.0)\nExpected:\nvector(10, 45)\n"..
+          "Passed in:\nvector(12, 45)\nExpected:\nvector(10, 45)\n"..
           "\nFor gameplay value 'player character velocity':\nExpected ~~ with eps: 0.015625.\n"..
           "Passed in:\nvector(0, 0)\nExpected:\nvector(2, -3.5)\n"
         assert.are_same({false, expected_message}, {test.final_assertion()})

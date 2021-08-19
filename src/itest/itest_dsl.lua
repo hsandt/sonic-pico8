@@ -37,7 +37,6 @@ local flow = require("engine/application/flow")
 local input = require("engine/input/input")
 
 local player_char = require("ingame/playercharacter")
-local pc_data = require("data/playercharacter_data")
 
 local tile_repr = require("test_data/tile_representation")
 --#if busted
@@ -80,10 +79,9 @@ function gameplay_value_data:init(name, parsable_type, eval)
 end
 
 
--- type of variables that can be parsed
--- those names are *not* parsed at runtime for DSL, so we can minify them
--- to allow this, we do *not* use enum {} and define the table manually
--- it also allows us to access the types without the ["key"] syntax
+-- Type of variables that can be parsed
+-- We use enum so names are protected and we can support runtime parsing of
+--  parsable types strings.
 parsable_types = enum {
   "none",
   "number",
@@ -97,6 +95,7 @@ parsable_types = enum {
 }
 
 -- Protected enums: map hardcoded strings to members, to support runtime parsing even when member names are minified on the original enums
+-- We could also use the enum {} helper as with parsable_types
 horizontal_dirs_protected = {
   ["left"] = 1,
   ["right"] = 2
@@ -114,9 +113,12 @@ motion_modes_protected = {
 }
 
 motion_states_protected = {
-  ["grounded"] = 1,  -- character is idle or running on the ground
-  ["falling"]  = 2,  -- character is falling in the air, but not spinning
-  ["air_spin"] = 3   -- character is in the air after a jump
+  ["standing"]     = 1,  -- character is idle or running on the ground
+  ["falling"]      = 2,  -- character is falling in the air, but not spinning
+  ["air_spin"]     = 3,  -- character is in the air after a jump
+  ["rolling"]      = 4,  -- character is rolling on the ground
+  ["crouching"]    = 5,  -- character is crouching on the ground
+  ["spin_dashing"] = 6,  -- character is charging spin dash
 }
 
 button_ids_protected = {
@@ -153,7 +155,9 @@ command_types = enum {
   "stop",             -- stop moving horizontally      args: {}
   "jump",             -- start and hold jump           args: {}
   "stop_jump",        -- stop any jump intention       args: {}
-  -- todo: crouch, spin_dash
+  "crouch",           -- set sticky pc move intention y to 1
+                      --                               args: {}
+  "stop_crouch",      -- clear move intention y        args: {}
   "press",            -- press and hold button         args: {button_id_str: button_ids key}
   "release",          -- release button                args: {button_id_str: button_ids key}
   "wait",             -- wait some frames              args: {frames: int}
@@ -174,6 +178,8 @@ command_arg_types = {
   --[[stop]]             parsable_types["none"],
   --[[jump]]             parsable_types["none"],
   --[[stop_jump]]        parsable_types["none"],
+  --[[crouch]]           parsable_types["none"],
+  --[[stop_crouch]]      parsable_types["none"],
   --[[press]]            parsable_types["button_id"],
   --[[release]]          parsable_types["button_id"],
   --[[wait]]             parsable_types["number"],
@@ -302,8 +308,9 @@ function itest_dsl.execute_warp(args)
   --  and reload map region there
   -- this trick is needed for itests that last only 1 frame (like spring bounce),
   --  so the colliders in the warp region are correctly set and ground reactions work
-  current_stage_state.camera.position.x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
-  current_stage_state.camera.position.y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  local new_cam_pos_x = mid(screen_width / 2, current_stage_state.player_char.position.x, current_stage_state.curr_stage_data.tile_width * tile_size - screen_width / 2)
+  local new_cam_pos_y = mid(screen_height / 2, current_stage_state.player_char.position.y, current_stage_state.curr_stage_data.tile_height * tile_size - screen_height / 2)
+  current_stage_state.camera:init_position(vector(new_cam_pos_x, new_cam_pos_y))
 
   current_stage_state:check_reload_map_region()
 end
@@ -348,6 +355,16 @@ function itest_dsl.execute_stop_jump(args)
   current_stage_state.player_char.hold_jump_intention = false
 end
 
+function itest_dsl.execute_crouch(args)
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.move_intention.y = 1
+end
+
+function itest_dsl.execute_stop_crouch(args)
+  local current_stage_state = get_current_state_as_stage()
+  current_stage_state.player_char.move_intention.y = 0
+end
+
 function itest_dsl.execute_press(args)
   -- simulate sticky press for player 0
   input.simulated_buttons_down[0][args[1]] = true
@@ -372,6 +389,8 @@ executors = {
   itest_dsl.execute_stop,
   itest_dsl.execute_jump,
   itest_dsl.execute_stop_jump,
+  itest_dsl.execute_crouch,
+  itest_dsl.execute_stop_crouch,
   itest_dsl.execute_press,
   itest_dsl.execute_release
 }

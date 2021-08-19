@@ -8,9 +8,10 @@ local tile_collision_data = require("data/tile_collision_data")
 local stub = require("luassert.stub")
 local tile_repr = require("test_data/tile_representation")
 
--- some tiles are defined in visual_ingame_addon for use in real game, but they are not in tile_representation.lua
+-- some tiles are defined in visual_ingame_numerical_data for use in real game, but they are not in tile_representation.lua
 --  to avoid redundancy or because we didn't need them in itests yet
-local visual = require("resources/visual_common")
+visual_ingame_data = require("resources/visual_ingame_numerical_data")
+
 -- we should require ingameadd-on in main
 
 local mock_raw_tile_collision_data = {
@@ -27,12 +28,15 @@ local mock_raw_tile_collision_data = {
   [tile_repr.flat_high_tile_id] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
   [tile_repr.half_tile_id] = {tile_repr.half_tile_id, {4, 4, 4, 4, 4, 4, 4, 4}, {0, 0, 0, 0, 8, 8, 8, 8}, atan2(8, 0)},
   [tile_repr.flat_low_tile_id] = {tile_repr.flat_low_tile_id, {2, 2, 2, 2, 2, 2, 2, 2}, {0, 0, 0, 0, 0, 0, 8, 8}, atan2(8, 0)},
+  -- kept for testing; there is no *longer* edge so by convention we pick an angle so the interior is down... it won't detect reverse collisions coming horizontally
   [tile_repr.bottom_right_quarter_tile_id] = {tile_repr.bottom_right_quarter_tile_id, {0, 0, 0, 0, 4, 4, 4, 4}, {0, 0, 0, 0, 4, 4, 4, 4}, atan2(8, 0)},
   [tile_repr.asc_slope_22_id] = {tile_repr.asc_slope_22_id, {2, 2, 3, 3, 4, 4, 5, 5}, {0, 0, 0, 2, 4, 6, 8, 8}, 0.0625},
   [tile_repr.asc_slope_22_upper_level_id] = {tile_repr.asc_slope_22_upper_level_id, {5, 5, 6, 6, 7, 7, 8, 8}, {2, 4, 6, 8, 8, 8, 8, 8}, atan2(8, -4)},
   [tile_repr.asc_slope_45_id] = {tile_repr.asc_slope_45_id, {1, 2, 3, 4, 5, 6, 7, 8}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, -8)},
   [tile_repr.desc_slope_45_id] = {tile_repr.desc_slope_45_id, {8, 7, 6, 5, 4, 3, 2, 1}, {1, 2, 3, 4, 5, 6, 7, 8}, atan2(8, 8)},
   [tile_repr.desc_slope_2px_id] = {tile_repr.desc_slope_2px_id, {7, 7, 7, 7, 6, 6, 6, 6}, {0, 4, 8, 8, 8, 8, 8, 8}, atan2(8, 2)},
+  [tile_repr.desc_slope_2px_last_id] = {tile_repr.desc_slope_2px_last_id, {1, 1, 1, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 4}, atan2(8, 2), true},
+  [tile_repr.desc_slope_4px_last_id_loop_variant] = {tile_repr.desc_slope_4px_last_id_loop_variant, {3, 3, 2, 2, 1, 1, 0, 0}, {0, 0, 0, 0, 0, 2, 4, 6}, atan2(8, 4), true},
   [tile_repr.visual_topleft_45] = {tile_repr.mask_topleft_45, {8, 7, 6, 5, 4, 3, 2, 1}, {8, 7, 6, 5, 4, 3, 2, 1}, atan2(-8, 8)},
   [tile_repr.visual_loop_topleft] = {tile_repr.mask_loop_topleft, {8, 7, 6, 6, 5, 4, 4, 3}, {8, 8, 8, 7, 5, 4, 2, 1}, atan2(-8, 5)},
   [tile_repr.visual_loop_toptopleft] = {tile_repr.mask_loop_toptopleft, {3, 2, 2, 1, 1, 0, 0, 0}, {5, 3, 1, 0, 0, 0, 0, 0}, atan2(-8, 3)},
@@ -47,7 +51,8 @@ local mock_raw_tile_collision_data = {
   --  after this table definition, just define mock_raw_tile_collision_data[mask_X] = mock_raw_tile_collision_data[visual_X] for X: loop tile locations
   [tile_repr.spring_up_repr_tile_id] = {tile_repr.flat_high_tile_left_id, {0, 0, 0, 0, 6, 6, 6, 6}, {0, 0, 4, 4, 4, 4, 4, 4}, atan2(8, 0)},  -- copied from flat_high_tile_left_id
   [tile_repr.spring_up_repr_tile_id + 1] = {tile_repr.flat_high_tile_id, {6, 6, 6, 6, 6, 6, 6, 6}, {0, 0, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},   -- copied from flat_high_tile_id
-  [visual.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
+  [tile_repr.spring_right_mask_repr_tile_id] = {tile_repr.spring_right_mask_repr_tile_id, {8, 8, 8, 8, 8, 8, 0, 0}, {6, 6, 6, 6, 6, 6, 6, 6}, atan2(0, 8)},
+  [visual_ingame_data.launch_ramp_last_tile_id] = {tile_repr.mask_loop_bottomright, {3, 4, 4, 5, 6, 6, 7, 8}, {1, 2, 4, 5, 7, 8, 8, 8}, atan2(8, -5)},   -- copied from visual_loop_bottomright
   [tile_repr.oneway_platform_left] = {tile_repr.oneway_platform_left, {8, 8, 8, 8, 8, 8, 8, 8}, {8, 8, 8, 8, 8, 8, 8, 8}, atan2(8, 0)},
 }
 
@@ -63,7 +68,8 @@ local mock_tile_collision_data = transform(mock_raw_tile_collision_data, functio
     raw_data[3],
     slope_angle,
     interior_v,
-    interior_h
+    interior_h,
+    raw_data[5]
   )
 end)
 
@@ -85,6 +91,8 @@ function tile_test_data.setup()
   fset(tile_repr.asc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- ascending slope 45
   fset(tile_repr.desc_slope_45_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope 45
   fset(tile_repr.desc_slope_2px_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope every 4px, from height 7 to 6
+  fset(tile_repr.desc_slope_2px_last_id, sprite_masks.collision + sprite_masks.midground)  -- descending slope every 4px, from height 1 to 0
+  fset(tile_repr.desc_slope_4px_last_id_loop_variant, sprite_masks.collision + sprite_masks.ignore_loop_layer + sprite_masks.midground)  -- descending slope every 2px, from height 3 to 0
 
   -- masks also have collision flag, but only useful to test
   -- a non-loop proto curve tile with the same shape (as loop require visual tiles anyway)
@@ -118,9 +126,11 @@ function tile_test_data.setup()
   -- spring
   fset(tile_repr.spring_up_repr_tile_id, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
   fset(tile_repr.spring_up_repr_tile_id + 1, sprite_masks.collision + sprite_masks.spring + sprite_masks.midground)
+  -- spring mask
+  fset(tile_repr.spring_right_mask_repr_tile_id, sprite_masks.collision + sprite_masks.midground)
 
   -- ramp (last tile is one-way)
-  fset(visual.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
+  fset(visual_ingame_data.launch_ramp_last_tile_id, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)
 
   -- one-way platform
   fset(tile_repr.oneway_platform_left, sprite_masks.collision + sprite_masks.oneway + sprite_masks.midground)

@@ -1,6 +1,7 @@
 local gamestate = require("engine/application/gamestate")
 
 local camera_class = require("ingame/camera")
+local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
 
 -- abstract base class for stage_state, stage_intro_state and stage_clear_state
@@ -20,6 +21,10 @@ function base_stage_state:init()
   -- used to draw the palm tree extension sprites on foreground
   self.palm_tree_leaves_core_global_locations = {}
 --#endif
+
+-- don't initialize loaded region coords (we don't know in which region player character will spawn),
+--  each child class on_enter will set them in on_enter
+-- self.loaded_map_region_coords = nil
 end
 
 
@@ -28,7 +33,12 @@ end
 -- return map filename for current stage and given region coordinates (u: int, v: int)
 --  do not try this with transitional regions, instead we'll patch them from individual regions
 function base_stage_state:get_map_region_filename(u, v)
-  return "data_stage"..self.curr_stage_id.."_"..u..v..cartridge_ext
+  return "data_stage"..self.curr_stage_id.."_"..u..v..".p8"
+end
+
+-- this one is used by #stage_clear
+function base_stage_state:region_to_global_location(region_loc)
+  return region_loc + self:get_region_topleft_location()
 end
 
 
@@ -40,9 +50,19 @@ function base_stage_state:global_to_region_location(global_loc)
   return global_loc - self:get_region_topleft_location()
 end
 
-function base_stage_state:region_to_global_location(region_loc)
-  return region_loc + self:get_region_topleft_location()
+
+-- spawn
+
+-- spawn the player character at the stage spawn location
+function base_stage_state:spawn_player_char()
+  -- note we switched from center to topleft position because it gave better initial positions
+  --  (with ground bumps, center was higher in the air or too deep inside ground, while topleft
+  --  was just 1px from the surface, allowing immediate escape from ground)
+  local spawn_position = self.curr_stage_data.spawn_location:to_topleft_position()
+  self.player_char = player_char()
+  self.player_char:spawn_at(spawn_position)
 end
+
 
 -- queries
 
@@ -127,33 +147,96 @@ end
 
 -- render
 
+--#ifn itest
+
+local waterfall_color_cycle = {
+  -- original colors : dark_blue, indigo, blue, white
+  {colors.dark_blue, colors.blue,      colors.blue,      colors.white},
+  {colors.white,     colors.dark_blue, colors.blue,      colors.blue},
+  {colors.blue,      colors.white,     colors.dark_blue, colors.blue},
+  {colors.blue,      colors.blue,      colors.white,     colors.dark_blue},
+}
+
+function base_stage_state:set_color_palette_for_waterfall_animation()
+  local period = 0.5
+  local ratio = (t() % period) / period
+  local step_count = #waterfall_color_cycle
+  local step = min(flr(ratio * step_count) + 1, step_count)
+  local new_colors = waterfall_color_cycle[step]
+  swap_colors({colors.dark_blue, colors.indigo, colors.blue, colors.white}, new_colors)
+end
+
+--#endif
+
 -- render the stage environment (tiles)
 function base_stage_state:render_environment_midground()
+  self:set_camera_with_region_origin()
+  self:render_environment_midground_static()
+  self:render_environment_midground_waterfall()
+end
+
+-- render the stage environment (tiles)
+function base_stage_state:render_environment_midground_static()
+  set_unique_transparency(colors.pink)
+
+  -- only draw midground tiles that don't need waterfall color swapping animation
+  --  note that we are drawing loop entrance tiles even though they will be (they'll be drawn on foreground later)
   -- possible optimize: don't draw the whole stage offset by camera,
   --  instead just draw the portion of the level of interest
   --  (and either keep camera offset or offset manually and subtract from camera offset)
   -- that said, I didn't notice a performance drop by drawing the full tilemap
   --  so I guess map is already optimized to only draw what's on camera
-  set_unique_transparency(colors.pink)
-
-  -- only draw midground tiles
-  --  note that we are drawing loop entrance tiles even though they will be  (they'll be drawn on foreground later)
-  self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.midground)
 end
 
+-- render the stage environment (tiles)
+function base_stage_state:render_environment_midground_waterfall()
+--#ifn itest
+  -- waterfall sprites are now placed as tiles of the tilemap, so we apply the waterfall color swap animation
+  --  directly on them
+  self:set_color_palette_for_waterfall_animation()
+--#endif
+
+  -- only draw midground tiles that need waterfall color swapping animation
+  map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.waterfall)
+
+--#ifn itest
+  -- clear palette swap, or Sonic (and rocks, etc.) will inherit from the waterfall blue color swapping!
+  pal()
+--#endif
+end
+
 function base_stage_state:render_environment_foreground()
+--#ifn itest
   set_unique_transparency(colors.pink)
 
   -- draw tiles always on foreground first
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
-  local region_topleft_loc = self:get_region_topleft_location()
+  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
+  --  loops nor palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
+  -- stage_clear will error on nil self.curr_stage_data anyway, so just skip the whole operation
+  --  if stage intro or stage clear.
+  -- Headless itests will use #busted + state type check, while PICO-8 will rely on #ingame.
+  -- We used to test for self.curr_stage_data being not nil directly to pass utests,
+  --  then removed it as we removed utests on base methods, then revived the #busted check
+  --  for headless itests with render but we prefer checking state type now, as it really matches
+  --  the #ingame check below.
+
+--#if busted
+  if self.type ~= ':stage' then
+    return
+  end
+--#endif
+
+--#if ingame
 
   -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
   --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
   --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
+  local region_topleft_loc = self:get_region_topleft_location()
+
   self:set_camera_with_origin()
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     -- draw map subset just for the loop entrance
@@ -164,9 +247,6 @@ function base_stage_state:render_environment_foreground()
         sprite_masks.midground)
   end
 
-  -- CARTRIDGE NOTE: currently objects are not scanned in stage_intro, and there are no
-  --  palm trees at stage start anyway. Stage clear doesn't have them at stage end either.
---#if ingame
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do
     -- top has pivot at its bottom-left = the top-left of the core
@@ -177,6 +257,11 @@ function base_stage_state:render_environment_foreground()
     -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
     visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
   end
+
+--(ingame)
+--#endif
+
+--(!itest)
 --#endif
 end
 

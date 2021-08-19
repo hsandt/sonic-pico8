@@ -12,6 +12,9 @@ local collision_data = {}
 --  depending on how we interpretr pixel ladders, we prefer setting them manually to get the slope factor we want
 local mask_tile_angles = transform(
   {
+    -- TODO OPTIMIZE CHARS: consider removing key as long as the first entries start at [1] and there is no hole
+    -- unfortunately this requires reordering the keys in a non-semantic manner, so check how many chars you really gain
+
     -- low slope descending every 4px with flat ground at every step
     [1]  = {8, 2},
     [2]  = {8, 0},  -- flat tile 6px high
@@ -68,27 +71,63 @@ local mask_tile_angles = transform(
     [25] = { 3, 8},
     [41] = { 4, 8},
 
-    -- 6px-high rectangles (angle doesn't matter)
-    [26] = {8, 0},  -- 4x6 used for spring left part (collider only)
-    [27] = {8, 0},  -- 8x6 used for spring right part (collider only)  -- TODO: reuse 2, it's the same!
+    -- ascending slope variant for first slope of pico-island
+    [44] = {4, -8},  -- bottom of regular 1:2 ascending slope
+    [28] = {4, -8},  -- top of regular 1:2 ascending slope, except at bottom where 1px was removed to allow easy fall-off
 
-    -- 8px-high rectangles (angle doesn't matter)
-    [28] = {8, 0},  -- 4x8 used for rock left part
-    [29] = {8, 0},  -- 8x8 used for rock right part and any full ground
-    [30] = {8, 0},  -- 6x8 used for spring oriented left (ground part only, object is separate)
-    [31] = {8, 0},  -- 6x8 used for spring oriented right (ground part only, object is separate)
+    -- 6px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
+    -- we used a hack here because [26] is a partial rectangle with interior horizontal: right and interior vertical: down
+    --  and we need both to be found correctly by tile_collision_data.slope_angle_to_interiors so the collision reverse
+    --  check in world.compute_qcolumn_height_at is done correctly (if interior horizontal is incorrect, Sonic gets
+    --  blocked before touching left part as in former issue with spring right; if interior vertical is incorrect, Sonic
+    --  floats above spring up left part and cannot trigger it there)
+    -- the actual slope angle doesn't matter as we can never land on a spring, but to make sense we pick something
+    --  almost horizontal, but with coords just enough to get x > 0 and y < 0 => interior is down-right
+    [26] = {8, -0.0625}, -- 4x6 used for spring oriented up - left part (collider only)
+    -- [27] = {8, 0},    -- 8x6 used for spring oriented up - right part (collider only) => same as [2], so removed to spare characters
+
+    -- 8px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
+    [29] = {8, 0},   -- 8x8 used for full ground
+    [30] = {0, -8},  -- 6x8 used for spring oriented left (ground part only, object is separate)
+    [31] = {0, 8},   -- 6x8 used for spring oriented right (ground part only, object is separate)
 
     -- test only, no corresponding visual tiles
     [42] = {8, -4},  -- mid slope ascending but starts 2px high unlike 15 (which starts 4px high)
     [43] = {8, -4},  -- mid slope ascending but starts 5px high unlike 15
-    [44] = {8,  0},  -- 4x4 block in bottom-right corner, useful for small mask testing (angle doesn't matter)
 
-    -- [45] = {45, {8, 0}},  -- empty tile (can be reused for visual sprite if needed)
+    -- 0 slope bump (ground with uniform height 1px)
+    [45] = {8, 0},
+
+    -- [46], [47]: empty
   },
   function (dx_dy)
     return atan2(dx_dy[1], dx_dy[2])
   end
 )
+
+-- set of mask tile ids for which land_on_empty_qcolumn = true
+-- those flags are important to prevent character from detecting the ground below empty q-columns,
+--  and instead consider empty q-columns like actual ground at q-height 0 with the same slope angle as the other q-columns
+-- it's particularly important to set on regular slope tiles that are repeated periodically to avoid slope factor resetting to 0
+--  each time the ground sensor detects flat ground below an empty column
+local mask_tile_land_on_empty_qcolumn_flags = {
+  -- low slope descending every 4px with flat ground at every step
+  [7] = true,  -- the 4 columns on the right are empty, but physically you should be able to walk on them
+    -- low slope ascending every 4px
+  [8] = true,  -- the 4 columns on the left are empty
+    -- mid slope descending every 2px,
+  [13] = true,  -- the 2 columns on the right are empty
+    -- mid slope ascending every 2px
+  [14] = true,-- the 2 columns on the left are empty
+    -- loop parts: bottom (from left to right)
+  [18] = true,-- the 2 columns on the right are empty
+  [19] = true,-- the 2 columns on the left are empty
+    -- loop parts: top (from left to right)
+  [34] = true,-- the 2 columns on the right are empty
+  [35] = true,-- the 2 columns on the left are empty
+  -- [22]/[28] and [25] vertical slopes don't really need this, we removed the top pixel to make fall-off easier,
+  --  but we don't need to stick the the left/right wall for longer
+}
 
 -- table of tile collision mask ids indexed by tile id
 local mask_tile_ids = {
@@ -159,7 +198,7 @@ local mask_tile_ids = {
 
 -- 6px-high rectangles (angle doesn't matter)
   [26] = 26,
-  [27] = 27,
+  [27] =  2,  -- 2 had same height mask as 27, so we're using this now (also removed from spritesheet)
 
 -- 8px-high rectangles (angle doesn't matter)
   [28] = 28,
@@ -172,7 +211,8 @@ local mask_tile_ids = {
   [43] = 43,
   [44] = 44,
 
--- [45] = 45,  -- empty tile
+-- 0 slope bump (ground with uniform height 1px)
+  [45] = 45,
 
 --(proto)
 --#endif
@@ -192,6 +232,8 @@ local mask_tile_ids = {
 -- full tiles
 
 -- wood
+  -- ! 167 and 168 look like 218 and 219 but they are reversed to background tiles,
+  -- ! so those have no collisions!
   [218] = 29,  -- wood (specular middle left)
   [219] = 29,  -- wood (specular middle right)
   [235] = 29,  -- wood (generic)
@@ -200,6 +242,10 @@ local mask_tile_ids = {
   [80] = 29,  -- wood (specular top 1-column)
   [83] = 29,  -- wood (specular top left)
   [84] = 29,  -- wood (specular top right)
+
+-- wood slope variant for first slope
+  [182] = 44,  -- wood (bottom of regular 1:2 ascending slope)
+  [166] = 28,  -- wood (top of regular 1:2 ascending slope)
 
 -- floating platform bottom (left and right)
   [124] = 29,
@@ -236,6 +282,17 @@ local mask_tile_ids = {
   [88] = 29,
   [89] = 29,
 
+  -- 0 slope bumps (grass ground with uniform height 1px)
+  [160] = 45,
+  [161] = 45,
+
+  -- 0 slope bumps (grass ground with uniform height 1px) with wood wall behind
+  [213] = 45,
+  [214] = 45,
+
+  -- loop variant of last mid slope descending every 2px
+  [164] = 13,
+
 -- leaves
   [94]  = 29,  -- wood (specular bottom left) with first leaves
   [95]  = 29,  -- wood (specular bottom right) with first leaves
@@ -245,35 +302,35 @@ local mask_tile_ids = {
 -- other shapes
 
 -- spring
-  [74]  = 26,  -- normal: left part
-  [75]  = 27,  -- normal: right part
-  [106] = 29,  -- extended: bottom-left part
-  [107] = 29,  -- extended: bottom-right part
--- extended higher parts (no collisions)
+  [74]  = 26,  -- spring oriented up - normal: left part
+  [75]  =  2,  -- spring oriented up - normal: right part (2 had same height mask as 27, so we're using this now (also removed from spritesheet))
+-- extended parts (kept for reference, but not the spring sprite is fully rendered via spring:render in both states,
+--  and the collision doesn't change, so the tilemap is never modified so we keep using the 2 tiles above for collision)
 --[[
-  [90] = 0,    -- spring extended: top-left part (we only collide with bottom)
-  [91] = 0,    -- spring extended: top-right part (we only collide with bottom)
+  [106] = 26,  -- spring oriented up - extended: bottom-left part
+  [107] =  2,  -- spring oriented up - extended: bottom-right part
+  [90]  = 0,   -- spring oriented up - extended: top-left part (we only collide with bottom)
+  [91]  = 0,   -- spring oriented up - extended: top-right part (we only collide with bottom)
 --]]
   [202] = 30,  -- spring oriented left representative tile (still collides to avoid "falling inside")
   [173] = 31,  -- spring oriented right representative tile (still collides to avoid "falling inside")
 
 -- rock
 -- (only left parts have partial colliders)
-  [168] = 28,  -- rock (top-left part)
-  [92]  = 29,  -- rock (top-middle part)
-  [93]  = 29,  -- rock (top-right part)
-  [184] = 28,  -- rock (small rock bottom-left part, can be connected to medium rock extension)
-  [108] = 29,  -- rock (small rock bottom-middle part, can be connected to medium rock extension)
-  [109] = 29,  -- rock (small rock bottom-right part, can be connected to medium rock extension)
-  [169] = 28,  -- rock (medium rock bottom-left part, can be connected to big rock extension)
-  [190] = 29,  -- rock (medium rock bottom-middle part, can be connected to big rock extension)
-  [191] = 29,  -- rock (medium rock bottom-right part, can be connected to big rock extension)
-  [185] = 28,  -- rock (big rock extension top-left part)
-  [206] = 29,  -- rock (big rock extension top-middle part)
-  [207] = 29,  -- rock (big rock extension top-right part)
-  [186] = 28,  -- rock (big rock bottom-left part)
-  [122] = 29,  -- rock (big rock bottom-middle part)
-  [123] = 29,  -- rock (big rock bottom-right part)
+  [176] =  4,  -- rock (small and medium top-left, 8x4 rect)
+  [177] =  4,  -- rock (small and medium top-right, 8x4 rect)
+  [192] = 29,  -- rock (small bottom-left = medium mid-left)
+  [193] = 29,  -- rock (small bottom-right = medium mid-right)
+  [208] = 29,  -- rock (medium bottom-left)
+  [209] = 29,  -- rock (medium bottom-right)
+  [162] = 29,  -- rock (big rock top-left)
+  [163] = 29,  -- rock (big rock top-right)
+  [178] = 29,  -- rock (big rock mid-left 1)
+  [179] = 29,  -- rock (big rock mid-right 1)
+  [194] = 29,  -- rock (big rock mid-left 2)
+  [195] = 29,  -- rock (big rock mid-right 2)
+  [210] = 29,  -- rock (big rock bottom-left)
+  [211] = 29,  -- rock (big rock bottom-right)
 
 -- loop (collider only)
 
@@ -345,13 +402,14 @@ local mask_tile_ids = {
 --   (via picosonic_app_ingame > stage_state > player_char > world)
 --   so this will be initialized on game start, which is perfect for us as the initial
 --   spritesheet is loaded at that point, and it contains all the collision masks
+--   (in v3, it actually contains *only* collision masks)
 -- doing this later, after background data cartridge reload (in stage on_enter)
 --  would fail, as the collision mask sprites would be overwritten by the runtime background
 --  sprites (only meant to be drawn programmatically)
 -- could probably be done via transform too
 local tiles_collision_data = {}
 for sprite_id, mask_tile_id in pairs(mask_tile_ids) do
-  tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id])
+  tiles_collision_data[sprite_id] = tile_collision_data.from_raw_tile_collision_data(mask_tile_id, mask_tile_angles[mask_tile_id], mask_tile_land_on_empty_qcolumn_flags[mask_tile_id])
 end
 
 -- proxy getter is only here to make stubbing possible in tile_test_data

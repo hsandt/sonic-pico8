@@ -7,7 +7,7 @@ local visual = require("resources/visual_common")  -- we should require ingamead
 -- testing credits is easier than entering stage
 --  because stage in on another cartridge (ingame),
 --  and itest builds are done separately (so we'd need to stub load)
-itest_manager:register_itest('player waits',
+itest_manager:register_itest('(intro) player waits',
     {':stage_intro'}, function ()
 
   -- enter stage intro state

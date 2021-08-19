@@ -196,17 +196,8 @@ function visual_stage.draw_background_forest_bottom(camera_pos, horizon_line_dy)
     local hole_y0 = y0 + tile_offset_j_cycle[i + 1] * tile_size
     visual.sprite_data_t.background_forest_bottom_hole:render(vector(x0, hole_y0))
     -- light shaft
-    local light_shaft_start = vector(x0 - 1, hole_y0 + 2 * tile_size + 4)
-    line(light_shaft_start.x, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 7, colors.dark_green)
-    line(light_shaft_start.x + 1, light_shaft_start.y, light_shaft_start.x - 15, light_shaft_start.y + 8, colors.green)
-    -- add bits of yellow to make the ray shinier
-    for k = 0, 2 do
-      pset(light_shaft_start.x - 3 - 6 * k, light_shaft_start.y + 2 + 3 * k, colors.yellow)
-    end
-    line(light_shaft_start.x, light_shaft_start.y + 1, light_shaft_start.x - 14, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 2, light_shaft_start.x - 13, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x + 1, light_shaft_start.y + 2, light_shaft_start.x - 11, light_shaft_start.y + 9, colors.green)
-    line(light_shaft_start.x, light_shaft_start.y + 3, light_shaft_start.x - 10, light_shaft_start.y + 9, colors.dark_green)
+    -- located 3 tiles to the left, 2 tiles down of hole -> (-3*8, 2*8) = (-24, 16)
+    visual.sprite_data_t.background_forest_bottom_lightshaft:render(vector(x0 - 24, hole_y0 + 16))
   end
 end
 
@@ -254,28 +245,25 @@ function visual_stage.draw_cloud(x, y, dy_list, base_radius, speed)
   end
 end
 
+-- TODO VISUAL IMPROVEMENT: improve colors by reusing water_shimmer_color_cycle from visual_titlemenu_addon
+local water_reflection_color_cycle = {
+  {colors.dark_blue, colors.blue},
+  {colors.white,     colors.blue},
+  {colors.blue,      colors.dark_blue},
+  {colors.blue,      colors.white},
+  {colors.dark_blue, colors.blue}
+}
+
 function visual_stage.draw_water_reflections(parallax_offset, x, y, period)
   -- animate reflections by switching colors over time
   local ratio = (t() % period) / period
-  local c1, c2
-  if ratio < 0.2 then
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  elseif ratio < 0.4 then
-    c1 = colors.white
-    c2 = colors.blue
-  elseif ratio < 0.6 then
-    c1 = colors.blue
-    c2 = colors.dark_blue
-  elseif ratio < 0.8 then
-    c1 = colors.blue
-    c2 = colors.white
-  else
-    c1 = colors.dark_blue
-    c2 = colors.blue
-  end
-  pset((x - parallax_offset) % screen_width, y, c1)
-  pset((x - parallax_offset + 1) % screen_width, y, c2)
+  local step_count = #water_reflection_color_cycle
+  -- compute step from ratio (normally ratio should be < 1
+  --  just in case, max to step_count)
+  local step = min(flr(ratio * step_count) + 1, step_count)
+  local draw_colors = water_reflection_color_cycle[step]
+  pset((x - parallax_offset) % screen_width, y, draw_colors[1])
+  pset((x - parallax_offset + 1) % screen_width, y, draw_colors[2])
 end
 
 function visual_stage.draw_tree_row(parallax_offset, y, base_height, row_index0, color)

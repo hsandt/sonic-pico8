@@ -3,6 +3,7 @@ require("resources/visual_titlemenu_addon")
 
 local titlemenu = require("menu/titlemenu")
 
+local input = require("engine/input/input")
 local text_helper = require("engine/ui/text_helper")
 
 local picosonic_app = require("application/picosonic_app_titlemenu")
@@ -10,6 +11,19 @@ local menu = require("menu/menu")
 local visual = require("resources/visual_common")
 
 describe('titlemenu', function ()
+
+  describe('init', function ()
+
+    it('should initialize members', function ()
+      local tm = titlemenu()
+
+      -- a bit complicated to test the generated items, so just test length for items
+      assert.are_equal(2, #tm.items)
+      assert.are_equal(0, tm.frames_before_showing_menu)
+      assert.is_false(tm.should_start_attract_mode)
+    end)
+
+  end)
 
   describe('(with instance)', function ()
 
@@ -48,11 +62,18 @@ describe('titlemenu', function ()
         picosonic_app.start_coroutine:clear()
       end)
 
-      it('should call start_coroutine_method on opening_sequence_async', function ()
+      it('should call start_coroutine_method on play_opening_music_async', function ()
         tm:on_enter()
 
         assert.spy(picosonic_app.start_coroutine).was_called(1)
-        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.opening_sequence_async, match.ref(tm))
+        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.play_opening_music_async, match.ref(tm))
+      end)
+
+      it('should initialize frames_before_showing_menu for countdown and reset frames_before_showing_attract_mode', function ()
+        tm:on_enter()
+
+        assert.are_equal(96, tm.frames_before_showing_menu)
+        assert.is_false(tm.should_start_attract_mode)
       end)
 
     end)
@@ -113,13 +134,70 @@ describe('titlemenu', function ()
 
       setup(function ()
         stub(menu, "update")
+        stub(titlemenu, "show_menu")
+        stub(titlemenu, "start_attract_mode")
       end)
 
       teardown(function ()
         menu.update:revert()
+        titlemenu.show_menu:revert()
+        titlemenu.start_attract_mode:revert()
       end)
 
-      it('should not try to update menu if nil', function ()
+      after_each(function ()
+        menu.update:clear()
+        titlemenu.show_menu:clear()
+        titlemenu.start_attract_mode:clear()
+      end)
+
+      it('(no menu) should not try to update menu', function ()
+        tm:update()
+
+        assert.spy(menu.update).was_not_called()
+      end)
+
+      describe('(simulating input)', function ()
+
+        after_each(function ()
+          -- reset all inputs
+          input:init()
+        end)
+
+        it('(button O pressed) should set frames_before_showing_menu to 0 and immediately show menu', function ()
+          tm.frames_before_showing_menu = 99
+          input.players_btn_states[0][button_ids.o] = btn_states.just_pressed
+
+          tm:update()
+
+          assert.are_equal(0, tm.frames_before_showing_menu)
+
+          assert.spy(titlemenu.show_menu).was_called(1)
+          assert.spy(titlemenu.show_menu).was_called_with(match.ref(tm))
+        end)
+
+      end)
+
+      it('(button O not pressed, frames_before_showing_menu > 1) should decrement frames_before_showing_menu, but not show menu yet', function ()
+        tm.frames_before_showing_menu = 2
+
+        tm:update()
+
+        assert.are_equal(1, tm.frames_before_showing_menu)
+        assert.spy(titlemenu.show_menu).was_not_called(1)
+      end)
+
+      it('(button O not pressed, frames_before_showing_menu <= 1) should decrement frames_before_showing_menu to <=0 and show menu', function ()
+        tm.frames_before_showing_menu = 1
+
+        tm:update()
+
+        assert.are_equal(0, tm.frames_before_showing_menu)
+
+        assert.spy(titlemenu.show_menu).was_called(1)
+        assert.spy(titlemenu.show_menu).was_called_with(match.ref(tm))
+      end)
+
+      it('(no menu) should not try to update menu', function ()
         tm:update()
 
         assert.spy(menu.update).was_not_called()
@@ -128,7 +206,8 @@ describe('titlemenu', function ()
       describe('(with menu shown)', function ()
 
         before_each(function ()
-          tm:show_menu()
+          -- dummy menu
+          tm.menu = menu(tm.app--[[, 2]], alignments.left, 3, colors.white--[[skip prev_page_arrow_offset]], visual.sprite_data_t.menu_cursor_shoe, 7)
         end)
 
         it('should update menu', function ()
@@ -138,6 +217,46 @@ describe('titlemenu', function ()
           assert.spy(menu.update).was_called_with(match.ref(tm.menu))
         end)
 
+        it('(should_start_attract_mode: false) should not start attract mode', function ()
+          tm.should_start_attract_mode = false
+
+          tm:update()
+
+          assert.spy(titlemenu.start_attract_mode).was_not_called()
+        end)
+
+        it('(should_start_attract_mode: true) should start attract mode', function ()
+          tm.should_start_attract_mode = true
+
+          tm:update()
+
+          assert.spy(titlemenu.start_attract_mode).was_called(1)
+          assert.spy(titlemenu.start_attract_mode).was_called_with(match.ref(tm))
+        end)
+
+      end)
+
+    end)
+
+    describe('start_attract_mode', function ()
+
+      setup(function ()
+        stub(_G, "load")
+      end)
+
+      teardown(function ()
+        load:revert()
+      end)
+
+      after_each(function ()
+        load:clear()
+      end)
+
+      it('should load attract mode cartridge', function ()
+        tm:start_attract_mode()
+
+        assert.spy(load).was_called(1)
+        assert.spy(load).was_called_with('picosonic_attract_mode')
       end)
 
     end)

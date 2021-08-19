@@ -1,6 +1,14 @@
-local sprite_data = require("engine/render/sprite_data")
-local animated_sprite_data = require("engine/render/animated_sprite_data")
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
 
+-- note that we extracted sprite data in a separate file, playercharacter_sprite_data.lua,
+-- so we could parse constants here without any ambiguity, and avoid getting "UNSUBSTITUTED pc_data."
+
+-- remember that the name of the local here matters more than the file name for replace_strings,
+--  so we will effectively replace `pc_data.member`, not `playercharacter_numerical_data.member`
+-- we could have named it pc_numerical_data but there were many more usages than sprite data,
+--  so it was easier to just keep the original name
 local pc_data = {
 
   -- platformer motion
@@ -74,6 +82,8 @@ local pc_data = {
   -- note that combined with air_accel_x_frame2, we can deduce the actual
   --  max air speed x: air_accel_x_frame2 / (1/air_drag_factor_per_frame - 1)
   --  = 1.453125 px/frame
+  -- value comes from 1 - 0.125*256, as SPG mentions value is subtracted by ((previous_value div 0.125) / 256)
+  --  but we don't mind about the Euclidian division and just keep the remainder, effectively dividing by 0.125*256
   air_drag_factor_per_frame = 0.96875,  -- 62/64
 
   -- min absolute velocity x for which air drag is applied (px/frame)
@@ -129,6 +139,14 @@ local pc_data = {
   --  which will give a value of 1.890625. for a hop, the initial speed will remain 2.
   jump_interrupt_speed_frame = 2,
 
+  -- Original feature: late jump
+  -- Late jump max delay: number of frames after falling off ground while walking during which the character
+  --  can still jump.
+  -- It comes from modern platformers but was not present in Classic Sonic
+  -- I found it useful for tricky jumps required to get some emeralds,
+  --  but purists may want to disable it, so I added a menuitem for that in picosonic_app_ingame:on_post_start.
+  late_jump_max_delay = 6,
+
   -- absolute vertical speed given by spring bounce (px/frame)
   -- from this and gravity we can deduce the max jump height: 116.71875
   --  (measurement with debug step: 112) ~ 14+ tiles at frame 45
@@ -151,7 +169,8 @@ local pc_data = {
   launch_ramp_speed_max_launch_speed = 9.7,
 
   -- launch angle of ramp (PICO-8 angle)
-  launch_ramp_velocity_angle = atan2(8, -5),
+  -- note that PICO-8 accepts 0x
+  launch_ramp_velocity_angle = 0x0.16c2,  -- atan2(8, -5)
 
   -- duration to ignore launch ramp after trigger to avoid hitting it and landing again
   --  (frames)
@@ -188,15 +207,20 @@ local pc_data = {
 
   -- max vertical distance allowed to escape from inside ground (must be < tile_size as
   --  (px)
-  --  _compute_closest_ground_query_info uses it as upper_limit tile_size)
+  --  compute_closest_ground_query_info uses it as upper_limit tile_size)
   -- also the max step up of the character in ground motion
-  max_ground_escape_height = 4,
+  -- this used to be 4, which was enough with pixel step physics, but since we use big steps now,
+  --  we had to increase it to 7 since it's much easier to step into the ground, esp. in a loop
+  -- 5 is enough for running, but 7 required for fast spin dash
+  max_ground_escape_height = 7,
 
   -- max vertical distance allowed to snap to a lower ground while running (on step or curve)
   -- a.k.a. max step down
   --  (px)
   max_ground_snap_height = 4,
 
+
+--#if cheat
   -- debug motion
 
   -- motion speed in debug mode (px/frame)
@@ -210,50 +234,45 @@ local pc_data = {
 
   -- friction aka passive deceleration speed in debug mode (px/frame^2)
   debug_move_friction = 1,
+--#endif
 
-  -- sprite
+
+  -- spin dash
+
+  -- rev increase every time player pressed jump button
+  -- note that this is an abstract value, so we don't divide it by 2 like speed values
+  -- (no unit)
+  spin_dash_rev_increase_step = 2,
+
+  -- when not revving (charging spin dash) this frame, apply this factor to reduce rev slightly
+  -- same value as air_drag_factor_per_frame (SPG remarks that)
+  -- (no unit)
+  spin_dash_drag_factor_per_frame = 0.96875,  -- 62/64
+
+  -- maximum rev value (abstract value, so no division by 2 for PICO-8)
+  -- (no unit)
+  spin_dash_rev_max = 8,
+
+  -- base launch speed on spin dash release (SPG value / 2) (px/frame)
+  spin_dash_base_speed = 4,
+
+  -- factor applied to floor part of spin dash rev to contribute to spin dash launch speed (px/frame)
+  -- SPG divides rev by 2, so in PICO-8 units we must divide by 4, so multiply by 0.25
+  -- from the parameters above we can deduce the maximum spin dash launch speed
+  -- (although very hard to even get close to by a human):
+  --   spin_dash_base_speed + spin_dash_rev_max * spin_dash_rev_increase_factor
+  -- = 4 + 8 * 0.25
+  -- = 6
+  spin_dash_rev_increase_factor = 0.25,
+
+
+  -- animation
 
   -- speed at which the character sprite angle falls back toward 0 (upward)
   --  when character is airborne (after falling from ceiling or running up and off an ascending slope) (pico8 angle/frame)
   -- SPG: 2/256*360=2.8125° <=> 2/256=1/128=0.0078125 pico8 angle unit
   -- deduced duration to rotate from upside down to upward: 0.5/(1/128) = 64 frames = 1s + 4 frames
   sprite_angle_airborne_reset_speed_frame = 1/128,
-
-  -- stand right
-  -- colors.pink: 14
-  sonic_sprite_data_table = transform(
-    -- anim_name below is not protected since accessed via minified member to define animations more below
-    --anim_name = sprite_data(
-    --          id_loc,  span,   pivot,   transparent_color (14: pink))
-    {
-      idle   = {{0,  8}, {2, 2}, {10, 8}, 14},
-      walk1  = {{2,  8}, {2, 2}, { 8, 8}, 14},
-      walk2  = {{4,  8}, {2, 2}, { 8, 8}, 14},
-      walk3  = {{6,  8}, {2, 2}, { 9, 8}, 14},
-      walk4  = {{8,  8}, {2, 2}, { 8, 8}, 14},
-      walk5  = {{10, 8}, {2, 2}, { 8, 8}, 14},
-      walk6  = {{12, 8}, {2, 2}, { 8, 8}, 14},
-      brake1 = {{10, 1}, {2, 2}, { 9, 8}, 14},
-      brake2 = {{12, 1}, {2, 2}, { 9, 8}, 14},
-      brake3 = {{14, 1}, {2, 2}, {11, 8}, 14},
-      spring_jump = {{14, 8}, {2, 3}, {9, 8}, 14},
-      run1   = {{0, 10}, {2, 2}, { 8, 8}, 14},
-      run2   = {{2, 10}, {2, 2}, { 8, 8}, 14},
-      run3   = {{4, 10}, {2, 2}, { 8, 8}, 14},
-      run4   = {{6, 10}, {2, 2}, { 8, 8}, 14},
-      spin_full_ball = {{0, 12}, {2, 2}, { 6, 6}, 14},
-      spin1  = {{2, 12}, {2, 2}, { 6, 6}, 14},
-      spin2  = {{4, 12}, {2, 2}, { 6, 6}, 14},
-      spin3  = {{6, 12}, {2, 2}, { 6, 6}, 14},
-      spin4  = {{8, 12}, {2, 2}, { 6, 6}, 14},
-    }, function (raw_data)
-      return sprite_data(
-        sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc
-        tile_vector(raw_data[2][1], raw_data[2][2]),         -- span
-        vector(raw_data[3][1], raw_data[3][2]),              -- pivot
-        raw_data[4]                                   -- transparent_color
-      )
-  end),
 
   -- minimum playback speed for "walk" animation, to avoid very slow animation
   -- 10/16=5/8: the 10 counters the 10 duration frames of ["walk"] below, 1/8 to represent max duration 8 in SPG:Animations
@@ -271,35 +290,33 @@ local pc_data = {
 
   -- speed from which the brake anim is played when decelerating (px/frame)
   brake_anim_min_speed_frame = 2,
+
+
+  -- pfx
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_spawn_period_frames = 3.1,
+
+  -- spin dash dust particle spawn count every period
+  spin_dash_dust_spawn_count = 4,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_lifetime_frames = 34,
+
+  -- spin dash dust particle initial velocity (px/frames)
+  -- before we switch to perfect numerical substitution:
+  -- spin_dash_dust_base_init_velocity = vector(-0.43, -0.17),
+  spin_dash_dust_base_init_velocity_x = -0.43,
+  spin_dash_dust_base_init_velocity_y = -0.17,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_max_deviation = 0.04,
+
+  -- spin dash dust particle spawn period (frames)
+  spin_dash_dust_base_max_size = 4.1,
 }
 
-local sdt = pc_data.sonic_sprite_data_table
-
--- define animated sprite data in a second step, as it needs sprite data to be defined first
--- note that we do not split spin_slow and spin_fast as distinguished by SPG anymore
---  in addition, while spin_slow was defined to have 1 spin_full_ball frame and
---  spin_fast had 2, our spin has 4, once every other frame, to match Sonic 3 more closely
-pc_data.sonic_animated_sprite_data_table = transform(
-  -- access sprite data by non-protected member to allow minification
-  -- see animated_sprite_data.lua for anim_loop_modes values
-  --[anim_name] = animated_sprite_data.create(pc_data.sonic_sprite_data_table,
-  --        sprite_keys,   step_frames, loop_mode as int)
-  {
-    ["idle"] = {{sdt.idle},               10,                2},
-    ["walk"] = {{sdt.walk1, sdt.walk2, sdt.walk3, sdt.walk4, sdt.walk5, sdt.walk6},
-                                        10,                4},
-    ["brake_start"]   = {{sdt.brake1, sdt.brake2},
-                                        10,                2},
-    ["brake_reverse"] = {{sdt.brake3},
-                                        15,                2},
-    ["run"]  = {{sdt.run1, sdt.run2, sdt.run3, sdt.run4},
-                                         5,                4},
-    ["spin"] = {{sdt.spin_full_ball, sdt.spin1, sdt.spin_full_ball, sdt.spin2, sdt.spin_full_ball,
-                 sdt.spin3, sdt.spin_full_ball, sdt.spin4},
-                                         5,                4},
-    ["spring_jump"] = {{sdt.spring_jump}, 10,                2}
-}, function (raw_data)
-  return animated_sprite_data(raw_data[1], raw_data[2], raw_data[3])
-end)
+--(game_constants)
+--#endif
 
 return pc_data

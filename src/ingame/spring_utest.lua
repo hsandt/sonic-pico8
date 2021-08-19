@@ -4,7 +4,7 @@ local spring = require("ingame/spring")
 
 local sprite_data = require("engine/render/sprite_data")
 
-local stage_data = require("data/stage_data")
+local stage_common_data = require("data/stage_common_data")
 local visual = require("resources/visual_common")
 
 describe('spring', function ()
@@ -33,7 +33,7 @@ describe('spring', function ()
     it('should reset extended_timer to spring extend duration"', function ()
       local spring_obj = spring(directions.up, location(2, 1))
       spring_obj:extend()
-      assert.are_equal(stage_data.spring_extend_duration, spring_obj.extended_timer)
+      assert.are_equal(stage_common_data.spring_extend_duration, spring_obj.extended_timer)
     end)
 
   end)
@@ -149,7 +149,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(18, 10), false, true, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring), vector(22, 10), false, true, 0.25)
     end)
 
     it('(right, extended_timer > 0) should draw spring extended sprite data from top-left location, flipped y and rotated by 90 with offset adjustment', function ()
@@ -159,7 +159,7 @@ describe('spring', function ()
       spring_obj:render()
 
       assert.spy(sprite_data.render).was_called(1)
-      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(26, 10), false, true, 0.25)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.spring_extended), vector(22, 10), false, true, 0.25)
     end)
 
   end)

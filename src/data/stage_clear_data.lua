@@ -1,3 +1,7 @@
+--#if game_constants
+--(when using replace_strings with --game-constant-module-path [this_data.lua], all namespaced constants
+-- below are replaced with their values (as strings), so this file can be skipped)
+
 local stage_clear_data = {
 
   -- stage clear sequence timing
@@ -21,5 +25,8 @@ local stage_clear_data = {
   -- delay after zigzag fade out, before showing retry screen content (s)
   delay_after_zigzag_fadeout = 1.0,
 }
+
+--(game_constants)
+--#endif
 
 return stage_clear_data

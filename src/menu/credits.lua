@@ -20,7 +20,7 @@ local menu_item_params = {
   end}
 }
 
-local copyright_text = text_helper.wwrap("this is a fan game distributed for free and is not endorsed by sega games co. ltd, which owns the sonic the hedgehog trademark and copyrights.", 31)
+local copyright_text = text_helper.wwrap("this is a fan game distributed for free on itch.io and sfghq (sage 2021) and is not endorsed by sega games co. ltd, which owns the sonic the hedgehog trademark and copyrights.", 31)
 
 function credits:init()
   -- sequence of menu items to display, with their target states
@@ -46,7 +46,7 @@ end
 
 function credits:render()
   self:draw_credits_text()
-  self.menu:draw(screen_width / 2, 120)
+  self.menu:draw(screen_width / 2, 121)
 end
 
 function credits:draw_credits_text()
@@ -55,7 +55,7 @@ function credits:draw_credits_text()
   local text_color = colors.white
   local margin_x = 2
   local line_dy = character_height
-  local paragraph_margin = 4
+  local paragraph_margin = 3
 
   -- top
   local y = 2
@@ -68,9 +68,7 @@ function credits:draw_credits_text()
   y = y + line_dy + paragraph_margin
 
   api.print("leyn", margin_x, y, text_color)
-  text_helper.print_aligned("programming", 127 - margin_x, y, alignments.right, text_color)
-  y = y + line_dy
-  text_helper.print_aligned("sprites and sfx", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("code, sprites, sfx", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
   text_helper.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
@@ -82,6 +80,9 @@ function credits:draw_credits_text()
   y = y + 3 * line_dy + paragraph_margin
 
   api.print(copyright_text, margin_x, y, text_color)
+  y = y + 6 * line_dy + paragraph_margin
+
+  api.print("komehara.itch.io/pico-sonic", margin_x, y, text_color)
 end
 
 -- export

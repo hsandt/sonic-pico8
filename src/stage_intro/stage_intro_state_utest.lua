@@ -59,7 +59,7 @@ describe('stage_intro_state', function ()
       it('should initialize members', function ()
         assert.are_same({
             ':stage_intro',
-            stage_data.for_stage[1],
+            stage_data[1],
             camera_class(),
             overlay(),
             postprocess(),
@@ -111,11 +111,12 @@ describe('stage_intro_state', function ()
         assert.are_equal(vector(0, 1), state.loaded_map_region_coords)
       end)
 
-      it('should call reload for runtime data and stage1, map 01 (hardcoded)', function ()
+      it('should call reload for stage tiles, Sonic main sprites (general memory storage) and stage1, map 01 (hardcoded)', function ()
         state:on_enter()
 
-        assert.spy(reload).was_called(2)
-        assert.spy(reload).was_called_with(0x0, 0x0, 0x600, "data_stage1_runtime.p8")
+        assert.spy(reload).was_called(3)
+        assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_intro.p8")
+        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
         assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_01.p8")
       end)
 

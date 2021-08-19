@@ -8,6 +8,7 @@ local spring = require("ingame/spring")
 local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
 local audio = require("resources/audio")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -80,7 +81,13 @@ function stage_state:on_enter()
 --[[#pico8
 --#ifn itest
   self:spawn_objects_in_all_map_regions()
+
+--#if normal_mode
+--(attract mode doesn't care about remembering picked emeralds)
   self:restore_picked_emerald_data()
+--#endif
+
+--(ifn itest)
 --#endif
 --#pico8]]
 
@@ -102,8 +109,6 @@ function stage_state:on_enter()
 
   self.has_player_char_reached_goal = false
 
-  -- reload bgm only once, then we can play bgm whenever we want for this stage
-  self:reload_bgm()
   -- initial play bgm
   self:play_bgm()
 end
@@ -122,7 +127,7 @@ function stage_state:reload_runtime_data()
   --  with the addresses mentioned above
   -- OR if you really need to spare code characters, copy-paste the __gff__ lines into the builtin .p8 cartridge
   -- manually.
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame"..cartridge_ext
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_ingame.p8"
   reload(0x0, 0x0, 0x2000, runtime_data_path)
 
   -- Sonic spritesheet
@@ -273,11 +278,14 @@ function stage_state:update()
 
   self.player_char:update()
 
+--#if normal_mode
+--(attract mode never reaches goal)
   self:check_reached_goal()
 
   if self.goal_plate then
     self.goal_plate:update()
   end
+--#endif
 
   self.camera:update()
   self:check_reload_map_region()
@@ -765,8 +773,8 @@ end
 function stage_state:play_pick_emerald_jingle_async()
   -- reduce bgm volume by half (notes have volume from 0 to 4, so decrement all sound volumes by 2)
   --  to make the pick emerald jingle stand out
-  -- the music sfx take maximum 50 entries (out of 64), so cover all tracks from 0 to 49
-  volume.decrease_volume_for_track_range(0, 49, 2)
+  -- the music sfx take maximum 46 entries (out of 64), so cover all tracks from 8 to 53
+  volume.decrease_volume_for_track_range(8, 53, 2)
 
   -- start jingle with an SFX since the usic still occupies the 3 channels, at lower volume
   -- this has high priority so we don't use sound.play_low_priority_sfx unlike PC SFX,
@@ -785,11 +793,11 @@ function stage_state:play_pick_emerald_jingle_async()
   --  volume once
   yield_delay_frames(48)
 
-  -- unfortunately we cannot reincrement volume as some values were clamped to 0 durng decrease
+  -- unfortunately we cannot reincrement volume as some values were clamped to 0 during decrease
   --  so we completely reload the bgm sfx, and redecrement them a little from the original volumes,
   --  then reset without decrementing to retrieve the original volume
   self:reload_bgm_tracks()
-  volume.decrease_volume_for_track_range(0, 49, 1)
+  volume.decrease_volume_for_track_range(8, 53, 1)
 
   -- wait the remaining 16 frames, the jingle should have ended just after that
   yield_delay_frames(16)
@@ -853,6 +861,9 @@ function stage_state:check_loop_external_triggers(position, previous_active_laye
   end
 end
 
+--#if normal_mode
+--(attract mode never reaches goal nor remembers picked emeralds)
+
 function stage_state:check_reached_goal()
   if not self.has_player_char_reached_goal and self.goal_plate and
 --[[#pico8
@@ -906,11 +917,11 @@ function stage_state:restore_picked_emerald_data()
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in 0x5dff, see store_picked_emerald_data below
-  local picked_emerald_byte = peek(0x5dff)
+  -- It is stored in picked_emerald_address (0x5dff), see store_picked_emerald_data below
+  local picked_emerald_byte = peek(memory.picked_emerald_address)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(0x5dff, 0)
+  poke(memory.picked_emerald_address, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -934,7 +945,7 @@ function stage_state:store_picked_emerald_data()
   -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
   --  is occupied non-rotated/rotated walk/run sprite variants... but it was annoying to offset
   --  picked emerald byte address every time I added a runtime sprite, so I decided to use the
-  --  *last* byte (0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
+  --  *last* byte (picked_emerald_address = 0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
   --  left). When saving data in persistent memory (so player can continue emerald hunting later),
   --  it won't even be a problem since we will use a very different address in the persistent block.
   -- We could also use persistent memory, considering we may save emeralds collected by player
@@ -949,7 +960,7 @@ function stage_state:store_picked_emerald_data()
       picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
     end
   end
-  poke(0x5dff, picked_emerald_bytes)
+  poke(memory.picked_emerald_address, picked_emerald_bytes)
 end
 
 function stage_state:feedback_reached_goal()
@@ -958,6 +969,9 @@ function stage_state:feedback_reached_goal()
   -- last emerald is far from goal, so no risk of SFX conflict
   sfx(audio.sfx_ids.goal_reached)
 end
+
+--(normal_mode)
+--#endif
 
 -- fx
 
@@ -1096,26 +1110,36 @@ end
 
 -- audio
 
-function stage_state:reload_bgm()
-  -- reload music patterns from bgm cartridge memory
-  -- we guarantee that the bgm will take maximum 40 patterns (out of 64)
-  --  => 40 * 4 = 160 = 0xa0 bytes
-  -- the bgm should start at pattern 0 on both source and
-  --  current cartridge, so use copy memory from the start of music section
-  reload(0x3100, 0x3100, 0xa0, "data_bgm"..self.curr_stage_id..cartridge_ext)
-
-  -- we also need the music sfx referenced by the patterns
-  self:reload_bgm_tracks()
-end
-
 function stage_state:reload_bgm_tracks()
-  -- reload sfx from bgm cartridge memory
-  -- we guarantee that the music sfx will take maximum 50 entries (out of 64),
-  --  potentially 0-7 for custom instruments and 8-49 for music tracks
-  --  => 50 * 68 = 3400 = 0xd48 bytes
-  -- the bgm sfx should start at index 0 on both source and
-  --  current cartridge, so use copy memory from the start of sfx section
-  reload(0x3200, 0x3200, 0xd48, "data_bgm"..self.curr_stage_id..cartridge_ext)
+  -- Note: bgm is now integrated in builtin data as we've reached the max cartridge limit of 16
+  -- We still kept this method, as besides loading music tracks on stage start (which is not needed
+  --  anymore), we were also using it to restore volume during the pick emerald jingle
+  --  (see play_pick_emerald_jingle_async), so it's still useful, but now needs a mere
+  -- We cannot use memcpy since memory has been modified in-place, so still reload.
+
+  -- !! PICO-8 PATCH vs COMPRESSED CHARS
+  -- Normally, we should call reload without filename argument so it gets memory directly from the
+  --  current original cartridge file.
+  -- But because this method is called during play_pick_emerald_jingle_async which happens
+  --  mid-game, and due to a quirk, our fast-reload patch only works consistently with reload()
+  --  taking filename argument, we still pass the ingame cartridge filename just to get fast reload
+  --  and not interrupt the game flow! (when not passing filename, game may freeze or not on reload
+  --  depending on the last cartridge reloaded)
+  -- (note that builtin_data_ingame.p8 doesn't exist in distribution, since it has been integrated
+  --  inside picosonic_ingame cartridge, so we really load the ingame cartridge)
+  -- Ideally, we'd improve the fast reload patch to cover reload from current cartridge file
+  --  (and possibly make load fast too), but for now this is the easiest approach,
+  --  at the cost of a few extra compressed characters
+
+  -- Reload sfx from builtin data ingame cartridge memory (must be current one)
+  -- we guarantee that the music sfx will take maximum 46 entries (out of 64),
+  --  skip 0-7 (custom instruments reserved to normal SFX) use 8-53 for music tracks
+  -- https://pico-8.fandom.com/wiki/Memory says 1 sfx = 68 bytes, so we must copy:
+  --  => 46 * 68 = 3400 = 0xc38 bytes
+  -- the bgm sfx should start at index 8 (after custom instruments) on both source and
+  --  current cartridge, so use copy memory from 8 * 68 = 544 = +0x220 after start of sfx section,
+  --  i.e. 0x3200 + 0x220 = 0x3420
+  reload(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
 end
 
 function stage_state:play_bgm()

@@ -40,7 +40,7 @@ function stage_intro_state:on_enter()
   --  for stage intro, hence reload memory length 0x2000
   -- alternatively, like stage clear, we could have a custom intro cinematics that doesn't use physics
   --  at all, and so no tile collision data is needed and we can just set intro spritesheet as built-in data
-  local runtime_data_path = "data_stage"..self.curr_stage_id.."_intro"..cartridge_ext
+  local runtime_data_path = "data_stage"..self.curr_stage_id.."_intro.p8"
   reload(0x0, 0x0, 0x2000, runtime_data_path)
 
   -- Reduced version of Sonic sprite copy, copied from stage_state:reload_runtime_data

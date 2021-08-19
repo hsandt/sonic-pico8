@@ -59,7 +59,7 @@ local function attract_mode_scenario_async()
   --  (when combined with ingame code which includes background rendering unlike our itests)
   --  so we just manually set character intention and wait between actions with yield_delay
 
-  yield_delay_frames(84)
+  yield_delay_frames(42)
   pc.move_intention = vector(1, 0)
   yield_delay_frames(318)
   pc.jump_intention = true

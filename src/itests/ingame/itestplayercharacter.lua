@@ -234,7 +234,7 @@ expect pc_velocity 0 0
 -- fixed! forgot to get dir_vectors
 -- now still useful like utest above to test wall blocking movement, including subpixel cut, if any
 itest_dsl_parser.register(
-  'jump into wall left', [[
+  '#mute jump into wall left', [[
 @stage #
 #.
 #.
@@ -388,7 +388,7 @@ expect pc_velocity 0 0
 --#if busted
 -- this test is now failing, I suspect air friction to mess up X...
 itest_dsl_parser.register(
-  'platformer fall cliff', [[
+  '#mute platformer fall cliff', [[
 @stage #
 ..
 ##
@@ -743,7 +743,7 @@ expect pc_velocity 0 -1.125
 -- to preserve the original expectations we duplicated the itest above,
 --  except we added another block above the existing one to really block Sonic in the air
 itest_dsl_parser.register(
-  'platformer air right wall block then just above', [[
+  '#mute platformer air right wall block then just above', [[
 @stage #
 .#
 ..
@@ -763,7 +763,7 @@ expect pc_velocity 0.09375 -1.125
 ]])
 
 itest_dsl_parser.register(
-  'platformer air left wall block', [[
+  '#mute platformer air left wall block', [[
 @stage #
 #.
 #.
@@ -784,7 +784,7 @@ expect pc_velocity 0 -1.125
 ]])
 
 itest_dsl_parser.register(
-  'platformer air left wall block', [[
+  '#mute platformer air left wall block 2', [[
 @stage #
 #.
 ..

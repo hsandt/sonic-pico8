@@ -17,6 +17,7 @@ carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
 config_plates_dirpath="$HOME/.lexaloffle/pico-8/plates"
 
 # Configuration: cartridge
+pico8_version=`cat "$data_path/pico8_version.txt"`
 version=`cat "$data_path/version.txt"`
 export_folder="$carts_dirpath/picosonic/v${version}_release"
 cartridge_basename="picosonic_v${version}_release"
@@ -95,7 +96,7 @@ if [[ ! -d "$bin_folder" || ! $(ls -A "$bin_folder") ]]; then
 fi
 
 # Patch the runtime binaries in-place with 4x_token, fast_reload, fast_load (experimental) if available
-patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$bin_folder\" \"$cartridge_basename\""
+patch_bin_cmd="\"$picoboots_scripts_path/patch_pico8_runtime.sh\" --inplace \"$pico8_version\" \"$bin_folder\" \"$cartridge_basename\""
 echo "> $patch_bin_cmd"
 bash -c "$patch_bin_cmd"
 

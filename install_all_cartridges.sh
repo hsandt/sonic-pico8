@@ -15,8 +15,8 @@ game_scripts_path="$(dirname "$0")"
 data_path="$(dirname "$0")/data"
 
 # check that source and output paths have been provided
-if ! [[ $# -ge 1 &&  $# -le 2 ]] ; then
-    echo "build.sh takes 1 or 2 params, provided $#:
+if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
+    echo "install_all_cartridges.sh takes 1 or 2 params + option value, provided $#:
     \$1: config ('debug', 'release', etc.)
     -i, --itest:  Pass this option to build an itest instead of a normal game cartridge."
     exit 1
@@ -28,7 +28,7 @@ version=`cat "$data_path/version.txt"`
 config="$1"; shift
 # ! This is a short version for the usual while-case syntax, but in counterpart
 # ! it doesn't support reordering (--itest must be after config)
-if [[ $1 == '-i' || $i == '--itest' ]]; then
+if [[ $1 == '-i' || $1 == '--itest' ]]; then
   itest=true
   shift
 fi
@@ -47,7 +47,7 @@ fi
 cartridge_list=`cat "$data_path/cartridges.txt"`
 
 for cartridge in $cartridge_list; do
-  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" "$suffix" $options
+  "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" $options
 done
 
 # recompute same install dirpath as used in install_single_cartridge.sh

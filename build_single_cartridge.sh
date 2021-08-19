@@ -162,7 +162,8 @@ else
     symbols+=",ingame"
   else
     if [[ $cartridge_suffix == 'ingame' ]]; then
-      # add symbol #normal_mode to distinguish from attract_mode, as both define #ingame
+      # add symbol #normal_mode to distinguish playable ingame from attract_mode,
+      # as both define #ingame
       symbols+=",normal_mode"
     fi
     builtin_data_suffix="$cartridge_suffix"

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0] - 2021-08-17
+### Added
+- Character physics: spin dash (includes crouching)
+- Character physics: allow late jump up to 6 frames after leaving ground, to mimic modern platformer physics (can be disabled in pause menu)
+- Animation: crouch and spin dash animations, using new dynamic sprite reloading system to allow even more sprites on a single spritesheet (unfortunately smoke PFX was cut from Release as it took too many characters, although still present in code)
+- Camera: spin dash lag
+- Stage visual: added animated waterfalls at the beginning of the level (they actually use color palette swapping as in the original game)
+- Attract mode: added Attract mode when player waits for end of intro BGM on the title screen. This is played inside a new cartridge that is mostly a stripped version of the ingame cartridge + a puppet sequence to make Sonic move by himself
+
+### Changed
+- Application: upgraded to PICO-8 0.2.2c with full binary patching and upgraded custom web template to integrate latest improvements
+- UI: press O on title menu before menu appears to make it appear immediately
+- Credits: add mention of SAGE and itch.io URL
+- Camera: use small vertical window even on ground to avoid moving when character just moves by 1px up and down (due to new bumps)
+- Stage physics: fixed last descending slope tile connecting slope and loop having no collision
+- Stage physics/visual: reworked rock sprites to be smaller
+- Stage physics/visual: offset last emerald (orange) by 5px to the right
+- Stage physics/visual: replaced very low slopes with 1px bumps that are still considered flat ground to avoid slowing down character when running on them, while keeping the funny up-and-down motion
+- Stage visual: hide emerald behind leaves to make harder to find
+- Stage visual: improved forest hole lightshaft in background (now sprite instead of procedurally generated)
+- Stage visual: fixed one-way platform grass appearing in front of character
+- Stage visual: fixed background parallax to only move when camera moves by an integer pixel, not pixel fractions
+- Character physics: fixed detecting flat ground when running down slopes where some columns of the collision mask are empty
+- Character physics & Optimization: big overhaul with switch to "big steps" method instead of the expensive "pixel step" method. This applies to both grounded and airborne motion. First move by the full motion you'd expect on a single frame, ignoring obstacles. Then detect wall, ground and ceiling, if meaningful considering the current speed (with an extra final wall check if grounded). This effectively reduced complexity from O(speed) to O(1) and allows the game to run at 60 FPS consistently (with only a few 30 FPS drops when reloading memory e.g. to change region)
+- Optimization: optimized the sprite rotation method to use efficient code specific for 90-degree rotations, instead of general trigonometry with backward approach (particularly slow due to iterating on all pixels inside the bounding box containing a given disc).
+- Compressed characters: various refactoring and replacement of every constant with hardcoded strings/values (as pre-build step) to reduce compressed characters size and allow exporting cartridge again despite adding new features
+- Debug: fix and improve debug rays (development only)
+- Export: merged audio data with built-in ingame data cartridge to avoid going over the limit of 16 cartridges per export (attract mode cartridge). Also offset BGM tracks by 8 tracks to allow custom instruments to be used ingame. This was required for the new spin dash SFX.
+
 ## [5.4] - 2021-04-17
 ### Added
 - Audio: added "got all emeralds" jingle with delay
@@ -247,7 +276,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v5.3...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v6.0...HEAD
+[6.0]: https://github.com/hsandt/sonic-pico8/compare/v5.3...v6.0
 [5.3]: https://github.com/hsandt/sonic-pico8/compare/v5.2...v5.3
 [5.2]: https://github.com/hsandt/sonic-pico8/compare/v5.1...v5.2
 [5.1]: https://github.com/hsandt/sonic-pico8/compare/v5.0...v5.1

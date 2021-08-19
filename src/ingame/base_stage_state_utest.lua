@@ -369,7 +369,10 @@ describe('base_base_stage_state', function ()
         assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.waterfall)
       end)
 
-      it('render_environment_foreground should call spr on tiles present on screen', function ()
+      it('(ingame state) render_environment_foreground should call spr on tiles present on screen', function ()
+        -- simulate an ingame state
+        state.type = ':stage'
+
         -- this test was copy-pasted from render_environment_midground
         state.camera:init_position(vector(0, 0))
         state.loaded_map_region_coords = vector(2, 1)
@@ -401,6 +404,25 @@ describe('base_base_stage_state', function ()
         assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 11, 8 * 2))
         -- left (right flipped x)
         assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.palm_tree_leaves_right), vector(8 * 10, 8 * 2), true)
+      end)
+
+      it('(non-ingame state) render_environment_foreground should call spr on tiles present on screen', function ()
+        -- simulate a non-ingame state
+        state.type = ':stage_clear'
+
+        -- this test was copy-pasted from render_environment_midground
+        state.camera:init_position(vector(0, 0))
+        state.loaded_map_region_coords = vector(2, 1)
+
+        state:render_environment_foreground()
+
+        -- we can't check call order, but set camera methods should be called consistently with map!
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called(1)
+        assert.spy(base_stage_state.set_camera_with_region_origin).was_called_with(match.ref(state))
+
+        assert.spy(map).was_called(1)
+
+        assert.spy(map).was_called_with(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
       end)
 
     end)  -- (with tile_test_data)

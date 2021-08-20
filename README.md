@@ -51,13 +51,14 @@ Version: 6.0
 * Character sprites: *idle*, *walk* cycle, *run* cycle, *spin* cycle, *brake* animation, spring *jump*
 * Foreground plane: grass and leaves, loop entrance
 * Midground plane: general collision tiles, loop exit, some decorations
-* Background planes: sky, ocean, trees and forest holes moving with parallax
+* Background planes: waterfalls, sky, ocean, trees and forest holes moving with parallax
 * Camera window and smoothing system
 * Custom camera forward extension system to show more elements ahead of Sonic when he runs fast or faces a direction for some time
 
 ### UI
 
 * Title logo, animated background and menu
+* Wait in front of title menu to start the attract mode
 * Zone splash screen on stage start
 * Ingame HUD: list of picked emeralds shown in top-left corner
 * Result screen on stage clear
@@ -113,13 +114,15 @@ Stage gimmicks:
 
 You can play with keyboard or gamepad with those inputs:
 
-| Keyboard          | Gamepad                | Action                          |
-|-------------------|------------------------|---------------------------------|
-| Left/right arrows | D-pad left/right       | Move                            |
-| Down arrow        | D-pad down             | Crouch, Roll (during run)       |
-| Z/C/N             | Face button up/down    | Jump, Spin Dash (during Crouch) |
-| X/V/M             | Face button left/right | Cancel (menu)                   |
-| Enter             | Start                  | Open pause menu                 |
+| Keyboard                 | Gamepad                | Action                          |
+|--------------------------|------------------------|---------------------------------|
+| Left/right arrows        | D-pad left/right       | Move                            |
+| Down arrow               | D-pad down             | Crouch, Roll (during run)       |
+| Z/C/N                    | Face button up/down    | Jump, Spin Dash (during Crouch) |
+| X/V/M                    | Face button left/right | Cancel (menu)                   |
+| Enter                    | Start                  | Open pause menu                 |
+| Alt+Enter                |                        | Toggle fullscreen               |
+| Ctrl+R (standalone only) |                        | Restart current cartridge       |
 
 If you gamepad mapping is not correct when playing with the native PC binaries, you can customize it with [SDL2 Gamepad Tool](https://www.generalarcade.com/gamepadtool) and copy-paste the configuration line into sdl_controllers.txt in PICO-8's [configuration directory](https://pico-8.fandom.com/wiki/Configuration). For instance, the Logicool Gamepad F310 had Open PICO-8 menu mapped to Right Trigger, so I remapped it to Start instead.
 

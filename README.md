@@ -72,16 +72,14 @@ Version: 5.3
 ### Notable features missing
 
 * Timer
-* Crouching and looking up
-* Spin dash
-* When you collect all emeralds...
+* Looking up
 
 ### Notable physics differences
 
 * Preservation of velocity when landing on slopes is more organic and uses vector projection, while the [SPG](https://info.sonicretro.org/SPG:Slope_Physics#Reacquisition_Of_The_Ground) denotes different formulas based on the slope angle and the relationship between horizontal and vertical speed. This is very perceptible when jumping on the first two slopes.
 * It is possible to control horizontal acceleration after jumping out of a roll. This was considered to be a better user experience, and actually recommended by the Sonic Physics Guide despite being unlike the original games.
 * Late jump: as in modern platforms, the character can jump up to 6 frames after falling off ground, for more permissive jumps from a platform ledge. This can be disabled in the Pause menu for a more "classic" experience.
-* Pixel step-by-step approach: currently, character motion is computed pixel by pixel. This is very precise and avoids relying on ground escape, but is also very CPU expensive (the main reason behind FPS dropping to 30) and can get the character stuck if one calculation is wrong. It will probably be replaced with bigger steps and ground escape in the future.
+* Collision check: character wall sensor is placed higher than in the original games, esp. when rolling, to allow hitting ground as a wall and stopping mid-loop when moving at high speed (e.g. after spin dash). In addition a second wall check is done after the initial wall and ground check if quadrant changed, as a way to verify if there is still a wall blocking in the new quadrant (and avoid being stuck when moving at high speed in loops, again).
 
 ### Notable camera differences
 
@@ -114,15 +112,15 @@ Stage gimmicks:
 
 You can play with keyboard or gamepad with those inputs:
 
-| Keyboard          | Gamepad                | Action            |
-|-------------------|------------------------|-------------------|
-| Left/right arrows | D-pad left/right       | Move              |
-| Down arrow        | D-pad down             | Roll (during run) |
-| Z/C/N             | Face button up/down    | Jump              |
-| X/V/M             | Face button left/right | Cancel (menu)     |
-| Enter             | Start                  | Open pause menu  |
+| Keyboard          | Gamepad                | Action                          |
+|-------------------|------------------------|---------------------------------|
+| Left/right arrows | D-pad left/right       | Move                            |
+| Down arrow        | D-pad down             | Crouch, Roll (during run)       |
+| Z/C/N             | Face button up/down    | Jump, Spin Dash (during Crouch) |
+| X/V/M             | Face button left/right | Cancel (menu)                   |
+| Enter             | Start                  | Open pause menu                 |
 
-If you gamepad mapping is not correct, you can customize it with [SDL2 Gamepad Tool](https://www.generalarcade.com/gamepadtool) and copy-paste the configuration line into sdl_controllers.txt in PICO-8's [configuration directory](https://pico-8.fandom.com/wiki/Configuration). For instance, the Logicool Gamepad F310 had Open PICO-8 menu mapped to Right Trigger, so I remapped it to Start instead.
+If you gamepad mapping is not correct when playing with the native PC binaries, you can customize it with [SDL2 Gamepad Tool](https://www.generalarcade.com/gamepadtool) and copy-paste the configuration line into sdl_controllers.txt in PICO-8's [configuration directory](https://pico-8.fandom.com/wiki/Configuration). For instance, the Logicool Gamepad F310 had Open PICO-8 menu mapped to Right Trigger, so I remapped it to Start instead.
 
 ### Pause menu
 
@@ -136,7 +134,6 @@ In the pause menu (toggled with Enter/Start), if you are in-game, you can select
 ## Known technical issues
 
 * The player cannot control the character until the stage intro is over
-* The game slows down in some areas, reaching 30 FPS instead of 60 FPS
 * The game pauses to switch to another cartridge, esp. at the end of the stage intro (only memory reload has been patched on PICO-8 to be instant)
 * Web version: high-pitched sounds in BGM do not convey the same as in desktop/cartridge versions
 

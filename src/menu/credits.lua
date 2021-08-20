@@ -67,10 +67,10 @@ function credits:draw_credits_text()
   text_helper.print_aligned("original games", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
-  api.print("leyn", margin_x, y, text_color)
-  text_helper.print_aligned("code, sprites, sfx", 127 - margin_x, y, alignments.right, text_color)
+  api.print("leyn (komehara)", margin_x, y, text_color)
+  text_helper.print_aligned("code, sprites", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy
-  text_helper.print_aligned("bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
+  text_helper.print_aligned("sfx, bgm adjustments", 127 - margin_x, y, alignments.right, text_color)
   y = y + line_dy + paragraph_margin
 
   api.print("original 8-bit bgm by danooct1\n  thx to midi2pico by gamax92", margin_x, y, text_color)

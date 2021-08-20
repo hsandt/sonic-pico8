@@ -32,7 +32,7 @@ Works with PICO-8 0.2.2.
 
 ## Features
 
-Version: 5.3
+Version: 6.0
 
 ### Physics
 
@@ -44,6 +44,7 @@ Version: 5.3
 * Character preserves momentum on jumping and landing
 * One-way platforms
 * Spring bounce (vertical and horizontal)
+* Spin dash
 
 ### Rendering
 

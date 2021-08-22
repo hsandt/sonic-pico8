@@ -20,11 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Application: upgraded to PICO-8 0.2.2c with full binary patching and upgraded custom web template to integrate latest improvements
 - UI: press O on title menu before menu appears to make it appear immediately
 - Credits: add mention of SAGE and itch.io URL
-- Camera: use small vertical window even on ground to avoid moving when character just moves by 1px up and down (due to new bumps)
 - Stage physics: fixed last descending slope tile connecting slope and loop having no collision
 - Stage physics/visual: reworked rock sprites to be smaller
 - Stage physics/visual: offset last emerald (orange) by 5px to the right
 - Stage physics/visual: replaced very low slopes with 1px bumps that are still considered flat ground to avoid slowing down character when running on them, while keeping the funny up-and-down motion
+- Camera: use small vertical window even on ground to avoid moving when character just moves by 1px up and down (due to new bumps)
 - Stage visual: hide emerald behind leaves to make harder to find
 - Stage visual: improved forest hole lightshaft in background (now sprite instead of procedurally generated)
 - Stage visual: fixed one-way platform grass appearing in front of character

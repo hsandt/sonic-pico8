@@ -3,8 +3,8 @@ local emerald_fx = require("ingame/emerald_fx")
 
 local sprite_data = require("engine/render/sprite_data")
 
-local emerald = require("ingame/emerald")
 local fx = require("ingame/fx")
+local emerald_common = require("render/emerald_common")
 local visual = require("resources/visual_common")
 
 describe('emerald_fx', function ()
@@ -41,30 +41,30 @@ describe('emerald_fx', function ()
   describe('render', function ()
 
     setup(function ()
-      stub(emerald, "set_color_palette")
+      stub(emerald_common, "set_color_palette")
       stub(sprite_data, "render")
       stub(_G, "pal")
     end)
 
     teardown(function ()
-      emerald.set_color_palette:revert()
+      emerald_common.set_color_palette:revert()
       sprite_data.render:revert()
       pal:revert()
     end)
 
     after_each(function ()
-      emerald.set_color_palette:clear()
+      emerald_common.set_color_palette:clear()
       sprite_data.render:clear()
       pal:clear()
     end)
 
-    it('should call emerald.set_color_palette, then anim_spr:render and finally clear palette"', function ()
+    it('should call emerald_common.set_color_palette, then anim_spr:render and finally clear palette"', function ()
       local emerald_fx1 = emerald_fx(3, vector(12, 2), {["once"] = "dummy_sprite_data"})
 
       emerald_fx1:render()
 
-      assert.spy(emerald.set_color_palette).was_called(1)
-      assert.spy(emerald.set_color_palette).was_called_with(3)
+      assert.spy(emerald_common.set_color_palette).was_called(1)
+      assert.spy(emerald_common.set_color_palette).was_called_with(3)
       assert.spy(pal).was_called(1)
       assert.spy(pal).was_called_with()
     end)

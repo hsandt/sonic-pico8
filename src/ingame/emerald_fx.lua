@@ -2,7 +2,7 @@ local fx = require("ingame/fx")
 
 local emerald_fx = derived_class(fx)
 
-local emerald = require("ingame/emerald")
+local emerald_common = require("render/emerald_common")
 local visual = require("resources/visual_common")
 
 -- a simple entity with 2 components: position and animated_sprite
@@ -17,7 +17,7 @@ end
 -- render the fx with color swap matching emerald number
 function emerald_fx:render()
   -- recolor emerald based on number (see emerald.draw)
-  emerald.set_color_palette(self.number)
+  emerald_common.set_color_palette(self.number)
   self.anim_spr:render(self.position)
   pal()
 end

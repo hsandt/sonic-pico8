@@ -32,6 +32,32 @@ itest_manager:register_itest('player select credits, confirm',
 
 end)
 
+-- we still try to test start game now though, because we want to verify that the start cinematic
+--  doesn't silently crash (coroutines tend to do that)
+itest_manager:register_itest('player select start, confirm',
+    {':titlemenu'}, function ()
+
+  -- enter title menu
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':titlemenu')
+  end)
+
+  -- menu should appear within 2 seconds
+  wait(2.0)
+
+  -- player presses o to confirm 'start' (default selection)
+  short_press(button_ids.o)
+
+  -- wait a moment to cover 90% of the start cinematic
+  wait(2.0)
+
+  -- check that we are still in the titlemenu state
+  final_assert(function ()
+    return flow.curr_state.type == ':titlemenu', "current game state is not ':titlemenu', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
 -- testing entering attract mode after a long time
 itest_manager:register_itest('attract mode starts after opening jingle',
     {':titlemenu'}, function ()

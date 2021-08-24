@@ -1,13 +1,16 @@
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
+local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 
 local audio = require("resources/audio")
-local visual = require("resources/visual_common")  -- we should require titlemenu add-on in main
+local visual = require("resources/visual_common")  -- we should require visual_titlemenu add-on in main
+local ui_animation = require("ui/ui_animation")
 
 local titlemenu = derived_class(gamestate)
 
@@ -18,8 +21,9 @@ titlemenu.type = ':titlemenu'
 -- sequence of menu items to display, with their target states
 local menu_item_params = {
   {"start", function(app)
-    -- prefer passing basename for compatibility with .p8.png
-    load('picosonic_stage_intro')
+    local curr_stage_state = flow.curr_state
+    assert(curr_stage_state.type == titlemenu.type)
+    curr_stage_state:play_start_cinematic()
   end},
   {"credits", function(app)
     flow:query_gamestate_type(':credits')
@@ -27,25 +31,33 @@ local menu_item_params = {
 }
 
 -- parameters:
--- items                        {menu_item}   sequence of menu items that the menu should display
+-- items                        {menu_item}    sequence of menu items that the menu should display
 
 -- state:
--- frames_before_showing_menu     int     number of frames before showing menu. Ignored if 0.
--- should_start_attract_mode       bool    should we enter attract mode now?
--- menu                           menu    title menu showing items (only created when it must be shown)
+-- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
+-- cinematic_drawables          {sprite_object} all other drawables for the start cinematic
+-- menu                         menu            title menu showing items (only created when it must be shown)
+-- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
+-- should_start_attract_mode    bool            should we enter attract mode now?
+-- is_playing_start_cinematic   bool            are we playing the start cinematic?
 
+-- there are more members during the start cinematic, but they will be created when it starts
 function titlemenu:init()
   -- sequence of menu items to display, with their target states
   -- this could be static, but defining in init allows us to avoid
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
+  self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
+  self.cinematic_drawables = {}
+
   -- self.menu = nil  -- commented out to spare characters
 
   -- defined in on_enter anyway, but we still define it to allow utests to handle that
   --  without simulating on_enter (and titlemenu cartridge has enough space)
   self.frames_before_showing_menu = 0
   self.should_start_attract_mode = false
+  self.is_playing_start_cinematic = false
 end
 
 function titlemenu:on_enter()
@@ -57,6 +69,11 @@ function titlemenu:on_enter()
   --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
   self.frames_before_showing_menu = 96
   self.should_start_attract_mode = false
+  self.is_playing_start_cinematic = false
+
+  -- logo should be initially placed 1 tile to the right, 3 tiles to the bottom,
+  --  with its pivot at top-left
+  self.title_logo_drawable.position = vector(8, 16)
 end
 
 function titlemenu:play_opening_music_async()
@@ -89,11 +106,10 @@ end
 
 -- this is called when entering credits
 function titlemenu:on_exit()
-  -- a priori not needed, because we can only enter credits once the opening is over
-  self.is_playing_opening = false
-
   -- clear menu completely (will call GC, but fine)
   self.menu = nil
+
+  clear_table(self.cinematic_drawables)
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
@@ -101,6 +117,10 @@ function titlemenu:on_exit()
 end
 
 function titlemenu:update()
+  if self.is_playing_start_cinematic then
+    return
+  end
+
   if self.menu then
     self.menu:update()
 
@@ -137,6 +157,10 @@ function titlemenu:render()
   if self.menu then
     self.menu:draw(55, 101)
   end
+
+  for drawable in all(self.cinematic_drawables) do
+    drawable:draw()
+  end
 end
 
 function titlemenu:draw_background()
@@ -155,15 +179,50 @@ function titlemenu:draw_background()
 end
 
 function titlemenu:draw_title()
-  -- logo should be placed 1 tile to the right, 3 tiles to the bottom,
-  --  with its pivot at top-left
-  visual.sprite_data_t.title_logo:render(vector(8, 16))
+  self.title_logo_drawable:draw()
 end
 
 function titlemenu:draw_version()
   -- preprocess can now replace $variables so build_single_cartridge.sh
   --  will just pass the version string to the builder so it replaces $version here
   text_helper.print_aligned("V$version", 126, 2, alignments.right, colors.white, colors.black)
+end
+
+function titlemenu:play_start_cinematic()
+  -- hide (actually destroy) menu
+  self.menu = nil
+
+  self.is_playing_start_cinematic = true
+  self.app:start_coroutine(self.play_start_cinematic_async, self)
+end
+
+function titlemenu:play_start_cinematic_async()
+  -- multiply number of frames of 100ms in Aseprite animation by 6 to get frames of (1/60)s
+
+  -- run in parallel with emeralds entering screen, so start new coroutine from this coroutine
+  self.app:start_coroutine(self.move_title_logo_out_async, self)
+
+  yield_delay_frames(5)
+
+  local emeralds = {}
+  for i = 1, 8 do
+    local emerald = emerald_cinematic(i, vector(0, 92))
+    add(emeralds, emerald)                  -- for easier local tracking
+    add(self.cinematic_drawables, emerald)  -- for drawing
+  end
+
+  ui_animation.move_drawables_async(emeralds, vector(0, 92), vector(55, 52), 18)
+
+  yield_delay_frames(60)
+
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_stage_intro')
+end
+
+function titlemenu:move_title_logo_out_async()
+  -- move title logo up until it exists screen, and hide it
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42)
+  self.title_logo_drawable.visible = false
 end
 
 return titlemenu

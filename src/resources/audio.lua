@@ -4,9 +4,12 @@
 
 local audio = {}
 
+-- OPTIMIZE CHARS: we can split menu, stage clear and ingame sound data to reduce size of ingame cartridge
+
 audio.sfx_ids = {
+
   -- builtin_data_titlemenu and builtin_data_stage_clear only
-  menu_select = 50,
+  menu_select = 50,  -- currently no sound, as Sonic 3 didn't have one either
   menu_confirm = 51,
 
   -- builtin_data_stage_clear only

@@ -174,8 +174,8 @@ function titlemenu:render()
     local period = visual.start_cinematic_emerald_rotation_period
     -- rotation center at (64, 68) (slightly below screen center)
     -- emeralds rotate clockwise, so negative factor for t()
-    local draw_position = vector(64 + radius * cos(0.25 - (num - 1) / 8 - t() / period),
-      68 + radius * sin(0.25 - (num - 1) / 8 - t() / period))
+    local draw_position = vector(64 + radius * cos(0.25 - (num - 1) / 8 - t() / period - 7/60),
+      68 + radius * sin(0.25 - (num - 1) / 8 - t() / period - 7/60))
     -- draw at normal brightness
     emerald_common.draw(num, draw_position)
   end
@@ -225,7 +225,7 @@ function titlemenu:play_start_cinematic_async()
   -- setup all emeralds to enter on screen and start rotating
   local emeralds = {}
   for i = 1, 8 do
-    local emerald = emerald_cinematic(i, vector(0, 92))
+    local emerald = emerald_cinematic(i, vector(-4, 93))
     add(emeralds, emerald)                  -- for easier local tracking
     add(self.cinematic_drawables, emerald)  -- for drawing
     self.app:start_coroutine(self.emerald_enter_async, self, emeralds[i])
@@ -254,7 +254,7 @@ function titlemenu:emerald_enter_async(emerald)
   -- (last emerald enters last)
   -- 3 100ms-frames of lag in Aseprite, so 18 frames between successive emeralds
   yield_delay_frames(18 * (emerald.number - 1))
-  ui_animation.move_drawables_async({emerald}, vector(0, 92), vector(55, 52), 18)
+  ui_animation.move_drawables_async({emerald}, vector(-4, 93), vector(42, 47), 18)
 
   -- from here, remove emerald from normal drawables and attach it to the circle to let it
   --  be drawn with rotating circle/ellipse formula instead

@@ -17,7 +17,14 @@ local titlemenu_visual = {
     {colors.light_gray, colors.dark_blue},
     {colors.light_gray, colors.indigo},
     {colors.indigo, colors.indigo},
-  }
+  },
+
+  -- radius of emeralds rotating in circle (when full circle, not ellipse)
+  --  during start cinematic
+  start_cinematic_emerald_circle_radius = 15,
+
+  -- time taken by an emerald to make a full rotation around the clock (s)
+  start_cinematic_emerald_rotation_period = 1.6,
 }
 
 -- visuals for titlemenu only

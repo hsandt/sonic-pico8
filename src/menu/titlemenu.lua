@@ -36,6 +36,7 @@ local menu_item_params = {
 -- state:
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
 -- cinematic_drawables          {sprite_object} all other drawables for the start cinematic
+-- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
 -- should_start_attract_mode    bool            should we enter attract mode now?
@@ -50,6 +51,7 @@ function titlemenu:init()
   self.items = transform(menu_item_params, unpacking(menu_item))
   self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
   self.cinematic_drawables = {}
+  self.cinematic_emeralds_on_circle = {}
 
   -- self.menu = nil  -- commented out to spare characters
 
@@ -110,6 +112,7 @@ function titlemenu:on_exit()
   self.menu = nil
 
   clear_table(self.cinematic_drawables)
+  clear_table(self.cinematic_emeralds_on_circle)
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
@@ -161,6 +164,21 @@ function titlemenu:render()
   for drawable in all(self.cinematic_drawables) do
     drawable:draw()
   end
+
+  printh("t(): "..nice_dump(t()))
+  printh("time(): "..nice_dump(time()))
+
+  for num in all(self.cinematic_emeralds_on_circle) do
+    -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
+    local radius = visual.start_cinematic_emerald_circle_radius
+    local period = visual.start_cinematic_emerald_rotation_period
+    -- rotation center at (64, 68) (slightly below screen center)
+    -- emeralds rotate clockwise, so negative factor for t()
+    local draw_position = vector(64 + radius * cos(0.25 - (num - 1) / 8 - t() / period),
+      68 + radius * sin(0.25 - (num - 1) / 8 - t() / period))
+    -- draw at normal brightness
+    emerald_common.draw(num, draw_position)
+  end
 end
 
 function titlemenu:draw_background()
@@ -209,11 +227,10 @@ function titlemenu:play_start_cinematic_async()
     local emerald = emerald_cinematic(i, vector(0, 92))
     add(emeralds, emerald)                  -- for easier local tracking
     add(self.cinematic_drawables, emerald)  -- for drawing
+    self.app:start_coroutine(self.emerald_enter_async, self, emeralds[i])
   end
 
-  ui_animation.move_drawables_async(emeralds, vector(0, 92), vector(55, 52), 18)
-
-  yield_delay_frames(60)
+  yield_delay_frames(200)
 
   -- prefer passing basename for compatibility with .p8.png
   load('picosonic_stage_intro')
@@ -223,6 +240,19 @@ function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
   ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42)
   self.title_logo_drawable.visible = false
+end
+
+function titlemenu:emerald_enter_async(emerald)
+  -- emerald enters from bottom-left to circle top, with delay depending on emerald
+  -- (last emerald enters last)
+  -- 3 100ms-frames of lag in Aseprite, so 18 frames between successive emeralds
+  yield_delay_frames(18 * (emerald.number - 1))
+  ui_animation.move_drawables_async({emerald}, vector(0, 92), vector(55, 52), 18)
+
+  -- from here, remove emerald from normal drawables and attach it to the circle to let it
+  --  be drawn with rotating circle/ellipse formula instead
+  del(self.cinematic_drawables, emerald)
+  add(self.cinematic_emeralds_on_circle, emerald.number)
 end
 
 return titlemenu

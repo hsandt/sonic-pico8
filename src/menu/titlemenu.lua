@@ -7,7 +7,7 @@ local text_helper = require("engine/ui/text_helper")
 local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
-
+local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require visual_titlemenu add-on in main
 local ui_animation = require("ui/ui_animation")
@@ -35,6 +35,7 @@ local menu_item_params = {
 
 -- state:
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
+-- angel_island_bg_drawable     sprite_object   drawable for angel island background drawable
 -- cinematic_drawables          {sprite_object} all other drawables for the start cinematic
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- menu                         menu            title menu showing items (only created when it must be shown)
@@ -50,6 +51,7 @@ function titlemenu:init()
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
   self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
+  self.angel_island_bg_drawable = sprite_object(visual.sprite_data_t.angel_island_bg)
   self.cinematic_drawables = {}
   self.cinematic_emeralds_on_circle = {}
 
@@ -76,6 +78,7 @@ function titlemenu:on_enter()
   -- logo should be initially placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
   self.title_logo_drawable.position = vector(8, 16)
+  self.angel_island_bg_drawable.position = vector(0, 88)
 end
 
 function titlemenu:play_opening_music_async()
@@ -165,9 +168,6 @@ function titlemenu:render()
     drawable:draw()
   end
 
-  printh("t(): "..nice_dump(t()))
-  printh("time(): "..nice_dump(time()))
-
   for num in all(self.cinematic_emeralds_on_circle) do
     -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
     local radius = visual.start_cinematic_emerald_circle_radius
@@ -192,7 +192,7 @@ function titlemenu:draw_background()
   local step = min(flr(ratio * step_count) + 1, step_count)
   local new_colors = visual.water_shimmer_color_cycle[step]
   swap_colors({colors.red, colors.yellow}, new_colors)
-  visual.sprite_data_t.angel_island_bg:render(vector(0, 88))
+  self.angel_island_bg_drawable:draw()
   pal()
 end
 
@@ -222,6 +222,7 @@ function titlemenu:play_start_cinematic_async()
 
   yield_delay_frames(5)
 
+  -- setup all emeralds to enter on screen and start rotating
   local emeralds = {}
   for i = 1, 8 do
     local emerald = emerald_cinematic(i, vector(0, 92))
@@ -230,7 +231,13 @@ function titlemenu:play_start_cinematic_async()
     self.app:start_coroutine(self.emerald_enter_async, self, emeralds[i])
   end
 
-  yield_delay_frames(200)
+  yield_delay_frames(36)
+
+  -- after a short delay (first two emeralds entered), start moving island down
+  --  until it leaves screen, to simulate camera moving upward toward the sky
+  self.app:start_coroutine(self.move_island_down_async, self)
+
+  yield_delay_frames(100)
 
   -- prefer passing basename for compatibility with .p8.png
   load('picosonic_stage_intro')
@@ -253,6 +260,12 @@ function titlemenu:emerald_enter_async(emerald)
   --  be drawn with rotating circle/ellipse formula instead
   del(self.cinematic_drawables, emerald)
   add(self.cinematic_emeralds_on_circle, emerald.number)
+end
+
+function titlemenu:move_island_down_async()
+  -- move island down until it exists screen, and hide it
+  ui_animation.move_drawables_on_coord_async("y", {self.angel_island_bg_drawable}, {0}, 88, 88+36, 54)
+  -- self.title_logo_drawable.visible = false
 end
 
 return titlemenu

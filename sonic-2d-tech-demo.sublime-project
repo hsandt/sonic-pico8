@@ -83,6 +83,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data: start cinematic",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_start_cinematic.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage1 regions",
 			"shell": true,
 			"working_dir": "${project_path}",

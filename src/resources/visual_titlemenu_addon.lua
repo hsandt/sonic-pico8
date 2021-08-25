@@ -38,6 +38,11 @@ local titlemenu_sprite_data_t = {
   angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
+  -- clouds
+  cloud_big = sprite_data(sprite_id_location(0, 1), tile_vector(7, 3), nil, colors.pink),
+  cloud_medium = sprite_data(sprite_id_location(7, 1), tile_vector(4, 2), nil, colors.pink),
+  cloud_small = sprite_data(sprite_id_location(11, 1), tile_vector(3, 2), nil, colors.pink),
+  cloud_tiny = sprite_data(sprite_id_location(14, 1), tile_vector(2, 1), nil, colors.pink),
 }
 
 merge(visual, titlemenu_visual)

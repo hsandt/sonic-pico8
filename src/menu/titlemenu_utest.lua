@@ -320,11 +320,19 @@ describe('titlemenu', function ()
         assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
       end)
 
-      it('should draw version', function ()
+      it('(is_playing_start_cinematic is false) should draw version', function ()
         tm:render()
 
         assert.spy(titlemenu.draw_version).was_called(1)
         assert.spy(titlemenu.draw_version).was_called_with(match.ref(tm))
+      end)
+
+      it('(is_playing_start_cinematic is true) should not draw version', function ()
+        tm.is_playing_start_cinematic = true
+
+        tm:render()
+
+        assert.spy(titlemenu.draw_version).was_not_called()
       end)
 
       it('should not try to render menu if nil', function ()

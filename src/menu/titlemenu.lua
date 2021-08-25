@@ -36,13 +36,15 @@ local menu_item_params = {
 -- state:
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
 -- angel_island_bg_drawable     sprite_object   drawable for angel island background drawable
--- cinematic_drawables          {sprite_object} all other drawables for the start cinematic
+-- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
+-- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
 -- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
 -- should_start_attract_mode    bool            should we enter attract mode now?
 -- is_playing_start_cinematic   bool            are we playing the start cinematic?
+-- camera_y                     int             camera y used to draw world elements
 
 -- there are more members during the start cinematic, but they will be created when it starts
 function titlemenu:init()
@@ -53,7 +55,8 @@ function titlemenu:init()
   self.items = transform(menu_item_params, unpacking(menu_item))
   self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
   self.angel_island_bg_drawable = sprite_object(visual.sprite_data_t.angel_island_bg)
-  self.cinematic_drawables = {}
+  self.cinematic_drawables_world = {}
+  self.cinematic_drawables_screen = {}
   self.cinematic_emeralds_on_circle = {}
 
   -- self.menu = nil  -- commented out to spare characters
@@ -64,6 +67,7 @@ function titlemenu:init()
   -- self.start_pressed_time = nil
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
+  self.camera_y = 0
 end
 
 function titlemenu:on_enter()
@@ -116,7 +120,8 @@ function titlemenu:on_exit()
   -- clear menu completely (will call GC, but fine)
   self.menu = nil
 
-  clear_table(self.cinematic_drawables)
+  clear_table(self.cinematic_drawables_world)
+  clear_table(self.cinematic_drawables_screen)
   clear_table(self.cinematic_emeralds_on_circle)
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
@@ -159,14 +164,28 @@ end
 
 function titlemenu:render()
   self:draw_background()
+
+  -- world elements move opposite to camera
+  camera(0, self.camera_y)
+
+  for drawable in all(self.cinematic_drawables_world) do
+    drawable:draw()
+  end
+
+  -- reset camera, as title, menu
+  camera()
+
   self:draw_title()
-  self:draw_version()
+
+  if not self.is_playing_start_cinematic then
+    self:draw_version()
+  end
 
   if self.menu then
     self.menu:draw(55, 101)
   end
 
-  for drawable in all(self.cinematic_drawables) do
+  for drawable in all(self.cinematic_drawables_screen) do
     drawable:draw()
   end
 
@@ -210,6 +229,17 @@ function titlemenu:draw_version()
   text_helper.print_aligned("V$version", 126, 2, alignments.right, colors.white, colors.black)
 end
 
+-- helper: move camera y linearly along from `from` to `to` over n frames
+--  inspired by ui_animation, but specialized for 1 coord
+function titlemenu:move_camera_y_async(from, to, n)
+  for frame = 1, n do
+    -- note that alpha starts at 1 / n, not 0
+    local alpha = frame / n
+    self.camera_y = (1 - alpha) * from + alpha * to
+    yield()
+  end
+end
+
 function titlemenu:play_start_cinematic()
   -- hide (actually destroy) menu
   self.menu = nil
@@ -233,8 +263,8 @@ function titlemenu:play_start_cinematic_async()
   local emeralds = {}
   for i = 1, 8 do
     local emerald = emerald_cinematic(i, vector(-4, 93))
-    add(emeralds, emerald)                  -- for easier local tracking
-    add(self.cinematic_drawables, emerald)  -- for drawing
+    add(emeralds, emerald)                         -- for easier local tracking
+    add(self.cinematic_drawables_screen, emerald)  -- for drawing
     self.app:start_coroutine(self.emerald_enter_async, self, emeralds[i])
   end
 
@@ -243,6 +273,32 @@ function titlemenu:play_start_cinematic_async()
   -- after a short delay (first two emeralds entered), start moving island down
   --  until it leaves screen, to simulate camera moving upward toward the sky
   self.app:start_coroutine(self.move_island_down_async, self)
+
+  -- we're gonna start showing clouds now, and the title logo must have been hidden by this point,
+  --  so it's safe to reload spritesheet from the start_cinematic data cartridge, which contains
+  --  extra sprites we didn't have room for in the builtin titlemenu data because of the big title
+  --  logo
+  -- for now we just use upper sprites, but to simplify just reload the whole spritesheet
+  --  (it contains a copy of pico island, so it won't disappear)
+  reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
+
+  -- add drawable clouds high in the sky
+  local cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, vector(12, 9 - 256))
+  local cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, vector(72, 32 - 256))
+  local cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, vector(8, 51 - 256))
+  local cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, vector(49, 60 - 256))
+  local cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, vector(90, 70 - 256))
+  local cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, vector(27, 74 - 256))
+
+  local clouds = {cloud_big1, cloud_big2, cloud_medium1, cloud_medium2, cloud_small, cloud_tiny}
+
+  for cloud in all(clouds) do
+    add(self.cinematic_drawables_world, cloud)  -- for drawing
+  end
+
+  -- self.app:start_coroutine(self.move_camera_y_async, self)
+  -- move camera y toward negative to look up the sky
+  self:move_camera_y_async(0, -5 * 128, 300)
 
   yield_delay_frames(100)
 
@@ -273,7 +329,7 @@ function titlemenu:emerald_enter_async(emerald)
   -- therefore, by delaying the next emerald by this number, we can make sure that it will arrive
   --  right in time to fill the next slot on the circle, 1/8 angle after the previous emerald
   local period = visual.start_cinematic_emerald_rotation_period
-  local next_emerald_delay = (7.5 * period
+  local next_emerald_delay = 7.5 * period
   yield_delay_frames(next_emerald_delay * (8 - emerald.number))
   -- the entrance duration doesn't need to be next_emerald_delay,
   --  but this way we're sure that the next emerald enters screen at soon as the previous one
@@ -284,7 +340,7 @@ function titlemenu:emerald_enter_async(emerald)
 
   -- from here, remove emerald from normal drawables and attach it to the circle to let it
   --  be drawn with rotating circle/ellipse formula instead
-  del(self.cinematic_drawables, emerald)
+  del(self.cinematic_drawables_screen, emerald)
   add(self.cinematic_emeralds_on_circle, emerald.number)
 end
 

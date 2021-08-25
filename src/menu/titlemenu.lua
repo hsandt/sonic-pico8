@@ -40,6 +40,7 @@ local menu_item_params = {
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
+-- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
 -- should_start_attract_mode    bool            should we enter attract mode now?
 -- is_playing_start_cinematic   bool            are we playing the start cinematic?
 
@@ -60,6 +61,7 @@ function titlemenu:init()
   -- defined in on_enter anyway, but we still define it to allow utests to handle that
   --  without simulating on_enter (and titlemenu cartridge has enough space)
   self.frames_before_showing_menu = 0
+  -- self.start_pressed_time = nil
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
 end
@@ -174,8 +176,10 @@ function titlemenu:render()
     local period = visual.start_cinematic_emerald_rotation_period
     -- rotation center at (64, 68) (slightly below screen center)
     -- emeralds rotate clockwise, so negative factor for t()
-    local draw_position = vector(64 + radius * cos(0.25 - (num - 1) / 8 - t() / period - 7/60),
-      68 + radius * sin(0.25 - (num - 1) / 8 - t() / period - 7/60))
+    -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
+    -- (num - 1) / 8 is to place emeralds at uniform angular distance on the circle
+    local angle = -0.6 - (num - 1) / 8 - (t() - self.start_pressed_time) / period
+    local draw_position = vector(64 + radius * cos(angle), 68 + radius * sin(angle))
     -- draw at normal brightness
     emerald_common.draw(num, draw_position)
   end
@@ -215,6 +219,9 @@ function titlemenu:play_start_cinematic()
 end
 
 function titlemenu:play_start_cinematic_async()
+  -- record start time to work with stable time from start
+  self.start_pressed_time = t()
+
   -- multiply number of frames of 100ms in Aseprite animation by 6 to get frames of (1/60)s
 
   -- run in parallel with emeralds entering screen, so start new coroutine from this coroutine
@@ -240,7 +247,11 @@ function titlemenu:play_start_cinematic_async()
   yield_delay_frames(100)
 
   -- prefer passing basename for compatibility with .p8.png
-  load('picosonic_stage_intro')
+  -- load('picosonic_stage_intro')
+
+  -- infinite loop to test
+  self:on_exit()
+  self.app:start_coroutine(self.play_start_cinematic_async, self)
 end
 
 function titlemenu:move_title_logo_out_async()
@@ -253,8 +264,23 @@ function titlemenu:emerald_enter_async(emerald)
   -- emerald enters from bottom-left to circle top, with delay depending on emerald
   -- (last emerald enters last)
   -- 3 100ms-frames of lag in Aseprite, so 18 frames between successive emeralds
-  yield_delay_frames(18 * (emerald.number - 1))
-  ui_animation.move_drawables_async({emerald}, vector(-4, 93), vector(42, 47), 18)
+
+  -- angular speed: 1 / period
+  -- angular distance of 1/8 (distance between emeralds) is traversed in:
+  --  1/8 / (1/period) = period / 8
+  -- or in frames:
+  --  60 * period / 8 = 7.5 * period
+  -- therefore, by delaying the next emerald by this number, we can make sure that it will arrive
+  --  right in time to fill the next slot on the circle, 1/8 angle after the previous emerald
+  local period = visual.start_cinematic_emerald_rotation_period
+  local next_emerald_delay = (7.5 * period
+  yield_delay_frames(next_emerald_delay * (8 - emerald.number))
+  -- the entrance duration doesn't need to be next_emerald_delay,
+  --  but this way we're sure that the next emerald enters screen at soon as the previous one
+  --  reached the circle, and that the entrance duration is proportional to period,
+  --  so the initial offset of circle angle in render will always match so the emerald will start
+  --  moving on the circle from where it arrived tangentially
+  ui_animation.move_drawables_async({emerald}, vector(-4, 93), vector(42, 47), next_emerald_delay)
 
   -- from here, remove emerald from normal drawables and attach it to the circle to let it
   --  be drawn with rotating circle/ellipse formula instead

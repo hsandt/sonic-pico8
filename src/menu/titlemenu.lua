@@ -35,7 +35,8 @@ local menu_item_params = {
 
 -- state:
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
--- angel_island_bg_drawable     sprite_object   drawable for angel island background drawable
+-- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
+--                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
@@ -54,7 +55,8 @@ function titlemenu:init()
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
   self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
-  self.angel_island_bg_drawable = sprite_object(visual.sprite_data_t.angel_island_bg)
+  -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
+  self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}
   self.cinematic_emeralds_on_circle = {}
@@ -84,7 +86,10 @@ function titlemenu:on_enter()
   -- logo should be initially placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
   self.title_logo_drawable.position = vector(8, 16)
-  self.angel_island_bg_drawable.position = vector(0, 88)
+  -- place angel island at the bottom of the screen
+  self.drawables_sea[1].position = vector(0, 88)
+  -- hide reverse horizon for now
+  self.drawables_sea[2].visible = false
 end
 
 function titlemenu:play_opening_music_async()
@@ -168,6 +173,8 @@ function titlemenu:render()
   -- world elements move opposite to camera
   camera(0, self.camera_y)
 
+  self:draw_sea_drawables()
+
   for drawable in all(self.cinematic_drawables_world) do
     drawable:draw()
   end
@@ -206,6 +213,9 @@ end
 
 function titlemenu:draw_background()
   rectfill(0, 0, 128, 128, colors.dark_blue)
+end
+
+function titlemenu:draw_sea_drawables()
   -- water shimmer color cycle (in red and yellow in the original sprite)
   local period = visual.water_shimmer_period
   local ratio = (t() % period) / period
@@ -215,8 +225,27 @@ function titlemenu:draw_background()
   local step = min(flr(ratio * step_count) + 1, step_count)
   local new_colors = visual.water_shimmer_color_cycle[step]
   swap_colors({colors.red, colors.yellow}, new_colors)
-  self.angel_island_bg_drawable:draw()
+
+  for sea_drawable in all(self.drawables_sea) do
+    sea_drawable:draw()
+  end
+
   pal()
+
+  -- DEBUG horizon lines
+  local full_loop_height = 1296 + tuned("full loop dy x16") * 16
+  -- front
+  line(0, 64 + 52, 128, 64 + 52, colors.green)
+  -- front clouds
+  line(0, 64 + 52 - full_loop_height / 6, 128, 64 + 52 - full_loop_height / 6, colors.green)
+  -- top
+  line(0, 64 + 52 - full_loop_height / 4, 128, 64 + 52 - full_loop_height / 4, colors.green)
+  -- back clouds
+  line(0, 64 + 52 - full_loop_height / 4 - (full_loop_height / 12), 128, 64 + 52 - full_loop_height / 4 - (full_loop_height / 12), colors.green)
+  -- back
+  line(0, 64 + 52 - full_loop_height / 2, 128, 64 + 52 - full_loop_height / 2, colors.green)
+  -- bottom
+  line(0, 64 + 52 - full_loop_height * 3 / 4, 128, 64 + 52 - full_loop_height * 3 / 4, colors.green)
 end
 
 function titlemenu:draw_title()
@@ -249,6 +278,27 @@ function titlemenu:play_start_cinematic()
 end
 
 function titlemenu:play_start_cinematic_async()
+  -- we're going to rotate the camera pitch from 0, upward with full turn 360 degrees
+  -- we're gonna place milestones using the fact that angle is propertional to distance on the horizon
+  --  sphere, and make the assumption that islands and clouds are on that sphere
+  --  (in reality clouds must be farther, but that should help)
+  -- let's define parameters to guide us in the coming camera motion
+
+  -- if we unroll a vertical line tracing what the screen center looks at on the horizon sphere,
+  --  we get a band of a certain length, which is the vertical period of the camera
+  --  (that is, after that many pixels of motion upward, we can see the island again at exactly the
+  --  same position)
+  local full_loop_height = 1296 + tuned("full loop dy x16") * 16
+  -- angel island is at the bottom of the screen, so actually to have the water horizon exactly
+  --  at screen center, by looking at the sprite, we see we should move camera down by 52
+  --  but that's to place the camera center, at y=64 on the horizon line, so actual objects
+  --  should use y0 = 64 + 52 = 116
+  local perfect_horizon_y = 116
+
+  -- angel island is initially at y = 88, so remove full height to see it again when moving camera
+  --  up by full loop height
+  local island_full_loop_new_y = 88 - full_loop_height
+
   -- record start time to work with stable time from start
   self.start_pressed_time = t()
 
@@ -270,9 +320,11 @@ function titlemenu:play_start_cinematic_async()
 
   yield_delay_frames(36)
 
-  -- after a short delay (first two emeralds entered), start moving island down
-  --  until it leaves screen, to simulate camera moving upward toward the sky
-  self.app:start_coroutine(self.move_island_down_async, self)
+  -- after a short delay (first two emeralds entered), start moving camera y toward negative
+  --  to look up the sky
+  -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
+  self.app:start_coroutine(self.move_camera_y_async, self, 0, island_full_loop_new_y - 88, tuned("camera time", 700))
+
 
   -- we're gonna start showing clouds now, and the title logo must have been hidden by this point,
   --  so it's safe to reload spritesheet from the start_cinematic data cartridge, which contains
@@ -283,30 +335,67 @@ function titlemenu:play_start_cinematic_async()
   reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
 
   -- add drawable clouds high in the sky
-  local cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, vector(12, 9 - 256))
-  local cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, vector(72, 32 - 256))
-  local cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, vector(8, 51 - 256))
-  local cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, vector(49, 60 - 256))
-  local cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, vector(90, 70 - 256))
-  local cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, vector(27, 74 - 256))
 
-  local clouds = {cloud_big1, cloud_big2, cloud_medium1, cloud_medium2, cloud_small, cloud_tiny}
+  -- first batch of clouds are located around 1/6 of the circle (60 degrees)
+  local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
+  local cloud_positions = {
+    vector(12, front_clouds_base_y + 9),
+    vector(72, front_clouds_base_y + 32),
+    vector(8, front_clouds_base_y + 51),
+    vector(49, front_clouds_base_y + 60),
+    vector(90, front_clouds_base_y + 70),
+    vector(27, front_clouds_base_y + 74),
+  }
+
+  local cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, cloud_positions[1])
+  local cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, cloud_positions[2])
+  local cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[3])
+  local cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[4])
+  local cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[5])
+  local cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, cloud_positions[6])
+
+  -- cloud must be symmetrical relative to top of the horizon sphere,
+  --  which is located at a quarter of a full circle (90 degrees)
+  -- so two get the symmetrical, you must do 2*symmetry_distance - y,
+  --  and 2*symmetry_distance = 2 * (perfect_horizon_y -full_loop_height / 4) = 2 * perfect_horizon_y -full_loop_height / 2
+  local cloud_symmetry_y = 2 * perfect_horizon_y - full_loop_height / 2
+  local reverse_cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, vector(cloud_positions[1].x, cloud_symmetry_y - cloud_positions[1].y))
+  local reverse_cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, vector(cloud_positions[2].x, cloud_symmetry_y - cloud_positions[2].y))
+  local reverse_cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[3].x, cloud_symmetry_y - cloud_positions[3].y))
+  local reverse_cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[4].x, cloud_symmetry_y - cloud_positions[4].y))
+  local reverse_cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[5].x, cloud_symmetry_y - cloud_positions[5].y))
+  local reverse_cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, vector(cloud_positions[6].x, cloud_symmetry_y - cloud_positions[6].y))
+
+  local clouds = {cloud_big1, cloud_big2, cloud_medium1, cloud_medium2, cloud_small, cloud_tiny,
+    reverse_cloud_big1, reverse_cloud_big2, reverse_cloud_medium1, reverse_cloud_medium2, reverse_cloud_small, reverse_cloud_tiny}
 
   for cloud in all(clouds) do
     add(self.cinematic_drawables_world, cloud)  -- for drawing
   end
 
-  -- self.app:start_coroutine(self.move_camera_y_async, self)
-  -- move camera y toward negative to look up the sky
-  self:move_camera_y_async(0, -5 * 128, 300)
+  -- wait a little more to make sure angel island leaves screen and we can warp it to its new position
+  yield_delay_frames(30)
 
-  yield_delay_frames(100)
+  -- horizon behind, it is seen upside down since camera did a complete 180 pitch turn
+  -- reverse horizon is located at 180 degrees, so half-way of the full circle
+  --  + some offset since the exact horizon line depends on the sprite
+  -- the reserve horizon sprite itself shows the horizon line 14 pixels below the top-left pivot
+  --  so we must draw it 14 pixels above screen center (64) so this matches the reverse horizon
+  self.drawables_sea[2].position.y = perfect_horizon_y- 14 - full_loop_height / 2
+  -- remember to make it visible
+  self.drawables_sea[2].visible = true
+
+  -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
+  self.drawables_sea[1].position.y = island_full_loop_new_y
+
+  yield_delay_frames(tuned("wait", 800))
 
   -- prefer passing basename for compatibility with .p8.png
   -- load('picosonic_stage_intro')
 
   -- infinite loop to test
   self:on_exit()
+  self:on_enter()
   self.app:start_coroutine(self.play_start_cinematic_async, self)
 end
 
@@ -342,12 +431,6 @@ function titlemenu:emerald_enter_async(emerald)
   --  be drawn with rotating circle/ellipse formula instead
   del(self.cinematic_drawables_screen, emerald)
   add(self.cinematic_emeralds_on_circle, emerald.number)
-end
-
-function titlemenu:move_island_down_async()
-  -- move island down until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.angel_island_bg_drawable}, {0}, 88, 88+36, 54)
-  -- self.title_logo_drawable.visible = false
 end
 
 return titlemenu

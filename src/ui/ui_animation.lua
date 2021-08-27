@@ -7,6 +7,7 @@ local coords = {'x', 'y'}
 -- coord_offsets allow to offset drawables relatively to a and b while keeping drawable motions in sync
 --  (coord_offsets list is indexed by index of drawable in drawables)
 function ui_animation.move_drawables_on_coord_async(coord, drawables, coord_offsets, a, b, n)
+  assert(#drawables > 0, "expected at least 1 drawable, but drawables is empty")
   for frame = 1, n do
     -- note that alpha starts at 1 / n, not 0
     -- this is because we expect our drawable to be drawn at the start position first,

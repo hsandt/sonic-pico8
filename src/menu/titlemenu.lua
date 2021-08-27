@@ -344,9 +344,9 @@ function titlemenu:play_start_cinematic()
   self.app:start_coroutine(self.play_start_cinematic_async, self)
 
   -- quick advance to end
-  for i=1,60*(12+tuned("skip (s)", 0)) do
-    self.app:update()
-  end
+  -- for i=1,60*(12+tuned("skip (s)", 0)) do
+  --   self.app:update()
+  -- end
 end
 
 function titlemenu:play_start_cinematic_async()
@@ -466,6 +466,10 @@ function titlemenu:play_start_cinematic_async()
 
   self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
 
+  yield_delay_frames(84 + tuned("wait sonic jump dt", 0))
+
+  self:sonic_jump_into_island_async()
+
   yield_delay_frames(tuned("wait loop (s)", 5) * 60)
 
   -- prefer passing basename for compatibility with .p8.png
@@ -576,6 +580,42 @@ function titlemenu:create_and_move_tails_plane_across_sky()
   --  (ui_animation helpers only work with drawable so we'd need to write our own
   --  loop, although move_camera_y_async did it, this one will be useful for complex
   --  tweens while tails plane always moves linearly)
+end
+
+function titlemenu:sonic_jump_into_island_async()
+  -- remove sonic standing on plane
+  self.is_sonic_on_plane = false
+
+  -- sonic spin tiny pivot has also been set to match previous standing position,
+  --  and hence the plane
+  -- make sure to copy vector or plane will follow Sonic jumping!
+  local sonic_jumping = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position:copy())
+  add(self.cinematic_drawables_screen, sonic_jumping)
+
+  -- due to the nature of jumping, it's easier to handle X and Y separately
+  self.app:start_coroutine(self.sonic_jump_move_x_async, self, sonic_jumping)
+  self.app:start_coroutine(self.sonic_jump_move_y_async, self, sonic_jumping)
+end
+
+function titlemenu:sonic_jump_move_x_async(sonic_jumping)
+  ui_animation.move_drawables_on_coord_async("x", {sonic_jumping}, {0}, self.tails_plane_position.x, 73, 60)
+end
+
+function titlemenu:sonic_jump_move_y_async(sonic_jumping)
+  -- upward
+  local initial_y = self.tails_plane_position.y
+  ui_animation.move_drawables_on_coord_async("y", {sonic_jumping}, {0}, initial_y, initial_y - 2, 6)
+  -- downward
+  ui_animation.move_drawables_on_coord_async("y", {sonic_jumping}, {0}, initial_y - 2, 110, 54)
+
+  -- as a hack, reuse emerald fx which is just a star, for Sonic landing fx
+  -- Sonic is blue, which corresponds to emerald number 5, so pass 5
+  --  to get a blue star
+  local pfx = emerald_fx(5, sonic_jumping.position)
+  add(self.emerald_landing_fxs, pfx)
+
+  -- remove sonic jumping sprite, now replaced by star
+  del(self.cinematic_drawables_screen, sonic_jumping)
 end
 
 return titlemenu

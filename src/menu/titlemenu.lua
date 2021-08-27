@@ -4,6 +4,8 @@ local gamestate = require("engine/application/gamestate")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
+-- it's called ingame, but actually shared with menu
+local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
@@ -39,7 +41,9 @@ local menu_item_params = {
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
+-- emeralds                     {emerald_cinematic} emerald cinematic sprites (drawable), stored for manual handling
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
+-- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
 -- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
@@ -59,7 +63,9 @@ function titlemenu:init()
   self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}
+  self.emeralds = {}
   self.cinematic_emeralds_on_circle = {}
+  self.emerald_landing_fxs = {}
 
   -- self.menu = nil  -- commented out to spare characters
 
@@ -127,7 +133,9 @@ function titlemenu:on_exit()
 
   clear_table(self.cinematic_drawables_world)
   clear_table(self.cinematic_drawables_screen)
+  clear_table(self.emeralds)
   clear_table(self.cinematic_emeralds_on_circle)
+  clear_table(self.emerald_landing_fxs)
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
@@ -136,6 +144,7 @@ end
 
 function titlemenu:update()
   if self.is_playing_start_cinematic then
+    self:update_fx()
     return
   end
 
@@ -162,6 +171,26 @@ function titlemenu:update()
     end
   end
 end
+
+function titlemenu:update_fx()
+  local to_delete = {}
+
+  for pfx in all(self.emerald_landing_fxs) do
+    pfx:update()
+
+    if not pfx:is_active() then
+      add(to_delete, pfx)
+    end
+  end
+
+  -- normally we should deactivate pfx and reuse it for pooling,
+  --  but deleting them was simpler (fewer characters) and single-time operation
+  --- so CPU cost is OK
+  for pfx in all(to_delete) do
+    del(self.emerald_landing_fxs, pfx)
+  end
+end
+
 
 function titlemenu:start_attract_mode()
     load('picosonic_attract_mode')
@@ -197,18 +226,25 @@ function titlemenu:render()
   end
 
   for num in all(self.cinematic_emeralds_on_circle) do
-    -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
-    local radius = visual.start_cinematic_emerald_circle_radius
-    local period = visual.start_cinematic_emerald_rotation_period
-    -- rotation center at (64, 68) (slightly below screen center)
-    -- emeralds rotate clockwise, so negative factor for t()
-    -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
-    -- (num - 1) / 8 is to place emeralds at uniform angular distance on the circle
-    local angle = -0.6 - (num - 1) / 8 - (t() - self.start_pressed_time) / period
-    local draw_position = vector(64 + radius * cos(angle), 68 + radius * sin(angle))
+    local draw_position = self:calculate_emerald_position_on_circle(num)
     -- draw at normal brightness
     emerald_common.draw(num, draw_position)
   end
+
+  self:draw_fx()
+end
+
+function titlemenu:calculate_emerald_position_on_circle(number)
+  -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
+  local radius = visual.start_cinematic_emerald_circle_radius
+  local period = visual.start_cinematic_emerald_rotation_period
+  -- rotation center at (64, 68) (slightly below screen center)
+  -- emeralds rotate clockwise, so negative factor for t()
+  -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
+  -- (number - 1) / 8 is to place emeralds at uniform angular distance on the circle
+  local angle = -0.6 - (number - 1) / 8 - (t() - self.start_pressed_time) / period
+  local draw_position = vector(64 + radius * cos(angle), 68 + radius * sin(angle))
+  return draw_position
 end
 
 function titlemenu:draw_background()
@@ -233,7 +269,7 @@ function titlemenu:draw_sea_drawables()
   pal()
 
   -- DEBUG horizon lines
-  local full_loop_height = 1296 + tuned("full loop dy x16") * 16
+  local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
   -- front
   line(0, 64 + 52, 128, 64 + 52, colors.green)
   -- front clouds
@@ -246,6 +282,12 @@ function titlemenu:draw_sea_drawables()
   line(0, 64 + 52 - full_loop_height / 2, 128, 64 + 52 - full_loop_height / 2, colors.green)
   -- bottom
   line(0, 64 + 52 - full_loop_height * 3 / 4, 128, 64 + 52 - full_loop_height * 3 / 4, colors.green)
+end
+
+function titlemenu:draw_fx()
+  for pfx in all(self.emerald_landing_fxs) do
+    pfx:render()
+  end
 end
 
 function titlemenu:draw_title()
@@ -275,6 +317,11 @@ function titlemenu:play_start_cinematic()
 
   self.is_playing_start_cinematic = true
   self.app:start_coroutine(self.play_start_cinematic_async, self)
+
+  -- quick advance to end
+  for i=1,60*(12+tuned("skip (s)", 0)) do
+    self.app:update()
+  end
 end
 
 function titlemenu:play_start_cinematic_async()
@@ -288,7 +335,7 @@ function titlemenu:play_start_cinematic_async()
   --  we get a band of a certain length, which is the vertical period of the camera
   --  (that is, after that many pixels of motion upward, we can see the island again at exactly the
   --  same position)
-  local full_loop_height = 1296 + tuned("full loop dy x16") * 16
+  local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
   -- angel island is at the bottom of the screen, so actually to have the water horizon exactly
   --  at screen center, by looking at the sprite, we see we should move camera down by 52
   --  but that's to place the camera center, at y=64 on the horizon line, so actual objects
@@ -310,12 +357,11 @@ function titlemenu:play_start_cinematic_async()
   yield_delay_frames(5)
 
   -- setup all emeralds to enter on screen and start rotating
-  local emeralds = {}
   for i = 1, 8 do
     local emerald = emerald_cinematic(i, vector(-4, 93))
-    add(emeralds, emerald)                         -- for easier local tracking
+    add(self.emeralds, emerald)                    -- for easier tracking
     add(self.cinematic_drawables_screen, emerald)  -- for drawing
-    self.app:start_coroutine(self.emerald_enter_async, self, emeralds[i])
+    self.app:start_coroutine(self.emerald_enter_async, self, self.emeralds[i])
   end
 
   yield_delay_frames(36)
@@ -323,8 +369,7 @@ function titlemenu:play_start_cinematic_async()
   -- after a short delay (first two emeralds entered), start moving camera y toward negative
   --  to look up the sky
   -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
-  self.app:start_coroutine(self.move_camera_y_async, self, 0, island_full_loop_new_y - 88, tuned("camera time", 700))
-
+  self.app:start_coroutine(self.move_camera_y_async, self, 0, island_full_loop_new_y - 88, 700 + tuned("camera dt", 0))
 
   -- we're gonna start showing clouds now, and the title logo must have been hidden by this point,
   --  so it's safe to reload spritesheet from the start_cinematic data cartridge, which contains
@@ -388,7 +433,11 @@ function titlemenu:play_start_cinematic_async()
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
-  yield_delay_frames(tuned("wait", 800))
+  yield_delay_frames(tuned("wait 1", 700))
+
+  self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
+
+  yield_delay_frames(tuned("wait 2", 200))
 
   -- prefer passing basename for compatibility with .p8.png
   -- load('picosonic_stage_intro')
@@ -396,7 +445,8 @@ function titlemenu:play_start_cinematic_async()
   -- infinite loop to test
   self:on_exit()
   self:on_enter()
-  self.app:start_coroutine(self.play_start_cinematic_async, self)
+  self.app:stop_all_coroutines()
+  self:play_start_cinematic()
 end
 
 function titlemenu:move_title_logo_out_async()
@@ -405,20 +455,23 @@ function titlemenu:move_title_logo_out_async()
   self.title_logo_drawable.visible = false
 end
 
+-- precompute helper constants
+-- angular speed: 1 / period
+-- angular distance of 1/8 (distance between emeralds) is traversed in:
+--  1/8 / (1/period) = period / 8
+-- or in frames:
+--  60 * period / 8 = 7.5 * period
+-- therefore, by delaying the next emerald by this number, we can make sure that it will arrive
+--  right in time to fill the next slot on the circle, 1/8 angle after the previous emerald
+local period = visual.start_cinematic_emerald_rotation_period
+local next_emerald_delay = 7.5 * period
+
 function titlemenu:emerald_enter_async(emerald)
   -- emerald enters from bottom-left to circle top, with delay depending on emerald
   -- (last emerald enters last)
   -- 3 100ms-frames of lag in Aseprite, so 18 frames between successive emeralds
 
-  -- angular speed: 1 / period
-  -- angular distance of 1/8 (distance between emeralds) is traversed in:
-  --  1/8 / (1/period) = period / 8
-  -- or in frames:
-  --  60 * period / 8 = 7.5 * period
-  -- therefore, by delaying the next emerald by this number, we can make sure that it will arrive
-  --  right in time to fill the next slot on the circle, 1/8 angle after the previous emerald
-  local period = visual.start_cinematic_emerald_rotation_period
-  local next_emerald_delay = 7.5 * period
+
   yield_delay_frames(next_emerald_delay * (8 - emerald.number))
   -- the entrance duration doesn't need to be next_emerald_delay,
   --  but this way we're sure that the next emerald enters screen at soon as the previous one
@@ -432,5 +485,55 @@ function titlemenu:emerald_enter_async(emerald)
   del(self.cinematic_drawables_screen, emerald)
   add(self.cinematic_emeralds_on_circle, emerald.number)
 end
+
+function titlemenu:emeralds_fly_to_island_async()
+  -- one by one, the emeralds leave the circle and fly toward a predetermined destination
+  --  on the island, shrinking and landing with a star
+  -- this time we'll put the delay inside the loop, before coroutine start,
+  --  so delays will be small, but cumulated, so make sure to iterate
+  --  chronologically, ie starting with emerald 8, the first to land
+  for i = 8, 1, -1 do
+    self.app:start_coroutine(self.emerald_fly_to_island_async, self, self.emeralds[i])
+    yield_delay_frames(next_emerald_delay)
+  end
+end
+
+local emerald_landing_positions = {
+  -- on-screen coordinates, somewhere on Angel Island sprite
+  -- the coordinates broadly correspond to where emeralds are in the level,
+  --  assuming we're facing the island like the stage (can be used as a small hint...)
+  -- the coordinates have been placed in Aseprite
+  vector(68, 111),  -- red
+  vector(71, 108),  -- peach
+  vector(72, 114),  -- pink
+  vector(76, 108),  -- indigo
+  vector(84, 110),  -- blue
+  vector(80, 112),  -- yellow
+  vector(89, 111),  -- green
+  vector(86, 114),  -- orange
+}
+
+function titlemenu:emerald_fly_to_island_async(emerald)
+  -- detach emerald from circle, readd to free screen drawables
+  del(self.cinematic_emeralds_on_circle, emerald.number)
+  add(self.cinematic_drawables_screen, emerald)
+
+  -- calculate position on emerald circle at current time
+  --  so we can interpolate from the same position for continuous motion
+  local circle_position = self:calculate_emerald_position_on_circle(emerald.number)
+  -- this time, here is no relationship between emeralds, they don't chain, so we picked a delay
+  -- for motion that's longer than next_emerald_delay
+  ui_animation.move_drawables_async({emerald}, circle_position, emerald_landing_positions[emerald.number], 24)
+
+  -- hide emerald
+  del(self.cinematic_drawables_screen, emerald)
+
+  -- add emerald landing FX at emerald landing position and play it immediately
+  -- note that interpolation is over, so emerald.position == emerald_landing_positions[emerald.number]
+  assert(emerald.position == emerald_landing_positions[emerald.number])
+  local pfx = emerald_fx(emerald.number, emerald.position)
+  add(self.emerald_landing_fxs, pfx)
+end
+
 
 return titlemenu

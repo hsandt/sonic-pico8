@@ -19,7 +19,7 @@ itest_manager:register_itest('#solo player select start, confirm',
   short_press(button_ids.o)
 
   -- wait a moment to cover 90% of the start cinematic
-  wait(2.0)
+  wait(20.0)
 
   -- check that we are still in the titlemenu state
   final_assert(function ()

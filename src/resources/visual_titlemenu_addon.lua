@@ -1,5 +1,6 @@
 local visual = require("resources/visual_common")
 
+local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 
 local titlemenu_visual = {
@@ -45,7 +46,32 @@ local titlemenu_sprite_data_t = {
   cloud_medium = sprite_data(sprite_id_location(7, 1), tile_vector(4, 2), vector(0, 6), colors.pink),
   cloud_small = sprite_data(sprite_id_location(11, 1), tile_vector(3, 2), vector(0, 4), colors.pink),
   cloud_tiny = sprite_data(sprite_id_location(14, 1), tile_vector(2, 1), vector(0, 4), colors.pink),
+
+  tails_plane1 = sprite_data(sprite_id_location(0, 10), tile_vector(2, 1), vector(6, 2), colors.pink),
+  tails_plane2 = sprite_data(sprite_id_location(2, 10), tile_vector(2, 1), vector(6, 2), colors.pink),
+  tails_plane3 = sprite_data(sprite_id_location(4, 10), tile_vector(2, 1), vector(6, 2), colors.pink),
+  tails_plane4 = sprite_data(sprite_id_location(6, 10), tile_vector(2, 1), vector(6, 2), colors.pink),
+  sonic_tiny = sprite_data(sprite_id_location(0, 9), nil, vector(2, 5), colors.pink),
+  sonic_spin_tiny = sprite_data(sprite_id_location(1, 9), nil, vector(3, 3), colors.pink),
+}
+
+local titlemenu_animated_sprite_data_t = {
+  tails_plane = {
+    -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
+    --  but this will actually be minified and therefore very compact (as names are not protected)
+    ["loop"] = animated_sprite_data(
+      {
+        titlemenu_sprite_data_t.tails_plane1,
+        titlemenu_sprite_data_t.tails_plane2,
+        titlemenu_sprite_data_t.tails_plane3,
+        titlemenu_sprite_data_t.tails_plane4
+      },
+      6,  -- TUNE
+      anim_loop_modes.loop
+    )
+  },
 }
 
 merge(visual, titlemenu_visual)
 merge(visual.sprite_data_t, titlemenu_sprite_data_t)
+merge(visual.animated_sprite_data_t, titlemenu_animated_sprite_data_t)

@@ -72,7 +72,7 @@ visual.animated_sprite_data_t = {
         sprite_data_t.emerald_pick_fx4
       },
       5,
-      2  -- anim_loop_modes.freeze_last (just to sport forgotten fx clear easily)
+      2  -- anim_loop_modes.freeze_last (just to spot forgotten fx clear easily)
     )
   },
 }

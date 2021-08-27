@@ -1,6 +1,7 @@
 local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local animated_sprite = require("engine/render/animated_sprite")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
@@ -44,6 +45,9 @@ local menu_item_params = {
 -- emeralds                     {emerald_cinematic} emerald cinematic sprites (drawable), stored for manual handling
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
+-- tails_plane                  animated_sprite tails plane animated sprite
+-- tails_plane_position         vector          tails plane position
+-- is_sonic_on_plane            bool            if true, draw Sonic standing on plane
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
 -- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
@@ -66,6 +70,9 @@ function titlemenu:init()
   self.emeralds = {}
   self.cinematic_emeralds_on_circle = {}
   self.emerald_landing_fxs = {}
+  -- self.tails_plane = nil
+  -- self.tails_plane_position = nil
+  self.is_sonic_on_plane = false
 
   -- self.menu = nil  -- commented out to spare characters
 
@@ -136,6 +143,9 @@ function titlemenu:on_exit()
   clear_table(self.emeralds)
   clear_table(self.cinematic_emeralds_on_circle)
   clear_table(self.emerald_landing_fxs)
+  self.tails_plane = nil
+  self.tails_plane_position = nil
+  self.is_sonic_on_plane = false
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
@@ -145,6 +155,12 @@ end
 function titlemenu:update()
   if self.is_playing_start_cinematic then
     self:update_fx()
+
+    if self.tails_plane_position then
+      -- tune plane speed here
+      self.tails_plane_position.x = self.tails_plane_position.x - tuned("plane spd x0.5", 1) * 0.5
+    end
+
     return
   end
 
@@ -232,6 +248,15 @@ function titlemenu:render()
   end
 
   self:draw_fx()
+
+  if self.tails_plane then
+    self.tails_plane:render(self.tails_plane_position)
+    if self.is_sonic_on_plane then
+      -- we matched Sonic and Tails plane's pivot, so placing Sonic exactly there
+      --  will ensure that Sonic is standing at the right position
+      visual.sprite_data_t.sonic_tiny:render(self.tails_plane_position)
+    end
+  end
 end
 
 function titlemenu:calculate_emerald_position_on_circle(number)
@@ -426,18 +451,22 @@ function titlemenu:play_start_cinematic_async()
   --  + some offset since the exact horizon line depends on the sprite
   -- the reserve horizon sprite itself shows the horizon line 14 pixels below the top-left pivot
   --  so we must draw it 14 pixels above screen center (64) so this matches the reverse horizon
-  self.drawables_sea[2].position.y = perfect_horizon_y- 14 - full_loop_height / 2
+  self.drawables_sea[2].position.y = perfect_horizon_y - 14 - full_loop_height / 2
   -- remember to make it visible
   self.drawables_sea[2].visible = true
 
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
-  yield_delay_frames(tuned("wait 1", 700))
+  yield_delay_frames(tuned("wait fly x100", 7) * 100)
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
-  yield_delay_frames(tuned("wait 2", 200))
+  yield_delay_frames(70 + tuned("wait plane dt", 0))
+
+  self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
+
+  yield_delay_frames(tuned("wait loop (s)", 5) * 60)
 
   -- prefer passing basename for compatibility with .p8.png
   -- load('picosonic_stage_intro')
@@ -535,5 +564,18 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   add(self.emerald_landing_fxs, pfx)
 end
 
+function titlemenu:create_and_move_tails_plane_across_sky()
+  self.tails_plane = animated_sprite(visual.animated_sprite_data_t.tails_plane)
+  self.tails_plane:play('loop')
+
+  -- enter from right
+  self.tails_plane_position = vector(136, 63)
+  self.is_sonic_on_plane = true
+
+  -- for the motion, let update do the job, instead of doing an interpolation
+  --  (ui_animation helpers only work with drawable so we'd need to write our own
+  --  loop, although move_camera_y_async did it, this one will be useful for complex
+  --  tweens while tails plane always moves linearly)
+end
 
 return titlemenu

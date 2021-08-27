@@ -293,6 +293,7 @@ function titlemenu:draw_sea_drawables()
 
   pal()
 
+--#if tuner
   -- DEBUG horizon lines
   local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
   -- front
@@ -307,6 +308,7 @@ function titlemenu:draw_sea_drawables()
   line(0, 64 + 52 - full_loop_height / 2, 128, 64 + 52 - full_loop_height / 2, colors.green)
   -- bottom
   line(0, 64 + 52 - full_loop_height * 3 / 4, 128, 64 + 52 - full_loop_height * 3 / 4, colors.green)
+--#endif
 end
 
 function titlemenu:draw_fx()

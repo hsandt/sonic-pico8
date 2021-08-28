@@ -396,16 +396,19 @@ function titlemenu:play_start_cinematic()
   self.menu = nil
 
   -- start bgm fade out (in parallel with coroutine start below)
-  music(-1, 1000)
+  -- emeralds now use music for their looping SFX so we must fade out music
+  -- just before emeralds enter, converting delay in frames to ms,
+  --  so with factor 1000 / 60 = 100 / 6 = 50 / 3
+  music(-1, visual.start_cinematic_first_emerald_enter_delay_frames * 50 / 3)
 
   self.is_playing_start_cinematic = true
   self.app:start_coroutine(self.play_start_cinematic_async, self)
 
 --#if tuner
   -- quick advance to end
-  for i=1,30*(22+tuned("skip x0.5s", 0)) do
-    self.app:update()
-  end
+  -- for i=1,30*(22+tuned("skip x0.5s", 0)) do
+  --   self.app:update()
+  -- end
 --#endif
 end
 
@@ -453,8 +456,8 @@ function titlemenu:play_start_cinematic_async()
     self.app:start_coroutine(self.emerald_enter_async, self, self.emeralds[i])
   end
 
-  -- play sfx for emerald flying
-  sfx(audio.sfx_ids.emerald_fly)
+  -- play looped sfx for emerald flying, but for intro-loop, use music
+  music(audio.music_ids.emerald_flying)
 
   yield_delay_frames(36)
 
@@ -533,9 +536,6 @@ function titlemenu:play_start_cinematic_async()
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
-  -- play sfx for emerald flying
-  sfx(audio.sfx_ids.emerald_fly)
-
   yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])
 
   self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
@@ -610,6 +610,10 @@ function titlemenu:emeralds_fly_to_island_async()
     self.app:start_coroutine(self.emerald_fly_to_island_async, self, self.emeralds[i])
     yield_delay_frames(next_emerald_delay)
   end
+
+  -- start fading out looping emerald flying SFX, it should end by the time
+  --  the last emerald left the circle (but it depends on timing data)
+  music(-1, 1000 + tuned("fade out", 0) * 1000)
 end
 
 local emerald_landing_positions = {

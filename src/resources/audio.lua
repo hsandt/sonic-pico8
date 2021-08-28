@@ -21,7 +21,8 @@ local audio = {}
 audio.sfx_ids = {
 
   -- builtin_data_titlemenu and builtin_data_stage_clear only
-  emerald_fly = 49,  -- inspired by super emerald sound B8 in Sonic 3 & K
+  -- inspired by super emerald sound B8 in Sonic 3 & K, now unused (use emerald_flying music for looped SFX)
+  -- emerald_fly = 49,
   menu_select = 50,  -- currently no sound, as Sonic 3 didn't have one either
   menu_confirm = 51,
 
@@ -52,6 +53,10 @@ audio.jingle_ids = {
 audio.music_ids = {
   -- builtin_data_titlemenu only (overlaps stage bgm in builtin_data_ingame.p8)
   title = 0,
+  -- builtin_data_titlemenu
+  -- more like looping SFX, but allows intro-loop (first part has higher volume)
+  emerald_flying = 8,
+  -- note: stage_common_data contains the bgm_id for the stage (always 0)
 }
 
 --(game_constants)

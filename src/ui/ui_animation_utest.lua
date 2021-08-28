@@ -3,6 +3,22 @@ local ui_animation = require("ui/ui_animation")
 
 describe('ui_animation', function ()
 
+  describe('lerp', function ()
+
+    it('(4, 8, 0) => 0', function ()
+      assert.are_equal(4, ui_animation.lerp(4, 8, 0))
+    end)
+
+    it('(4, 8, 0.5) => 6 (1/2 of the way)', function ()
+      assert.are_equal(6, ui_animation.lerp(4, 8, 0.5))
+    end)
+
+    it('(4, 8, 1) => 8', function ()
+      assert.are_equal(8, ui_animation.lerp(4, 8, 1))
+    end)
+
+  end)
+
   describe('ease_in', function ()
 
     it('(4, 8, 0) => 0', function ()

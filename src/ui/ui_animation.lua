@@ -1,12 +1,10 @@
 local ui_animation = {}
 
-local coords = {'x', 'y'}
-
 -- tween methods
 
--- function ui_animation.lerp(a, b, alpha)
---   return a + (b-a) * alpha
--- end
+function ui_animation.lerp(a, b, alpha)
+  return a + (b-a) * alpha
+end
 
 function ui_animation.ease_in(a, b, alpha)
   -- take lerp, and replace alpha => alpha * alpha:
@@ -49,7 +47,7 @@ function ui_animation.move_drawables_on_coord_async(coord, drawables, coord_offs
     --  so you can see the drawable enter gradually
     local alpha = frame / n
     for i, dr in ipairs(drawables) do
-      dr.position:set(coord, (1 - alpha) * a + alpha * b + coord_offsets[i])
+      dr.position:set(coord, ui_animation.lerp(a, b, alpha) + coord_offsets[i])
     end
     yield()
   end
@@ -62,9 +60,7 @@ function ui_animation.move_drawables_async(drawables, from, to, n)
     -- same remark as in move_drawables_on_coord_async
     local alpha = frame / n
     for i, dr in ipairs(drawables) do
-      for coord in all(coords) do
-        dr.position:set(coord, (1 - alpha) * from:get(coord) + alpha * to:get(coord))
-      end
+      dr.position:copy_assign(ui_animation.lerp(from, to, alpha))
     end
     yield()
   end

@@ -56,6 +56,7 @@ local menu_item_params = {
 -- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
 -- should_start_attract_mode    bool            should we enter attract mode now?
 -- is_playing_start_cinematic   bool            are we playing the start cinematic?
+-- is_fading_out_for_stage_intro  bool          are we fading out, preparing to load stage intro?
 -- camera_y                     int             camera y used to draw world elements
 -- postproc                     postprocess     postprocess for fade out
 
@@ -88,6 +89,7 @@ function titlemenu:init()
   -- self.start_pressed_time = nil
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
+  self.is_fading_out_for_stage_intro = false
   self.camera_y = 0
 
   -- postprocessing for fade out effect
@@ -95,6 +97,12 @@ function titlemenu:init()
 end
 
 function titlemenu:on_enter()
+--#if tuner
+  -- only during testing, reload original spritesheet to verify how logo leaves
+  --  screen and that we reload clouds, etc. properly
+  reload(0x0, 0x0, 0x2000)
+--#endif
+
   self.app:start_coroutine(self.play_opening_music_async, self)
 
   -- show menu after short intro of 2 columns
@@ -104,6 +112,7 @@ function titlemenu:on_enter()
   self.frames_before_showing_menu = 96
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
+  self.is_fading_out_for_stage_intro = false
 
   -- logo should be initially placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
@@ -166,6 +175,14 @@ end
 
 function titlemenu:update()
   if self.is_playing_start_cinematic then
+    if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
+      -- immediately start fade out in parallel with existing animations to keep things smooth
+      -- they should not collide, worst case we were already at the end of the start cinematic
+      --  and the other coroutine will try to call fade_out_and_load_stage_intro_async
+      --  but the flag will prevent conflicting fade out
+      self.app:start_coroutine(self.fade_out_and_load_stage_intro_async, self)
+    end
+
     self:update_fx()
 
     if self.tails_plane_position then
@@ -216,7 +233,7 @@ function titlemenu:update()
   else
     -- menu not shown yet, check for immediate show input vs normal countdown
 
-    if input:is_just_pressed(button_ids.o) then
+    if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- show menu immediately
       self.frames_before_showing_menu = 0
     else
@@ -518,7 +535,8 @@ function titlemenu:play_start_cinematic_async()
   end
 
   -- wait a little more to make sure angel island leaves screen and we can warp it to its new position
-  yield_delay_frames(30)
+  -- but not too late so clouds are properly reloaded
+  yield_delay_frames(45 + tuned("island dt", 0))
 
   -- horizon behind, it is seen upside down since camera did a complete 180 pitch turn
   -- reverse horizon is located at 180 degrees, so half-way of the full circle
@@ -532,7 +550,15 @@ function titlemenu:play_start_cinematic_async()
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
-  yield_delay_frames(500 --[[ + tuned("wait fly dt x30", 0) * 30]])
+  -- infinite loop to test island warping
+  yield_delay_frames(80 + tuned("wait loop", 0))
+  self:on_exit()
+  self:on_enter()
+  self.app:stop_all_coroutines()
+  self:play_start_cinematic()
+
+  -- removed tunable delay from last time to stabilize total delay from here
+  yield_delay_frames(500 - tuned("island dt", 0) --[[ + tuned("wait fly dt x30", 0) * 30]])
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
@@ -705,14 +731,22 @@ function titlemenu:sonic_landing_star_async()
   -- fade out (we start from everything black so skip max darkness 5)
   yield_delay_frames(20)
 
-  -- fade out
-  for i = 1, 5 do
-    self.postproc.darkness = i
-    yield_delay_frames(6)
-  end
+  self:fade_out_and_load_stage_intro_async()
+end
 
-  -- prefer passing basename for compatibility with .p8.png
-  load('picosonic_stage_intro')
+function titlemenu:fade_out_and_load_stage_intro_async()
+  if not self.is_fading_out_for_stage_intro then
+    self.is_fading_out_for_stage_intro = true
+
+    -- fade out
+    for i = 1, 5 do
+      self.postproc.darkness = i
+      yield_delay_frames(6)
+    end
+
+    -- prefer passing basename for compatibility with .p8.png
+    load('picosonic_stage_intro')
+  end
 end
 
 return titlemenu

@@ -5,6 +5,7 @@ local animated_sprite = require("engine/render/animated_sprite")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
+local postprocess = require("engine/render/postprocess")
 -- it's called ingame, but actually shared with menu
 local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
@@ -56,6 +57,7 @@ local menu_item_params = {
 -- should_start_attract_mode    bool            should we enter attract mode now?
 -- is_playing_start_cinematic   bool            are we playing the start cinematic?
 -- camera_y                     int             camera y used to draw world elements
+-- postproc                     postprocess     postprocess for fade out
 
 -- there are more members during the start cinematic, but they will be created when it starts
 function titlemenu:init()
@@ -87,6 +89,9 @@ function titlemenu:init()
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
   self.camera_y = 0
+
+  -- postprocessing for fade out effect
+  self.postproc = postprocess()
 end
 
 function titlemenu:on_enter()
@@ -103,6 +108,7 @@ function titlemenu:on_enter()
   -- logo should be initially placed 1 tile to the right, 3 tiles to the bottom,
   --  with its pivot at top-left
   self.title_logo_drawable.position = vector(8, 16)
+  self.title_logo_drawable.visible = true
   -- place angel island at the bottom of the screen
   self.drawables_sea[1].position = vector(0, 88)
   -- hide reverse horizon for now
@@ -276,17 +282,20 @@ function titlemenu:render()
       visual.sprite_data_t.sonic_tiny:render(self.tails_plane_position)
     end
   end
+
+  self.postproc:apply()
 end
 
 function titlemenu:calculate_emerald_position_on_circle(number)
   -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
   local radius = visual.start_cinematic_emerald_circle_radius
   local period = visual.start_cinematic_emerald_rotation_period
+  local delay_frames = visual.start_cinematic_first_emerald_enter_delay_frames
   -- rotation center at (64, 68) (slightly below screen center)
   -- emeralds rotate clockwise, so negative factor for t()
   -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
   -- (number - 1) / 8 is to place emeralds at uniform angular distance on the circle
-  local angle = -0.6 - (number - 1) / 8 - (t() - self.start_pressed_time) / period
+  local angle = -0.65 - (number - 1) / 8 - (t() - (self.start_pressed_time + (delay_frames + tuned("emerald enter dt", 0)) / 60)) / period
   local draw_position = vector(64 + radius * cos(angle), 68 + radius * sin(angle))
   return draw_position
 end
@@ -361,13 +370,18 @@ function titlemenu:play_start_cinematic()
   -- hide (actually destroy) menu
   self.menu = nil
 
+  -- start bgm fade out (in parallel with coroutine start below)
+  music(-1, 1000)
+
   self.is_playing_start_cinematic = true
   self.app:start_coroutine(self.play_start_cinematic_async, self)
 
+--#if tuner
   -- quick advance to end
-  for i=1,30*(23+tuned("skip x0.5s", 0)) do
-    self.app:update()
-  end
+  -- for i=1,30*(23+tuned("skip x0.5s", 0)) do
+  --   self.app:update()
+  -- end
+--#endif
 end
 
 function titlemenu:play_start_cinematic_async()
@@ -404,7 +418,7 @@ function titlemenu:play_start_cinematic_async()
   -- run in parallel with emeralds entering screen, so start new coroutine from this coroutine
   self.app:start_coroutine(self.move_title_logo_out_async, self)
 
-  yield_delay_frames(5)
+  yield_delay_frames(visual.start_cinematic_first_emerald_enter_delay_frames + tuned("emerald enter dt", 0))
 
   -- setup all emeralds to enter on screen and start rotating
   for i = 1, 8 do
@@ -415,6 +429,14 @@ function titlemenu:play_start_cinematic_async()
   end
 
   yield_delay_frames(36)
+
+  -- infinite loop to test just emerald entrance with no camera motion
+  -- yield_delay_frames(100)
+  -- self:on_exit()
+  -- self:on_enter()
+  -- if true then
+  --   return
+  -- end
 
   -- run complete camera motion in parallel with the other animations
   self.app:start_coroutine(self.complete_camera_motion_async, self, full_loop_height, camera_y0)
@@ -491,21 +513,16 @@ function titlemenu:play_start_cinematic_async()
 
   self:sonic_jump_into_island_async()
 
-  yield_delay_frames(300 + tuned("wait loop (s)", 0) * 60)
-
-  -- prefer passing basename for compatibility with .p8.png
-  -- load('picosonic_stage_intro')
-
   -- infinite loop to test
-  self:on_exit()
-  self:on_enter()
-  self.app:stop_all_coroutines()
-  self:play_start_cinematic()
+  -- self:on_exit()
+  -- self:on_enter()
+  -- self.app:stop_all_coroutines()
+  -- self:play_start_cinematic()
 end
 
 function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42)
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42 + tuned("move logo dt", 0))
   self.title_logo_drawable.visible = false
 end
 
@@ -640,6 +657,20 @@ function titlemenu:sonic_landing_star_async()
   del(self.cinematic_drawables_screen, self.jumping_sonic)
 
   self.jumping_sonic = nil
+
+  -- we've reached the end of the start cinematic!
+  -- we must still wait a few frames to see the landing fx ending, then we can
+  -- fade out (we start from everything black so skip max darkness 5)
+  yield_delay_frames(20)
+
+  -- fade out
+  for i = 1, 5 do
+    self.postproc.darkness = i
+    yield_delay_frames(6)
+  end
+
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_stage_intro')
 end
 
 return titlemenu

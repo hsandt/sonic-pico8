@@ -26,6 +26,10 @@ local titlemenu_visual = {
 
   -- time taken by an emerald to make a full rotation around the clock (s)
   start_cinematic_emerald_rotation_period = 1.6,
+
+  -- delay before first emerald entering screen in frames
+  --  (it's the last emerald, but the first to enter)
+  start_cinematic_first_emerald_enter_delay_frames = 30,
 }
 
 -- visuals for titlemenu only

@@ -206,7 +206,7 @@ end
 
 function picosonic_app_attract_mode:exit_attract_mode_async()
   -- fade out
-  for i = 0, 5 do
+  for i = 1, 5 do
     self.postproc.darkness = i
     yield_delay_frames(6)
   end

@@ -48,6 +48,8 @@ local menu_item_params = {
 -- tails_plane                  animated_sprite tails plane animated sprite
 -- tails_plane_position         vector          tails plane position
 -- is_sonic_on_plane            bool            if true, draw Sonic standing on plane
+-- jumping_sonic                sprite_object   reference to jumping sonic to update its position (but drawn via cinematic_drawables_screen)
+-- jumping_sonic_vy             number          jumping sonic speed on y to simulate a simple gravity
 -- menu                         menu            title menu showing items (only created when it must be shown)
 -- frames_before_showing_menu   int             number of frames before showing menu. Ignored if 0.
 -- start_pressed_time           number          time (t()) when start button was confirmed, used for cinematic
@@ -73,6 +75,8 @@ function titlemenu:init()
   -- self.tails_plane = nil
   -- self.tails_plane_position = nil
   self.is_sonic_on_plane = false
+  -- self.jumping_sonic = nil
+  self.jumping_sonic_vy = 0
 
   -- self.menu = nil  -- commented out to spare characters
 
@@ -146,6 +150,8 @@ function titlemenu:on_exit()
   self.tails_plane = nil
   self.tails_plane_position = nil
   self.is_sonic_on_plane = false
+  self.jumping_sonic = nil
+  self.jumping_sonic_vy = 0
 
   -- stop all coroutines, this is important to prevent play_opening_music_async from continuing in the background
   --  while reading credits, and fading out music earlier than expected after coming back to title
@@ -158,7 +164,20 @@ function titlemenu:update()
 
     if self.tails_plane_position then
       -- tune plane speed here
-      self.tails_plane_position.x = self.tails_plane_position.x - tuned("plane spd x0.5", 1) * 0.5
+      self.tails_plane_position.x = self.tails_plane_position.x - 0.5 -- - tuned("plane dvx x0.5", 0) * 0.5
+    end
+
+    if self.jumping_sonic then
+      -- tune plane speed here
+      self.jumping_sonic.position.x = self.jumping_sonic.position.x - 0.35 - tuned("sonic dvx x0.01", 0) * 0.01
+      self.jumping_sonic.position.y = self.jumping_sonic.position.y + self.jumping_sonic_vy
+      -- apply gravity
+      self.jumping_sonic_vy = self.jumping_sonic_vy + 0.04 + tuned("gravity d x0.01", 0) * 0.01
+
+      -- under certain altitude, make Sonic land (star animation + remove sprite)
+      if self.jumping_sonic.position.y > 110 then
+        self.app:start_coroutine(self.sonic_landing_star_async, self)
+      end
     end
 
     return
@@ -295,7 +314,7 @@ function titlemenu:draw_sea_drawables()
 
 --#if tuner
   -- DEBUG horizon lines
-  local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
+  local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
   -- front
   line(0, 64 + 52, 128, 64 + 52, colors.green)
   -- front clouds
@@ -346,9 +365,9 @@ function titlemenu:play_start_cinematic()
   self.app:start_coroutine(self.play_start_cinematic_async, self)
 
   -- quick advance to end
-  -- for i=1,60*(12+tuned("skip (s)", 0)) do
-  --   self.app:update()
-  -- end
+  for i=1,30*(23+tuned("skip x0.5s", 0)) do
+    self.app:update()
+  end
 end
 
 function titlemenu:play_start_cinematic_async()
@@ -362,7 +381,7 @@ function titlemenu:play_start_cinematic_async()
   --  we get a band of a certain length, which is the vertical period of the camera
   --  (that is, after that many pixels of motion upward, we can see the island again at exactly the
   --  same position)
-  local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
+  local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
   -- angel island is at the bottom of the screen, so actually to have the water horizon exactly
   --  at screen center, by looking at the sprite, we see we should move camera down by 52
   local camera_y0 = 52
@@ -460,19 +479,19 @@ function titlemenu:play_start_cinematic_async()
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
-  yield_delay_frames(500 + tuned("wait fly dt x30", 0) * 30)
+  yield_delay_frames(500 --[[ + tuned("wait fly dt x30", 0) * 30]])
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
-  yield_delay_frames(70 + tuned("wait plane dt", 0))
+  yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])
 
   self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
 
-  yield_delay_frames(84 + tuned("wait sonic jump dt", 0))
+  yield_delay_frames(89 + tuned("wait sonic jump dt", 0))
 
   self:sonic_jump_into_island_async()
 
-  yield_delay_frames(tuned("wait loop (s)", 5) * 60)
+  yield_delay_frames(300 + tuned("wait loop (s)", 0) * 60)
 
   -- prefer passing basename for compatibility with .p8.png
   -- load('picosonic_stage_intro')
@@ -492,13 +511,13 @@ end
 
 function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
   -- 1. ease in out from island to reverse horizon
-  self:move_camera_y_async(0, camera_y0 - full_loop_height / 2, 250 + tuned("->90 dt", 0) * 30, ui_animation.ease_in_out)
+  self:move_camera_y_async(0, camera_y0 - full_loop_height / 2, 250 --[[ + tuned("->90 dt", 0) * 30 ]], ui_animation.ease_in_out)
 
   -- 2. back to island very fast, since not much to see on the bottom sea
   -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
   --  which arrives just at y = island_full_loop_new_y - 88 = - full_loop_height (complete turn from 0, don't use camera_y0 to keep
   --  island at the bottom)
-  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 270 + tuned("->back dt", 0) * 30, ui_animation.ease_in_out)
+  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 270 --[[ + tuned("->back dt", 0) * 30 ]], ui_animation.ease_in_out)
 end
 
 -- precompute helper constants
@@ -602,33 +621,25 @@ function titlemenu:sonic_jump_into_island_async()
   -- sonic spin tiny pivot has also been set to match previous standing position,
   --  and hence the plane
   -- make sure to copy vector or plane will follow Sonic jumping!
-  local sonic_jumping = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position:copy())
-  add(self.cinematic_drawables_screen, sonic_jumping)
+  self.jumping_sonic = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position:copy())
+  self.jumping_sonic_vy = -0.2 - tuned("sonic vy0 x-0.01", 0) * 0.01
+  add(self.cinematic_drawables_screen, self.jumping_sonic)
 
-  -- due to the nature of jumping, it's easier to handle X and Y separately
-  self.app:start_coroutine(self.sonic_jump_move_x_async, self, sonic_jumping)
-  self.app:start_coroutine(self.sonic_jump_move_y_async, self, sonic_jumping)
+  -- like Tails plane, count on physics update to move Sonic to the landing position
+  -- when Sonic y reaches a certain point, the star animation will automatically play
 end
 
-function titlemenu:sonic_jump_move_x_async(sonic_jumping)
-  ui_animation.move_drawables_on_coord_async("x", {sonic_jumping}, {0}, self.tails_plane_position.x, 73, 60)
-end
-
-function titlemenu:sonic_jump_move_y_async(sonic_jumping)
-  -- upward
-  local initial_y = self.tails_plane_position.y
-  ui_animation.move_drawables_on_coord_async("y", {sonic_jumping}, {0}, initial_y, initial_y - 2, 6)
-  -- downward
-  ui_animation.move_drawables_on_coord_async("y", {sonic_jumping}, {0}, initial_y - 2, 110, 54)
-
+function titlemenu:sonic_landing_star_async()
   -- as a hack, reuse emerald fx which is just a star, for Sonic landing fx
   -- Sonic is blue, which corresponds to emerald number 5, so pass 5
   --  to get a blue star
-  local pfx = emerald_fx(5, sonic_jumping.position)
+  local pfx = emerald_fx(5, self.jumping_sonic.position)
   add(self.emerald_landing_fxs, pfx)
 
   -- remove sonic jumping sprite, now replaced by star
-  del(self.cinematic_drawables_screen, sonic_jumping)
+  del(self.cinematic_drawables_screen, self.jumping_sonic)
+
+  self.jumping_sonic = nil
 end
 
 return titlemenu

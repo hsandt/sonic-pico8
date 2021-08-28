@@ -2,6 +2,39 @@ local ui_animation = {}
 
 local coords = {'x', 'y'}
 
+-- tween methods
+
+-- function ui_animation.lerp(a, b, alpha)
+--   return a + (b-a) * alpha
+-- end
+
+function ui_animation.ease_in(a, b, alpha)
+  -- take lerp, and replace alpha => alpha * alpha:
+  --  (1 - alpha * alpha) * a + alpha * alpha * b
+  -- or shorter, start from a, and add the difference with factor alpha * alpha:
+  return a + (b-a) * alpha * alpha
+end
+
+function ui_animation.ease_out(a, b, alpha)
+  -- take ease in and reverse parameters but also alpha:
+  --  ui_animation.ease_in(b, a, 1 - alpha)
+  -- or expand this and rewrite for compact expression independent of ease_in:
+  --  b + (a-b) * (1 - alpha) * (1 - alpha) or
+  return a + (b-a) * (2 - alpha) * alpha
+end
+
+function ui_animation.ease_in_out(a, b, alpha)
+  -- piecewise ease in, then ease out
+  if alpha <= 0.5 then
+    -- make sure to 2* alpha back so 0.5 => 1
+    return ui_animation.ease_in(a, (a + b) / 2, 2 * alpha)
+  else
+    -- make sure to lerp alpha back so 0.5 => 0 and 1 => 1
+    -- 2 * (alpha - 0.5) = 2 * alpha - 1
+    return ui_animation.ease_out((a + b) / 2, b, 2 * alpha - 1)
+  end
+end
+
 -- helper: move drawable {position: vector, draw: function (recommended)} linearly along coord ("x" or "y")
 --  from a to b over n frames
 -- coord_offsets allow to offset drawables relatively to a and b while keeping drawable motions in sync

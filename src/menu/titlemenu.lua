@@ -428,6 +428,9 @@ function titlemenu:play_start_cinematic_async()
     self.app:start_coroutine(self.emerald_enter_async, self, self.emeralds[i])
   end
 
+  -- play sfx for emerald flying
+  sfx(audio.sfx_ids.emerald_fly)
+
   yield_delay_frames(36)
 
   -- infinite loop to test just emerald entrance with no camera motion
@@ -504,6 +507,9 @@ function titlemenu:play_start_cinematic_async()
   yield_delay_frames(500 --[[ + tuned("wait fly dt x30", 0) * 30]])
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
+
+  -- play sfx for emerald flying
+  sfx(audio.sfx_ids.emerald_fly)
 
   yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])
 

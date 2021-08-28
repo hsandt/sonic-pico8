@@ -1,6 +1,7 @@
 -- common functionality for emerald rendering between titlemenu, ingame and stage clear
 -- with the exception of emerald silhouette, only used ingame
 --  (but if titlemenu has a few extra characters it's OK)
+-- ! for titlemenu, don't use draw if you need scaling, use emerald_cinematic instead
 
 local visual = require("resources/visual_common")
 

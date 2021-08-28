@@ -2275,7 +2275,22 @@ function player_char:update_platformer_motion_airborne()
   -- apply air motion without caring about obstacles to start with (step 5 in SPG Main Loop)
   self.position:add_inplace(self.velocity)
 
-  -- we're supposed to apply gravity here
+  -- EXPERIMENT moving applying gravity here
+  -- Results:
+  -- - game works fine, no observed change
+  -- - itests are broken, not sure why since this should be equivalent when it comes
+  --   to jumping since we were already using the has_jumped_this_frame flag
+  --   (although for simple fall it should not be equivalent and be a little late on fall)
+  -- So commented out for now. It can help sparing a few characters when removing the flag
+  --  though.
+  -- apply gravity to current speed y
+  -- note: this is now done after applying velocity, so we don't need a flag to remember
+  --  not to apply jump velocity on first frame anymore
+  -- note 2: this is done before collision checks, so if we hit a ceiling, vy = 0
+  --  and we skip the effect of gravity on this frame (if we were really slow on y
+  --  it may prevent us from getting vy > 0 this frame, but in counterpart we hit something
+  --  that may put us a little down)
+  -- self.velocity.y = self.velocity.y + pc_data.gravity_frame2
 
   -- check for air collisions (wall, ceiling, ground) and update position in-place
   local air_motion_result = self:check_air_collisions()

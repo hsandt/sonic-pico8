@@ -606,6 +606,9 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   del(self.cinematic_emeralds_on_circle, emerald.number)
   add(self.cinematic_drawables_screen, emerald)
 
+  -- shrink emerald by reducing scale in parallel with incoming motion
+  self.app:start_coroutine(self.shrink_emerald_async, self, emerald)
+
   -- calculate position on emerald circle at current time
   --  so we can interpolate from the same position for continuous motion
   local circle_position = self:calculate_emerald_position_on_circle(emerald.number)
@@ -621,6 +624,14 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   assert(emerald.position == emerald_landing_positions[emerald.number])
   local pfx = emerald_fx(emerald.number, emerald.position)
   add(self.emerald_landing_fxs, pfx)
+end
+
+function titlemenu:shrink_emerald_async(emerald)
+  for frame = 1, 24 do
+    local alpha = frame / 24
+    emerald.scale = 1 - alpha
+    yield()
+  end
 end
 
 function titlemenu:create_and_move_tails_plane_across_sky()

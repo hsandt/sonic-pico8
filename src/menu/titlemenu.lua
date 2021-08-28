@@ -545,11 +545,11 @@ function titlemenu:play_start_cinematic_async()
   self:sonic_jump_into_island_async()
 
   -- infinite loop to test from the start, possibly with skip to test the end
-  -- yield_delay_frames(80 + tuned("wait loop", 0))
-  -- self:on_exit()
-  -- self:on_enter()
-  -- self.app:stop_all_coroutines()
-  -- self:play_start_cinematic()
+  yield_delay_frames(80 + tuned("wait loop", 0))
+  self:on_exit()
+  self:on_enter()
+  self.app:stop_all_coroutines()
+  self:play_start_cinematic()
 end
 
 function titlemenu:move_title_logo_out_async()
@@ -677,11 +677,11 @@ function titlemenu:sonic_jump_into_island_async()
   self.jumping_sonic_vy = -0.2 - tuned("sonic vy0 x-0.01", 0) * 0.01
   add(self.cinematic_drawables_screen, self.jumping_sonic)
 
+  -- play jump sound
+  sfx(audio.sfx_ids.jump)
+
   -- like Tails plane, count on physics update to move Sonic to the landing position
   -- when Sonic y reaches a certain point, the star animation will automatically play
-
-  -- however, we still want to shrink Sonic here (but we could shrink based on position on Y too)
-  -- self:shrink_scalable_async(self.jumping_sonic, 1, 0, 24 + tuned("sonic shrink dt", 0), ui_animation.lerp)
 end
 
 function titlemenu:sonic_landing_star_async()

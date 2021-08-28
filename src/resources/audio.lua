@@ -29,8 +29,10 @@ audio.sfx_ids = {
   menu_swipe = 52,
   got_all_emeralds = 56,
 
-  -- builtin_data_ingame only
+  -- exceptionally builtin_data_titlemenu and builtin_data_ingame
+  --  because there is a jump in the start cinematic, although vol -4 and detuned
   jump = 55,
+  -- builtin_data_ingame only
   spring_jump = 56,
   roll = 57,
   brake = 58,

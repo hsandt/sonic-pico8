@@ -34,6 +34,23 @@ local menu_item_params = {
   end},
 }
 
+-- CONSTANTS (outside visual files)
+
+-- let's define parameters to guide us in the camera motion
+--  (in outer scope so all methods can access them)
+
+-- if we unroll a vertical line tracing what the screen center looks at on the horizon sphere,
+--  we get a band of a certain length, which is the vertical period of the camera
+--  (that is, after that many pixels of motion upward, we can see the island again at exactly the
+--  same position)
+local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
+-- angel island is at the bottom of the screen, so actually to have the water horizon exactly
+--  at screen center, by looking at the sprite, we see we should move camera down by 52
+local camera_y0 = 52
+-- but that's to place the camera center, at y=64 on the horizon line, so actual objects
+--  should use object y0 = 64 + 52 = 116 aka "perfect horizon y"
+local perfect_horizon_y = 64 + camera_y0
+
 -- parameters:
 -- items                        {menu_item}    sequence of menu items that the menu should display
 
@@ -57,7 +74,7 @@ local menu_item_params = {
 -- should_start_attract_mode    bool            should we enter attract mode now?
 -- is_playing_start_cinematic   bool            are we playing the start cinematic?
 -- is_fading_out_for_stage_intro  bool          are we fading out, preparing to load stage intro?
--- camera_y                     int             camera y used to draw world elements
+-- camera_y                     number          camera top y used to draw world elements
 -- postproc                     postprocess     postprocess for fade out
 
 -- there are more members during the start cinematic, but they will be created when it starts
@@ -353,23 +370,84 @@ function titlemenu:draw_sea_drawables()
     sea_drawable:draw()
   end
 
+  -- while we're swapping colors for water shimmers, let's also draw all the
+  --  non-sprite, procedurally generated shimmers (as in the stage) so they'll
+  --  inherit palette swapping
+
+  -- first, only draw shimmers when roughly looking at the bottom (after reverse horizon, before full loop)
+  -- mind the comparison sign! camera_y goes toward negative!
+  -- add some half screen height to draw them as soon as you watch a bit of water
+  --  (minus 12 lines below island sprite horizon line, saw we don't try to draw
+  --  them when island is fully shown / and symmetrically for revershe horizon)
+  if camera_y0 - full_loop_height / 2 + screen_height / 2 - 12 > self.camera_y and self.camera_y > camera_y0 - full_loop_height - screen_height / 2 + 12 then
+    printh("drawing!")
+    -- inspired by visual_stage.draw_water_reflections, except we've already swapped colors,
+    --  so draw the same raw colors as the sprites instead (red and yellow)
+    -- however, if we just draw the colors the same way, they will be in sync!
+    -- so we must shuffle them (but not randomly or they will change every frame,
+    --  so use a spatial-based criteria that won't change over time)
+    -- this is due to the difference between fixed colors + time swapping
+    --  vs code-based color cycle as in visual_stage.draw_water_reflections
+
+    -- draw every given interval on y
+    local shimmer_y_interval = 9 + tuned("shimmer dy", 0)
+    local shimmer_x_list_per_j = {
+      {13, 30, 46, 62, 111},
+      {22, 45, 51, 89, 120},
+      {5, 17, 34, 70, 80},
+      {23, 90},
+    }
+
+    -- sprites already contain water shimmers on ~12 lines, so skip them
+    local j = 0
+    for y = perfect_horizon_y - full_loop_height / 2 - 12, perfect_horizon_y - full_loop_height + 12, -shimmer_y_interval do
+      j = j % #shimmer_x_list_per_j + 1  -- modulo first to make sure we get index between 1 and shimmer_x_list_per_j
+      -- only draw if shimmers are visible on camera
+      if y >= self.camera_y and y < self.camera_y + screen_height then
+        -- wow, busted seems to define x = 2 for some reason (global? where?)
+        -- so I didn't detect an error about using x outside of the for loop below
+        --  in headless itests, but PICO-8 could detect it... anyway, that's fixed
+        for x in all(shimmer_x_list_per_j[j]) do
+          -- pseudo-randomize raw colors (based on x, so won't change next frame)
+          local color1, color2
+          if x % 2 == 0 then
+            color1 = colors.red
+            color2 = colors.yellow
+          else
+            color1 = colors.yellow
+            color2 = colors.red
+          end
+
+          -- pseudo-randomize x to avoid regular shimmers by using y, a stable input
+          x = x + y * y
+
+          -- draw triplets for "richer" visuals
+          -- wrap around as offset may cause x to go beyond 128
+          pset(x % screen_width, y, color1)
+          pset((x + 1) % screen_width, y, color2)
+          pset((x + 2) % screen_width, y, color1)
+        end
+      end
+    end
+  end
+
   pal()
 
 --#if tuner
   -- DEBUG horizon lines
   local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
   -- front
-  line(0, 64 + 52, 128, 64 + 52, colors.green)
+  line(0, perfect_horizon_y, 128, perfect_horizon_y, colors.green)
   -- front clouds
-  line(0, 64 + 52 - full_loop_height / 6, 128, 64 + 52 - full_loop_height / 6, colors.green)
+  line(0, perfect_horizon_y - full_loop_height / 6, 128, perfect_horizon_y - full_loop_height / 6, colors.green)
   -- top
-  line(0, 64 + 52 - full_loop_height / 4, 128, 64 + 52 - full_loop_height / 4, colors.green)
+  line(0, perfect_horizon_y - full_loop_height / 4, 128, perfect_horizon_y - full_loop_height / 4, colors.green)
   -- back clouds
-  line(0, 64 + 52 - full_loop_height / 4 - (full_loop_height / 12), 128, 64 + 52 - full_loop_height / 4 - (full_loop_height / 12), colors.green)
+  line(0, perfect_horizon_y - full_loop_height / 4 - (full_loop_height / 12), 128, perfect_horizon_y - full_loop_height / 4 - (full_loop_height / 12), colors.green)
   -- back
-  line(0, 64 + 52 - full_loop_height / 2, 128, 64 + 52 - full_loop_height / 2, colors.green)
+  line(0, perfect_horizon_y - full_loop_height / 2, 128, perfect_horizon_y - full_loop_height / 2, colors.green)
   -- bottom
-  line(0, 64 + 52 - full_loop_height * 3 / 4, 128, 64 + 52 - full_loop_height * 3 / 4, colors.green)
+  line(0, perfect_horizon_y - full_loop_height * 3 / 4, 128, perfect_horizon_y - full_loop_height * 3 / 4, colors.green)
 --#endif
 end
 
@@ -423,30 +501,17 @@ function titlemenu:play_start_cinematic()
 
 --#if tuner
   -- quick advance to end
-  -- for i=1,30*(22+tuned("skip x0.5s", 0)) do
-  --   self.app:update()
-  -- end
+  for i=1,30*(10+tuned("skip x0.5s", 0)) do
+    self.app:update()
+  end
 --#endif
 end
 
 function titlemenu:play_start_cinematic_async()
   -- we're going to rotate the camera pitch from 0, upward with full turn 360 degrees
-  -- we're gonna place milestones using the fact that angle is propertional to distance on the horizon
+  -- we're gonna place milestones using the fact that angle is proportional to distance on the horizon
   --  sphere, and make the assumption that islands and clouds are on that sphere
   --  (in reality clouds must be farther, but that should help)
-  -- let's define parameters to guide us in the coming camera motion
-
-  -- if we unroll a vertical line tracing what the screen center looks at on the horizon sphere,
-  --  we get a band of a certain length, which is the vertical period of the camera
-  --  (that is, after that many pixels of motion upward, we can see the island again at exactly the
-  --  same position)
-  local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
-  -- angel island is at the bottom of the screen, so actually to have the water horizon exactly
-  --  at screen center, by looking at the sprite, we see we should move camera down by 52
-  local camera_y0 = 52
-  -- but that's to place the camera center, at y=64 on the horizon line, so actual objects
-  --  should use object y0 = 64 + 52 = 116 aka "perfect horizon y"
-  local perfect_horizon_y = 64 + camera_y0
 
   -- first batch of clouds are located around 1/6 of the circle (60 degrees)
   local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
@@ -478,6 +543,7 @@ function titlemenu:play_start_cinematic_async()
 
   yield_delay_frames(36)
 
+--#if tuner
   -- infinite loop to test just emerald entrance with no camera motion
   -- yield_delay_frames(100)
   -- self:on_exit()
@@ -485,6 +551,7 @@ function titlemenu:play_start_cinematic_async()
   -- if true then
   --   return
   -- end
+--#endif
 
   -- run complete camera motion in parallel with the other animations
   self.app:start_coroutine(self.complete_camera_motion_async, self, full_loop_height, camera_y0)
@@ -550,12 +617,14 @@ function titlemenu:play_start_cinematic_async()
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
+--#if tuner
   -- infinite loop to test island warping
-  yield_delay_frames(80 + tuned("wait loop", 0))
-  self:on_exit()
-  self:on_enter()
-  self.app:stop_all_coroutines()
-  self:play_start_cinematic()
+  -- yield_delay_frames(80 + tuned("wait loop", 0))
+  -- self:on_exit()
+  -- self:on_enter()
+  -- self.app:stop_all_coroutines()
+  -- self:play_start_cinematic()
+--#endif
 
   -- removed tunable delay from last time to stabilize total delay from here
   yield_delay_frames(500 - tuned("island dt", 0) --[[ + tuned("wait fly dt x30", 0) * 30]])
@@ -570,12 +639,14 @@ function titlemenu:play_start_cinematic_async()
 
   self:sonic_jump_into_island_async()
 
+--#if tuner
   -- infinite loop to test from the start, possibly with skip to test the end
   yield_delay_frames(80 + tuned("wait loop", 0))
   self:on_exit()
   self:on_enter()
   self.app:stop_all_coroutines()
   self:play_start_cinematic()
+--#endif
 end
 
 function titlemenu:move_title_logo_out_async()

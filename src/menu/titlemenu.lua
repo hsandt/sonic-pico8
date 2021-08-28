@@ -648,7 +648,7 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   -- add emerald landing FX at emerald landing position and play it immediately
   -- note that interpolation is over, so emerald.position == emerald_landing_positions[emerald.number]
   assert(emerald.position == emerald_landing_positions[emerald.number])
-  local pfx = emerald_fx(emerald.number, emerald.position)
+  local pfx = emerald_fx(emerald.number, emerald.position, visual.animated_sprite_data_t.star_fx)
   add(self.emerald_landing_fxs, pfx)
 end
 
@@ -688,7 +688,7 @@ function titlemenu:sonic_landing_star_async()
   -- as a hack, reuse emerald fx which is just a star, for Sonic landing fx
   -- Sonic is blue, which corresponds to emerald number 5, so pass 5
   --  to get a blue star
-  local pfx = emerald_fx(5, self.jumping_sonic.position)
+  local pfx = emerald_fx(5, self.jumping_sonic.position, visual.animated_sprite_data_t.star_fx)
   add(self.emerald_landing_fxs, pfx)
 
   -- remove sonic jumping sprite, now replaced by star

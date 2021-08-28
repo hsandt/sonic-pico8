@@ -1325,7 +1325,7 @@ describe('stage_state', function ()
 
           it('should create a pick FX and play it', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:character_pick_emerald(state.emeralds[3])
@@ -1333,8 +1333,8 @@ describe('stage_state', function ()
             -- emerald 2 was at location (0, 1),
             --  so its center was at (4, 12)
             assert.are_same({
-                emerald_fx(1, vector(0, 0)),
-                emerald_fx(8, vector(4 + 5, 12))  -- pfx also follow emerald 8 center adjustment of X+5
+                emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+                emerald_fx(8, vector(4 + 5, 12), visual.animated_sprite_data_t.emerald_pick_fx)  -- pfx also follow emerald 8 center adjustment of X+5
               },
               state.emerald_pick_fxs)
           end)

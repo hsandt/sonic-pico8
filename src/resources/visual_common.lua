@@ -44,7 +44,8 @@ local sprite_data_t = transform(
     cursor           = {     9, 0,     0, 0},
 --#endif
 
-    -- ANIMATION SPRITES
+    -- ANIMATION SPRITES (normally in-game, could be used for emblem sparkles)
+    -- ! don't confuse with landing single animated star!
     emerald_pick_fx1 = {    12, 0,     4, 4},
     emerald_pick_fx2 = {    13, 0,     4, 4},
     emerald_pick_fx3 = {    14, 0,     4, 4},
@@ -61,20 +62,19 @@ visual.sprite_data_t = sprite_data_t
 -- the pick action is in-game only, but since it is a sparkle it is convenient to liven up
 --  the titlemenu as well (e.g. on the emblem or emeralds)
 visual.animated_sprite_data_t = {
-  emerald_pick_fx = {
-    -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
-    --  but this will actually be minified and therefore very compact (as names are not protected)
-    ["once"] = animated_sprite_data(
-      {
-        sprite_data_t.emerald_pick_fx1,
-        sprite_data_t.emerald_pick_fx2,
-        sprite_data_t.emerald_pick_fx3,
-        sprite_data_t.emerald_pick_fx4
-      },
-      5,
-      2  -- anim_loop_modes.freeze_last (just to spot forgotten fx clear easily)
-    )
-  },
+  -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
+  --  but this will actually be minified and therefore very compact (as names are not protected)
+  -- note we now pass data directly without ["once"], as fx will create its own ["once"]
+  emerald_pick_fx = animated_sprite_data(
+    {
+      sprite_data_t.emerald_pick_fx1,
+      sprite_data_t.emerald_pick_fx2,
+      sprite_data_t.emerald_pick_fx3,
+      sprite_data_t.emerald_pick_fx4
+    },
+    5,
+    anim_loop_modes.freeze_last  -- just to spot forgotten fx clear easily, clear is fine too
+  ),
 }
 
 return visual

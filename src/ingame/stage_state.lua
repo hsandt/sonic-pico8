@@ -760,7 +760,7 @@ function stage_state:character_pick_emerald(em)
   self.picked_emerald_numbers_set[em.number] = true
 
   -- add emerald pick FX at emerald position and play it immediately
-  local pfx = emerald_fx(em.number, em:get_center())
+  local pfx = emerald_fx(em.number, em:get_center(), visual.animated_sprite_data_t.emerald_pick_fx)
   add(self.emerald_pick_fxs, pfx)
 
   -- remove emerald from sequence (use del to make sure

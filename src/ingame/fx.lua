@@ -7,7 +7,9 @@ local fx = new_class()
 -- anim_spr    animated_sprite
 function fx:init(position, anim_spr_data)
   self.position = position
-  self.anim_spr = animated_sprite(anim_spr_data)
+  -- construct the sprite data table with just the "once" animation directly from single
+  --  animation sprite data
+  self.anim_spr = animated_sprite({["once"] = anim_spr_data})
   -- we're not using pooling system yet, so just play on construction
   --  and stage will clear when it detects animation has ended
   -- we use the hardcoded "once" name for the unique fx animation, so make sure

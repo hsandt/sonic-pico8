@@ -5,11 +5,12 @@ local emerald_fx = derived_class(fx)
 local emerald_common = require("render/emerald_common")
 local visual = require("resources/visual_common")
 
--- a simple entity with 2 components: position and animated_sprite
--- position    vector
--- anim_spr    animated_sprite
+-- extra attributes:
+-- number    int    number of the represented emerald to color the fx
+-- note that you can still customize the animated sprite data,
+--  as some will use the pick FX, others (start cinematic) will use the single star
 function emerald_fx:init(number, position, anim_spr_data)
-  fx.init(self, position, visual.animated_sprite_data_t.emerald_pick_fx)
+  fx.init(self, position, anim_spr_data)
   self.number = number
 end
 

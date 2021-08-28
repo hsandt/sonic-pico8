@@ -57,6 +57,10 @@ local titlemenu_sprite_data_t = {
   tails_plane4 = sprite_data(sprite_id_location(6, 10), tile_vector(2, 1), vector(6, 2), colors.pink),
   sonic_tiny = sprite_data(sprite_id_location(0, 9), nil, vector(2, 5), colors.pink),
   sonic_spin_tiny = sprite_data(sprite_id_location(1, 9), nil, vector(3, 3), colors.pink),
+
+  star_fx1 = sprite_data(sprite_id_location(2, 9), nil, vector(3, 3), colors.pink),
+  star_fx2 = sprite_data(sprite_id_location(3, 9), nil, vector(3, 3), colors.pink),
+  star_fx3 = sprite_data(sprite_id_location(4, 9), nil, vector(3, 3), colors.pink),
 }
 
 local titlemenu_animated_sprite_data_t = {
@@ -74,6 +78,16 @@ local titlemenu_animated_sprite_data_t = {
       anim_loop_modes.loop
     )
   },
+  -- used for emerald or Sonic landing
+  star_fx = animated_sprite_data(
+    {
+      titlemenu_sprite_data_t.star_fx1,
+      titlemenu_sprite_data_t.star_fx2,
+      titlemenu_sprite_data_t.star_fx3,
+    },
+    5,
+    anim_loop_modes.clear
+  ),
 }
 
 merge(visual, titlemenu_visual)

@@ -174,10 +174,27 @@ function titlemenu:update()
     end
 
     if self.jumping_sonic then
-      -- tune plane speed here
-      self.jumping_sonic.position.x = self.jumping_sonic.position.x - 0.35 - tuned("sonic dvx x0.01", 0) * 0.01
-      self.jumping_sonic.position.y = self.jumping_sonic.position.y + self.jumping_sonic_vy
-      -- apply gravity
+      -- local shrinked_speed_min_factor = 0.5 + tuned("perceived spd factor", 0)
+
+      -- shrink Sonic based on altitude
+      local shrink_start_altitude = 76 + tuned("sonic shrink dy", 0)
+      if self.jumping_sonic.position.y > shrink_start_altitude then
+        local scale = ui_animation.lerp(1, 0.3 + tuned("sonic scale", 0) * 0.1, (self.jumping_sonic.position.y - shrink_start_altitude) / (110 - shrink_start_altitude))
+        self.jumping_sonic.scale = min(scale, 1)
+      end
+
+      -- tune sonic speed here
+      local world_speed_x = 0.35 + tuned("sonic dvx x0.01", 0) * 0.01
+
+      -- when far, we perceive motion slower, like parallax, so scale the perceived speed accordingly
+      --  the perceived speed will be used to move the sprite, esp. when shrinked
+      local perceived_speed_x = world_speed_x * self.jumping_sonic.scale
+      local perceived_speed_y = self.jumping_sonic_vy * self.jumping_sonic.scale
+      self.jumping_sonic.position.x = self.jumping_sonic.position.x - perceived_speed_x
+      self.jumping_sonic.position.y = self.jumping_sonic.position.y + perceived_speed_y
+
+      -- apply gravity on real world speed (it would be too much on perceived speed when shrinked,
+      --  so we must keep working with world speed)
       self.jumping_sonic_vy = self.jumping_sonic_vy + 0.04 + tuned("gravity d x0.01", 0) * 0.01
 
       -- under certain altitude, make Sonic land (star animation + remove sprite)
@@ -366,6 +383,14 @@ function titlemenu:move_camera_y_async(from, to, n, tween_method)
   end
 end
 
+function titlemenu:shrink_scalable_async(scalable_object, from, to, n, tween_method)
+  for frame = 1, n do
+    local alpha = frame / n
+    scalable_object.scale = tween_method(from, to, alpha)
+    yield()
+  end
+end
+
 function titlemenu:play_start_cinematic()
   -- hide (actually destroy) menu
   self.menu = nil
@@ -378,9 +403,9 @@ function titlemenu:play_start_cinematic()
 
 --#if tuner
   -- quick advance to end
-  -- for i=1,30*(23+tuned("skip x0.5s", 0)) do
-  --   self.app:update()
-  -- end
+  for i=1,30*(22+tuned("skip x0.5s", 0)) do
+    self.app:update()
+  end
 --#endif
 end
 
@@ -519,7 +544,8 @@ function titlemenu:play_start_cinematic_async()
 
   self:sonic_jump_into_island_async()
 
-  -- infinite loop to test
+  -- infinite loop to test from the start, possibly with skip to test the end
+  -- yield_delay_frames(80 + tuned("wait loop", 0))
   -- self:on_exit()
   -- self:on_enter()
   -- self.app:stop_all_coroutines()
@@ -607,7 +633,7 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   add(self.cinematic_drawables_screen, emerald)
 
   -- shrink emerald by reducing scale in parallel with incoming motion
-  self.app:start_coroutine(self.shrink_emerald_async, self, emerald)
+  self.app:start_coroutine(self.shrink_scalable_async, self, emerald, 1, 0.2 + tuned("em scale", 0) * 0.1, 24, ui_animation.lerp)
 
   -- calculate position on emerald circle at current time
   --  so we can interpolate from the same position for continuous motion
@@ -624,14 +650,6 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   assert(emerald.position == emerald_landing_positions[emerald.number])
   local pfx = emerald_fx(emerald.number, emerald.position)
   add(self.emerald_landing_fxs, pfx)
-end
-
-function titlemenu:shrink_emerald_async(emerald)
-  for frame = 1, 24 do
-    local alpha = frame / 24
-    emerald.scale = 1 - alpha
-    yield()
-  end
 end
 
 function titlemenu:create_and_move_tails_plane_across_sky()
@@ -661,6 +679,9 @@ function titlemenu:sonic_jump_into_island_async()
 
   -- like Tails plane, count on physics update to move Sonic to the landing position
   -- when Sonic y reaches a certain point, the star animation will automatically play
+
+  -- however, we still want to shrink Sonic here (but we could shrink based on position on Y too)
+  -- self:shrink_scalable_async(self.jumping_sonic, 1, 0, 24 + tuned("sonic shrink dt", 0), ui_animation.lerp)
 end
 
 function titlemenu:sonic_landing_star_async()

@@ -15,7 +15,7 @@ function emerald_cinematic:init(number, position, scale)
   assert(number <= 8, "emerald:init: only 8 emeralds allowed")
   self.number = number
   self.position = position
-  self.scale = scale  -- no need to default to 1, sprite_data:render accepts nil
+  self.scale = scale or 1
 end
 
 --#if tostring

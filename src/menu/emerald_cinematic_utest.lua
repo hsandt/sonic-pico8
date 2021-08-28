@@ -14,7 +14,12 @@ describe('emerald', function ()
 
   describe('init', function ()
 
-    it('should create an emerald with a number and position on screen', function ()
+    it('should create an emerald with a number and position on screen, default scale 1', function ()
+      local em = emerald_cinematic(7, vector(20, 10))
+      assert.are_same({7, vector(20, 10), 1}, {em.number, em.position, em.scale})
+    end)
+
+    it('should create an emerald with a number and position on screen, and scale', function ()
       local em = emerald_cinematic(7, vector(20, 10), 2)
       assert.are_same({7, vector(20, 10), 2}, {em.number, em.position, em.scale})
     end)

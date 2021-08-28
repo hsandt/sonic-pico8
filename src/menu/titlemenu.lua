@@ -329,11 +329,11 @@ end
 
 -- helper: move camera y linearly along from `from` to `to` over n frames
 --  inspired by ui_animation, but specialized for 1 coord
-function titlemenu:move_camera_y_async(from, to, n)
+function titlemenu:move_camera_y_async(from, to, n, tween_method)
   for frame = 1, n do
     -- note that alpha starts at 1 / n, not 0
     local alpha = frame / n
-    self.camera_y = (1 - alpha) * from + alpha * to
+    self.camera_y = tween_method(from, to, alpha)
     yield()
   end
 end
@@ -365,9 +365,13 @@ function titlemenu:play_start_cinematic_async()
   local full_loop_height = 1296 + tuned("full loop dy x16", 0) * 16
   -- angel island is at the bottom of the screen, so actually to have the water horizon exactly
   --  at screen center, by looking at the sprite, we see we should move camera down by 52
-  --  but that's to place the camera center, at y=64 on the horizon line, so actual objects
-  --  should use y0 = 64 + 52 = 116
-  local perfect_horizon_y = 116
+  local camera_y0 = 52
+  -- but that's to place the camera center, at y=64 on the horizon line, so actual objects
+  --  should use object y0 = 64 + 52 = 116 aka "perfect horizon y"
+  local perfect_horizon_y = 64 + camera_y0
+
+  -- first batch of clouds are located around 1/6 of the circle (60 degrees)
+  local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
 
   -- angel island is initially at y = 88, so remove full height to see it again when moving camera
   --  up by full loop height
@@ -393,10 +397,8 @@ function titlemenu:play_start_cinematic_async()
 
   yield_delay_frames(36)
 
-  -- after a short delay (first two emeralds entered), start moving camera y toward negative
-  --  to look up the sky
-  -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
-  self.app:start_coroutine(self.move_camera_y_async, self, 0, island_full_loop_new_y - 88, 700 + tuned("camera dt", 0))
+  -- run complete camera motion in parallel with the other animations
+  self.app:start_coroutine(self.complete_camera_motion_async, self, full_loop_height, camera_y0)
 
   -- we're gonna start showing clouds now, and the title logo must have been hidden by this point,
   --  so it's safe to reload spritesheet from the start_cinematic data cartridge, which contains
@@ -408,8 +410,6 @@ function titlemenu:play_start_cinematic_async()
 
   -- add drawable clouds high in the sky
 
-  -- first batch of clouds are located around 1/6 of the circle (60 degrees)
-  local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
   local cloud_positions = {
     vector(12, front_clouds_base_y + 9),
     vector(72, front_clouds_base_y + 32),
@@ -460,7 +460,7 @@ function titlemenu:play_start_cinematic_async()
   -- we do a complete turn (360 degrees on pitch) which allow us to sea angel island again
   self.drawables_sea[1].position.y = island_full_loop_new_y
 
-  yield_delay_frames(tuned("wait fly x100", 7) * 100)
+  yield_delay_frames(500 + tuned("wait fly dt x30", 0) * 30)
 
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
@@ -488,6 +488,17 @@ function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
   ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42)
   self.title_logo_drawable.visible = false
+end
+
+function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
+  -- 1. ease in out from island to reverse horizon
+  self:move_camera_y_async(0, camera_y0 - full_loop_height / 2, 250 + tuned("->90 dt", 0) * 30, ui_animation.ease_in_out)
+
+  -- 2. back to island very fast, since not much to see on the bottom sea
+  -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
+  --  which arrives just at y = island_full_loop_new_y - 88 = - full_loop_height (complete turn from 0, don't use camera_y0 to keep
+  --  island at the bottom)
+  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 270 + tuned("->back dt", 0) * 30, ui_animation.ease_in_out)
 end
 
 -- precompute helper constants

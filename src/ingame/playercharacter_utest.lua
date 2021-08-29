@@ -7292,6 +7292,18 @@ describe('player_char', function ()
           assert.are_equal(0, pc.debug_velocity.x)
         end)
 
+        -- added this utest since finding the bug: when player releases directional input
+        --  while keeping pressing speed-up button, you 2x the speed (which should be decreasing fast with friction)
+        --  causing exponential speed up!
+        it('should change nothing when debug speed is not 0 and move intention in x is 0', function ()
+          pc.debug_velocity.x = 10
+          pc.move_intention.x = 0
+
+          pc:update_velocity_component_debug("x")
+
+          assert.are_equal(10 - pc.debug_move_friction, pc.debug_velocity.x)
+        end)
+
         it('should accelerate on x with 2x final speed when vx = 0 and input x ~= 0', function ()
           pc.debug_velocity.x = 0
           pc.move_intention.x = -1

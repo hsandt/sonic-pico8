@@ -2644,6 +2644,8 @@ function player_char:update_debug()
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS
   -- otherwise we'd have to change utests to init app+flow each time
   self.position = self.position + self.debug_velocity
+  printh("self.position: "..nice_dump(self.position))
+  printh("self.debug_velocity: "..nice_dump(self.debug_velocity))
 
   -- clamp on level edges (add a small margin before right edge to avoid finishing the level by moving accidentally
   --  too fast)
@@ -2680,14 +2682,14 @@ function player_char:update_velocity_component_debug(coord)
       -- clamp to max in abs
       new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
     end
+
+    -- check extra input to 2x debug speed
+    if input:is_down(button_ids.o) then
+      new_debug_velocity_comp = 2 * new_debug_velocity_comp
+    end
   elseif old_debug_velocity_comp ~= 0 then
     -- no input => friction aka passive deceleration
     new_debug_velocity_comp = sgn(old_debug_velocity_comp) * max(0, abs(old_debug_velocity_comp) - self.debug_move_friction)
-  end
-
-  -- check extra input to 2x debug speed
-  if input:is_down(button_ids.o) then
-    new_debug_velocity_comp = 2 * new_debug_velocity_comp
   end
 
   -- set component

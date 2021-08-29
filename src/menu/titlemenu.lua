@@ -62,6 +62,7 @@ local perfect_horizon_y = 64 + camera_y0
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
 -- emeralds                     {emerald_cinematic} emerald cinematic sprites (drawable), stored for manual handling
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
+-- ellipsis_y_scalable          {scale: number} scalable applied to emerald circle to get ellipsis (shrink on y)
 -- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
 -- tails_plane                  animated_sprite tails plane animated sprite
 -- tails_plane_position         vector          tails plane position
@@ -91,6 +92,7 @@ function titlemenu:init()
   self.cinematic_drawables_screen = {}
   self.emeralds = {}
   self.cinematic_emeralds_on_circle = {}
+  self.ellipsis_y_scalable = {scale = 1}  -- table is just to allow usage of tween_scalable_async
   self.emerald_landing_fxs = {}
   -- self.tails_plane = nil
   -- self.tails_plane_position = nil
@@ -347,7 +349,7 @@ function titlemenu:calculate_emerald_position_on_circle(number)
   -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
   -- (number - 1) / 8 is to place emeralds at uniform angular distance on the circle
   local angle = -0.65 - (number - 1) / 8 - (t() - (self.start_pressed_time + (delay_frames + tuned("emerald enter dt", 0)) / 60)) / period
-  local draw_position = vector(64 + radius * cos(angle), 68 + radius * sin(angle))
+  local draw_position = vector(64 + radius * cos(angle), 68 + self.ellipsis_y_scalable.scale * radius * sin(angle))
   return draw_position
 end
 
@@ -380,7 +382,6 @@ function titlemenu:draw_sea_drawables()
   --  (minus 12 lines below island sprite horizon line, saw we don't try to draw
   --  them when island is fully shown / and symmetrically for revershe horizon)
   if camera_y0 - full_loop_height / 2 + screen_height / 2 - 12 > self.camera_y and self.camera_y > camera_y0 - full_loop_height - screen_height / 2 + 12 then
-    printh("drawing!")
     -- inspired by visual_stage.draw_water_reflections, except we've already swapped colors,
     --  so draw the same raw colors as the sprites instead (red and yellow)
     -- however, if we just draw the colors the same way, they will be in sync!
@@ -478,7 +479,7 @@ function titlemenu:move_camera_y_async(from, to, n, tween_method)
   end
 end
 
-function titlemenu:shrink_scalable_async(scalable_object, from, to, n, tween_method)
+function titlemenu:tween_scalable_async(scalable_object, from, to, n, tween_method)
   for frame = 1, n do
     local alpha = frame / n
     scalable_object.scale = tween_method(from, to, alpha)
@@ -501,7 +502,7 @@ function titlemenu:play_start_cinematic()
 
 --#if tuner
   -- quick advance to end
-  for i=1,30*(10+tuned("skip x0.5s", 0)) do
+  for i=1,30*(0+tuned("skip x0.5s", 0)) do
     self.app:update()
   end
 --#endif
@@ -603,7 +604,7 @@ function titlemenu:play_start_cinematic_async()
 
   -- wait a little more to make sure angel island leaves screen and we can warp it to its new position
   -- but not too late so clouds are properly reloaded
-  yield_delay_frames(45 + tuned("island dt", 0))
+  yield_delay_frames(45 --[[+ tuned("island dt", 0)]])
 
   -- horizon behind, it is seen upside down since camera did a complete 180 pitch turn
   -- reverse horizon is located at 180 degrees, so half-way of the full circle
@@ -626,27 +627,17 @@ function titlemenu:play_start_cinematic_async()
   -- self:play_start_cinematic()
 --#endif
 
-  -- removed tunable delay from last time to stabilize total delay from here
-  yield_delay_frames(500 - tuned("island dt", 0) --[[ + tuned("wait fly dt x30", 0) * 30]])
+  yield_delay_frames(40 --[[ + tuned("ellipsis dt", 0)]])
+  self:tween_scalable_async(self.ellipsis_y_scalable, 1, 0.5, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
-  self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
+  yield_delay_frames(60 --[[ + tuned("ellipsis dt2", 0)]])
+  self:tween_scalable_async(self.ellipsis_y_scalable, 0.5, 1, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
-  yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])
+  yield_delay_frames(70 --[[ + tuned("ellipsis dt3", 0)]])
+  self:tween_scalable_async(self.ellipsis_y_scalable, 1, 0.5, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
-  self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
-
-  yield_delay_frames(89 + tuned("wait sonic jump dt", 0))
-
-  self:sonic_jump_into_island_async()
-
---#if tuner
-  -- infinite loop to test from the start, possibly with skip to test the end
-  yield_delay_frames(80 + tuned("wait loop", 0))
-  self:on_exit()
-  self:on_enter()
-  self.app:stop_all_coroutines()
-  self:play_start_cinematic()
---#endif
+  yield_delay_frames(90 --[[ + tuned("ellipsis dt4", 0)]])
+  self:tween_scalable_async(self.ellipsis_y_scalable, 0.5, 1, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 end
 
 function titlemenu:move_title_logo_out_async()
@@ -664,6 +655,10 @@ function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
   --  which arrives just at y = island_full_loop_new_y - 88 = - full_loop_height (complete turn from 0, don't use camera_y0 to keep
   --  island at the bottom)
   self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 270 --[[ + tuned("->back dt", 0) * 30 ]], ui_animation.ease_in_out)
+
+  -- 3. after camera is back to island, wait a little and play last phase
+  yield_delay_frames(70 + tuned("last phase dt x10", 0) * 10)
+  self:play_last_phase_async()
 end
 
 -- precompute helper constants
@@ -695,6 +690,27 @@ function titlemenu:emerald_enter_async(emerald)
   --  be drawn with rotating circle/ellipse formula instead
   del(self.cinematic_drawables_screen, emerald)
   add(self.cinematic_emeralds_on_circle, emerald.number)
+end
+
+function titlemenu:play_last_phase_async(emerald)
+  self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
+
+  yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])
+
+  self.app:start_coroutine(self.create_and_move_tails_plane_across_sky, self)
+
+  yield_delay_frames(89 --[[ + tuned("wait sonic jump dt", 0)]])
+
+  self:sonic_jump_into_island_async()
+
+--#if tuner
+  -- infinite loop to test from the start, possibly with skip to test the end
+  yield_delay_frames(40 + tuned("wait loop", 0))
+  self:on_exit()
+  self:on_enter()
+  self.app:stop_all_coroutines()
+  self:play_start_cinematic()
+--#endif
 end
 
 function titlemenu:emeralds_fly_to_island_async()
@@ -734,7 +750,7 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   add(self.cinematic_drawables_screen, emerald)
 
   -- shrink emerald by reducing scale in parallel with incoming motion
-  self.app:start_coroutine(self.shrink_scalable_async, self, emerald, 1, 0.2 + tuned("em scale", 0) * 0.1, 24, ui_animation.lerp)
+  self.app:start_coroutine(self.tween_scalable_async, self, emerald, 1, 0.2 + tuned("em scale", 0) * 0.1, 24, ui_animation.lerp)
 
   -- calculate position on emerald circle at current time
   --  so we can interpolate from the same position for continuous motion

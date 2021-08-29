@@ -990,8 +990,8 @@ describe('stage_state', function ()
 
           it('should call update on each emerald fx', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0)),
-              emerald_fx(2, vector(12, 4))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:update_fx()
@@ -1006,15 +1006,15 @@ describe('stage_state', function ()
             --  we don't make the mistake or deleting fx during iteration, which tends
             --  to make us miss the last elements
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(999, 1)),
-              emerald_fx(2, vector(2, 2)),
-              emerald_fx(3, vector(999, 3))
+              emerald_fx(1, vector(999, 1), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(3, vector(999, 3), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:update_fx()
 
             assert.are_same({
-              emerald_fx(2, vector(2, 2))
+              emerald_fx(2, vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx)
             }, state.emerald_pick_fxs)
           end)
 
@@ -1046,8 +1046,8 @@ describe('stage_state', function ()
 
           it('should call render on each emerald fx', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0)),
-              emerald_fx(2, vector(12, 4))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:render_fx()

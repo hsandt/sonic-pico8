@@ -1,9 +1,4 @@
 require("test/bustedhelper_ingame")
--- we should only need common_ingame required in bustedhelper_ingame,
---  but exceptionally we have titlemenu-related tests in this file, so we need stuff
---  like fun_helper (we should actually isolate tests and reverse cross-testing to itests,
---  whether complex tests done via busted but done in dedicated files, or simulation tests)
-require("common_titlemenu")
 
 local stage_state = require("ingame/stage_state")
 

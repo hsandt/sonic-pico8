@@ -2644,8 +2644,6 @@ function player_char:update_debug()
   -- just to get delta_time, so we just use the constant as we know we are at 60 FPS
   -- otherwise we'd have to change utests to init app+flow each time
   self.position = self.position + self.debug_velocity
-  printh("self.position: "..nice_dump(self.position))
-  printh("self.debug_velocity: "..nice_dump(self.debug_velocity))
 
   -- clamp on level edges (add a small margin before right edge to avoid finishing the level by moving accidentally
   --  too fast)

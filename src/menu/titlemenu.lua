@@ -36,6 +36,9 @@ local menu_item_params = {
 
 -- CONSTANTS (outside visual files)
 
+-- note period is in seconds
+local base_emerald_angular_speed = 1 / (visual.start_cinematic_emerald_rotation_period * 60)
+
 -- let's define parameters to guide us in the camera motion
 --  (in outer scope so all methods can access them)
 
@@ -96,6 +99,8 @@ local cloud_sprites_per_size_category = {
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
 -- emeralds                     {emerald_cinematic} emerald cinematic sprites (drawable), stored for manual handling
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
+-- emerald_base_angle           number          angle of first emerald (red, not first emerald to enter) on circle/ellipse
+-- emerald_angular_speed        number          angular speed of emeralds rotating on the circle/ellipse
 -- ellipsis_y_scalable          {scale: number} scalable applied to emerald circle to get ellipsis (shrink on y)
 -- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
 -- clouds                       {sprite_object} sequence of clouds to draw, kept reference for motion
@@ -127,6 +132,8 @@ function titlemenu:init()
   self.cinematic_drawables_screen = {}
   self.emeralds = {}
   self.cinematic_emeralds_on_circle = {}
+  self.emerald_base_angle = 0
+  self.emerald_angular_speed = 0
   self.ellipsis_y_scalable = {scale = 1}  -- table is just to allow usage of tween_scalable_async
   self.emerald_landing_fxs = {}
   self.clouds = {}
@@ -216,6 +223,8 @@ function titlemenu:on_exit()
   clear_table(self.cinematic_drawables_screen)
   clear_table(self.emeralds)
   clear_table(self.cinematic_emeralds_on_circle)
+  self.emerald_base_angle = 0
+  self.emerald_angular_speed = 0
   clear_table(self.emerald_landing_fxs)
   clear_table(self.clouds)
   self.tails_plane = nil
@@ -239,6 +248,7 @@ function titlemenu:update()
       self.app:start_coroutine(self.fade_out_and_load_stage_intro_async, self)
     end
 
+    self:update_angle()
     self:update_clouds()
     self:update_emeralds()
     self:update_fx()
@@ -310,6 +320,14 @@ local cloud_speeds_by_size_category = {
   -0.15,
   -0.1,
 }
+
+function titlemenu:update_angle()
+  -- only update angle if at least one emerald on the circle
+  if #self.cinematic_emeralds_on_circle > 0 then
+    -- emeralds rotate clockwise, so negative factor for t()
+    self.emerald_base_angle = (self.emerald_base_angle - self.emerald_angular_speed) % 1
+  end
+end
 
 function titlemenu:update_clouds()
   for i = 1, #self.clouds do
@@ -440,13 +458,10 @@ end
 function titlemenu:calculate_emerald_position_on_circle(number)
   -- inspired by stage_clear_state:draw_emeralds, adding rotation and elliptical effect
   local radius = visual.start_cinematic_emerald_circle_radius
-  local period = visual.start_cinematic_emerald_rotation_period
-  local delay_frames = visual.start_cinematic_first_emerald_enter_delay_frames
   -- rotation center at (64, 68) (slightly below screen center)
-  -- emeralds rotate clockwise, so negative factor for t()
-  -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
   -- (number - 1) / 8 is to place emeralds at uniform angular distance on the circle
-  local angle = -0.65 - (number - 1) / 8 - (t() - (self.start_pressed_time + (delay_frames --[[ + tuned("emerald enter dt", 0)]]) / 60)) / period
+  -- negative because they are aligned clockwise, from first (RED) to last, although they arrive in reverse order
+  local angle = self.emerald_base_angle - (number - 1) / 8
   local draw_position = vector(64 + radius * cos(angle), 68 + self.ellipsis_y_scalable.scale * radius * sin(angle))
   return draw_position
 end
@@ -636,6 +651,14 @@ function titlemenu:tween_scalable_async(scalable_object, from, to, n, tween_meth
   end
 end
 
+function titlemenu:change_emerald_angular_speed_async(from_factor, to_factor, n, tween_method)
+  for frame = 1, n do
+    local alpha = frame / n
+    self.emerald_angular_speed = base_emerald_angular_speed * tween_method(from_factor, to_factor, alpha)
+    yield()
+  end
+end
+
 function titlemenu:play_start_cinematic()
   -- hide (actually destroy) menu
   self.menu = nil
@@ -669,6 +692,10 @@ function titlemenu:play_start_cinematic_async()
   yield_delay_frames(visual.start_cinematic_first_emerald_enter_delay_frames + tuned("emerald enter dt", 0))
 
   -- setup all emeralds to enter on screen and start rotating
+  -- note that emeralds reach the circle tangentially at angle -3/4 = -0.75 (top-left)
+  self.emerald_base_angle = -0.75
+  self.emerald_angular_speed = base_emerald_angular_speed
+
   for i = 1, 8 do
     local emerald = emerald_cinematic(i, vector(-4, 93))
     add(self.emeralds, emerald)                    -- for easier tracking
@@ -754,16 +781,25 @@ function titlemenu:play_start_cinematic_async()
   -- self:play_start_cinematic()
 --#endif
 
+
   yield_delay_frames(40 --[[ + tuned("ellipsis dt", 0)]])
+  -- shrink to ellipse and increase angular speed at the same time (a little slower to change speed the first time)
+  self.app:start_coroutine(self.change_emerald_angular_speed_async, self, 1, 2, 70, ui_animation.ease_in_out)
   self:tween_scalable_async(self.ellipsis_y_scalable, 1, 0.5, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
   yield_delay_frames(60 --[[ + tuned("ellipsis dt2", 0)]])
+  -- back to circle at normal speed
+  self.app:start_coroutine(self.change_emerald_angular_speed_async, self, 2, 1, 50, ui_animation.ease_in_out)
   self:tween_scalable_async(self.ellipsis_y_scalable, 0.5, 1, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
   yield_delay_frames(70 --[[ + tuned("ellipsis dt3", 0)]])
+  -- shrink to ellipse
+  self.app:start_coroutine(self.change_emerald_angular_speed_async, self, 1, 2, 50, ui_animation.ease_in_out)
   self:tween_scalable_async(self.ellipsis_y_scalable, 1, 0.5, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 
   yield_delay_frames(90 --[[ + tuned("ellipsis dt4", 0)]])
+  -- back to circle
+  self.app:start_coroutine(self.change_emerald_angular_speed_async, self, 2, 1, 50, ui_animation.ease_in_out)
   self:tween_scalable_async(self.ellipsis_y_scalable, 0.5, 1, 50 --[[ + tuned("ellipsis dur", 0)]], ui_animation.ease_in_out)
 end
 
@@ -784,8 +820,8 @@ function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
   -- recently extended time to give time to player to admire the forward motion above the sea with shimmer scaling
   self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 360 + tuned("->back dt", 0) * 30, ui_animation.ease_in_out)
 
-  -- 3. after camera is back to island, wait a little and play last phase
-  yield_delay_frames(70 --[[ + tuned("last phase dt x10", 0) * 10]])
+  -- 3. after camera is back to island, play last phase
+  --  (it will wait for emeralds to get correct position on its own)
   self:play_last_phase_async()
 end
 
@@ -812,6 +848,7 @@ function titlemenu:emerald_enter_async(emerald)
   --  reached the circle, and that the entrance duration is proportional to period,
   --  so the initial offset of circle angle in render will always match so the emerald will start
   --  moving on the circle from where it arrived tangentially
+  -- note that the target position corresponds at angle = -3/4 = -0.75 (top-left)
   ui_animation.move_drawables_async({emerald}, vector(-4, 93), vector(42, 47), next_emerald_delay)
 
   -- from here, remove emerald from normal drawables and attach it to the circle to let it
@@ -821,6 +858,21 @@ function titlemenu:emerald_enter_async(emerald)
 end
 
 function titlemenu:play_last_phase_async(emerald)
+  -- wait for red emerald to be at -1/8, ie orange emerald (last one, but first to fly)
+  --  is on the right side at angle 0, ideal to fly to the island
+  -- it can't be exact on a given frame, so accept a certain range (use the angular speed, which should
+  --  be the base angular speed at this point, to be safe, since angle cannot increase more than that in 1 frame
+  --  so we cannot "miss" the range)
+  -- note we applied modulo 1 to angle in update_angle so the range must be inside [0, 1) too
+  --  (so use 1-1/8 rather than 1/8)
+  while true do
+    if 1-1/8 - base_emerald_angular_speed < self.emerald_base_angle and self.emerald_base_angle < 1-1/8 + base_emerald_angular_speed then
+      break
+    else
+      yield()
+    end
+  end
+
   self.app:start_coroutine(self.emeralds_fly_to_island_async, self)
 
   yield_delay_frames(70 --[[ + tuned("wait plane dt", 0)]])

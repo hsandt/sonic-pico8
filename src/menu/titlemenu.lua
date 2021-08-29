@@ -65,12 +65,12 @@ local island_full_loop_new_y = 88 - full_loop_height
 
 local clouds_data = {
   -- {size (1: big, 2: medium, 3: small, 4: tiny), initial position}
-  {1, vector(2, front_clouds_base_y + 9)},
-  {1, vector(62, front_clouds_base_y + 22)},
-  {1, vector(120, front_clouds_base_y + 32)},
-  {2, vector(8, front_clouds_base_y + 41)},
-  {2, vector(49, front_clouds_base_y + 50)},
-  {2, vector(82, front_clouds_base_y + 56)},
+  {1, vector(2, front_clouds_base_y + 31)},
+  {1, vector(62, front_clouds_base_y + 12)},
+  {1, vector(120, front_clouds_base_y + 24)},
+  {2, vector(8, front_clouds_base_y + 57)},
+  {2, vector(49, front_clouds_base_y + 38)},
+  {2, vector(82, front_clouds_base_y + 49)},
   {2, vector(131, front_clouds_base_y + 62)},
   {3, vector(50, front_clouds_base_y + 70)},
   {3, vector(100, front_clouds_base_y + 76)},
@@ -251,14 +251,13 @@ function titlemenu:update()
       -- local shrinked_speed_min_factor = 0.5 + tuned("perceived spd factor", 0)
 
       -- shrink Sonic based on altitude
-      local shrink_start_altitude = 76 + tuned("sonic shrink dy", 0)
+      local shrink_start_altitude = 76 --[[ + tuned("sonic shrink dy", 0)]]
       if self.jumping_sonic.position.y > shrink_start_altitude then
-        local scale = ui_animation.lerp(1, 0.3 + tuned("sonic scale", 0) * 0.1, (self.jumping_sonic.position.y - shrink_start_altitude) / (110 - shrink_start_altitude))
-        self.jumping_sonic.scale = min(scale, 1)
+        self.jumping_sonic.scale = ui_animation.lerp_clamped(1, 0.3 --[[ + tuned("sonic scale", 0) * 0.1]], (self.jumping_sonic.position.y - shrink_start_altitude) / (110 - shrink_start_altitude))
       end
 
       -- tune sonic speed here
-      local world_speed_x = 0.35 + tuned("sonic dvx x0.01", 0) * 0.01
+      local world_speed_x = 0.35 --[[ + tuned("sonic dvx x0.01", 0) * 0.01]]
 
       -- when far, we perceive motion slower, like parallax, so scale the perceived speed accordingly
       --  the perceived speed will be used to move the sprite, esp. when shrinked
@@ -269,7 +268,7 @@ function titlemenu:update()
 
       -- apply gravity on real world speed (it would be too much on perceived speed when shrinked,
       --  so we must keep working with world speed)
-      self.jumping_sonic_vy = self.jumping_sonic_vy + 0.04 + tuned("gravity d x0.01", 0) * 0.01
+      self.jumping_sonic_vy = self.jumping_sonic_vy + 0.04 --[[ + tuned("gravity d x0.01", 0) * 0.01]]
 
       -- under certain altitude, make Sonic land (star animation + remove sprite)
       if self.jumping_sonic.position.y > 110 then
@@ -414,7 +413,7 @@ function titlemenu:calculate_emerald_position_on_circle(number)
   -- emeralds rotate clockwise, so negative factor for t()
   -- initial offset is just to make sure to connect emerald entrance and reaching circle tangentially
   -- (number - 1) / 8 is to place emeralds at uniform angular distance on the circle
-  local angle = -0.65 - (number - 1) / 8 - (t() - (self.start_pressed_time + (delay_frames + tuned("emerald enter dt", 0)) / 60)) / period
+  local angle = -0.65 - (number - 1) / 8 - (t() - (self.start_pressed_time + (delay_frames --[[ + tuned("emerald enter dt", 0)]]) / 60)) / period
   local draw_position = vector(64 + radius * cos(angle), 68 + self.ellipsis_y_scalable.scale * radius * sin(angle))
   return draw_position
 end
@@ -457,7 +456,7 @@ function titlemenu:draw_sea_drawables()
     --  vs code-based color cycle as in visual_stage.draw_water_reflections
 
     -- draw every given interval on y
-    local shimmer_y_interval = 9 + tuned("shimmer dy", 0)
+    local shimmer_y_interval = 9 --[[ + tuned("shimmer dy", 0)]]
     local shimmer_x_list_per_j = {
       {13, 30, 46, 62, 111},
       {22, 45, 51, 89, 120},
@@ -465,10 +464,39 @@ function titlemenu:draw_sea_drawables()
       {23, 90},
     }
 
+    local spreading_scale_time_progression_ratio = 0
+
+    -- to avoid shimmers leaking out of reverse horizon, and because
+    --  spreading scale for forward motion effect only makes sense when starting to move
+    --  toward the island, only start effect from angle 270 degrees (3/4)
+    -- note camera y decreases so diff should be positive
+    local start_scaling_camera_dy = 780 + tuned("start scale d", 0)  -- around 3 * full_loop_height / 4 is nice
+    local camera_y_from_270 = camera_y0 - start_scaling_camera_dy - self.camera_y
+    if camera_y_from_270 > 0 then
+      -- to avoid brutal spreading scale change, we also progressively increase, then decrease
+      --  scale (returns to normal when reaching the island so the procedural shimmers match the ones from the sprite)
+      local to_max_scaling_distance = 100 + tuned("max scale d", 0)
+      local hold_max_scaling_distance = 240 + tuned("hold scale d", 0)  -- will keep max scaling for that distance
+      local back_to_no_scaling_distance = 180 + tuned("back scale d", 0)
+
+      if camera_y_from_270 < to_max_scaling_distance + hold_max_scaling_distance then
+        local alpha = mid(camera_y_from_270 / to_max_scaling_distance, 0, 1)
+        spreading_scale_time_progression_ratio = ui_animation.ease_in_out(0, 1, alpha)
+      elseif camera_y_from_270 > to_max_scaling_distance + hold_max_scaling_distance then
+        -- back to island
+        local alpha = mid((camera_y_from_270 - to_max_scaling_distance - hold_max_scaling_distance) / back_to_no_scaling_distance, 0, 1)
+        spreading_scale_time_progression_ratio = ui_animation.ease_in_out(1, 0, alpha)
+      end
+    end
+    printh("spreading_scale_time_progression_ratio: "..nice_dump(spreading_scale_time_progression_ratio))
+
     -- sprites already contain water shimmers on ~12 lines, so skip them
     local j = 0
-    for y = perfect_horizon_y - full_loop_height / 2 - 12, perfect_horizon_y - full_loop_height + 12, -shimmer_y_interval do
+    local start_y = perfect_horizon_y - full_loop_height / 2 - 12
+    local stop_y = perfect_horizon_y - full_loop_height + 12
+    for y = start_y, stop_y, -shimmer_y_interval do
       j = j % #shimmer_x_list_per_j + 1  -- modulo first to make sure we get index between 1 and shimmer_x_list_per_j
+
       -- only draw if shimmers are visible on camera
       if y >= self.camera_y and y < self.camera_y + screen_height then
         -- wow, busted seems to define x = 2 for some reason (global? where?)
@@ -488,11 +516,35 @@ function titlemenu:draw_sea_drawables()
           -- pseudo-randomize x to avoid regular shimmers by using y, a stable input
           x = x + y * y
 
-          -- draw triplets for "richer" visuals
-          -- wrap around as offset may cause x to go beyond 128
-          pset(x % screen_width, y, color1)
-          pset((x + 1) % screen_width, y, color2)
-          pset((x + 2) % screen_width, y, color1)
+          -- important to wrap now so applying spreading scale makes sense below
+          x = x % screen_width
+
+          -- apply forward progression simulation: spread shimmers more horizontally
+          -- if near bottom of screen to give the impression of camera leaning forward
+          --  and going toward the island
+          -- use screen center (64) as reference
+          local dy = y - self.camera_y
+
+          -- combine the time-progressive base spreading scale with the spatial-progressive
+          --  alpha that spreads shimmers on x when closer to screen bottom, and also y from the top
+          -- at full time progression, spreading scale is 1 at the top, 2 at the bottom
+          -- remember when ratio is 0, there is no scaling, so spreading_scale is 1
+          local spreading_scale = ui_animation.lerp(1, 2.5 + tuned("scale x0.1", 0) * 0.1, spreading_scale_time_progression_ratio * dy / screen_height)
+
+          -- apply spreading scale relatively to reference point (center for x, top for y)
+          x = 64 + (x - 64) * spreading_scale
+          local adjusted_y = self.camera_y + (y - self.camera_y) * spreading_scale
+
+          -- do NOT wrap this time, if spreading scale is so big it moves shimmers out of screen,
+          --  then don't draw them, the point is to have them spread and reduce density to make
+          --  sea look closer
+
+          if x >= -2 and x < screen_width and adjusted_y < screen_height then
+            -- draw triplets for "richer" visuals
+            pset(x % screen_width, adjusted_y, color1)
+            pset((x + 1) % screen_width, adjusted_y, color2)
+            pset((x + 2) % screen_width, adjusted_y, color1)
+          end
         end
       end
     end
@@ -502,7 +554,6 @@ function titlemenu:draw_sea_drawables()
 
 --#if tuner
   -- DEBUG horizon lines
-  local full_loop_height = 1296 -- + tuned("full loop dy x16", 0) * 16
   -- front
   line(0, perfect_horizon_y, 128, perfect_horizon_y, colors.green)
   -- front clouds
@@ -698,10 +749,11 @@ function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
   -- camera must be 88 above island (top-left pivot) to show it exactly at the bottom of the screen again
   --  which arrives just at y = island_full_loop_new_y - 88 = - full_loop_height (complete turn from 0, don't use camera_y0 to keep
   --  island at the bottom)
-  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 270 --[[ + tuned("->back dt", 0) * 30 ]], ui_animation.ease_in_out)
+  -- recently extended time to give time to player to admire the forward motion above the sea with shimmer scaling
+  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 360 + tuned("->back dt", 0) * 30, ui_animation.ease_in_out)
 
   -- 3. after camera is back to island, wait a little and play last phase
-  yield_delay_frames(70 + tuned("last phase dt x10", 0) * 10)
+  yield_delay_frames(70 --[[ + tuned("last phase dt x10", 0) * 10]])
   self:play_last_phase_async()
 end
 
@@ -770,7 +822,7 @@ function titlemenu:emeralds_fly_to_island_async()
 
   -- start fading out looping emerald flying SFX, it should end by the time
   --  the last emerald left the circle (but it depends on timing data)
-  music(-1, 1000 + tuned("fade out", 0) * 1000)
+  music(-1, 1000 --[[ + tuned("fade out", 0) * 1000]])
 end
 
 local emerald_landing_positions = {
@@ -794,7 +846,7 @@ function titlemenu:emerald_fly_to_island_async(emerald)
   add(self.cinematic_drawables_screen, emerald)
 
   -- shrink emerald by reducing scale in parallel with incoming motion
-  self.app:start_coroutine(self.tween_scalable_async, self, emerald, 1, 0.2 + tuned("em scale", 0) * 0.1, 24, ui_animation.lerp)
+  self.app:start_coroutine(self.tween_scalable_async, self, emerald, 1, 0.2 --[[ + tuned("em scale", 0) * 0.1]], 24, ui_animation.lerp)
 
   -- calculate position on emerald circle at current time
   --  so we can interpolate from the same position for continuous motion
@@ -835,7 +887,7 @@ function titlemenu:sonic_jump_into_island_async()
   --  and hence the plane
   -- constructing is copying position, so safe
   self.jumping_sonic = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position)
-  self.jumping_sonic_vy = -0.2 - tuned("sonic vy0 x-0.01", 0) * 0.01
+  self.jumping_sonic_vy = -0.2 --[[ - tuned("sonic vy0 x-0.01", 0) * 0.01]]
   add(self.cinematic_drawables_screen, self.jumping_sonic)
 
   -- play jump sound

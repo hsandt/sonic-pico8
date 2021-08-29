@@ -240,6 +240,7 @@ function titlemenu:update()
     end
 
     self:update_clouds()
+    self:update_emeralds()
     self:update_fx()
 
     if self.tails_plane_position then
@@ -332,6 +333,21 @@ function titlemenu:update_clouds()
   end
 end
 
+local brightness_cycle = {-1, 0, 1, 0}
+
+function titlemenu:update_emeralds()
+  -- update regular things on the emeralds, not already handled in async
+  -- brightness didn't work too well, keeping supporting code but disabling code
+  --  actually changing brightness below for now
+  -- for emerald in all(self.emeralds) do
+  --   local period = 0.1
+  --   -- from darkness lv2 to brightness lv2
+  --   -- emerald.brightness = flr(t() / period) % 5 - 2
+  --   -- ping-ping between -1 and 1
+  --   emerald.brightness = brightness_cycle[flr(t() / period) % 4 + 1]
+  -- end
+end
+
 function titlemenu:update_fx()
   local to_delete = {}
 
@@ -386,8 +402,25 @@ function titlemenu:render()
 
   for num in all(self.cinematic_emeralds_on_circle) do
     local draw_position = self:calculate_emerald_position_on_circle(num)
-    -- draw at normal brightness
-    emerald_common.draw(num, draw_position)
+    -- draw at normal brightness (old, works when brightness > 0 though)
+    -- emerald_common.draw(num, draw_position, self.emeralds[num].brightness)
+    local brightness = self.emeralds[num].brightness
+
+    -- inlined and adapted emerald_cinematic:draw to support brightness < 0 aka darkness...
+    -- it would be better to just change either postprocess table or emerald_common.set_color_palette
+    --  to support both brightness and darkness, but a little late now...
+    if brightness < 0 then
+      local darkness = -brightness
+      local light_color, dark_color = unpack(visual.emerald_colors[num])
+      pal(colors.red, postprocess.swap_palette_by_darkness[light_color][darkness])
+      pal(colors.dark_purple, postprocess.swap_palette_by_darkness[dark_color][darkness])
+    else
+      emerald_common.set_color_palette(num, brightness)
+    end
+
+    visual.sprite_data_t.emerald:render(draw_position, false, false, 0)
+
+    pal()
   end
 
   self:draw_fx()
@@ -488,7 +521,6 @@ function titlemenu:draw_sea_drawables()
         spreading_scale_time_progression_ratio = ui_animation.ease_in_out(1, 0, alpha)
       end
     end
-    printh("spreading_scale_time_progression_ratio: "..nice_dump(spreading_scale_time_progression_ratio))
 
     -- sprites already contain water shimmers on ~12 lines, so skip them
     local j = 0

@@ -3,6 +3,8 @@
 --  visual add-ons are loaded
 require("test/bustedhelper_ingame")
 
+local postprocess = require("engine/render/postprocess")
+
 local emerald_cinematic = require("menu/emerald_cinematic")
 local emerald_common = require("render/emerald_common")
 
@@ -55,16 +57,33 @@ describe('emerald', function ()
       pal:clear()
     end)
 
-    it('should delegate to emerald_common.set_color_palette with emerald number, sprite data render with position and scale, pal()', function ()
+    it('should delegate to emerald_common.set_color_palette with emerald number and brightness, sprite data render with position and scale, pal()', function ()
       local em = emerald_cinematic(7, vector(20, 10), 2)
+      em.brightness = 2
 
       em:draw()
 
       assert.spy(emerald_common.set_color_palette).was_called(1)
-      assert.spy(emerald_common.set_color_palette).was_called_with(7)
+      assert.spy(emerald_common.set_color_palette).was_called_with(7, 2)
       assert.spy(sprite_data.render).was_called(1)
       assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.emerald), vector(20, 10), false, false, 0, 2)
       assert.spy(pal).was_called(1)
+      assert.spy(pal).was_called_with()
+    end)
+
+    it('should delegate to pal with postprocess.swap_palette_by_darkness with emerald number and brightness < 0, sprite data render with position and scale, pal()', function ()
+      local em = emerald_cinematic(7, vector(20, 10), 2)
+      em.brightness = -2
+
+      em:draw()
+
+      -- called twice to swap the light and dark color of the emerald, then once to clear swapping
+      assert.spy(pal).was_called(3)
+      local light_color, dark_color = unpack(visual.emerald_colors[7])
+      assert.spy(pal).was_called_with(light_color, postprocess.swap_palette_by_darkness[light_color][2])
+      assert.spy(pal).was_called_with(dark_color, postprocess.swap_palette_by_darkness[dark_color][2])
+      assert.spy(sprite_data.render).was_called(1)
+      assert.spy(sprite_data.render).was_called_with(match.ref(visual.sprite_data_t.emerald), vector(20, 10), false, false, 0, 2)
       assert.spy(pal).was_called_with()
     end)
 

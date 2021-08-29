@@ -51,6 +51,40 @@ local camera_y0 = 52
 --  should use object y0 = 64 + 52 = 116 aka "perfect horizon y"
 local perfect_horizon_y = 64 + camera_y0
 
+-- we're going to rotate the camera pitch from 0, upward with full turn 360 degrees
+-- we're gonna place milestones using the fact that angle is proportional to distance on the horizon
+--  sphere, and make the assumption that islands and clouds are on that sphere
+--  (in reality clouds must be farther, but that should help)
+
+-- first batch of clouds are located around 1/6 of the circle (60 degrees)
+local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
+
+-- angel island is initially at y = 88, so remove full height to see it again when moving camera
+--  up by full loop height
+local island_full_loop_new_y = 88 - full_loop_height
+
+local clouds_data = {
+  -- {size (1: big, 2: medium, 3: small, 4: tiny), initial position}
+  {1, vector(2, front_clouds_base_y + 9)},
+  {1, vector(62, front_clouds_base_y + 22)},
+  {1, vector(120, front_clouds_base_y + 32)},
+  {2, vector(8, front_clouds_base_y + 41)},
+  {2, vector(49, front_clouds_base_y + 50)},
+  {2, vector(82, front_clouds_base_y + 56)},
+  {2, vector(131, front_clouds_base_y + 62)},
+  {3, vector(50, front_clouds_base_y + 70)},
+  {3, vector(100, front_clouds_base_y + 76)},
+  {4, vector(10, front_clouds_base_y + 72)},
+  {4, vector(80, front_clouds_base_y + 84)},
+}
+
+local cloud_sprites_per_size_category = {
+  visual.sprite_data_t.cloud_big,
+  visual.sprite_data_t.cloud_medium,
+  visual.sprite_data_t.cloud_small,
+  visual.sprite_data_t.cloud_tiny,
+}
+
 -- parameters:
 -- items                        {menu_item}    sequence of menu items that the menu should display
 
@@ -64,6 +98,7 @@ local perfect_horizon_y = 64 + camera_y0
 -- cinematic_emeralds_on_circle {int}           number of all emeralds rotating on a circle/ellipse
 -- ellipsis_y_scalable          {scale: number} scalable applied to emerald circle to get ellipsis (shrink on y)
 -- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
+-- clouds                       {sprite_object} sequence of clouds to draw, kept reference for motion
 -- tails_plane                  animated_sprite tails plane animated sprite
 -- tails_plane_position         vector          tails plane position
 -- is_sonic_on_plane            bool            if true, draw Sonic standing on plane
@@ -94,6 +129,7 @@ function titlemenu:init()
   self.cinematic_emeralds_on_circle = {}
   self.ellipsis_y_scalable = {scale = 1}  -- table is just to allow usage of tween_scalable_async
   self.emerald_landing_fxs = {}
+  self.clouds = {}
   -- self.tails_plane = nil
   -- self.tails_plane_position = nil
   self.is_sonic_on_plane = false
@@ -181,6 +217,7 @@ function titlemenu:on_exit()
   clear_table(self.emeralds)
   clear_table(self.cinematic_emeralds_on_circle)
   clear_table(self.emerald_landing_fxs)
+  clear_table(self.clouds)
   self.tails_plane = nil
   self.tails_plane_position = nil
   self.is_sonic_on_plane = false
@@ -202,6 +239,7 @@ function titlemenu:update()
       self.app:start_coroutine(self.fade_out_and_load_stage_intro_async, self)
     end
 
+    self:update_clouds()
     self:update_fx()
 
     if self.tails_plane_position then
@@ -266,6 +304,35 @@ function titlemenu:update()
   end
 end
 
+local cloud_speeds_by_size_category = {
+  -0.3,
+  -0.2,
+  -0.15,
+  -0.1,
+}
+
+function titlemenu:update_clouds()
+  for i = 1, #self.clouds do
+    local cloud = self.clouds[i]
+
+    -- remember we added reverse clouds so #self.clouds = 2 * #clouds_data,
+    --  so we must apply modulo to get the correct clouds data index
+    local data_index = (i - 1) % #clouds_data + 1
+    local cloud_data = clouds_data[data_index]
+    assert(cloud_data)
+
+    local size_category = cloud_data[1]
+    local cloud_speed = cloud_speeds_by_size_category[size_category]
+
+    -- we must also wrap new position with modulo
+    -- biggest cloud covers 7 tiles => 7 * 8 = 56 (actually 54 pixels, but to be safe),
+    --  so wrap so that when it leaves the screen to the right, it starts reappearing on the left,
+    --  so add offset, then retrieve it to allow cloud to move until it leaves screen
+    -- (same logic as visual_stage.draw_cloud)
+    cloud.position.x = (cloud.position.x + cloud_speed + 56) % (screen_width + 2 * 56) - 56
+  end
+end
+
 function titlemenu:update_fx()
   local to_delete = {}
 
@@ -284,7 +351,6 @@ function titlemenu:update_fx()
     del(self.emerald_landing_fxs, pfx)
   end
 end
-
 
 function titlemenu:start_attract_mode()
     load('picosonic_attract_mode')
@@ -509,18 +575,6 @@ function titlemenu:play_start_cinematic()
 end
 
 function titlemenu:play_start_cinematic_async()
-  -- we're going to rotate the camera pitch from 0, upward with full turn 360 degrees
-  -- we're gonna place milestones using the fact that angle is proportional to distance on the horizon
-  --  sphere, and make the assumption that islands and clouds are on that sphere
-  --  (in reality clouds must be farther, but that should help)
-
-  -- first batch of clouds are located around 1/6 of the circle (60 degrees)
-  local front_clouds_base_y = perfect_horizon_y - full_loop_height / 6
-
-  -- angel island is initially at y = 88, so remove full height to see it again when moving camera
-  --  up by full loop height
-  local island_full_loop_new_y = 88 - full_loop_height
-
   -- record start time to work with stable time from start
   self.start_pressed_time = t()
 
@@ -567,38 +621,28 @@ function titlemenu:play_start_cinematic_async()
 
   -- add drawable clouds high in the sky
 
-  local cloud_positions = {
-    vector(12, front_clouds_base_y + 9),
-    vector(72, front_clouds_base_y + 32),
-    vector(8, front_clouds_base_y + 51),
-    vector(49, front_clouds_base_y + 60),
-    vector(90, front_clouds_base_y + 70),
-    vector(27, front_clouds_base_y + 74),
-  }
-
-  local cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, cloud_positions[1])
-  local cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, cloud_positions[2])
-  local cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[3])
-  local cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[4])
-  local cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, cloud_positions[5])
-  local cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, cloud_positions[6])
+  for cloud_data in all(clouds_data) do
+    local size_category = cloud_data[1]
+    local initial_position = cloud_data[2]
+    -- constructor is copying position, so safe
+    add(self.clouds, sprite_object(cloud_sprites_per_size_category[size_category], initial_position))
+  end
 
   -- cloud must be symmetrical relative to top of the horizon sphere,
   --  which is located at a quarter of a full circle (90 degrees)
   -- so two get the symmetrical, you must do 2*symmetry_distance - y,
   --  and 2*symmetry_distance = 2 * (perfect_horizon_y -full_loop_height / 4) = 2 * perfect_horizon_y -full_loop_height / 2
   local cloud_symmetry_y = 2 * perfect_horizon_y - full_loop_height / 2
-  local reverse_cloud_big1 = sprite_object(visual.sprite_data_t.cloud_big, vector(cloud_positions[1].x, cloud_symmetry_y - cloud_positions[1].y))
-  local reverse_cloud_big2 = sprite_object(visual.sprite_data_t.cloud_big, vector(cloud_positions[2].x, cloud_symmetry_y - cloud_positions[2].y))
-  local reverse_cloud_medium1 = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[3].x, cloud_symmetry_y - cloud_positions[3].y))
-  local reverse_cloud_medium2 = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[4].x, cloud_symmetry_y - cloud_positions[4].y))
-  local reverse_cloud_small = sprite_object(visual.sprite_data_t.cloud_medium, vector(cloud_positions[5].x, cloud_symmetry_y - cloud_positions[5].y))
-  local reverse_cloud_tiny = sprite_object(visual.sprite_data_t.cloud_tiny, vector(cloud_positions[6].x, cloud_symmetry_y - cloud_positions[6].y))
 
-  local clouds = {cloud_big1, cloud_big2, cloud_medium1, cloud_medium2, cloud_small, cloud_tiny,
-    reverse_cloud_big1, reverse_cloud_big2, reverse_cloud_medium1, reverse_cloud_medium2, reverse_cloud_small, reverse_cloud_tiny}
+  for cloud_data in all(clouds_data) do
+    local size_category = cloud_data[1]
+    local initial_position = cloud_data[2]
+    -- constructor is copying position, so safe
+    -- add reverse cloud
+    add(self.clouds, sprite_object(cloud_sprites_per_size_category[size_category], vector(initial_position.x, cloud_symmetry_y - initial_position.y)))
+  end
 
-  for cloud in all(clouds) do
+  for cloud in all(self.clouds) do
     add(self.cinematic_drawables_world, cloud)  -- for drawing
   end
 
@@ -789,8 +833,8 @@ function titlemenu:sonic_jump_into_island_async()
 
   -- sonic spin tiny pivot has also been set to match previous standing position,
   --  and hence the plane
-  -- make sure to copy vector or plane will follow Sonic jumping!
-  self.jumping_sonic = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position:copy())
+  -- constructing is copying position, so safe
+  self.jumping_sonic = sprite_object(visual.sprite_data_t.sonic_spin_tiny, self.tails_plane_position)
   self.jumping_sonic_vy = -0.2 - tuned("sonic vy0 x-0.01", 0) * 0.01
   add(self.cinematic_drawables_screen, self.jumping_sonic)
 

@@ -6,6 +6,10 @@ function ui_animation.lerp(a, b, alpha)
   return a + (b-a) * alpha
 end
 
+function ui_animation.lerp_clamped(a, b, alpha)
+  return a + (b-a) * mid(alpha, 0, 1)
+end
+
 function ui_animation.ease_in(a, b, alpha)
   -- take lerp, and replace alpha => alpha * alpha:
   --  (1 - alpha * alpha) * a + alpha * alpha * b

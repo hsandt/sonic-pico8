@@ -17,6 +17,42 @@ describe('ui_animation', function ()
       assert.are_equal(8, ui_animation.lerp(4, 8, 1))
     end)
 
+    -- unclamped!
+    it('(4, 8, 2) => 12', function ()
+      assert.are_equal(12, ui_animation.lerp(4, 8, 2))
+    end)
+
+  end)
+
+  describe('lerp_clamped', function ()
+
+    it('(4, 8, 0) => 0', function ()
+      assert.are_equal(4, ui_animation.lerp_clamped(4, 8, 0))
+    end)
+
+    it('(4, 8, 0.5) => 6 (1/2 of the way)', function ()
+      assert.are_equal(6, ui_animation.lerp_clamped(4, 8, 0.5))
+    end)
+
+    it('(4, 8, 1) => 8', function ()
+      assert.are_equal(8, ui_animation.lerp_clamped(4, 8, 1))
+    end)
+
+    -- clamped up
+    it('(4, 8, 2) => 8', function ()
+      assert.are_equal(8, ui_animation.lerp_clamped(4, 8, 2))
+    end)
+
+    -- clamped down
+    it('(4, 8, -1) => 4', function ()
+      assert.are_equal(4, ui_animation.lerp_clamped(4, 8, -1))
+    end)
+
+    -- clamped even with a > b
+    it('(8, 4, 2) => 8', function ()
+      assert.are_equal(8, ui_animation.lerp_clamped(4, 8, 2))
+    end)
+
   end)
 
   describe('ease_in', function ()

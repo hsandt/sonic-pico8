@@ -253,7 +253,9 @@ function titlemenu:update()
     self:update_emeralds()
     self:update_fx()
 
-    if self.tails_plane_position then
+    if self.tails_plane then
+      self.tails_plane:update()
+
       -- tune plane speed here
       self.tails_plane_position.x = self.tails_plane_position.x - 0.5 -- - tuned("plane dvx x0.5", 0) * 0.5
     end
@@ -727,7 +729,11 @@ function titlemenu:play_start_cinematic_async()
   --  logo
   -- for now we just use upper sprites, but to simplify just reload the whole spritesheet
   --  (it contains a copy of pico island, so it won't disappear)
-  reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
+  -- originally:
+  -- reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
+  -- now, we merge start cinematic __gfx__ into data_stage1_00.p8 (overwriting the unused tiles at runtime)
+  --  with install_data_cartridges_with_merging.sh, so:
+  reload(0x0, 0x0, 0x2000, "data_stage1_00.p8")
 
   -- add drawable clouds high in the sky
 

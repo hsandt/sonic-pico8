@@ -22,9 +22,6 @@ if ! [[ $# -ge 1 &&  $# -le 3 ]] ; then
     exit 1
 fi
 
-# Configuration: cartridge
-cartridge_stem="picosonic"
-version=`cat "$data_path/version.txt"`
 config="$1"; shift
 # ! This is a short version for the usual while-case syntax, but in counterpart
 # ! it doesn't support reordering (--itest must be after config)
@@ -50,12 +47,4 @@ for cartridge in $cartridge_list; do
   "$game_scripts_path/install_single_cartridge.sh" "$cartridge" "$config" $options
 done
 
-# recompute same install dirpath as used in install_single_cartridge.sh
-# (no need to mkdir -p "${install_dirpath}", it must have been created in said script)
-carts_dirpath="$HOME/.lexaloffle/pico-8/carts"
-install_dirpath="${carts_dirpath}/${cartridge_stem}/v${version}_${config}"
-
-# Also copy data cartridges
-echo "Copying data cartridges data/data_*.p8 in ${install_dirpath} ..."
-# trailing slash just to make sure we copy to a directory
-cp data/data_*.p8 "${install_dirpath}/"
+"$game_scripts_path/install_data_cartridges_with_merging.sh" "$config"

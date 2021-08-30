@@ -47,3 +47,8 @@ echo "Merging data_start_cinematic.p8 __gfx__ with data_stage1_00.p8 __map__ int
 build_merged_data_cmd="p8tool build --gfx data/data_start_cinematic.p8 --map data/data_stage1_00.p8 \"${install_dirpath}/data_stage1_00.p8\""
 echo "> $build_merged_data_cmd"
 bash -c "$build_merged_data_cmd"
+
+# Now remove data_start_cinematic.p8 or it will be copied into ${cartridge_stem}_v${version}_${config}_cartridges folder
+# on export, and zipped into the released archive for .p8 cartridges, being redundant with data_stage1_00.p8.
+echo "Removing ${install_dirpath}/data_start_cinematic.p8 ..."
+rm "${install_dirpath}/data_start_cinematic.p8"

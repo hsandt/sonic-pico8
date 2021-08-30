@@ -10,11 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [6.1] - 2021-08-30
 ### Added
 - Start cinematic: when pressing Start in title menu, before loading stage intro, play a full cinematic showing emeralds scattering on the island and Sonic jumping there to hunt them. Can be skipped by pressing either O or X. Ends with fade out either way.
-- Stage visual: added tiles for leaves oriented left and right for transition between first wooden wall and forest background (background leaves), and in various places a horizontal transition between full leaves tiles and void (foreground leaves)
+- Stage visual: added tiles for leaves oriented left and right for transition between first wooden wall and forest background (background leaves), and in various places for a horizontal transition between full leaves tiles and void (foreground leaves)
 
 ### Changed
-- Credits: added "komehara" as developer alias, rearranged lines to fit
 - Title menu: player can also press X (instead of just O) to immediately show menu
+- Credits: added "komehara" as developer alias, rearranged lines to fit
 
 ## [6.0] - 2021-08-17
 ### Added

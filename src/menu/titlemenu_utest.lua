@@ -19,8 +19,11 @@ describe('titlemenu', function ()
 
       -- a bit complicated to test the generated items, so just test length for items
       assert.are_equal(2, #tm.items)
+      -- don't go into details for this one, which is very animation-related
+      assert.is_not_nil(tm.title_logo_drawable)
       assert.are_equal(0, tm.frames_before_showing_menu)
       assert.is_false(tm.should_start_attract_mode)
+      assert.is_false(tm.is_playing_start_cinematic)
     end)
 
   end)
@@ -69,11 +72,18 @@ describe('titlemenu', function ()
         assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.play_opening_music_async, match.ref(tm))
       end)
 
-      it('should initialize frames_before_showing_menu for countdown and reset frames_before_showing_attract_mode', function ()
+      it('should initialize frames_before_showing_menu for countdown and reset should_start_attract_mode and is_playing_start_cinematic', function ()
         tm:on_enter()
 
         assert.are_equal(96, tm.frames_before_showing_menu)
         assert.is_false(tm.should_start_attract_mode)
+        assert.is_false(tm.is_playing_start_cinematic)
+      end)
+
+      it('should initialize title_logo_drawable.position', function ()
+        tm:on_enter()
+
+        assert.are_equal(vector(8, 16), tm.title_logo_drawable.position)
       end)
 
     end)
@@ -197,6 +207,17 @@ describe('titlemenu', function ()
         assert.spy(titlemenu.show_menu).was_called_with(match.ref(tm))
       end)
 
+      it('(button O not pressed, frames_before_showing_menu <= 1 BUT is_playing_start_cinematic) should NOT decrement frames_before_showing_menu to <=0 and NOT show menu', function ()
+        tm.frames_before_showing_menu = 1
+        tm.is_playing_start_cinematic = true
+
+        tm:update()
+
+        assert.are_equal(1, tm.frames_before_showing_menu)
+
+        assert.spy(titlemenu.show_menu).was_not_called()
+      end)
+
       it('(no menu) should not try to update menu', function ()
         tm:update()
 
@@ -299,11 +320,19 @@ describe('titlemenu', function ()
         assert.spy(titlemenu.draw_title).was_called_with(match.ref(tm))
       end)
 
-      it('should draw version', function ()
+      it('(is_playing_start_cinematic is false) should draw version', function ()
         tm:render()
 
         assert.spy(titlemenu.draw_version).was_called(1)
         assert.spy(titlemenu.draw_version).was_called_with(match.ref(tm))
+      end)
+
+      it('(is_playing_start_cinematic is true) should not draw version', function ()
+        tm.is_playing_start_cinematic = true
+
+        tm:render()
+
+        assert.spy(titlemenu.draw_version).was_not_called()
       end)
 
       it('should not try to render menu if nil', function ()

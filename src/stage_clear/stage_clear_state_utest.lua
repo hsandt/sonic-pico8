@@ -1,9 +1,4 @@
 require("test/bustedhelper_stage_clear")
--- we should only need common_stage_clear_state required in bustedhelper_stage_clear_state,
---  but exceptionally we have titlemenu-related tests in this file, so we need stuff
---  like fun_helper (we should actually isolate tests and reverse cross-testing to itests,
---  whether complex tests done via busted but done in dedicated files, or simulation tests)
-require("common_titlemenu")
 require("resources/visual_ingame_addon")
 require("resources/visual_stage_clear_addon")
 
@@ -19,7 +14,6 @@ local overlay = require("engine/ui/overlay")
 local picosonic_app = require("application/picosonic_app_stage_clear")
 local base_stage_state = require("ingame/base_stage_state")
 local goal_plate = require("ingame/goal_plate")
-local titlemenu = require("menu/titlemenu")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -39,17 +33,12 @@ describe('stage_clear_state', function ()
   describe('(with instance)', function ()
 
     local state
-    local titlemenu_state
 
     before_each(function ()
       local app = picosonic_app()
       state = stage_clear_state()
       -- no need to register gamestate properly, just add app member to pass tests
       state.app = app
-
-      -- exceptionally we also need titlemenu state
-      titlemenu_state = titlemenu()
-      titlemenu_state.app = app
     end)
 
     describe('init', function ()
@@ -251,7 +240,6 @@ describe('stage_clear_state', function ()
 
       before_each(function ()
         flow:add_gamestate(state)
-        flow:add_gamestate(titlemenu_state)  -- for transition on reached goal
       end)
 
       after_each(function ()
@@ -537,24 +525,6 @@ describe('stage_clear_state', function ()
           end)
 
         end)
-
-        describe('on exit stage state to enter titlemenu state (we actually change cartridge)', function ()
-
-          before_each(function ()
-            flow:change_state(titlemenu_state)
-          end)
-
-          it('player character should be nil', function ()
-            assert.is_nil(state.player_char)
-          end)
-
-          it('result overlay should be empty', function ()
-            assert.is_not_nil(state.result_overlay)
-            assert.is_not_nil(state.result_overlay.drawables_seq)
-            assert.is_true(is_empty(state.result_overlay.drawables_seq))
-          end)
-
-        end)  -- on exit stage state to enter titlemenu state
 
         -- unlike above, we test on_exit method itself here
 

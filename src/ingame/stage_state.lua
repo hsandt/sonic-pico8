@@ -7,6 +7,7 @@ local goal_plate = require("ingame/goal_plate")
 local spring = require("ingame/spring")
 local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
+local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
@@ -759,7 +760,7 @@ function stage_state:character_pick_emerald(em)
   self.picked_emerald_numbers_set[em.number] = true
 
   -- add emerald pick FX at emerald position and play it immediately
-  local pfx = emerald_fx(em.number, em:get_center())
+  local pfx = emerald_fx(em.number, em:get_center(), visual.animated_sprite_data_t.emerald_pick_fx)
   add(self.emerald_pick_fxs, pfx)
 
   -- remove emerald from sequence (use del to make sure
@@ -1093,10 +1094,10 @@ function stage_state:render_hud()
   for i = 1, #self.spawned_emerald_locations do
     local draw_position = vector(-4 + 8 * i, 3)
     if self.picked_emerald_numbers_set[i] then
-      emerald.draw(i, draw_position)
+      emerald_common.draw(i, draw_position)
     else
-      -- display silhouette for unpicked emeralds (code is based on emerald.draw)
-      emerald.draw(-1, draw_position)
+      -- display silhouette for unpicked emeralds (code is based on emerald_common.draw)
+      emerald_common.draw(-1, draw_position)
     end
   end
 

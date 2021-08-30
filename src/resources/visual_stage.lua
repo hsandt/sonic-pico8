@@ -222,7 +222,7 @@ function visual_stage.draw_cloud(x, y, dy_list, base_radius, speed)
   --  between inside and outline for some values)
   local offset_x = t() * speed
   -- we make clouds cycle horizontally but we don't want to
-  --  make them disappear as soon as they reach the left edge of the screen
+  --  make them disappear as soon as they exit the screen to the left
   --  so we take a margin of 100px (must be at least cloud width)
   --  before applying modulo (and similarly have a modulo on 128 + 100 + extra margin
   --  where extra margin is to avoid having cloud spawning immediately on screen right

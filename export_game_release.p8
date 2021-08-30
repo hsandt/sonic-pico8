@@ -11,7 +11,7 @@ __lua__
 
 -- #version
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "6.0"
+local version = "6.1"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"
@@ -36,6 +36,9 @@ cd(export_folder)
   end
 
   local data_cartridges_list = {
+    -- remember that with the new install_data_cartridges_with_merging.sh,
+    --  data_stage1_00.p8 in carts install folder now contains __gfx__ for start cinematic
+    -- this allows us to stay just at the limit of 16 cartridges (including main cartridges)
     "data_stage1_00.p8", "data_stage1_10.p8", "data_stage1_20.p8", "data_stage1_30.p8",
     "data_stage1_01.p8", "data_stage1_11.p8", "data_stage1_21.p8", "data_stage1_31.p8",
     "data_stage1_intro.p8", "data_stage1_ingame.p8",

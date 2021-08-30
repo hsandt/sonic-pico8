@@ -26,13 +26,6 @@ require("engine/render/animated_sprite_data_enums")
 require("data/sprite_flags")
 require("ingame/playercharacter_enums")
 
---#if recorder
--- exceptionally a global non-constant variable to easily access and print for action recording
--- (we don't build stage ingame with #recorder, only attract_mode, but we could; and headless itests
---  do run the game as if all symbols were active)
-total_frames = 0
---#endif
-
 --[[#pico8
 --#if unity
 -- When doing a unity build, all modules must be concatenated in dependency, with modules relied upon

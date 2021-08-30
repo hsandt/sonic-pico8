@@ -57,6 +57,7 @@ end
 
 local draw_mode = 0
 local angle = 0
+local scale = 1
 
 function _init()
 --#if tuner
@@ -87,6 +88,14 @@ function _update60()
     angle = (angle - 0.25) % 1
   end
 
+  if btnp(button_ids.down) then
+    scale = scale + 0.25
+  end
+
+  if btnp(button_ids.up) then
+    scale = scale - 0.25
+  end
+
 --#if tuner
   codetuner:update_window()
 --#endif
@@ -109,6 +118,8 @@ function _draw()
   elseif draw_mode == 4 then
     spr_r90(10, 4, 64 + tuned("dx", 0), 64 + tuned("dy", 0), 2, 1, false, false, tuned("px", 10), tuned("py", 2), angle, 2)
   end
+
+  visual.sprite_data_t.spring:render(vector(20, 20), false, false, 0, scale)
 
   api.print("draw_mode: "..draw_mode, 80, 80, colors.orange)
   api.print("angle: "..angle, 80, 90, colors.orange)

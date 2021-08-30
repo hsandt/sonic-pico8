@@ -165,6 +165,10 @@ else
       # add symbol #normal_mode to distinguish playable ingame from attract_mode,
       # as both define #ingame
       symbols+=",normal_mode"
+    elif [[ $cartridge_suffix == 'titlemenu' ]]; then
+      # titlemenu now uses new engine feature sprite_data:render parameter scale,
+      # but ingame doesn't need it so we strip it unless #sprite_scale
+      symbols+=",sprite_scale"
     fi
     builtin_data_suffix="$cartridge_suffix"
   fi

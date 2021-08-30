@@ -1,9 +1,4 @@
 require("test/bustedhelper_ingame")
--- we should only need common_ingame required in bustedhelper_ingame,
---  but exceptionally we have titlemenu-related tests in this file, so we need stuff
---  like fun_helper (we should actually isolate tests and reverse cross-testing to itests,
---  whether complex tests done via busted but done in dedicated files, or simulation tests)
-require("common_titlemenu")
 
 local stage_state = require("ingame/stage_state")
 
@@ -23,6 +18,7 @@ local emerald_fx = require("ingame/emerald_fx")
 local goal_plate = require("ingame/goal_plate")
 local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
+local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
@@ -989,8 +985,8 @@ describe('stage_state', function ()
 
           it('should call update on each emerald fx', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0)),
-              emerald_fx(2, vector(12, 4))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:update_fx()
@@ -1005,15 +1001,15 @@ describe('stage_state', function ()
             --  we don't make the mistake or deleting fx during iteration, which tends
             --  to make us miss the last elements
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(999, 1)),
-              emerald_fx(2, vector(2, 2)),
-              emerald_fx(3, vector(999, 3))
+              emerald_fx(1, vector(999, 1), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(3, vector(999, 3), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:update_fx()
 
             assert.are_same({
-              emerald_fx(2, vector(2, 2))
+              emerald_fx(2, vector(2, 2), visual.animated_sprite_data_t.emerald_pick_fx)
             }, state.emerald_pick_fxs)
           end)
 
@@ -1045,8 +1041,8 @@ describe('stage_state', function ()
 
           it('should call render on each emerald fx', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0)),
-              emerald_fx(2, vector(12, 4))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+              emerald_fx(2, vector(12, 4), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:render_fx()
@@ -1324,7 +1320,7 @@ describe('stage_state', function ()
 
           it('should create a pick FX and play it', function ()
             state.emerald_pick_fxs = {
-              emerald_fx(1, vector(0, 0))
+              emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx)
             }
 
             state:character_pick_emerald(state.emeralds[3])
@@ -1332,8 +1328,8 @@ describe('stage_state', function ()
             -- emerald 2 was at location (0, 1),
             --  so its center was at (4, 12)
             assert.are_same({
-                emerald_fx(1, vector(0, 0)),
-                emerald_fx(8, vector(4 + 5, 12))  -- pfx also follow emerald 8 center adjustment of X+5
+                emerald_fx(1, vector(0, 0), visual.animated_sprite_data_t.emerald_pick_fx),
+                emerald_fx(8, vector(4 + 5, 12), visual.animated_sprite_data_t.emerald_pick_fx)  -- pfx also follow emerald 8 center adjustment of X+5
               },
               state.emerald_pick_fxs)
           end)
@@ -1790,21 +1786,21 @@ describe('stage_state', function ()
         describe('render_hud', function ()
 
           setup(function ()
-            stub(emerald, "draw")
+            stub(emerald_common, "draw")
             stub(player_char, "debug_print_info")
           end)
 
           teardown(function ()
-            emerald.draw:revert()
+            emerald_common.draw:revert()
             player_char.debug_print_info:revert()
           end)
 
           after_each(function ()
-            emerald.draw:clear()
+            emerald_common.draw:clear()
             player_char.debug_print_info:clear()
           end)
 
-          it('should call emerald.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
+          it('should call emerald_common.draw for each emerald, true color for picked ones and silhouette for unpicked ones', function ()
             state.spawned_emerald_locations = {
               -- dummy values just to have correct count (3, counting hole on 2)
               location(1, 1), location(2, 2), location(3, 3)
@@ -1816,11 +1812,11 @@ describe('stage_state', function ()
 
             state:render_hud()
 
-            assert.spy(emerald.draw).was_called(3)
-            assert.spy(emerald.draw).was_called_with(1, vector(4, 3))
+            assert.spy(emerald_common.draw).was_called(3)
+            assert.spy(emerald_common.draw).was_called_with(1, vector(4, 3))
             -- silhouette only
-            assert.spy(emerald.draw).was_called_with(-1, vector(12, 3))
-            assert.spy(emerald.draw).was_called_with(3, vector(20, 3))
+            assert.spy(emerald_common.draw).was_called_with(-1, vector(12, 3))
+            assert.spy(emerald_common.draw).was_called_with(3, vector(20, 3))
           end)
 
           it('should debug render character info (#debug_character only)', function ()

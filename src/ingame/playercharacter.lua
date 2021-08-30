@@ -520,25 +520,29 @@ function player_char:handle_input()
     end
 
 --#if recorder
-    -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
-    --  in attract_mode_scenario_async. #recorder symbol should be dfined together with #tostring to make meaningful logs.
+    -- common_ingame doesn't define total_frames anymore, only common_attract_mode does,
+    --  so check that total_frames is defined to avoid error during playercharacter utests
+    if total_frames then
+      -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
+      --  in attract_mode_scenario_async. #recorder symbol should be defined together with #tostring to make meaningful logs.
 
-    -- detect move intention direction change
-    if self.move_intention ~= player_move_intention then
-      -- print usable Lua directly to the log (we'll just have to remove [recorder] at the start)
-      -- ex:
-      -- yield_delay_frames(10)
-      -- pc.move_intention = vector(1, 0)
-      if total_frames > 0 then
-        log("yield_delay_frames("..total_frames..")", "recorder")
+      -- detect move intention direction change
+      if self.move_intention ~= player_move_intention then
+        -- print usable Lua directly to the log (we'll just have to remove [recorder] at the start)
+        -- ex:
+        -- yield_delay_frames(10)
+        -- pc.move_intention = vector(1, 0)
+        if total_frames > 0 then
+          log("yield_delay_frames("..total_frames..")", "recorder")
+
+          -- reset total frames as we want relative delays since last record
+          total_frames = 0
+        end
+        log("pc.move_intention = "..player_move_intention, "recorder")
 
         -- reset total frames as we want relative delays since last record
         total_frames = 0
       end
-      log("pc.move_intention = "..player_move_intention, "recorder")
-
-      -- reset total frames as we want relative delays since last record
-      total_frames = 0
     end
 --#endif
 
@@ -550,55 +554,59 @@ function player_char:handle_input()
     --  without needing a reset later during update
 
 --#if recorder
-    -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
-    --  in attract_mode_scenario_async. #recorder symbol should be defined together with #tostring and #log in some 'recorder' config.
+    -- common_ingame doesn't define total_frames anymore, only common_attract_mode does,
+    --  so check that total_frames is defined to avoid error during playercharacter utests
+    if total_frames then
+      -- No unit test for this code, it is only meant for temporary usage to record intention changes and find good async delays
+      --  in attract_mode_scenario_async. #recorder symbol should be defined together with #tostring and #log in some 'recorder' config.
 
-    local has_jump_intention_this_frame = is_jump_input_down and input:is_just_pressed(button_ids.o)
+      local has_jump_intention_this_frame = is_jump_input_down and input:is_just_pressed(button_ids.o)
 
-    -- safety code to detect a jump intention that was not consumed (and player doesn't keep trying
-    --  to jump, rare as they'd need to repeat pressing the button every frame)
-    -- this allows to clear a jump intention recorded by player pressing jump button
-    --  while not able to jump (e.g. in the air) as it would be sticky and cause an unwanted
-    --  chained jump as soon as able to jump again (e.g. when landing)
-    if self.jump_intention and not has_jump_intention_this_frame then
-      -- usable Lua ex:
-      -- yield_delay_frames(10)
-      -- pc.jump_intention = false
-      if total_frames > 0 then
-        log("yield_delay_frames("..total_frames..")", "recorder")
+      -- safety code to detect a jump intention that was not consumed (and player doesn't keep trying
+      --  to jump, rare as they'd need to repeat pressing the button every frame)
+      -- this allows to clear a jump intention recorded by player pressing jump button
+      --  while not able to jump (e.g. in the air) as it would be sticky and cause an unwanted
+      --  chained jump as soon as able to jump again (e.g. when landing)
+      if self.jump_intention and not has_jump_intention_this_frame then
+        -- usable Lua ex:
+        -- yield_delay_frames(10)
+        -- pc.jump_intention = false
+        if total_frames > 0 then
+          log("yield_delay_frames("..total_frames..")", "recorder")
 
-        -- reset total frames as we want relative delays since last record
-        total_frames = 0
+          -- reset total frames as we want relative delays since last record
+          total_frames = 0
+        end
+        log("pc.jump_intention = false", "recorder")
       end
-      log("pc.jump_intention = false", "recorder")
-    end
 
-    -- detect start jump
-    if not self.jump_intention and has_jump_intention_this_frame then
-      -- usable Lua ex:
-      -- yield_delay_frames(10)
-      -- pc.jump_intention = true
-      if total_frames > 0 then
-        log("yield_delay_frames("..total_frames..")", "recorder")
+      -- detect start jump
+      if not self.jump_intention and has_jump_intention_this_frame then
+        -- usable Lua ex:
+        -- yield_delay_frames(10)
+        -- pc.jump_intention = true
+        if total_frames > 0 then
+          log("yield_delay_frames("..total_frames..")", "recorder")
 
-        -- reset total frames as we want relative delays since last record
-        total_frames = 0
+          -- reset total frames as we want relative delays since last record
+          total_frames = 0
+        end
+        log("pc.jump_intention = true", "recorder")
       end
-      log("pc.jump_intention = true", "recorder")
-    end
 
-    -- detect start and stop holding jump intention
-    if self.hold_jump_intention ~= is_jump_input_down then
-      -- usable Lua ex:
-      -- yield_delay_frames(10)
-      -- pc.hold_jump_intention = true
-      if total_frames > 0 then
-        log("yield_delay_frames("..total_frames..")", "recorder")
+      -- detect start and stop holding jump intention
+      if self.hold_jump_intention ~= is_jump_input_down then
+        -- usable Lua ex:
+        -- yield_delay_frames(10)
+        -- pc.hold_jump_intention = true
+        if total_frames > 0 then
+          log("yield_delay_frames("..total_frames..")", "recorder")
 
-        -- reset total frames as we want relative delays since last record
-        total_frames = 0
+          -- reset total frames as we want relative delays since last record
+          total_frames = 0
+        end
+        log("pc.hold_jump_intention = "..tostr(is_jump_input_down), "recorder")
       end
-      log("pc.hold_jump_intention = "..tostr(is_jump_input_down), "recorder")
     end
 --#endif
 
@@ -2267,7 +2275,22 @@ function player_char:update_platformer_motion_airborne()
   -- apply air motion without caring about obstacles to start with (step 5 in SPG Main Loop)
   self.position:add_inplace(self.velocity)
 
-  -- we're supposed to apply gravity here
+  -- EXPERIMENT moving applying gravity here
+  -- Results:
+  -- - game works fine, no observed change
+  -- - itests are broken, not sure why since this should be equivalent when it comes
+  --   to jumping since we were already using the has_jumped_this_frame flag
+  --   (although for simple fall it should not be equivalent and be a little late on fall)
+  -- So commented out for now. It can help sparing a few characters when removing the flag
+  --  though.
+  -- apply gravity to current speed y
+  -- note: this is now done after applying velocity, so we don't need a flag to remember
+  --  not to apply jump velocity on first frame anymore
+  -- note 2: this is done before collision checks, so if we hit a ceiling, vy = 0
+  --  and we skip the effect of gravity on this frame (if we were really slow on y
+  --  it may prevent us from getting vy > 0 this frame, but in counterpart we hit something
+  --  that may put us a little down)
+  -- self.velocity.y = self.velocity.y + pc_data.gravity_frame2
 
   -- check for air collisions (wall, ceiling, ground) and update position in-place
   local air_motion_result = self:check_air_collisions()
@@ -2657,14 +2680,14 @@ function player_char:update_velocity_component_debug(coord)
       -- clamp to max in abs
       new_debug_velocity_comp = mid(-self.debug_move_max_speed, new_debug_velocity_comp, self.debug_move_max_speed)
     end
+
+    -- check extra input to 2x debug speed
+    if input:is_down(button_ids.o) then
+      new_debug_velocity_comp = 2 * new_debug_velocity_comp
+    end
   elseif old_debug_velocity_comp ~= 0 then
     -- no input => friction aka passive deceleration
     new_debug_velocity_comp = sgn(old_debug_velocity_comp) * max(0, abs(old_debug_velocity_comp) - self.debug_move_friction)
-  end
-
-  -- check extra input to 2x debug speed
-  if input:is_down(button_ids.o) then
-    new_debug_velocity_comp = 2 * new_debug_velocity_comp
   end
 
   -- set component

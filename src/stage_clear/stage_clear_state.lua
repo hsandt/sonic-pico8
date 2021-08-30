@@ -6,10 +6,10 @@ local rectangle = require("engine/ui/rectangle")
 
 local stage_clear_data = require("data/stage_clear_data")
 local base_stage_state = require("ingame/base_stage_state")
-local emerald = require("ingame/emerald")
 local goal_plate = require("ingame/goal_plate")
 local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
+local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local ui_animation = require("ui/ui_animation")
 local memory = require("resources/memory")
@@ -465,7 +465,7 @@ function stage_clear_state:draw_emeralds(x, y)
       local radius = visual.missed_emeralds_radius
       local draw_position = vector(x + radius * cos(0.25 - (num - 1) / 8),
         y + radius * sin(0.25 - (num - 1) / 8))
-      emerald.draw(num, draw_position, self.result_emerald_brightness_levels[num])
+      emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end
 end

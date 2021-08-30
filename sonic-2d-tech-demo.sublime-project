@@ -83,6 +83,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data: start cinematic",
+			"shell": true,
+			"cmd": ["pico8 -run data/data_start_cinematic.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage1 regions",
 			"shell": true,
 			"working_dir": "${project_path}",
@@ -144,6 +150,10 @@
 				{
 					"name": "cheat",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu cheat"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu assert"]
 				},
 				{
 					"name": "release",
@@ -368,6 +378,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu assert)"]
+				},
+				{
 					"name": "tuner",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh titlemenu tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
 				},
@@ -539,6 +553,10 @@
 					"cmd": ["./build_and_install_all_cartridges.sh cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu cheat)"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_all_cartridges.sh assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu assert)"]
+				},
+				{
 					"name": "tuner",
 					"cmd": ["./build_and_install_all_cartridges.sh tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh titlemenu tuner)"]
 				},
@@ -665,6 +683,10 @@
 					"cmd": ["./run_cartridge.sh titlemenu cheat"]
 				},
 				{
+					"name": "titlemenu assert",
+					"cmd": ["./run_cartridge.sh titlemenu assert"]
+				},
+				{
 					"name": "titlemenu release",
 					"cmd": ["./run_cartridge.sh titlemenu release"]
 				},
@@ -729,6 +751,10 @@
 				{
 					"name": "cheat",
 					"cmd": ["./install_single_cartridge_with_data.sh titlemenu cheat"]
+				},
+				{
+					"name": "assert",
+					"cmd": ["./install_single_cartridge_with_data.sh titlemenu assert"]
 				},
 				{
 					"name": "release",

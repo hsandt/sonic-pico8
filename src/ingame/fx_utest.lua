@@ -20,7 +20,7 @@ describe('fx', function ()
     end)
 
     it('should create an fx with a position and animated sprite data, and play "once" anim immediately', function ()
-      local fx1 = fx(vector(12, 2), {["once"] = "dummy_sprite_data"})
+      local fx1 = fx(vector(12, 2), "dummy_sprite_data")
       assert.are_same({vector(12, 2), animated_sprite({["once"] = "dummy_sprite_data"})},
         {fx1.position, fx1.anim_spr})
 
@@ -33,12 +33,12 @@ describe('fx', function ()
   describe('is_active', function ()
 
     it('should return true after construction, as anim is still playing"', function ()
-      local fx1 = fx(vector(12, 2), {["once"] = "dummy_sprite_data"})
+      local fx1 = fx(vector(12, 2), "dummy_sprite_data")
       assert.is_true(fx1:is_active())
     end)
 
     it('should return false after stopping, as anim is still playing"', function ()
-      local fx1 = fx(vector(12, 2), {["once"] = "dummy_sprite_data"})
+      local fx1 = fx(vector(12, 2), "dummy_sprite_data")
       -- simulate anim end, since we only have dummy sprite data and cannot really end it with update
       fx1.anim_spr.playing = false
 
@@ -62,7 +62,7 @@ describe('fx', function ()
     end)
 
     it('should call update on anim_spr"', function ()
-      local fx1 = fx(vector(12, 2), {["once"] = "dummy_sprite_data"})
+      local fx1 = fx(vector(12, 2), "dummy_sprite_data")
 
       fx1:update()
 
@@ -87,7 +87,7 @@ describe('fx', function ()
     end)
 
     it('should call render on anim_spr"', function ()
-      local fx1 = fx(vector(12, 2), {["once"] = "dummy_sprite_data"})
+      local fx1 = fx(vector(12, 2), "dummy_sprite_data")
 
       fx1:render()
 

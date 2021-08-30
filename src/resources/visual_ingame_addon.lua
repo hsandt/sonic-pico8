@@ -31,7 +31,7 @@ local ingame_sprite_data_t = transform(
     goal_plate_rotating_45_ccw          = {    6, 14,    2, 2,    7, 16},
     goal_plate_rotating_45_cw           = {    8, 14,    2, 2,    8, 16},
 
-    -- emerald representation tile (left part) and object sprite (both parts)
+    -- emerald representation tile (a small sprite that now fits in a 8x8 cell)
     emerald                             = {   10, 15,    1, 1,     3, 2},
 
     -- spring (pivot at bottom center on both sprites so it extends correctly)

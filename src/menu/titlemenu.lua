@@ -253,7 +253,9 @@ function titlemenu:update()
     self:update_emeralds()
     self:update_fx()
 
-    if self.tails_plane_position then
+    if self.tails_plane then
+      self.tails_plane:update()
+
       -- tune plane speed here
       self.tails_plane_position.x = self.tails_plane_position.x - 0.5 -- - tuned("plane dvx x0.5", 0) * 0.5
     end

@@ -8,6 +8,7 @@ local stage_intro_data = require("data/stage_intro_data")
 local base_stage_state = require("ingame/base_stage_state")
 local camera_class = require("ingame/camera")
 local player_char = require("ingame/playercharacter")
+local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 local ui_animation = require("ui/ui_animation")
 
@@ -55,10 +56,14 @@ function stage_intro_state:on_enter()
   reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(0, 1))
   self.loaded_map_region_coords = vector(0, 1)
 
+  -- starting v2 we want to play the full intro with character falling down from the sky,
+  --  for a nice transition from the Start Cinematic
+  -- however, it's still convenient to call spawn_player_char to create the PC and get it
+  --  at the right X (the coroutine below will then warp Sonic upward)
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
 
-  self.app:start_coroutine(self.show_stage_splash_async, self)
+  self.app:start_coroutine(self.play_intro_async, self)
 end
 
 -- never called, we directly load ingame cartridge
@@ -81,7 +86,7 @@ end
 function stage_intro_state:update()
   self.player_char:update()
   self.camera:update()
-  -- self:check_reload_map_region()
+  self:check_reload_map_region()
 end
 
 function stage_intro_state:render()
@@ -114,13 +119,81 @@ function stage_intro_state:render_overlay()
   self.overlay:draw()
 end
 
-function stage_intro_state:show_stage_splash_async()
-  -- fade in
-  for i = 5, 0, -1 do
+-- stage-related methods, simplified/adapted versions of stage_state equivalents
+
+function stage_intro_state:spawn_palm_tree_leaves_at(global_loc)
+  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
+  add(self.palm_tree_leaves_core_global_locations, global_loc)
+  log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
+end
+
+-- iterate over each tile of the current region
+--  and apply method callback for each of them (to spawn objects, etc.)
+--  the method callback but take self, a global tile location and the sprite id at this location
+function stage_intro_state:scan_current_region_to_spawn_objects()
+  for i = 0, map_region_tile_width - 1 do
+    for j = 0, map_region_tile_height - 1 do
+      -- here we already have region (i, j), so no need to convert for mget
+      local tile_sprite_id = mget(i, j)
+
+      -- there is only one object type we are interested in, the goal plate,
+      --  so check it manually instead of using a table of spawn callbacks as in stage_state
+      if tile_sprite_id == visual_ingame_data.palm_tree_leaves_core_id then
+        -- tile has been recognized as a representative tile for object spawning
+        --  apply callback now
+
+        -- we do need to convert location now since spawn methods work in global coordinates
+        local region_loc = location(i, j)
+        -- hardcoded region 00, so:
+        -- local global_loc = region_loc + location(0, 0)
+        --  so just pass region_loc
+        self:spawn_palm_tree_leaves_at(region_loc)
+      end
+    end
+  end
+end
+
+
+-- async sequences
+
+function stage_intro_state:play_intro_async()
+  -- start with black screen
+  self.postproc.darkness = 5
+
+  -- warp Sonic to the sky
+  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - 8*16*2))
+  self.camera:init_position(self.player_char.position)
+  -- self:check_reload_map_region() will be called on next update since coroutines are updated
+  --  after state in gameapp:step(), so wait at least 1 frame
+  yield_delay_frames(1)
+
+  -- we still need to reload map region hardcoded to 00,
+  --  and spawn objects just there (basically just spawn the palm trees)
+  -- it's very important that we reloaded map region at this point!
+  self:scan_current_region_to_spawn_objects()
+
+  -- show splash screen while still background is still black
+  self.app:start_coroutine(self.show_stage_splash_async, self)
+
+  -- while splash is still shown, fade in (as in Hydrocity Act 1)
+  for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(6)
   end
 
+  -- wait for fall to end
+  yield_delay_frames(120*10)
+
+  -- splash is over, load ingame cartridge and give control to player
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_ingame')
+
+  --[[#pico8
+    assert(false, "could not load picosonic_ingame, make sure cartridge has been built")
+  --#pico8]]
+end
+
+function stage_intro_state:show_stage_splash_async()
   self.app:yield_delay_s(stage_intro_data.show_stage_splash_delay)
 
   -- init position y is -height so it starts just at the screen top edge
@@ -155,14 +228,7 @@ function stage_intro_state:show_stage_splash_async()
   self.overlay:remove_drawable("banner")
   self.overlay:remove_drawable("banner_text")
   self.overlay:remove_drawable("zone")
-
-  -- splash is over, load ingame cartridge and give control to player
-  -- prefer passing basename for compatibility with .p8.png
-  load('picosonic_ingame')
-
---[[#pico8
-  assert(false, "could not load picosonic_ingame")
---#pico8]]
 end
+
 
 return stage_intro_state

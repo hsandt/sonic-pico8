@@ -261,6 +261,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro cheat"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro assert"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release"]
 				}
@@ -495,6 +499,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro tuner)"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro assert)"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro release)"]
 				},
@@ -701,6 +709,10 @@
 				{
 					"name": "stage_intro tuner",
 					"cmd": ["./run_cartridge.sh stage_intro tuner"]
+				},
+				{
+					"name": "stage_intro assert",
+					"cmd": ["./run_cartridge.sh stage_intro assert"]
 				},
 				{
 					"name": "stage_intro release",

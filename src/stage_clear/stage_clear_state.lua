@@ -188,7 +188,7 @@ function stage_clear_state:render()
 end
 
 
--- stage-related methods, simplified versions of stage_state equivalents
+-- stage-related methods, simplified/adapted versions of stage_state equivalents
 
 function stage_clear_state:spawn_goal_plate_at(global_loc)
   -- remember where we found palm tree leaves core tile, to draw extension sprites around later

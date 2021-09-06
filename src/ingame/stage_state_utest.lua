@@ -120,7 +120,7 @@ describe('stage_state', function ()
         stub(stage_state, "spawn_objects_in_all_map_regions")
         stub(stage_state, "restore_picked_emerald_data")
         stub(camera_class, "setup_for_stage")
-        stub(stage_state, "check_reload_map_region")
+        stub(base_stage_state, "check_reload_map_region")
       end)
 
       teardown(function ()
@@ -130,7 +130,7 @@ describe('stage_state', function ()
         stage_state.spawn_objects_in_all_map_regions:revert()
         stage_state.restore_picked_emerald_data:revert()
         camera_class.setup_for_stage:revert()
-        stage_state.check_reload_map_region:revert()
+        base_stage_state.check_reload_map_region:revert()
       end)
 
       after_each(function ()
@@ -140,7 +140,7 @@ describe('stage_state', function ()
         stage_state.spawn_objects_in_all_map_regions:clear()
         stage_state.restore_picked_emerald_data:clear()
         camera_class.setup_for_stage:clear()
-        stage_state.check_reload_map_region:clear()
+        base_stage_state.check_reload_map_region:clear()
       end)
 
       before_each(function ()
@@ -362,470 +362,6 @@ describe('stage_state', function ()
 
         assert.spy(dummy_callback).was_called(3)
         assert.spy(dummy_callback).was_called_with(match.ref(state), location(1, 1 + 32), 21)
-      end)
-
-    end)
-
-    describe('get_map_region_filename', function ()
-
-      it('stage 2, (1, 0) => "data_stage2_10.p8"', function ()
-        state.curr_stage_id = 2
-        assert.are_equal("data_stage2_10.p8", state:get_map_region_filename(1, 0))
-      end)
-
-    end)
-
-    describe('get_region_grid_dimensions', function ()
-
-      it('should return the number of regions per row, per column"', function ()
-        state.curr_stage_data = {
-          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
-          tile_height = 32 * 3  -- 3 regions per column
-        }
-
-        assert.are_same({2, 3}, {state:get_region_grid_dimensions()})
-      end)
-
-    end)
-
-    describe('get_map_region_coords', function ()
-
-      before_each(function ()
-        -- required for stage edge clamping
-        -- we only need to mock width and height,
-        --  normally we'd get full stage data as in stage_data.lua
-        state.curr_stage_data = {
-          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
-          tile_height = 32 * 3  -- 3 regions per column
-        }
-      end)
-
-      it('should return (0, 0) in region (0, 0), even when close to top and left edges (limit)', function ()
-        -- X  |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 0), state:get_map_region_coords(vector(0, 0)))
-      end)
-
-      it('should return (0, 0) in region (0, 0) right in the middle', function ()
-        --    |
-        --  X |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 0), state:get_map_region_coords(vector(512, 128)))
-      end)
-
-      it('should return (0.5, 0) in region (0, 0) near right edge', function ()
-        --    |
-        --   X|
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0), state:get_map_region_coords(vector(1020, 128)))
-      end)
-
-      it('should return (0.5, 0) in region (1, 0) near left edge', function ()
-        --    |
-        --    |X
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0), state:get_map_region_coords(vector(1030, 128)))
-      end)
-
-      it('should return (1, 0) in region (1, 0) right in the middle', function ()
-        --    |
-        --    | X
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(1, 0), state:get_map_region_coords(vector(1536, 128)))
-      end)
-
-      it('should return (1, 0) in region (1, 0) even when close to top and right edges (limit)', function ()
-        assert.are_equal(vector(1, 0), state:get_map_region_coords(vector(2047, 0)))
-      end)
-
-      it('should return (0, 0.5) in region (0, 0), near bottom edge', function ()
-        --    |
-        --    |
-        --  X |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 250)))
-      end)
-
-      it('should return (0.5, 0.5) in region (0, 0), near bottom and right edges (cross)', function ()
-        --    |
-        --    |
-        --   X|
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0.5), state:get_map_region_coords(vector(1020, 250)))
-      end)
-
-      it('should return (0.5, 0.5) in region (1, 0), near bottom and left edges (cross)', function ()
-        --    |
-        --    |
-        --    |X
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0.5), state:get_map_region_coords(vector(1030, 250)))
-      end)
-
-      it('should return (1, 0.5) in region (1, 0), near bottom edge', function ()
-        --    |
-        --    |
-        --    | X
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(1536, 250)))
-      end)
-
-      it('should return (1, 0.5) in region (1, 0), near bottom edge, even when close to right edge (limit)', function ()
-        --    |
-        --    |
-        --    |  X
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(2047, 250)))
-      end)
-
-      it('should return (0, 0.5) in region (0, 1), near top edge', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --  X |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 260)))
-      end)
-
-      it('should return (0.5, 0.5) in region (0, 1), near top and right edges (cross)', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --   X|
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0.5), state:get_map_region_coords(vector(1020, 260)))
-      end)
-
-      it('should return (0.5, 0.5) in region (1, 1), near top and left edges (cross)', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |X
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0.5, 0.5), state:get_map_region_coords(vector(1030, 260)))
-      end)
-
-      it('should return (1, 0.5) in region (1, 1), near top edge', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    | X
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(1536, 260)))
-      end)
-
-      it('should return (0, 1) in region (0, 1) even when close to left edge (limit)', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        -- X  |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 384)))
-      end)
-
-      it('should return (0, 1) in region (0, 1) right in the middle', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --  X |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(512, 384)))
-      end)
-
-      it('should return (0, 2) in region (0, 2) even when close to bottom and left edges (limit)', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        -- X  |
-        assert.are_equal(vector(0, 2), state:get_map_region_coords(vector(0, 767)))
-      end)
-
-      it('should return (1, 2) in region (1, 2) even when close to bottom and right edges (limit)', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |  X
-        assert.are_equal(vector(1, 2), state:get_map_region_coords(vector(2047, 767)))
-      end)
-
-    end)
-
-    -- there are currently no utests for:
-    --  - reload_horizontal_half_of_map_region
-    --  - reload_vertical_half_of_map_region
-    --  - reload_quarter_of_map_region
-    -- we could add them, but experience showed that it was easy to mess up addresses
-    --  and that utests would not help a lot with that, so testing in real game is probably best for those
-    -- however utests can still be useful for syntax and trivial error checking
-
-    describe('reload_map_region', function ()
-
-      setup(function ()
-        stub(_G, "reload")
-        stub(stage_state, "reload_vertical_half_of_map_region")
-        stub(stage_state, "reload_horizontal_half_of_map_region")
-        stub(stage_state, "reload_quarter_of_map_region")
-      end)
-
-      teardown(function ()
-        _G.reload:revert()
-        stage_state.reload_vertical_half_of_map_region:revert()
-        stage_state.reload_horizontal_half_of_map_region:revert()
-        stage_state.reload_quarter_of_map_region:revert()
-      end)
-
-      -- on_enter calls check_reload_map_region, so reset count for all reload utility methods
-      before_each(function ()
-        _G.reload:clear()
-        stage_state.reload_vertical_half_of_map_region:clear()
-        stage_state.reload_horizontal_half_of_map_region:clear()
-        stage_state.reload_quarter_of_map_region:clear()
-
-        state.curr_stage_id = 2
-      end)
-
-      it('should call reload for map 01 for region coords (0, 1)', function ()
-        state:reload_map_region(vector(0, 1))
-
-        assert.spy(reload).was_called(1)
-        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
-      end)
-
-      it('should call reload_vertical_half_of_map_region for map 10 and 11 for region coords (1, 0.5)', function ()
-        state:reload_map_region(vector(1, 0.5))
-
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called(2)
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage2_10.p8")
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage2_11.p8")
-      end)
-
-      it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-        state:reload_map_region(vector(0.5, 0))
-
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called(2)
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, "data_stage2_00.p8")
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, "data_stage2_10.p8")
-      end)
-
-      it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-        state:reload_map_region(vector(0.5, 0.5))
-
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called(4)
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.up, "data_stage2_00.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.up, "data_stage2_10.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.down, "data_stage2_01.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.down, "data_stage2_11.p8")
-      end)
-
-      it('should set loaded_map_region_coords to the passed region', function ()
-        state.loaded_map_region_coords = vector(0, 0)
-
-        state:reload_map_region(vector(1, 0.5))
-
-        assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
-      end)
-
-    end)
-
-    describe('check_reload_map_region', function ()
-
-      setup(function ()
-        stub(stage_state, "get_map_region_coords", function (self, position)
-          -- see before_each below
-          if position == vector(200, 64) then
-            return vector(1, 0.5)
-          end
-          return vector(0, 0)
-        end)
-        stub(stage_state, "reload_map_region", function (self, new_map_region_coords)
-          -- minimal stub just to change member that must be used by statements below
-          self.loaded_map_region_coords = new_map_region_coords
-        end)
-        stub(_G, "mset")
-      end)
-
-      teardown(function ()
-        stage_state.get_map_region_coords:revert()
-        stage_state.reload_map_region:revert()
-        mset:revert()
-      end)
-
-      before_each(function ()
-        -- dummy PC so it doesn't error, the stub above really decides of the result
-        state.player_char = {position = vector(0, 0)}
-        -- at least set some camera position used in get_map_region_coords stub
-        --  so we can verify we are passing it correctly
-        state.camera:init_position(vector(200, 64))
-      end)
-
-      after_each(function ()
-        stage_state.get_map_region_coords:clear()
-        stage_state.reload_map_region:clear()
-        mset:clear()
-      end)
-
-      it('should call reload_map_region with (1, 0.5)', function ()
-        state.loaded_map_region_coords = vector(0, 0)
-
-        state:check_reload_map_region()
-
-        assert.spy(stage_state.reload_map_region).was_called(1)
-        assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 0.5))
-      end)
-
-      it('should not call reload_map_region with (1, 0.5) if no change occurs', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-        state:check_reload_map_region()
-
-        assert.spy(stage_state.reload_map_region).was_not_called()
-      end)
-
-      it('should mset overlap tiles at region coordinates inside current region range', function ()
-        -- note that check_reload_map_region will *move* to region (1, 0.5)
-        state.loaded_map_region_coords = vector(0, 0)
-        state.overlap_tiles = {{location(128 + 5, 16 + 17), 24}}
-
-        state:check_reload_map_region()
-
-        assert.spy(mset).was_called(1)
-        assert.spy(mset).was_called_with(5, 17, 24)
-      end)
-
-      it('should *not* mset overlap tiles at region coordinates outside current region range', function ()
-        -- note that check_reload_map_region will *move* to region (1, 0.5)
-        state.loaded_map_region_coords = vector(0, 0)
-        -- too much on the left! region coords would be (-5, 17) which are outside current map!
-        state.overlap_tiles = {{location(128 - 5, 16 + 17), 24}}
-
-        state:check_reload_map_region()
-
-        assert.spy(mset).was_not_called()
       end)
 
     end)
@@ -1081,7 +617,7 @@ describe('stage_state', function ()
             -- (alternatively we could spy.on if we don't mind extra work during tests)
             -- in general we should actually avoid relying on complex methods like change_state
             --  in before_each and just manually set the properties we really need on state
-            stub(stage_state, "check_reload_map_region")
+            stub(base_stage_state, "check_reload_map_region")
           end)
 
           after_each(function ()
@@ -1092,7 +628,7 @@ describe('stage_state', function ()
             goal_plate.update:clear()
             camera_class.update:clear()
 
-            stage_state.check_reload_map_region:revert()
+            base_stage_state.check_reload_map_region:revert()
           end)
 
           it('should call fx and character update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
@@ -1111,8 +647,8 @@ describe('stage_state', function ()
             assert.spy(goal_plate.update).was_called_with(match.ref(state.goal_plate))
             assert.spy(camera_class.update).was_called(1)
             assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
-            assert.spy(stage_state.check_reload_map_region).was_called(1)
-            assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
+            assert.spy(base_stage_state.check_reload_map_region).was_called(1)
+            assert.spy(base_stage_state.check_reload_map_region).was_called_with(match.ref(state))
           end)
 
           it('should not try to update goal if no goal plate found (safety check for itests)', function ()

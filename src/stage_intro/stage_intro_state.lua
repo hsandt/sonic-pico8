@@ -121,6 +121,17 @@ end
 
 -- stage-related methods, simplified/adapted versions of stage_state equivalents
 
+-- base_stage_state override
+function stage_intro_state:get_map_region_coords(position)
+  -- in stage intro, we cheat to show an infinite vertically scrolling background
+  --  during the fall phase by applying a modulo to the region v
+  local uv = base_stage_state.get_map_region_coords(self, position)
+  if uv.y < 0 then
+    uv.y = uv.y % 1
+  end
+  return uv
+end
+
 function stage_intro_state:spawn_palm_tree_leaves_at(global_loc)
   -- remember where we found palm tree leaves core tile, to draw extension sprites around later
   add(self.palm_tree_leaves_core_global_locations, global_loc)

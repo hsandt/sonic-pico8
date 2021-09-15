@@ -131,11 +131,11 @@ describe('stage_intro_state', function ()
         assert.are_equal(state.player_char, state.camera.target_pc)
       end)
 
-      it('should call start_coroutine_method on show_stage_splash_async', function ()
+      it('should call start_coroutine_method on play_intro_async', function ()
         state:on_enter()
 
         assert.spy(picosonic_app.start_coroutine).was_called(1)
-        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_intro_state.show_stage_splash_async, match.ref(state))
+        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(state.app), stage_intro_state.play_intro_async, match.ref(state))
       end)
 
     end)
@@ -245,6 +245,37 @@ describe('stage_intro_state', function ()
         for i = 1, stage_intro_data.show_stage_splash_delay * state.app.fps - 1 + 160 do
           corunner:update_coroutines()
         end
+      end)
+
+    end)
+
+    describe('get_map_region_coords', function ()
+
+      setup(function ()
+        -- important to stub base method, not child override
+        stub(base_stage_state, "get_map_region_coords", function (self)
+          return vector(0, self.test_v)
+        end)
+      end)
+
+      teardown(function ()
+        base_stage_state.get_map_region_coords:revert()
+      end)
+
+      after_each(function ()
+        base_stage_state.get_map_region_coords:clear()
+      end)
+
+      it('(v < 0) should return base_stage_state:get_map_region_coords with modulo 1 applied to region v', function ()
+        -- Sonic falling, show fake infinite background
+        state.test_v = -3.5
+        assert.are_equal(vector(0, 0.5), state:get_map_region_coords())
+      end)
+
+      it('(v >= 0) should return base_stage_state:get_map_region_coords', function ()
+        -- Sonic landing, show real ground
+        state.test_v = 1
+        assert.are_equal(vector(0, 1), state:get_map_region_coords())
       end)
 
     end)

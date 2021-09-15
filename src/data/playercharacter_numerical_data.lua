@@ -111,6 +111,16 @@ local pc_data = {
   --  max distance X = max_air_velocity_x * 60 = 180 (22.5 tiles)
   max_air_velocity_x = 3,  -- 192/64
 
+  -- maximum downward velocity y (px/frame)
+  -- introduced in Sonic CD for longer vertical levels, it seemed unrequired in pico sonic,
+  --  but it turns out jumping from the highest place near the second emerald and the yellow emerald
+  --  is enough to make Sonic fall through the ground due to collision tunnel effect
+  --  (motion during one frame is longer than the max escape distance)
+  -- Sonic CD value is 16, so in PICO-8 scale it should be 8, but since max_ground_escape_height = 7,
+  --  we should use this value instead to prevent any passthrough
+  --  (although experiments showed that 8 is enough, only 9 starts allowing passthrough)
+  max_air_velocity_y = 7,
+
   -- ground speed threshold under which character will fall/slide off when walking at more
   --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
@@ -123,10 +133,6 @@ local pc_data = {
 
   -- duration of horizontal control lock after fall/slide off (frames)
   fall_off_horizontal_control_lock_duration = 30,  -- 0.5s
-
-  -- max air speed (px/frame)
-  --  (very high, probably won't happen unless Sonic falls in bottomless pit)
-  max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
   -- from this and gravity we can deduce the max jump height: 49.921875 (6.2 tiles) at frame 31 (~0.5s)

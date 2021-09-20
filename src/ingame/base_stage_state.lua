@@ -523,6 +523,8 @@ function base_stage_state:render_environment_foreground()
 --#endif
 
 --#ifn stage_clear
+  self:set_camera_with_origin()
+
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do
     -- top has pivot at its bottom-left = the top-left of the core
@@ -548,7 +550,6 @@ function base_stage_state:render_environment_foreground()
   --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
   local region_topleft_loc = self:get_region_topleft_location()
 
-  self:set_camera_with_origin()
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     -- draw map subset just for the loop entrance
     -- if this is out-of-screen, map will know it should draw nothing so this is very performant already

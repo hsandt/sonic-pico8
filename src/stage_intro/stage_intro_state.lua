@@ -172,7 +172,7 @@ function stage_intro_state:play_intro_async()
   self.postproc.darkness = 5
 
   -- warp Sonic to the sky
-  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - 8*16*2))
+  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - 8*16*6))
   self.camera:init_position(self.player_char.position)
   -- self:check_reload_map_region() will be called on next update since coroutines are updated
   --  after state in gameapp:step(), so wait at least 1 frame
@@ -193,7 +193,7 @@ function stage_intro_state:play_intro_async()
   end
 
   -- wait for fall to end
-  yield_delay_frames(120*10)
+  yield_delay_frames(60*5)
 
   -- splash is over, load ingame cartridge and give control to player
   -- prefer passing basename for compatibility with .p8.png

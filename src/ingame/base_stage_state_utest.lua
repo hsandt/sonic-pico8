@@ -123,7 +123,7 @@ describe('base_base_stage_state', function ()
         }
       end)
 
-      it('should return (0, 0) in region (0, 0), even when close to top and left edges (limit)', function ()
+      it('should return (-0.5, -0.5) in region (0, 0) when close to top and left edges', function ()
         -- X  |
         --    |
         --    |
@@ -135,7 +135,8 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |
-        assert.are_equal(vector(0, 0), state:get_map_region_coords(vector(0, 0)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(-0.5, -0.5), state:get_map_region_coords(vector(0, 0)))
       end)
 
       it('should return (0, 0) in region (0, 0) right in the middle', function ()
@@ -198,11 +199,23 @@ describe('base_base_stage_state', function ()
         assert.are_equal(vector(1, 0), state:get_map_region_coords(vector(1536, 128)))
       end)
 
-      it('should return (1, 0) in region (1, 0) even when close to top and right edges (limit)', function ()
-        assert.are_equal(vector(1, 0), state:get_map_region_coords(vector(2047, 0)))
+      it('should return (1.5, -0.5) in region (1, 0) when close to top and right edges', function ()
+        --    |  X
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(1.5, -0.5), state:get_map_region_coords(vector(2047, 0)))
       end)
 
-      it('should return (0, 0.5) in region (0, 0), near bottom edge', function ()
+      it('should return (-0.5, 0.5) in region (0, 0), near bottom edge', function ()
         --    |
         --    |
         --  X |
@@ -214,7 +227,8 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 250)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(-0.5, 0.5), state:get_map_region_coords(vector(0, 250)))
       end)
 
       it('should return (0.5, 0.5) in region (0, 0), near bottom and right edges (cross)', function ()
@@ -262,7 +276,7 @@ describe('base_base_stage_state', function ()
         assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(1536, 250)))
       end)
 
-      it('should return (1, 0.5) in region (1, 0), near bottom edge, even when close to right edge (limit)', function ()
+      it('should return (1.5, 0.5) in region (1, 0), near bottom edge, when close to right edge', function ()
         --    |
         --    |
         --    |  X
@@ -274,10 +288,11 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |
-        assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(2047, 250)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(1.5, 0.5), state:get_map_region_coords(vector(2047, 250)))
       end)
 
-      it('should return (0, 0.5) in region (0, 1), near top edge', function ()
+      it('should return (-0.5, 0.5) in region (0, 1), near top edge', function ()
         --    |
         --    |
         --    |
@@ -289,7 +304,8 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 260)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(-0.5, 0.5), state:get_map_region_coords(vector(0, 260)))
       end)
 
       it('should return (0.5, 0.5) in region (0, 1), near top and right edges (cross)', function ()
@@ -337,7 +353,7 @@ describe('base_base_stage_state', function ()
         assert.are_equal(vector(1, 0.5), state:get_map_region_coords(vector(1536, 260)))
       end)
 
-      it('should return (0, 1) in region (0, 1) even when close to left edge (limit)', function ()
+      it('should return (-0.5, 1) in region (0, 1) when close to left edge', function ()
         --    |
         --    |
         --    |
@@ -349,7 +365,8 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |
-        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 384)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(-0.5, 1), state:get_map_region_coords(vector(0, 384)))
       end)
 
       it('should return (0, 1) in region (0, 1) right in the middle', function ()
@@ -367,7 +384,7 @@ describe('base_base_stage_state', function ()
         assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(512, 384)))
       end)
 
-      it('should return (0, 2) in region (0, 2) even when close to bottom and left edges (limit)', function ()
+      it('should return (-0.5, 2.5) in region (0, 2) when close to bottom and left edges', function ()
         --    |
         --    |
         --    |
@@ -379,10 +396,11 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         -- X  |
-        assert.are_equal(vector(0, 2), state:get_map_region_coords(vector(0, 767)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(-0.5, 2.5), state:get_map_region_coords(vector(0, 767)))
       end)
 
-      it('should return (1, 2) in region (1, 2) even when close to bottom and right edges (limit)', function ()
+      it('should return (1.5, 2.5) in region (1, 2) even when close to bottom and right edges', function ()
         --    |
         --    |
         --    |
@@ -394,7 +412,8 @@ describe('base_base_stage_state', function ()
         --    |
         --    |
         --    |  X
-        assert.are_equal(vector(1, 2), state:get_map_region_coords(vector(2047, 767)))
+        -- base implementation doesn't clamp anymore
+        assert.are_equal(vector(1.5, 2.5), state:get_map_region_coords(vector(2047, 767)))
       end)
 
     end)

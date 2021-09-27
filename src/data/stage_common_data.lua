@@ -9,6 +9,15 @@ local stage_common_data = {
   emerald_pick_radius = 8,
 
 
+  -- Region reload
+
+  -- distance of camera center from region edge at which we start reloading the neighbouring region
+  -- we don't have much choice but to pick 64 just the the more restraining height, because it's just
+  --  the limit at which the camera stops showing the bottom half of a region,
+  --  and starts showing the bottom of the region above
+  transition_margin = 64,  -- 8 * tile_size
+
+
   -- Visual
 
   -- duration of goal plate rotating before stage clear (results sub-state) starts (frames)

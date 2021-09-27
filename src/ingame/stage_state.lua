@@ -305,6 +305,19 @@ function stage_state:render()
 end
 
 
+-- base_stage_state override
+function stage_state:get_map_region_coords(position)
+  local uv = base_stage_state.get_map_region_coords(self, position)
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- clamp to existing region in case character or camera goes awry for some reason
+  uv.x = mid(0, uv.x, region_count_per_row - 1)
+  uv.y = mid(0, uv.y, region_count_per_column - 1)
+
+  return uv
+end
+
+
 -- setup (spawn methods to support extended map system in base_stage_state)
 
 function stage_state:spawn_emerald_at(global_loc)

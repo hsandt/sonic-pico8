@@ -230,6 +230,101 @@ describe('stage_intro_state', function ()
 
     end)
 
+    describe('get_map_region_coords', function ()
+
+      before_each(function ()
+        -- required for stage edge clamping
+        -- we only need to mock width and height,
+        --  normally we'd get full stage data as in stage_data.lua
+        state.curr_stage_data = {
+          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
+          tile_height = 32 * 2  -- 2 regions per column
+        }
+      end)
+
+      it('should return (0, 0.5) in fictive region (0, -1) top and left edges', function ()
+        -- X  |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- loop
+        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, -255)))
+      end)
+
+      it('should return (0, 0) in fictive region (0, -1) center left', function ()
+        --    |
+        -- X  |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- loop
+        assert.are_equal(vector(0, 0), state:get_map_region_coords(vector(0, -128)))
+      end)
+
+      it('should return (0, 0.5) in fictive region (0, -1) bottom left', function ()
+        --    |
+        --    |
+        -- X  |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- loop
+        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, -63)))
+      end)
+
+      it('should return (0, 0.5) in region (0, 0) when close to top and left edges', function ()
+        -- X  |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 0)))
+      end)
+
+      it('should return (0, 1) in region (0, 1) when close to left edge', function ()
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        -- X  |
+        --    |
+        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 384)))
+      end)
+
+      it('should return (0, 1) in region (0, 1) when close to bottom and left edges', function ()
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        -- X  |
+        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 511)))
+      end)
+
+    end)
+
     describe('show_stage_splash_async', function ()
 
       local corunner

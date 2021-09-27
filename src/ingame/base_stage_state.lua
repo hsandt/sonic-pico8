@@ -1,5 +1,6 @@
 local gamestate = require("engine/application/gamestate")
 
+local stage_common_data = require("data/stage_common_data")
 local camera_class = require("ingame/camera")
 local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
@@ -61,6 +62,7 @@ function base_stage_state:global_to_region_location(global_loc)
 end
 
 function base_stage_state:get_region_grid_dimensions()
+  -- compute number of regions per row/column (ceil in case the last region does not cover full PICO-8 map)
   local region_count_per_row = ceil(self.curr_stage_data.tile_width / map_region_tile_width)
   local region_count_per_column = ceil(self.curr_stage_data.tile_height / map_region_tile_height)
   return region_count_per_row, region_count_per_column
@@ -72,54 +74,37 @@ end
 --  return coordinates for a transitional region (ending in .5, half-way between the two regions,
 --  on x, y, or both is near the cross boundary of 4 regions)
 function base_stage_state:get_map_region_coords(position)
-  --  pre-compute number of regions per row/column (ceil in case the last region does not cover full PICO-8 map)
-  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
-
   -- get region where the position is located, without minding being near boundaries at first
   local u = flr(position.x / map_region_width)
   local v = flr(position.y / map_region_height)
 
   -- check if we are near a boundary, ie modulo map_region_width/height is either
   --  < margin or > map_region_width/height - margin
-  -- note that a margin of 8 tiles should be enough for most speeds and collision checks,
-  --  increase if character starts moving out of screen and miss tiles and odd events like tat
-  local transition_margin = 8 * tile_size
 
   local dx = position.x % map_region_width
-  if dx < transition_margin then
+  if dx < stage_common_data.transition_margin then
     -- position is close to left border, transition with left region
-    --  unless we are already on the left edge of the extended map
-    if u > 0 then
-      u = u - 0.5
-    end
-  elseif dx > map_region_width - transition_margin then
+    -- (don't check that we are not on the left edge of the extended map anymore;
+    -- let child override implementation decide if it wants to clamp or loop)
+    u = u - 0.5
+  elseif dx > map_region_width - stage_common_data.transition_margin then
     -- position is close to right border, transition with right region
-    --  unless we are already on the right edge of the extended map
-    --  (compare to number of regions in a row using stage width and ceil in case the last region is partial)
-    if u < region_count_per_row - 1 then
-      u = u + 0.5
-    end
+    -- (don't check that we are not on the right edge of the extended map anymore)
+    u = u + 0.5
   end
 
   local dy = position.y % map_region_height
-  if dy < transition_margin then
+  if dy < stage_common_data.transition_margin then
     -- position is close to top border, transition with region above
-    --  unless we are already on the top edge of the extended map
-    if v > 0 then
-      v = v - 0.5
-    end
-  elseif dy > map_region_height - transition_margin then
+    -- (don't check that we are not on the top edge of the extended map anymore)
+    v = v - 0.5
+  elseif dy > map_region_height - stage_common_data.transition_margin then
     -- position is close to bottom border, transition with region below
-    --  unless we are already on the bottom edge of the extended map
-    if v < region_count_per_column - 1 then
-      v = v + 0.5
-    end
+    -- (don't check that we are not on the bottom edge of the extended map anymore)
+    v = v + 0.5
   end
 
-  -- clamp to existing region in case character or camera goes awry for some reason
-  u = mid(0, u, region_count_per_row - 1)
-  v = mid(0, v, region_count_per_column - 1)
-
+  -- no clamping anymore, let stage intro / state decide if they want to clamp or loop
   return vector(u, v)
 end
 

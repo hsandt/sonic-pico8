@@ -123,11 +123,21 @@ end
 
 -- base_stage_state override
 function stage_intro_state:get_map_region_coords(position)
-  -- in stage intro, we cheat to show an infinite vertically scrolling background
-  --  during the fall phase by applying a modulo to the region v
   local uv = base_stage_state.get_map_region_coords(self, position)
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- we won't be touching the right edge in stage intro, so just clamp on left edge
+  -- region_count_per_row is unused
+  uv.x = max(0, uv.x)
+
+  -- in stage intro, we cheat to show an infinite vertically scrolling background
+  --  during the fall phase by applying a modulo to the region v, instead of clamping
   if uv.y < 0 then
     uv.y = uv.y % 1
+  else
+    -- still clamp at bottom just in case we go too low
+    -- (should be OK without though, as the dynamic camera limit clamps camera already)
+    uv.y = min(uv.y, region_count_per_column - 1)
   end
   return uv
 end

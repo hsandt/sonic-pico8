@@ -108,7 +108,11 @@ end
 
 -- render the player character at its current position
 function stage_intro_state:render_player_char()
-  self:set_camera_with_origin()
+  -- self:set_camera_with_origin()
+  -- we override set_camera_with_origin to loop palm trees,
+  --  so we must call the original implementation to draw the character,
+  --  as it is the only entity unaffecting by the fake vertical looping
+  base_stage_state.set_camera_with_origin(self)
 
   self.player_char:render()
 end
@@ -130,16 +134,106 @@ function stage_intro_state:get_map_region_coords(position)
   -- region_count_per_row is unused
   uv.x = max(0, uv.x)
 
-  -- in stage intro, we cheat to show an infinite vertically scrolling background
-  --  during the fall phase by applying a modulo to the region v, instead of clamping
-  if uv.y < 0 then
-    uv.y = uv.y % 1
-  else
+  -- -- in stage intro, we cheat to show an infinite vertically scrolling background
+  -- --  during the fall phase by applying a modulo to the region v, instead of clamping
+  -- if uv.y < 0 then
+  --   uv.y = uv.y % 1
+  -- else
     -- still clamp at bottom just in case we go too low
     -- (should be OK without though, as the dynamic camera limit clamps camera already)
     uv.y = min(uv.y, region_count_per_column - 1)
-  end
+  -- end
   return uv
+end
+-- not enough, override the whole thing to allow wrapping on single region (invert lower and upper halves!)
+
+-- base_stage_state override
+function stage_intro_state:reload_map_region(new_map_region_coords)
+  -- we didn't override get_map_region_coords and do all the job here so we can remember
+  --  if we are above region 00 and wrapping with modulo
+  local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
+
+  -- we won't be touching the right edge in stage intro, so just clamp on left edge
+  -- region_count_per_row is unused
+  new_map_region_coords.x = max(0, new_map_region_coords.x)
+
+  local is_wrapping = false
+  printh("new_map_region_coords.y: "..nice_dump(new_map_region_coords.y))
+
+  -- in stage intro, we cheat to show an infinite vertically scrolling background
+  --  during the fall phase by applying a modulo to the region v, instead of clamping
+  if new_map_region_coords.y < 0 then
+    new_map_region_coords.y = new_map_region_coords.y % 1
+    is_wrapping = true
+  else
+    -- -- still clamp at bottom just in case we go too low
+    -- -- (should be OK without though, as the dynamic camera limit clamps camera already)
+    -- new_map_region_coords.y = min(new_map_region_coords.y, region_count_per_column - 1)
+  end
+
+  local u_left = flr(new_map_region_coords.x)
+  local v_upper = flr(new_map_region_coords.y)
+
+  printh("new_map_region_coords adjusted: "..nice_dump(new_map_region_coords))
+
+  if new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 == 0 then
+    -- integer coordinates => solo region
+    log("reload map region: "..new_map_region_coords.." (single)", "reload")
+
+    reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(u_left, v_upper))
+    printh("full region")
+  elseif new_map_region_coords.x % 1 == 0 and new_map_region_coords.y % 1 ~= 0 then
+    -- fractional y => vertically overlapping region (2 patches)
+    log("reload map region: "..new_map_region_coords.." (Y overlap)", "reload")
+
+    -- copy lower part of map region above to upper part of map memory
+    self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
+    -- copy upper part of map region below to lower part of map memory
+    -- simulate infinite looping tilemap above by wrapping region 00 bottom with top when above region 00
+    local v_upper_to_load
+    if is_wrapping then
+      -- reuse upper half of region 00 (0)
+      v_upper_to_load = v_upper
+    else
+      v_upper_to_load = v_upper + 1
+    end
+    self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper_to_load))
+    printh("half region")
+  else
+    assert(false, "unsupported case")
+  end
+
+  self.loaded_map_region_coords = new_map_region_coords
+end
+
+-- set the camera offset to draw stage elements with optional origin (default (0, 0))
+-- tilemap should be drawn with region map topleft (in px) as origin
+-- characters and items should be drawn with extended map topleft (0, 0) as origin
+-- function stage_intro_state:set_camera_with_origin(origin)
+--   origin = origin or vector.zero()
+--   printh("origin: "..nice_dump(origin))
+--   -- the camera position is used to render the stage. it represents the screen center
+--   -- whereas pico-8 defines a top-left camera position, so we subtract a half screen to center the view
+--   -- finally subtract the origin to place tiles correctly
+--   camera(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
+-- end
+
+-- base_stage_state override
+-- hacked implementation to loop the decor (used to render palm trees as part of foreground,
+--  and midground via set_camera_with_region_origin)
+function stage_intro_state:set_camera_with_origin(origin)
+  origin = origin or vector.zero()
+
+  -- FIXME: palm tree top sprite doesn't match leaves
+  -- use stage_common_data.transition_margin?
+
+  local camera_topleft = vector(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
+  if camera_topleft.y < 0 then
+    -- above normal region, loop the decor
+    camera_topleft.y = camera_topleft.y % 128
+  end
+
+  camera(camera_topleft.x, camera_topleft.y)
 end
 
 function stage_intro_state:spawn_palm_tree_leaves_at(global_loc)

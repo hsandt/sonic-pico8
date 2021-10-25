@@ -12,9 +12,7 @@ local stage_common_data = {
   -- Region reload
 
   -- distance of camera center from region edge at which we start reloading the neighbouring region
-  -- we don't have much choice but to pick 64 just the the more restraining height, because it's just
-  --  the limit at which the camera stops showing the bottom half of a region,
-  --  and starts showing the bottom of the region above
+  -- map_region_tile_height = 32 so it must be at least 16 * tile_size
   transition_margin = 64,  -- 8 * tile_size
 
 

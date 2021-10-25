@@ -232,95 +232,129 @@ describe('stage_intro_state', function ()
 
     describe('get_map_region_coords', function ()
 
+      setup(function ()
+        -- important to stub base method, not child override
+        stub(base_stage_state, "get_map_region_coords", function (self)
+          return vector(self.test_u, self.test_v)
+        end)
+      end)
+
+      teardown(function ()
+        base_stage_state.get_map_region_coords:revert()
+      end)
+
+      after_each(function ()
+        base_stage_state.get_map_region_coords:clear()
+      end)
+
+      it('(u < 0) should return base_stage_state:get_map_region_coords maxed to 0', function ()
+        -- Sonic falling, show fake infinite background
+        state.test_u = -3.5
+        state.test_v = 1
+        assert.are_equal(vector(0, 1), state:get_map_region_coords())
+      end)
+
+      it('(u >= 0) should return base_stage_state:get_map_region_coords', function ()
+        -- Sonic landing, show real ground
+        state.test_u = 1
+        state.test_v = 1
+        assert.are_equal(vector(1, 1), state:get_map_region_coords())
+      end)
+
+      it('(v < 0) should return base_stage_state:get_map_region_coords with v UNCLAMPED to allow reload_map_region to apply modulo 1 later', function ()
+        -- Sonic falling, show fake infinite background
+        state.test_u = 0
+        state.test_v = -3.5
+        assert.are_equal(vector(0, -3.5), state:get_map_region_coords())
+      end)
+
+      it('(v >= 0) should return base_stage_state:get_map_region_coords with v clamped to stage limit = 1 (optional)', function ()
+        -- Sonic landing, show real ground
+        state.test_v = 2
+        assert.are_equal(vector(0, 1), state:get_map_region_coords())
+      end)
+
+    end)
+
+    describe('reload_map_region', function ()
+
+      setup(function ()
+        stub(_G, "reload")
+        stub(base_stage_state, "reload_vertical_half_of_map_region")
+        stub(base_stage_state, "reload_horizontal_half_of_map_region")
+        stub(base_stage_state, "reload_quarter_of_map_region")
+      end)
+
+      teardown(function ()
+        _G.reload:revert()
+        base_stage_state.reload_vertical_half_of_map_region:revert()
+        base_stage_state.reload_horizontal_half_of_map_region:revert()
+        base_stage_state.reload_quarter_of_map_region:revert()
+      end)
+
+      -- on_enter calls check_reload_map_region, so reset count for all reload utility methods
       before_each(function ()
-        -- required for stage edge clamping
-        -- we only need to mock width and height,
-        --  normally we'd get full stage data as in stage_data.lua
-        state.curr_stage_data = {
-          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
-          tile_height = 32 * 2  -- 2 regions per column
-        }
+        _G.reload:clear()
+        base_stage_state.reload_vertical_half_of_map_region:clear()
+        base_stage_state.reload_horizontal_half_of_map_region:clear()
+        base_stage_state.reload_quarter_of_map_region:clear()
+
+        state.curr_stage_id = 1
       end)
 
-      it('should return (0, 0.5) in fictive region (0, -1) top and left edges', function ()
-        -- X  |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- loop
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, -255)))
+      -- test various coordinates from negative v with wrapping to no wrapping
+
+      it('(wrapping) should call reload_vertical_half_of_map_region for map 00 and 00 again for region coords (0, -1.5) (swapping)', function ()
+        state:reload_map_region(vector(0, -1.5))
+
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage1_00.p8")
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_00.p8")
       end)
 
-      it('should return (0, 0) in fictive region (0, -1) center left', function ()
-        --    |
-        -- X  |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- loop
-        assert.are_equal(vector(0, 0), state:get_map_region_coords(vector(0, -128)))
+      it('(wrapping) should call reload for map 00 for region coords (0, -1)', function ()
+        state:reload_map_region(vector(0, -1))
+
+        assert.spy(reload).was_called(1)
+        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
-      it('should return (0, 0.5) in fictive region (0, -1) bottom left', function ()
-        --    |
-        --    |
-        -- X  |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        -- loop
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, -63)))
+      it('(wrapping) should call reload_vertical_half_of_map_region for map 00 and 00 again for region coords (0, -0.5) (swapping)', function ()
+        state:reload_map_region(vector(0, -0.5))
+
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage1_00.p8")
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_00.p8")
       end)
 
-      it('should return (0, 0.5) in region (0, 0) when close to top and left edges', function ()
-        -- X  |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        --    |
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords(vector(0, 0)))
+      it('(wrapping) should call reload for map 00 for region coords (0, 0)', function ()
+        state:reload_map_region(vector(0, 0))
+
+        assert.spy(reload).was_called(1)
+        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
-      it('should return (0, 1) in region (0, 1) when close to left edge', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        -- X  |
-        --    |
-        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 384)))
+      it('(no wrapping) should call reload_vertical_half_of_map_region for map 00 and 01 for region coords (0, 0.5)', function ()
+        state:reload_map_region(vector(0, 0.5))
+
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage1_00.p8")
+        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_01.p8")
       end)
 
-      it('should return (0, 1) in region (0, 1) when close to bottom and left edges', function ()
-        --    |
-        --    |
-        --    |
-        -- ---+---
-        --    |
-        --    |
-        -- X  |
-        assert.are_equal(vector(0, 1), state:get_map_region_coords(vector(0, 511)))
+      it('(no wrapping) should call reload for map 01 for region coords (0, 1)', function ()
+        state:reload_map_region(vector(0, 1))
+
+        assert.spy(reload).was_called(1)
+        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_01.p8")
+      end)
+
+      it('should set loaded_map_region_coords to the passed region', function ()
+        state.loaded_map_region_coords = vector(0, 0)
+
+        state:reload_map_region(vector(1, 0.5))
+
+        assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
       end)
 
     end)
@@ -340,37 +374,6 @@ describe('stage_intro_state', function ()
         for i = 1, stage_intro_data.show_stage_splash_delay * state.app.fps - 1 + 160 do
           corunner:update_coroutines()
         end
-      end)
-
-    end)
-
-    describe('get_map_region_coords', function ()
-
-      setup(function ()
-        -- important to stub base method, not child override
-        stub(base_stage_state, "get_map_region_coords", function (self)
-          return vector(0, self.test_v)
-        end)
-      end)
-
-      teardown(function ()
-        base_stage_state.get_map_region_coords:revert()
-      end)
-
-      after_each(function ()
-        base_stage_state.get_map_region_coords:clear()
-      end)
-
-      it('(v < 0) should return base_stage_state:get_map_region_coords with modulo 1 applied to region v', function ()
-        -- Sonic falling, show fake infinite background
-        state.test_v = -3.5
-        assert.are_equal(vector(0, 0.5), state:get_map_region_coords())
-      end)
-
-      it('(v >= 0) should return base_stage_state:get_map_region_coords', function ()
-        -- Sonic landing, show real ground
-        state.test_v = 1
-        assert.are_equal(vector(0, 1), state:get_map_region_coords())
       end)
 
     end)

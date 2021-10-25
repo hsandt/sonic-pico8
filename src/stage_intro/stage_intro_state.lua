@@ -93,8 +93,12 @@ function stage_intro_state:render()
   -- no need to floor camera position like stage_state, since we don't really move on X
   visual_stage.render_background(self.camera.position)
   self:render_stage_elements()
-  self:render_overlay()
   self.postproc:apply()
+
+  -- make sure to draw the overlay after the post-process so it doesn't fade at all
+  -- FIXME: nope, pal(..., 1) still applies at the end
+  -- and I cannot just use pal() as pre-process because waterfall, etc. will mess up
+  self:render_overlay()
 end
 
 -- render the stage elements with the main camera:
@@ -245,8 +249,9 @@ function stage_intro_state:play_intro_async()
   self.postproc.darkness = 5
 
   -- warp Sonic to the sky
-  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - 8*16*6))
+  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - map_region_height * 6))
   self.camera:init_position(self.player_char.position)
+
   -- self:check_reload_map_region() will be called on next update since coroutines are updated
   --  after state in gameapp:step(), so wait at least 1 frame
   yield_delay_frames(1)
@@ -257,7 +262,9 @@ function stage_intro_state:play_intro_async()
   self:scan_current_region_to_spawn_objects()
 
   -- show splash screen while still background is still black
-  self.app:start_coroutine(self.show_stage_splash_async, self)
+  self:show_stage_splash_async()
+
+  yield_delay_frames(60)
 
   -- while splash is still shown, fade in (as in Hydrocity Act 1)
   for i = 4, 0, -1 do
@@ -265,8 +272,16 @@ function stage_intro_state:play_intro_async()
     yield_delay_frames(6)
   end
 
+  yield_delay_frames(60)
+
+  -- hide splash as Sonic is still falling
+  self:hide_stage_splash_async()
+
   -- wait for fall to end
   yield_delay_frames(60*5)
+
+  -- DEBUG
+  self.postproc.darkness = 5
 
   -- splash is over, load ingame cartridge and give control to player
   -- prefer passing basename for compatibility with .p8.png
@@ -299,14 +314,19 @@ function stage_intro_state:show_stage_splash_async()
 
   -- make text enter from the right
   ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
+end
 
-  -- keep zone displayed for a moment
-  yield_delay_frames(101)
+function stage_intro_state:hide_stage_splash_async()
+  -- hide is now split from show, so we must retrieve the drawable references by name
 
   -- make banner exit to the top
+  local banner = self.overlay.drawables_map["banner"]
+  local banner_text = self.overlay.drawables_map["banner_text"]
   ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 
   -- make text exit to the right
+  local zone_rectangle = self.overlay.drawables_map["zone_rect"]
+  local zone_label = self.overlay.drawables_map["zone"]
   ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
 
   self.overlay:remove_drawable("banner")

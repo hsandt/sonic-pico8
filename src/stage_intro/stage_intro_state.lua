@@ -34,9 +34,14 @@ function stage_intro_state:init()
   self.overlay = overlay()
   self.postproc = postprocess()
 
+  -- HACK
   -- quick override just on this postprocess instance:
   --  inline original implementation, but skip red and white which are part of the splash banner,
   --  but not of the background, as a trick to allow fading in the ingame elements but not the HUD
+  -- Sonic sprite has some red and white though, so we must apply the postprocess exceptionally as
+  --  preprocess for his sprite (we could do that for background and midground too if it wasn't
+  --  for waterfall pal() resetting attempts to swap colors, even when no waterfalls are visible;
+  --  this could be fixed by setting/passing some flag, but it's easier to postprocess most rendering)
   -- you can keep or skip black: it's part of both the splash and the background, but fortunately
   --  it cannot be darker so nobody notices the difference
   self.postproc.apply = function (self)
@@ -139,6 +144,26 @@ function stage_intro_state:render_player_char()
   --  so we must call the original implementation to draw the character,
   --  as it is the only entity unaffecting by the fake vertical looping
   base_stage_state.set_camera_with_origin(self)
+
+  -- HACK
+  -- exceptionally inline postprocess:apply and switch to pre-draw color palette swap
+  -- this is because our postprocess override ignores red and white from banner,
+  --  but Sonic sprite also has those and must manually apply darkening
+  -- note that render() below only calls palt so won't override our pal swap
+  if self.postproc.darkness == 0 then
+    -- post-render palette swap seems to persist even after cls()
+    --  so manually reset palette in case nothing else does
+    pal()
+  elseif self.postproc.darkness < 5 then
+    -- black can't get darker, just check the other 15 colors
+    for c = 1, 15 do
+      -- no 1 as 2nd arg this time
+      pal(c, postprocess.swap_palette_by_darkness[c][self.postproc.darkness])
+    end
+  else
+    -- everything is black at level 5+, so just clear screen
+    cls()
+  end
 
   self.player_char:render()
 end

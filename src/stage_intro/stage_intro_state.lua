@@ -33,6 +33,29 @@ function stage_intro_state:init()
 
   self.overlay = overlay()
   self.postproc = postprocess()
+
+  -- quick override just on this postprocess instance:
+  --  inline original implementation, but skip red and white which are part of the splash banner,
+  --  but not of the background, as a trick to allow fading in the ingame elements but not the HUD
+  -- you can keep or skip black: it's part of both the splash and the background, but fortunately
+  --  it cannot be darker so nobody notices the difference
+  self.postproc.apply = function (self)
+    if self.darkness == 0 then
+      -- post-render palette swap seems to persist even after cls()
+      --  so manually reset palette in case nothing else does
+      pal()
+    elseif self.darkness < 5 then
+      -- black can't get darker, just check the other 15 colors
+      for c = 1, 15 do
+        if c ~= colors.red and c ~= colors.white then
+          pal(c, postprocess.swap_palette_by_darkness[c][self.darkness], 1)
+        end
+      end
+    else
+      -- everything is black at level 5+, so just clear screen
+      cls()
+    end
+  end
 end
 
 function stage_intro_state:on_enter()

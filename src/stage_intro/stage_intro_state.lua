@@ -252,6 +252,9 @@ function stage_intro_state:play_intro_async()
   self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - map_region_height * 6))
   self.camera:init_position(self.player_char.position)
 
+  -- force enter air spin without trigerring an actual jump, just to play the spin animation
+  self.player_char:enter_motion_state(motion_states.air_spin)
+
   -- self:check_reload_map_region() will be called on next update since coroutines are updated
   --  after state in gameapp:step(), so wait at least 1 frame
   yield_delay_frames(1)
@@ -264,7 +267,7 @@ function stage_intro_state:play_intro_async()
   -- show splash screen while still background is still black
   self:show_stage_splash_async()
 
-  yield_delay_frames(60)
+  yield_delay_frames(30)
 
   -- while splash is still shown, fade in (as in Hydrocity Act 1)
   for i = 4, 0, -1 do
@@ -272,16 +275,20 @@ function stage_intro_state:play_intro_async()
     yield_delay_frames(6)
   end
 
-  yield_delay_frames(60)
+  yield_delay_frames(30)
 
   -- hide splash as Sonic is still falling
   self:hide_stage_splash_async()
 
-  -- wait for fall to end
-  yield_delay_frames(60*5)
+  -- wait for Sonic to fall a bit and go behind some leaves
+  --  so we can switch sprite without player noticing sudden change
+  yield_delay_frames(30)
 
-  -- DEBUG
-  self.postproc.darkness = 5
+  self.player_char:enter_motion_state(motion_states.falling)
+  self.player_char.should_play_spring_jump = true
+
+  -- wait for fall to end
+  yield_delay_frames(60*4)
 
   -- splash is over, load ingame cartridge and give control to player
   -- prefer passing basename for compatibility with .p8.png

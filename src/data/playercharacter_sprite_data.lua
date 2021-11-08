@@ -34,6 +34,7 @@ local sdt = transform(
     spin_dash2       = {{4,  8}, {2, 2}, { 3,10}, 14},
     spin_dash3       = {{6,  8}, {2, 2}, { 3,10}, 14},
     spin_dash4       = {{8,  8}, {2, 2}, { 3,10}, 14},
+    landing          = {{10, 8}, {2, 2}, { 6, 8}, 14},
   }, function (raw_data)
     return sprite_data(
       sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc

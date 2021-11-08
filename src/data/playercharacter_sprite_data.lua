@@ -5,42 +5,42 @@ local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sdt = transform(
   -- anim_name below is not protected since accessed via minified member to define animations more below
   --anim_name = sprite_data(
-  --          id_loc,  span,   pivot,   transparent_color (14: pink))
+  --                    id_loc,  span,   pivot, transparent_color = colors.pink)
   {
-    idle             = {{12, 8}, {2, 2}, {10, 8}, 14},
-    walk1            = {{0,  8}, {2, 2}, { 8, 8}, 14},
-    walk2            = {{2,  8}, {2, 2}, { 8, 8}, 14},
-    walk3            = {{4,  8}, {2, 2}, { 9, 8}, 14},
-    walk4            = {{6,  8}, {2, 2}, { 8, 8}, 14},
-    walk5            = {{8,  8}, {2, 2}, { 8, 8}, 14},
-    walk6            = {{10, 8}, {2, 2}, { 8, 8}, 14},
-    brake1           = {{10, 8}, {2, 2}, { 9, 8}, 14},
-    brake2           = {{12, 8}, {2, 2}, { 9, 8}, 14},
-    brake3           = {{14, 8}, {2, 2}, {11, 8}, 14},
-    spring_jump      = {{14, 8}, {2, 3}, { 9, 8}, 14},
-    run1             = {{0,  8}, {2, 2}, { 8, 8}, 14},
-    run2             = {{2,  8}, {2, 2}, { 8, 8}, 14},
-    run3             = {{4,  8}, {2, 2}, { 8, 8}, 14},
-    run4             = {{6,  8}, {2, 2}, { 8, 8}, 14},
-    spin_full_ball   = {{0,  8}, {2, 2}, { 6, 6}, 14},
-    spin1            = {{2,  8}, {2, 2}, { 6, 6}, 14},
-    spin2            = {{4,  8}, {2, 2}, { 6, 6}, 14},
-    spin3            = {{6,  8}, {2, 2}, { 6, 6}, 14},
-    spin4            = {{8,  8}, {2, 2}, { 6, 6}, 14},
-    crouch1          = {{12, 8}, {2, 2}, { 7,10}, 14},
-    crouch2          = {{14, 8}, {2, 2}, { 7,10}, 14},
-    spin_dash_shrink = {{0,  8}, {2, 2}, { 3,10}, 14},
-    spin_dash1       = {{2,  8}, {2, 2}, { 3,10}, 14},
-    spin_dash2       = {{4,  8}, {2, 2}, { 3,10}, 14},
-    spin_dash3       = {{6,  8}, {2, 2}, { 3,10}, 14},
-    spin_dash4       = {{8,  8}, {2, 2}, { 3,10}, 14},
-    landing          = {{10, 8}, {2, 2}, { 6, 8}, 14},
+    idle             = {{12, 8}, {2, 2}, {10, 8}},
+    walk1            = {{0,  8}, {2, 2}, { 8, 8}},
+    walk2            = {{2,  8}, {2, 2}, { 8, 8}},
+    walk3            = {{4,  8}, {2, 2}, { 9, 8}},
+    walk4            = {{6,  8}, {2, 2}, { 8, 8}},
+    walk5            = {{8,  8}, {2, 2}, { 8, 8}},
+    walk6            = {{10, 8}, {2, 2}, { 8, 8}},
+    brake1           = {{10, 8}, {2, 2}, { 9, 8}},
+    brake2           = {{12, 8}, {2, 2}, { 9, 8}},
+    brake3           = {{14, 8}, {2, 2}, {11, 8}},
+    spring_jump      = {{14, 8}, {2, 3}, { 9, 8}},
+    run1             = {{0,  8}, {2, 2}, { 8, 8}},
+    run2             = {{2,  8}, {2, 2}, { 8, 8}},
+    run3             = {{4,  8}, {2, 2}, { 8, 8}},
+    run4             = {{6,  8}, {2, 2}, { 8, 8}},
+    spin_full_ball   = {{0,  8}, {2, 2}, { 6, 6}},
+    spin1            = {{2,  8}, {2, 2}, { 6, 6}},
+    spin2            = {{4,  8}, {2, 2}, { 6, 6}},
+    spin3            = {{6,  8}, {2, 2}, { 6, 6}},
+    spin4            = {{8,  8}, {2, 2}, { 6, 6}},
+    crouch1          = {{12, 8}, {2, 2}, { 7,10}},
+    crouch2          = {{14, 8}, {2, 2}, { 7,10}},
+    spin_dash_shrink = {{0,  8}, {2, 2}, { 3,10}},
+    spin_dash1       = {{2,  8}, {2, 2}, { 3,10}},
+    spin_dash2       = {{4,  8}, {2, 2}, { 3,10}},
+    spin_dash3       = {{6,  8}, {2, 2}, { 3,10}},
+    spin_dash4       = {{8,  8}, {2, 2}, { 3,10}},
+    landing          = {{10, 8}, {2, 2}, { 6, 8}},
   }, function (raw_data)
     return sprite_data(
       sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc
       tile_vector(raw_data[2][1], raw_data[2][2]),         -- span
       vector(raw_data[3][1], raw_data[3][2]),              -- pivot
-      raw_data[4]                                   -- transparent_color
+      colors.pink                                   -- transparent_color
     )
 end)
 

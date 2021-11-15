@@ -72,10 +72,8 @@ function stage_intro_state:on_enter()
   local runtime_data_path = "data_stage"..self.curr_stage_id.."_intro.p8"
   reload(0x0, 0x0, 0x2000, runtime_data_path)
 
-  -- Reduced version of Sonic sprite copy, copied from stage_state:reload_runtime_data
-  --  We know Sonic doesn't spin dash during the intro, so storing the main sprites in general memory will be enough
-  -- Copy the first 8 rows = 4 double rows at once
-  reload(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
+  -- we now copy the whole spritesheet for stage intro, as it uses the landing pose
+  self:reload_sonic_spritesheet()
 
   self.camera:setup_for_stage(self.curr_stage_data)
 

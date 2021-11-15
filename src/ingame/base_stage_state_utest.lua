@@ -45,6 +45,35 @@ describe('base_base_stage_state', function ()
       state.app = app
     end)
 
+    describe('reload_sonic_spritesheet', function ()
+
+      setup(function ()
+        stub(_G, "reload")
+      end)
+
+      teardown(function ()
+        reload:revert()
+      end)
+
+      after_each(function ()
+        reload:clear()
+      end)
+
+      it('should all copy Sonic sprite variants into general memory for quick runtime reload', function ()
+        state:reload_sonic_spritesheet()
+
+        -- sprites occupying full rows
+        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
+
+        -- spin dash + landing sprites
+        -- just test the first iterations...
+        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x30, "data_stage_sonic.p8")
+        assert.spy(reload).was_called_with(0x5b30, 0x1440, 0x30, "data_stage_sonic.p8")
+      end)
+
+    end)
+
+
     -- camera
 
     describe('set_camera_with_origin', function ()

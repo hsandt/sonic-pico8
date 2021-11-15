@@ -196,33 +196,31 @@ describe('stage_state', function ()
 
       setup(function ()
         stub(_G, "reload")
+        stub(base_stage_state, "reload_sonic_spritesheet")
       end)
 
       teardown(function ()
         reload:revert()
+        base_stage_state.reload_sonic_spritesheet:revert()
       end)
 
       after_each(function ()
         reload:clear()
+        base_stage_state.reload_sonic_spritesheet:clear()
       end)
 
-      it('should all stage runtime data copy Sonic sprite variants into general memory for quick runtime reload', function ()
+      it('should copy all stage runtime data and delegate Sonic spritesheet copy', function ()
         state:reload_runtime_data()
 
         -- note that debug_collision_mask adds an extra reload for collision masks,
         --  but we stripped it from busted by surrounding it with #pico8
-        assert.spy(reload).was_called(18)
+        assert.spy(reload).was_called(1)
 
         -- general runtime data
         assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_ingame.p8")
 
-        -- sprites occupying full rows
-        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
-
-        -- spin dash sprites
-        -- just test the first iterations...
-        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x30, "data_stage_sonic.p8")
-        assert.spy(reload).was_called_with(0x5b30, 0x1440, 0x30, "data_stage_sonic.p8")
+        assert.spy(base_stage_state.reload_sonic_spritesheet).was_called(1)
+        assert.spy(base_stage_state.reload_sonic_spritesheet).was_called_with(match.ref(state))
       end)
 
     end)

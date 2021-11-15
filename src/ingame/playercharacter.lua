@@ -1304,26 +1304,24 @@ function player_char:enter_motion_state(next_motion_state)
     self.position:add_inplace(multiplier * become_compact_qdown_vector)
   end
 
+  -- check for character becoming airborne
+  if was_grounded and not self:is_grounded() then
+    -- put all changes common to falling and air_spin here
+    self.ground_tile_location = nil
+    self.ground_speed = 0
+    self.should_jump = false
+  end
+
   -- update state vars like slope, etc. *after* adjusting center
   --  because center adjustment on fall relies on quadrant *before* falling
   --  (it's is always down after fall anyway)
   -- when landing, we set the slope angle *before* calling this method,
   --  so quadrant is also correct when quadrant_rotated is called
   if next_motion_state == motion_states.falling then
-    -- we have just left the ground without jumping, enter falling state
-    --  and since ground speed is now unused, reset it for clarity
-    self.ground_tile_location = nil
     self:set_slope_angle_with_quadrant(nil)
-    self.ground_speed = 0
-    self.should_jump = false
     -- don't reset brake_anim_phase, Sonic can play brake anim while falling!
   elseif next_motion_state == motion_states.air_spin then
-    -- we have just jumped, enter air_spin state
-    --  and since ground speed is now unused, reset it for clarity
-    self.ground_tile_location = nil
     self:set_slope_angle_with_quadrant(nil, --[[force_upward_sprite:]] true)
-    self.ground_speed = 0
-    self.should_jump = false
     self.should_play_spring_jump = false
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then

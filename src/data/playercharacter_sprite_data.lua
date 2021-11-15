@@ -34,7 +34,9 @@ local sdt = transform(
     spin_dash2       = {{4,  8}, {2, 2}, { 3,10}},
     spin_dash3       = {{6,  8}, {2, 2}, { 3,10}},
     spin_dash4       = {{8,  8}, {2, 2}, { 3,10}},
+--#if landing_anim
     landing          = {{10, 8}, {2, 2}, { 6, 8}},
+--#endif
   }, function (raw_data)
     return sprite_data(
       sprite_id_location(raw_data[1][1], raw_data[1][2]),  -- id_loc
@@ -73,6 +75,9 @@ local asdt = transform(
     ["spin_dash"] = {{sdt.spin_dash_shrink, sdt.spin_dash1, sdt.spin_dash_shrink, sdt.spin_dash2, sdt.spin_dash_shrink,
                  sdt.spin_dash3, sdt.spin_dash_shrink, sdt.spin_dash4},
                                           1,                4},
+--#if landing_anim
+    ["landing"] = {{sdt.landing},         1,                2},
+--#endif
 }, function (raw_data)
   return animated_sprite_data(raw_data[1], raw_data[2], raw_data[3])
 end)

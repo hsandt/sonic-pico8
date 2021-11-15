@@ -184,10 +184,10 @@ function stage_state:reload_runtime_data()
   -- Dest    Source  Size    Content
   -- 0x4300          0x800   Temporary memory for stage region patching (see reload_..._map_region methods)
   -- 0x4b00  0x400   0x1000  First 4 double rows of Sonic sprites = first 8 rows of Sonic sprites (sprites occupy 2x2 cells)
-  -- 0x5b00  0x1400  0x280   Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
-  -- 0x5d80  0x1680          Free from here, use it if you need to copy more things that need to be available quickly
+  -- 0x5b00  0x1400  0x300   Last 6 Sonic sprites = 12x2 cells located on rows of indices 10-11 (5 spin dash sprites + landing sprite)
+  -- 0x5e00  0x1700          This is the end of free memory!
 
-  -- Total size for sprites: 0x1280
+  -- Total size for sprites: 0x1300
 
 -- Comment for RELOAD
 
@@ -203,27 +203,25 @@ function stage_state:reload_runtime_data()
   reload(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
 
   -- Starting from 0x1400 (see above):
-  -- Copy 16 partial lines covering 10 cells on X to make sure we get the 5 2x2-cell spin dash sprites
-  --  starting on row index 10
-  -- Each partial line covers 10 cell lines, so according to `Address start/size calculation` it takes
-  --  10 * 4 bytes = 40 bytes = 0x28 bytes
+  -- Copy 16 partial lines covering 12 cells on X to make sure we get the 5 2x2-cell spin dash sprites
+  --  starting on row index 10 + 1 2x2-cell landing sprite
+  -- Each partial line covers 12 cell lines, so according to `Address start/size calculation` it takes
+  --  12 * 4 bytes = 48 bytes = 0x30 bytes
   -- We need to skip a full row to get the next partial line, so each iteration advances by +0x40 on src address
   -- However, we don't want to waste space in general memory (it's the whole point of copying partial lines),
-  --  so we only advance by the length we copy on dest address, i.e. 0x28 bytes each iteration
+  --  so we only advance by the length we copy on dest address, i.e. 0x30 bytes each iteration
   -- Performance note: don't worry about repeating reloads from cartridge because:
   --  1. this only happens once on stage setup
   --  2. reloading from same cartridge seems to keep it in some cache, making further reloads faster
   --  3. ideally we'd copy the whole spritesheet memory into general memory, then operate on it to move partial lines
   --     where we want; but that's more code, so unless you notice a particular lag on start, don't mind it
   for i = 0, 15 do
-    reload(0x5b00 + i * 0x28, 0x1400 + i * 0x40, 0x28, "data_stage_sonic.p8")
+    reload(0x5b00 + i * 0x30, 0x1400 + i * 0x40, 0x30, "data_stage_sonic.p8")
   end
 
   -- Total memory used by Sonic sprites: 0x1280
 
-  -- Memory range left: 0x5d80-0x5dff
-  -- We just have enough memory left for one 2x2 sprite!
-  -- However, we can still get four 1x1 sprites, useful for e.g. Ring animation.
+  -- Memory range left: None, we've reached 0x5dff and the occupied memory starts at 0x5e00
 
   -- PICO-8 0.2.2 note: 0x5600-0x5dff is now used for custom font.
   --  of course we can keep using it for general memory, but if we start using custom font,

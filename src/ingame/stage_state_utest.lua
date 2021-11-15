@@ -221,8 +221,8 @@ describe('stage_state', function ()
 
         -- spin dash sprites
         -- just test the first iterations...
-        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x28, "data_stage_sonic.p8")
-        assert.spy(reload).was_called_with(0x5b28, 0x1440, 0x28, "data_stage_sonic.p8")
+        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x30, "data_stage_sonic.p8")
+        assert.spy(reload).was_called_with(0x5b30, 0x1440, 0x30, "data_stage_sonic.p8")
       end)
 
     end)

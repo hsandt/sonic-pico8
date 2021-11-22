@@ -35,7 +35,7 @@ local sdt = transform(
     spin_dash3       = {{6,  8}, {2, 2}, { 3,10}},
     spin_dash4       = {{8,  8}, {2, 2}, { 3,10}},
 --#if landing_anim
-    landing          = {{10, 8}, {2, 2}, { 6, 8}},
+    landing          = {{10, 8}, {2, 2}, { 8, 8}},
 --#endif
   }, function (raw_data)
     return sprite_data(

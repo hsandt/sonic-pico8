@@ -43,11 +43,18 @@ before_script:
   # download picotool if needed
   # tool directory is automatically created when added to cache,
   # so it's important to check if the executable itself already exists
+  # also download main archive only if not already in cache
+  # while this means we may miss some latest version of p8tool,
+  # this is fine as it's quite stable for the features we use
+  # and we don't need the latest changes specifically
+  # if you need to clear cache, do it from Travis or just add some rm main.zip
   - |
     if [[ ! -d tool || ! -x tool/picotool-master/p8tool ]]; then
       pushd tool
-      wget https://github.com/dansanderson/picotool/archive/master.zip
-      unzip master.zip
+      if [[ ! -f main.zip ]]; then
+        wget https://github.com/dansanderson/picotool/archive/refs/heads/main.zip
+      fi
+      unzip main.zip
       popd
     fi
   # make a symlink to p8tool in the PATH

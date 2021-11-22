@@ -89,6 +89,10 @@ end
 -- last_copied_double_row   float           Last sprite double row index copied to spritesheet memory, tracked to avoid copying it every frame
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
+-- max_air_y (#landing_anim)
+--                          float           maximum y reached while airborne (ignored if grounded). Used to check if we should play landing animation.
+-- landing_anim_timer (#landing_anim)
+--                          int             time left before switching from landing to idle animation. Animation is only played when > 0 (frames)
 
 -- smoke_pfx (#pfx)         pfx             particle system used to render smoke during spin dash charge
 
@@ -181,6 +185,11 @@ function player_char:setup()
 
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
+
+--#if landing_anim
+  -- self.max_air_y = nil  -- commented out to spare characters
+  self.landing_anim_timer = 0
+--#endif
 
 --#if debug_character
   self.debug_rays = {}
@@ -1310,6 +1319,10 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_tile_location = nil
     self.ground_speed = 0
     self.should_jump = false
+
+--#if landing_anim
+    self.max_air_y = self.position.y
+--#endif
   end
 
   -- update state vars like slope, etc. *after* adjusting center
@@ -2327,6 +2340,19 @@ function player_char:update_platformer_motion_airborne()
 
     -- with the new big step method and reliable escape, the second call to
     --  check_escape_from_ground here is now unneeded
+
+--#if landing_anim
+    -- check if fall height (max air y to landing y difference)
+    --  allows to play landing animation
+    assert(self.max_air_y, "player_char:update_platformer_motion_airborne: max_air_y is not set, yet we are airborne")
+    if self.quadrant == directions.down and self.position.y - self.max_air_y >= pc_data.landing_anim_min_height then
+      self.landing_anim_timer = pc_data.landing_anim_duration
+    end
+  else
+    -- record highest altitude in the air
+    -- y is downward positive, so keep min
+    self.max_air_y = min(self.max_air_y, self.position.y)
+--#endif
   end
 
   log("self.position: "..self.position, "trace")
@@ -2706,6 +2732,14 @@ end
 
 -- play appropriate sprite animation based on current state
 function player_char:check_play_anim()
+--#if landing_anim
+  -- consume landing anim timer now
+  -- this is because we may return in the blocks below, so it's easier
+  --  to just stop landing anim by default, then keep it running if needed
+  local old_landing_anim_timer = self.landing_anim_timer
+  self.landing_anim_timer = 0
+--#endif
+
   -- brake anims can be played during standing but also falling, so make a global check
   --  giving priority to them
   if self.brake_anim_phase == 1 then
@@ -2738,6 +2772,24 @@ function player_char:check_play_anim()
   end
 
   if self.motion_state == motion_states.standing then
+--#if landing_anim
+    if old_landing_anim_timer > 0 then
+      -- stop landing anim as soon as player tries to move, or character reaches a certain speed due to
+      --  momentum and/or slope
+      -- note that we didn't check ground speed when initially setting landing_anim_timer,
+      --  so character may have a very big landing speed and checking it here is important
+      --  to avoid crazy sliding with landing pose
+      if self.move_intention.x == 0 and abs(self.ground_speed) <= pc_data.landing_anim_max_ground_speed then
+        -- conditions to continue landing anim are verified, restore timer, decremented
+        -- 'check_play_anim' sounds like an idempotent method, but we know it is called once per frame,
+        --  so it is safe to update timer here
+        self.landing_anim_timer = old_landing_anim_timer - 1
+        self:update_sprite_row_and_play_sprite_animation("landing")
+        return
+      end
+    end
+--#endif
+
     -- update ground animation based on speed
     if self.ground_speed == 0 then
       self:update_sprite_row_and_play_sprite_animation("idle")
@@ -2806,6 +2858,9 @@ local sprite_anim_name_to_double_row_index_table = {
   ["crouch"] = 1,
   ["spring_jump"] = 0,
   ["spin_dash"] = 4,
+--#if landing_anim
+  ["landing"] = 4,
+--#endif
 }
 
 -- helper to copy needed sprite (double) row in memory and play animation
@@ -2835,7 +2890,8 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
   -- 1                 0x1000  0x4f00  0x400   Second double row of Sonic sprites (walk cycle 45 degrees, crouch 2 sprites)
   -- 2                 0x1000  0x5300  0x400   Third double row of Sonic sprites (run cycle 0 and 45 degrees)
   -- 3                 0x1000  0x5700  0x400   Fourth double row of Sonic sprites (air spin, brake 3 sprites)
-  -- 4                 0x1000  0x5b00  0x1400  Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
+  -- 4                 0x1000  0x5b00  0x300  Last 6 Sonic sprites = 12x2 cells located on rows of indices 10-11
+  --                                           (5 spin dash sprites, landing sprite)
 
   local anim_name_with_optional_suffix
 
@@ -2872,12 +2928,12 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
     else
       -- special case for spin_dash sprites which, for compactness, are only copied by half lines in general memory,
       --  se we must copy 16 half lines back to runtime spritesheet memory
-      -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
-      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x28)
+      -- spin_dash + landing sprites span over 12 cell lines = 12 * 4 bytes = 48 bytes = 0x30 bytes
+      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x30)
       --  while dest addresses leave a gap and skip a full line each time (+0x40)
       for i = 0, 15 do
         -- for spin_dash, start_address = 0x5b00
-        memcpy(0x1000 + i * 0x40, start_address + i * 0x28, 0x28)
+        memcpy(0x1000 + i * 0x40, start_address + i * 0x30, 0x30)
       end
     end
   end
@@ -2984,9 +3040,10 @@ function player_char:debug_print_info()
   -- debug info
   outline.print_with_outline("state: "..self.motion_state, 8, 94, colors.white, colors.black)
   outline.print_with_outline("quadrant: "..tostr(self.quadrant), 8, 100, colors.white, colors.black)
-  outline.print_with_outline("slope: "..tostr(self.slope_angle), 8, 106, colors.white, colors.black)
   outline.print_with_outline("tile: "..(self.ground_tile_location and self.ground_tile_location.i..", "..self.ground_tile_location.j or "[nil]"),
-    68, 106, colors.white, colors.black)
+    68, 100, colors.white, colors.black)
+  outline.print_with_outline("slope: "..tostr(self.slope_angle), 8, 106, colors.white, colors.black)
+  outline.print_with_outline("gspd: "..self.ground_speed, 68, 106, colors.white, colors.black)
   outline.print_with_outline("x: "..self.position.x, 8, 112, colors.white, colors.black)
   outline.print_with_outline("y: "..self.position.y, 8, 118, colors.white, colors.black)
   outline.print_with_outline("vx: "..self.velocity.x, 68, 112, colors.white, colors.black)

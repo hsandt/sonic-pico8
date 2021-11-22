@@ -173,6 +173,10 @@ else
     builtin_data_suffix="$cartridge_suffix"
   fi
 
+  if [[ $cartridge_suffix == 'stage_intro' ]]; then
+    symbols+=",landing_anim"
+  fi
+
   if [[ "$itest" == true ]]; then
     main_prefix='itest_'
     required_relative_dirpath="itests/${cartridge_suffix}"

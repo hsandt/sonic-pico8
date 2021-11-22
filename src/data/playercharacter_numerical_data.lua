@@ -297,6 +297,17 @@ local pc_data = {
   -- speed from which the brake anim is played when decelerating (px/frame)
   brake_anim_min_speed_frame = 2,
 
+--#if landing_anim
+  -- height from which we show landing sprite on landing (px)
+  landing_anim_min_height = 70,
+
+  -- maximum abs ground speed allowed to play landing animation (px/s)
+  landing_anim_max_ground_speed = 0.4,
+
+  -- duration of landing anim if uninterrupted (player character doesn't move) (frames)
+  landing_anim_duration = 30,
+--#endif
+
 
   -- pfx
 

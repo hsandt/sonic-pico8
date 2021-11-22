@@ -195,6 +195,7 @@ ${game_src_path}/data/playercharacter_numerical_data.lua \
 ${game_src_path}/data/stage_clear_data.lua \
 ${game_src_path}/data/stage_common_data.lua \
 ${game_src_path}/resources/audio.lua \
+${game_src_path}/resources/memory.lua \
 ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 
 # Build cartridges without version nor config appended to name

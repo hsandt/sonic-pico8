@@ -95,14 +95,6 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
         'pc_motion_state': 5,
         'pc_slope':        6,
     },
-
-    # memory
-
-    'memory': {
-        # interpreted as 24063 by Python, can reduce compressed chars slightly when passed
-        # as number instead of string
-        'picked_emerald_address': 0x5dff,
-    }
 }
 
 

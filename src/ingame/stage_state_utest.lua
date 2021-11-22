@@ -20,6 +20,7 @@ local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
 local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -721,18 +722,18 @@ describe('stage_state', function ()
     end)
 
     -- we stub restore_picked_emerald_data in (stage state entered) region, so test it outside
-    describe('restore_picked_emerald_data', function ()
+    describe('#solo restore_picked_emerald_data', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x5dff, 73)
+        dset(memory.persistent_picked_emerald_index, 73)
       end)
 
       after_each(function ()
-        poke(0x5dff, 0)
+        dset(memory.persistent_picked_emerald_index, 0)
       end)
 
-      it('should read 1 byte in general memory representing picked emeralds bitset', function ()
+      it('should read 1 byte in persistent memory representing picked emeralds bitset', function ()
         state:restore_picked_emerald_data()
 
         assert.are_same({
@@ -750,10 +751,12 @@ describe('stage_state', function ()
         assert.are_same({"dummy2", "dummy3", "dummy5", "dummy6", "dummy8"}, state.emeralds)
       end)
 
-      it('should clear picked emerald transitional memory', function ()
+      it('#solo should clear picked emerald transitional memory', function ()
+        dset(memory.persistent_picked_emerald_index, 73)
+
         state:restore_picked_emerald_data()
 
-        assert.are_equal(0, peek(0x5dff))
+        assert.are_equal(0, dget(memory.persistent_picked_emerald_index))
       end)
 
     end)
@@ -1354,7 +1357,7 @@ describe('stage_state', function ()
 
         describe('store_picked_emerald_data', function ()
 
-          it('should store 1 byte in general memory representing picked emeralds bitset', function ()
+          it('#solo should store 1 byte in general memory representing picked emeralds bitset', function ()
             state.picked_emerald_numbers_set = {
               [1] = true,
               [4] = true,
@@ -1362,7 +1365,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x5dff))
+            assert.are_equal(73, dget(memory.persistent_picked_emerald_index))
           end)
 
         end)

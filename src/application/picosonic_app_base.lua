@@ -32,8 +32,9 @@ function picosonic_app_base:init()
   gameapp.init(self, fps60)
 end
 
-function picosonic_app_base:on_post_start() -- override
+function picosonic_app_base:on_pre_start() -- override
   extcmd("set_title","Pico Sonic")
+  cartdata("komehara_picosonic")
 
   -- disable input auto-repeat (this is to be cleaner, as input module barely uses btnp anyway,
   --  and simply detects state changes using btn; if too many compressed chars, strip that first)

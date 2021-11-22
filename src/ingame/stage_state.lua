@@ -547,17 +547,25 @@ function stage_state:on_reached_goal_async()
 end
 
 function stage_state:restore_picked_emerald_data()
-  -- Retrieve and store picked emeralds set information from memory stored in stage_clear
+  -- Retrieve and store picked emeralds set information from persistent memory saved in stage_clear
   --  or system pause menu before warp to start / retry (keep emeralds).
-  -- If you come directly from the titlemenu or a retry from zero, this should do nothing.
+  -- If you come directly from the titlemenu or a retry from zero, this should do nothing
+  --  as those will clear persistent memory on new game.
+  -- Note that this is a slightly weird way to use persistent memory:
+  --  it is not really persistent after full game restart since any new game will clear it.
+  -- This is simply because we haven't added a Resume button in the main menu yet,
+  --  and we're saving emeralds on Retry rather than each time we pick one.
+  -- But we still need to use persistent memory for now because we now use 100% of general memory
+  --  for level region (may be reduced with PicoMap instead of our region loading system),
+  --  so we cannot use the last byte of general memory as we used to anymore.
   -- Similar to stage_clear_state:restore_picked_emerald_data, but we also
   --  remove emerald objects from the stage with a "silent pick"
   --  (so this method must be called after object spawning)
-  -- It is stored in picked_emerald_address (0x5dff), see store_picked_emerald_data below
-  local picked_emerald_byte = peek(memory.picked_emerald_address)
+  -- It is stored at persistent_picked_emerald_index, see store_picked_emerald_data below
+  local picked_emerald_byte = dget(memory.persistent_picked_emerald_index)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
-  poke(memory.picked_emerald_address, 0)
+  dset(memory.persistent_picked_emerald_index, 0)
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -575,28 +583,19 @@ function stage_state:restore_picked_emerald_data()
 end
 
 function stage_state:store_picked_emerald_data()
-  -- General memory is persistent during a single session, so a good fit to store data
-  --  across cartridges, although this behavior is undocumented.
-  -- We only need to store 1 byte = 8 bits, 1 bit per emerald, so we just poke one byte.
-  -- However, 0x4300-0x4aff is occupied by runtime regions, and 0x4b00-0x56ff
-  --  is occupied non-rotated/rotated walk/run sprite variants... but it was annoying to offset
-  --  picked emerald byte address every time I added a runtime sprite, so I decided to use the
-  --  *last* byte (picked_emerald_address = 0x5dff) so it will always be free (as long as runtime sprites don't occupy all the memory
-  --  left). When saving data in persistent memory (so player can continue emerald hunting later),
-  --  it won't even be a problem since we will use a very different address in the persistent block.
-  -- We could also use persistent memory, considering we may save emeralds collected by player
-  --  on next run (but for now we don't, so player always starts game from zero)
-  --
   -- Convert set of picked emeralds to bitset (1 if emerald was picked, low-endian)
   --  there are 8 emeralds so we need 1 byte
-  local picked_emerald_bytes = 0
+  local picked_emerald_byte = 0
   for i = 1, 8 do
     if self.picked_emerald_numbers_set[i] then
       -- technically we want bor (|), but + is shorter to write and equivalent in this case
-      picked_emerald_bytes = picked_emerald_bytes + shl(1, i - 1)
+      picked_emerald_byte = picked_emerald_byte + shl(1, i - 1)
     end
   end
-  poke(memory.picked_emerald_address, picked_emerald_bytes)
+
+  -- Save picked emerald in persistent memory (although we only use this for
+  --  transitions between cartridges and reload for now)
+  dset(memory.persistent_picked_emerald_index, picked_emerald_byte)
 end
 
 function stage_state:feedback_reached_goal()

@@ -2858,10 +2858,13 @@ function player_char:check_play_anim()
       end
     end
   elseif self.motion_state == motion_states.falling then
+--#ifn stage_intro
     -- stop spring jump anim when falling down again
+    -- skip in stage intro where we actually want to play this anim while falling down
     if self.should_play_spring_jump and self.velocity.y > 0 then
       self.should_play_spring_jump = false
     end
+--#endif
 
     if self.should_play_spring_jump then
       self:update_sprite_row_and_play_sprite_animation("spring_jump")

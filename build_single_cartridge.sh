@@ -174,7 +174,7 @@ else
   fi
 
   if [[ $cartridge_suffix == 'stage_intro' ]]; then
-    symbols+=",landing_anim"
+    symbols+=",landing_anim,pfx"
   fi
 
   if [[ "$itest" == true ]]; then

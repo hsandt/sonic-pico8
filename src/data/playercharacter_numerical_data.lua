@@ -326,11 +326,33 @@ local pc_data = {
   spin_dash_dust_base_init_velocity_x = -0.43,
   spin_dash_dust_base_init_velocity_y = -0.17,
 
-  -- spin dash dust particle spawn period (frames)
+  -- spin dash dust particle max deviation
+  -- used as factor of contribution orthogonal to velocity to determine acceleration (px/frame)
   spin_dash_dust_max_deviation = 0.04,
 
   -- spin dash dust particle spawn period (frames)
   spin_dash_dust_base_max_size = 4.1,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_spawn_period_frames = 0.2,
+
+  -- landing anim single dust particle spawn count every period
+  landing_anim_dust_spawn_count = 4,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_lifetime_frames = 21,
+
+  -- landing anim single dust particle initial velocity (px/frames)
+  -- applied to right side, left side will use opposite velocity X
+  landing_anim_dust_base_init_velocity_x = 0.55,
+  landing_anim_dust_base_init_velocity_y = -0.06,
+
+  -- landing anim single dust particle max deviation
+  -- used as factor of contribution orthogonal to velocity to determine acceleration (px/frame)
+  landing_anim_dust_max_deviation = 0.05,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_base_max_size = 2.5,
 }
 
 --(game_constants)

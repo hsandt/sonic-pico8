@@ -95,6 +95,7 @@ end
 --                          int             time left before switching from landing to idle animation. Animation is only played when > 0 (frames)
 
 -- smoke_pfx (#pfx)         pfx             particle system used to render smoke during spin dash charge
+-- landing_pfx_seq (#pfx)   {pfx}           sequence of (2) particle systems used to render smoke during landing animation
 
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (#debug_character)    {start = vector, direction_vector = vector, distance = number, hit = bool}
@@ -120,6 +121,25 @@ function player_char:init()
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
     player_char.pfx_size_ratio_over_lifetime)
+
+--#if landing_anim
+  -- create sequence of 2 pfx (left and right)
+  self.landing_pfx_seq = {}
+
+  for i=1,2 do
+    add(self.landing_pfx_seq, pfx(pc_data.landing_anim_dust_spawn_period_frames,
+      pc_data.landing_anim_dust_spawn_count,
+      pc_data.landing_anim_dust_lifetime_frames,
+      vector(pc_data.landing_anim_dust_base_init_velocity_x, pc_data.landing_anim_dust_base_init_velocity_y),
+      pc_data.landing_anim_dust_max_deviation,
+      pc_data.landing_anim_dust_base_max_size,
+      player_char.pfx_size_ratio_over_lifetime))
+  end
+
+  -- opposite velocity X for the left pfx
+  self.landing_pfx_seq[1].base_velocity.x = -pc_data.landing_anim_dust_base_init_velocity_x
+--#endif
+
 --#endif
 
 --#if cheat
@@ -473,6 +493,13 @@ function player_char:update()
 
 --#if pfx
   self.smoke_pfx:update()
+--#if landing_anim
+for landing_pfx in all(self.landing_pfx_seq) do
+  landing_pfx:update()
+end
+--(landing_anim)
+--#endif
+--(pfx)
 --#endif
 end
 
@@ -2346,7 +2373,19 @@ function player_char:update_platformer_motion_airborne()
     --  allows to play landing animation
     assert(self.max_air_y, "player_char:update_platformer_motion_airborne: max_air_y is not set, yet we are airborne")
     if self.quadrant == directions.down and self.position.y - self.max_air_y >= pc_data.landing_anim_min_height then
+--#if stage_intro
+--[[#pico8
+      -- stage intro has a longer landing animation
+      self.landing_anim_timer = 120
+--#pico8]]
+--#else
       self.landing_anim_timer = pc_data.landing_anim_duration
+--#endif
+
+--#if pfx
+      local curr_stage_state = flow.curr_state
+      curr_stage_state.app:start_coroutine(self.burst_landing_pfx, self)
+--#endif
     end
   else
     -- record highest altitude in the air
@@ -2358,6 +2397,21 @@ function player_char:update_platformer_motion_airborne()
   log("self.position: "..self.position, "trace")
   log("self.velocity: "..self.velocity, "trace")
 end
+
+--#if pfx
+function player_char:burst_landing_pfx()
+  -- to simulate a burst, do a start quickly followed by a stop
+  -- spawn the left pfx slightly more on the left, right on the right
+  self.landing_pfx_seq[1]:start(self.position + vector(0, 7))
+  self.landing_pfx_seq[2]:start(self.position + vector(0, 7))
+
+  yield_delay_frames(10)
+
+  for landing_pfx in all(self.landing_pfx_seq) do
+    landing_pfx:stop()
+  end
+end
+--#endif
 
 -- check if character can and wants to interrupt jump by not holding anymore,
 --  and set vertical speed to interrupt speed if so
@@ -2964,6 +3018,11 @@ function player_char:render()
   self.anim_spr:render(floored_position, flip_x, false, self.sprite_angle)
 --#if pfx
   self.smoke_pfx:render()
+--#if landing_anim
+  for landing_pfx in all(self.landing_pfx_seq) do
+    landing_pfx:render()
+  end
+--#endif
 --#endif
 end
 

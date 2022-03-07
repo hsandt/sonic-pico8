@@ -181,10 +181,15 @@ else
     main_prefix='itest_'
     required_relative_dirpath="itests/${cartridge_suffix}"
     cartridge_extra_suffix='itest_all_'
+    # Do NOT unify itest cartridges: they rely on [[add_require]] injection being done
+    # after ijecting the app into itest_run, and unification dismantles require order,
+    # forgetting exact line positioning and only caring about file dependency order.
+    unify_option=''
   else
     main_prefix=''
     required_relative_dirpath=''
     cartridge_extra_suffix=''
+    unify_option="--unify _${cartridge_suffix}"
   fi
   data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
@@ -221,7 +226,7 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
   -r "$game_prebuild_path"                                                \
   -v version="$version"                                                   \
   --minify-level 3                                                        \
-  --unify "_${cartridge_suffix}"
+  $unify_option
 
 if [[ $? -ne 0 ]]; then
   echo ""

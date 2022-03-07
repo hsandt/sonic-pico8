@@ -27,7 +27,11 @@ function picosonic_app_titlemenu:on_pre_start() -- override
   --  then immediately consume the data with dget/dset(..., 0). So persistent memory is almost
   --  always cleared, the only way to keep it is to close the app during the cartridge loading
   --  (rotating cart animation). In this case, the statement below will be useful indeed.
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dset called before cardata()"
   dset(memory.persistent_picked_emerald_index, 0)
+--#endif
 end
 
 return picosonic_app_titlemenu

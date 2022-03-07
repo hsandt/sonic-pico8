@@ -46,7 +46,11 @@ end
 
 function stage_clear_state.retry_from_zero_async()
   -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in persistent memory
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dset called before cardata()"
   dset(memory.persistent_picked_emerald_index, 0)
+--#endif
   stage_clear_state.retry_stage_async()
 end
 
@@ -233,7 +237,11 @@ function stage_clear_state:restore_picked_emerald_data()
   --  before stage clear cartridge was loaded
   -- similar to stage_state:restore_picked_emerald_data, but we don't remove emerald objects
   --  and cache the picked count for assessment
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dget called before cardata()"
   local picked_emerald_byte = dget(memory.persistent_picked_emerald_index)
+--#endif
 
   -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
   for i = 1, 8 do

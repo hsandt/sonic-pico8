@@ -565,7 +565,11 @@ function stage_state:restore_picked_emerald_data()
   local picked_emerald_byte = dget(memory.persistent_picked_emerald_index)
 
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dset called before cardata()"
   dset(memory.persistent_picked_emerald_index, 0)
+--#endif
 
   -- read bitset low-endian, from highest bit (emerald 8) to lowest bit (emerald 1)
   -- the only reason we iterate from the end is because del() will remove elements
@@ -595,7 +599,11 @@ function stage_state:store_picked_emerald_data()
 
   -- Save picked emerald in persistent memory (although we only use this for
   --  transitions between cartridges and reload for now)
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dset called before cardata()"
   dset(memory.persistent_picked_emerald_index, picked_emerald_byte)
+--#endif
 end
 
 function stage_state:feedback_reached_goal()

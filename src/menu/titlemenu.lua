@@ -520,14 +520,14 @@ function titlemenu:draw_sea_drawables()
     --  spreading scale for forward motion effect only makes sense when starting to move
     --  toward the island, only start effect from angle 270 degrees (3/4)
     -- note camera y decreases so diff should be positive
-    local start_scaling_camera_dy = 780 + tuned("start scale d", 0)  -- around 3 * full_loop_height / 4 is nice
+    local start_scaling_camera_dy = 780 --[[ + tuned("start scale d", 0)]]  -- around 3 * full_loop_height / 4 is nice
     local camera_y_from_270 = camera_y0 - start_scaling_camera_dy - self.camera_y
     if camera_y_from_270 > 0 then
       -- to avoid brutal spreading scale change, we also progressively increase, then decrease
       --  scale (returns to normal when reaching the island so the procedural shimmers match the ones from the sprite)
-      local to_max_scaling_distance = 100 + tuned("max scale d", 0)
-      local hold_max_scaling_distance = 240 + tuned("hold scale d", 0)  -- will keep max scaling for that distance
-      local back_to_no_scaling_distance = 180 + tuned("back scale d", 0)
+      local to_max_scaling_distance = 100 --[[ + tuned("max scale d", 0)]]
+      local hold_max_scaling_distance = 240 --[[ + tuned("hold scale d", 0)]]  -- will keep max scaling for that distance
+      local back_to_no_scaling_distance = 180 --[[ + tuned("back scale d", 0)]]
 
       if camera_y_from_270 < to_max_scaling_distance + hold_max_scaling_distance then
         local alpha = mid(camera_y_from_270 / to_max_scaling_distance, 0, 1)
@@ -578,7 +578,7 @@ function titlemenu:draw_sea_drawables()
           --  alpha that spreads shimmers on x when closer to screen bottom, and also y from the top
           -- at full time progression, spreading scale is 1 at the top, 2 at the bottom
           -- remember when ratio is 0, there is no scaling, so spreading_scale is 1
-          local spreading_scale = ui_animation.lerp(1, 2.5 + tuned("scale x0.1", 0) * 0.1, spreading_scale_time_progression_ratio * dy / screen_height)
+          local spreading_scale = ui_animation.lerp(1, 2.5 --[[ + tuned("scale x0.1", 0) * 0.1]], spreading_scale_time_progression_ratio * dy / screen_height)
 
           -- apply spreading scale relatively to reference point (center for x, top for y)
           x = 64 + (x - 64) * spreading_scale
@@ -691,7 +691,7 @@ function titlemenu:play_start_cinematic_async()
   -- run in parallel with emeralds entering screen, so start new coroutine from this coroutine
   self.app:start_coroutine(self.move_title_logo_out_async, self)
 
-  yield_delay_frames(visual.start_cinematic_first_emerald_enter_delay_frames + tuned("emerald enter dt", 0))
+  yield_delay_frames(visual.start_cinematic_first_emerald_enter_delay_frames --[[ + tuned("emerald enter dt", 0)]])
 
   -- setup all emeralds to enter on screen and start rotating
   -- note that emeralds reach the circle tangentially at angle -3/4 = -0.75 (top-left)
@@ -811,7 +811,7 @@ end
 
 function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42 + tuned("move logo dt", 0))
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
   self.title_logo_drawable.visible = false
 end
 
@@ -824,7 +824,7 @@ function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
   --  which arrives just at y = island_full_loop_new_y - 88 = - full_loop_height (complete turn from 0, don't use camera_y0 to keep
   --  island at the bottom)
   -- recently extended time to give time to player to admire the forward motion above the sea with shimmer scaling
-  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 360 + tuned("->back dt", 0) * 30, ui_animation.ease_in_out)
+  self:move_camera_y_async(camera_y0 - full_loop_height / 2, - full_loop_height, 360 --[[ + tuned("->back dt", 0) * 30]], ui_animation.ease_in_out)
 
   -- 3. after camera is back to island, play last phase
   --  (it will wait for emeralds to get correct position on its own)
@@ -891,7 +891,7 @@ function titlemenu:play_last_phase_async(emerald)
 
 --#if tuner
   -- infinite loop to test from the start, possibly with skip to test the end
-  yield_delay_frames(40 + tuned("wait loop", 0))
+  yield_delay_frames(40 --[[ + tuned("wait loop", 0)]])
   self:on_exit()
   self:on_enter()
   self.app:stop_all_coroutines()

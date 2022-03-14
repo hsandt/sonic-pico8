@@ -1,6 +1,7 @@
 require("test/bustedhelper_stage_intro")
 require("common_stage_intro")
 require("resources/visual_ingame_addon")  -- stage_intro mostly uses ingame visuals
+require("resources/visual_stage_intro_addon")  -- for clouds
 
 local stage_intro_state = require("stage_intro/stage_intro_state")
 
@@ -180,27 +181,27 @@ describe('stage_intro_state', function ()
     describe('render', function ()
 
       setup(function ()
-        stub(visual_stage, "render_background")
+        stub(stage_intro_state, "render_background")  -- custom implementation
         stub(stage_intro_state, "render_stage_elements")
         stub(stage_intro_state, "render_overlay")
       end)
 
       teardown(function ()
-        visual_stage.render_background:revert()
+        stage_intro_state.render_background:revert()
         stage_intro_state.render_stage_elements:revert()
         stage_intro_state.render_overlay:revert()
       end)
 
       after_each(function ()
-        visual_stage.render_background:clear()
+        stage_intro_state.render_background:clear()
         stage_intro_state.render_stage_elements:clear()
         stage_intro_state.render_overlay:clear()
       end)
 
       it('should call render_background, render_stage_elements, render_overlay', function ()
         state:render()
-        assert.spy(visual_stage.render_background).was_called(1)
-        assert.spy(visual_stage.render_background).was_called_with(state.camera.position)
+        assert.spy(stage_intro_state.render_background).was_called(1)
+        assert.spy(stage_intro_state.render_background).was_called_with(match.ref(state), state.camera.position)
         assert.spy(stage_intro_state.render_stage_elements).was_called(1)
         assert.spy(stage_intro_state.render_stage_elements).was_called_with(match.ref(state))
         assert.spy(stage_intro_state.render_overlay).was_called(1)

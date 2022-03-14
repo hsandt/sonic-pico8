@@ -7,6 +7,9 @@ require("common_stage_clear")
 
 -- require visual add-on for ingame (also used for stage_clear), so any require visual_common
 --  in this cartridge will get both common data and ingame data
+-- in fact, visual_ingame_addon contains sprites unused in stage_clear,
+--  but stage_clear cartridge has enough space, so it's okay (worst case, we can strip some of them,
+--  or even extract a common addon later)
 require("resources/visual_ingame_addon")
 require("resources/visual_stage_clear_addon")
 

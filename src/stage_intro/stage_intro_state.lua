@@ -8,6 +8,7 @@ local stage_intro_data = require("data/stage_intro_data")
 local base_stage_state = require("ingame/base_stage_state")
 local camera_class = require("ingame/camera")
 local player_char = require("ingame/playercharacter")
+local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 local ui_animation = require("ui/ui_animation")
@@ -33,34 +34,6 @@ function stage_intro_state:init()
 
   self.overlay = overlay()
   self.postproc = postprocess()
-
-  -- HACK
-  -- quick override just on this postprocess instance:
-  --  inline original implementation, but skip red and white which are part of the splash banner,
-  --  but not of the background, as a trick to allow fading in the ingame elements but not the HUD
-  -- Sonic sprite has some red and white though, so we must apply the postprocess exceptionally as
-  --  preprocess for his sprite (we could do that for background and midground too if it wasn't
-  --  for waterfall pal() resetting attempts to swap colors, even when no waterfalls are visible;
-  --  this could be fixed by setting/passing some flag, but it's easier to postprocess most rendering)
-  -- you can keep or skip black: it's part of both the splash and the background, but fortunately
-  --  it cannot be darker so nobody notices the difference
-  self.postproc.apply = function (self)
-    if self.darkness == 0 then
-      -- post-render palette swap seems to persist even after cls()
-      --  so manually reset palette in case nothing else does
-      pal()
-    elseif self.darkness < 5 then
-      -- black can't get darker, just check the other 15 colors
-      for c = 1, 15 do
-        if c ~= colors.red and c ~= colors.white then
-          pal(c, postprocess.swap_palette_by_darkness[c][self.darkness], 1)
-        end
-      end
-    else
-      -- everything is black at level 5+, so just clear screen
-      cls()
-    end
-  end
 end
 
 function stage_intro_state:on_enter()
@@ -117,7 +90,9 @@ end
 
 function stage_intro_state:render()
   -- no need to floor camera position like stage_state, since we don't really move on X
-  visual_stage.render_background(self.camera.position)
+
+  -- render custom background for the stage intro, instead of visual_stage.render_background
+  self:render_background(self.camera.position)
   self:render_stage_elements()
   self.postproc:apply()
 
@@ -125,6 +100,56 @@ function stage_intro_state:render()
   -- FIXME: nope, pal(..., 1) still applies at the end
   -- and I cannot just use pal() as pre-process because waterfall, etc. will mess up
   self:render_overlay()
+end
+
+local cloud_offsets = {
+  vector(8, 0),
+  vector(88, 20),
+  vector(-20, 48),
+  vector(34, 80),
+  vector(110, 90),
+  vector(-10, 110),
+}
+
+-- render the stage background
+function stage_intro_state:render_background(camera_pos)
+  -- always draw full sky background to be safe
+  camera()
+  rectfill(0, 0, 127, 127, colors.dark_blue)
+
+  -- draw clouds
+  -- render two batches, each covering the equivalent of a screen and chained,
+  --  so that we can switch them alternatively every 150px (for a total of 300px)
+  --  for a smooth looping without player seeing the disjunction (a batch of clouds
+  --  is entirely offscreen when it warps to the other side, and warps also to an
+  --  offscreen position, thanks to period of 300 > 2*128 and the offset subtracting
+  --  150 > 128 in render_clouds_batch
+  self:render_clouds_batch(-camera_pos.y)
+  -- 150 to have the second batch halfway of period
+  self:render_clouds_batch(-camera_pos.y + 150)
+
+  -- horizon line serves as a reference for the background
+  --  and moves down slowly when camera moves up
+  local horizon_line_dy = 156 - 0.5 * camera_pos.y
+  camera(0, -horizon_line_dy)
+end
+
+function stage_intro_state:render_clouds_batch(progress)
+  -- calculate section, which decreases from 3 (top) to -2 (ground)
+  local section = int_div(progress, 300)
+  local wrapped_reversed_camera_pos = progress % 300 - 150
+
+  local cloud_sprite_data
+  if section > 2 then
+    cloud_sprite_data = visual.sprite_data_t.cloud_big
+  elseif section > 0 then
+    cloud_sprite_data = visual.sprite_data_t.cloud_medium
+  else
+    cloud_sprite_data = visual.sprite_data_t.cloud_small
+  end
+  for offset in all(cloud_offsets) do
+    cloud_sprite_data:render(offset + vector(0, wrapped_reversed_camera_pos))
+  end
 end
 
 -- render the stage elements with the main camera:
@@ -142,26 +167,6 @@ function stage_intro_state:render_player_char()
   --  so we must call the original implementation to draw the character,
   --  as it is the only entity unaffecting by the fake vertical looping
   base_stage_state.set_camera_with_origin(self)
-
-  -- HACK
-  -- exceptionally inline postprocess:apply and switch to pre-draw color palette swap
-  -- this is because our postprocess override ignores red and white from banner,
-  --  but Sonic sprite also has those and must manually apply darkening
-  -- note that render() below only calls palt so won't override our pal swap
-  if self.postproc.darkness == 0 then
-    -- post-render palette swap seems to persist even after cls()
-    --  so manually reset palette in case nothing else does
-    pal()
-  elseif self.postproc.darkness < 5 then
-    -- black can't get darker, just check the other 15 colors
-    for c = 1, 15 do
-      -- no 1 as 2nd arg this time
-      pal(c, postprocess.swap_palette_by_darkness[c][self.postproc.darkness])
-    end
-  else
-    -- everything is black at level 5+, so just clear screen
-    cls()
-  end
 
   self.player_char:render()
 end
@@ -183,6 +188,7 @@ function stage_intro_state:get_map_region_coords(position)
   -- region_count_per_row is unused
   uv.x = max(0, uv.x)
 
+  -- don't clamp ap
   -- still clamp at bottom just in case we go too low
   -- (should be OK without though, as the dynamic camera limit clamps camera already)
   uv.y = min(uv.y, region_count_per_column - 1)
@@ -196,13 +202,10 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
   --  if we are above region 00 and wrapping with modulo
   local region_count_per_row, region_count_per_column = self:get_region_grid_dimensions()
 
-  local is_wrapping = false
-
-  -- in stage intro, we cheat to show an infinite vertically scrolling background
-  --  during the fall phase by applying a modulo to the region v, instead of clamping
   if new_map_region_coords.y < 0 then
-    new_map_region_coords.y = new_map_region_coords.y % 1
-    is_wrapping = true
+    -- no wrapping, but at least load top-left region which should mostly be empty,
+    --  so we can draw our custom background instead
+    new_map_region_coords.y = 0
   end
 
   local u_left = flr(new_map_region_coords.x)
@@ -219,17 +222,11 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
     -- copy lower part of map region above to upper part of map memory
     self:reload_vertical_half_of_map_region(vertical_dirs.up, self:get_map_region_filename(u_left, v_upper))
     -- copy upper part of map region below to lower part of map memory
-    -- simulate infinite looping tilemap above by wrapping region 00 bottom with top when above region 00
-    local v_upper_to_load
-    if is_wrapping then
-      -- reuse upper half of region 00 (0)
-      v_upper_to_load = v_upper
-    else
-      v_upper_to_load = v_upper + 1
-    end
-    self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper_to_load))
+    self:reload_vertical_half_of_map_region(vertical_dirs.down, self:get_map_region_filename(u_left, v_upper + 1))
+--#if assert
   else
     assert(false, "unsupported case")
+--#endif
   end
 
   self.loaded_map_region_coords = new_map_region_coords
@@ -310,9 +307,6 @@ function stage_intro_state:play_intro_async()
   -- it's very important that we reloaded map region at this point!
   self:scan_current_region_to_spawn_objects()
 
-  -- show splash screen while still background is still black
-  self:show_stage_splash_async()
-
   yield_delay_frames(30)
 
   -- while splash is still shown, fade in (as in Hydrocity Act 1)
@@ -323,8 +317,6 @@ function stage_intro_state:play_intro_async()
 
   yield_delay_frames(30)
 
-  -- hide splash as Sonic is still falling
-  self:hide_stage_splash_async()
 
   -- wait for Sonic to fall a bit and go behind some leaves
   --  so we can switch sprite without player noticing sudden change
@@ -335,6 +327,16 @@ function stage_intro_state:play_intro_async()
 
   -- wait for fall to end
   yield_delay_frames(60*4)
+
+  -- show splash screen
+  self:show_stage_splash_async()
+
+  yield_delay_frames(60*3)
+
+  -- hide splash as Sonic is still falling
+  self:hide_stage_splash_async()
+
+  yield_delay_frames(60*1)
 
   -- splash is over, load ingame cartridge and give control to player
   -- prefer passing basename for compatibility with .p8.png

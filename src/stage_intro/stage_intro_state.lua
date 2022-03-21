@@ -140,6 +140,9 @@ function stage_intro_state:render_background(camera_pos)
     visual.sprite_data_t.horizon_gradient:render(vector(8 * i, 0))
   end
   visual.sprite_data_t.island:render(vector(24, 1))
+
+  -- water
+  self:render_water_shimmers()
 end
 
 function stage_intro_state:render_clouds_batch(progress)
@@ -164,6 +167,73 @@ function stage_intro_state:render_clouds_batch(progress)
       cloud_sprite_data:render(offset + vector(0, wrapped_reversed_camera_pos))
     end
   end
+end
+
+function stage_intro_state:render_water_shimmers()
+  -- this part copied from titlemenu:draw_sea_drawables
+  -- if we do the same ingame eventually, just merge everything in some common
+  -- visual method, like swap_colors
+
+  -- water shimmer color cycle (in red and yellow in the original sprite)
+  -- note that in stage intro we don't have sprites with water shimmer,
+  --  so in fact the red and yellow are only drawn here in procedurally generated
+  --  FX
+  local period = visual.water_shimmer_period
+  local ratio = (t() % period) / period
+  local step_count = #visual.water_shimmer_color_cycle
+  -- compute step from ratio (normally ratio should be < 1
+  --  just in case, max to step_count)
+  local step = min(flr(ratio * step_count) + 1, step_count)
+  local new_colors = visual.water_shimmer_color_cycle[step]
+  swap_colors({colors.red, colors.yellow}, new_colors)
+
+  -- remaining code strongly adapted and simplified from titlemenu:draw_sea_drawables
+
+  -- draw every given interval on y
+  local shimmer_y_interval = 9
+  local shimmer_base_x_list = {17, 43, 58, 77, 85, 100, 116}
+
+  -- we are relative to horizon camera so just start short after y=0
+  --  and continue for around 3 cells (24px) until we reach the forest
+  -- (forest moves in vertical parallax so a bit faster, but at its maximum
+  -- distance we should see around 3 cells of water vertically)
+  local start_y = 12
+  local stop_y = 30
+  for y = start_y, stop_y, shimmer_y_interval do
+    -- only draw if shimmers are visible on camera (values found by tuning,
+    --  total range must cover 2 * screen_height since background moves at 0.5 speed)
+    if self.camera.position.y > 156 - 90 and self.camera.position.y < 156 + 30 + screen_height then
+      for x in all(shimmer_base_x_list) do
+        -- pseudo-randomize raw colors (based on x, so won't change next frame)
+        local color1, color2
+        if x % 2 == 0 then
+          color1 = colors.red
+          color2 = colors.yellow
+        else
+          color1 = colors.yellow
+          color2 = colors.red
+        end
+
+        -- pseudo-randomize x to avoid regular shimmers as we always use the same
+        --  shimmer_base_x_list, by using y, a stable input
+        x = x + (y-12) * y
+
+        -- wrap horizontally
+        x = x % screen_width
+
+        -- add small offset on y for vertical variation
+        -- make sure to create a new variable as y is used for the iteration
+        local adjusted_y = y + x % 2
+
+        -- draw triplets for "richer" visuals
+        pset(x % screen_width, adjusted_y, color1)
+        pset((x + 1) % screen_width, adjusted_y, color2)
+        pset((x + 2) % screen_width, adjusted_y, color1)
+      end
+    end
+  end
+
+  pal()
 end
 
 -- render the stage elements with the main camera:

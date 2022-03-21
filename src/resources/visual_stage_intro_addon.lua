@@ -3,6 +3,28 @@ local visual = require("resources/visual_common")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
 
+local stage_intro_visual = {
+  -- water parts copied from titlemenu_visual
+  -- if we also add them to ingame eventually, just merge all of them into
+  -- visual_common
+
+  -- water shimmer animation period
+  water_shimmer_period = 1.3,
+
+  -- color swap for water shimmers, index by time step, by original color index
+  --  (1 for red, 2 for yellow)
+  water_shimmer_color_cycle = {
+    {colors.dark_blue, colors.light_gray},
+    {colors.indigo, colors.light_gray},
+    {colors.light_gray, colors.light_gray},
+    {colors.light_gray, colors.indigo},
+    {colors.light_gray, colors.dark_blue},
+    {colors.light_gray, colors.dark_blue},
+    {colors.light_gray, colors.indigo},
+    {colors.indigo, colors.indigo},
+  },
+}
+
 local stage_intro_sprite_data_t = transform(
   {
     -- sprite_data(id_loc: sprite_id_location([1], [2]), span: tile_vector([3], [4]), pivot: vector([5], [6]), transparent_color_arg: colors.pink),
@@ -23,4 +45,5 @@ local stage_intro_sprite_data_t = transform(
   end
 )
 
+merge(visual, stage_intro_visual)
 merge(visual.sprite_data_t, stage_intro_sprite_data_t)

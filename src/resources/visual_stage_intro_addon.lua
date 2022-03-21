@@ -28,17 +28,24 @@ local stage_intro_visual = {
 local stage_intro_sprite_data_t = transform(
   {
     -- sprite_data(id_loc: sprite_id_location([1], [2]), span: tile_vector([3], [4]), pivot: vector([5], [6]), transparent_color_arg: colors.pink),
-    -- parameters:     {id_loc(2), span(2), pivot(2)}
+    -- parameters:      {id_loc(2), span(2), pivot(2)}
 
     -- clouds (same as titlemenu addon)
-    cloud_big        = {    0,  1,   7, 3,    0, 11},
-    cloud_medium     = {    7,  1,   4, 2,    0,  6},
-    cloud_small      = {   11,  1,   3, 2,    0,  4},
-    cloud_tiny       = {   14,  1,   2, 1,    0,  4},
+    cloud_big         = {    0,  1,   7, 3,    0, 11},
+    cloud_medium      = {    7,  1,   4, 2,    0,  6},
+    cloud_small       = {   11,  1,   3, 2,    0,  4},
+    cloud_tiny        = {   14,  1,   2, 1,    0,  4},
 
     -- horizon
-    horizon_gradient = {   11, 14,   1, 2,    0, 12},
-    island           = {   12, 13,   4, 3,    0, 16},
+    horizon_gradient  = {   11, 14,   1, 2,    0, 12},
+    island            = {   12, 13,   4, 3,    0, 16},
+
+    -- forest
+    bg_forest_top     = {    0, 10,   4, 1,    0,  0},
+    bg_forest_center  = {    0, 11,   4, 1,    0,  0},
+    fg_leaves_top     = {    0, 12,   2, 1,    0,  0},
+    fg_leaves_center  = {    0, 13,   2, 2,    0,  0},
+    fg_leaves_bottom  = {    0, 15,   2, 1,    0,  0},
   },
   function (params)
     return sprite_data(sprite_id_location(params[1], params[2]), tile_vector(params[3], params[4]), vector(params[5], params[6]), colors.pink)

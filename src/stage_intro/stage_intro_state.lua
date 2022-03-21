@@ -117,7 +117,7 @@ function stage_intro_state:render_background(camera_pos)
   rectfill(0, 0, 127, 127, colors.dark_blue)
 
   -- apply some scaling < 1 so horizon elements move more slowly together
-  local progress = -0.5 * camera_pos.y
+  local horizon_progress = -0.5 * camera_pos.y
 
   -- draw clouds
   -- render two batches, each covering the equivalent of a screen and chained,
@@ -126,13 +126,13 @@ function stage_intro_state:render_background(camera_pos)
   --  is entirely offscreen when it warps to the other side, and warps also to an
   --  offscreen position, thanks to period of 300 > 2*128 and the offset subtracting
   --  150 > 128 in render_clouds_batch
-  self:render_clouds_batch(progress)
+  self:render_clouds_batch(horizon_progress)
   -- 150 to have the second batch halfway of period
-  self:render_clouds_batch(progress + 150)
+  self:render_clouds_batch(horizon_progress + 150)
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_dy = 156 + progress
+  local horizon_line_dy = 156 + horizon_progress
   camera(0, -horizon_line_dy)
 
   -- horizon
@@ -143,6 +143,12 @@ function stage_intro_state:render_background(camera_pos)
 
   -- water
   self:render_water_shimmers()
+
+  -- background forest: moves faster
+  self:render_background_forest(-0.75 * camera_pos.y)
+
+  -- foreground leaves: moves on same plane as Sonic
+  self:render_foreground_leaves(-camera_pos.y)
 end
 
 function stage_intro_state:render_clouds_batch(progress)
@@ -234,6 +240,45 @@ function stage_intro_state:render_water_shimmers()
   end
 
   pal()
+end
+
+-- a disordered list of numbers between 0 and 3 to avoid regular patterns
+--  when drawing multiple lines of the same sprites, by offsetting them
+--  based on j
+local j_shuffle = {0, 2, 1, 3}
+
+function stage_intro_state:render_background_forest(progress)
+  local bg_forest_top = visual.sprite_data_t.bg_forest_top
+  local bg_forest_center = visual.sprite_data_t.bg_forest_center
+
+  local y = progress + 100
+
+  -- draw forest top
+  for i=0,15,4 do
+    bg_forest_top:render(vector(8 * i, y))
+  end
+
+  for j=1,15 do
+    local j_offset = j_shuffle[(j-1) % 4 + 1]
+    -- draw forest center line with adjusted i for variation
+    -- since we are drawing a sprite of 4x1 and not 1x1 sprites,
+    --  we cannot simply apply modulo on i to wrap around horizontally
+    --  (the 4x1 sprite's i itself is never out of range, 12 + 3 = 15)
+    -- instead, let's draw the sprites as usual first,
+    --  then, as we created a hole on the left if j_offset > 0,
+    --  we'll fill the hole with an extra draw
+    for i=0,15,4 do
+      local adjusted_i = i + j_offset
+      bg_forest_center:render(vector(8 * adjusted_i, y + 8 * j))
+    end
+    if j_offset > 0 then
+      -- fill the hole on the left
+      bg_forest_center:render(vector(8 * (j_offset - 4), y + 8 * j))
+    end
+  end
+end
+
+function stage_intro_state:render_foreground_leaves(progress)
 end
 
 -- render the stage elements with the main camera:

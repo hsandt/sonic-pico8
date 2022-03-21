@@ -94,12 +94,11 @@ function stage_intro_state:render()
   -- render custom background for the stage intro, instead of visual_stage.render_background
   self:render_background(self.camera.position)
   self:render_stage_elements()
-  self.postproc:apply()
-
-  -- make sure to draw the overlay after the post-process so it doesn't fade at all
-  -- FIXME: nope, pal(..., 1) still applies at the end
-  -- and I cannot just use pal() as pre-process because waterfall, etc. will mess up
   self:render_overlay()
+
+  -- note that postproc is applied at the end, no matter where this is called
+  -- fortunately, overlay is now shown after fade-in, so it doesn't matter
+  self.postproc:apply()
 end
 
 local cloud_offsets = {
@@ -117,6 +116,9 @@ function stage_intro_state:render_background(camera_pos)
   camera()
   rectfill(0, 0, 127, 127, colors.dark_blue)
 
+  -- apply some scaling < 1 so horizon elements move more slowly together
+  local progress = -0.5 * camera_pos.y
+
   -- draw clouds
   -- render two batches, each covering the equivalent of a screen and chained,
   --  so that we can switch them alternatively every 150px (for a total of 300px)
@@ -124,14 +126,20 @@ function stage_intro_state:render_background(camera_pos)
   --  is entirely offscreen when it warps to the other side, and warps also to an
   --  offscreen position, thanks to period of 300 > 2*128 and the offset subtracting
   --  150 > 128 in render_clouds_batch
-  self:render_clouds_batch(-camera_pos.y)
+  self:render_clouds_batch(progress)
   -- 150 to have the second batch halfway of period
-  self:render_clouds_batch(-camera_pos.y + 150)
+  self:render_clouds_batch(progress + 150)
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_dy = 156 - 0.5 * camera_pos.y
+  local horizon_line_dy = 156 + progress
   camera(0, -horizon_line_dy)
+
+  -- horizon
+  for i=0,15 do
+    visual.sprite_data_t.horizon_gradient:render(vector(8 * i, 0))
+  end
+  visual.sprite_data_t.island:render(vector(24, 1))
 end
 
 function stage_intro_state:render_clouds_batch(progress)
@@ -140,15 +148,21 @@ function stage_intro_state:render_clouds_batch(progress)
   local wrapped_reversed_camera_pos = progress % 300 - 150
 
   local cloud_sprite_data
+
+  -- draw clouds smaller and smaller as we go down, then stop
+  --  drawing them at all (as they should not be seen below the horizon line)
   if section > 2 then
     cloud_sprite_data = visual.sprite_data_t.cloud_big
   elseif section > 0 then
     cloud_sprite_data = visual.sprite_data_t.cloud_medium
-  else
+  elseif section > -1 then
     cloud_sprite_data = visual.sprite_data_t.cloud_small
   end
-  for offset in all(cloud_offsets) do
-    cloud_sprite_data:render(offset + vector(0, wrapped_reversed_camera_pos))
+
+  if cloud_sprite_data then
+    for offset in all(cloud_offsets) do
+      cloud_sprite_data:render(offset + vector(0, wrapped_reversed_camera_pos))
+    end
   end
 end
 

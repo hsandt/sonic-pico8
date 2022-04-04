@@ -110,6 +110,8 @@ local cloud_offsets = {
   vector(-10, 110),
 }
 
+local horizon_offset = -150
+
 -- render the stage background
 function stage_intro_state:render_background(camera_pos)
   -- always draw full sky background to be safe
@@ -132,7 +134,7 @@ function stage_intro_state:render_background(camera_pos)
 
   -- horizon line serves as a reference for the background
   --  and moves down slowly when camera moves up
-  local horizon_line_dy = 156 + horizon_progress
+  local horizon_line_dy = horizon_offset + horizon_progress
   camera(0, -horizon_line_dy)
 
   -- horizon
@@ -144,11 +146,9 @@ function stage_intro_state:render_background(camera_pos)
   -- water
   self:render_water_shimmers()
 
-  -- background forest: moves faster
-  self:render_background_forest(-0.75 * camera_pos.y)
-
-  -- foreground leaves: moves on same plane as Sonic
-  self:render_foreground_leaves(-camera_pos.y)
+  -- background forest: moves faster (remember we already have 0.5 of camera speed injected via camera(),
+  --  so we only need to add 0.25 to get 0.75 of it)
+  self:render_background_forest(-0.1 * camera_pos.y)
 end
 
 function stage_intro_state:render_clouds_batch(progress)
@@ -162,9 +162,9 @@ function stage_intro_state:render_clouds_batch(progress)
   --  drawing them at all (as they should not be seen below the horizon line)
   if section > 2 then
     cloud_sprite_data = visual.sprite_data_t.cloud_big
-  elseif section > 0 then
+  elseif section > 1 then
     cloud_sprite_data = visual.sprite_data_t.cloud_medium
-  elseif section > -1 then
+  elseif section > 0 then
     cloud_sprite_data = visual.sprite_data_t.cloud_small
   end
 
@@ -208,7 +208,8 @@ function stage_intro_state:render_water_shimmers()
   for y = start_y, stop_y, shimmer_y_interval do
     -- only draw if shimmers are visible on camera (values found by tuning,
     --  total range must cover 2 * screen_height since background moves at 0.5 speed)
-    if self.camera.position.y > 156 - 90 and self.camera.position.y < 156 + 30 + screen_height then
+    printh("self.camera.position.y: "..stringify(self.camera.position.y))
+    if horizon_offset - 380 < self.camera.position.y and self.camera.position.y < horizon_offset - 290 + screen_height then
       for x in all(shimmer_base_x_list) do
         -- pseudo-randomize raw colors (based on x, so won't change next frame)
         local color1, color2
@@ -245,40 +246,83 @@ end
 -- a disordered list of numbers between 0 and 3 to avoid regular patterns
 --  when drawing multiple lines of the same sprites, by offsetting them
 --  based on j
-local j_shuffle = {0, 2, 1, 3}
+local i_shuffle = {0, 2, 1, 3}
 
-function stage_intro_state:render_background_forest(progress)
+function stage_intro_state:render_background_forest(y_offset)
   local bg_forest_top = visual.sprite_data_t.bg_forest_top
   local bg_forest_center = visual.sprite_data_t.bg_forest_center
 
-  local y = progress + 100
+  local y = y_offset - 20
 
   -- draw forest top
   for i=0,15,4 do
     bg_forest_top:render(vector(8 * i, y))
   end
 
+  -- draw forest center
   for j=1,15 do
-    local j_offset = j_shuffle[(j-1) % 4 + 1]
+    local i_offset = i_shuffle[(j-1) % 4 + 1]
     -- draw forest center line with adjusted i for variation
     -- since we are drawing a sprite of 4x1 and not 1x1 sprites,
     --  we cannot simply apply modulo on i to wrap around horizontally
     --  (the 4x1 sprite's i itself is never out of range, 12 + 3 = 15)
     -- instead, let's draw the sprites as usual first,
-    --  then, as we created a hole on the left if j_offset > 0,
+    --  then, as we created a hole on the left if i_offset > 0,
     --  we'll fill the hole with an extra draw
-    for i=0,15,4 do
-      local adjusted_i = i + j_offset
+    for i=0,12,4 do
+      local adjusted_i = i + i_offset
       bg_forest_center:render(vector(8 * adjusted_i, y + 8 * j))
     end
-    if j_offset > 0 then
+    if i_offset > 0 then
       -- fill the hole on the left
-      bg_forest_center:render(vector(8 * (j_offset - 4), y + 8 * j))
+      bg_forest_center:render(vector(8 * (i_offset - 4), y + 8 * j))
     end
   end
 end
 
-function stage_intro_state:render_foreground_leaves(progress)
+function stage_intro_state:render_foreground_leaves(y_offset)
+  -- leaves move at same speed as character, considered on same plane
+  -- camera(-y_offset)
+  camera()
+
+  local fg_leaves_top = visual.sprite_data_t.fg_leaves_top
+  local fg_leaves_center = visual.sprite_data_t.fg_leaves_center
+  local fg_leaves_bottom = visual.sprite_data_t.fg_leaves_bottom
+
+  local y = y_offset-300
+
+  printh("y: "..stringify(y))
+
+  -- draw foreground leaves top
+  for i=0,15,2 do
+    fg_leaves_top:render(vector(8 * i, y))
+  end
+
+  -- draw forest center
+  for j=1,63,2 do
+    -- offset of 0 or 1, alternating every row
+    local i_offset = (j-1) % 2
+    -- draw forest center line with adjusted i for variation
+    -- since we are drawing a sprite of 2x2 and not 1x2 sprites,
+    --  we cannot simply apply modulo on i to wrap around horizontally
+    --  (the 2x2 sprite's i itself is never out of range, 14 + 1 = 15)
+    -- instead, let's draw the sprites as usual first,
+    --  then, as we created a hole on the left if i_offset > 0,
+    --  we'll fill the hole with an extra draw
+    for i=0,14,2 do
+      local adjusted_i = i + i_offset
+      fg_leaves_center:render(vector(8 * adjusted_i, y + 8 * j))
+    end
+    if i_offset > 0 then
+      -- fill the hole on the left (2 is the sprite width, here i_offset - 2 = -1)
+      fg_leaves_center:render(vector(8 * (i_offset - 2), y + 8 * j))
+    end
+  end
+
+  -- draw foreground leaves bottom
+  for i=0,15,2 do
+    fg_leaves_bottom:render(vector(8 * i, y + 8 * 65))
+  end
 end
 
 -- render the stage elements with the main camera:
@@ -298,6 +342,16 @@ function stage_intro_state:render_player_char()
   base_stage_state.set_camera_with_origin(self)
 
   self.player_char:render()
+end
+
+-- override
+function stage_intro_state:render_environment_foreground()
+  -- base call
+  base_stage_state.render_environment_foreground(self)
+
+  -- foreground leaves: moves on same plane as Sonic
+  printh("-self.camera.position.y: "..stringify(-self.camera.position.y))
+  self:render_foreground_leaves(-self.camera.position.y)
 end
 
 -- render the title overlay with a fixed ui camera
@@ -420,8 +474,9 @@ function stage_intro_state:play_intro_async()
   -- start with black screen
   self.postproc.darkness = 5
 
-  -- warp Sonic to the sky
-  self.player_char:warp_to(vector(self.player_char.position.x, self.player_char.position.y - map_region_height * 6))
+  -- warp Sonic very high in the sky
+  self.player_char:warp_to(vector(self.player_char.position.x,
+    self.player_char.position.y - map_region_height * 9))
   self.camera:init_position(self.player_char.position)
 
   -- force enter air spin without trigerring an actual jump, just to play the spin animation

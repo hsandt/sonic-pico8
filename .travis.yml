@@ -35,6 +35,7 @@ install:
   # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
+  - luarocks install cluacov
 
   # delegate submodule install (for luamin from npm)
   - pico-boots/setup.sh

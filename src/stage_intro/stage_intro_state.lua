@@ -3,6 +3,7 @@ local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
 
+local pc_data = require("data/playercharacter_numerical_data")
 local stage_data = require("data/stage_data")
 local stage_intro_data = require("data/stage_intro_data")
 local base_stage_state = require("ingame/base_stage_state")
@@ -160,9 +161,7 @@ function stage_intro_state:render_clouds_batch(progress)
 
   -- draw clouds smaller and smaller as we go down, then stop
   --  drawing them at all (as they should not be seen below the horizon line)
-  if section > 2 then
-    cloud_sprite_data = visual.sprite_data_t.cloud_big
-  elseif section > 1 then
+  if section > 1 then
     cloud_sprite_data = visual.sprite_data_t.cloud_medium
   elseif section > 0 then
     cloud_sprite_data = visual.sprite_data_t.cloud_small
@@ -248,6 +247,8 @@ end
 --  based on j
 local i_shuffle = {0, 2, 1, 3}
 
+local leaves_tiles_height = 79
+
 function stage_intro_state:render_background_forest(y_offset)
   local bg_forest_top = visual.sprite_data_t.bg_forest_top
   local bg_forest_center = visual.sprite_data_t.bg_forest_center
@@ -291,7 +292,10 @@ function stage_intro_state:render_foreground_leaves(y_offset)
 
   local y = y_offset-300
 
-  printh("y: "..stringify(y))
+  -- draw shadow on top on character to hide it a few times, and esp. the last time
+  --  to make it change animation behind the hood
+  rectfill(0, y + 28 * 8, 127, y + 28 * 8 + 32, colors.black)
+  rectfill(0, y + 58 * 8, 127, y + 58 * 8 + 96, colors.black)
 
   -- draw foreground leaves top
   for i=0,15,2 do
@@ -299,7 +303,7 @@ function stage_intro_state:render_foreground_leaves(y_offset)
   end
 
   -- draw forest center
-  for j=1,63,2 do
+  for j=1,leaves_tiles_height - 2,2 do
     -- offset of 0 or 1, alternating every row
     local i_offset = (j-1) % 2
     -- draw forest center line with adjusted i for variation
@@ -321,7 +325,7 @@ function stage_intro_state:render_foreground_leaves(y_offset)
 
   -- draw foreground leaves bottom
   for i=0,15,2 do
-    fg_leaves_bottom:render(vector(8 * i, y + 8 * 65))
+    fg_leaves_bottom:render(vector(8 * i, y + 8 * leaves_tiles_height))
   end
 end
 
@@ -332,6 +336,30 @@ function stage_intro_state:render_stage_elements()
   self:render_environment_midground()
   self:render_player_char()
   self:render_environment_foreground()
+end
+
+-- override
+function stage_intro_state:render_environment_midground()
+  -- only draw map tiles when low enough, to avoid odd periodic tiles drawing
+  --  in "negative" regions as we warp very high in the sky
+  if self.camera.position.y > 128 then
+    -- base call
+    base_stage_state.render_environment_midground(self)
+  end
+
+  -- draw leaves' own background as midground after normal map tiles
+  --  to make sure they cover trunks/waterfall
+
+  -- use neutral camera like render_foreground_leaves and work with y instead
+  camera()
+
+  -- same as y in render_foreground_leaves
+  local y_leaves = -self.camera.position.y - 300
+
+  if y_leaves < 128 then
+    -- draw uniform background color until a little before bottom leaves
+    rectfill(0, y_leaves + 8 * 8, 127, y_leaves + 8 * (leaves_tiles_height - 1) - 2, colors.dark_green)
+  end
 end
 
 -- render the player character at its current position
@@ -350,7 +378,6 @@ function stage_intro_state:render_environment_foreground()
   base_stage_state.render_environment_foreground(self)
 
   -- foreground leaves: moves on same plane as Sonic
-  printh("-self.camera.position.y: "..stringify(-self.camera.position.y))
   self:render_foreground_leaves(-self.camera.position.y)
 end
 
@@ -476,7 +503,11 @@ function stage_intro_state:play_intro_async()
 
   -- warp Sonic very high in the sky
   self.player_char:warp_to(vector(self.player_char.position.x,
-    self.player_char.position.y - map_region_height * 9))
+    self.player_char.position.y - map_region_height * 7))
+
+  -- set fall speed to max to avoid slow motion at the beginning of the sequence
+  self.player_char.velocity.y = pc_data.max_air_velocity_y
+
   self.camera:init_position(self.player_char.position)
 
   -- force enter air spin without trigerring an actual jump, just to play the spin animation
@@ -504,7 +535,7 @@ function stage_intro_state:play_intro_async()
 
   -- wait for Sonic to fall a bit and go behind some leaves
   --  so we can switch sprite without player noticing sudden change
-  yield_delay_frames(30)
+  yield_delay_frames(130)
 
   self.player_char:enter_motion_state(motion_states.falling)
   self.player_char.should_play_spring_jump = true

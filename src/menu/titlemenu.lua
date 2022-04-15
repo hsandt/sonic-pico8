@@ -14,7 +14,7 @@ local menu = require("menu/menu_with_sfx")
 local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local visual = require("resources/visual_common")  -- we should require visual_titlemenu add-on in main
-local ui_animation = require("ui/ui_animation")
+local ui_animation = require("engine/ui/ui_animation")
 
 local titlemenu = derived_class(gamestate)
 

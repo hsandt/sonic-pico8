@@ -12,7 +12,7 @@ local player_char = require("ingame/playercharacter")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
-local ui_animation = require("ui/ui_animation")
+local ui_animation = require("engine/ui/ui_animation")
 
 local stage_intro_state = derived_class(base_stage_state)
 

@@ -265,6 +265,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro assert"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro profiler"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release"]
 				}
@@ -503,6 +507,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro assert)"]
 				},
 				{
+					"name": "profiler",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro profiler && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro profiler)"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_intro release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_intro release)"]
 				},
@@ -715,6 +723,10 @@
 					"cmd": ["./run_cartridge.sh stage_intro assert"]
 				},
 				{
+					"name": "stage_intro profiler",
+					"cmd": ["./run_cartridge.sh stage_intro profiler"]
+				},
+				{
 					"name": "stage_intro release",
 					"cmd": ["./run_cartridge.sh stage_intro release"]
 				},
@@ -771,14 +783,6 @@
 				{
 					"name": "release",
 					"cmd": ["./install_single_cartridge_with_data.sh titlemenu release"]
-				},
-				{
-					"name": "debug (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh titlemenu debug png"]
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh titlemenu release png"]
 				}
 			]
 		},
@@ -829,14 +833,6 @@
 				{
 					"name": "release",
 					"cmd": ["./install_single_cartridge_with_data.sh ingame release"]
-				},
-				{
-					"name": "cheat (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh ingame cheat png"]
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh ingame release png"]
 				}
 			]
 		},
@@ -893,14 +889,6 @@
 				{
 					"name": "release",
 					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release"]
-				},
-				{
-					"name": "cheat (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh stage_intro cheat png"]
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh stage_intro release png"]
 				}
 			]
 		},
@@ -923,14 +911,6 @@
 				{
 					"name": "release",
 					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release"]
-				},
-				{
-					"name": "cheat (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh stage_clear cheat png"]
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install_single_cartridge_with_data.sh stage_clear release png"]
 				}
 			]
 		},
@@ -960,14 +940,6 @@
 				{
 					"name": "release",
 					"cmd": ["./install_all_cartridges.sh release"]
-				},
-				{
-					"name": "cheat (png)",
-					"cmd": ["./install_all_cartridges.sh cheat png"]
-				},
-				{
-					"name": "release (png)",
-					"cmd": ["./install_all_cartridges.sh release png"]
 				}
 			]
 		},

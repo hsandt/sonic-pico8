@@ -11,7 +11,7 @@
 -- use 8-53 for music tracks
 -- use 54-63 for sound effects
 -- stage clear
--- use 8-15 for music tracks
+-- use 0-15 for music tracks (stage clear didn't need 0-7 for custom instruments so far)
 -- use 16-63 for sound effects
 
 local audio = {}

@@ -149,7 +149,10 @@ function stage_intro_state:render_background(camera_pos)
 
   -- background forest: moves faster (remember we already have 0.5 of camera speed injected via camera(),
   --  so we only need to add 0.25 to get 0.75 of it)
-  self:render_background_forest(-0.1 * camera_pos.y)
+  -- prefer injecting horizon progress (positive) and resetting camera() in
+  --  render_background_forest, so we can use the passed argument to determine
+  --  where to crop the drawing to optimize draw calls
+  self:render_background_forest(-0.1 * camera_pos.y + horizon_line_dy)
 end
 
 function stage_intro_state:render_clouds_batch(progress)
@@ -207,7 +210,6 @@ function stage_intro_state:render_water_shimmers()
   for y = start_y, stop_y, shimmer_y_interval do
     -- only draw if shimmers are visible on camera (values found by tuning,
     --  total range must cover 2 * screen_height since background moves at 0.5 speed)
-    printh("self.camera.position.y: "..stringify(self.camera.position.y))
     if horizon_offset - 380 < self.camera.position.y and self.camera.position.y < horizon_offset - 290 + screen_height then
       for x in all(shimmer_base_x_list) do
         -- pseudo-randomize raw colors (based on x, so won't change next frame)
@@ -250,40 +252,55 @@ local i_shuffle = {0, 2, 1, 3}
 local leaves_tiles_height = 79
 
 function stage_intro_state:render_background_forest(y_offset)
+  camera()
+
   local bg_forest_top = visual.sprite_data_t.bg_forest_top
   local bg_forest_center = visual.sprite_data_t.bg_forest_center
 
   local y = y_offset - 20
 
-  -- draw forest top
-  for i=0,15,4 do
-    bg_forest_top:render(vector(8 * i, y))
-  end
-
-  -- draw forest center
-  for j=1,15 do
-    local i_offset = i_shuffle[(j-1) % 4 + 1]
-    -- draw forest center line with adjusted i for variation
-    -- since we are drawing a sprite of 4x1 and not 1x1 sprites,
-    --  we cannot simply apply modulo on i to wrap around horizontally
-    --  (the 4x1 sprite's i itself is never out of range, 12 + 3 = 15)
-    -- instead, let's draw the sprites as usual first,
-    --  then, as we created a hole on the left if i_offset > 0,
-    --  we'll fill the hole with an extra draw
-    for i=0,12,4 do
-      local adjusted_i = i + i_offset
-      bg_forest_center:render(vector(8 * adjusted_i, y + 8 * j))
+  if -28 <= y and y <= 125 then
+    -- draw forest top
+    for i=0,15,4 do
+      bg_forest_top:render(vector(8 * i, y))
     end
-    if i_offset > 0 then
-      -- fill the hole on the left
-      bg_forest_center:render(vector(8 * (i_offset - 4), y + 8 * j))
+
+    -- draw forest center in just the range you need
+    -- normal range is 1 to 15, then crop according to
+    --  screen, but since camera has been reset, we can just check y
+    -- 8 is for forest center sprite height, so period of drawing,
+    local screen_top_tile_j = flr(-y/8)
+    local j_start = max(1, screen_top_tile_j)
+    -- cover whole screen in height from top, so 16 tiles
+    -- note we reuse screen_top_tile_j not j_start which is already clamped
+    local j_end = min(15, screen_top_tile_j + 16)
+
+    -- note that when forest forest center are out of view, start > end and loop is skipped
+
+    -- draw forest center
+    for j=j_start,j_end do
+      local i_offset = i_shuffle[(j-1) % 4 + 1]
+      -- draw forest center line with adjusted i for variation
+      -- since we are drawing a sprite of 4x1 and not 1x1 sprites,
+      --  we cannot simply apply modulo on i to wrap around horizontally
+      --  (the 4x1 sprite's i itself is never out of range, 12 + 3 = 15)
+      -- instead, let's draw the sprites as usual first,
+      --  then, as we created a hole on the left if i_offset > 0,
+      --  we'll fill the hole with an extra draw
+      for i=0,12,4 do
+        local adjusted_i = i + i_offset
+        bg_forest_center:render(vector(8 * adjusted_i, y + 8 * j))
+      end
+      if i_offset > 0 then
+        -- fill the hole on the left
+        bg_forest_center:render(vector(8 * (i_offset - 4), y + 8 * j))
+      end
     end
   end
 end
 
 function stage_intro_state:render_foreground_leaves(y_offset)
-  -- leaves move at same speed as character, considered on same plane
-  -- camera(-y_offset)
+  -- draw with neutral camera but use y (same plane as Sonic)
   camera()
 
   local fg_leaves_top = visual.sprite_data_t.fg_leaves_top
@@ -302,11 +319,28 @@ function stage_intro_state:render_foreground_leaves(y_offset)
     fg_leaves_top:render(vector(8 * i, y))
   end
 
-  -- draw forest center
-  for j=1,leaves_tiles_height - 2,2 do
+  -- draw leaves in just the range you need
+  -- normal range is 1 to leaves_tiles_height - 2, then crop according to
+  --  screen, but since camera has been reset, we can just check y
+  -- 16 is for leaves sprite height, so period of drawing,
+  --  and 2 is for leaves sprite height in tile units
+  local screen_top_tile_j = 2 * flr(-y/16)
+  -- -1 is because leaves sprite height is 2 so we need to cover one extra row up
+  --  if needed
+  local j_start = max(1, screen_top_tile_j - 1)
+  -- 17 is for 16 + 2 - 1 = 16 + 1 to cover edge cases while taking the -1 of j_start
+  --  into account
+  -- note we reuse screen_top_tile_j not j_start which is already clamped
+  --  and reapply -1
+  local j_end = min(leaves_tiles_height - 2, screen_top_tile_j + 17)
+
+  -- note that when forest leaves are out of view, start > end and loop is skipped
+
+  -- draw leaves center
+  for j=j_start,j_end,2 do
     -- offset of 0 or 1, alternating every row
     local i_offset = (j-1) % 2
-    -- draw forest center line with adjusted i for variation
+    -- draw leaves center line with adjusted i for variation
     -- since we are drawing a sprite of 2x2 and not 1x2 sprites,
     --  we cannot simply apply modulo on i to wrap around horizontally
     --  (the 2x2 sprite's i itself is never out of range, 14 + 1 = 15)
@@ -444,14 +478,7 @@ end
 
 -- base_stage_state override
 function stage_intro_state:set_camera_with_origin(origin)
-  -- hacked implementation to loop the decor (used to render palm trees as part of foreground,
-  --  and midground via set_camera_with_region_origin)
-
   origin = origin or vector.zero()
-
-  -- ! Unlike tiles, palm trees are not looped with a smart swapping of vertical halves,
-  --   so region 00 must have 2 identical vertical halves when it comes to palm tree representative
-  --   tiles (other tiles can differ) to give the illusion of looping without a break every 128
 
   local camera_topleft = vector(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
   if camera_topleft.y < 0 then

@@ -315,8 +315,12 @@ function stage_intro_state:render_foreground_leaves(y_offset)
   rectfill(0, y + 58 * 8, 127, y + 58 * 8 + 96, colors.black)
 
   -- draw foreground leaves top
-  for i=0,15,2 do
-    fg_leaves_top:render(vector(8 * i, y))
+  -- note that the real upper bound is flr(y) <= screen_height - 1
+  --  but to avoid a flr with just set the upper bound to screen_height
+  if -7 <= y and y <= screen_height then
+    for i=0,15,2 do
+      fg_leaves_top:render(vector(8 * i, y))
+    end
   end
 
   -- draw leaves in just the range you need
@@ -358,8 +362,12 @@ function stage_intro_state:render_foreground_leaves(y_offset)
   end
 
   -- draw foreground leaves bottom
-  for i=0,15,2 do
-    fg_leaves_bottom:render(vector(8 * i, y + 8 * leaves_tiles_height))
+  local y_leaves_bottom = y + 8 * leaves_tiles_height
+  -- same remark on range/flr as for fg_leaves_top
+  if -7 <= y_leaves_bottom and y_leaves_bottom <= screen_height then
+    for i=0,15,2 do
+      fg_leaves_bottom:render(vector(8 * i, y_leaves_bottom))
+    end
   end
 end
 

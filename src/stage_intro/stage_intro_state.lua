@@ -254,48 +254,23 @@ local leaves_tiles_height = 79
 function stage_intro_state:render_background_forest(y_offset)
   camera()
 
-  local bg_forest_top = visual.sprite_data_t.bg_forest_top
-  local bg_forest_center = visual.sprite_data_t.bg_forest_center
-
   local y = y_offset - 20
 
   if -28 <= y and y <= 125 then
-    -- draw forest top
-    for i=0,15,4 do
-      bg_forest_top:render(vector(8 * i, y))
+    -- draw bg forest tiles from mini-tilemap filled with forest sprites
+    --  placed outside the visible tilemap area, i.e. after the 16 first columns
+    --  of the actual tilemap
+    local fg_leaves_local_tilemap_left = 16
+    local fg_leaves_local_tilemap_top = 0
+
+    palt(colors.pink)
+    for i=0,4 do
+      -- 8 px per cell, 4 cells horizontally per fg leaves patch, so 8 * 4 = 32
+      -- dark green midground will cover the rest, so no need to span on 16 rows,
+      --  10 rows are enough
+      map(fg_leaves_local_tilemap_left, fg_leaves_local_tilemap_top, 32 * i, y, 4, 10)
     end
-
-    -- draw forest center in just the range you need
-    -- normal range is 1 to 15, then crop according to
-    --  screen, but since camera has been reset, we can just check y
-    -- 8 is for forest center sprite height, so period of drawing,
-    local screen_top_tile_j = flr(-y/8)
-    local j_start = max(1, screen_top_tile_j)
-    -- cover whole screen in height from top, so 16 tiles
-    -- note we reuse screen_top_tile_j not j_start which is already clamped
-    local j_end = min(15, screen_top_tile_j + 16)
-
-    -- note that when forest forest center are out of view, start > end and loop is skipped
-
-    -- draw forest center
-    for j=j_start,j_end do
-      local i_offset = i_shuffle[(j-1) % 4 + 1]
-      -- draw forest center line with adjusted i for variation
-      -- since we are drawing a sprite of 4x1 and not 1x1 sprites,
-      --  we cannot simply apply modulo on i to wrap around horizontally
-      --  (the 4x1 sprite's i itself is never out of range, 12 + 3 = 15)
-      -- instead, let's draw the sprites as usual first,
-      --  then, as we created a hole on the left if i_offset > 0,
-      --  we'll fill the hole with an extra draw
-      for i=0,12,4 do
-        local adjusted_i = i + i_offset
-        bg_forest_center:render(vector(8 * adjusted_i, y + 8 * j))
-      end
-      if i_offset > 0 then
-        -- fill the hole on the left
-        bg_forest_center:render(vector(8 * (i_offset - 4), y + 8 * j))
-      end
-    end
+    palt()
   end
 end
 

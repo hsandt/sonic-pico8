@@ -41,8 +41,9 @@ local stage_intro_sprite_data_t = transform(
     island            = {   12, 13,   4, 3,    0, 16},
 
     -- forest
-    bg_forest_top     = {    0, 10,   4, 1,    0,  0},
-    bg_forest_center  = {    0, 11,   4, 1,    0,  0},
+    -- drawn via map now, so no need to keep data
+    -- bg_forest_top     = {    0, 10,   4, 1,    0,  0},
+    -- bg_forest_center  = {    0, 11,   4, 1,    0,  0},
     fg_leaves_top     = {    0, 12,   2, 1,    0,  0},
     fg_leaves_center  = {    0, 13,   2, 2,    0,  0},
     fg_leaves_bottom  = {    0, 15,   2, 1,    0,  0},

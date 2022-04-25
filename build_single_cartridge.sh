@@ -121,9 +121,11 @@ elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
   symbols='assert,tostring,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
-  # symbols='profiler,debug_menu'
-  # profiler is too heavy right now, cannot build, so use lightweight version
-  symbols='profiler_lightweight,cheat'
+  # for stage intro and others, full profiler fits
+  symbols='profiler,debug_menu'
+  # profiler is too heavy in ingame, cannot build, so use lightweight version
+  # however, Ctrl+P gives even more information without overhead, so prefer this
+  # symbols='profiler_lightweight,cheat'
 elif [[ $config == 'recorder' ]]; then
   symbols='recorder,tostring,log'
 elif [[ $config == 'itest' ]]; then

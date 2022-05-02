@@ -10,5 +10,4 @@
 --  instead of "engine/test/bustedhelper"
 require("engine/test/bustedhelper")
 require("common_stage_intro")
--- we already need to draw the environment and sonic, so also use ingame visuals during stage_intro
-require("resources/visual_ingame_addon")
+require("resources/visual_stage_intro_addon")

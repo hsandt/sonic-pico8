@@ -18,6 +18,15 @@ local stage_intro_state = derived_class(base_stage_state)
 
 stage_intro_state.type = ':stage_intro'
 
+-- coordinates for local forest sprite batches located on the right, offscreen region of the tilemap
+
+local bg_forest_local_tilemap_left = 16
+local bg_forest_local_tilemap_top = 0
+
+local fg_leaves_local_tilemap_left = 20
+local fg_leaves_top_local_tilemap_top = 0
+local fg_leaves_center_local_tilemap_top = 1
+
 function stage_intro_state:init()
   base_stage_state.init(self)
 
@@ -51,10 +60,28 @@ function stage_intro_state:on_enter()
 
   self.camera:setup_for_stage(self.curr_stage_data)
 
-  -- for now, just hardcode region loading/coords to simplify, as we know the intro
-  -- only takes place in the region (0, 1)
-  reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(0, 1))
-  self.loaded_map_region_coords = vector(0, 1)
+  -- initial map region loading at region (0, 0), where stage intro starts
+  reload(0x2000, 0x2000, 0x1000, self:get_map_region_filename(0, 0))
+  self.loaded_map_region_coords = vector(0, 0)
+
+  -- Copy the forest FG sprite batches in current tilemap memory to somewhere into general memory,
+  --  so after reloading region 01 near the end of the character's fall,
+  --  we can paste those back to the off-screen right region of the tilemap and
+  --  keep drawing the FG leaves just during the transition where we see both
+  --  the FG leaves and the tilemap wall + waterfall before landing
+  -- According to base_stage_state:reload_sonic_spritesheet, all general memory is used,
+  --  but in practice we don't need rows 2-4 of the sonic sprites (idle and fall main part
+  --  are on row 1, landing is on row 5). Stored Sonic sprite memory row 1 starts at 0x4b00
+  --  so row 2 starts at 0x4b00 + 0x400 = 0x500
+  -- The forest FG center leaves sprites are located at top-left
+  --  (fg_leaves_local_tilemap_left, fg_leaves_center_local_tilemap_top),
+  --  where each line takes 128 = 0x80 cells (so advance by steps of 0x80 on source address),
+  --  and 1 cell takes 1 byte.
+  -- The union of all the batches cover 6 columns and 12 lines, so we're going to copy each line, 6 cells = 6 bytes at a time,
+  --  so copy 6 bytes and advance by steps of 6 bytes on the destination address.
+  for i=0,11 do
+    memcpy(0x500 + i * 6, 0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 6)
+  end
 
   -- starting v2 we want to play the full intro with character falling down from the sky,
   --  for a nice transition from the Start Cinematic
@@ -62,6 +89,13 @@ function stage_intro_state:on_enter()
   --  at the right X (the coroutine below will then warp Sonic upward)
   self:spawn_player_char()
   self.camera.target_pc = self.player_char
+
+  -- warp Sonic very high in the sky
+  self.player_char:warp_to(vector(self.player_char.position.x,
+    self.player_char.position.y - map_region_height * 7))
+
+  -- init camera immediately to ensure we only load region 00 for now
+  self.camera:init_position(self.player_char.position)
 
   self.app:start_coroutine(self.play_intro_async, self)
 end
@@ -260,15 +294,16 @@ function stage_intro_state:render_background_forest(y_offset)
     -- draw bg forest tiles from mini-tilemap filled with forest sprites
     --  placed outside the visible tilemap area, i.e. after the 16 first columns
     --  of the actual tilemap
-    local fg_leaves_local_tilemap_left = 16
-    local fg_leaves_local_tilemap_top = 0
-
+    -- note that the patch contains both the top and enough repeated middle sections
+    --  to cover everything we need until the dark green midground
     palt(colors.pink)
-    for i=0,4 do
-      -- 8 px per cell, 4 cells horizontally per fg leaves patch, so 8 * 4 = 32
+    -- with patches of 4 cells, we only need 16/4 = 4 patches, so iterate on 0-3
+    for i=0,3 do
+      -- 8 px per cell, 4 cells horizontally per bg forest patch, so 8 * 4 = 32
+      --  and pass 4 again as number of tiles horizontally
       -- dark green midground will cover the rest, so no need to span on 16 rows,
-      --  10 rows are enough
-      map(fg_leaves_local_tilemap_left, fg_leaves_local_tilemap_top, 32 * i, y, 4, 10)
+      --  10 rows are enough (we have a little more in tilemap data just in case)
+      map(bg_forest_local_tilemap_left, bg_forest_local_tilemap_top, 32 * i, y, 4, 10)
     end
     palt()
   end
@@ -278,67 +313,66 @@ function stage_intro_state:render_foreground_leaves(y_offset)
   -- draw with neutral camera but use y (same plane as Sonic)
   camera()
 
-  local fg_leaves_top = visual.sprite_data_t.fg_leaves_top
-  local fg_leaves_center = visual.sprite_data_t.fg_leaves_center
   local fg_leaves_bottom = visual.sprite_data_t.fg_leaves_bottom
 
-  local y = y_offset-300
+  local y = y_offset - 300
 
   -- draw shadow on top on character to hide it a few times, and esp. the last time
   --  to make it change animation behind the hood
   rectfill(0, y + 28 * 8, 127, y + 28 * 8 + 32, colors.black)
   rectfill(0, y + 58 * 8, 127, y + 58 * 8 + 96, colors.black)
 
+  palt(colors.pink)
+
+  -- draw bg forest tiles from mini-tilemap filled with forest sprites
+  --  placed outside the visible tilemap area, i.e. after the 16 first columns
+  --  of the actual tilemap
+  -- this time, we draw top and center separately, as we'll need to repeat
+  --  the center patch multiple times vertically to cover more height
+
   -- draw foreground leaves top
   -- note that the real upper bound is flr(y) <= screen_height - 1
   --  but to avoid a flr with just set the upper bound to screen_height
+  -- in fact, map is very efficient, so this check is not as relevant as it was when drawing individual sprites
   if -7 <= y and y <= screen_height then
-    for i=0,15,2 do
-      fg_leaves_top:render(vector(8 * i, y))
+    -- this time we have a patch of 6 cells, so to cover screen we need ceil(16/6) = 3,
+    --  so iterate on 0-2
+    for i=0,2 do
+      -- 8 px per cell, 6 cells horizontally per fg leaves patch, so 8 * 6 = 48
+      --  and pass 6 again as number of tiles horizontally
+      -- we only draw the top row, so pass 1 at the end
+      map(fg_leaves_local_tilemap_left, fg_leaves_top_local_tilemap_top, 48 * i, y, 6, 1)
     end
   end
 
-  -- draw leaves in just the range you need
-  -- normal range is 1 to leaves_tiles_height - 2, then crop according to
-  --  screen, but since camera has been reset, we can just check y
-  -- 16 is for leaves sprite height, so period of drawing,
-  --  and 2 is for leaves sprite height in tile units
-  local screen_top_tile_j = 2 * flr(-y/16)
-  -- -1 is because leaves sprite height is 2 so we need to cover one extra row up
-  --  if needed
-  local j_start = max(1, screen_top_tile_j - 1)
-  -- 17 is for 16 + 2 - 1 = 16 + 1 to cover edge cases while taking the -1 of j_start
-  --  into account
-  -- note we reuse screen_top_tile_j not j_start which is already clamped
-  --  and reapply -1
-  local j_end = min(leaves_tiles_height - 2, screen_top_tile_j + 17)
-
-  -- note that when forest leaves are out of view, start > end and loop is skipped
+  local fg_leaves_center_batch_repeat_count = 6
 
   -- draw leaves center
-  for j=j_start,j_end,2 do
-    -- offset of 0 or 1, alternating every row
-    local i_offset = (j-1) % 2
-    -- draw leaves center line with adjusted i for variation
-    -- since we are drawing a sprite of 2x2 and not 1x2 sprites,
-    --  we cannot simply apply modulo on i to wrap around horizontally
-    --  (the 2x2 sprite's i itself is never out of range, 14 + 1 = 15)
-    -- instead, let's draw the sprites as usual first,
-    --  then, as we created a hole on the left if i_offset > 0,
-    --  we'll fill the hole with an extra draw
-    for i=0,14,2 do
-      local adjusted_i = i + i_offset
-      fg_leaves_center:render(vector(8 * adjusted_i, y + 8 * j))
+  -- since map is very efficient and clips off-screen graphics, don't bother calling it only when at least one pixel
+  --  is visible on screen
+  -- same as above, to cover 16 tiles we need 3 batches, with some overshoot
+  for i=0,2 do
+    for j=0,fg_leaves_center_batch_repeat_count-1 do
+      -- no manual offset code anymore, shuffling tiles for more variety is now part of the patch
+      -- we prepared 12 rows of patches, for a total of 3 patches of 6x4 (themselves repeating 2x4 3 times)
+      -- 1+ inside brackets since we draw center patch *after* the top row
+      map(fg_leaves_local_tilemap_left, fg_leaves_center_local_tilemap_top, 48 * i, y + 8 * (1 + 12 * j), 6, 12)
     end
-    if i_offset > 0 then
-      -- fill the hole on the left (2 is the sprite width, here i_offset - 2 = -1)
-      fg_leaves_center:render(vector(8 * (i_offset - 2), y + 8 * j))
-    end
+    -- final batch is a bit smaller, with only 6 rows
+    map(fg_leaves_local_tilemap_left, fg_leaves_center_local_tilemap_top, 48 * i, y + 8 * (1 + 12 * fg_leaves_center_batch_repeat_count), 6, 6)
   end
 
+  palt()
+
   -- draw foreground leaves bottom
-  local y_leaves_bottom = y + 8 * leaves_tiles_height
-  -- same remark on range/flr as for fg_leaves_top
+  -- this could be done with map + sprite batches too, but for just a row
+  --  we didn't bother, as we already got 60 FPS except on reload frame, and we'd need to copy
+  --  that part to general memory to paste it back after reload region too
+  -- each *full* patch of leaves center above occupies 12 rows
+  -- +6 for the extra smaller batch at the end
+  -- 1+ inside brackets since we draw center patch *after* the top row
+  local y_leaves_bottom = y + 8 * (1 + 12 * fg_leaves_center_batch_repeat_count + 6)
+  -- same remark on range/flr as for leaves top
   if -7 <= y_leaves_bottom and y_leaves_bottom <= screen_height then
     for i=0,15,2 do
       fg_leaves_bottom:render(vector(8 * i, y_leaves_bottom))
@@ -415,7 +449,6 @@ function stage_intro_state:get_map_region_coords(position)
   -- region_count_per_row is unused
   uv.x = max(0, uv.x)
 
-  -- don't clamp ap
   -- still clamp at bottom just in case we go too low
   -- (should be OK without though, as the dynamic camera limit clamps camera already)
   uv.y = min(uv.y, region_count_per_column - 1)
@@ -433,6 +466,13 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
     -- no wrapping, but at least load top-left region which should mostly be empty,
     --  so we can draw our custom background instead
     new_map_region_coords.y = 0
+  end
+
+  -- due to clamping, we can exceptionally get the same region again despite
+  --  caller context difference check, so check difference again, or rather return
+  --  early if nothing to do
+  if self.loaded_map_region_coords == new_map_region_coords then
+    return
   end
 
   local u_left = flr(new_map_region_coords.x)
@@ -457,6 +497,13 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
   end
 
   self.loaded_map_region_coords = new_map_region_coords
+
+  -- extra code to reload the FG leaves (center) from region 00 into memory after losing them when reloading new regions
+  --  (0, 0.5) and (0, 1)
+  for i=0,11 do
+    -- reverse operation of on_enter
+    memcpy(0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 0x500 + i * 6, 6)
+  end
 end
 
 -- base_stage_state override
@@ -511,14 +558,8 @@ function stage_intro_state:play_intro_async()
   -- start with black screen
   self.postproc.darkness = 5
 
-  -- warp Sonic very high in the sky
-  self.player_char:warp_to(vector(self.player_char.position.x,
-    self.player_char.position.y - map_region_height * 7))
-
   -- set fall speed to max to avoid slow motion at the beginning of the sequence
   self.player_char.velocity.y = pc_data.max_air_velocity_y
-
-  self.camera:init_position(self.player_char.position)
 
   -- force enter air spin without trigerring an actual jump, just to play the spin animation
   self.player_char:enter_motion_state(motion_states.air_spin)

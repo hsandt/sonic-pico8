@@ -16,8 +16,8 @@ itest_manager:register_itest('(intro) player waits',
   end)
 
   -- let stage intro sequence play and see if nothing crashes
-  -- reduced frames from 750 to 100 to make it shorter, although we won't test the whole sequence
-  wait(100, true)
+  -- reduced frames from 750 to 300 to make it shorter, but still test region change
+  wait(300, true)
 
   -- we should still be in stage intro (because even if we load() titlemenu cartridge in headless,
   --  it won't do anything)

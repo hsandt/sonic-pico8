@@ -1,7 +1,6 @@
 require("test/bustedhelper_stage_intro")
 require("common_stage_intro")
-require("resources/visual_ingame_addon")  -- stage_intro mostly uses ingame visuals
-require("resources/visual_stage_intro_addon")  -- for clouds
+require("resources/visual_stage_intro_addon")
 
 local stage_intro_state = require("stage_intro/stage_intro_state")
 

@@ -6,13 +6,8 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_stage_intro")
 
--- require ingame visual add-on for stage clear since we already show the stage
--- any require visual_common in this cartridge will get both common data and ingame data
--- in fact, visual_ingame_addon contains sprites unused in stage_intro,
---  but stage_clear cartridge has enough space, so it's okay (worst case, we can strip some of them,
---  or even extract a common addon later)
-require("resources/visual_ingame_addon")
--- also require visual_stage_intro_addon for clouds
+-- require visual add-on for stage_intro
+-- any require visual_common in this cartridge will get both common data and stage_intro data
 require("resources/visual_stage_intro_addon")
 
 -- we also require codetuner so any file can used tuned()

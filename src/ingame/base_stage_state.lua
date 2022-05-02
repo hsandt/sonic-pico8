@@ -49,7 +49,7 @@ function base_stage_state:reload_sonic_spritesheet()
   --  1 pixel = 4 bits (as we use 16 colors)
   --  2 pixels = 8 bits = 1 byte
   --  8 pixels = 4 bytes
-  -- 1 cell occupies 8x8 pixels, and needs 16 bytes.
+  -- 1 cell occupies 8x8 pixels, and needs 32 = 0x20 bytes.
   -- A 2x2-cell sprite = 16x16 pixels = 256 pixels = 128 bytes = 0x80 bytes
   -- This is useful to count the total memory required by a sprite, and works when dealing with a row fully occupied by sprites
   --  to copy, as we don't care in which order pixels were copied.
@@ -226,6 +226,7 @@ function base_stage_state:reload_horizontal_half_of_map_region(dest_hdir, filena
   --  1. current map memory always starts at 0x2000, line offset j adds j * 0x80
   --  2. general memory always starts at 0x4300, line offset j adds j * 0x80
   --  3. to start on the right half of a line, add 64 = 0x40 tiles
+  -- finally, 1 cell on the tilemap = 1 byte, so we can directly use those values
   local dest_addr0 = 0x2000
   local temp_source_addr0 = 0x4300
   if dest_hdir == horizontal_dirs.right then

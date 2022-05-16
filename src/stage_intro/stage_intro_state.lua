@@ -573,20 +573,20 @@ function stage_intro_state:play_intro_async()
   -- it's very important that we reloaded map region at this point!
   self:scan_current_region_to_spawn_objects()
 
+  -- play falling wind looping SFX as music
+  music(audio.music_ids.fall_wind)
+
   yield_delay_frames(30)
 
-  -- while splash is still shown, fade in (as in Hydrocity Act 1)
+  -- fade in
   for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(6)
   end
 
-  yield_delay_frames(30)
-
-
-  -- wait for Sonic to fall a bit and go behind some leaves
+  -- wait for Sonic to fall go behind some opaque foreground/midground
   --  so we can switch sprite without player noticing sudden change
-  yield_delay_frames(130)
+  yield_delay_frames(160)
 
   self.player_char:enter_motion_state(motion_states.falling)
   self.player_char.should_play_spring_jump = true

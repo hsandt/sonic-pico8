@@ -2376,7 +2376,7 @@ function player_char:update_platformer_motion_airborne()
 --#if stage_intro
 --[[#pico8
       -- stage intro has a longer landing animation
-      self.landing_anim_timer = 120
+      self.landing_anim_timer = 240
 --#pico8]]
 --#else
       self.landing_anim_timer = pc_data.landing_anim_duration

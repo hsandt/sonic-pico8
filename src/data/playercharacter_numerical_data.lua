@@ -305,6 +305,7 @@ local pc_data = {
   landing_anim_max_ground_speed = 0.4,
 
   -- duration of landing anim if uninterrupted (player character doesn't move) (frames)
+  -- ! stage_intro uses its own duration in playercharacter:update_platformer_motion_airborne
   landing_anim_duration = 30,
 --#endif
 

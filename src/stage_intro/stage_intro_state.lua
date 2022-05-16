@@ -592,12 +592,12 @@ function stage_intro_state:play_intro_async()
   self.player_char.should_play_spring_jump = true
 
   -- wait for fall to end
-  yield_delay_frames(60*4)
+  yield_delay_frames(60*2)
 
   -- show splash screen
   self:show_stage_splash_async()
 
-  yield_delay_frames(60*3)
+  yield_delay_frames(60*2)
 
   -- hide splash as Sonic is still falling
   self:hide_stage_splash_async()

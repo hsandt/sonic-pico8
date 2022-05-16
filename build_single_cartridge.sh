@@ -179,6 +179,13 @@ else
     symbols+=",landing_anim,pfx"
   fi
 
+  # uncomment to enable landing anim (without pfx)
+  # for ingame (including attract_mode)
+  # currently, it's slightly out of chars budget
+  # if [[ $builtin_data_suffix == 'ingame' ]]; then
+  #   symbols+=",landing_anim"
+  # fi
+
   if [[ "$itest" == true ]]; then
     main_prefix='itest_'
     required_relative_dirpath="itests/${cartridge_suffix}"

@@ -100,7 +100,7 @@ function picosonic_app_attract_mode:attract_mode_scenario_async()
 
   yield_delay_frames(42)
   pc.move_intention = vector(1, 0)
-  yield_delay_frames(318)
+  yield_delay_frames(313)
   pc.jump_intention = true
   pc.hold_jump_intention = true
   yield_delay_frames(4)

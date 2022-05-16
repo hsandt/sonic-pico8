@@ -611,6 +611,9 @@ function base_stage_state:render_environment_foreground()
 
 --#if ingame
 
+  -- this applies to all globally positioned elements, so loop entrances and palm trees
+  self:set_camera_with_origin()
+
   -- draw loop entrances on the foreground (it was already drawn on the midground, so we redraw on top of it;
   --  it's ultimately more performant to draw twice than to cherry-pick, in case loop entrance tiles
   --  are reused in loop exit or other possibly disabled layers so we cannot just tag them all foreground)
@@ -619,15 +622,17 @@ function base_stage_state:render_environment_foreground()
   for area in all(self.curr_stage_data.loop_entrance_areas) do
     -- draw map subset just for the loop entrance
     -- if this is out-of-screen, map will know it should draw nothing so this is very performant already
+    -- note that the camera does not affect the first two arguments, so we must subtract region tile coords
+    --  anyway; for the second pair of arguments, we are drawing in global coords so don't subtract anything
     map(area.left - region_topleft_loc.i, area.top - region_topleft_loc.j,
         tile_size * area.left, tile_size * area.top,
+        -- if we were using set_camera_with_region_origin, then we'd need to subtract region tile coords:
+        -- tile_size * (area.left - region_topleft_loc.i), tile_size * (area.top - region_topleft_loc.j),
         area.right - area.left + 1, area.bottom - area.top + 1,
         sprite_masks.midground)
   end
 
   -- make sure to draw palm trees after map, to avoid resetting the color transparency
-
-  self:set_camera_with_origin()
 
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
   for global_loc in all(self.palm_tree_leaves_core_global_locations) do

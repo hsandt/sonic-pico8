@@ -216,8 +216,11 @@ describe('player_char', function ()
       curr_stage_state.loaded_map_region_coords = vector(0, 0)
       flow.curr_state = curr_stage_state
 
-      -- create dummy app just for get_enable_late_jump_feature
-      flow.curr_state.app = { get_enable_late_jump_feature = function () return true end }
+      -- create dummy app just for get_enable_late_jump_feature and start_coroutine
+      flow.curr_state.app = {
+        get_enable_late_jump_feature = function () return true end,
+        start_coroutine = function () return 0 end
+      }
 
       -- recreate player character for each test (setup spies will need to refer to player_char,
       --  not the instance)
@@ -907,7 +910,7 @@ describe('player_char', function ()
         assert.spy(pc.update_anim).was_called_with(match.ref(pc))
         assert.spy(animated_sprite.update).was_called(1)
         assert.spy(animated_sprite.update).was_called_with(match.ref(pc.anim_spr))
-        assert.spy(pfx.update).was_called(1)
+        assert.spy(pfx.update).was_called(3)  -- at most: 1 spin dash smoke, 2 landing pfx
         assert.spy(pfx.update).was_called_with(match.ref(pc.smoke_pfx))
       end)
 
@@ -7797,8 +7800,8 @@ describe('player_char', function ()
         assert.spy(memcpy).was_called(16)
         -- too many calls to check them all, but test at least the first ones of each
         -- to verify addr_offset is correct
-        assert.spy(memcpy).was_called_with(0x1000, 0x5b00, 0x28)
-        assert.spy(memcpy).was_called_with(0x1040, 0x5b28, 0x28)
+        assert.spy(memcpy).was_called_with(0x1000, 0x5b00, 0x30)
+        assert.spy(memcpy).was_called_with(0x1040, 0x5b30, 0x30)
       end)
 
       it('(spin_dash) should set last_copied_double_row to match anim', function ()

@@ -508,7 +508,7 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
   --  (0, 0.5) and (0, 1)
   for i=0,11 do
     -- reverse operation of on_enter
-    memcpy(0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 0x500 + i * 6, 6)
+    memcpy(0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 0x4f00 + i * 6, 6)
   end
 end
 

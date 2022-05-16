@@ -71,16 +71,22 @@ function stage_intro_state:on_enter()
   --  the FG leaves and the tilemap wall + waterfall before landing
   -- According to base_stage_state:reload_sonic_spritesheet, all general memory is used,
   --  but in practice we don't need rows 2-4 of the sonic sprites (idle and fall main part
-  --  are on row 1, landing is on row 5). Stored Sonic sprite memory row 1 starts at 0x4b00
-  --  so row 2 starts at 0x4b00 + 0x400 = 0x500
+  --  are on row 1, landing is on row 5), for a total of 3 dual rows = 6 rows.
+  -- Stored Sonic sprite memory row 1 starts at 0x4b00
+  --  so row 2 starts at 0x4b00 + 0x400 = 0x4f00
   -- The forest FG center leaves sprites are located at top-left
   --  (fg_leaves_local_tilemap_left, fg_leaves_center_local_tilemap_top),
   --  where each line takes 128 = 0x80 cells (so advance by steps of 0x80 on source address),
   --  and 1 cell takes 1 byte.
   -- The union of all the batches cover 6 columns and 12 lines, so we're going to copy each line, 6 cells = 6 bytes at a time,
   --  so copy 6 bytes and advance by steps of 6 bytes on the destination address.
+  -- Destination start address: 0x4f00
+  -- Covered range: 12 * 6 = 72 = 0x48 bytes
+  -- Destination end address + 1: 0x4f00 + 12 * 6 = 0x4f48
+  -- 1 byte = 2px, so we cover 72*2 = 144px = 18*8px = 18 cell rows = 1 pixel row + 2 cell rows,
+  --  and we have 6 full rows (in general memory equivalent), so it's more than enough.
   for i=0,11 do
-    memcpy(0x500 + i * 6, 0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 6)
+    memcpy(0x4f00 + i * 6, 0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 6)
   end
 
   -- starting v2 we want to play the full intro with character falling down from the sky,

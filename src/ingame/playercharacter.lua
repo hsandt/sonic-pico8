@@ -2387,6 +2387,10 @@ function player_char:update_platformer_motion_airborne()
       curr_stage_state.app:start_coroutine(self.burst_landing_pfx, self)
 --#endif
     end
+
+    -- sfx
+    -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
+    self:play_low_priority_sfx(audio.sfx_ids.landing)
   else
     -- record highest altitude in the air
     -- y is downward positive, so keep min

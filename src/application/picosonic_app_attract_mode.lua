@@ -70,7 +70,6 @@ function picosonic_app_attract_mode:exit_attract_mode_async()
     yield_delay_frames(6)
   end
 
-  printh("load titlemenu!")
   -- prefer passing basename for compatibility with .p8.png
   load('picosonic_titlemenu')
 end

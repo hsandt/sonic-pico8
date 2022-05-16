@@ -590,15 +590,28 @@ function stage_intro_state:play_intro_async()
     yield_delay_frames(6)
   end
 
+  -- wait for Sonic to enter leaves area
+  yield_delay_frames(90)
+
+  -- play falling through leaves looping SFX as music (replaces wind)
+  music(audio.music_ids.fall_leaves)
+
   -- wait for Sonic to fall go behind some opaque foreground/midground
   --  so we can switch sprite without player noticing sudden change
-  yield_delay_frames(160)
+  yield_delay_frames(70)
 
   self.player_char:enter_motion_state(motion_states.falling)
   self.player_char.should_play_spring_jump = true
 
+  -- wait for Sonic to leave leaves area
+  yield_delay_frames(10)
+
+  -- stop looping SFX
+  -- (short fade out to avoid pop)
+  music(-1, 100)
+
   -- wait for fall to end
-  yield_delay_frames(60*2)
+  yield_delay_frames(60*2 - 10)
 
   -- show splash screen
   self:show_stage_splash_async()

@@ -61,6 +61,7 @@ audio.music_ids = {
   emerald_flying = 8,
   -- stage_intro
   fall_wind = 0,
+  fall_leaves = 1,
   -- note: stage_common_data contains the bgm_id for the stage (always 0)
 }
 

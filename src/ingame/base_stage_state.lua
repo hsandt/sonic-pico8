@@ -604,27 +604,6 @@ function base_stage_state:render_environment_foreground()
   --  the symbols check below.
 
 --#if busted
-  if self.type == ':stage_clear' then
-    return
-  end
---#endif
-
---#ifn stage_clear
-  self:set_camera_with_origin()
-
-  -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
-  for global_loc in all(self.palm_tree_leaves_core_global_locations) do
-    -- top has pivot at its bottom-left = the top-left of the core
-    visual.sprite_data_t.palm_tree_leaves_top:render(global_loc:to_topleft_position())
-    -- right has pivot at is bottom-left = the top-right of the core
-    local right_global_loc = global_loc + location(1, 0)
-    visual.sprite_data_t.palm_tree_leaves_right:render(right_global_loc:to_topleft_position())
-    -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
-    visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
-  end
---#endif
-
---#if busted
   if self.type ~= ':stage' then
     return
   end
@@ -647,6 +626,29 @@ function base_stage_state:render_environment_foreground()
   end
 
 --(ingame)
+--#endif
+
+-- make sure to draw palm trees after map, to avoid resetting the color transparency
+
+--#if busted
+  if self.type == ':stage_clear' then
+    return
+  end
+--#endif
+
+--#ifn stage_clear
+  self:set_camera_with_origin()
+
+  -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
+  for global_loc in all(self.palm_tree_leaves_core_global_locations) do
+    -- top has pivot at its bottom-left = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_top:render(global_loc:to_topleft_position())
+    -- right has pivot at is bottom-left = the top-right of the core
+    local right_global_loc = global_loc + location(1, 0)
+    visual.sprite_data_t.palm_tree_leaves_right:render(right_global_loc:to_topleft_position())
+    -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
+    visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
+  end
 --#endif
 
 --(!itest)

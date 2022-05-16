@@ -625,18 +625,8 @@ function base_stage_state:render_environment_foreground()
         sprite_masks.midground)
   end
 
---(ingame)
---#endif
+  -- make sure to draw palm trees after map, to avoid resetting the color transparency
 
--- make sure to draw palm trees after map, to avoid resetting the color transparency
-
---#if busted
-  if self.type == ':stage_clear' then
-    return
-  end
---#endif
-
---#ifn stage_clear
   self:set_camera_with_origin()
 
   -- draw palm tree extension sprites on the foreground, so they can hide the character and items at the top
@@ -649,6 +639,8 @@ function base_stage_state:render_environment_foreground()
     -- left is mirrored from right, so its pivot is at its bottom-right = the top-left of the core
     visual.sprite_data_t.palm_tree_leaves_right:render(global_loc:to_topleft_position(), --[[flip_x:]] true)
   end
+
+--(ingame)
 --#endif
 
 --(!itest)

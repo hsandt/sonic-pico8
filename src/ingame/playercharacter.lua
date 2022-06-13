@@ -2375,10 +2375,19 @@ function player_char:update_platformer_motion_airborne()
 --#endif
     end
 
-    -- sfx
-    -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
-    self:play_low_priority_sfx(audio.sfx_ids.landing)
+--#if stage_intro
+    local intro_state = flow.curr_state
+    if intro_state.postproc.darkness <= 2 then
 --#endif
+      -- sfx
+      -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
+      self:play_low_priority_sfx(audio.sfx_ids.landing)
+--#if stage_intro
+    end
+--#endif
+
+--#endif
+--(landing_anim)
 
     -- register new ground tile, update slope angle and enter standing state
     self:set_ground_tile_location(air_motion_result.tile_location)

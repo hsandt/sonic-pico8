@@ -81,7 +81,12 @@ describe('stage_intro_state', function ()
         stub(camera_class, "setup_for_stage")
         stub(_G, "reload")
         stub(base_stage_state, "reload_sonic_spritesheet")
-        stub(stage_intro_state, "spawn_player_char")
+        stub(stage_intro_state, "spawn_player_char", function (self)
+          self.player_char = {
+            position = vector(0, 0),
+            warp_to = function () end
+          }
+        end)
         stub(picosonic_app, "start_coroutine")
       end)
 
@@ -111,10 +116,10 @@ describe('stage_intro_state', function ()
       it('should hardcode set loaded_map_region_coords', function ()
         state:on_enter()
 
-        assert.are_equal(vector(0, 1), state.loaded_map_region_coords)
+        assert.are_equal(vector(0, 0), state.loaded_map_region_coords)
       end)
 
-      it('should call reload for stage tiles, Sonic main sprites (general memory storage) and stage1, map 01 (hardcoded)', function ()
+      it('should call reload for stage tiles, Sonic main sprites (general memory storage) and stage1, map 00 (hardcoded)', function ()
         state:on_enter()
 
         assert.spy(reload).was_called(2)
@@ -123,7 +128,7 @@ describe('stage_intro_state', function ()
         assert.spy(base_stage_state.reload_sonic_spritesheet).was_called(1)
         assert.spy(base_stage_state.reload_sonic_spritesheet).was_called_with(match.ref(state))
 
-        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_01.p8")
+        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
       it('should call spawn_player_char', function ()
@@ -310,37 +315,28 @@ describe('stage_intro_state', function ()
 
       -- test various coordinates from negative v with wrapping to no wrapping
 
-      it('(wrapping) should call reload_vertical_half_of_map_region for map 00 and 00 again for region coords (0, -1.5) (swapping)', function ()
-        state:reload_map_region(vector(0, -1.5))
-
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage1_00.p8")
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_00.p8")
-      end)
-
-      it('(wrapping) should call reload for map 00 for region coords (0, -1)', function ()
+      it('(clamping) should call reload for map 00 for region coords (0, -1)', function ()
         state:reload_map_region(vector(0, -1))
 
         assert.spy(reload).was_called(1)
         assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
-      it('(wrapping) should call reload_vertical_half_of_map_region for map 00 and 00 again for region coords (0, -0.5) (swapping)', function ()
+      it('(clamping) should call reload for map 00 for region coords (0, -0.5)', function ()
         state:reload_map_region(vector(0, -0.5))
 
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage1_00.p8")
-        assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_00.p8")
+        assert.spy(reload).was_called(1)
+        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
-      it('(wrapping) should call reload for map 00 for region coords (0, 0)', function ()
+      it('(exact) should call reload for map 00 for region coords (0, 0)', function ()
         state:reload_map_region(vector(0, 0))
 
         assert.spy(reload).was_called(1)
         assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage1_00.p8")
       end)
 
-      it('(no wrapping) should call reload_vertical_half_of_map_region for map 00 and 01 for region coords (0, 0.5)', function ()
+      it('(exact) should call reload_vertical_half_of_map_region for map 00 and 01 for region coords (0, 0.5)', function ()
         state:reload_map_region(vector(0, 0.5))
 
         assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called(2)
@@ -348,7 +344,7 @@ describe('stage_intro_state', function ()
         assert.spy(base_stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage1_01.p8")
       end)
 
-      it('(no wrapping) should call reload for map 01 for region coords (0, 1)', function ()
+      it('(exact) should call reload for map 01 for region coords (0, 1)', function ()
         state:reload_map_region(vector(0, 1))
 
         assert.spy(reload).was_called(1)

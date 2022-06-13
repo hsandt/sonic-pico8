@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.2] - 2022-06-13
+### Added
+- Stage intro: it now shows a full sequence before entering ingame. It follows the Start cinematic played in the title menu, and shows Sonic landing on pico island. It ends with the usual splash screen.
+- Character visual: play landing animation when landing at a speed Y of 3.9 or more (only enabled for Stage intro)
+
+### Changed
+- Character physics: fixed character able to fall below the ground due to "bullet effect" when landing at high speed on the ground (this could happen when jumping from the highest to the lowest platforms in the stage). The terminal velocity on Y is now set to 7 to prevent this (with some safety margin).
+- Stage data/visual: moved waterfall and start position 2 tiles to the right. Adjusted Attract Mode sequence to take this into account.
+- Stage visual: Fixed palm tree left/right top sprite part never being shown by fixing sprite coordinates in visual data for ingame
+
 ## [6.1] - 2021-08-30
 ### Added
 - Start cinematic: when pressing Start in title menu, before loading stage intro, play a full cinematic showing emeralds scattering on the island and Sonic jumping there to hunt them. Can be skipped by pressing either O or X. Ends with fade out either way.

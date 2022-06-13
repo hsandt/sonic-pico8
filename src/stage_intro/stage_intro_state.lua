@@ -571,16 +571,23 @@ function stage_intro_state:skip_intro_and_load_ingame_async()
       --  is already at the correct position
 
       -- warp Sonic immediately down to the ground, and warp camera too
-      -- also set max air y to that new position to avoid landing animation + PFX (soft landing)
+      -- also set speed on y to anything between 0 and landing_anim_min_speed_y (excluded)
+      --  to prevent landing animation + PFX due to fast landing
+      -- here, we chose landing_anim_min_speed_y / 2, but even 0 would work as the 6 frames of wait
+      --  more below are enough to ensure Sonic reaches the ground before fading in again
       self.player_char:warp_to(self.curr_stage_data.spawn_location:to_topleft_position())
       self.camera:init_position(self.player_char.position)
-      self.player_char.max_air_y = self.player_char.position.y
+      self.player_char.velocity.y = pc_data.landing_anim_min_speed_y / 2
 
-      -- Make sure to reload map immediately so ground is ready, otherwise Sonic falls 1 extra frame
-      --  at max air speed y (7px), then next frame once more for a total of 14px which is above
+      -- Before, when we were not reducing Sonic velocity, it was important to call
+      -- self:check_reload_map_region()
+      -- to avoid having Sonic fall through the ground.
+      -- (Explanation: otherwise, Sonic falls 1 extra frame at max air speed y (7px),
+      --  then next frame once more for a total of 14px which is above
       --  max_ground_escape_height and actually falls through the ground.
-      -- With loading, it stops just at 7px, the limit, and lands correctly.
-      self:check_reload_map_region()
+      -- With loading, it stops just at 7px, the limit, and lands correctly.)
+      -- Now, it is not needed anymore because the reduced landing speed ensures that
+      --  region is loaded before Sonic goes too far under the ground.
 
       yield_delay_frames(6)
 

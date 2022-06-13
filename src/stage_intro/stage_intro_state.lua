@@ -550,6 +550,12 @@ function stage_intro_state:skip_intro_and_load_ingame_async()
   --  and do not fade out if we're about to load before fade out could end anyway,
   --  to avoid partial darkness at load time
   if not self.is_fading_in and not self.is_about_to_load then
+
+    -- stop wind looping SFX if any
+    -- (short fade out to avoid pop)
+    -- (does nothing if we've already stopped it)
+    music(-1, 100)
+
     -- fade out
     for i = 1, 5 do
       self.postproc.darkness = i

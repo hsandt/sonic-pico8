@@ -549,10 +549,10 @@ end
 
 -- only for user-requested skip sequence
 function stage_intro_state:skip_intro_and_load_ingame_async()
-  -- do not fade out during fade in to avoid postproc conflict,
-  --  and do not fade out if we're about to load before fade out could end anyway,
+  -- do not skip (with fade out) if already skipping, nor during fade in to avoid postproc conflict,
+  --  and nor if we're about to load before fade out could end anyway,
   --  to avoid partial darkness at load time
-  if not self.is_fading_in and not self.is_about_to_load then
+  if not self.is_skipping and not self.is_fading_in and not self.is_about_to_load then
 
     self.is_skipping = true
 

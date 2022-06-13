@@ -19,8 +19,9 @@ config_plates_dirpath="$HOME/.lexaloffle/pico-8/plates"
 # Configuration: cartridge
 pico8_version=`cat "$data_path/pico8_version.txt"`
 version=`cat "$data_path/version.txt"`
-export_folder="$carts_dirpath/picosonic/v${version}_release"
-cartridge_basename="picosonic_v${version}_release"
+cartridge_stem="picosonic"
+export_folder="$carts_dirpath/${cartridge_stem}/v${version}_release"
+cartridge_basename="${cartridge_stem}_v${version}_release"
 
 # Verify that the export folder is present. This does not guarantee we built and installed all cartridges
 # to carts correctly, but if not present don't even try to export.
@@ -59,7 +60,7 @@ mkdir -p "$p8_folder"
 cp "${export_folder}/"*.p8 "$p8_folder"
 
 # Create a variant of each non-data cartridge for PNG export, that reloads .p8.png instead of .p8
-adapt_for_png_cmd="python3.6 \"$picoboots_scripts_path/adapt_for_png.py\" "${export_folder}/picosonic_*.p8
+adapt_for_png_cmd="python3.6 \"$picoboots_scripts_path/adapt_for_png.py\" "${export_folder}/${cartridge_stem}_*.p8
 echo "> $adapt_for_png_cmd"
 bash -c "$adapt_for_png_cmd"
 
@@ -71,7 +72,7 @@ fi
 
 # Copy custom template to PICO-8 config plates folder as "${cartridge_basename}_template.html"
 # (just to avoid conflicts with other games)
-cp "${picoboots_plates_path}/custom_template.html" "${config_plates_dirpath}/${cartridge_basename}_template.html"
+cp "${picoboots_plates_path}/custom_template.html" "${config_plates_dirpath}/${cartridge_stem}_template.html"
 
 # Export via PICO-8 editor: PNG cartridges, binaries, HTML
 pico8 -x "$game_scripts_path/export_game_release.p8"

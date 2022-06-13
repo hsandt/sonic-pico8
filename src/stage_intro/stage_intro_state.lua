@@ -49,6 +49,9 @@ function stage_intro_state:init()
 
   -- flag to indicate how far we are in the stage intro, and decide whether we can still skip or not
   self.is_about_to_load = false
+
+  -- true if we started skipping sequence
+  self.is_skipping = false
 end
 
 function stage_intro_state:on_enter()
@@ -551,6 +554,8 @@ function stage_intro_state:skip_intro_and_load_ingame_async()
   --  to avoid partial darkness at load time
   if not self.is_fading_in and not self.is_about_to_load then
 
+    self.is_skipping = true
+
     -- stop wind looping SFX if any
     -- (short fade out to avoid pop)
     -- (does nothing if we've already stopped it)
@@ -631,13 +636,17 @@ function stage_intro_state:play_intro_async()
   end
 
   -- we're technically 6 frames after the end of fade in, but it's okay
+  --  what matters is that we only allow skipping from here
   self.is_fading_in = false
 
   -- wait for Sonic to enter leaves area
   yield_delay_frames(90)
 
-  -- play falling through leaves looping SFX as music (replaces wind)
-  music(audio.music_ids.fall_leaves)
+  -- do not play further looping sound if already in skipping sequence
+  if not self.is_skipping then
+    -- play falling through leaves looping SFX as music (replaces wind)
+    music(audio.music_ids.fall_leaves)
+  end
 
   -- wait for Sonic to fall go behind some opaque foreground/midground
   --  so we can switch sprite without player noticing sudden change
@@ -649,14 +658,17 @@ function stage_intro_state:play_intro_async()
   -- wait for Sonic to leave leaves area
   yield_delay_frames(10)
 
-  -- stop looping SFX
+  -- stop looping SFX (if any)
   -- (short fade out to avoid pop)
   music(-1, 100)
 
   yield_delay_frames(110)
 
-  -- show splash screen
-  self:show_stage_splash_async()
+  -- don't start showing splash screen if already in skipping sequence
+  if not self.is_skipping then
+    -- show splash screen
+    self:show_stage_splash_async()
+  end
 
   -- wait 2s
   yield_delay_frames(60*2)
@@ -719,6 +731,14 @@ function stage_intro_state:hide_stage_splash_async()
 
   -- make banner exit to the top
   local banner = self.overlay.drawables_map["banner"]
+
+  if not banner then
+    -- safety return, although in practice, the only way not to have a banner is to
+    --  start skip before it appears, and this async method is played at least 2s after that,
+    --  while skip fade out and load takes ~30 frames, so this would never be reached
+    return
+  end
+
   local banner_text = self.overlay.drawables_map["banner_text"]
   ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 

@@ -666,6 +666,7 @@ end
 --(not attract_mode)
 --#endif
 
+--#ifn stage_intro
 function player_char:force_move_right()
   -- force player to move to the right
   self.control_mode = control_modes.puppet
@@ -673,6 +674,7 @@ function player_char:force_move_right()
   self.jump_intention = false
   self.hold_jump_intention = false
 end
+--#endif
 
 --#if cheat
 
@@ -1421,6 +1423,8 @@ function player_char:update_platformer_motion()
   -- I started working on this before this page appeared though, so the order may not exactly be the same
   -- Nevertheless, it's working quite well.
 
+--#ifn stage_intro
+
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
@@ -1428,8 +1432,6 @@ function player_char:update_platformer_motion()
   --  Releasing down and pressing jump during crouch gives also priority to spin dash.
   --  So checking jump before crouching is the correct order (you need 2 frames to crouch, then spin dash)
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
-    if self.time_left_for_late_jump > 0 then
-    end
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
     self:check_spin_dash()  -- this is exclusive with jumping, so there is no order conflict
   end
@@ -1455,12 +1457,16 @@ function player_char:update_platformer_motion()
     self:check_roll_end()
   end
 
+--#endif
+--(stage_intro)
+
   if self:is_grounded() then
     self:update_platformer_motion_grounded()
   else
     self:update_platformer_motion_airborne()
   end
 
+--#ifn stage_intro
   -- only allow jump preparation for next frame if still grounded,
   --  or started falling recently thanks to late jump feature
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
@@ -1468,6 +1474,8 @@ function player_char:update_platformer_motion()
     end
     self:check_jump_intention()
   end
+--#endif
+--(stage_intro)
 
 --#if ingame
 
@@ -1485,6 +1493,9 @@ function player_char:update_platformer_motion()
 --(ingame)
 --#endif
 end
+
+--#ifn stage_intro
+
 
 -- Check if character wants to crouch (move pure down) or stop crouching (release down or move horizontally).
 -- If crouching and moving fast enough, he will roll.
@@ -1520,6 +1531,9 @@ function player_char:check_roll_end()
     self:enter_motion_state(motion_states.standing)
   end
 end
+
+--#endif
+--(stage_intro)
 
 -- update motion following platformer grounded motion rules
 function player_char:update_platformer_motion_grounded()
@@ -1666,6 +1680,7 @@ function player_char:update_ground_speed()
     -- but it takes fewer characters not to add an extra check... and it shouldn't take much extra CPU
     self:update_ground_run_speed_by_intention()
     self:clamp_ground_speed(previous_ground_speed)
+--#ifn stage_intro
   elseif self.motion_state == motion_states.rolling then
     self:update_ground_speed_by_slope()
     self:update_ground_roll_speed_by_intention()
@@ -1677,6 +1692,8 @@ function player_char:update_ground_speed()
   -- else  -- self.motion_state == motion_states.spin_dashing
     -- do nothing so ground speed is frozen, as in the original game (crouch and spin dash just before
     --  falling down after trying to climb up a slope with not enough momentum to reproduce)
+--#endif
+--(stage_intro)
   end
 end
 
@@ -1857,6 +1874,8 @@ function player_char:update_ground_run_speed_by_intention()
   self.ground_speed = new_ground_speed
 end
 
+--#ifn stage_intro
+
 -- update ground speed while rolling based on current move intention
 function player_char:update_ground_roll_speed_by_intention()
   -- rolling differs from running as we always apply friction
@@ -1880,6 +1899,9 @@ function player_char:update_ground_roll_speed_by_intention()
 
   self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - abs_decel)
 end
+
+--#endif
+--(stage_intro)
 
 -- clamp ground speed to max (standing only, not rolling), or to previous ground speed
 --  in absolute value if it was already above max
@@ -2175,6 +2197,8 @@ function player_char:check_jump()
   return false
 end
 
+--#ifn stage_intro
+
 -- check if player should start spin dash, or charge spin dash further
 function player_char:check_spin_dash()
   if contains({motion_states.crouching, motion_states.spin_dashing}, self.motion_state) then
@@ -2250,6 +2274,9 @@ function player_char:release_spin_dash()
   -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
 end
+
+--#endif
+--(stage_intro)
 
 -- update motion following platformer airborne motion rules
 function player_char:update_platformer_motion_airborne()

@@ -5,9 +5,9 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_stage_intro")
 
--- require visual add-on for ingame (also used for stage_intro), so any require visual_common
---  in this cartridge will get both common data and ingame data
-require("resources/visual_ingame_addon")
+-- require visual add-on for stage_intro, so any require visual_common
+--  in this cartridge will get both common data and stage_intro data
+require("resources/visual_stage_intro_addon")
 
 local itest_manager = require("engine/test/itest_manager")
 

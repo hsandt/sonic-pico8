@@ -3,7 +3,9 @@
 -- below are replaced with their values (as strings), so this file can be skipped)
 
 local memory = {
-  picked_emerald_address = 0x5dff
+  -- emerald picked data is now stored in persistent data (dset/dget),
+  --  so we start at index 0
+  persistent_picked_emerald_index = 0
 }
 
 --(game_constants)

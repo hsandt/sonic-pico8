@@ -32,7 +32,7 @@ Works with PICO-8 0.2.2.
 
 ## Features
 
-Version: 6.0
+Version: 6.2
 
 ### Physics
 
@@ -59,6 +59,7 @@ Version: 6.0
 
 * Title logo, animated background and menu
 * Wait in front of title menu to start the attract mode
+* Full cinematic before starting the stage
 * Zone splash screen on stage start
 * Ingame HUD: list of picked emeralds shown in top-left corner
 * Result screen on stage clear

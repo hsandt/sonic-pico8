@@ -32,8 +32,15 @@ function picosonic_app_base:init()
   gameapp.init(self, fps60)
 end
 
-function picosonic_app_base:on_post_start() -- override
+function picosonic_app_base:on_pre_start() -- override
   extcmd("set_title","Pico Sonic")
+
+--#ifn itest
+  -- cartdata is meant for saving and must only be called once by the program
+  -- itest are not supposed to save anything, and simulate multiple app instances to isolate tests,
+  --  which would cause an error on the second call to cartdata; so exclude this from itest
+  cartdata("komehara_picosonic")
+--#endif
 
   -- disable input auto-repeat (this is to be cleaner, as input module barely uses btnp anyway,
   --  and simply detects state changes using btn; if too many compressed chars, strip that first)

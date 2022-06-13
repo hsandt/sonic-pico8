@@ -35,6 +35,7 @@ install:
   # install lua packages for testing
   - luarocks install busted
   - luarocks install luacov
+  - luarocks install cluacov
 
   # delegate submodule install (for luamin from npm)
   - pico-boots/setup.sh
@@ -43,11 +44,18 @@ before_script:
   # download picotool if needed
   # tool directory is automatically created when added to cache,
   # so it's important to check if the executable itself already exists
+  # also download main archive only if not already in cache
+  # while this means we may miss some latest version of p8tool,
+  # this is fine as it's quite stable for the features we use
+  # and we don't need the latest changes specifically
+  # if you need to clear cache, do it from Travis or just add some rm main.zip
   - |
     if [[ ! -d tool || ! -x tool/picotool-master/p8tool ]]; then
       pushd tool
-      wget https://github.com/dansanderson/picotool/archive/master.zip
-      unzip master.zip
+      if [[ ! -f main.zip ]]; then
+        wget https://github.com/dansanderson/picotool/archive/refs/heads/main.zip
+      fi
+      unzip main.zip
       popd
     fi
   # make a symlink to p8tool in the PATH
@@ -79,8 +87,15 @@ script:
         exit 1
       fi
     done
-  # coverage
-  - bash <(curl -s https://codecov.io/bash)
+  # Lua coverage with codecov, checking file integrity
+  - curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --no-default-keyring --keyring trustedkeys.gpg --import # One-time step
+  - curl -Os https://uploader.codecov.io/latest/linux/codecov
+  - curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
+  - curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
+  - gpgv codecov.SHA256SUM.sig codecov.SHA256SUM
+  - shasum -a 256 -c codecov.SHA256SUM
+  - chmod +x codecov
+  - ./codecov
 
 before_deploy:
   # zip multiple cartridges (including data) into one distributable archive

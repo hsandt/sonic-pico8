@@ -61,7 +61,7 @@ end
 
 -- ground_tile_location     location|nil    location of current ground tile character is on (nil if airborne)
 -- position                 vector          current position (character center "between" pixels)
--- ground_speed             float           current speed along the ground (~px/frame)
+-- ground_speed             float           current speed along the ground (px/frame)
 -- horizontal_control_lock_timer    int     time left before regaining horizontal control after fall/slide off (frames)
 -- velocity                 vector          current velocity in platformer mode (px/frame)
 -- debug_velocity (#cheat)  vector          current velocity in debug mode (m/s)
@@ -89,8 +89,11 @@ end
 -- last_copied_double_row   float           Last sprite double row index copied to spritesheet memory, tracked to avoid copying it every frame
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
+-- landing_anim_timer (#landing_anim)
+--                          int             time left before switching from landing to idle animation. Animation is only played when > 0 (frames)
 
 -- smoke_pfx (#pfx)         pfx             particle system used to render smoke during spin dash charge
+-- landing_pfx_seq (#pfx)   {pfx}           sequence of (2) particle systems used to render smoke during landing animation
 
 -- last_emerald_warp_nb (cheat)     int     number of last emerald character warped to
 -- debug_rays (#debug_character)    {start = vector, direction_vector = vector, distance = number, hit = bool}
@@ -116,6 +119,25 @@ function player_char:init()
     pc_data.spin_dash_dust_max_deviation,
     pc_data.spin_dash_dust_base_max_size,
     player_char.pfx_size_ratio_over_lifetime)
+
+--#if landing_anim
+  -- create sequence of 2 pfx (left and right)
+  self.landing_pfx_seq = {}
+
+  for i=1,2 do
+    add(self.landing_pfx_seq, pfx(pc_data.landing_anim_dust_spawn_period_frames,
+      pc_data.landing_anim_dust_spawn_count,
+      pc_data.landing_anim_dust_lifetime_frames,
+      vector(pc_data.landing_anim_dust_base_init_velocity_x, pc_data.landing_anim_dust_base_init_velocity_y),
+      pc_data.landing_anim_dust_max_deviation,
+      pc_data.landing_anim_dust_base_max_size,
+      player_char.pfx_size_ratio_over_lifetime))
+  end
+
+  -- opposite velocity X for the left pfx
+  self.landing_pfx_seq[1].base_velocity.x = -pc_data.landing_anim_dust_base_init_velocity_x
+--#endif
+
 --#endif
 
 --#if cheat
@@ -181,6 +203,10 @@ function player_char:setup()
 
   self.should_play_spring_jump = false
   self.brake_anim_phase = 0
+
+--#if landing_anim
+  self.landing_anim_timer = 0
+--#endif
 
 --#if debug_character
   self.debug_rays = {}
@@ -464,6 +490,13 @@ function player_char:update()
 
 --#if pfx
   self.smoke_pfx:update()
+--#if landing_anim
+for landing_pfx in all(self.landing_pfx_seq) do
+  landing_pfx:update()
+end
+--(landing_anim)
+--#endif
+--(pfx)
 --#endif
 end
 
@@ -1304,26 +1337,24 @@ function player_char:enter_motion_state(next_motion_state)
     self.position:add_inplace(multiplier * become_compact_qdown_vector)
   end
 
+  -- check for character becoming airborne
+  if was_grounded and not self:is_grounded() then
+    -- put all changes common to falling and air_spin here
+    self.ground_tile_location = nil
+    self.ground_speed = 0
+    self.should_jump = false
+  end
+
   -- update state vars like slope, etc. *after* adjusting center
   --  because center adjustment on fall relies on quadrant *before* falling
   --  (it's is always down after fall anyway)
   -- when landing, we set the slope angle *before* calling this method,
   --  so quadrant is also correct when quadrant_rotated is called
   if next_motion_state == motion_states.falling then
-    -- we have just left the ground without jumping, enter falling state
-    --  and since ground speed is now unused, reset it for clarity
-    self.ground_tile_location = nil
     self:set_slope_angle_with_quadrant(nil)
-    self.ground_speed = 0
-    self.should_jump = false
     -- don't reset brake_anim_phase, Sonic can play brake anim while falling!
   elseif next_motion_state == motion_states.air_spin then
-    -- we have just jumped, enter air_spin state
-    --  and since ground speed is now unused, reset it for clarity
-    self.ground_tile_location = nil
     self:set_slope_angle_with_quadrant(nil, --[[force_upward_sprite:]] true)
-    self.ground_speed = 0
-    self.should_jump = false
     self.should_play_spring_jump = false
   elseif next_motion_state == motion_states.standing then
     if not was_grounded then
@@ -2321,6 +2352,43 @@ function player_char:update_platformer_motion_airborne()
   end
 
   if air_motion_result.is_landing then
+--#if landing_anim
+    -- the only reason we process landing anim before enter_motion_state is that we need to check
+    --  self.velocity which will be reset in enter_motion_state (we could also store velocity before
+    --  landing locally, then check it after enter_motion_state)
+
+    -- check if fall height (max air y to landing y difference)
+    --  allows to play landing animation
+    if self.quadrant == directions.down and self.velocity.y >= pc_data.landing_anim_min_speed_y then
+--#if stage_intro
+--[[#pico8
+      -- stage intro has a longer landing animation
+      self.landing_anim_timer = 240
+--#pico8]]
+--#else
+      self.landing_anim_timer = pc_data.landing_anim_duration
+--#endif
+
+--#if pfx
+      local curr_stage_state = flow.curr_state
+      curr_stage_state.app:start_coroutine(self.burst_landing_pfx, self)
+--#endif
+    end
+
+--#if stage_intro
+    local intro_state = flow.curr_state
+    if intro_state.postproc.darkness <= 2 then
+--#endif
+      -- sfx
+      -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
+      self:play_low_priority_sfx(audio.sfx_ids.landing)
+--#if stage_intro
+    end
+--#endif
+
+--#endif
+--(landing_anim)
+
     -- register new ground tile, update slope angle and enter standing state
     self:set_ground_tile_location(air_motion_result.tile_location)
     self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
@@ -2334,6 +2402,21 @@ function player_char:update_platformer_motion_airborne()
   log("self.position: "..self.position, "trace")
   log("self.velocity: "..self.velocity, "trace")
 end
+
+--#if pfx
+function player_char:burst_landing_pfx()
+  -- to simulate a burst, do a start quickly followed by a stop
+  -- spawn the left pfx slightly more on the left, right on the right
+  self.landing_pfx_seq[1]:start(self.position + vector(0, 7))
+  self.landing_pfx_seq[2]:start(self.position + vector(0, 7))
+
+  yield_delay_frames(10)
+
+  for landing_pfx in all(self.landing_pfx_seq) do
+    landing_pfx:stop()
+  end
+end
+--#endif
 
 -- check if character can and wants to interrupt jump by not holding anymore,
 --  and set vertical speed to interrupt speed if so
@@ -2708,6 +2791,14 @@ end
 
 -- play appropriate sprite animation based on current state
 function player_char:check_play_anim()
+--#if landing_anim
+  -- consume landing anim timer now
+  -- this is because we may return in the blocks below, so it's easier
+  --  to just stop landing anim by default, then keep it running if needed
+  local old_landing_anim_timer = self.landing_anim_timer
+  self.landing_anim_timer = 0
+--#endif
+
   -- brake anims can be played during standing but also falling, so make a global check
   --  giving priority to them
   if self.brake_anim_phase == 1 then
@@ -2740,6 +2831,24 @@ function player_char:check_play_anim()
   end
 
   if self.motion_state == motion_states.standing then
+--#if landing_anim
+    if old_landing_anim_timer > 0 then
+      -- stop landing anim as soon as player tries to move, or character reaches a certain speed due to
+      --  momentum and/or slope
+      -- note that we didn't check ground speed when initially setting landing_anim_timer,
+      --  so character may have a very big landing speed and checking it here is important
+      --  to avoid crazy sliding with landing pose
+      if self.move_intention.x == 0 and abs(self.ground_speed) <= pc_data.landing_anim_max_ground_speed then
+        -- conditions to continue landing anim are verified, restore timer, decremented
+        -- 'check_play_anim' sounds like an idempotent method, but we know it is called once per frame,
+        --  so it is safe to update timer here
+        self.landing_anim_timer = old_landing_anim_timer - 1
+        self:update_sprite_row_and_play_sprite_animation("landing")
+        return
+      end
+    end
+--#endif
+
     -- update ground animation based on speed
     if self.ground_speed == 0 then
       self:update_sprite_row_and_play_sprite_animation("idle")
@@ -2754,10 +2863,13 @@ function player_char:check_play_anim()
       end
     end
   elseif self.motion_state == motion_states.falling then
+--#ifn stage_intro
     -- stop spring jump anim when falling down again
+    -- skip in stage intro where we actually want to play this anim while falling down
     if self.should_play_spring_jump and self.velocity.y > 0 then
       self.should_play_spring_jump = false
     end
+--#endif
 
     if self.should_play_spring_jump then
       self:update_sprite_row_and_play_sprite_animation("spring_jump")
@@ -2808,6 +2920,9 @@ local sprite_anim_name_to_double_row_index_table = {
   ["crouch"] = 1,
   ["spring_jump"] = 0,
   ["spin_dash"] = 4,
+--#if landing_anim
+  ["landing"] = 4,
+--#endif
 }
 
 -- helper to copy needed sprite (double) row in memory and play animation
@@ -2837,7 +2952,8 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
   -- 1                 0x1000  0x4f00  0x400   Second double row of Sonic sprites (walk cycle 45 degrees, crouch 2 sprites)
   -- 2                 0x1000  0x5300  0x400   Third double row of Sonic sprites (run cycle 0 and 45 degrees)
   -- 3                 0x1000  0x5700  0x400   Fourth double row of Sonic sprites (air spin, brake 3 sprites)
-  -- 4                 0x1000  0x5b00  0x1400  Last 5 Sonic sprites = 10x2 cells located on rows of indices 10-11 (spin dash sprites)
+  -- 4                 0x1000  0x5b00  0x300  Last 6 Sonic sprites = 12x2 cells located on rows of indices 10-11
+  --                                           (5 spin dash sprites, landing sprite)
 
   local anim_name_with_optional_suffix
 
@@ -2874,12 +2990,12 @@ function player_char:update_sprite_row_and_play_sprite_animation(anim_key, from_
     else
       -- special case for spin_dash sprites which, for compactness, are only copied by half lines in general memory,
       --  se we must copy 16 half lines back to runtime spritesheet memory
-      -- spin_dash sprites span over 10 cell lines = 10 * 4 bytes = 40 bytes = 0x28 bytes
-      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x28)
+      -- spin_dash + landing sprites span over 12 cell lines = 12 * 4 bytes = 48 bytes = 0x30 bytes
+      -- reversing the logic from reload_runtime_data, source addresses are chained (+0x30)
       --  while dest addresses leave a gap and skip a full line each time (+0x40)
       for i = 0, 15 do
         -- for spin_dash, start_address = 0x5b00
-        memcpy(0x1000 + i * 0x40, start_address + i * 0x28, 0x28)
+        memcpy(0x1000 + i * 0x40, start_address + i * 0x30, 0x30)
       end
     end
   end
@@ -2910,6 +3026,11 @@ function player_char:render()
   self.anim_spr:render(floored_position, flip_x, false, self.sprite_angle)
 --#if pfx
   self.smoke_pfx:render()
+--#if landing_anim
+  for landing_pfx in all(self.landing_pfx_seq) do
+    landing_pfx:render()
+  end
+--#endif
 --#endif
 end
 
@@ -2986,9 +3107,10 @@ function player_char:debug_print_info()
   -- debug info
   outline.print_with_outline("state: "..self.motion_state, 8, 94, colors.white, colors.black)
   outline.print_with_outline("quadrant: "..tostr(self.quadrant), 8, 100, colors.white, colors.black)
-  outline.print_with_outline("slope: "..tostr(self.slope_angle), 8, 106, colors.white, colors.black)
   outline.print_with_outline("tile: "..(self.ground_tile_location and self.ground_tile_location.i..", "..self.ground_tile_location.j or "[nil]"),
-    68, 106, colors.white, colors.black)
+    68, 100, colors.white, colors.black)
+  outline.print_with_outline("slope: "..tostr(self.slope_angle), 8, 106, colors.white, colors.black)
+  outline.print_with_outline("gspd: "..self.ground_speed, 68, 106, colors.white, colors.black)
   outline.print_with_outline("x: "..self.position.x, 8, 112, colors.white, colors.black)
   outline.print_with_outline("y: "..self.position.y, 8, 118, colors.white, colors.black)
   outline.print_with_outline("vx: "..self.velocity.x, 68, 112, colors.white, colors.black)

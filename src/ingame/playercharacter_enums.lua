@@ -1,3 +1,8 @@
+-- TODO OPTIMIZE CHARS: strip unless #game_constants since these will be substituted
+-- in addition, we now have an automatic namespace constant parsing system,
+--  so can be removed from game_substitute_table.py in exchange for adding this file to
+--  game_constant_module_paths_string in build_single_cartridge.sh
+
 -- enum for character control
 control_modes = {
   human = 1,      -- player controls character

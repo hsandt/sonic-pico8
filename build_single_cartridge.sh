@@ -121,9 +121,11 @@ elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
   symbols='assert,tostring,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
-  # symbols='profiler,debug_menu'
-  # profiler is too heavy right now, cannot build, so use lightweight version
-  symbols='profiler_lightweight,cheat'
+  # for stage intro and others, full profiler fits
+  symbols='profiler,debug_menu'
+  # profiler is too heavy in ingame, cannot build, so use lightweight version
+  # however, Ctrl+P gives even more information without overhead, so prefer this
+  # symbols='profiler_lightweight,cheat'
 elif [[ $config == 'recorder' ]]; then
   symbols='recorder,tostring,log'
 elif [[ $config == 'itest' ]]; then
@@ -173,14 +175,30 @@ else
     builtin_data_suffix="$cartridge_suffix"
   fi
 
+  if [[ $cartridge_suffix == 'stage_intro' ]]; then
+    symbols+=",landing_anim,pfx"
+  fi
+
+  # uncomment to enable landing anim (without pfx)
+  # for ingame (including attract_mode)
+  # currently, it's slightly out of chars budget
+  # if [[ $builtin_data_suffix == 'ingame' ]]; then
+  #   symbols+=",landing_anim"
+  # fi
+
   if [[ "$itest" == true ]]; then
     main_prefix='itest_'
     required_relative_dirpath="itests/${cartridge_suffix}"
     cartridge_extra_suffix='itest_all_'
+    # Do NOT unify itest cartridges: they rely on [[add_require]] injection being done
+    # after ijecting the app into itest_run, and unification dismantles require order,
+    # forgetting exact line positioning and only caring about file dependency order.
+    unify_option=''
   else
     main_prefix=''
     required_relative_dirpath=''
     cartridge_extra_suffix=''
+    unify_option="--unify _${cartridge_suffix}"
   fi
   data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
@@ -191,6 +209,7 @@ ${game_src_path}/data/playercharacter_numerical_data.lua \
 ${game_src_path}/data/stage_clear_data.lua \
 ${game_src_path}/data/stage_common_data.lua \
 ${game_src_path}/resources/audio.lua \
+${game_src_path}/resources/memory.lua \
 ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 
 # Build cartridges without version nor config appended to name
@@ -216,7 +235,7 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
   -r "$game_prebuild_path"                                                \
   -v version="$version"                                                   \
   --minify-level 3                                                        \
-  --unify "_${cartridge_suffix}"
+  $unify_option
 
 if [[ $? -ne 0 ]]; then
   echo ""

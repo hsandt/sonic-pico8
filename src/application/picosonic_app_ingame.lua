@@ -52,7 +52,8 @@ end
 --#endif
 
 function picosonic_app_ingame:on_post_start() -- override (optional)
-  picosonic_app_base.on_post_start(self)
+  -- note: picosonic_app_base now defined on_pre_start only,
+  --  so no base implementation call here
 
   -- Original feature: late jump
   -- Enable by default (see playercharacter_data > late_jump_max_delay)

@@ -11,7 +11,7 @@ local menu_item = require("menu/menu_item")
 local menu = require("menu/menu_with_sfx")
 local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
-local ui_animation = require("ui/ui_animation")
+local ui_animation = require("engine/ui/ui_animation")
 local memory = require("resources/memory")
 local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
@@ -45,14 +45,18 @@ function stage_clear_state.retry_stage_async()
 end
 
 function stage_clear_state.retry_from_zero_async()
-  -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in general memory
-  poke(memory.picked_emerald_address, 0)
+  -- clear picked emeralds data (see stage_state:store_picked_emerald_data) in persistent memory
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dset called before cardata()"
+  dset(memory.persistent_picked_emerald_index, 0)
+--#endif
   stage_clear_state.retry_stage_async()
 end
 
 function stage_clear_state.back_to_titlemenu_async()
-  -- remember to clear picked emerald data, so if we start again from titlemenu we'll also restart from zero
-  poke(memory.picked_emerald_address, 0)
+  -- now picosonic_app_titlemenu:on_pre_start clears picked emerald data in persistent memory,
+  --  so no need to clear it here too
 
   -- zigzag fadeout will also give time to player to hear confirm SFX
   flow.curr_state:zigzag_fade_out_async()
@@ -188,7 +192,7 @@ function stage_clear_state:render()
 end
 
 
--- stage-related methods, simplified versions of stage_state equivalents
+-- stage-related methods, simplified/adapted versions of stage_state equivalents
 
 function stage_clear_state:spawn_goal_plate_at(global_loc)
   -- remember where we found palm tree leaves core tile, to draw extension sprites around later
@@ -229,11 +233,15 @@ end
 -- actual stage clear sequence functions
 
 function stage_clear_state:restore_picked_emerald_data()
-  -- retrieve and store picked emeralds set information from memory stored in ingame before stage clear
-  --  cartridge was loaded
+  -- retrieve and store picked emeralds set information from persistent memory saved during ingame
+  --  before stage clear cartridge was loaded
   -- similar to stage_state:restore_picked_emerald_data, but we don't remove emerald objects
   --  and cache the picked count for assessment
-  local picked_emerald_byte = peek(memory.picked_emerald_address)
+--#ifn itest
+  -- itests do not save (do not call cartdata), so do not call this to avoid error
+  --  "dget called before cardata()"
+  local picked_emerald_byte = dget(memory.persistent_picked_emerald_index)
+--#endif
 
   -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
   for i = 1, 8 do

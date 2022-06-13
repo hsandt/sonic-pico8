@@ -149,8 +149,10 @@ local pc_data = {
   -- Late jump max delay: number of frames after falling off ground while walking during which the character
   --  can still jump.
   -- It comes from modern platformers but was not present in Classic Sonic
-  -- I found it useful for tricky jumps required to get some emeralds,
-  --  but purists may want to disable it, so I added a menuitem for that in picosonic_app_ingame:on_post_start.
+  -- I found it useful for tricky jumps required to get some emeralds.
+  -- It used to be toggable (to play with a closer simulation of the original games),
+  --  but we lacked compressed characters in ingame cartridge, so I removed the menuitem
+  --  to toggle it altogether.
   late_jump_max_delay = 6,
 
   -- absolute vertical speed given by spring bounce (px/frame)

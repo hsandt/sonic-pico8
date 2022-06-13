@@ -298,10 +298,12 @@ local pc_data = {
   brake_anim_min_speed_frame = 2,
 
 --#if landing_anim
-  -- height from which we show landing sprite on landing (px)
-  landing_anim_min_height = 70,
+  -- min vertical falling speed required to trigger landing animation on landing (px/frame)
+  -- value is comes from formula: landing_speed_y = sqrt(2 * gravity_frame2 * landing_anim_min_height)
+  --  where we want landing_anim_min_height = 70 (px)
+  landing_anim_min_speed_y = 3.9,
 
-  -- maximum abs ground speed allowed to play landing animation (px/s)
+  -- maximum abs ground speed allowed to play landing animation (px/frame)
   landing_anim_max_ground_speed = 0.4,
 
   -- duration of landing anim if uninterrupted (player character doesn't move) (frames)

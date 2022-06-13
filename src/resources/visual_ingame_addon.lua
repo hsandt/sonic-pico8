@@ -15,7 +15,7 @@ local ingame_sprite_data_t = transform(
     -- left side is a mirror of right side, and must be placed just on the left of the core
     -- no multicolor transparency right now, but if you add sprites on the top-left of the palm tree leaves for compactness on the spritesheet,
     --  you can, but they must have no common colors with the leaves, and you must add all of their unique colors to the transparency list {color1, color2, ...}
-    palm_tree_leaves_right              = {   13, 12,    3, 4,    0, 16},
+    palm_tree_leaves_right              = {   13, 11,    3, 5,    0, 24},
 
     -- RUNTIME SPRITES (stage-specific and common runtime)
     -- below need runtime sprites to be reloaded, overwriting collision masks

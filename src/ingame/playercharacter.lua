@@ -61,7 +61,7 @@ end
 
 -- ground_tile_location     location|nil    location of current ground tile character is on (nil if airborne)
 -- position                 vector          current position (character center "between" pixels)
--- ground_speed             float           current speed along the ground (~px/frame)
+-- ground_speed             float           current speed along the ground (px/frame)
 -- horizontal_control_lock_timer    int     time left before regaining horizontal control after fall/slide off (frames)
 -- velocity                 vector          current velocity in platformer mode (px/frame)
 -- debug_velocity (#cheat)  vector          current velocity in debug mode (m/s)
@@ -89,8 +89,6 @@ end
 -- last_copied_double_row   float           Last sprite double row index copied to spritesheet memory, tracked to avoid copying it every frame
 -- should_play_spring_jump  bool            Set to true when sent upward in the air thanks to spring, and not falling down yet
 -- brake_anim_phase         int             0: no braking anim. 1: brake start. 2: brake reverse.
--- max_air_y (#landing_anim)
---                          float           maximum y reached while airborne (ignored if grounded). Used to check if we should play landing animation.
 -- landing_anim_timer (#landing_anim)
 --                          int             time left before switching from landing to idle animation. Animation is only played when > 0 (frames)
 
@@ -207,7 +205,6 @@ function player_char:setup()
   self.brake_anim_phase = 0
 
 --#if landing_anim
-  -- self.max_air_y = nil  -- commented out to spare characters
   self.landing_anim_timer = 0
 --#endif
 
@@ -1346,10 +1343,6 @@ function player_char:enter_motion_state(next_motion_state)
     self.ground_tile_location = nil
     self.ground_speed = 0
     self.should_jump = false
-
---#if landing_anim
-    self.max_air_y = self.position.y
---#endif
   end
 
   -- update state vars like slope, etc. *after* adjusting center
@@ -2359,20 +2352,14 @@ function player_char:update_platformer_motion_airborne()
   end
 
   if air_motion_result.is_landing then
-    -- register new ground tile, update slope angle and enter standing state
-    self:set_ground_tile_location(air_motion_result.tile_location)
-    self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
-    -- always stand on ground, if we want to roll we'll switch to rolling on next frame
-    self:enter_motion_state(motion_states.standing)
-
-    -- with the new big step method and reliable escape, the second call to
-    --  check_escape_from_ground here is now unneeded
-
 --#if landing_anim
+    -- the only reason we process landing anim before enter_motion_state is that we need to check
+    --  self.velocity which will be reset in enter_motion_state (we could also store velocity before
+    --  landing locally, then check it after enter_motion_state)
+
     -- check if fall height (max air y to landing y difference)
     --  allows to play landing animation
-    assert(self.max_air_y, "player_char:update_platformer_motion_airborne: max_air_y is not set, yet we are airborne")
-    if self.quadrant == directions.down and self.position.y - self.max_air_y >= pc_data.landing_anim_min_height then
+    if self.quadrant == directions.down and self.velocity.y >= pc_data.landing_anim_min_speed_y then
 --#if stage_intro
 --[[#pico8
       -- stage intro has a longer landing animation
@@ -2388,14 +2375,28 @@ function player_char:update_platformer_motion_airborne()
 --#endif
     end
 
-    -- sfx
-    -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
-    self:play_low_priority_sfx(audio.sfx_ids.landing)
-  else
-    -- record highest altitude in the air
-    -- y is downward positive, so keep min
-    self.max_air_y = min(self.max_air_y, self.position.y)
+--#if stage_intro
+    local intro_state = flow.curr_state
+    if intro_state.postproc.darkness <= 2 then
 --#endif
+      -- sfx
+      -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
+      self:play_low_priority_sfx(audio.sfx_ids.landing)
+--#if stage_intro
+    end
+--#endif
+
+--#endif
+--(landing_anim)
+
+    -- register new ground tile, update slope angle and enter standing state
+    self:set_ground_tile_location(air_motion_result.tile_location)
+    self:set_slope_angle_with_quadrant(air_motion_result.slope_angle)
+    -- always stand on ground, if we want to roll we'll switch to rolling on next frame
+    self:enter_motion_state(motion_states.standing)
+
+    -- with the new big step method and reliable escape, the second call to
+    --  check_escape_from_ground here is now unneeded
   end
 
   log("self.position: "..self.position, "trace")

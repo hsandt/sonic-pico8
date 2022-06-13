@@ -32,7 +32,7 @@ Works with PICO-8 0.2.2.
 
 ## Features
 
-Version: 6.0
+Version: 6.2
 
 ### Physics
 

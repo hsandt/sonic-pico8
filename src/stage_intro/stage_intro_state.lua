@@ -1,3 +1,4 @@
+local input = require("engine/input/input")
 local postprocess = require("engine/render/postprocess")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
@@ -44,6 +45,13 @@ function stage_intro_state:init()
 
   self.overlay = overlay()
   self.postproc = postprocess()
+  self.is_fading_in = true  -- start at true immediately to avoid trying to fade out on first frame
+
+  -- flag to indicate how far we are in the stage intro, and decide whether we can still skip or not
+  self.is_about_to_load = false
+
+  -- true if we started skipping sequence
+  self.is_skipping = false
 end
 
 function stage_intro_state:on_enter()
@@ -127,6 +135,11 @@ function stage_intro_state:update()
   self.player_char:update()
   self.camera:update()
   self:check_reload_map_region()
+
+  if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
+    -- skip sequence
+    self.app:start_coroutine(self.skip_intro_and_load_ingame_async, self)
+  end
 end
 
 function stage_intro_state:render()
@@ -140,6 +153,12 @@ function stage_intro_state:render()
   -- note that postproc is applied at the end, no matter where this is called
   -- fortunately, overlay is now shown after fade-in, so it doesn't matter
   self.postproc:apply()
+
+--#if debug_character
+  if self.player_char then
+    self.player_char:debug_print_info()
+  end
+--#endif
 end
 
 local cloud_offsets = {
@@ -525,40 +544,75 @@ function stage_intro_state:set_camera_with_origin(origin)
   camera(camera_topleft.x, camera_topleft.y)
 end
 
-function stage_intro_state:spawn_palm_tree_leaves_at(global_loc)
-  -- remember where we found palm tree leaves core tile, to draw extension sprites around later
-  add(self.palm_tree_leaves_core_global_locations, global_loc)
-  log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
-end
-
--- iterate over each tile of the current region
---  and apply method callback for each of them (to spawn objects, etc.)
---  the method callback but take self, a global tile location and the sprite id at this location
-function stage_intro_state:scan_current_region_to_spawn_objects()
-  for i = 0, map_region_tile_width - 1 do
-    for j = 0, map_region_tile_height - 1 do
-      -- here we already have region (i, j), so no need to convert for mget
-      local tile_sprite_id = mget(i, j)
-
-      -- there is only one object type we are interested in, the goal plate,
-      --  so check it manually instead of using a table of spawn callbacks as in stage_state
-      if tile_sprite_id == visual_ingame_data.palm_tree_leaves_core_id then
-        -- tile has been recognized as a representative tile for object spawning
-        --  apply callback now
-
-        -- we do need to convert location now since spawn methods work in global coordinates
-        local region_loc = location(i, j)
-        -- hardcoded region 00, so:
-        -- local global_loc = region_loc + location(0, 0)
-        --  so just pass region_loc
-        self:spawn_palm_tree_leaves_at(region_loc)
-      end
-    end
-  end
-end
-
 
 -- async sequences
+
+-- only for user-requested skip sequence
+function stage_intro_state:skip_intro_and_load_ingame_async()
+  -- do not skip (with fade out) if already skipping, nor during fade in to avoid postproc conflict,
+  --  and nor if we're about to load before fade out could end anyway,
+  --  to avoid partial darkness at load time
+  if not self.is_skipping and not self.is_fading_in and not self.is_about_to_load then
+
+    self.is_skipping = true
+
+    -- stop wind looping SFX if any
+    -- (short fade out to avoid pop)
+    -- (does nothing if we've already stopped it)
+    music(-1, 100)
+
+    -- fade out
+    for i = 1, 5 do
+      self.postproc.darkness = i
+      yield_delay_frames(6)
+    end
+
+    -- If Sonic has already landed (before or during the fade out above),
+    --  we should warp it to the ground with no landing animation,
+    --  then fade in again so player understands what happened before getting into ingame and to avoid
+    --  clash of brightness on ingame cartridge load.
+    -- Otherwise, don't bother, as we will see Sonic land right before fade out finishes (worst case,
+    --  exactly on fade out frame so technically player won't see it, but okay), which is enough
+    --  to understand (plus, Sonic would be in his landing pose + PFX already, which is more complicated
+    --  to cancel). We will have a sudden brightness change on ingame cartridge load, but skipping
+    --  stage intro at the last moment is rare enough that we can tolerate this.
+    if self.player_char.motion_state ~= motion_states.standing then
+      -- to avoid a clash when loading ingame cartridge, we warp Sonic to the ground and
+      --  fade in already, so the darkness doesn't suddenly change after load, and Sonic
+      --  is already at the correct position
+
+      -- warp Sonic immediately down to the ground, and warp camera too
+      -- also set speed on y to anything between 0 and landing_anim_min_speed_y (excluded)
+      --  to prevent landing animation + PFX due to fast landing
+      -- here, we chose landing_anim_min_speed_y / 2, but even 0 would work as the 6 frames of wait
+      --  more below are enough to ensure Sonic reaches the ground before fading in again
+      self.player_char:warp_to(self.curr_stage_data.spawn_location:to_topleft_position())
+      self.camera:init_position(self.player_char.position)
+      self.player_char.velocity.y = pc_data.landing_anim_min_speed_y / 2
+
+      -- Before, when we were not reducing Sonic velocity, it was important to call
+      -- self:check_reload_map_region()
+      -- to avoid having Sonic fall through the ground.
+      -- (Explanation: otherwise, Sonic falls 1 extra frame at max air speed y (7px),
+      --  then next frame once more for a total of 14px which is above
+      --  max_ground_escape_height and actually falls through the ground.
+      -- With loading, it stops just at 7px, the limit, and lands correctly.)
+      -- Now, it is not needed anymore because the reduced landing speed ensures that
+      --  region is loaded before Sonic goes too far under the ground.
+
+      yield_delay_frames(6)
+
+      -- fade in
+      for i = 4, 0, -1 do
+        self.postproc.darkness = i
+        yield_delay_frames(6)
+      end
+    end
+
+    -- prefer passing basename for compatibility with .p8.png
+    load('picosonic_ingame')
+  end
+end
 
 function stage_intro_state:play_intro_async()
   -- start with black screen
@@ -570,19 +624,10 @@ function stage_intro_state:play_intro_async()
   -- force enter air spin without trigerring an actual jump, just to play the spin animation
   self.player_char:enter_motion_state(motion_states.air_spin)
 
-  -- self:check_reload_map_region() will be called on next update since coroutines are updated
-  --  after state in gameapp:step(), so wait at least 1 frame
-  yield_delay_frames(1)
-
-  -- we still need to reload map region hardcoded to 00,
-  --  and spawn objects just there (basically just spawn the palm trees)
-  -- it's very important that we reloaded map region at this point!
-  self:scan_current_region_to_spawn_objects()
-
   -- play falling wind looping SFX as music
   music(audio.music_ids.fall_wind)
 
-  yield_delay_frames(30)
+  yield_delay_frames(31)
 
   -- fade in
   for i = 4, 0, -1 do
@@ -590,11 +635,18 @@ function stage_intro_state:play_intro_async()
     yield_delay_frames(6)
   end
 
+  -- we're technically 6 frames after the end of fade in, but it's okay
+  --  what matters is that we only allow skipping from here
+  self.is_fading_in = false
+
   -- wait for Sonic to enter leaves area
   yield_delay_frames(90)
 
-  -- play falling through leaves looping SFX as music (replaces wind)
-  music(audio.music_ids.fall_leaves)
+  -- do not play further looping sound if already in skipping sequence
+  if not self.is_skipping then
+    -- play falling through leaves looping SFX as music (replaces wind)
+    music(audio.music_ids.fall_leaves)
+  end
 
   -- wait for Sonic to fall go behind some opaque foreground/midground
   --  so we can switch sprite without player noticing sudden change
@@ -606,22 +658,40 @@ function stage_intro_state:play_intro_async()
   -- wait for Sonic to leave leaves area
   yield_delay_frames(10)
 
-  -- stop looping SFX
+  -- stop looping SFX (if any)
   -- (short fade out to avoid pop)
   music(-1, 100)
 
-  -- wait for fall to end
-  yield_delay_frames(60*2 - 10)
+  yield_delay_frames(110)
 
-  -- show splash screen
-  self:show_stage_splash_async()
+  -- don't start showing splash screen if already in skipping sequence
+  if not self.is_skipping then
+    -- show splash screen
+    self:show_stage_splash_async()
+  end
 
+  -- wait 2s
   yield_delay_frames(60*2)
 
   -- hide splash as Sonic is still falling
   self:hide_stage_splash_async()
 
-  yield_delay_frames(60*1)
+  -- see skip_intro_and_load_ingame_async, we have 2 fades, each takes 5 iterations of 6 frames
+  --  (the last frame has no darkness but we count it in to simplify)
+  local fade_out_in_duration = 60  -- 2 * 6 * 5
+
+  -- subtract duration of fade out from time remaining
+  -- of course, in this particular case, we wait 0 frames which does nothing,
+  --  but we keep the general formula in case fade_out_in_duration becomes less than
+  --  that delay before load of 60 frames (if it becomes more, then we must set
+  --  is_about_to_load flag to true before hide_stage_splash_async call)
+  yield_delay_frames(60 - fade_out_in_duration)
+
+  -- from this point, there is not enough time to complete fade out, we are about to load
+  self.is_about_to_load = true
+
+  -- corresponds to fade out + fade in time
+  yield_delay_frames(fade_out_in_duration)
 
   -- splash is over, load ingame cartridge and give control to player
   -- prefer passing basename for compatibility with .p8.png
@@ -661,6 +731,14 @@ function stage_intro_state:hide_stage_splash_async()
 
   -- make banner exit to the top
   local banner = self.overlay.drawables_map["banner"]
+
+  if not banner then
+    -- safety return, although in practice, the only way not to have a banner is to
+    --  start skip before it appears, and this async method is played at least 2s after that,
+    --  while skip fade out and load takes ~30 frames, so this would never be reached
+    return
+  end
+
   local banner_text = self.overlay.drawables_map["banner_text"]
   ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
 

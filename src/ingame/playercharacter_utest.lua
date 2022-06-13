@@ -150,7 +150,6 @@ describe('player_char', function ()
           false,
           0,
 
-          nil,
           0,
 
           {},  -- debug_character
@@ -192,7 +191,6 @@ describe('player_char', function ()
           pc.should_play_spring_jump,
           pc.brake_anim_phase,
 
-          pc.max_air_y,
           pc.landing_anim_timer,
 
           pc.debug_rays,  -- debug_character
@@ -2836,15 +2834,6 @@ describe('player_char', function ()
 
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called(1)
           assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), nil)
-        end)
-
-        it('(standing -> falling) should initialize max_air_y', function ()
-          -- character starts standing, and becomes falling, just to avoid
-          --  changing compact state which would offset y and make test harder
-          pc.position.y = 12
-          pc:enter_motion_state(motion_states.falling)
-
-          assert.are_equal(12, pc.max_air_y)
         end)
 
         it('should enter passed state: air_spin, reset ground-specific state vars, play spin animation', function ()
@@ -6318,10 +6307,10 @@ describe('player_char', function ()
             assert.spy(player_char.set_slope_angle_with_quadrant).was_called_with(match.ref(pc), 0.5)
           end)
 
-          it('(fall height >= landing_anim_min_height but landing quadrant still up) should NOT initialize landing_anim_timer', function ()
-            -- new position y will be 8, so we must cheat and set max_air_y to
-            --  at least landing_anim_min_height above that
-            pc.max_air_y = 8 - pc_data.landing_anim_min_height
+          it('(fall speed >= landing_anim_min_speed_y but landing quadrant still up) should NOT initialize landing_anim_timer', function ()
+            pc.quadrant = directions.up
+            -- this frame will add gravity acceleration, so subtract it to arrive just at landing_anim_min_speed_y
+            pc.velocity.y = pc_data.landing_anim_min_speed_y - pc_data.gravity_frame2
 
             pc:update_platformer_motion_airborne()
 
@@ -6353,19 +6342,18 @@ describe('player_char', function ()
             player_char.check_air_collisions:clear()
           end)
 
-          it('(landing quadrant down and fall height >= landing_anim_min_height) should initialize landing_anim_timer', function ()
-            -- new position y will be 8, so we must cheat and set max_air_y to
-            --  at least landing_anim_min_height above that
-            pc.max_air_y = 8 - pc_data.landing_anim_min_height
+          it('(landing quadrant down and fall speed >= landing_anim_min_speed_y) should initialize landing_anim_timer', function ()
+            pc.velocity.y = pc_data.landing_anim_min_speed_y
 
             pc:update_platformer_motion_airborne()
 
             assert.are_equal(pc_data.landing_anim_duration, pc.landing_anim_timer)
           end)
 
-          it('(fall height < landing_anim_min_height) should NOT initialize landing_anim_timer', function ()
-            -- fall height just not enough
-            pc.max_air_y = 8 - pc_data.landing_anim_min_height + 0.1
+          it('(fall speed < landing_anim_min_speed_y) should NOT initialize landing_anim_timer', function ()
+            -- fall speed just not enough
+            -- this frame will add gravity acceleration, so subtract it to arrive just at landing_anim_min_speed_y - 0.1
+            pc.velocity.y = pc_data.landing_anim_min_speed_y - 0.1 - pc_data.gravity_frame2
 
             pc:update_platformer_motion_airborne()
 
@@ -6412,39 +6400,6 @@ describe('player_char', function ()
             pc:update_platformer_motion_airborne()
 
             assert.are_equal(0, pc.velocity.x)
-          end)
-
-        end)
-
-        describe('(when check_air_collisions sets position higher upward, is_landing: false)', function ()
-
-          setup(function ()
-
-            stub(player_char, "check_air_collisions", function (self)
-              self.position = vector(0, -10)
-
-              return motion.air_motion_result(
-                nil,
-                false,
-                false,
-                false,
-                nil
-              )
-            end)
-          end)
-
-          teardown(function ()
-            player_char.check_air_collisions:revert()
-          end)
-
-          after_each(function ()
-            player_char.check_air_collisions:clear()
-          end)
-
-          it('should set max_air_y to the new position y', function ()
-            pc:update_platformer_motion_airborne()
-
-            assert.are_equal(-10, pc.max_air_y)
           end)
 
         end)

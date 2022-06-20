@@ -1,8 +1,8 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
--- picosonic gfx-only data: start cinematic
--- by leyn
+-- picosonic gfx-only data:
+-- start cinematic by leyn
 
 -- This data is never used directly by the game, it is instead prebaked into the game by merging
 --  it into the data_stage1_00 cartridge (which only needs its gfx at edit time to visualize tiles anyway,

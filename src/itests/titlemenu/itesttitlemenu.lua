@@ -1,6 +1,48 @@
--- gamestates: titlemenu
+-- gamestates: splash_screen, titlemenu, credits
 local itest_manager = require("engine/test/itest_manager")
 local flow = require("engine/application/flow")
+
+itest_manager:register_itest('#solo player waits on splash screen',
+    {':splash_screen'}, function ()
+
+  -- enter title menu
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':splash_screen')
+  end)
+
+  -- wait a moment to verify that it doesn't crash
+  wait(5.0)
+
+  -- check that we entered titlemenu state automatically
+  final_assert(function ()
+    return flow.curr_state.type == ':titlemenu', "current game state is not ':titlemenu', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
+itest_manager:register_itest('#solo player presses o to skip splash screen',
+    {':splash_screen'}, function ()
+
+  -- enter title menu
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':splash_screen')
+  end)
+
+  -- wait 1 frame
+  wait(1, true)
+
+  -- player presses o to enter the titlemenu immediately
+  short_press(button_ids.o)
+
+  -- wait 1 frame
+  wait(1, true)
+
+  -- check that we are now in the titlemenu state
+  final_assert(function ()
+    return flow.curr_state.type == ':titlemenu', "current game state is not ':titlemenu', has instead type: "..flow.curr_state.type
+  end)
+
+end)
 
 -- we still try to test start game now, because we want to verify that the start cinematic
 --  doesn't silently crash (coroutines tend to do that)

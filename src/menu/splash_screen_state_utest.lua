@@ -7,7 +7,7 @@ describe('splash_screen_state', function ()
 
   describe('(with instance)', function ()
 
-    local fake_app = {}
+    local fake_app = {start_coroutine = function () return 0 end}
     local state
 
     before_each(function ()
@@ -30,11 +30,11 @@ describe('splash_screen_state', function ()
         reload:clear()
       end)
 
-      it('should reload extra gfx for splash screen', function ()
+      it('should reload extra gfx top half for splash screen', function ()
         state:on_enter()
 
         assert.spy(reload).was_called(1)
-        assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_01.p8")
+        assert.spy(reload).was_called_with(0x0, 0x0, 0x1000, "data_stage1_01.p8")
       end)
 
     end)
@@ -44,28 +44,6 @@ describe('splash_screen_state', function ()
     end)
 
     describe('render', function ()
-
-      setup(function ()
-        stub(splash_screen_state, "draw_splash_screen_logo")
-        stub(menu, "draw")
-      end)
-
-      teardown(function ()
-        splash_screen_state.draw_splash_screen_logo:revert()
-        menu.draw:revert()
-      end)
-
-      after_each(function ()
-        splash_screen_state.draw_splash_screen_logo:clear()
-        menu.draw:clear()
-      end)
-
-      it('should draw title', function ()
-        state:render()
-
-        assert.spy(splash_screen_state.draw_splash_screen_logo).was_called(1)
-        assert.spy(splash_screen_state.draw_splash_screen_logo).was_called_with(match.ref(state))
-      end)
 
     end)
 

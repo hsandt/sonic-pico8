@@ -1,5 +1,6 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local postprocess = require("engine/render/postprocess")
 
 local visual = require("resources/visual_common")
 -- we should require titlemenu add-on in main
@@ -12,6 +13,11 @@ splash_screen_state.type = ':splash_screen'
 
 function splash_screen_state:init()
   self.show_logo = false
+
+  self.postproc = postprocess()
+
+  -- to mimic Sonic 2 intro, fade in and out with sahdes of blue
+  self.postproc.use_blue_tint = true
 end
 
 function splash_screen_state:on_enter()
@@ -56,7 +62,27 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   self.app:yield_delay_s(1)
 
+  self:fade_out_async()
+
+  self.app:yield_delay_s(1)
+
   flow:query_gamestate_type(':titlemenu')
+end
+
+-- function splash_screen_state:fade_in_async()
+--   -- fade in (we start from everything black so skip max darkness 5)
+--   for i = 4, 0, -1 do
+--     self.postproc.darkness = i
+--     yield_delay_frames(6)
+--   end
+-- end
+
+function splash_screen_state:fade_out_async()
+  -- fade out
+  for i = 1, 5 do
+    self.postproc.darkness = i
+    yield_delay_frames(6)
+  end
 end
 
 function splash_screen_state:render()
@@ -65,6 +91,8 @@ function splash_screen_state:render()
   if self.show_logo then
     self:draw_splash_screen_logo()
   end
+
+  self.postproc:apply()
 end
 
 function splash_screen_state:draw_splash_screen_logo()

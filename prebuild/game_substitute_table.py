@@ -52,7 +52,11 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
         'spin_dashing': 6,
     },
 
-    # itest_dsl
+    # itest_dsl (keep them both here and in code exceptionally, as they need protected names
+    # to identify itest commands written as strings)
+    # those definitions uses the enum helper so they cannot currently be parsed by extracting them
+    # into an isolated file added to game_constant_module_paths_string in build_single_cartridge.sh
+    # so we still write them manually
 
     'parsable_types': {
         'none':             1,
@@ -91,14 +95,6 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
         'pc_motion_state': 5,
         'pc_slope':        6,
     },
-
-    # memory
-
-    'memory': {
-        # interpreted as 24063 by Python, can reduce compressed chars slightly when passed
-        # as number instead of string
-        'picked_emerald_address': 0x5dff,
-    }
 }
 
 

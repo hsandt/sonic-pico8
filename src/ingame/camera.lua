@@ -326,7 +326,15 @@ function camera_class:update()
 
   -- Y has dynamic clamping so compute it from camera_bottom_limit_margin_keypoints
   local dynamic_bottom_limit = self:get_bottom_limit_at_x(self.position.x)
+--#if stage_intro
+--[[#pico8
+  -- state intro starts very high in the sky, so ignore top clamping (but keep bottom to chain with
+  -- ingame at same camera position)
+  self.position.y = min(self.position.y, dynamic_bottom_limit - screen_height / 2)
+--#pico8]]
+--#else
   self.position.y = mid(screen_height / 2, self.position.y, dynamic_bottom_limit - screen_height / 2)
+--#endif
 end
 
 -- return position with floored coordinates

@@ -20,6 +20,7 @@ local player_char = require("ingame/playercharacter")
 local spring = require("ingame/spring")
 local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -120,7 +121,7 @@ describe('stage_state', function ()
         stub(stage_state, "spawn_objects_in_all_map_regions")
         stub(stage_state, "restore_picked_emerald_data")
         stub(camera_class, "setup_for_stage")
-        stub(stage_state, "check_reload_map_region")
+        stub(base_stage_state, "check_reload_map_region")
       end)
 
       teardown(function ()
@@ -130,7 +131,7 @@ describe('stage_state', function ()
         stage_state.spawn_objects_in_all_map_regions:revert()
         stage_state.restore_picked_emerald_data:revert()
         camera_class.setup_for_stage:revert()
-        stage_state.check_reload_map_region:revert()
+        base_stage_state.check_reload_map_region:revert()
       end)
 
       after_each(function ()
@@ -140,7 +141,7 @@ describe('stage_state', function ()
         stage_state.spawn_objects_in_all_map_regions:clear()
         stage_state.restore_picked_emerald_data:clear()
         camera_class.setup_for_stage:clear()
-        stage_state.check_reload_map_region:clear()
+        base_stage_state.check_reload_map_region:clear()
       end)
 
       before_each(function ()
@@ -196,197 +197,35 @@ describe('stage_state', function ()
 
       setup(function ()
         stub(_G, "reload")
+        stub(base_stage_state, "reload_sonic_spritesheet")
       end)
 
       teardown(function ()
         reload:revert()
+        base_stage_state.reload_sonic_spritesheet:revert()
       end)
 
       after_each(function ()
         reload:clear()
+        base_stage_state.reload_sonic_spritesheet:clear()
       end)
 
-      it('should all stage runtime data copy Sonic sprite variants into general memory for quick runtime reload', function ()
+      it('should copy all stage runtime data and delegate Sonic spritesheet copy', function ()
         state:reload_runtime_data()
 
         -- note that debug_collision_mask adds an extra reload for collision masks,
         --  but we stripped it from busted by surrounding it with #pico8
-        assert.spy(reload).was_called(18)
+        assert.spy(reload).was_called(1)
 
         -- general runtime data
         assert.spy(reload).was_called_with(0x0, 0x0, 0x2000, "data_stage1_ingame.p8")
 
-        -- sprites occupying full rows
-        assert.spy(reload).was_called_with(0x4b00, 0x400, 0x1000, "data_stage_sonic.p8")
-
-        -- spin dash sprites
-        -- just test the first iterations...
-        assert.spy(reload).was_called_with(0x5b00, 0x1400, 0x28, "data_stage_sonic.p8")
-        assert.spy(reload).was_called_with(0x5b28, 0x1440, 0x28, "data_stage_sonic.p8")
+        assert.spy(base_stage_state.reload_sonic_spritesheet).was_called(1)
+        assert.spy(base_stage_state.reload_sonic_spritesheet).was_called_with(match.ref(state))
       end)
 
     end)
 
-    describe('spawn_emerald_at', function ()
-
-      it('should store emerald global location', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-
-        state:spawn_emerald_at(location(128 + 5, 16 + 17))
-
-        assert.are_same({
-          location(128 + 5, 16 + 17),
-        }, state.spawned_emerald_locations)
-      end)
-
-      it('should spawn and store emerald objects for each emerald tile', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-
-        state:spawn_emerald_at(location(128 + 5, 16 + 17))
-
-        assert.are_same({
-          emerald(1, location(128 + 5, 16 + 17)),
-        }, state.emeralds)
-      end)
-
-      it('(no hiding leaves on the right) should not add overlap tile hiding leaves on emerald location', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-
-        state:spawn_emerald_at(location(128 + 5, 16 + 17))
-
-        assert.are_same({}, state.overlap_tiles)
-      end)
-
-      it('(hiding leaves on the right) should add overlap tile hiding leaves on emerald location', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-        -- region coords: place hiding leaves just on right of emerald
-        mset(5 + 1, 17, visual_ingame_data.hiding_leaves_id)
-        state.overlap_tiles = {"dummy"}
-
-        -- '128 +' and '16 +' because region u = 1 and v = 0.5 (we could also write 33 = 32 + 1, but
-        --  16 is the real reference = topleft.j for v = 0.5)
-        state:spawn_emerald_at(location(128 + 5, 16 + 17))
-
-        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual_ingame_data.hiding_leaves_id}}, state.overlap_tiles)
-      end)
-
-    end)
-
-    describe('spawn_palm_tree_leaves', function ()
-
-      it('should spawn and store palm tree leaves core at global location', function ()
-        state:spawn_palm_tree_leaves_at(location(1, 33))
-
-        assert.are_same({
-          location(1, 33),
-        }, state.palm_tree_leaves_core_global_locations)
-      end)
-
-    end)
-
-    describe('spawn_goal_plate_at', function ()
-
-      it('should spawn and store goal plate core at global location', function ()
-        state:spawn_goal_plate_at(location(1, 33))
-
-        assert.are_same(goal_plate(location(1, 33)), state.goal_plate)
-      end)
-
-    end)
-
-    describe('spawn_spring_up_at', function ()
-
-      it('should spawn and store spring up at global location', function ()
-        state:spawn_spring_up_at(location(1, 33))
-
-        assert.are_same({spring(directions.up, location(1, 33))}, state.springs)
-      end)
-
-    end)
-
-    describe('spawn_spring_left_at', function ()
-
-      it('should spawn and store spring left at global location', function ()
-        state:spawn_spring_left_at(location(1, 33))
-
-        assert.are_same({spring(directions.left, location(1, 33))}, state.springs)
-      end)
-
-    end)
-
-    describe('scan_current_region_to_spawn_objects', function ()
-
-      local dummy_callback = spy.new(function (self, global_loc) end)
-
-      setup(function ()
-        stub(stage_state, "get_spawn_object_callback", function (self, tile_id)
-          if tile_id == 21 then
-            return dummy_callback
-          end
-        end)
-      end)
-
-      teardown(function ()
-        stage_state.get_spawn_object_callback:revert()
-      end)
-
-      -- setup is too early, stage state will start afterward in before_each,
-      --  and its on_enter will call scan_current_region_to_spawn_objects, making it hard
-      --  to test in isolation. Hence before_each.
-      before_each(function ()
-        -- we're not using tile_test_data.setup here
-        --  (since objects are checked directly by id, not using collision data)
-        --  so don't use mock_mset
-        mset(1, 1, 21)
-        mset(2, 2, 21)
-        mset(3, 3, 21)
-
-        -- mock stage dimensions, not too big to avoid test too long
-        --  (just 2 regions so we can check that location conversion works)
-        state.curr_stage_data = {
-          tile_width = 128,     -- 1 region per row
-          tile_height = 32 * 2  -- 2 regions per column
-        }
-
-        state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
-      end)
-
-      after_each(function ()
-        dummy_callback:clear()
-
-        pico8:clear_map()
-      end)
-
-      it('should call spawn object callbacks for recognized representative tiles', function ()
-        state:scan_current_region_to_spawn_objects()
-
-        assert.spy(dummy_callback).was_called(3)
-        assert.spy(dummy_callback).was_called_with(match.ref(state), location(1, 1 + 32), 21)
-      end)
-
-    end)
-
-    describe('get_map_region_filename', function ()
-
-      it('stage 2, (1, 0) => "data_stage2_10.p8"', function ()
-        state.curr_stage_id = 2
-        assert.are_equal("data_stage2_10.p8", state:get_map_region_filename(1, 0))
-      end)
-
-    end)
-
-    describe('get_region_grid_dimensions', function ()
-
-      it('should return the number of regions per row, per column"', function ()
-        state.curr_stage_data = {
-          tile_width = 250,     -- not exactly 256 to test ceiling to 2 regions per row
-          tile_height = 32 * 3  -- 3 regions per column
-        }
-
-        assert.are_same({2, 3}, {state:get_region_grid_dimensions()})
-      end)
-
-    end)
 
     describe('get_map_region_coords', function ()
 
@@ -476,6 +315,17 @@ describe('stage_state', function ()
       end)
 
       it('should return (1, 0) in region (1, 0) even when close to top and right edges (limit)', function ()
+        --    |  X
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
+        -- ---+---
+        --    |
+        --    |
+        --    |
         assert.are_equal(vector(1, 0), state:get_map_region_coords(vector(2047, 0)))
       end)
 
@@ -676,156 +526,141 @@ describe('stage_state', function ()
 
     end)
 
-    -- there are currently no utests for:
-    --  - reload_horizontal_half_of_map_region
-    --  - reload_vertical_half_of_map_region
-    --  - reload_quarter_of_map_region
-    -- we could add them, but experience showed that it was easy to mess up addresses
-    --  and that utests would not help a lot with that, so testing in real game is probably best for those
-    -- however utests can still be useful for syntax and trivial error checking
+    describe('spawn_emerald_at', function ()
 
-    describe('reload_map_region', function ()
+      it('should store emerald global location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
 
-      setup(function ()
-        stub(_G, "reload")
-        stub(stage_state, "reload_vertical_half_of_map_region")
-        stub(stage_state, "reload_horizontal_half_of_map_region")
-        stub(stage_state, "reload_quarter_of_map_region")
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({
+          location(128 + 5, 16 + 17),
+        }, state.spawned_emerald_locations)
       end)
 
-      teardown(function ()
-        _G.reload:revert()
-        stage_state.reload_vertical_half_of_map_region:revert()
-        stage_state.reload_horizontal_half_of_map_region:revert()
-        stage_state.reload_quarter_of_map_region:revert()
+      it('should spawn and store emerald objects for each emerald tile', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({
+          emerald(1, location(128 + 5, 16 + 17)),
+        }, state.emeralds)
       end)
 
-      -- on_enter calls check_reload_map_region, so reset count for all reload utility methods
-      before_each(function ()
-        _G.reload:clear()
-        stage_state.reload_vertical_half_of_map_region:clear()
-        stage_state.reload_horizontal_half_of_map_region:clear()
-        stage_state.reload_quarter_of_map_region:clear()
+      it('(no hiding leaves on the right) should not add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
 
-        state.curr_stage_id = 2
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
+
+        assert.are_same({}, state.overlap_tiles)
       end)
 
-      it('should call reload for map 01 for region coords (0, 1)', function ()
-        state:reload_map_region(vector(0, 1))
+      it('(hiding leaves on the right) should add overlap tile hiding leaves on emerald location', function ()
+        state.loaded_map_region_coords = vector(1, 0.5)
+        -- region coords: place hiding leaves just on right of emerald
+        mset(5 + 1, 17, visual_ingame_data.hiding_leaves_id)
+        state.overlap_tiles = {"dummy"}
 
-        assert.spy(reload).was_called(1)
-        assert.spy(reload).was_called_with(0x2000, 0x2000, 0x1000, "data_stage2_01.p8")
-      end)
+        -- '128 +' and '16 +' because region u = 1 and v = 0.5 (we could also write 33 = 32 + 1, but
+        --  16 is the real reference = topleft.j for v = 0.5)
+        state:spawn_emerald_at(location(128 + 5, 16 + 17))
 
-      it('should call reload_vertical_half_of_map_region for map 10 and 11 for region coords (1, 0.5)', function ()
-        state:reload_map_region(vector(1, 0.5))
-
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called(2)
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.up, "data_stage2_10.p8")
-        assert.spy(stage_state.reload_vertical_half_of_map_region).was_called_with(match.ref(state), vertical_dirs.down, "data_stage2_11.p8")
-      end)
-
-      it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-        state:reload_map_region(vector(0.5, 0))
-
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called(2)
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, "data_stage2_00.p8")
-        assert.spy(stage_state.reload_horizontal_half_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, "data_stage2_10.p8")
-      end)
-
-      it('should call reload_horizontal_half_of_map_region for map 00 and 10 for region coords (0.5, 0)', function ()
-        state:reload_map_region(vector(0.5, 0.5))
-
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called(4)
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.up, "data_stage2_00.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.up, "data_stage2_10.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.left, vertical_dirs.down, "data_stage2_01.p8")
-        assert.spy(stage_state.reload_quarter_of_map_region).was_called_with(match.ref(state), horizontal_dirs.right, vertical_dirs.down, "data_stage2_11.p8")
-      end)
-
-      it('should set loaded_map_region_coords to the passed region', function ()
-        state.loaded_map_region_coords = vector(0, 0)
-
-        state:reload_map_region(vector(1, 0.5))
-
-        assert.are_equal(vector(1, 0.5), state.loaded_map_region_coords)
+        assert.are_same({"dummy", {location(128 + 5, 16 + 17), visual_ingame_data.hiding_leaves_id}}, state.overlap_tiles)
       end)
 
     end)
 
-    describe('check_reload_map_region', function ()
+    describe('spawn_palm_tree_leaves', function ()
+
+      it('should spawn and store palm tree leaves core at global location', function ()
+        state:spawn_palm_tree_leaves_at(location(1, 33))
+
+        assert.are_same({
+          location(1, 33),
+        }, state.palm_tree_leaves_core_global_locations)
+      end)
+
+    end)
+
+    describe('spawn_goal_plate_at', function ()
+
+      it('should spawn and store goal plate core at global location', function ()
+        state:spawn_goal_plate_at(location(1, 33))
+
+        assert.are_same(goal_plate(location(1, 33)), state.goal_plate)
+      end)
+
+    end)
+
+    describe('spawn_spring_up_at', function ()
+
+      it('should spawn and store spring up at global location', function ()
+        state:spawn_spring_up_at(location(1, 33))
+
+        assert.are_same({spring(directions.up, location(1, 33))}, state.springs)
+      end)
+
+    end)
+
+    describe('spawn_spring_left_at', function ()
+
+      it('should spawn and store spring left at global location', function ()
+        state:spawn_spring_left_at(location(1, 33))
+
+        assert.are_same({spring(directions.left, location(1, 33))}, state.springs)
+      end)
+
+    end)
+
+    describe('scan_current_region_to_spawn_objects', function ()
+
+      local dummy_callback = spy.new(function (self, global_loc) end)
 
       setup(function ()
-        stub(stage_state, "get_map_region_coords", function (self, position)
-          -- see before_each below
-          if position == vector(200, 64) then
-            return vector(1, 0.5)
+        stub(stage_state, "get_spawn_object_callback", function (self, tile_id)
+          if tile_id == 21 then
+            return dummy_callback
           end
-          return vector(0, 0)
         end)
-        stub(stage_state, "reload_map_region", function (self, new_map_region_coords)
-          -- minimal stub just to change member that must be used by statements below
-          self.loaded_map_region_coords = new_map_region_coords
-        end)
-        stub(_G, "mset")
       end)
 
       teardown(function ()
-        stage_state.get_map_region_coords:revert()
-        stage_state.reload_map_region:revert()
-        mset:revert()
+        stage_state.get_spawn_object_callback:revert()
       end)
 
+      -- setup is too early, stage state will start afterward in before_each,
+      --  and its on_enter will call scan_current_region_to_spawn_objects, making it hard
+      --  to test in isolation. Hence before_each.
       before_each(function ()
-        -- dummy PC so it doesn't error, the stub above really decides of the result
-        state.player_char = {position = vector(0, 0)}
-        -- at least set some camera position used in get_map_region_coords stub
-        --  so we can verify we are passing it correctly
-        state.camera:init_position(vector(200, 64))
+        -- we're not using tile_test_data.setup here
+        --  (since objects are checked directly by id, not using collision data)
+        --  so don't use mock_mset
+        mset(1, 1, 21)
+        mset(2, 2, 21)
+        mset(3, 3, 21)
+
+        -- mock stage dimensions, not too big to avoid test too long
+        --  (just 2 regions so we can check that location conversion works)
+        state.curr_stage_data = {
+          tile_width = 128,     -- 1 region per row
+          tile_height = 32 * 2  -- 2 regions per column
+        }
+
+        state.loaded_map_region_coords = vector(0, 1)  -- will add 32 to each j
       end)
 
       after_each(function ()
-        stage_state.get_map_region_coords:clear()
-        stage_state.reload_map_region:clear()
-        mset:clear()
+        dummy_callback:clear()
+
+        pico8:clear_map()
       end)
 
-      it('should call reload_map_region with (1, 0.5)', function ()
-        state.loaded_map_region_coords = vector(0, 0)
+      it('should call spawn object callbacks for recognized representative tiles', function ()
+        state:scan_current_region_to_spawn_objects()
 
-        state:check_reload_map_region()
-
-        assert.spy(stage_state.reload_map_region).was_called(1)
-        assert.spy(stage_state.reload_map_region).was_called_with(match.ref(state), vector(1, 0.5))
-      end)
-
-      it('should not call reload_map_region with (1, 0.5) if no change occurs', function ()
-        state.loaded_map_region_coords = vector(1, 0.5)
-        state:check_reload_map_region()
-
-        assert.spy(stage_state.reload_map_region).was_not_called()
-      end)
-
-      it('should mset overlap tiles at region coordinates inside current region range', function ()
-        -- note that check_reload_map_region will *move* to region (1, 0.5)
-        state.loaded_map_region_coords = vector(0, 0)
-        state.overlap_tiles = {{location(128 + 5, 16 + 17), 24}}
-
-        state:check_reload_map_region()
-
-        assert.spy(mset).was_called(1)
-        assert.spy(mset).was_called_with(5, 17, 24)
-      end)
-
-      it('should *not* mset overlap tiles at region coordinates outside current region range', function ()
-        -- note that check_reload_map_region will *move* to region (1, 0.5)
-        state.loaded_map_region_coords = vector(0, 0)
-        -- too much on the left! region coords would be (-5, 17) which are outside current map!
-        state.overlap_tiles = {{location(128 - 5, 16 + 17), 24}}
-
-        state:check_reload_map_region()
-
-        assert.spy(mset).was_not_called()
+        assert.spy(dummy_callback).was_called(3)
+        assert.spy(dummy_callback).was_called_with(match.ref(state), location(1, 1 + 32), 21)
       end)
 
     end)
@@ -887,18 +722,18 @@ describe('stage_state', function ()
     end)
 
     -- we stub restore_picked_emerald_data in (stage state entered) region, so test it outside
-    describe('restore_picked_emerald_data', function ()
+    describe('#solo restore_picked_emerald_data', function ()
 
       before_each(function ()
         -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
-        poke(0x5dff, 73)
+        dset(memory.persistent_picked_emerald_index, 73)
       end)
 
       after_each(function ()
-        poke(0x5dff, 0)
+        dset(memory.persistent_picked_emerald_index, 0)
       end)
 
-      it('should read 1 byte in general memory representing picked emeralds bitset', function ()
+      it('should read 1 byte in persistent memory representing picked emeralds bitset', function ()
         state:restore_picked_emerald_data()
 
         assert.are_same({
@@ -916,10 +751,12 @@ describe('stage_state', function ()
         assert.are_same({"dummy2", "dummy3", "dummy5", "dummy6", "dummy8"}, state.emeralds)
       end)
 
-      it('should clear picked emerald transitional memory', function ()
+      it('#solo should clear picked emerald transitional memory', function ()
+        dset(memory.persistent_picked_emerald_index, 73)
+
         state:restore_picked_emerald_data()
 
-        assert.are_equal(0, peek(0x5dff))
+        assert.are_equal(0, dget(memory.persistent_picked_emerald_index))
       end)
 
     end)
@@ -1081,7 +918,7 @@ describe('stage_state', function ()
             -- (alternatively we could spy.on if we don't mind extra work during tests)
             -- in general we should actually avoid relying on complex methods like change_state
             --  in before_each and just manually set the properties we really need on state
-            stub(stage_state, "check_reload_map_region")
+            stub(base_stage_state, "check_reload_map_region")
           end)
 
           after_each(function ()
@@ -1092,7 +929,7 @@ describe('stage_state', function ()
             goal_plate.update:clear()
             camera_class.update:clear()
 
-            stage_state.check_reload_map_region:revert()
+            base_stage_state.check_reload_map_region:revert()
           end)
 
           it('should call fx and character update, check_reached_goal, goal update, camera update, check_reload_map_region', function ()
@@ -1111,8 +948,8 @@ describe('stage_state', function ()
             assert.spy(goal_plate.update).was_called_with(match.ref(state.goal_plate))
             assert.spy(camera_class.update).was_called(1)
             assert.spy(camera_class.update).was_called_with(match.ref(state.camera))
-            assert.spy(stage_state.check_reload_map_region).was_called(1)
-            assert.spy(stage_state.check_reload_map_region).was_called_with(match.ref(state))
+            assert.spy(base_stage_state.check_reload_map_region).was_called(1)
+            assert.spy(base_stage_state.check_reload_map_region).was_called_with(match.ref(state))
           end)
 
           it('should not try to update goal if no goal plate found (safety check for itests)', function ()
@@ -1520,7 +1357,7 @@ describe('stage_state', function ()
 
         describe('store_picked_emerald_data', function ()
 
-          it('should store 1 byte in general memory representing picked emeralds bitset', function ()
+          it('#solo should store 1 byte in general memory representing picked emeralds bitset', function ()
             state.picked_emerald_numbers_set = {
               [1] = true,
               [4] = true,
@@ -1528,7 +1365,7 @@ describe('stage_state', function ()
             }
             -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
             state:store_picked_emerald_data()
-            assert.are_equal(73, peek(0x5dff))
+            assert.are_equal(73, dget(memory.persistent_picked_emerald_index))
           end)
 
         end)

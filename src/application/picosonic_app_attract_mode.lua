@@ -19,7 +19,8 @@ function picosonic_app_attract_mode:instantiate_gamestates() -- override (mandat
 end
 
 function picosonic_app_attract_mode:on_post_start() -- override (optional)
-  picosonic_app_base.on_post_start(self)
+  -- note: picosonic_app_base now defined on_pre_start only,
+  --  so no base implementation call here
 
   -- postprocess for fade-out
   -- usually this is done in gamestate, but attract mode uses the same stage_state
@@ -69,7 +70,6 @@ function picosonic_app_attract_mode:exit_attract_mode_async()
     yield_delay_frames(6)
   end
 
-  printh("load titlemenu!")
   -- prefer passing basename for compatibility with .p8.png
   load('picosonic_titlemenu')
 end
@@ -100,7 +100,7 @@ function picosonic_app_attract_mode:attract_mode_scenario_async()
 
   yield_delay_frames(42)
   pc.move_intention = vector(1, 0)
-  yield_delay_frames(318)
+  yield_delay_frames(313)
   pc.jump_intention = true
   pc.hold_jump_intention = true
   yield_delay_frames(4)

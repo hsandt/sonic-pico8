@@ -111,6 +111,16 @@ local pc_data = {
   --  max distance X = max_air_velocity_x * 60 = 180 (22.5 tiles)
   max_air_velocity_x = 3,  -- 192/64
 
+  -- maximum downward velocity y (px/frame)
+  -- introduced in Sonic CD for longer vertical levels, it seemed unrequired in pico sonic,
+  --  but it turns out jumping from the highest place near the second emerald and the yellow emerald
+  --  is enough to make Sonic fall through the ground due to collision tunnel effect
+  --  (motion during one frame is longer than the max escape distance)
+  -- Sonic CD value is 16, so in PICO-8 scale it should be 8, but since max_ground_escape_height = 7,
+  --  we should use this value instead to prevent any passthrough
+  --  (although experiments showed that 8 is enough, only 9 starts allowing passthrough)
+  max_air_velocity_y = 7,
+
   -- ground speed threshold under which character will fall/slide off when walking at more
   --  than 90 degrees, or lock control when walking on wall under 90 degrees (px/frame)
   ceiling_adherence_min_ground_speed = 1.25,  -- 80/64 = 1 + 16/64
@@ -123,10 +133,6 @@ local pc_data = {
 
   -- duration of horizontal control lock after fall/slide off (frames)
   fall_off_horizontal_control_lock_duration = 30,  -- 0.5s
-
-  -- max air speed (px/frame)
-  --  (very high, probably won't happen unless Sonic falls in bottomless pit)
-  max_air_velocity_y = 32,  -- 2048/64
 
   -- initial variable jump speed (Sonic) (px/frame)
   -- from this and gravity we can deduce the max jump height: 49.921875 (6.2 tiles) at frame 31 (~0.5s)
@@ -143,8 +149,10 @@ local pc_data = {
   -- Late jump max delay: number of frames after falling off ground while walking during which the character
   --  can still jump.
   -- It comes from modern platformers but was not present in Classic Sonic
-  -- I found it useful for tricky jumps required to get some emeralds,
-  --  but purists may want to disable it, so I added a menuitem for that in picosonic_app_ingame:on_post_start.
+  -- I found it useful for tricky jumps required to get some emeralds.
+  -- It used to be toggable (to play with a closer simulation of the original games),
+  --  but we lacked compressed characters in ingame cartridge, so I removed the menuitem
+  --  to toggle it altogether.
   late_jump_max_delay = 6,
 
   -- absolute vertical speed given by spring bounce (px/frame)
@@ -291,6 +299,20 @@ local pc_data = {
   -- speed from which the brake anim is played when decelerating (px/frame)
   brake_anim_min_speed_frame = 2,
 
+--#if landing_anim
+  -- min vertical falling speed required to trigger landing animation on landing (px/frame)
+  -- value is comes from formula: landing_speed_y = sqrt(2 * gravity_frame2 * landing_anim_min_height)
+  --  where we want landing_anim_min_height = 70 (px)
+  landing_anim_min_speed_y = 3.9,
+
+  -- maximum abs ground speed allowed to play landing animation (px/frame)
+  landing_anim_max_ground_speed = 0.4,
+
+  -- duration of landing anim if uninterrupted (player character doesn't move) (frames)
+  -- ! stage_intro uses its own duration in playercharacter:update_platformer_motion_airborne
+  landing_anim_duration = 30,
+--#endif
+
 
   -- pfx
 
@@ -309,11 +331,33 @@ local pc_data = {
   spin_dash_dust_base_init_velocity_x = -0.43,
   spin_dash_dust_base_init_velocity_y = -0.17,
 
-  -- spin dash dust particle spawn period (frames)
+  -- spin dash dust particle max deviation
+  -- used as factor of contribution orthogonal to velocity to determine acceleration (px/frame)
   spin_dash_dust_max_deviation = 0.04,
 
   -- spin dash dust particle spawn period (frames)
   spin_dash_dust_base_max_size = 4.1,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_spawn_period_frames = 0.2,
+
+  -- landing anim single dust particle spawn count every period
+  landing_anim_dust_spawn_count = 4,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_lifetime_frames = 21,
+
+  -- landing anim single dust particle initial velocity (px/frames)
+  -- applied to right side, left side will use opposite velocity X
+  landing_anim_dust_base_init_velocity_x = 0.55,
+  landing_anim_dust_base_init_velocity_y = -0.06,
+
+  -- landing anim single dust particle max deviation
+  -- used as factor of contribution orthogonal to velocity to determine acceleration (px/frame)
+  landing_anim_dust_max_deviation = 0.05,
+
+  -- landing anim single dust particle spawn period (frames)
+  landing_anim_dust_base_max_size = 2.5,
 }
 
 --(game_constants)

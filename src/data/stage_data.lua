@@ -18,7 +18,7 @@ local stage_data = {
     -- ! structs are still accessed by ref in Lua, OK but make sure to always copy
     -- or apply a conversion method, never assign them directly to a variable that may change
     -- note that spawn location -> topleft position so this tile is actually the ground where Sonic will stand
-    spawn_location = location(5, 47),  -- location(5, 32+15),
+    spawn_location = location(7, 47),  -- location(7, 32+15),
 
     -- the x to reach to finish the stage
     -- remove it with new goal soon

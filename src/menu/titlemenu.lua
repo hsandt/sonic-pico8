@@ -92,6 +92,10 @@ local cloud_sprites_per_size_category = {
 -- items                        {menu_item}    sequence of menu items that the menu should display
 
 -- state:
+-- has_reloaded_builtin_gfx     bool            true iff we have already reloaded the builtin gfx (since last splash screen)
+--                                              since the only way to replay the splash screen is to go to attract mode cartridge then
+--                                              back to title menu cartridge, all objects will have been cleared by that point, so
+--                                              no need to clear this field
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
 -- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
@@ -120,6 +124,8 @@ local cloud_sprites_per_size_category = {
 
 -- there are more members during the start cinematic, but they will be created when it starts
 function titlemenu:init()
+  self.has_reloaded_builtin_gfx = false
+
   -- sequence of menu items to display, with their target states
   -- this could be static, but defining in init allows us to avoid
   --  outer scope definition, so we don't need to declare local menu_item
@@ -164,6 +170,16 @@ function titlemenu:on_enter()
   --  screen and that we reload clouds, etc. properly
   reload(0x0, 0x0, 0x2000)
 --#endif
+
+  -- if we haven't reloaded builtin GFX since splash screen, do it now
+  -- checking the flag avoids reloading the GFX every time we come back from
+  --  the credits (although with fast_reload patch, it's not perceptible anyway)
+  if not self.has_reloaded_builtin_gfx then
+    -- copy top half of builtin spritesheet previously stored in general memory
+    --  back into top half of current spritesheet
+    memcpy(0x0, 0x4300, 0x1000)
+    self.has_reloaded_builtin_gfx = true
+  end
 
   self.app:start_coroutine(self.play_opening_music_async, self)
 
@@ -729,10 +745,12 @@ function titlemenu:play_start_cinematic_async()
   --  logo
   -- for now we just use upper sprites, but to simplify just reload the whole spritesheet
   --  (it contains a copy of pico island, so it won't disappear)
-  -- originally:
-  -- reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
-  -- now, we merge start cinematic __gfx__ into data_stage1_00.p8 (overwriting the unused tiles at runtime)
-  --  with install_data_cartridges_with_merging.sh, so:
+
+  -- start cinematic data is stored in extra gfx_start_cinematic.p8 at edit time (not exported),
+  --  and merged into data_stage1_00.p8 (overwriting the tiles gfx, unused at runtime), so instead of:
+  -- reload(0x0, 0x0, 0x2000, "gfx_start_cinematic.p8")
+  --  we must reload full spritesheet from data_stage1_00.p8
+  -- see install_data_cartridges_with_merging.sh
   reload(0x0, 0x0, 0x2000, "data_stage1_00.p8")
 
   -- add drawable clouds high in the sky

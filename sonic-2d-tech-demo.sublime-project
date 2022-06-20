@@ -83,9 +83,15 @@
 			"working_dir": "${project_path}"
 		},
 		{
-			"name": "Game: edit data: start cinematic",
+			"name": "Game: edit data (gfx only): start cinematic",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_start_cinematic.p8"],
+			"cmd": ["pico8 -run data/gfx_start_cinematic.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data (gfx only): splash screen",
+			"shell": true,
+			"cmd": ["pico8 -run data/gfx_splash_screen.p8"],
 			"working_dir": "${project_path}"
 		},
 		{

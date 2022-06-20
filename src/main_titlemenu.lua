@@ -78,7 +78,7 @@ function _init()
   codetuner.active = true
 --#endif
 
-  app.initial_gamestate = ':titlemenu'
+  app.initial_gamestate = ':splash_screen'
   app:start()
 end
 

@@ -1,10 +1,17 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
--- picosonic builtin data: titlemenu
+-- picosonic gfx-only data: start cinematic
 -- by leyn
 
--- Import latest spritesheet. Open data with pico8 -run for it to run automatically on launch.
+-- This data is never used directly by the game, it is instead prebaked into the game by merging
+--  it into the data_stage1_00 cartridge (which only needs its gfx at edit time to visualize tiles anyway,
+--  so its original gfx can be overridden for build)
+-- Note that this file must *not* be named with the "data_" prefix to avoid being copied like other cartridges
+--  in the build pipeline scripts, so we prefer the "gfx_" prefix.
+-- See install_data_cartridges_with_merging.sh
+
+-- Import latest splash screen picture from carts/. Open data with pico8 -run for it to run automatically on launch.
 import "spritesheet_titlemenu_start_cinematic.png"
 
 -- this section will be overwritten during build

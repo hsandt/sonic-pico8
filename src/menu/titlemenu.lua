@@ -409,7 +409,11 @@ function titlemenu:update_fx()
 end
 
 function titlemenu:start_attract_mode()
-    load('picosonic_attract_mode')
+  load('picosonic_attract_mode')
+
+--[[#pico8
+  assert(false, "could not load picosonic_attract_mode, make sure cartridge has been built")
+--#pico8]]
 end
 
 function titlemenu:render()

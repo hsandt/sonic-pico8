@@ -2,10 +2,10 @@ local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local animated_sprite = require("engine/render/animated_sprite")
+local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
-local postprocess = require("engine/render/postprocess")
 -- it's called ingame, but actually shared with menu
 local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
@@ -344,6 +344,11 @@ function titlemenu:update_angle()
   if #self.cinematic_emeralds_on_circle > 0 then
     -- emeralds rotate clockwise, so negative factor for t()
     self.emerald_base_angle = (self.emerald_base_angle - self.emerald_angular_speed) % 1
+
+    -- update all emeralds positions accordingly
+    for num in all(self.cinematic_emeralds_on_circle) do
+      self.emeralds[num].position = self:calculate_emerald_position_on_circle(num)
+    end
   end
 end
 
@@ -436,27 +441,11 @@ function titlemenu:render()
     drawable:draw()
   end
 
+  -- draw all cinematic emeralds
+  -- (this supports brightness and negative brightness aka darkness, only we are not using
+  --  it now as it was a bit too epileptic when trying to mimic the original games' emerald blink)
   for num in all(self.cinematic_emeralds_on_circle) do
-    local draw_position = self:calculate_emerald_position_on_circle(num)
-    -- draw at normal brightness (old, works when brightness > 0 though)
-    -- emerald_common.draw(num, draw_position, self.emeralds[num].brightness)
-    local brightness = self.emeralds[num].brightness
-
-    -- inlined and adapted emerald_cinematic:draw to support brightness < 0 aka darkness...
-    -- it would be better to just change either postprocess table or emerald_common.set_color_palette
-    --  to support both brightness and darkness, but a little late now...
-    if brightness < 0 then
-      local darkness = -brightness
-      local light_color, dark_color = unpack(visual.emerald_colors[num])
-      pal(colors.red, postprocess.swap_palette_by_darkness[light_color][darkness])
-      pal(colors.dark_purple, postprocess.swap_palette_by_darkness[dark_color][darkness])
-    else
-      emerald_common.set_color_palette(num, brightness)
-    end
-
-    visual.sprite_data_t.emerald:render(draw_position, false, false, 0)
-
-    pal()
+    self.emeralds[num]:draw(draw_position)
   end
 
   self:draw_fx()

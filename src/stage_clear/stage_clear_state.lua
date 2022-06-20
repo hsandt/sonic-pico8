@@ -318,7 +318,7 @@ function stage_clear_state:assess_result_async()
   local emerald_text
 
   -- show how many emeralds player got
-  -- "[number]" is has1 character but "all" has 3 characters, and label doesn't support centered text,
+  -- "[number]" is has 1 character but "all" has 3 characters, and label doesn't support centered text,
   --  so adjust manually shorter label to be a little more to the right to center it on screen
   local x_offset = 0
 

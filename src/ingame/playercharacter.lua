@@ -66,7 +66,7 @@ end
 -- velocity                 vector          current velocity in platformer mode (px/frame)
 -- debug_velocity (#cheat)  vector          current velocity in debug mode (m/s)
 -- slope_angle              float           slope angle of the current ground (clockwise turn ratio)
--- late_jump_slope_angle    float           (late jump feature only) slope angle of the last ground
+-- late_jump_slope_angle    float           slope angle of the last ground
 -- ascending_slope_time     float           time before applying full slope factor, when ascending a slope (s)
 -- (#original_slope_features)
 -- spin_dash_rev            float           spin dash charge (aka revving) value (float to allow drag over time)
@@ -77,7 +77,7 @@ end
 -- should_jump              bool            should the character jump when next frame is entered? used to delay variable jump/hop by 1 frame
 -- has_jumped_this_frame    bool            has the character started a jump/hop this frame?
 -- can_interrupt_jump       bool            can the character interrupted his jump once?
--- time_left_for_late_jump  int             (late jump feature only) number of frames left to do a late jump after falling. Initialized on fall, decrement each frame.
+-- time_left_for_late_jump  int             number of frames left to do a late jump after falling. Initialized on fall, decrement each frame.
 
 -- anim_spr                 animated_sprite animated sprite component
 -- anim_run_speed           float           Walk/Run animation playback speed. Reflects ground_speed, but preserves value even when falling.
@@ -289,7 +289,7 @@ function player_char:warp_to(position)
   -- otherwise (even if just touching ground), state will be set to standing
   -- note that unlike running, we never snap down
   -- we could also not set motion state at all, as the next update will detect no ground
-  --  and start character fall if needed (but if late jump feature is enabled, it may allow
+  --  and start character fall if needed (note that with late jump, it may allow
   --  player to oddly jump in the air just after warping)
   self:enter_motion_state(motion_states.falling)
   self:check_escape_from_ground()
@@ -666,6 +666,7 @@ end
 --(not attract_mode)
 --#endif
 
+--#ifn stage_intro
 function player_char:force_move_right()
   -- force player to move to the right
   self.control_mode = control_modes.puppet
@@ -673,6 +674,7 @@ function player_char:force_move_right()
   self.jump_intention = false
   self.hold_jump_intention = false
 end
+--#endif
 
 --#if cheat
 
@@ -1421,6 +1423,8 @@ function player_char:update_platformer_motion()
   -- I started working on this before this page appeared though, so the order may not exactly be the same
   -- Nevertheless, it's working quite well.
 
+--#ifn stage_intro
+
   -- check for jump before apply motion, so character can jump at the beginning of the motion
   --  (as in classic Sonic), but also apply an initial impulse if character starts idle and
   --  left/right is pressed just when jumping (to fix classic Sonic missing a directional input frame there)
@@ -1428,8 +1432,6 @@ function player_char:update_platformer_motion()
   --  Releasing down and pressing jump during crouch gives also priority to spin dash.
   --  So checking jump before crouching is the correct order (you need 2 frames to crouch, then spin dash)
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
-    if self.time_left_for_late_jump > 0 then
-    end
     self:check_jump()  -- this may change the motion state to air_spin and affect branching below
     self:check_spin_dash()  -- this is exclusive with jumping, so there is no order conflict
   end
@@ -1455,19 +1457,25 @@ function player_char:update_platformer_motion()
     self:check_roll_end()
   end
 
+--#endif
+--(stage_intro)
+
   if self:is_grounded() then
     self:update_platformer_motion_grounded()
   else
     self:update_platformer_motion_airborne()
   end
 
+--#ifn stage_intro
   -- only allow jump preparation for next frame if still grounded,
-  --  or started falling recently with late jump feature enabled
+  --  or started falling recently thanks to late jump feature
   if self:is_grounded() or self.time_left_for_late_jump > 0 then
     if self.time_left_for_late_jump > 0 then
     end
     self:check_jump_intention()
   end
+--#endif
+--(stage_intro)
 
 --#if ingame
 
@@ -1485,6 +1493,9 @@ function player_char:update_platformer_motion()
 --(ingame)
 --#endif
 end
+
+--#ifn stage_intro
+
 
 -- Check if character wants to crouch (move pure down) or stop crouching (release down or move horizontally).
 -- If crouching and moving fast enough, he will roll.
@@ -1520,6 +1531,9 @@ function player_char:check_roll_end()
     self:enter_motion_state(motion_states.standing)
   end
 end
+
+--#endif
+--(stage_intro)
 
 -- update motion following platformer grounded motion rules
 function player_char:update_platformer_motion_grounded()
@@ -1597,27 +1611,19 @@ function player_char:update_platformer_motion_grounded()
   if should_fall then
     local new_state
 
-    -- if enabling late jump, track frames after falling naturally from ground (no spring jump, etc. which is
+    -- late jump feature: track frames after falling naturally from ground (no spring jump, etc. which is
     --  done elsewhere in code). This also applies to rolling -> falling with air_spin.
     -- note that it's the only place where we check for the feature. In other places, we keep decrementing the timer
     --  and applying late jump. This is simpler and avoids having a frozen timer that is resumed later in bad places.
---#if normal_mode
-    -- picosonic_app_attract_mode doesn't have get_enable_late_jump_feature, and we want
-    --  the attract mode recording the always play the same way anyway, so just skip the test altogether
-    if flow.curr_state.app.get_enable_late_jump_feature() then
---#endif
-      self.time_left_for_late_jump = pc_data.late_jump_max_delay
+    self.time_left_for_late_jump = pc_data.late_jump_max_delay
 
-      -- track slope angle of current ground before we clear it due to fall/jump
-      --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping
-      --  sends character to tremendous heights)
-      -- this must be called before enter_motion_state so slope_angle is still set!
-      -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
-      --  as we won't be using when not doing late jump
-      self.late_jump_slope_angle = self.slope_angle
---#if normal_mode
-    end
---#endif
+    -- track slope angle of current ground before we clear it due to fall/jump
+    --  so we can do the late jump with the correct angle (otherwise, running off a rising curve + late jumping
+    --  sends character to tremendous heights)
+    -- this must be called before enter_motion_state so slope_angle is still set!
+    -- note that we don't clear it even when time_left_for_late_jump reaches 0 to spare characters,
+    --  as we won't be using when not doing late jump
+    self.late_jump_slope_angle = self.slope_angle
 
     -- in the original game, Sonic keeps crouching and spin dash during fall (possible using crouch slide
     --  or spin dashing on crumbling ground), but you cannot release spin dash during the fall...
@@ -1674,6 +1680,7 @@ function player_char:update_ground_speed()
     -- but it takes fewer characters not to add an extra check... and it shouldn't take much extra CPU
     self:update_ground_run_speed_by_intention()
     self:clamp_ground_speed(previous_ground_speed)
+--#ifn stage_intro
   elseif self.motion_state == motion_states.rolling then
     self:update_ground_speed_by_slope()
     self:update_ground_roll_speed_by_intention()
@@ -1685,6 +1692,8 @@ function player_char:update_ground_speed()
   -- else  -- self.motion_state == motion_states.spin_dashing
     -- do nothing so ground speed is frozen, as in the original game (crouch and spin dash just before
     --  falling down after trying to climb up a slope with not enough momentum to reproduce)
+--#endif
+--(stage_intro)
   end
 end
 
@@ -1865,6 +1874,8 @@ function player_char:update_ground_run_speed_by_intention()
   self.ground_speed = new_ground_speed
 end
 
+--#ifn stage_intro
+
 -- update ground speed while rolling based on current move intention
 function player_char:update_ground_roll_speed_by_intention()
   -- rolling differs from running as we always apply friction
@@ -1888,6 +1899,9 @@ function player_char:update_ground_roll_speed_by_intention()
 
   self.ground_speed = sgn(self.ground_speed) * max(0, abs(self.ground_speed) - abs_decel)
 end
+
+--#endif
+--(stage_intro)
 
 -- clamp ground speed to max (standing only, not rolling), or to previous ground speed
 --  in absolute value if it was already above max
@@ -2183,6 +2197,8 @@ function player_char:check_jump()
   return false
 end
 
+--#ifn stage_intro
+
 -- check if player should start spin dash, or charge spin dash further
 function player_char:check_spin_dash()
   if contains({motion_states.crouching, motion_states.spin_dashing}, self.motion_state) then
@@ -2258,6 +2274,9 @@ function player_char:release_spin_dash()
   -- audio
   self:play_low_priority_sfx(audio.sfx_ids.spin_dash_release)
 end
+
+--#endif
+--(stage_intro)
 
 -- update motion following platformer airborne motion rules
 function player_char:update_platformer_motion_airborne()
@@ -2376,14 +2395,18 @@ function player_char:update_platformer_motion_airborne()
     end
 
 --#if stage_intro
+--[[#pico8
     local intro_state = flow.curr_state
     if intro_state.postproc.darkness <= 2 then
+--#pico8]]
 --#endif
       -- sfx
       -- (currently only used in stage intro, but use low prio sfx in case used for ingame later)
       self:play_low_priority_sfx(audio.sfx_ids.landing)
 --#if stage_intro
+--[[#pico8
     end
+--#pico8]]
 --#endif
 
 --#endif

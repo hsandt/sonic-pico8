@@ -214,9 +214,8 @@ describe('player_char', function ()
       curr_stage_state.loaded_map_region_coords = vector(0, 0)
       flow.curr_state = curr_stage_state
 
-      -- create dummy app just for get_enable_late_jump_feature and start_coroutine
+      -- create dummy app just for start_coroutine
       flow.curr_state.app = {
-        get_enable_late_jump_feature = function () return true end,
         start_coroutine = function () return 0 end
       }
 
@@ -3876,19 +3875,6 @@ describe('player_char', function ()
 
                 assert.are_equal(pc_data.late_jump_max_delay, pc.time_left_for_late_jump)
                 assert.are_equal(0.25, pc.late_jump_slope_angle)
-              end)
-
-              it('(when rolling, for instance, but late jump feature is disabled) should *not* set time_left_for_late_jump nor late_jump_slope_angle', function ()
-                pc.motion_state = motion_states.rolling
-                pc.slope_angle = 0.25
-
-                -- dummy app will be recreated on before_each, so it's OK to change this member
-                flow.curr_state.app.get_enable_late_jump_feature = function () return false end
-
-                pc:update_platformer_motion_grounded()
-
-                assert.are_equal(0, pc.time_left_for_late_jump)
-                assert.are_equal(0, pc.late_jump_slope_angle)
               end)
 
             end)

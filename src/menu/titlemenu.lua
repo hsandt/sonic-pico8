@@ -177,6 +177,7 @@ function titlemenu:on_enter()
   if not self.has_reloaded_builtin_gfx then
     -- copy top half of builtin spritesheet previously stored in general memory
     --  back into top half of current spritesheet
+    -- see splash_screen_state:on_enter
     memcpy(0x0, 0x4300, 0x1000)
     self.has_reloaded_builtin_gfx = true
   end

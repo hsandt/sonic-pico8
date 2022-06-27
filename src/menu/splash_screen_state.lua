@@ -2,6 +2,7 @@ local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local postprocess = require("engine/render/postprocess")
 
+local cinematic_sonic = require("menu/cinematic_sonic")
 local visual = require("resources/visual_common")
 -- we should require titlemenu add-on in main
 
@@ -13,6 +14,7 @@ splash_screen_state.type = ':splash_screen'
 
 function splash_screen_state:init()
   self.show_logo = false
+  self.cinematic_sonic = cinematic_sonic(vector(64, 64))
 
   self.postproc = postprocess()
 
@@ -52,6 +54,7 @@ function splash_screen_state:on_exit()
 end
 
 function splash_screen_state:update()
+  self.cinematic_sonic:update()
 end
 
 function splash_screen_state:play_splash_screen_sequence_async()
@@ -91,6 +94,8 @@ function splash_screen_state:render()
   if self.show_logo then
     self:draw_splash_screen_logo()
   end
+
+  self.cinematic_sonic:draw()
 
   self.postproc:apply()
 end

@@ -70,7 +70,31 @@ local titlemenu_sprite_data_t = {
   -- SPLASH SCREEN GFX ONLY
 
   splash_screen_logo = sprite_data(sprite_id_location(0, 0), tile_vector(12, 4), vector(0, 32), colors.pink),
+
+  -- cinematic sonic sprite data table: extracted just the run sprites from playercharacter_sprite_data.lua
+  --  (note that they are offset by 2 cells up, simply because we only copy the half top of the spritesheet,
+  --  so we need to move them to the half top, see splash_screen_state:on_enter)
+  cinematic_sonic_sprite_data_table = transform(
+    -- anim_name below is not protected since accessed via minified member to define animations more below
+    --anim_name        = sprite_data(
+    --                    id_loc, span = (2, 2), pivot = (8, 8), transparent_color = colors.pink)
+    {
+      run1             = {0,  6},
+      run2             = {2,  6},
+      run3             = {4,  6},
+      run4             = {6,  6},
+    }, function (raw_data)
+      return sprite_data(
+        sprite_id_location(raw_data[1], raw_data[2]),  -- id_loc
+        tile_vector(2, 2),                             -- span
+        vector(8, 8),                                  -- pivot
+        colors.pink                                    -- transparent_color
+      )
+  end)
 }
+
+-- shortcut to define animations more easily
+local cssdt = titlemenu_sprite_data_t.cinematic_sonic_sprite_data_table
 
 local titlemenu_animated_sprite_data_t = {
   tails_plane = {
@@ -97,6 +121,14 @@ local titlemenu_animated_sprite_data_t = {
     5,
     anim_loop_modes.clear
   ),
+
+  cinematic_sonic = {
+    ["run"] = animated_sprite_data(
+        {cssdt.run1, cssdt.run2, cssdt.run3, cssdt.run4},
+        5,  -- step_frames (note that ingame playercharacter adds modifier self.anim_run_speed = abs(self.ground_speed))
+        4   -- anim_loop_modes.loop
+    )
+  }
 }
 
 merge(visual, titlemenu_visual)

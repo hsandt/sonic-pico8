@@ -12,7 +12,12 @@ local splash_screen_state = derived_class(gamestate)
 
 splash_screen_state.type = ':splash_screen'
 
--- parameters data
+
+-- derived numeric data
+
+-- generally it's (0, 0) on the spritesheet, but just in case we move it later, check it out
+local splash_screen_logo_topleft = visual.sprite_data_t.splash_screen_logo.id_loc:to_topleft_position()
+
 
 function splash_screen_state:init()
   self.phase = splash_screen_phase.blank_screen
@@ -127,9 +132,11 @@ end
 function splash_screen_state:render()
   cls(colors.white)
 
-  -- draw speed lines when Sonic has entered screen indeed for given move direction
-  if self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x <= 128 or
-      not self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x > 0 then
+  -- draw speed lines from phase where Sonic moves in one direction until phase where lines in that direction
+  --  fade out; also make sure that Sonic (center) has entered screen so we don't draw unexpected lines
+  --  when there should be none
+  if splash_screen_phase.sonic_moves_left <= self.phase and self.phase <= splash_screen_phase.left_speed_lines_fade_out and self.cinematic_sonic.position.x <= 128 or
+      splash_screen_phase.sonic_moves_right <= self.phase and self.phase <= splash_screen_phase.right_speed_lines_fade_out and self.cinematic_sonic.position.x > 0 then
     self:draw_speed_lines()
   end
 
@@ -157,8 +164,6 @@ local splash_screen_logo_letter_start_x_offsets = {
 
 function splash_screen_state:draw_splash_screen_logo()
   if self.phase == splash_screen_phase.logo_appears_in_white then
-    -- generally it's (0, 0) on the spritesheet, but just in case we move it later, check it out
-    local splash_screen_logo_topleft = visual.sprite_data_t.splash_screen_logo.id_loc:to_topleft_position()
     local letter_start_x_offset = splash_screen_logo_letter_start_x_offsets[self.logo_first_letter_shown_in_white_index1]
     local splash_screen_logo_first_shown_letter_topleft = splash_screen_logo_topleft + vector(letter_start_x_offset, 0)
 
@@ -172,7 +177,25 @@ function splash_screen_state:draw_splash_screen_logo()
       splash_screen_logo_size.x - letter_start_x_offset, splash_screen_logo_size.y,
       letter_start_x_offset + 19, 47)  -- mind 1st empty row of pixels in SAGE sprite, so 47 instead of 48
     pal()
-  elseif self.phase == splash_screen_phase.full_logo then
+  elseif splash_screen_phase.left_speed_lines_fade_out <= self.phase and self.phase <= splash_screen_phase.sonic_moves_right then
+    -- draw every other horizontal line: even lines only
+    -- over 32px (Sonic height is 16px, at scale 2: 32px)
+    -- this must match draw_speed_lines for y coordinates when self.cinematic_sonic.is_going_left is true,
+    --  so it really looks like the left speed lines are leaving marks to shape half of the logo
+    -- since we are working in relative coordinates here, we start at the first even line in absolute coord
+    --  which is in fact y=64-16, but on the logo sprite, it's the first row with actual non-transparent pixels
+    --  at row offset 1 (the top row is empty) -> we still have 16 lines
+    -- remember to draw lines by by one (source height = 1), at the appropriate offset on both source and
+    --  destination
+    palt(colors.pink, true)
+    for offset_y=1,31,2 do
+      sspr(splash_screen_logo_topleft.x, splash_screen_logo_topleft.y + offset_y,
+        splash_screen_logo_size.x, 1,
+        19, 47 + offset_y)  -- mind 1st empty row of pixels in SAGE sprite, so 47 instead of 48
+    end
+    palt()
+  elseif splash_screen_phase.right_speed_lines_fade_out <= self.phase then
+    -- as soon as right lines start fading out, we must draw full logo to as right lines will stop covering it
     visual.sprite_data_t.splash_screen_logo:render(vector(19, 79))
   end
 end
@@ -183,20 +206,30 @@ function splash_screen_state:draw_speed_lines()
 
   local line_start_x
   local line_end_x
+  local line_offset_y
 
+  -- we could check phase:
+  -- if splash_screen_phase.sonic_moves_left <= self.phase and self.phase <= splash_screen_phase.left_speed_lines_fade_out
+  -- but since we've done this already before calling draw_speed_lines, we only need to distinguish left and right,
+  --  so checking is_going_left is simpler
   if self.cinematic_sonic.is_going_left then
-    -- draw every other horizontal line: even lines only
+    -- draw between Sonic and screen right
     line_start_x = self.cinematic_sonic.position.x
     line_end_x = 127
+    -- even lines only
+    line_offset_y = 0
   else
+    -- draw between screen left and Sonic
     line_start_x = 0
     line_end_x = self.cinematic_sonic.position.x - 1
+    -- odd lines only
+    line_offset_y = 1
   end
 
-  -- draw every other horizontal line: even lines only
+  -- draw every other horizontal line: even/odd lines only
   -- over 32px (Sonic height is 16px, at scale 2: 32px)
   for y=64-16,64+14,2 do
-    line(line_start_x, y, line_end_x, y, colors.blue)
+    line(line_start_x, y + line_offset_y, line_end_x, y + line_offset_y, colors.blue)
   end
 end
 

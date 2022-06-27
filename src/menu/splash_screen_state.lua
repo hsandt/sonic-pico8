@@ -101,13 +101,45 @@ function splash_screen_state:render()
     self:draw_splash_screen_logo()
   end
 
-  self.cinematic_sonic:draw()
+  -- draw speed lines when Sonic has entered screen indeed for given move direction
+  if self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x <= 128 or
+      not self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x > 0 then
+    self:draw_speed_lines()
+  end
+
+  -- draw Sonic when inside or partially inside screen
+  if -16 < self.cinematic_sonic.position.x and self.cinematic_sonic.position.x < 128 + 16 then
+    self.cinematic_sonic:draw()
+  end
 
   self.postproc:apply()
 end
 
 function splash_screen_state:draw_splash_screen_logo()
   visual.sprite_data_t.splash_screen_logo:render(vector(19, 79))
+end
+
+function splash_screen_state:draw_speed_lines()
+  -- always draw speed lines from screen edge to Sonic center
+  -- we deduce the back of Sonic from his moving direction
+
+  local line_start_x
+  local line_end_x
+
+  if self.cinematic_sonic.is_going_left then
+    -- draw every other horizontal line: even lines only
+    line_start_x = self.cinematic_sonic.position.x
+    line_end_x = 127
+  else
+    line_start_x = 0
+    line_end_x = self.cinematic_sonic.position.x - 1
+  end
+
+  -- draw every other horizontal line: even lines only
+  -- over 32px (Sonic height is 16px, at scale 2: 32px)
+  for y=64-16,64+14,2 do
+    line(line_start_x, y, line_end_x, y, colors.blue)
+  end
 end
 
 -- export

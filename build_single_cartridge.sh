@@ -203,11 +203,12 @@ else
   data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
 
-# Define list of data module paths, separated by space (Python argparse nargs='*')
+# Define list of data/enum/resources module paths, separated by space (Python argparse nargs='*')
 game_constant_module_paths_string="${game_src_path}/data/camera_data.lua \
 ${game_src_path}/data/playercharacter_numerical_data.lua \
 ${game_src_path}/data/stage_clear_data.lua \
 ${game_src_path}/data/stage_common_data.lua \
+${game_src_path}/menu/splash_screen_phase.lua \
 ${game_src_path}/resources/audio.lua \
 ${game_src_path}/resources/memory.lua \
 ${game_src_path}/resources/visual_ingame_numerical_data.lua"

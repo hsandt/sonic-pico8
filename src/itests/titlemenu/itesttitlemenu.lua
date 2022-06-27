@@ -5,13 +5,13 @@ local flow = require("engine/application/flow")
 itest_manager:register_itest('#solo player waits on splash screen',
     {':splash_screen'}, function ()
 
-  -- enter title menu
+  -- enter splash screen
   setup_callback(function (app)
     flow:change_gamestate_by_type(':splash_screen')
   end)
 
-  -- wait a moment to verify that it doesn't crash
-  wait(5.0)
+  -- wait enough for splash screen to end
+  wait(10.0)
 
   -- check that we entered titlemenu state automatically
   final_assert(function ()
@@ -20,10 +20,10 @@ itest_manager:register_itest('#solo player waits on splash screen',
 
 end)
 
-itest_manager:register_itest('#solo player presses o to skip splash screen',
+itest_manager:register_itest('player presses o to skip splash screen',
     {':splash_screen'}, function ()
 
-  -- enter title menu
+  -- enter splash screen
   setup_callback(function (app)
     flow:change_gamestate_by_type(':splash_screen')
   end)
@@ -46,7 +46,7 @@ end)
 
 -- we still try to test start game now, because we want to verify that the start cinematic
 --  doesn't silently crash (coroutines tend to do that)
-itest_manager:register_itest('#solo player select start, confirm',
+itest_manager:register_itest('player select start, confirm',
     {':titlemenu'}, function ()
 
   -- enter title menu

@@ -4,6 +4,7 @@ local postprocess = require("engine/render/postprocess")
 local ui_animation = require("engine/ui/ui_animation")
 
 local cinematic_sonic = require("menu/cinematic_sonic")
+local splash_screen_phase = require("menu/splash_screen_phase")
 local visual = require("resources/visual_common")
 -- we should require titlemenu add-on in main
 
@@ -14,7 +15,9 @@ splash_screen_state.type = ':splash_screen'
 -- parameters data
 
 function splash_screen_state:init()
-  self.show_logo = false
+  self.phase = splash_screen_phase.blank_screen
+  -- only for phase: logo_appears_in_white
+  self.logo_first_letter_shown_in_white_index1 = 0  -- invalid in Lua
 
   -- drawable cinematic sonic
   -- sonic pivot is at (8, 8), but also shown at scale 2, so add or remove 2*8=16 to place him completely outside screen on start/end of motion
@@ -64,20 +67,47 @@ end
 function splash_screen_state:play_splash_screen_sequence_async()
   self.app:yield_delay_s(1)
 
+  self.phase = splash_screen_phase.sonic_moves_left
+
   -- make Sonic run to the left (default)
   -- sonic pivot is at (8, 8), but also shown at scale 2, so add or remove 2*8=16 to place him completely outside screen on start/end of motion
   ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, 128 + 16, -16, 15)
 
-  yield_delay_frames(30)
+  self.phase = splash_screen_phase.logo_appears_in_white
+  self.logo_first_letter_shown_in_white_index1 = 4  -- start with E
+
+  yield_delay_frames(3)
+  self.logo_first_letter_shown_in_white_index1 = 3  -- show G
+
+  yield_delay_frames(3)
+  self.logo_first_letter_shown_in_white_index1 = 2  -- show A
+
+  yield_delay_frames(3)
+  self.logo_first_letter_shown_in_white_index1 = 1  -- show S
+
+  yield_delay_frames(3)
+
+  self.phase = splash_screen_phase.left_speed_lines_fade_out
+
+  yield_delay_frames(18)
+
+  self.phase = splash_screen_phase.sonic_moves_right
 
   -- make Sonic run to the right
   self.cinematic_sonic.is_going_left = false
   ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, -16, 128 + 16, 15)
 
-  -- show SAGE logo
-  self.show_logo = true
+  yield_delay_frames(12)
+
+  self.phase = splash_screen_phase.right_speed_lines_fade_out
+
+  yield_delay_frames(18)
+
+  self.phase = splash_screen_phase.full_logo
 
   self.app:yield_delay_s(1)
+
+  self.phase = splash_screen_phase.fade_out
 
   self:fade_out_async()
 
@@ -97,15 +127,13 @@ end
 function splash_screen_state:render()
   cls(colors.white)
 
-  if self.show_logo then
-    self:draw_splash_screen_logo()
-  end
-
   -- draw speed lines when Sonic has entered screen indeed for given move direction
   if self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x <= 128 or
       not self.cinematic_sonic.is_going_left and self.cinematic_sonic.position.x > 0 then
     self:draw_speed_lines()
   end
+
+  self:draw_splash_screen_logo()
 
   -- draw Sonic when inside or partially inside screen
   if -16 < self.cinematic_sonic.position.x and self.cinematic_sonic.position.x < 128 + 16 then
@@ -113,10 +141,40 @@ function splash_screen_state:render()
   end
 
   self.postproc:apply()
+
+--#ifn release
+  api.print("phase: "..self.phase, 1, 1, colors.black)
+--#endif
 end
 
+local splash_screen_logo_size = vector(91, 32)
+local splash_screen_logo_letter_start_x_offsets = {
+  0,  -- S
+  21, -- A
+  49, -- G
+  71, -- E
+}
+
 function splash_screen_state:draw_splash_screen_logo()
-  visual.sprite_data_t.splash_screen_logo:render(vector(19, 79))
+  if self.phase == splash_screen_phase.logo_appears_in_white then
+    -- generally it's (0, 0) on the spritesheet, but just in case we move it later, check it out
+    local splash_screen_logo_topleft = visual.sprite_data_t.splash_screen_logo.id_loc:to_topleft_position()
+    local letter_start_x_offset = splash_screen_logo_letter_start_x_offsets[self.logo_first_letter_shown_in_white_index1]
+    local splash_screen_logo_first_shown_letter_topleft = splash_screen_logo_topleft + vector(letter_start_x_offset, 0)
+
+    -- draw letters from first one shown to last one, with appropriate offset
+    palt(colors.pink, true)
+    pal({
+      [colors.light_gray] = colors.white,
+      [colors.blue] = colors.white,
+      })
+    sspr(splash_screen_logo_first_shown_letter_topleft.x, splash_screen_logo_first_shown_letter_topleft.y,
+      splash_screen_logo_size.x - letter_start_x_offset, splash_screen_logo_size.y,
+      letter_start_x_offset + 19, 47)  -- mind 1st empty row of pixels in SAGE sprite, so 47 instead of 48
+    pal()
+  elseif self.phase == splash_screen_phase.full_logo then
+    visual.sprite_data_t.splash_screen_logo:render(vector(19, 79))
+  end
 end
 
 function splash_screen_state:draw_speed_lines()

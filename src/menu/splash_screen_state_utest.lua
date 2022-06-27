@@ -45,6 +45,10 @@ describe('splash_screen_state', function ()
 
     describe('render', function ()
 
+      it('should not crash', function ()
+        state:render()
+      end)
+
     end)
 
   end)  -- (with instance)

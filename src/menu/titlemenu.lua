@@ -6,7 +6,7 @@ local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
--- it's called ingame, but actually shared with menu
+-- it's in ingame folder, but actually shared with menu
 local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")

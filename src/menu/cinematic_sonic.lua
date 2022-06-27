@@ -7,11 +7,14 @@ local visual = require("resources/visual_common")
 -- implements drawable interface {position: vector, draw: function}
 local cinematic_sonic = new_class()
 
--- position     vector        position of the animated sprite on screen
--- anim_spr  animated_sprite  animated sprite
+-- position       vector           position of the animated sprite on screen
+-- is_going_left  bool             true iff sonic is going left
+--                                  (which means we must flip sprite on X)
+-- anim_spr       animated_sprite  animated sprite
 function cinematic_sonic:init(position)
   -- for drawable interface
   self.position = position
+  self.is_going_left = true  -- we know it starts by going left in the splash sequence
 
   self.anim_spr = animated_sprite(visual.animated_sprite_data_t.cinematic_sonic)
   self.anim_spr:play("run")
@@ -32,7 +35,7 @@ end
 -- render the animated sprite at its current location
 function cinematic_sonic:draw()
   -- always draw at scale 2 so it covers "SAGE" logo
-  self.anim_spr:render(self.position, false, false, 0, 2)
+  self.anim_spr:render(self.position, self.is_going_left, false, 0, 2)
 end
 
 return cinematic_sonic

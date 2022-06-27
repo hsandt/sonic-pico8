@@ -1,6 +1,7 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local postprocess = require("engine/render/postprocess")
+local ui_animation = require("engine/ui/ui_animation")
 
 local cinematic_sonic = require("menu/cinematic_sonic")
 local visual = require("resources/visual_common")
@@ -14,7 +15,10 @@ splash_screen_state.type = ':splash_screen'
 
 function splash_screen_state:init()
   self.show_logo = false
-  self.cinematic_sonic = cinematic_sonic(vector(64, 64))
+
+  -- drawable cinematic sonic
+  -- sonic pivot is at (8, 8), but also shown at scale 2, so add or remove 2*8=16 to place him completely outside screen on start/end of motion
+  self.cinematic_sonic = cinematic_sonic(vector(128 + 16, 64))
 
   self.postproc = postprocess()
 
@@ -60,6 +64,16 @@ end
 function splash_screen_state:play_splash_screen_sequence_async()
   self.app:yield_delay_s(1)
 
+  -- make Sonic run to the left (default)
+  -- sonic pivot is at (8, 8), but also shown at scale 2, so add or remove 2*8=16 to place him completely outside screen on start/end of motion
+  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, 128 + 16, -16, 15)
+
+  yield_delay_frames(30)
+
+  -- make Sonic run to the right
+  self.cinematic_sonic.is_going_left = false
+  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, -16, 128 + 16, 15)
+
   -- show SAGE logo
   self.show_logo = true
 
@@ -71,14 +85,6 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   flow:query_gamestate_type(':titlemenu')
 end
-
--- function splash_screen_state:fade_in_async()
---   -- fade in (we start from everything black so skip max darkness 5)
---   for i = 4, 0, -1 do
---     self.postproc.darkness = i
---     yield_delay_frames(6)
---   end
--- end
 
 function splash_screen_state:fade_out_async()
   -- fade out

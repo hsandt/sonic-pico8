@@ -12,9 +12,10 @@ describe('cinematic_sonic', function ()
 
   describe('init', function ()
 
-    it('should create a cinematic sonic with a position on screen, cinematic sonic animated sprite data and playing "run" animation', function ()
+    it('should create a cinematic sonic with a position on screen, cinematic sonic animated sprite data and playing "run" animation to the left', function ()
       local cs = cinematic_sonic(vector(20, 10))
       assert.are_equal(vector(20, 10), cs.position)
+      assert.are_equal(true, cs.is_going_left)
       assert.are_equal(visual.animated_sprite_data_t.cinematic_sonic, cs.anim_spr.data_table)
       assert.are_equal("run", cs.anim_spr.current_anim_key)
     end)
@@ -83,8 +84,19 @@ describe('cinematic_sonic', function ()
       animated_sprite.render:clear()
     end)
 
-    it('should delegate to animated sprite render', function ()
+    it('should delegate to animated sprite render (going left)', function ()
       local cs = cinematic_sonic(vector(20, 10))
+      cs.is_going_left = true
+
+      cs:draw()
+
+      assert.spy(animated_sprite.render).was_called(1)
+      assert.spy(animated_sprite.render).was_called_with(match.ref(cs.anim_spr), vector(20, 10), true, false, 0, 2)
+    end)
+
+    it('should delegate to animated sprite render (going right)', function ()
+      local cs = cinematic_sonic(vector(20, 10))
+      cs.is_going_left = false
 
       cs:draw()
 

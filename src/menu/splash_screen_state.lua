@@ -206,7 +206,7 @@ function splash_screen_state:draw_speed_lines()
 
   local line_start_x
   local line_end_x
-  local line_offset_y
+  local line_fill_pattern
 
   -- we could check phase:
   -- if splash_screen_phase.sonic_moves_left <= self.phase and self.phase <= splash_screen_phase.left_speed_lines_fade_out
@@ -216,21 +216,32 @@ function splash_screen_state:draw_speed_lines()
     -- draw between Sonic and screen right
     line_start_x = self.cinematic_sonic.position.x
     line_end_x = 127
-    -- even lines only
-    line_offset_y = 0
+    -- fill pattern for even lines only (0 for color, 1 for transparent)
+    --     0000
+    --     1111
+    --     0000
+    --     1111
+    -- + 0x0.8 for transparency
+    line_fill_pattern = 0x0f0f.8
   else
     -- draw between screen left and Sonic
     line_start_x = 0
     line_end_x = self.cinematic_sonic.position.x - 1
-    -- odd lines only
-    line_offset_y = 1
+    -- fill pattern for odd lines only (0 for color, 1 for transparent)
+    --     1111
+    --     0000
+    --     1111
+    --     0000
+    -- + 0x0.8 for transparency
+    line_fill_pattern = 0xf0f0.8
   end
 
-  -- draw every other horizontal line: even/odd lines only
-  -- over 32px (Sonic height is 16px, at scale 2: 32px)
-  for y=64-16,64+14,2 do
-    line(line_start_x, y + line_offset_y, line_end_x, y + line_offset_y, colors.blue)
-  end
+  -- set fill pattern to draw alternative lines
+  fillp(line_fill_pattern)
+
+  -- cover y from highest to lowest possible position that needs to be drawn,
+  --  but depending on the pattern, the top-most or bottom-most line may be empty
+  rectfill(line_start_x, 64-16, line_end_x, 64+15, colors.blue)
 end
 
 -- export

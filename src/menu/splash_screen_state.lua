@@ -103,7 +103,7 @@ function splash_screen_state:play_splash_screen_sequence_async()
   self.phase = splash_screen_phase.left_speed_lines_fade_out
   self.speed_lines_fade_out_timer = 0
 
-  yield_delay_frames(18)
+  yield_delay_frames(20)
 
   self.phase = splash_screen_phase.sonic_moves_right
 
@@ -116,7 +116,7 @@ function splash_screen_state:play_splash_screen_sequence_async()
   self.phase = splash_screen_phase.right_speed_lines_fade_out
   self.speed_lines_fade_out_timer = 0
 
-  yield_delay_frames(18)
+  yield_delay_frames(20)
 
   self.phase = splash_screen_phase.full_logo
 
@@ -227,19 +227,23 @@ local speed_line_fill_patterns = {
 }
 
 -- number of frames to reach next step in fading out speed line via fill pattern
--- since speed line fades out lasts 18 frames, and we have 3 (non-empty) patterns, 18/3 = 6 is good
-local duration_frames_per_single_line_pattern = 6
+-- since speed line fade-out lasts 20 frames, and we have 3 (non-empty) patterns + 3rd pattern in gray = 4 phases,
+--  for uniform phase duration, 20/4 = 5 is good
+local duration_frames_per_single_line_pattern = 5
 
-function splash_screen_state:get_speed_line_fill_pattern_index()
+function splash_screen_state:get_speed_line_fill_phase_index()
   if self.speed_lines_fade_out_timer < duration_frames_per_single_line_pattern then
     -- full line
     return 1
   elseif self.speed_lines_fade_out_timer < 2 * duration_frames_per_single_line_pattern then
     -- half line
     return 2
-  else
+  elseif self.speed_lines_fade_out_timer < 3 * duration_frames_per_single_line_pattern then
     -- quarter line
     return 3
+  else
+    -- quarter line in gray
+    return 4
   end
 end
 
@@ -250,10 +254,20 @@ function splash_screen_state:draw_speed_lines()
   local line_start_x
   local line_end_x
   local full_fill_pattern
+  local color_replacement
 
   if self.phase == splash_screen_phase.left_speed_lines_fade_out or self.phase == splash_screen_phase.right_speed_lines_fade_out then
     -- we're in fading phase, check the fading pattern we need now
-    local fill_pattern_index = self:get_speed_line_fill_pattern_index()
+    local fill_phase_index = self:get_speed_line_fill_phase_index()
+
+    -- clamp phase to 3 to get pattern index, since phase 4 reuses pattern 3 but changes color to gray
+    local fill_pattern_index = min(fill_phase_index, 3)
+
+    -- if phase 4, prepare color replacement for an even smoother fading just before line disappears completely
+    if fill_phase_index >= 4 then
+      color_replacement = colors.light_gray
+    end
+
     speed_line_fill_pattern = speed_line_fill_patterns[fill_pattern_index]
   else
     -- Sonic is moving, drawing full lines, so the fill pattern is only to draw only even or odd lines,
@@ -311,9 +325,20 @@ function splash_screen_state:draw_speed_lines()
   -- set fill pattern to draw alternative lines
   fillp(full_fill_pattern)
 
+  if color_replacement then
+    pal(colors.blue, color_replacement)
+  end
+
   -- cover y from highest to lowest possible position that needs to be drawn,
   --  but depending on the pattern, the top-most or bottom-most line may be empty
   rectfill(line_start_x, 64-16, line_end_x, 64+15, colors.blue)
+
+  if color_replacement then
+    pal()
+  end
+
+  -- reset fill pattern or the title menu will be messed up!
+  fillp()
 end
 
 -- export

@@ -51,6 +51,14 @@ describe('splash_screen_state', function ()
 
     end)
 
+    describe('draw_speed_lines', function ()
+
+      it('should not crash', function ()
+        state:draw_speed_lines()
+      end)
+
+    end)
+
   end)  -- (with instance)
 
 end)

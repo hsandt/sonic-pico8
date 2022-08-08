@@ -3,6 +3,7 @@ local gamestate = require("engine/application/gamestate")
 local postprocess = require("engine/render/postprocess")
 local ui_animation = require("engine/ui/ui_animation")
 
+local pcm_data = require("data/pcm_data")
 local cinematic_sonic = require("menu/cinematic_sonic")
 local splash_screen_phase = require("menu/splash_screen_phase")
 local visual = require("resources/visual_common")
@@ -36,6 +37,15 @@ function splash_screen_state:init()
 
   -- to mimic Sonic 2 intro, fade in and out with shades of blue
   self.postproc.use_blue_tint = true
+
+  -- PCM
+  -- self.pcm_sample = nil
+  self.pcmpos = 0
+
+  -- PICO-8 has extra general memory to use at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
+  -- From v0.2.4, it is unlocked by default
+  poke(0x5f36, 16)
+  self:load_pcm(pcm_data._sega_choir)
 end
 
 function splash_screen_state:on_enter()
@@ -75,6 +85,8 @@ function splash_screen_state:update()
   end
 
   self.cinematic_sonic:update()
+
+  self:play_pcm()
 end
 
 function splash_screen_state:play_splash_screen_sequence_async()
@@ -339,6 +351,39 @@ function splash_screen_state:draw_speed_lines()
 
   -- reset fill pattern or the title menu will be messed up!
   fillp()
+end
+
+-- PCM: play digitized audio samples
+-- Thanks to IMLXH (also carlc27843 and czarlo)
+-- https://www.lexaloffle.com/bbs/?tid=45013
+-- https://colab.research.google.com/drive/1HyiciemxfCDS9DxE98UCtNXas5TrM-5e?usp=sharing
+
+-- load audio sample
+function splash_screen_state:load_pcm(pcm_sample)
+  self.pcm_sample = pcm_sample
+  local l = #pcm_sample
+  for i = 0, #pcm_sample - 1 do
+    poke(0x8000 + i, ord(pcm_sample, i))
+    -- for backward playback (unused in this project)
+    poke(0xc000 + i, ord(pcm_sample, #pcm_sample - 1 - i))
+  end
+end
+
+-- play audio sample
+-- if back is true, play sound backward (unused in this project)
+function splash_screen_state:play_pcm(back)
+  if self.pcmpos >= #self.pcm_sample then
+    return nil
+  end
+
+  local l = 2048 - stat(108)
+  l = min(l, #self.pcm_sample - self.pcmpos)
+  if back then
+    serial(0x808, 0xc000 + self.pcmpos, l)
+  else
+    serial(0x808, 0x8000 + self.pcmpos, l)
+  end
+  self.pcmpos = self.pcmpos + l
 end
 
 -- export

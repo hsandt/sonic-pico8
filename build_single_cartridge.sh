@@ -203,8 +203,9 @@ else
   data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
 
-# Define list of data/enum/resources module paths, separated by space (Python argparse nargs='*')
-game_constant_module_paths_string="${game_src_path}/data/camera_data.lua \
+# Define list of paths to modules containing constants to substitute at prebuild time,
+# separated by space (Python argparse nargs='*')
+game_constant_module_paths_string_prebuild="${game_src_path}/data/camera_data.lua \
 ${game_src_path}/data/playercharacter_numerical_data.lua \
 ${game_src_path}/data/stage_clear_data.lua \
 ${game_src_path}/data/stage_common_data.lua \
@@ -213,6 +214,10 @@ ${game_src_path}/resources/audio.lua \
 ${game_src_path}/resources/memory.lua \
 ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 
+# Define list of paths to modules containing constants to substitute at postbuild time,
+# separated by space (Python argparse nargs='*')
+game_constant_module_paths_string_postbuild="${game_src_path}/data/pcm_data.lua"
+
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
 #  independent from the version and config
@@ -220,22 +225,23 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 # Build cartridge
 # See data/cartridges.txt for the list of cartridge names
 # metadata really counts for the entry cartridge (titlemenu)
-"$picoboots_scripts_path/build_cartridge.sh"                              \
-  "$game_src_path"                                                        \
-  ${main_prefix}main_${cartridge_suffix}.lua                              \
-  ${required_relative_dirpath}                                            \
-  -d "${data_path}/${data_filebasename}.p8"                               \
-  -M "$data_path/metadata.p8"                                             \
-  -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})" \
-  -p "$build_output_path"                                                 \
-  -o "${cartridge_stem}_${cartridge_extra_suffix}${cartridge_suffix}"     \
-  -c "$config"                                                            \
-  --no-append-config                                                      \
-  -s "$symbols"                                                           \
-  -g "$game_constant_module_paths_string"                                 \
-  -r "$game_prebuild_path"                                                \
-  -v version="$version"                                                   \
-  --minify-level 3                                                        \
+"$picoboots_scripts_path/build_cartridge.sh"                                            \
+  "$game_src_path"                                                                      \
+  ${main_prefix}main_${cartridge_suffix}.lua                                            \
+  ${required_relative_dirpath}                                                          \
+  -d "${data_path}/${data_filebasename}.p8"                                             \
+  -M "$data_path/metadata.p8"                                                           \
+  -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})"               \
+  -p "$build_output_path"                                                               \
+  -o "${cartridge_stem}_${cartridge_extra_suffix}${cartridge_suffix}"                   \
+  -c "$config"                                                                          \
+  --no-append-config                                                                    \
+  -s "$symbols"                                                                         \
+  --game-constant-module-paths-prebuild "$game_constant_module_paths_string_prebuild"   \
+  --game-constant-module-paths-postbuild "$game_constant_module_paths_string_postbuild" \
+  -r "$game_prebuild_path"                                                              \
+  -v version="$version"                                                                 \
+  --minify-level 3                                                                      \
   $unify_option
 
 if [[ $? -ne 0 ]]; then

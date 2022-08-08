@@ -84,6 +84,9 @@ function base_stage_state:reload_sonic_spritesheet()
   -- 0x4b00  0x400   0x1000  First 4 double rows of Sonic sprites = first 8 rows of Sonic sprites (sprites occupy 2x2 cells)
   -- 0x5b00  0x1400  0x300   Last 6 Sonic sprites = 12x2 cells located on rows of indices 10-11 (5 spin dash sprites + landing sprite)
   -- 0x5e00  0x1700          This is the end of free memory!
+  -- UPDATE: PICO-8 has in fact more general memory to spare at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
+  -- (see splash_screen_state.lua). From v0.2.4, it is unlocked by default, so whatever version we use, we should be able to use even more
+  -- general memory for either faster operations or more sprites.
 
   -- Total size for sprites: 0x1300
 

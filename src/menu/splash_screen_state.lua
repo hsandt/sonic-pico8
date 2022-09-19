@@ -40,7 +40,8 @@ function splash_screen_state:init()
 
   -- PCM
   -- self.pcm_sample = nil
-  self.pcmpos = 0
+  -- Make sure to start at 1 to avoid pop
+  self.pcmpos = 1
 
   -- PICO-8 has extra general memory to use at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
   -- From v0.2.4, it is unlocked by default
@@ -357,6 +358,10 @@ end
 -- Thanks to IMLXH (also carlc27843 and czarlo)
 -- https://www.lexaloffle.com/bbs/?tid=45013
 -- https://colab.research.google.com/drive/1HyiciemxfCDS9DxE98UCtNXas5TrM-5e?usp=sharing
+-- Modifications by hsandt:
+-- - prefer buffer length of stat(109) - stat(108) following
+--   https://pico-8.fandom.com/wiki/Stat#{108%E2%80%A6109}_5kHz_PCM_Audio
+-- - start pcmpos at 1 instead of 0 to avoid pop at the beginning (see init)
 
 -- load audio sample
 function splash_screen_state:load_pcm(pcm_sample)
@@ -376,9 +381,10 @@ function splash_screen_state:play_pcm(back)
     return nil
   end
 
-  local l = 2048 - stat(108)
+  local l = stat(109) - stat(108)
   l = min(l, #self.pcm_sample - self.pcmpos)
   if back then
+    -- backward playback (unused in this project)
     serial(0x808, 0xc000 + self.pcmpos, l)
   else
     serial(0x808, 0x8000 + self.pcmpos, l)

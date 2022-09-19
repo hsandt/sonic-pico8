@@ -42,6 +42,8 @@ function splash_screen_state:init()
   -- self.pcm_sample = nil
   -- Make sure to start at 1 to avoid pop
   self.pcmpos = 1
+  -- Commented out, as false is equivalent to nil in bool check
+  -- self.should_play_pcm = false
 
   -- PICO-8 has extra general memory to use at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
   -- From v0.2.4, it is unlocked by default
@@ -87,7 +89,9 @@ function splash_screen_state:update()
 
   self.cinematic_sonic:update()
 
-  self:play_pcm()
+  if self.should_play_pcm then
+    self:play_pcm()
+  end
 end
 
 function splash_screen_state:play_splash_screen_sequence_async()
@@ -133,7 +137,16 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   self.phase = splash_screen_phase.full_logo
 
-  self.app:yield_delay_s(1)
+  yield_delay_frames(20)
+
+  -- Start playing PCM (SAGE choir) from here
+  -- Don't worry about keeping flag true during fade out, as play_pcm will naturally stop
+  -- at the end
+  self.should_play_pcm = true
+
+  -- SAGE choir is 1.62s
+  -- wait ~1 extra second after it before fading out
+  self.app:yield_delay_s(2.6)
 
   self.phase = splash_screen_phase.fade_out
 

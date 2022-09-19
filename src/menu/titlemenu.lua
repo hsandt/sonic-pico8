@@ -182,7 +182,9 @@ function titlemenu:on_enter()
     self.has_reloaded_builtin_gfx = true
   end
 
-  self.app:start_coroutine(self.play_opening_music_async, self)
+  -- run enter sequence wild, as it contains play_opening_music_async which
+  --  self-manages music stop
+  self.app:start_coroutine(self.play_enter_sequence_async, self)
 
   -- show menu after short intro of 2 columns
   -- we assume play_opening_music_async was started at the same time
@@ -201,6 +203,15 @@ function titlemenu:on_enter()
   self.drawables_sea[1].position = vector(0, 88)
   -- hide reverse horizon for now
   self.drawables_sea[2].visible = false
+end
+
+function titlemenu:play_enter_sequence_async()
+  -- note that we can press button to quickly show menu during fade-in, but fade-in is so short
+  --  that's it's okay
+  self:fade_in_async()
+
+  -- note that this should run wild, as it self-manages music stop
+  self:play_opening_music_async()
 end
 
 function titlemenu:play_opening_music_async()
@@ -1017,6 +1028,14 @@ function titlemenu:sonic_landing_star_async()
   yield_delay_frames(20)
 
   self:fade_out_and_load_stage_intro_async()
+end
+
+function titlemenu:fade_in_async()
+  -- fade in (we start from everything black so skip max darkness 5)
+  for i = 4, 0, -1 do
+    self.postproc.darkness = i
+    yield_delay_frames(4)
+  end
 end
 
 function titlemenu:fade_out_and_load_stage_intro_async()

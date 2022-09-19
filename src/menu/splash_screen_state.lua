@@ -46,7 +46,7 @@ function splash_screen_state:init()
   -- PICO-8 has extra general memory to use at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
   -- From v0.2.4, it is unlocked by default
   poke(0x5f36, 16)
-  self:load_pcm(pcm_data._sega_choir)
+  self:load_pcm(pcm_data._sage_choir)
 end
 
 function splash_screen_state:on_enter()

@@ -1048,6 +1048,10 @@ function titlemenu:fade_out_and_load_stage_intro_async()
       yield_delay_frames(6)
     end
 
+    -- normally on gamestate change, we should stop all coroutines at this point to avoid,
+    --  in case of early skip, play_start_cinematic_async still running in the background,
+    --  but in this case we have a hard cartridge load which will clear the whole game state
+    --  anyway
     -- prefer passing basename for compatibility with .p8.png
     load('picosonic_stage_intro')
   end

@@ -19,9 +19,21 @@ splash_screen_state.type = ':splash_screen'
 -- generally it's (0, 0) on the spritesheet, but just in case we move it later, check it out
 local splash_screen_logo_topleft = visual.sprite_data_t.splash_screen_logo.id_loc:to_topleft_position()
 
+-- nothing in init right now, as content was moved to on_enter
+-- it doesn't really matter as you cannot re-enter splash screen state without changing cartridge first
+--  (e.g. entering attract mode), so a brand new state would be created anyway, but to be correct semantically,
+--  we prefer initalizing all members required for the splash screen animation in on_enter
+-- function splash_screen_state:init()
+-- end
 
-function splash_screen_state:init()
+function splash_screen_state:on_enter()
   self.phase = splash_screen_phase.blank_screen
+
+  -- Commented out, as false is equivalent to nil in bool check
+  -- note that this is different from self.phase == splash_screen_phase.fade_out, because it's also true
+  --  when player skips splash screen, causing an early fade out before the actual fade_out phase
+  -- self.is_fading_out_for_titlemenu = false
+
   -- only for phase: logo_appears_in_white
   self.logo_first_letter_shown_in_white_index1 = 0  -- invalid in Lua
 
@@ -49,9 +61,7 @@ function splash_screen_state:init()
   -- From v0.2.4, it is unlocked by default
   poke(0x5f36, 16)
   self:load_pcm(pcm_data._sage_choir)
-end
 
-function splash_screen_state:on_enter()
   -- splash screen data is stored in extra gfx_splash_screen.p8 at edit time (not exported),
   --  and merged into data_stage1_01.p8 (overwriting the tiles gfx, unused at runtime), so instead of:
   -- reload(0x0, 0x0, 0x2000, "gfx_splash_screen.p8")
@@ -83,6 +93,18 @@ function splash_screen_state:on_exit()
 end
 
 function splash_screen_state:update()
+  if self.phase < splash_screen_phase.fade_out then
+    -- check for any input to skip splash screen and fade out already
+    if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
+      -- start fade out in parallel with existing animations to keep things smooth
+      -- ! do not set self.phase = splash_screen_phase.fade_out because we want other animations to keep
+      -- ! running
+      -- this, however, will set the independent flag self.is_fading_out_for_titlemenu = true
+      -- so we remember not to try to fade out again if we skip just before the actual fade out
+      self.app:start_coroutine(self.try_fade_out_and_show_titlemenu_async, self)
+    end
+  end
+
   if self.phase == splash_screen_phase.left_speed_lines_fade_out or self.phase == splash_screen_phase.right_speed_lines_fade_out then
     self.speed_lines_fade_out_timer = self.speed_lines_fade_out_timer + 1
   end
@@ -150,11 +172,27 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   self.phase = splash_screen_phase.fade_out
 
-  self:fade_out_async()
+  self:try_fade_out_and_show_titlemenu_async()
+end
 
-  self.app:yield_delay_s(1)
+function splash_screen_state:try_fade_out_and_show_titlemenu_async()
+  -- check flag to avoid doing this twice when player decides to skip splash screen near the end
+  --  of animation, so try_fade_out_and_show_titlemenu_async is called once a little early and
+  --  once at normal time
+  if not self.is_fading_out_for_titlemenu then
+    self.is_fading_out_for_titlemenu = true
 
-  flow:query_gamestate_type(':titlemenu')
+    self:fade_out_async()
+
+    self.app:yield_delay_s(1)
+
+    -- stop all coroutines before showing titlemenu to avoid, in the case of early splash screen skip,
+    --  play_splash_screen_sequence_async doing further processing in the background
+    --  (although those would be invisible anyway)
+    -- since we do this after the last async call, this very coroutine will still finish properly
+    self.app:stop_all_coroutines()
+    flow:query_gamestate_type(':titlemenu')
+  end
 end
 
 function splash_screen_state:fade_out_async()

@@ -1,5 +1,6 @@
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
+local input = require("engine/input/input")
 local postprocess = require("engine/render/postprocess")
 local ui_animation = require("engine/ui/ui_animation")
 

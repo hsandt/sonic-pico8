@@ -45,6 +45,10 @@ describe('splash_screen_state', function ()
 
     describe('render', function ()
 
+      before_each(function ()
+        state:on_enter()
+      end)
+
       it('should not crash', function ()
         state:render()
       end)
@@ -52,6 +56,10 @@ describe('splash_screen_state', function ()
     end)
 
     describe('draw_speed_lines', function ()
+
+      before_each(function ()
+        state:on_enter()
+      end)
 
       it('should not crash', function ()
         state:draw_speed_lines()

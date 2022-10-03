@@ -4,6 +4,7 @@ local gamestate = require("engine/application/gamestate")
 local animated_sprite = require("engine/render/animated_sprite")
 local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
+local sspr_object = require("engine/render/sspr_object")
 local text_helper = require("engine/ui/text_helper")
 
 -- it's in ingame folder, but actually shared with menu
@@ -96,7 +97,7 @@ local cloud_sprites_per_size_category = {
 --                                              since the only way to replay the splash screen is to go to attract mode cartridge then
 --                                              back to title menu cartridge, all objects will have been cleared by that point, so
 --                                              no need to clear this field
--- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
+-- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
 -- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
@@ -131,7 +132,14 @@ function titlemenu:init()
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
-  self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
+  -- title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
+  -- we used to define:
+  -- visual.sprite_data_t.title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
+  -- with the new sspr_object, we must now pass precise pixel coordinates, but in counterpart we can work with a title
+  --  sprite that overlaps tiles of other sprites, by slicing sub-tiles
+  -- in our case, the coordinates correspond to 8 times the tile coordinates, + 1 extra pixel on height,
+  --  i.e. (0, 1*8, 14*8, 10*8+1) = (0, 8, 112, 81)
+  self.title_logo_drawable = sspr_object(0, 8, 112, 81, colors.pink)
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
   self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
   self.cinematic_drawables_world = {}

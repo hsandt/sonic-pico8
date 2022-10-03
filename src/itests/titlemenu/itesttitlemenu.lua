@@ -28,14 +28,11 @@ itest_manager:register_itest('player presses o to skip splash screen',
     flow:change_gamestate_by_type(':splash_screen')
   end)
 
-  -- wait 1 frame
-  wait(1, true)
-
   -- player presses o to enter the titlemenu immediately
   short_press(button_ids.o)
 
-  -- wait 1 frame
-  wait(1, true)
+  -- wait 100 frame for fade out to finish (30 frames) AND extra wait before entering titlemenu (60 frames)
+  wait(100, true)
 
   -- check that we are now in the titlemenu state
   final_assert(function ()
@@ -54,10 +51,16 @@ itest_manager:register_itest('player select start, confirm',
     flow:change_gamestate_by_type(':titlemenu')
   end)
 
-  -- menu should appear within 2 seconds
-  wait(2.0)
+  -- player presses o to skip splash screen and enter the titlemenu immediately
+  short_press(button_ids.o)
 
-  -- player presses o to confirm 'start' (default selection)
+  -- wait 30 frame for fade out to finish
+  wait(30, true)
+
+  -- player presses o again to make menu appear immediately
+  short_press(button_ids.o)
+
+  -- player presses o again to confirm 'start' (default selection)
   short_press(button_ids.o)
 
   -- wait a moment to cover 90% of the start cinematic

@@ -100,6 +100,9 @@ local cloud_sprites_per_size_category = {
 --                                              no need to clear this field
 -- should_draw_black_overlay    bool            if true, draw black overlay just between spark fx, so we can only see them
 --                                              normally we use postprocess, but if we used it, it would also hide the spark fxs themselves
+-- has_started_fade_or_cut_in   bool            set to true when we start fading in, and kept true from hereon; or if we skipped sparks intro
+--                                              and immediately remove black overlay (cut in)
+--                                              when true, prevents fading in again
 -- title_logo_spark_fx          fx              title logo spark fx (big animated star)
 -- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
 -- drawables_sea                {sspr_object/sprite_object} island and reverse horizon, drawn following camera motion
@@ -137,8 +140,14 @@ function titlemenu:init()
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
 
-  -- self.should_draw_black_overlay = false  -- commented out to spare characters
+  -- cheat by using a black rectangle to hide stuff below spark fx at the beginning,
+  --  as postprocess darkness 5 would apply to the sparks themselves...
+  -- in counterpart, we must make sure to remove the black overlay and replace it with postprocess darkness 5
+  --  immediately, and between two sparks
+  self.should_draw_black_overlay = true
+  -- self.has_started_fade_or_cut_in = false  -- commented out to spare characters
   -- self.title_logo_spark_fx = nil  -- commented out to spare characters
+
   -- we used to define:
   -- visual.sprite_data_t.title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
   -- with the new sspr_object, we must now pass precise pixel coordinates, but in counterpart we can work with a title
@@ -223,12 +232,6 @@ function titlemenu:on_enter()
 end
 
 function titlemenu:play_enter_sequence_async()
-  -- cheat by using a black rectangle to hide stuff below spark fx,
-  --  as postprocess darkness 5 would apply to the sparks themselves...
-  -- in counterpart, we must make sure to remove the black overlay and replace it with postprocess darkness 5
-  --  immediately, and between two sparks
-  self.should_draw_black_overlay = true
-
   -- show some sparks on future title logo before fading in
   -- nil is not valid position, but we're going to set spark to correct position before first call to render
   --  (i.e. before the first yield), so it's okay
@@ -264,20 +267,26 @@ function titlemenu:play_enter_sequence_async()
       -- note that this should run wild, as it self-manages music stop
       self.app:start_coroutine(self.play_opening_music_async, self)
 
-      -- show menu after music short intro of 2 columns
-      -- we assume play_opening_music_async was started at the same time
-      -- title bgm is at SPD 12 so that makes
-      --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
-      self.frames_before_showing_menu = 96
+      -- if player presses no input, menu is not shown at this point, and we must fade in and start
+      --  countdown to show menu
+      -- if player skipped this phase, they cut in immediately *and* the menu is shown,
+      --  so we can verify this by checking presence of menu
+      -- if player cut in already, no need to fade in nor set menu countdown
+      if not self.menu then
+        -- show menu after music short intro of 2 columns
+        -- we assume play_opening_music_async was started at the same time
+        -- title bgm is at SPD 12 so that makes
+        --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+        self.frames_before_showing_menu = 96
 
-      -- just at this point, swap black overlay with postprocess
-      -- since we have waited for spark to finish, and also wait for fade_in_async to end before
-      --  next iteration, we guarantee to fade in before the next spark, so we won't incorrectly apply
-      --  post-process to a spark
-      -- note that we can press button to quickly show menu during fade-in, but fade-in is so short
-      --  that's it's okay
-      self.should_draw_black_overlay = false
-      self:fade_in_async()
+        -- just at this point, swap black overlay with postprocess
+        -- since we have waited for spark to finish, and also wait for fade_in_async to end before
+        --  next iteration, we guarantee to fade in before the next spark, so we won't incorrectly apply
+        --  post-process to a spark
+        -- note that we can press button to interrupt fade-in into cut-in, see fade_in_async
+        self.should_draw_black_overlay = false
+        self:fade_in_async()
+      end
     end
   end
 end
@@ -397,20 +406,31 @@ function titlemenu:update()
     if self.should_start_attract_mode then
       self:start_attract_mode()
     end
-  elseif self.frames_before_showing_menu > 0 then
-    -- menu not shown yet AND the counter is running (not still showing black overlay with sparks)
-    -- check for immediate show input vs normal countdown
-
+  else
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
-      -- show menu immediately (if we are still showing sparks with black overlay, skip this part too)
+      -- show menu immediately
+      -- if we are still showing sparks with black overlay, cut in immediately
+      -- if we are just during the fade in, interrupt it and cut in too
+
+      -- cut in
+      self.should_draw_black_overlay = false
+      -- in case we interrupted fade in to cut in, we must reset also darkness
+      self.postproc.darkness = 0
+
+      -- reset countdown and show menu
       self.frames_before_showing_menu = 0
-    else
+      self:show_menu()
+    elseif self.frames_before_showing_menu > 0 then
+      -- menu not shown yet AND the counter is running (not still showing full black overlay with sparks,
+      --  at least fade in started)
+
       -- decrement countdown
       self.frames_before_showing_menu = self.frames_before_showing_menu - 1
-    end
 
-    if self.frames_before_showing_menu <= 0 then
-      self:show_menu()
+      if self.frames_before_showing_menu <= 0 then
+        -- countdown over, show menu
+        self:show_menu()
+      end
     end
   end
 end
@@ -1120,6 +1140,18 @@ end
 function titlemenu:fade_in_async()
   -- fade in (we start from everything black so skip max darkness 5)
   for i = 4, 0, -1 do
+    -- check if player skipped sparks intro right during the fade-in,
+    --  as this does a cut-in, and we don't want to overwrite the postproc after cut-in
+    --  because of this coroutine (and stopping a specific coroutine without stopping others,
+    --  like sparks which we want to keep, is difficult, because it needs to be accessed by index,
+    --  which may change when other coroutines end, so prefer this inside check;
+    --  if we really want a clean single coroutine stop, we could do it by storing them with string
+    --  keys instead of indices)
+    if self.menu then
+      -- cut-in happened during fade-in, interrupt fade-in
+      return
+    end
+
     self.postproc.darkness = i
     yield_delay_frames(4)
   end

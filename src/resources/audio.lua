@@ -28,6 +28,7 @@ audio.sfx_ids = {
   -- emerald_fly = 49,
   menu_select = 50,  -- currently no sound, as Sonic 3 didn't have one either
   menu_confirm = 51,
+  spark = 58,  -- v2 with custom instrument 6
 
   -- builtin_data_stage_clear only
   menu_swipe = 52,

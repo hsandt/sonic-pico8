@@ -240,15 +240,15 @@ function titlemenu:play_enter_sequence_async()
   -- work with spark positions relative to title logo as it's easier to check on the spritesheet
   --  when comparing to Sonic 2's actual intro
   local relative_spark_positions_and_delay = {
-    {vector(47, 6), 50},
-    {vector(24, 43), 25},
-    {vector(95, 45), 25},
-    {vector(55, 67), 16},
-    {vector(111, 9), 25},
-    {vector(9, 37), 25},
-    {vector(104, 37), 25},
-    {vector(25, 78), 25},
-    {vector(18, 14), 25},
+    {vector(47, 6), 30},
+    {vector(24, 43), 5},
+    {vector(95, 45), 5},
+    {vector(55, 67), 0},
+    {vector(111, 9), 5},
+    {vector(9, 37), 5},
+    {vector(104, 37), 5},
+    {vector(25, 78), 5},
+    {vector(18, 14), 5},
   }
 
 
@@ -257,10 +257,20 @@ function titlemenu:play_enter_sequence_async()
     local position = relative_spark_position_and_delay[1]
     local delay = relative_spark_position_and_delay[2]
 
+    -- move spark FX
     self.title_logo_spark_fx.position = self.title_logo_drawable.position + position
+
     -- force play from start (only required from i = 2) so the animation replays after repositioning
     self.title_logo_spark_fx.anim_spr:play("once", --[[from_start:]] true)
-    yield_delay_frames(delay)
+
+    -- sfx until a few times after title menu shows (unlike Sonic 2, we stop playing sfx after some point
+    --  as it's a bit striking on top of the BGM)
+    if i < 7 then
+      sfx(audio.sfx_ids.spark)
+    end
+
+    -- wait for spark frame to end (4*4 = 16 frames) + potentially some extra delay
+    yield_delay_frames(16 + delay)
 
     if i == 4 then
       -- music starts about time of fade in
@@ -1153,7 +1163,7 @@ function titlemenu:fade_in_async()
     end
 
     self.postproc.darkness = i
-    yield_delay_frames(4)
+    yield_delay_frames(3)
   end
 end
 

@@ -102,7 +102,7 @@ local cloud_sprites_per_size_category = {
 --                                              normally we use postprocess, but if we used it, it would also hide the spark fxs themselves
 -- title_logo_spark_fx          fx              title logo spark fx (big animated star)
 -- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
--- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
+-- drawables_sea                {sspr_object/sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
@@ -146,8 +146,16 @@ function titlemenu:init()
   -- in our case, the coordinates correspond to 8 times the tile coordinates, + 1 extra pixel on height,
   --  i.e. (0, 1*8, 14*8, 10*8+1) = (0, 8, 112, 81)
   self.title_logo_drawable = sspr_object(0, 8, 112, 81, colors.pink)
+
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
-  self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
+  -- same thing, we used to have angel_island_bg covering tiles perfectly:
+  --  visual.sprite_data_t.angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
+  -- but it now overlaps the title logo on the top row, so we must create an sspr_object similar, just skipping the first row:
+  --  (0, 11*8+1, 16*8, 5*8-1) = (0, 89, 128, 39)
+  -- in fact, there is some margin above the clouds so we could shrink at the top even further, but we keep maximum height in case
+  --  we extend clouds later
+  self.drawables_sea = {sspr_object(0, 89, 128, 39, colors.pink), sprite_object(visual.sprite_data_t.reversed_horizon)}
+
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}
   self.emeralds = {}

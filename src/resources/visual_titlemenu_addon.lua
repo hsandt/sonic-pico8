@@ -37,7 +37,9 @@ local titlemenu_visual = {
 --  but only get the return value of visual_common named `visual` here
 -- it will automatically add extra information to `visual`
 local titlemenu_sprite_data_t = {
-  angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
+  -- we now use sspr_object passing coordinates directly because the top row overlaps new pico sonic logo,
+  --  but kept as reference
+  -- angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
 
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),

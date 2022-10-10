@@ -119,7 +119,7 @@ elif [[ $config == 'sandbox' ]]; then
   symbols='sandbox,assert,tuner,mouse'
 elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
-  symbols='assert,tostring,debug_collision_mask'
+  symbols='assert,tostring,log,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
   # for stage intro and others, full profiler fits
   symbols='profiler,debug_menu'

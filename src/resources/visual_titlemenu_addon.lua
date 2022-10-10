@@ -37,12 +37,19 @@ local titlemenu_visual = {
 --  but only get the return value of visual_common named `visual` here
 -- it will automatically add extra information to `visual`
 local titlemenu_sprite_data_t = {
-  menu_cursor = sprite_data(sprite_id_location(1, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
-  menu_cursor_shoe = sprite_data(sprite_id_location(3, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
   angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
 
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
+
+  -- CORE TITLE GFX ONLY
+
+  menu_cursor = sprite_data(sprite_id_location(1, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
+  menu_cursor_shoe = sprite_data(sprite_id_location(3, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
+
+  spark_fx1 = sprite_data(sprite_id_location(14, 4), nil, vector(1, 1), colors.pink),
+  spark_fx2 = sprite_data(sprite_id_location(15, 4), nil, vector(3, 3), colors.pink),
+  spark_fx3 = sprite_data(sprite_id_location(14, 5), tile_vector(2, 2), vector(5, 5), colors.pink),
 
   -- START CINEMATIC GFX ONLY
 
@@ -96,6 +103,20 @@ local titlemenu_sprite_data_t = {
 local cssdt = titlemenu_sprite_data_t.cinematic_sonic_sprite_data_table
 
 local titlemenu_animated_sprite_data_t = {
+  -- used to prepare appearance of title logo as in Sonic 2
+  spark_fx = animated_sprite_data(
+    {
+      -- no anim_loop_modes.ping_pong_clear/single_ping_pong implemented, so just ping-pong manually
+      titlemenu_sprite_data_t.spark_fx1,
+      titlemenu_sprite_data_t.spark_fx2,
+      titlemenu_sprite_data_t.spark_fx3,
+      titlemenu_sprite_data_t.spark_fx2,
+      titlemenu_sprite_data_t.spark_fx1,
+    },
+    4,
+    anim_loop_modes.clear
+  ),
+
   tails_plane = {
     -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
     --  but this will actually be minified and therefore very compact (as names are not protected)
@@ -110,7 +131,8 @@ local titlemenu_animated_sprite_data_t = {
       anim_loop_modes.loop
     )
   },
-  -- used for emerald or Sonic landing
+
+  -- used for emerald
   star_fx = animated_sprite_data(
     {
       titlemenu_sprite_data_t.star_fx1,

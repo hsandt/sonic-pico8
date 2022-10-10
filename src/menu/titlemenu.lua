@@ -8,6 +8,7 @@ local sspr_object = require("engine/render/sspr_object")
 local text_helper = require("engine/ui/text_helper")
 
 -- it's in ingame folder, but actually shared with menu
+local fx = require("ingame/fx")
 local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")
@@ -97,6 +98,9 @@ local cloud_sprites_per_size_category = {
 --                                              since the only way to replay the splash screen is to go to attract mode cartridge then
 --                                              back to title menu cartridge, all objects will have been cleared by that point, so
 --                                              no need to clear this field
+-- should_draw_black_overlay    bool            if true, draw black overlay just between spark fx, so we can only see them
+--                                              normally we use postprocess, but if we used it, it would also hide the spark fxs themselves
+-- title_logo_spark_fx          fx              title logo spark fx (big animated star)
 -- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
 -- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
@@ -107,7 +111,7 @@ local cloud_sprites_per_size_category = {
 -- emerald_base_angle           number          angle of first emerald (red, not first emerald to enter) on circle/ellipse
 -- emerald_angular_speed        number          angular speed of emeralds rotating on the circle/ellipse
 -- ellipsis_y_scalable          {scale: number} scalable applied to emerald circle to get ellipsis (shrink on y)
--- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
+-- emerald_landing_fxs          {emerald_fxs}   emerald landing fxs (animated stars)
 -- clouds                       {sprite_object} sequence of clouds to draw, kept reference for motion
 -- tails_plane                  animated_sprite tails plane animated sprite
 -- tails_plane_position         vector          tails plane position
@@ -132,7 +136,9 @@ function titlemenu:init()
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
-  -- title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
+
+  -- self.should_draw_black_overlay = false  -- commented out to spare characters
+  -- self.title_logo_spark_fx = nil  -- commented out to spare characters
   -- we used to define:
   -- visual.sprite_data_t.title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
   -- with the new sspr_object, we must now pass precise pixel coordinates, but in counterpart we can work with a title
@@ -190,15 +196,6 @@ function titlemenu:on_enter()
     self.has_reloaded_builtin_gfx = true
   end
 
-  -- run enter sequence wild, as it contains play_opening_music_async which
-  --  self-manages music stop
-  self.app:start_coroutine(self.play_enter_sequence_async, self)
-
-  -- show menu after short intro of 2 columns
-  -- we assume play_opening_music_async was started at the same time
-  -- title bgm is at SPD 12 so that makes
-  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
-  self.frames_before_showing_menu = 96
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
   self.is_fading_out_for_stage_intro = false
@@ -211,15 +208,70 @@ function titlemenu:on_enter()
   self.drawables_sea[1].position = vector(0, 88)
   -- hide reverse horizon for now
   self.drawables_sea[2].visible = false
+
+  -- run enter sequence wild, as it contains play_opening_music_async which
+  --  self-manages music stop
+  self.app:start_coroutine(self.play_enter_sequence_async, self)
 end
 
 function titlemenu:play_enter_sequence_async()
-  -- note that we can press button to quickly show menu during fade-in, but fade-in is so short
-  --  that's it's okay
-  self:fade_in_async()
+  -- cheat by using a black rectangle to hide stuff below spark fx,
+  --  as postprocess darkness 5 would apply to the sparks themselves...
+  -- in counterpart, we must make sure to remove the black overlay and replace it with postprocess darkness 5
+  --  immediately, and between two sparks
+  self.should_draw_black_overlay = true
 
-  -- note that this should run wild, as it self-manages music stop
-  self:play_opening_music_async()
+  -- show some sparks on future title logo before fading in
+  -- nil is not valid position, but we're going to set spark to correct position before first call to render
+  --  (i.e. before the first yield), so it's okay
+  self.title_logo_spark_fx = fx(nil, visual.animated_sprite_data_t.spark_fx)
+
+  -- work with spark positions relative to title logo as it's easier to check on the spritesheet
+  --  when comparing to Sonic 2's actual intro
+  local relative_spark_positions_and_delay = {
+    {vector(47, 6), 50},
+    {vector(24, 43), 25},
+    {vector(95, 45), 25},
+    {vector(55, 67), 16},
+    {vector(111, 9), 25},
+    {vector(9, 37), 25},
+    {vector(104, 37), 25},
+    {vector(25, 78), 25},
+    {vector(18, 14), 25},
+  }
+
+
+  for i = 1, #relative_spark_positions_and_delay do
+    local relative_spark_position_and_delay = relative_spark_positions_and_delay[i]
+    local position = relative_spark_position_and_delay[1]
+    local delay = relative_spark_position_and_delay[2]
+
+    self.title_logo_spark_fx.position = self.title_logo_drawable.position + position
+    -- force play from start (only required from i = 2) so the animation replays after repositioning
+    self.title_logo_spark_fx.anim_spr:play("once", --[[from_start:]] true)
+    yield_delay_frames(delay)
+
+    if i == 4 then
+      -- music starts about time of fade in
+      -- note that this should run wild, as it self-manages music stop
+      self.app:start_coroutine(self.play_opening_music_async, self)
+
+      -- show menu after music short intro of 2 columns
+      -- we assume play_opening_music_async was started at the same time
+      -- title bgm is at SPD 12 so that makes
+      --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+      self.frames_before_showing_menu = 96
+
+      -- just at this point, swap black overlay with postprocess
+      -- since we have waited for spark to finish, and also wait for fade_in_async to end before
+      --  next iteration, we guarantee to fade in before the next spark, so we won't incorrectly apply
+      --  post-process to a spark
+      -- note that we can press button to quickly show menu during fade-in, but fade-in is so short
+      --  that's it's okay
+      self.should_draw_black_overlay = false
+      self:fade_in_async()
+    end
+  end
 end
 
 function titlemenu:play_opening_music_async()
@@ -275,6 +327,8 @@ function titlemenu:on_exit()
 end
 
 function titlemenu:update()
+  self:update_spark_fx()
+
   if self.is_playing_start_cinematic then
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- immediately start fade out in parallel with existing animations to keep things smooth
@@ -287,7 +341,7 @@ function titlemenu:update()
     self:update_angle()
     self:update_clouds()
     self:update_emeralds()
-    self:update_fx()
+    self:update_emerald_fx()
 
     if self.tails_plane then
       self.tails_plane:update()
@@ -335,11 +389,12 @@ function titlemenu:update()
     if self.should_start_attract_mode then
       self:start_attract_mode()
     end
-  else
-    -- menu not shown yet, check for immediate show input vs normal countdown
+  elseif self.frames_before_showing_menu > 0 then
+    -- menu not shown yet AND the counter is running (not still showing black overlay with sparks)
+    -- check for immediate show input vs normal countdown
 
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
-      -- show menu immediately
+      -- show menu immediately (if we are still showing sparks with black overlay, skip this part too)
       self.frames_before_showing_menu = 0
     else
       -- decrement countdown
@@ -409,21 +464,27 @@ function titlemenu:update_emeralds()
   -- end
 end
 
-function titlemenu:update_fx()
-  local to_delete = {}
+function titlemenu:update_spark_fx()
+  if self.title_logo_spark_fx then
+    self.title_logo_spark_fx:update()
+  end
+end
+
+function titlemenu:update_emerald_fx()
+  local emerald_fx_to_delete = {}
 
   for pfx in all(self.emerald_landing_fxs) do
     pfx:update()
 
     if not pfx:is_active() then
-      add(to_delete, pfx)
+      add(emerald_fx_to_delete, pfx)
     end
   end
 
   -- normally we should deactivate pfx and reuse it for pooling,
   --  but deleting them was simpler (fewer characters) and single-time operation
   --- so CPU cost is OK
-  for pfx in all(to_delete) do
+  for pfx in all(emerald_fx_to_delete) do
     del(self.emerald_landing_fxs, pfx)
   end
 end
@@ -472,8 +533,6 @@ function titlemenu:render()
     self.emeralds[num]:draw(draw_position)
   end
 
-  self:draw_fx()
-
   if self.tails_plane then
     self.tails_plane:render(self.tails_plane_position)
     if self.is_sonic_on_plane then
@@ -482,6 +541,14 @@ function titlemenu:render()
       visual.sprite_data_t.sonic_tiny:render(self.tails_plane_position)
     end
   end
+
+  if self.should_draw_black_overlay then
+    -- draw black overlay (we should really just not do all the draw above, but since it's only
+    --  for a few seconds, we accept the performance loss)
+    rectfill(0, 0, 127, 127, colors.black)
+  end
+
+  self:draw_fx()
 
   self.postproc:apply()
 end
@@ -648,6 +715,10 @@ function titlemenu:draw_sea_drawables()
 end
 
 function titlemenu:draw_fx()
+  if self.title_logo_spark_fx then
+    self.title_logo_spark_fx:render()
+  end
+
   for pfx in all(self.emerald_landing_fxs) do
     pfx:render()
   end

@@ -232,6 +232,10 @@ function titlemenu:on_enter()
 end
 
 function titlemenu:play_enter_sequence_async()
+  -- in case we came from credits and not splash screen state, immediately show black overlay
+  --  to prepare fade in (not darkness, which would cover sparks too)
+  self.should_draw_black_overlay = true
+
   -- show some sparks on future title logo before fading in
   -- nil is not valid position, but we're going to set spark to correct position before first call to render
   --  (i.e. before the first yield), so it's okay

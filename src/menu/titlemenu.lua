@@ -804,6 +804,12 @@ function titlemenu:change_emerald_angular_speed_async(from_factor, to_factor, n,
 end
 
 function titlemenu:play_start_cinematic()
+  -- stop all coroutines to prevent extra sparks being played, attract mode countdown continuing
+  --  (even though playing attract mode itself is prevented during cinematic), etc.
+  -- thanks to update_spark_fx being outside coroutine, spark fx will still play to the end and
+  --  not freeze, we will only stop spawning new ones
+  self.app:stop_all_coroutines()
+
   -- hide (actually destroy) menu
   self.menu = nil
 

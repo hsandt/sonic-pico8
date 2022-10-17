@@ -47,9 +47,7 @@ local titlemenu_sprite_data_t = {
 
   -- we used to have angel_island_bg covering tiles perfectly, but now title logo overlaps the full tiles of angel island bg
   --  a little, so we now use sspr_data
-  -- in fact, there is some margin above the clouds so we could shrink at the top even further, but we keep maximum height in case
-  --  we extend clouds higher later
-  angel_island_bg = sspr_data(0, 89, 128, 39, nil, colors.pink),
+  angel_island_bg = sspr_data(0, 92, 128, 36, nil, colors.pink),
 
   -- CORE TITLE GFX ONLY
 

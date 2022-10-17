@@ -33,48 +33,15 @@ local visual = {
   }
 }
 
-local sprite_data_t = transform(
-  {
-    -- sprite_data(id_loc: sprite_id_location([1], [2]), span: nil (currently all sprites below are 1x1),
-    --             pivot: vector([3], [4]), transparent_color_arg: colors.pink),
-    -- parameters:     {id_loc(2), pivot(2)}
-
-    -- COMMON INITIAL SPRITES
+visual.sprite_data_t = {
+  -- COMMON INITIAL SPRITES
 --#if mouse
-    cursor           = {     9, 0,     0, 0},
+    cursor = sprite_data(sprite_id_location(9, 0), nil, nil, colors.pink)
 --#endif
-
-    -- ANIMATION SPRITES (normally in-game, could be used for emblem sparkles)
-    -- ! don't confuse with landing single animated star!
-    emerald_pick_fx1 = {    12, 0,     4, 4},
-    emerald_pick_fx2 = {    13, 0,     4, 4},
-    emerald_pick_fx3 = {    14, 0,     4, 4},
-    emerald_pick_fx4 = {    15, 0,     4, 4},
-  },
-  function (params)
-    return sprite_data(sprite_id_location(params[1], params[2]), nil, vector(params[3], params[4]), colors.pink)
-  end
-)
-
-visual.sprite_data_t = sprite_data_t
+}
 
 -- ANIMATIONS
--- the pick action is in-game only, but since it is a sparkle it is convenient to liven up
---  the titlemenu as well (e.g. on the emblem or emeralds)
-visual.animated_sprite_data_t = {
-  -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
-  --  but this will actually be minified and therefore very compact (as names are not protected)
-  -- note we now pass data directly without ["once"], as fx will create its own ["once"]
-  emerald_pick_fx = animated_sprite_data(
-    {
-      sprite_data_t.emerald_pick_fx1,
-      sprite_data_t.emerald_pick_fx2,
-      sprite_data_t.emerald_pick_fx3,
-      sprite_data_t.emerald_pick_fx4
-    },
-    5,
-    anim_loop_modes.freeze_last  -- just to spot forgotten fx clear easily, clear is fine too
-  ),
-}
+-- empty, will be filled by addons
+visual.animated_sprite_data_t = {}
 
 return visual

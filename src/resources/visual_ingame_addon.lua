@@ -34,6 +34,13 @@ local ingame_sprite_data_t = transform(
     -- emerald representation tile (a small sprite that now fits in a 8x8 cell)
     emerald                             = {   10, 15,    1, 1,     3, 2},
 
+    -- fx played when picking an emerald
+    -- ! don't confuse with landing single animated star!
+    emerald_pick_fx1                    = {   12,  0,    1, 1,     4, 4},
+    emerald_pick_fx2                    = {   13,  0,    1, 1,     4, 4},
+    emerald_pick_fx3                    = {   14,  0,    1, 1,     4, 4},
+    emerald_pick_fx4                    = {   15,  0,    1, 1,     4, 4},
+
     -- spring (pivot at bottom center on both sprites so it extends correctly)
     spring                              = {    10, 4,    2, 1,   10,  2},
     spring_extended                     = {    10, 5,    2, 2,   10, 10}
@@ -48,6 +55,19 @@ local ingame_sprite_data_t = transform(
 visual.emerald_repr_sprite_id = ingame_sprite_data_t.emerald.id_loc:to_sprite_id()
 
 local ingame_animated_sprite_data_t = {
+  -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
+  --  but this will actually be minified and therefore very compact (as names are not protected)
+  -- note we now pass data directly without ["once"], as fx will create its own ["once"]
+  emerald_pick_fx = animated_sprite_data(
+    {
+      ingame_sprite_data_t.emerald_pick_fx1,
+      ingame_sprite_data_t.emerald_pick_fx2,
+      ingame_sprite_data_t.emerald_pick_fx3,
+      ingame_sprite_data_t.emerald_pick_fx4
+    },
+    5,
+    anim_loop_modes.freeze_last  -- just to spot forgotten fx clear easily, clear is fine too
+  ),
   goal_plate = {
     -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
     --  but this will actually be minified and therefore very compact (as names are not protected)

@@ -224,7 +224,7 @@ function splash_screen_state:render()
 
   self.postproc:apply()
 
---#ifn release
+--#if debug
   api.print("phase: "..self.phase, 1, 1, colors.black)
 --#endif
 end

@@ -96,15 +96,18 @@ build_output_path="${build_dir_path}/v${version}_${config}"
 # Define symbols from config
 symbols=''
 
+# Note that config is not automatically added as symbol by build_cartridge.sh,
+# so we manually add a symbol corresponding to the config at the beginning of each symbols list
+# (or two symbols for compounded-configs)
 if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
   # symbols='assert,tostring,dump,log,debug_menu,debug_character'
   # symbols='tostring,dump,log,debug_menu,debug_character,cheat'
   # symbols='debug_menu,debug_character,cheat'
-  symbols='tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat,pfx'
+  symbols='debug,tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat,pfx'
 elif [[ $config == 'debug-ultrafast' ]]; then
-  symbols='assert,tostring,dump,log,cheat,ultrafast'
+  symbols='debug,ultrafast,assert,tostring,dump,log,cheat'
 elif [[ $config == 'cheat' ]]; then
   # symbols='cheat,tostring,dump,log,debug_menu'
   symbols='cheat,tostring,dump,debug_menu'
@@ -135,7 +138,7 @@ elif [[ $config == 'itest' ]]; then
 elif [[ $config == 'release' ]]; then
   # usually release has no symbols except those that help making the code more compact
   # in this game project we define 'release' as a special symbol for that
-  # most fo the time, we could replace `#if release` with
+  # most of the time, we could replace `#if release` with
   # `#if debug_option1 || debug_option2 || debug_option3 ` but the problem is that
   # 2+ OR statements syntax is not supported by preprocess.py yet
   symbols='release'

@@ -46,6 +46,8 @@ local titlemenu_sprite_data_t = {
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
 
   title_logo = sspr_data(0, 11, 112, 81, nil, colors.pink),
+  sonic_hand1 = sspr_data(112, 24, 15, 27, vector(3, 26), colors.pink),
+  sonic_hand2 = sspr_data(113, 53, 12, 27, vector(8, 26), colors.pink),
 
   -- we used to have angel_island_bg covering tiles perfectly, but now title logo overlaps the full tiles of angel island bg
   --  a little, so we now use sspr_data
@@ -128,6 +130,17 @@ local titlemenu_animated_sprite_data_t = {
     anim_loop_modes.clear
   ),
 
+  sonic_hand = {
+    ["loop"] = animated_sprite_data(
+      {
+        titlemenu_sprite_data_t.sonic_hand1,
+        titlemenu_sprite_data_t.sonic_hand2,
+      },
+      30,
+      anim_loop_modes.loop
+    )
+  },
+
   tails_plane = {
     -- manual construction via sprite direct access appears longer than animated_sprite_data.create in code,
     --  but this will actually be minified and therefore very compact (as names are not protected)
@@ -138,7 +151,7 @@ local titlemenu_animated_sprite_data_t = {
         titlemenu_sprite_data_t.tails_plane3,
         titlemenu_sprite_data_t.tails_plane4
       },
-      6,  -- TUNE
+      6,
       anim_loop_modes.loop
     )
   },

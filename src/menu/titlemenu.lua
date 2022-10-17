@@ -2,6 +2,7 @@ local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local animated_sprite = require("engine/render/animated_sprite")
+local animated_sprite_object = require("engine/render/animated_sprite_object")
 local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
 local sspr_object = require("engine/render/sspr_object")
@@ -105,6 +106,7 @@ local cloud_sprites_per_size_category = {
 --                                              when true, prevents fading in again
 -- title_logo_spark_fx          fx              title logo spark fx (big animated star)
 -- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
+-- title_logo_hand              animated_sprite_object   animated sprite for sonic hand on title logo (should move together with title_logo_drawable)
 -- drawables_sea                {sspr_object/sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
@@ -149,6 +151,7 @@ function titlemenu:init()
   -- self.title_logo_spark_fx = nil  -- commented out to spare characters
 
   self.title_logo_drawable = sspr_object(visual.sprite_data_t.title_logo)
+  self.title_logo_hand = animated_sprite_object(visual.animated_sprite_data_t.sonic_hand)
 
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
   -- note that we mix sspr_object + sspr_data and sprite_object + sprite_data, but the uniform interface makes it agnostic
@@ -210,6 +213,12 @@ function titlemenu:on_enter()
   --  with its pivot at top-left
   self.title_logo_drawable.position = vector(8, 16)
   self.title_logo_drawable.visible = true
+
+  -- place sonic hand relatively to it, and play looping animation
+  self.title_logo_hand.position = self.title_logo_drawable.position + vector(65, 36)
+  self.title_logo_hand.visible = true
+  self.title_logo_hand:play("loop")
+
   -- place angel island at the bottom of the screen
   self.drawables_sea[1].position = vector(0, 88)
   -- hide reverse horizon for now
@@ -348,6 +357,12 @@ end
 
 function titlemenu:update()
   self:update_spark_fx()
+
+  -- Sonic hand can be seen during core title menu and also short transition to start cinematic,
+  --  so be pragmatic and update animated sprite when visible
+  if self.title_logo_hand.visible then
+    self.title_logo_hand:update()
+  end
 
   if self.is_playing_start_cinematic then
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
@@ -757,6 +772,7 @@ end
 
 function titlemenu:draw_title()
   self.title_logo_drawable:draw()
+  self.title_logo_hand:draw()
 end
 
 function titlemenu:draw_version()
@@ -950,8 +966,9 @@ end
 
 function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable, self.title_logo_hand}, {0, 0}, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
   self.title_logo_drawable.visible = false
+  self.title_logo_hand.visible = false
 end
 
 function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)

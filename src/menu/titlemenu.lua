@@ -966,7 +966,7 @@ end
 
 function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable, self.title_logo_hand}, {0, 0}, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable, self.title_logo_hand}, nil, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
   self.title_logo_drawable.visible = false
   self.title_logo_hand.visible = false
 end

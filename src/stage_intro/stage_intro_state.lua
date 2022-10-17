@@ -715,7 +715,9 @@ function stage_intro_state:show_stage_splash_async()
   self.overlay:add_drawable("banner_text", banner_text)
 
   -- make banner enter from the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
+  -- we've already set banner_text initial y to match relative offset we want, so no need to pass
+  --  coord_offsets = {0, 89}, just pass nil
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, nil, -106, 0, 9)
 
   local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
   self.overlay:add_drawable("zone_rect", zone_rectangle)
@@ -723,8 +725,8 @@ function stage_intro_state:show_stage_splash_async()
   local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
   self.overlay:add_drawable("zone", zone_label)
 
-  -- make text enter from the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
+  -- make text enter from the right, preserving relative offset
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, nil, 128, 41, 14)
 end
 
 function stage_intro_state:hide_stage_splash_async()
@@ -741,12 +743,14 @@ function stage_intro_state:hide_stage_splash_async()
   end
 
   local banner_text = self.overlay.drawables_map["banner_text"]
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
+  -- banner and banner_text moved together, so relative offset should be preserved, so just pass nil
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, nil, 0, -106, 8)
 
   -- make text exit to the right
   local zone_rectangle = self.overlay.drawables_map["zone_rect"]
   local zone_label = self.overlay.drawables_map["zone"]
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
+  -- zone_rectangle and zone_label moved together, so relative offset should be preserved, so just pass nil
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, nil, 41, 128, 14)
 
   self.overlay:remove_drawable("banner")
   self.overlay:remove_drawable("banner_text")

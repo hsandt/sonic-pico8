@@ -124,7 +124,7 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   -- make Sonic run to the left (default)
   -- sonic pivot is at (8, 8), but also shown at scale 2, so add or remove 2*8=16 to place him completely outside screen on start/end of motion
-  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, 128 + 16, -16, 15)
+  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, nil, 128 + 16, -16, 15)
 
   self.phase = splash_screen_phase.logo_appears_in_white
   self.logo_first_letter_shown_in_white_index1 = 4  -- start with E
@@ -149,7 +149,7 @@ function splash_screen_state:play_splash_screen_sequence_async()
 
   -- make Sonic run to the right
   self.cinematic_sonic.is_going_left = false
-  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, {0}, -16, 128 + 16, 15)
+  ui_animation.move_drawables_on_coord_async("x", {self.cinematic_sonic}, nil, -16, 128 + 16, 15)
 
   yield_delay_frames(12)
 

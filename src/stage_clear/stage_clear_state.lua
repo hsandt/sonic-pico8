@@ -254,21 +254,23 @@ end
 
 function stage_clear_state:show_result_async()
   -- create "sonic" label separately just for different color
-  local sonic_label = label("sonic", vector(0, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_drawable("sonic", sonic_label)
-  local through_label = label("got through", vector(0, 14), colors.white, colors.black)
-  self.result_overlay:add_drawable("through", through_label)
-
   -- "sonic got through": 17 characters, so 17*4 = 68 px wide
   -- make text enter from left to right (starts on screen edge, so -68 with even an extra margin pixel after last char)
   -- "got through" is 6 chars after the string start so 24px after "sonic"
-  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
+  -- using new feature to preserve initial relative offset, pass 0 and 24 now just to set this relative positioning on X,
+  --  then we can pass coord_offsets = nil to move_drawables_on_coord_async
+  local sonic_label = label("sonic", vector(0, 14), colors.dark_blue, colors.orange)
+  self.result_overlay:add_drawable("sonic", sonic_label)
+  local through_label = label("got through", vector(24, 14), colors.white, colors.black)
+  self.result_overlay:add_drawable("through", through_label)
+
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, nil, -68, 30, 20)
 
   local stage_label = label("pico island", vector(0, 26), colors.white, colors.black)
   self.result_overlay:add_drawable("stage", stage_label)
 
   -- make text enter screen from right to left (starts on screen edge, so 128)
-  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 42, 20)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, nil, 128, 42, 20)
 end
 
 function stage_clear_state:assess_result_async()
@@ -301,10 +303,10 @@ function stage_clear_state:assess_result_async()
   local stage_label = self.result_overlay.drawables_map["stage"]
 
   -- make text exit to the left (faster)
-  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, 30, -68, 10)
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, nil, 30, -68, 10)
 
   -- make text exit to the right (faster)
-  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 40, 128, 10)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, nil, 40, 128, 10)
 
   -- clean up labels outside screen, except "sonic" that we will reuse
   -- "sonic" label is already outside screen so it won't bother us until we use it again
@@ -339,6 +341,9 @@ function stage_clear_state:assess_result_async()
   -- it comes from the left again, so offset negatively on start -> a = -88
   -- apply offset for shorter label to start and end x
   -- animation takes 20 frames
+  -- this time, sonic_label position on X depends on last movement, so it's not trivial to setup emerald_label
+  --  at the right relative position (we'd need to pass sonic_label.position.x + 24), so in this case, passing coord_offsets
+  --  directly seems better
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88 + x_offset, 20 + x_offset, 20)
 
   if got_all_emeralds then

@@ -215,9 +215,10 @@ function titlemenu:on_enter()
   self.title_logo_drawable.visible = true
 
   -- place sonic hand relatively to it, and play looping animation
+  -- (from start, just in case we came back from Credits)
   self.title_logo_hand.position = self.title_logo_drawable.position + vector(65, 36)
   self.title_logo_hand.visible = true
-  self.title_logo_hand:play("loop")
+  self.title_logo_hand:play("loop", --[[from_start:]] true)
 
   -- place angel island at the bottom of the screen
   self.drawables_sea[1].position = vector(0, 88)

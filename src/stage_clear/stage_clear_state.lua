@@ -211,10 +211,18 @@ function stage_clear_state:render()
     -- see set_camera_with_origin for value explanation (we must pass camera position)
     visual_stage.render_background(vector(3376, 328))
     self:render_stage_elements()
+
+    -- draw picked emeralds
+    self:render_picked_emeralds()
   else
     -- phase 1: retry menu
     cls()
 
+    -- draw juggled emeralds first, so they appear behind Eggman's hand
+    --  when overlapping it
+    self:render_missed_emeralds_juggled()
+
+    -- draw Eggman
     self.eggman_legs:draw()
     self.eggman_body:draw()
     self.eggman_arm:draw()
@@ -224,9 +232,6 @@ function stage_clear_state:render()
       self.retry_menu:draw(29, 102)
     end
   end
-
-  -- draw picked/missed emeralds
-  self:render_emeralds()
 
   -- draw overlay on top to hide result widgets
   self:render_overlay()
@@ -292,6 +297,8 @@ function stage_clear_state:restore_picked_emerald_data()
       self.picked_emerald_numbers_set[i] = true
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
+    -- DEBUG: uncomment to simulate getting all emeralds when testing stage_clear directly
+    -- self.picked_emerald_numbers_set[i] = true
   end
 end
 
@@ -502,25 +509,48 @@ function stage_clear_state:render_overlay()
 end
 
 -- render every picked/missed emeralds at fixed screen position
-function stage_clear_state:render_emeralds()
+function stage_clear_state:render_picked_emeralds()
   camera()
-
-  self:draw_emeralds(64, 20)
+  self:draw_picked_emeralds(64, 64)
 end
 
--- draw picked/missed emeralds on an invisible circle centered on (x, y)
-function stage_clear_state:draw_emeralds(x, y)
+-- render every missed emeralds, juggled by Eggman
+function stage_clear_state:render_missed_emeralds_juggled()
+  camera()
+  self:draw_missed_emeralds_juggled(64, 30)
+end
+
+-- draw picked emeralds on an invisible circle centered on (x, y)
+function stage_clear_state:draw_picked_emeralds(x, y)
   -- draw emeralds around the clock, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations
   -- but here we obviously only defined 8 relative positions,
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
   for num = 1, 8 do
-    -- self.result_show_emerald_set_by_number[num] is only set to true when
-    --  we have missed emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
-      local radius = visual.missed_emeralds_radius
-      local draw_position = vector(x + radius * cos(0.25 - (num - 1) / 8),
-        y + radius * sin(0.25 - (num - 1) / 8))
+      local radius = visual.picked_emeralds_radius
+      local param = 0.25 - (num - 1) / 8
+      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
+      emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
+    end
+  end
+end
+
+-- draw missed emeralds juggled by Eggman on an invisible half circle centered on (x, y)
+function stage_clear_state:draw_missed_emeralds_juggled(x, y)
+  -- draw emeralds around the clock, from top, CW
+  -- usually we iterate from 1 to #self.spawned_emerald_locations
+  -- but here we obviously only defined 8 relative positions,
+  --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
+  for num = 1, 8 do
+    if self.result_show_emerald_set_by_number[num] then
+      local radius = visual.juggled_emeralds_radius
+      -- simulate juggling by only moving parameter between angles 0 (right side) to 0.5 (left side),
+      --  adding an offset based on index
+      -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
+      local offset = (num - 1) / 16
+      local param = mid(sin(t() / 5) + offset, 0, 0.5)
+      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

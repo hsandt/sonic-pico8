@@ -148,22 +148,11 @@ function titlemenu:init()
   -- self.has_started_fade_or_cut_in = false  -- commented out to spare characters
   -- self.title_logo_spark_fx = nil  -- commented out to spare characters
 
-  -- we used to define:
-  -- visual.sprite_data_t.title_logo = sprite_data(sprite_id_location(0, 1), tile_vector(14, 10), nil, colors.pink),
-  -- with the new sspr_object, we must now pass precise pixel coordinates, but in counterpart we can work with a title
-  --  sprite that overlaps tiles of other sprites, by slicing sub-tiles
-  -- in our case, the coordinates correspond to 8 times the tile coordinates, + 1 extra pixel on height,
-  --  i.e. (0, 1*8, 14*8, 10*8+1) = (0, 8, 112, 81)
-  self.title_logo_drawable = sspr_object(0, 8, 112, 81, colors.pink)
+  self.title_logo_drawable = sspr_object(visual.sprite_data_t.title_logo)
 
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
-  -- same thing, we used to have angel_island_bg covering tiles perfectly:
-  --  visual.sprite_data_t.angel_island_bg = sprite_data(sprite_id_location(0, 11), tile_vector(16, 5), nil, colors.pink),
-  -- but it now overlaps the title logo on the top row, so we must create an sspr_object similar, just skipping the first row:
-  --  (0, 11*8+1, 16*8, 5*8-1) = (0, 89, 128, 39)
-  -- in fact, there is some margin above the clouds so we could shrink at the top even further, but we keep maximum height in case
-  --  we extend clouds later
-  self.drawables_sea = {sspr_object(0, 89, 128, 39, colors.pink), sprite_object(visual.sprite_data_t.reversed_horizon)}
+  -- note that we mix sspr_object + sspr_data and sprite_object + sprite_data, but the uniform interface makes it agnostic
+  self.drawables_sea = {sspr_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
 
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}
@@ -244,15 +233,15 @@ function titlemenu:play_enter_sequence_async()
   -- work with spark positions relative to title logo as it's easier to check on the spritesheet
   --  when comparing to Sonic 2's actual intro
   local relative_spark_positions_and_delay = {
-    {vector(47, 6), 30},
-    {vector(24, 43), 5},
-    {vector(95, 45), 5},
-    {vector(55, 67), 0},
-    {vector(111, 9), 5},
-    {vector(9, 37), 5},
+    {vector(47, 6),  30},
+    {vector(24, 43),  5},
+    {vector(95, 45),  5},
+    {vector(55, 67),  0},
+    {vector(111, 9),  5},
+    {vector(9, 37),   5},
     {vector(104, 37), 5},
-    {vector(25, 78), 5},
-    {vector(18, 14), 5},
+    {vector(25, 78),  5},
+    {vector(18, 14),  5},
   }
 
 

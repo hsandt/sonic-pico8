@@ -2,6 +2,7 @@ local visual = require("resources/visual_common")
 
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 local sprite_data = require("engine/render/sprite_data")
+local sspr_data = require("engine/render/sspr_data")
 
 local titlemenu_visual = {
   -- water shimmer animation period
@@ -44,14 +45,22 @@ local titlemenu_sprite_data_t = {
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
 
+  title_logo = sspr_data(0, 11, 112, 81, nil, colors.pink),
+
+  -- we used to have angel_island_bg covering tiles perfectly, but now title logo overlaps the full tiles of angel island bg
+  --  a little, so we now use sspr_data
+  -- in fact, there is some margin above the clouds so we could shrink at the top even further, but we keep maximum height in case
+  --  we extend clouds higher later
+  angel_island_bg = sspr_data(0, 89, 128, 39, nil, colors.pink),
+
   -- CORE TITLE GFX ONLY
 
   menu_cursor = sprite_data(sprite_id_location(1, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
   menu_cursor_shoe = sprite_data(sprite_id_location(3, 0), tile_vector(2, 1), vector(8, 5), colors.pink),
 
-  spark_fx1 = sprite_data(sprite_id_location(14, 4), nil, vector(1, 1), colors.pink),
-  spark_fx2 = sprite_data(sprite_id_location(15, 4), nil, vector(3, 3), colors.pink),
-  spark_fx3 = sprite_data(sprite_id_location(14, 5), tile_vector(2, 2), vector(5, 5), colors.pink),
+  spark_fx1 = sspr_data(40, 0,  3,  3, vector(1, 1), colors.pink),
+  spark_fx2 = sspr_data(48, 0,  7,  7, vector(3, 3), colors.pink),
+  spark_fx3 = sspr_data(56, 0, 11, 11, vector(5, 5), colors.pink),
 
   -- START CINEMATIC GFX ONLY
 

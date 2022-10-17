@@ -5,7 +5,6 @@ local animated_sprite = require("engine/render/animated_sprite")
 local animated_sprite_object = require("engine/render/animated_sprite_object")
 local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
-local sspr_object = require("engine/render/sspr_object")
 local text_helper = require("engine/ui/text_helper")
 
 -- it's in ingame folder, but actually shared with menu
@@ -105,9 +104,9 @@ local cloud_sprites_per_size_category = {
 --                                              and immediately remove black overlay (cut in)
 --                                              when true, prevents fading in again
 -- title_logo_spark_fx          fx              title logo spark fx (big animated star)
--- title_logo_drawable          sspr_object     drawable for title logo sprite motion interpolation
+-- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
 -- title_logo_hand              animated_sprite_object   animated sprite for sonic hand on title logo (should move together with title_logo_drawable)
--- drawables_sea                {sspr_object/sprite_object} island and reverse horizon, drawn following camera motion
+-- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
 -- cinematic_drawables_screen   {sprite_object} all other drawables for the start cinematic seen independently from camera
@@ -150,12 +149,13 @@ function titlemenu:init()
   -- self.has_started_fade_or_cut_in = false  -- commented out to spare characters
   -- self.title_logo_spark_fx = nil  -- commented out to spare characters
 
-  self.title_logo_drawable = sspr_object(visual.sprite_data_t.title_logo)
+  self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
   self.title_logo_hand = animated_sprite_object(visual.animated_sprite_data_t.sonic_hand)
 
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
-  -- note that we mix sspr_object + sspr_data and sprite_object + sprite_data, but the uniform interface makes it agnostic
-  self.drawables_sea = {sspr_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
+  -- note that we mix sprite_object + sspr_data and sprite_object + sprite_data, but the uniform interface makes it agnostic
+  self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg),
+    sprite_object(visual.sprite_data_t.reversed_horizon)}
 
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}

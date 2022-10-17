@@ -176,25 +176,30 @@ end
 
 function stage_clear_state:update()
   if self.phase == 1 then
-    -- update eggman body parts
 
-    local old_legs_step = self.eggman_legs.current_step
-    self.eggman_legs:update()
-    local new_legs_step = self.eggman_legs.current_step
+    if self.picked_emerald_count < 8 then
+      -- haven't got all emeralds, so eggman is shown
 
-    -- sync body vertical offset with legs
-    -- remember that our struct are nothing more than elevated class with copy methods,
-    --  so they are still passed by reference
-    local eggman_body_position_ref = self.eggman_body.position
-    if old_legs_step == 1 and new_legs_step == 2 then
-      -- Eggman just stretched his legs, move body up
-      eggman_body_position_ref.y = eggman_body_position_ref.y - 1
-    elseif old_legs_step == 2 and new_legs_step == 1 then
-      -- Eggman just flexed his legs, move body down
-      eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+      -- update eggman body parts
+
+      local old_legs_step = self.eggman_legs.current_step
+      self.eggman_legs:update()
+      local new_legs_step = self.eggman_legs.current_step
+
+      -- sync body vertical offset with legs
+      -- remember that our struct are nothing more than elevated class with copy methods,
+      --  so they are still passed by reference
+      local eggman_body_position_ref = self.eggman_body.position
+      if old_legs_step == 1 and new_legs_step == 2 then
+        -- Eggman just stretched his legs, move body up
+        eggman_body_position_ref.y = eggman_body_position_ref.y - 1
+      elseif old_legs_step == 2 and new_legs_step == 1 then
+        -- Eggman just flexed his legs, move body down
+        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+      end
+
+      self.eggman_arm:update()
     end
-
-    self.eggman_arm:update()
 
     -- retry menu
 
@@ -218,14 +223,18 @@ function stage_clear_state:render()
     -- phase 1: retry menu
     cls()
 
-    -- draw juggled emeralds first, so they appear behind Eggman's hand
-    --  when overlapping it
-    self:render_missed_emeralds_juggled()
+    if self.picked_emerald_count < 8 then
+      -- haven't got all emeralds, so eggman is shown juggling emeralds
 
-    -- draw Eggman
-    self.eggman_legs:draw()
-    self.eggman_body:draw()
-    self.eggman_arm:draw()
+      -- draw juggled emeralds first, so they appear behind Eggman's hand
+      --  when overlapping it
+      self:render_missed_emeralds_juggled()
+
+      -- draw Eggman
+      self.eggman_legs:draw()
+      self.eggman_body:draw()
+      self.eggman_arm:draw()
+    end
 
     --  for retry menu
     if self.retry_menu then
@@ -297,8 +306,9 @@ function stage_clear_state:restore_picked_emerald_data()
       self.picked_emerald_numbers_set[i] = true
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
-    -- DEBUG: uncomment to simulate getting all emeralds when testing stage_clear directly
+    -- DEBUG: uncomment both lines to simulate getting all emeralds when testing stage_clear directly
     -- self.picked_emerald_numbers_set[i] = true
+    -- self.picked_emerald_count = 8
   end
 end
 

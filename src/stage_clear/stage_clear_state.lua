@@ -1,5 +1,7 @@
 local flow = require("engine/application/flow")
 local postprocess = require("engine/render/postprocess")
+local animated_sprite_object = require("engine/render/animated_sprite_object")
+local sprite_object = require("engine/render/sprite_object")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
@@ -87,6 +89,13 @@ function stage_clear_state:init()
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
   -- self.retry_menu starts nil, only created when menu must be shown
+
+  -- eggman sprites
+  -- we don't have a hierarchical sprite system with child offsets yet, so for now, we just work with
+  --  separate static or animated sprites
+  self.eggman_legs = animated_sprite_object(visual.animated_sprite_data_t.eggman_legs, vector(64, 80))
+  self.eggman_body = sprite_object(visual.sprite_data_t.eggman_body, vector(64, 71))
+  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm, vector(64 - 13, 70 - 18))
 end
 
 function stage_clear_state:on_enter()
@@ -117,7 +126,6 @@ function stage_clear_state:on_enter()
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
 end
 
-
 -- play overall stage clear sequence (coroutine)
 function stage_clear_state:play_stage_clear_sequence_async()
   -- show result UI
@@ -135,8 +143,15 @@ function stage_clear_state:play_stage_clear_sequence_async()
   self.app:yield_delay_s(stage_clear_data.fadeout_delay_s)
   self:zigzag_fade_out_async()
 
-  -- enter phase 1: retry menu immediately so we can clear screen
+  self:transition_to_retry_screen_async()
+end
+
+function stage_clear_state:transition_to_retry_screen_async()
+  -- -- enter phase 1: retry menu immediately so we can clear screen
   self.phase = 1
+
+  self.eggman_legs:play("loop")
+  self.eggman_arm:play("loop")
 
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
@@ -160,8 +175,32 @@ end
 --]]
 
 function stage_clear_state:update()
-  if self.retry_menu then
-    self.retry_menu:update()
+  if self.phase == 1 then
+    -- update eggman body parts
+
+    local old_legs_step = self.eggman_legs.current_step
+    self.eggman_legs:update()
+    local new_legs_step = self.eggman_legs.current_step
+
+    -- sync body vertical offset with legs
+    -- remember that our struct are nothing more than elevated class with copy methods,
+    --  so they are still passed by reference
+    local eggman_body_position_ref = self.eggman_body.position
+    if old_legs_step == 1 and new_legs_step == 2 then
+      -- Eggman just stretched his legs, move body up
+      eggman_body_position_ref.y = eggman_body_position_ref.y - 1
+    elseif old_legs_step == 2 and new_legs_step == 1 then
+      -- Eggman just flexed his legs, move body down
+      eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+    end
+
+    self.eggman_arm:update()
+
+    -- retry menu
+
+    if self.retry_menu then
+      self.retry_menu:update()
+    end
   end
 end
 
@@ -176,9 +215,13 @@ function stage_clear_state:render()
     -- phase 1: retry menu
     cls()
 
+    self.eggman_legs:draw()
+    self.eggman_body:draw()
+    self.eggman_arm:draw()
+
     --  for retry menu
     if self.retry_menu then
-      self.retry_menu:draw(29, 95)
+      self.retry_menu:draw(29, 102)
     end
   end
 
@@ -406,7 +449,7 @@ function stage_clear_state:show_retry_screen_async()
   -- change text if player has got all emeralds
   local result_label
   if has_missed_any_emeralds then
-    result_label = label("try again?", vector(45, 30), colors.white)
+    result_label = label("try again?", vector(45, 88), colors.white)
   else
     result_label = label("congratulations!", vector(35, 45), colors.white)
   end
@@ -462,7 +505,7 @@ end
 function stage_clear_state:render_emeralds()
   camera()
 
-  self:draw_emeralds(64, 64)
+  self:draw_emeralds(64, 20)
 end
 
 -- draw picked/missed emeralds on an invisible circle centered on (x, y)

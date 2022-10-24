@@ -1,4 +1,5 @@
 local flow = require("engine/application/flow")
+local input = require("engine/input/input")
 local postprocess = require("engine/render/postprocess")
 local animated_sprite_object = require("engine/render/animated_sprite_object")
 local sprite_object = require("engine/render/sprite_object")
@@ -75,6 +76,7 @@ function stage_clear_state:init()
   -- phase 0: stage result
   -- phase 1: retry menu
   self.phase = 0
+  self.is_fading_out_for_retry_screen = false
 
   -- postprocessing for fade out effect
   self.postproc = postprocess()
@@ -139,11 +141,26 @@ function stage_clear_state:play_stage_clear_sequence_async()
   --  if we have all the emeralds)
   self:assess_result_async()
 
-  -- fade out and show retry screen
   self.app:yield_delay_s(stage_clear_data.fadeout_delay_s)
-  self:zigzag_fade_out_async()
 
-  self:transition_to_retry_screen_async()
+  self:try_fade_out_and_show_retry_screen_async()
+end
+
+function stage_clear_state:try_fade_out_and_show_retry_screen_async()
+  if not self.is_fading_out_for_retry_screen then
+    self.is_fading_out_for_retry_screen = true
+
+    self:zigzag_fade_out_async()
+
+    -- stop all coroutines before showing retry screen to avoid, in the case of manual skip,
+    --  play_stage_clear_sequence_async and its sub-async methods doing further processing in the background
+    --  and messing up with the sequence
+    -- since we do this after the last async call here, this very coroutine will still finish properly
+    -- note that we must start a brand new coroutine below for this to work, else we would stop our own coroutine
+    self.app:stop_all_coroutines()
+
+    self.app:start_coroutine(self.transition_to_retry_screen_async, self)
+  end
 end
 
 function stage_clear_state:transition_to_retry_screen_async()
@@ -172,8 +189,16 @@ end
 --]]
 
 function stage_clear_state:update()
-  if self.phase == 1 then
-
+  if self.phase == 0 then
+    -- check for any input to skip result screen and fade out already to retry menu
+    if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
+      -- start fade out in parallel with existing animations to keep things smooth
+      -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
+      -- also fade out result music now (if still playing)
+      music(-1, 500)
+      self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
+    end
+  else  -- self.phase == 1
     if self.picked_emerald_count < 8 then
       -- haven't got all emeralds, so eggman is shown
 
@@ -441,6 +466,7 @@ function stage_clear_state:zigzag_fade_out_async()
   --  and set darkness to max in counterpart, so we don't accidentally show stuff behind until we fade in again
   self.result_overlay:clear_drawables()
   self.postproc.darkness = 5
+  printh("self.postproc.darkness: "..nice_dump(self.postproc.darkness))
 end
 
 function stage_clear_state:show_retry_screen_async()
@@ -492,6 +518,7 @@ function stage_clear_state:show_retry_screen_async()
   for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(4)
+    printh("self.postproc.darkness: "..nice_dump(self.postproc.darkness))
   end
 end
 

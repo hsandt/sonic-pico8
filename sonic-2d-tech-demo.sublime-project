@@ -298,6 +298,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear cheat"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear assert"]
+				},
+				{
 					"name": "release",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear release"]
 				}
@@ -540,6 +544,10 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear cheat && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear cheat)"]
 				},
 				{
+					"name": "assert",
+					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear assert)"]
+				},
+				{
 					"name": "tuner",
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear tuner && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear tuner)"]
 				},
@@ -743,6 +751,10 @@
 				{
 					"name": "stage_clear cheat",
 					"cmd": ["./run_cartridge.sh stage_clear cheat"]
+				},
+				{
+					"name": "stage_clear assert",
+					"cmd": ["./run_cartridge.sh stage_clear assert"]
 				},
 				{
 					"name": "stage_clear tuner",

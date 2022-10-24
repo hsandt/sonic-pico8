@@ -215,6 +215,9 @@ function stage_clear_state:try_fade_out_and_show_retry_screen_async()
 
     self:zigzag_fade_out_async()
 
+    -- fade out music if any (only useful if player manually skipped result)
+    music(-1, 500)
+
     -- stop all coroutines before showing retry screen to avoid, in the case of manual skip,
     --  play_stage_clear_sequence_async and its sub-async methods doing further processing in the background
     --  and messing up with the sequence
@@ -267,9 +270,6 @@ function stage_clear_state:update()
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- start fade out in parallel with existing animations to keep things smooth
       -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
-      -- also fade out result music now (if still playing)
-      -- FIXME: call this after fade out to avoid music starting *afterward*
-      music(-1, 500)
       self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
     end
   else  -- self.phase == 1

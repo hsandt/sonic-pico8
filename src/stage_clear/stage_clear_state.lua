@@ -313,14 +313,6 @@ function stage_clear_state:update()
       self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
     end
   else  -- self.phase == 1
-    -- HACK to test tuned values
-    if input:is_just_pressed(button_ids.x) then
-      -- start fade out in parallel with existing animations to keep things smooth
-      -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
-      self.app:start_coroutine(self.show_retry_screen_async, self)
-    end
-    -- HACK END
-
     if self.picked_emerald_count < 8 then
       -- haven't got all emeralds, so eggman is shown
 
@@ -737,7 +729,7 @@ end
 -- render every missed emeralds, juggled by Eggman
 function stage_clear_state:render_missed_emeralds_juggled()
   camera()
-  self:draw_missed_emeralds_juggled(64, 46)
+  self:draw_missed_emeralds_juggled(63, 45)
 end
 
 -- draw picked emeralds on an invisible circle centered on (x, y)
@@ -770,7 +762,6 @@ function stage_clear_state:draw_missed_emeralds_juggled_ping_pong(x, y)
   --  as in Sonic 1's Try Again screen
   for num = 8, 1, -1 do
     if self.result_show_emerald_set_by_number[num] then
-      local radius = visual.juggled_emeralds_radius
       -- simulate juggling by only moving parameter between angles 0 (right side) to 0.5 (left side),
       --  adding an offset based on index
       -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
@@ -789,13 +780,15 @@ function stage_clear_state:draw_missed_emeralds_juggled_ping_pong(x, y)
 
       if self.eggman_arm.flip_x then
         -- throwing from right to left, with a small advance to match raised hand
-        param = ui_animation.lerp_clamped(0 + 0.07, 0.5, param)
+        param = ui_animation.lerp_clamped(0 + 0.08, 0.5, param)
       else
         -- throwing from left to right, with a small advance to match raised hand
-        param = ui_animation.lerp_clamped(0.5 - 0.07, 0, param)
+        param = ui_animation.lerp_clamped(0.5 - 0.08, 0, param)
       end
 
-      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
+      -- amplitude on y is a little bigger than amplitude on x (vertical ellipsis),
+      --  to have emeralds higher
+      local draw_position = vector(x + 22 * cos(param), y + 28 * sin(param))
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

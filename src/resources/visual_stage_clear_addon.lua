@@ -39,20 +39,20 @@ local stage_clear_animated_sprite_data_t = {
   eggman_arm = {
     ["once"] = animated_sprite_data(
       {
-        stage_clear_sprite_data_t.eggman_arm_down,
         stage_clear_sprite_data_t.eggman_arm_up,
+        stage_clear_sprite_data_t.eggman_arm_down,
       },
-      15,
+      110,
       anim_loop_modes.freeze_last
     )
   },
   eggman_legs = {
     ["once"] = animated_sprite_data(
       {
-        stage_clear_sprite_data_t.eggman_legs_down,
         stage_clear_sprite_data_t.eggman_legs_up,
+        stage_clear_sprite_data_t.eggman_legs_down,
       },
-      15,
+      110,
       anim_loop_modes.freeze_last
     )
   },

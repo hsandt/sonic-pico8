@@ -219,17 +219,9 @@ function stage_clear_state:update()
       local eggman_body_position_ref = self.eggman_body.position
       local eggman_arm_position_ref = self.eggman_arm.position
       if old_legs_step == 1 and new_legs_step == 2 then
-        -- Eggman just stretched his legs, move body and arm up
-        eggman_body_position_ref.y = eggman_body_position_ref.y - 1
-        eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
-      -- elseif old_legs_step == 2 and new_legs_step == 1 then
-      --   -- CURRENTLY, THIS NEVER HAPPENS
-      --   -- because we switched to once animation, and manual restart; so we must move down
-      --   -- when playing animation again manually instead
-
-      --   -- Eggman just flexed his legs, move body and arm down
-      --   eggman_body_position_ref.y = eggman_body_position_ref.y + 1
-      --   eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
+        -- Eggman just flexed his legs, move body and arm down
+        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
       end
 
       self.eggman_arm:update()
@@ -245,14 +237,14 @@ function stage_clear_state:update()
         local arm_offset = self.eggman_legs.flip_x and 13 or -13
         self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
 
-        -- play stand up animation again
+        -- play animation again that starts up for most of the cycle, then down just before flipping
         self.eggman_legs:play("once", --[[from_start:]] true)
         self.eggman_arm:play("once", --[[from_start:]] true)
 
         -- as noted above, we manually play the animation whose 1st frame moves Eggman
-        --  down again, so we must move body and arm down at this moment
-        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
-        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
+        --  up again, so we must move body and arm down at this moment
+        eggman_body_position_ref.y = eggman_body_position_ref.y - 1
+        eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
       end
 
       self.eggman_timer = self.eggman_timer + 1

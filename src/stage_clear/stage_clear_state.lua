@@ -96,11 +96,13 @@ function mirror_wrapper:draw(spr_object)
 end
 
 
--- strings
+-- parameters
+
+local arm_offset_y_from_body = -16
 
 local juggling_mode_strings = {
   "ping-pong",
-  "shower",
+  " shower",  -- space is just to center a little between the arrows
 }
 
 function stage_clear_state:get_current_juggling_mode_string()
@@ -143,8 +145,9 @@ function stage_clear_state:init()
   -- eggman sprites
   -- we don't have a hierarchical sprite system with child offsets yet, so for now, we just work with
   --  separate static or animated sprites
-  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 80 + tuned("dy", -6))))
-  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, 71 + tuned("dy", -6))))
+  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 74)))
+  self.eggman_body_initial_y = 65
+  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, self.eggman_body_initial_y)))
 
   -- first arm (initially on the left)
   self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
@@ -185,9 +188,9 @@ function stage_clear_state:change_juggling_mode(juggling_mode)
   self.emerald_juggling_mode = juggling_mode
 
   local body_position_y = self.eggman_body.spr_object.position.y
-  self.eggman_arm.position:copy_assign(vector(64 - 9, body_position_y - 16))
+  self.eggman_arm.position:copy_assign(vector(64 - 9, body_position_y + arm_offset_y_from_body))
   self.eggman_arm.flip_x = false
-  self.eggman_arm2.position:copy_assign(vector(64 + 9, body_position_y - 16))
+  self.eggman_arm2.position:copy_assign(vector(64 + 9, body_position_y + arm_offset_y_from_body))
   self.eggman_arm2.flip_x = true
 
   self.eggman_timer = 0
@@ -196,7 +199,7 @@ function stage_clear_state:change_juggling_mode(juggling_mode)
     -- Ping-pong
     -- second arm is always in down position (and switches between left and right regularly)
     self.eggman_arm2:play("down")
-    -- legs will play raise_and_lower on first frame in update
+    -- legs will play raise_and_lower and update body/arm position on first frame in update
   else
     -- Shower juggling
     -- Start at down position just to make sure to show something and so receiving an emerald looks natural,
@@ -204,6 +207,15 @@ function stage_clear_state:change_juggling_mode(juggling_mode)
     self.eggman_arm:play("down")
     self.eggman_arm2:play("down")
     self.eggman_legs.spr_object:play("up")  -- always up in this mode
+
+    -- Adjust body and arm position to up position (1px up)
+    local eggman_body_position_ref = self.eggman_body.spr_object.position
+    local eggman_arm_position_ref = self.eggman_arm.position
+    local eggman_arm2_position_ref = self.eggman_arm2.position
+
+    eggman_body_position_ref.y = self.eggman_body_initial_y - 1
+    eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+    eggman_arm2_position_ref.y = eggman_arm_position_ref.y
 
     -- sequence of last known way index (high way: 0, low way: 1), indexed per emerald index-1
     --  so we can make Eggman hands react when emeralds change directions
@@ -335,10 +347,11 @@ function stage_clear_state:update()
       local eggman_arm2_position_ref = self.eggman_arm2.position
       if old_legs_step == 1 and new_legs_step == 2 then
         -- Eggman just flexed his legs, move body and arm down
-        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
-        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
-        eggman_arm2_position_ref.y = eggman_arm2_position_ref.y + 1
+        eggman_body_position_ref.y = self.eggman_body_initial_y
+        eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+        eggman_arm2_position_ref.y = eggman_arm_position_ref.y
       end
+      -- up never happens naturally, only via play, so we'll change position when calling play
 
       self.eggman_arm:update()
       self.eggman_arm2:update()
@@ -369,9 +382,9 @@ function stage_clear_state:update()
 
           -- as noted above, we manually play the animation whose 1st frame moves Eggman
           --  up again, so we must move body and arm down at this moment
-          eggman_body_position_ref.y = eggman_body_position_ref.y - 1
-          eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
-          eggman_arm2_position_ref.y = eggman_arm2_position_ref.y - 1
+          eggman_body_position_ref.y = self.eggman_body_initial_y - 1
+          eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+          eggman_arm2_position_ref.y = eggman_arm_position_ref.y
         end
       else
         -- Shower juggling (most of the code is done in rendering)
@@ -422,7 +435,7 @@ function stage_clear_state:render()
 
     --  for retry menu
     if self.retry_menu then
-      self.retry_menu:draw(29, tuned("y2", 108))
+      self.retry_menu:draw(29, 108)
     end
   end
 
@@ -651,13 +664,13 @@ function stage_clear_state:show_retry_screen_async()
   -- change text if player has got all emeralds
   local result_label
   if has_missed_any_emeralds then
-    local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(tuned("x0", 23), tuned("y0", 82)), colors.white)
+    local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(23, 82), colors.white)
     -- mind +1 to convert our index-0 to Lua index
-    local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(tuned("xm", 75), tuned("y0", 82)), colors.white)
+    local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(75, 82), colors.white)
     self.result_overlay:add_drawable("juggle mode selector", juggle_mode_selector_label)
     self.result_overlay:add_drawable("juggle mode value", juggle_mode_value_label)
 
-    result_label = label("try again?", vector(45, tuned("y1", 96)), colors.white)
+    result_label = label("try again?", vector(45, 96), colors.white)
   else
     result_label = label("congratulations!", vector(35, 45), colors.white)
   end
@@ -724,7 +737,7 @@ end
 -- render every missed emeralds, juggled by Eggman
 function stage_clear_state:render_missed_emeralds_juggled()
   camera()
-  self:draw_missed_emeralds_juggled(64, 52 + tuned("dy", -6))
+  self:draw_missed_emeralds_juggled(64, 46)
 end
 
 -- draw picked emeralds on an invisible circle centered on (x, y)

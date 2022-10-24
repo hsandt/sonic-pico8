@@ -67,6 +67,35 @@ function stage_clear_state.back_to_titlemenu_async()
   load('picosonic_titlemenu')
 end
 
+
+-- render helpers
+
+-- a wrapper class to draw the same sprite twice, once normally and once flipped X around its pivot
+--  use a pivot in .5 if the center vertical axis go through through a pixel (for width = odd number of px)
+-- it is a drawable itself
+local mirror_wrapper = new_class()
+
+-- sprite_object  sprite_object|animated_sprite_object   sprite object to draw mirrored on X
+--                                                       must have fields visible, position, flip_x/flip_y and method draw
+function mirror_wrapper:init(spr_object)
+  self.spr_object = spr_object
+end
+
+function mirror_wrapper:update()
+  self.spr_object:update()
+end
+
+function mirror_wrapper:draw(spr_object)
+  self.spr_object:draw()
+
+  -- as a trick, we temporarily swap flip x before the second draw to draw a mirrored image, then revert it
+  local original_flip_x = self.spr_object.flip_x
+  self.spr_object.flip_x = not original_flip_x
+  self.spr_object:draw()
+  self.spr_object.flip_x = original_flip_x
+end
+
+
 function stage_clear_state:init()
   base_stage_state.init(self)
 
@@ -99,9 +128,13 @@ function stage_clear_state:init()
   -- eggman sprites
   -- we don't have a hierarchical sprite system with child offsets yet, so for now, we just work with
   --  separate static or animated sprites
-  self.eggman_legs = animated_sprite_object(visual.animated_sprite_data_t.eggman_legs, vector(64, 80))
-  self.eggman_body = sprite_object(visual.sprite_data_t.eggman_body, vector(64, 71))
-  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm, vector(64 - 13, 71 - 18))
+  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 80)))
+  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, 71)))
+  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left, vector(64 - 9, 71 - 16))
+
+  -- the arm that is down starts on the right
+  self.eggman_arm_down = sprite_object(visual.sprite_data_t.eggman_arm_left_down, vector(64 + 9, 71 - 16))
+  self.eggman_arm_down.flip_x = true
 end
 
 function stage_clear_state:on_enter()
@@ -209,19 +242,22 @@ function stage_clear_state:update()
 
       -- update eggman body parts
 
-      local old_legs_step = self.eggman_legs.current_step
+      -- we know that legs spr_object is an animated_sprite_object
+      local old_legs_step = self.eggman_legs.spr_object.current_step
       self.eggman_legs:update()
-      local new_legs_step = self.eggman_legs.current_step
+      local new_legs_step = self.eggman_legs.spr_object.current_step
 
       -- sync body vertical offset with legs
       -- remember that our struct are nothing more than elevated class with copy methods,
       --  so they are still passed by reference
-      local eggman_body_position_ref = self.eggman_body.position
+      local eggman_body_position_ref = self.eggman_body.spr_object.position
       local eggman_arm_position_ref = self.eggman_arm.position
+      local eggman_arm_down_position_ref = self.eggman_arm_down.position
       if old_legs_step == 1 and new_legs_step == 2 then
         -- Eggman just flexed his legs, move body and arm down
         eggman_body_position_ref.y = eggman_body_position_ref.y + 1
         eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
+        eggman_arm_down_position_ref.y = eggman_arm_down_position_ref.y + 1
       end
 
       self.eggman_arm:update()
@@ -230,21 +266,26 @@ function stage_clear_state:update()
       if self.eggman_timer % 120 == 0 then
         self.eggman_timer = 0
 
-        -- flip Eggman
-        self.eggman_legs.flip_x = not self.eggman_legs.flip_x
-        self.eggman_body.flip_x = not self.eggman_body.flip_x
-        self.eggman_arm.flip_x = not self.eggman_arm.flip_x
-        local arm_offset = self.eggman_legs.flip_x and 13 or -13
+        -- flip Eggman's arms
+        local new_global_flip = not self.eggman_arm.flip_x
+        self.eggman_arm.flip_x = new_global_flip
+        local arm_offset = self.eggman_arm.flip_x and 9 or -9
         self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
 
+        -- the arm down is always at the opposite of the main (rising) arm
+        self.eggman_arm_down.flip_x = not new_global_flip
+        self.eggman_arm_down.position.x = eggman_body_position_ref.x - arm_offset
+
         -- play animation again that starts up for most of the cycle, then down just before flipping
-        self.eggman_legs:play("once", --[[from_start:]] true)
+        -- we know that legs spr_object is an animated_sprite_object
+        self.eggman_legs.spr_object:play("once", --[[from_start:]] true)
         self.eggman_arm:play("once", --[[from_start:]] true)
 
         -- as noted above, we manually play the animation whose 1st frame moves Eggman
         --  up again, so we must move body and arm down at this moment
         eggman_body_position_ref.y = eggman_body_position_ref.y - 1
         eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
+        eggman_arm_down_position_ref.y = eggman_arm_down_position_ref.y - 1
       end
 
       self.eggman_timer = self.eggman_timer + 1
@@ -279,6 +320,7 @@ function stage_clear_state:render()
       self.eggman_legs:draw()
       self.eggman_body:draw()
       self.eggman_arm:draw()
+      self.eggman_arm_down:draw()
 
       -- draw juggled emeralds on top of Eggman's hand
       --  when overlapping it
@@ -625,7 +667,7 @@ function stage_clear_state:draw_missed_emeralds_juggled(x, y)
       -- higher index emeralds are late, so subtract offset
       local param = timer_ratio - emerald_param_offset
 
-      if self.eggman_body.flip_x then
+      if self.eggman_arm.flip_x then
         -- throwing from right to left, with a small advance to match raised hand
         param = ui_animation.lerp_clamped(0 + 0.07, 0.5, param)
       else

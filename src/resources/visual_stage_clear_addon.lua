@@ -28,29 +28,30 @@ local stage_clear_sprite_data_t = {
   --  center of the nose, using a fraction .5. Also do this for legs to sync them, and even for arm,
   --  so we can consistently place them at -13 along X from body, and flip X to +13 and automatically
   --  benefit from the mirror adjustment (instead of -14 and 13)
-  eggman_body = sspr_data(31, 48, 38, 34, vector(13.5, 33), colors.pink),
-  eggman_arm_up = sspr_data(17, 48, 13, 16, vector(12.5, 15), colors.pink),
-  eggman_arm_down = sspr_data(16, 65, 14, 10, vector(13.5, 8), colors.pink),
-  eggman_legs_down = sspr_data(70, 60, 35, 9, vector(17.5, 8), colors.pink),
-  eggman_legs_up = sspr_data(70, 70, 35, 10, vector(17.5, 9), colors.pink),
+  eggman_body_half_left = sspr_data(24, 94, 14, 34, vector(13.5, 33), colors.pink),
+  eggman_arm_left_up = sspr_data(40, 89, 17, 18, vector(16.5, 17), colors.pink),
+  eggman_arm_left_middle = sspr_data(0, 101, 18, 11, vector(17.5, 10), colors.pink),
+  eggman_arm_left_down = sspr_data(0, 117, 16, 11, vector(15.5, 7), colors.pink),
+  eggman_leg_down_half_left = sspr_data(40, 108, 18, 9, vector(17.5, 8), colors.pink),
+  eggman_leg_up_half_left = sspr_data(40, 118, 18, 10, vector(17.5, 9), colors.pink),
 }
 
 local stage_clear_animated_sprite_data_t = {
-  eggman_arm = {
+  eggman_arm_left = {
     ["once"] = animated_sprite_data(
       {
-        stage_clear_sprite_data_t.eggman_arm_up,
-        stage_clear_sprite_data_t.eggman_arm_down,
+        stage_clear_sprite_data_t.eggman_arm_left_up,
+        stage_clear_sprite_data_t.eggman_arm_left_middle,
       },
       110,
       anim_loop_modes.freeze_last
     )
   },
-  eggman_legs = {
+  eggman_leg_left = {
     ["once"] = animated_sprite_data(
       {
-        stage_clear_sprite_data_t.eggman_legs_up,
-        stage_clear_sprite_data_t.eggman_legs_down,
+        stage_clear_sprite_data_t.eggman_leg_up_half_left,
+        stage_clear_sprite_data_t.eggman_leg_down_half_left,
       },
       110,
       anim_loop_modes.freeze_last

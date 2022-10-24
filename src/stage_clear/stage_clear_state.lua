@@ -84,6 +84,9 @@ function stage_clear_state:init()
   -- result (stage clear) overlay
   self.result_overlay = overlay()
 
+  -- fading overlay, should be displayed on top of the rest
+  self.fading_overlay = overlay()
+
   -- emerald variables for result UI animation
   self.picked_emerald_numbers_set = {}
   self.picked_emerald_count = 0
@@ -182,6 +185,7 @@ function stage_clear_state:on_exit()
 
   -- clear object state vars
   self.result_overlay:clear_drawables()
+  self.fading_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -451,8 +455,8 @@ end
 
 function stage_clear_state:zigzag_fade_out_async()
   local fadeout_rect = rectangle(vector(0, 0), 128, 128, colors.black)
-  self.result_overlay:add_drawable("fadeout_rect", fadeout_rect)
-  self.result_overlay:add_drawable("zigzag", zigzag_drawable)
+  self.fading_overlay:add_drawable("fadeout_rect", fadeout_rect)
+  self.fading_overlay:add_drawable("zigzag", zigzag_drawable)
 
   -- swipe sfx must be played during swipe animation
   sfx(audio.sfx_ids.menu_swipe)
@@ -462,11 +466,11 @@ function stage_clear_state:zigzag_fade_out_async()
   --  and the fadeout_rect fully covers the screen, ready to be used as background
   ui_animation.move_drawables_on_coord_async("x", {fadeout_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
-  -- at the end of the zigzag fade-out, clear all drawables including fadeout rect
+  -- at the end of the zigzag fade-out, clear all drawables including from fading overlay rect
   --  and set darkness to max in counterpart, so we don't accidentally show stuff behind until we fade in again
   self.result_overlay:clear_drawables()
+  self.fading_overlay:clear_drawables()
   self.postproc.darkness = 5
-  printh("self.postproc.darkness: "..nice_dump(self.postproc.darkness))
 end
 
 function stage_clear_state:show_retry_screen_async()
@@ -518,7 +522,6 @@ function stage_clear_state:show_retry_screen_async()
   for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(4)
-    printh("self.postproc.darkness: "..nice_dump(self.postproc.darkness))
   end
 end
 
@@ -545,7 +548,11 @@ end
 -- render the result overlay with a fixed ui camera
 function stage_clear_state:render_overlay()
   camera()
+
+  -- draw overlays, make sure to draw fading on top, so in case of manual result skip,
+  --  we draw the labels (added after fading drawables) behind the fading drawables
   self.result_overlay:draw()
+  self.fading_overlay:draw()
 end
 
 -- render every picked/missed emeralds at fixed screen position

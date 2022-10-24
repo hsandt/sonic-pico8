@@ -77,6 +77,7 @@ function stage_clear_state:init()
   -- phase 1: retry menu
   self.phase = 0
   self.is_fading_out_for_retry_screen = false
+  self.eggman_timer = 0
 
   -- postprocessing for fade out effect
   self.postproc = postprocess()
@@ -100,7 +101,7 @@ function stage_clear_state:init()
   --  separate static or animated sprites
   self.eggman_legs = animated_sprite_object(visual.animated_sprite_data_t.eggman_legs, vector(64, 80))
   self.eggman_body = sprite_object(visual.sprite_data_t.eggman_body, vector(64, 71))
-  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm, vector(64 - 13, 70 - 18))
+  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm, vector(64 - 13, 71 - 18))
 end
 
 function stage_clear_state:on_enter()
@@ -216,15 +217,28 @@ function stage_clear_state:update()
       -- remember that our struct are nothing more than elevated class with copy methods,
       --  so they are still passed by reference
       local eggman_body_position_ref = self.eggman_body.position
+      local eggman_arm_position_ref = self.eggman_arm.position
       if old_legs_step == 1 and new_legs_step == 2 then
-        -- Eggman just stretched his legs, move body up
+        -- Eggman just stretched his legs, move body and arm up
         eggman_body_position_ref.y = eggman_body_position_ref.y - 1
+        eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
       elseif old_legs_step == 2 and new_legs_step == 1 then
-        -- Eggman just flexed his legs, move body down
+        -- Eggman just flexed his legs, move body and arm down
         eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
       end
 
       self.eggman_arm:update()
+
+      if self.eggman_timer % 60 == 0 then
+        self.eggman_legs.flip_x = not self.eggman_legs.flip_x
+        self.eggman_body.flip_x = not self.eggman_body.flip_x
+        self.eggman_arm.flip_x = not self.eggman_arm.flip_x
+        local arm_offset = self.eggman_legs.flip_x and 13 or -13
+        self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
+      end
+
+      self.eggman_timer = self.eggman_timer + 1
     end
 
     -- retry menu
@@ -252,14 +266,14 @@ function stage_clear_state:render()
     if self.picked_emerald_count < 8 then
       -- haven't got all emeralds, so eggman is shown juggling emeralds
 
-      -- draw juggled emeralds first, so they appear behind Eggman's hand
-      --  when overlapping it
-      self:render_missed_emeralds_juggled()
-
       -- draw Eggman
       self.eggman_legs:draw()
       self.eggman_body:draw()
       self.eggman_arm:draw()
+
+      -- draw juggled emeralds on top of Eggman's hand
+      --  when overlapping it
+      self:render_missed_emeralds_juggled()
     end
 
     --  for retry menu
@@ -564,7 +578,7 @@ end
 -- render every missed emeralds, juggled by Eggman
 function stage_clear_state:render_missed_emeralds_juggled()
   camera()
-  self:draw_missed_emeralds_juggled(64, 30)
+  self:draw_missed_emeralds_juggled(64, 30 + 14 + 8)
 end
 
 -- draw picked emeralds on an invisible circle centered on (x, y)

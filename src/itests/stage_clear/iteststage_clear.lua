@@ -22,9 +22,8 @@ itest_manager:register_itest('(stage clear) player waits',
     flow:change_gamestate_by_type(':stage_clear')
   end)
 
-  -- let stage clear sequence play and see if nothing crashes
-  -- reduced frames from 750 to 100 to make it shorter, although we won't test the whole sequence
-  wait(100, true)
+  -- let stage clear sequence play and see if nothing crashes, long enough to test some Eggman cycles
+  wait(1000, true)
 
   -- we should still be in stage clear (because even if we load() titlemenu cartridge in headless,
   --  it won't do anything)

@@ -439,7 +439,7 @@ describe('stage_clear_state', function ()
 
           it('should call result_overlay:draw', function ()
             state:render_overlay()
-            assert.spy(overlay.draw).was_called(1)
+            assert.spy(overlay.draw).was_called(2)
             assert.spy(overlay.draw).was_called_with(match.ref(state.result_overlay))
           end)
 

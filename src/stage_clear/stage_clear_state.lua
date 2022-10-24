@@ -150,9 +150,6 @@ function stage_clear_state:transition_to_retry_screen_async()
   -- -- enter phase 1: retry menu immediately so we can clear screen
   self.phase = 1
 
-  self.eggman_legs:play("loop")
-  self.eggman_arm:play("loop")
-
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
   self:show_retry_screen_async()
@@ -440,14 +437,14 @@ function stage_clear_state:zigzag_fade_out_async()
   --  and the fadeout_rect fully covers the screen, ready to be used as background
   ui_animation.move_drawables_on_coord_async("x", {fadeout_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
-  -- at the end of the zigzag fade-out, clear the emerald assessment widgets which are now completely hidden
-  -- also hide the emeralds until we show them again (but it will be the missed ones)
-  -- no need to preserve fadeout_rect either because in phase 2, we cls() on render start anyway
+  -- at the end of the zigzag fade-out, clear all drawables including fadeout rect
+  --  and set darkness to max in counterpart, so we don't accidentally show stuff behind until we fade in again
   self.result_overlay:clear_drawables()
-  clear_table(self.result_show_emerald_set_by_number)
+  self.postproc.darkness = 5
 end
 
 function stage_clear_state:show_retry_screen_async()
+  clear_table(self.result_show_emerald_set_by_number)
 
   local has_got_any_emeralds = false
   local has_missed_any_emeralds = false
@@ -485,7 +482,13 @@ function stage_clear_state:show_retry_screen_async()
 
   self.retry_menu:show_items(retry_menu_items)
 
-  -- fade in (we start from everything black so skip max darkness 5)
+  if self.picked_emerald_count < 8 then
+    -- haven't got all emeralds, so eggman is shown
+    self.eggman_legs:play("loop")
+    self.eggman_arm:play("loop")
+  end
+
+  -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
   for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(4)

@@ -222,20 +222,37 @@ function stage_clear_state:update()
         -- Eggman just stretched his legs, move body and arm up
         eggman_body_position_ref.y = eggman_body_position_ref.y - 1
         eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
-      elseif old_legs_step == 2 and new_legs_step == 1 then
-        -- Eggman just flexed his legs, move body and arm down
-        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
-        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
+      -- elseif old_legs_step == 2 and new_legs_step == 1 then
+      --   -- CURRENTLY, THIS NEVER HAPPENS
+      --   -- because we switched to once animation, and manual restart; so we must move down
+      --   -- when playing animation again manually instead
+
+      --   -- Eggman just flexed his legs, move body and arm down
+      --   eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+      --   eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
       end
 
       self.eggman_arm:update()
 
-      if self.eggman_timer % 60 == 0 then
+      -- half-cycle: a throw from left to right, or right to left, takes 120 frames
+      if self.eggman_timer % 120 == 0 then
+        self.eggman_timer = 0
+
+        -- flip Eggman
         self.eggman_legs.flip_x = not self.eggman_legs.flip_x
         self.eggman_body.flip_x = not self.eggman_body.flip_x
         self.eggman_arm.flip_x = not self.eggman_arm.flip_x
         local arm_offset = self.eggman_legs.flip_x and 13 or -13
         self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
+
+        -- play stand up animation again
+        self.eggman_legs:play("once", --[[from_start:]] true)
+        self.eggman_arm:play("once", --[[from_start:]] true)
+
+        -- as noted above, we manually play the animation whose 1st frame moves Eggman
+        --  down again, so we must move body and arm down at this moment
+        eggman_body_position_ref.y = eggman_body_position_ref.y + 1
+        eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
       end
 
       self.eggman_timer = self.eggman_timer + 1
@@ -526,11 +543,7 @@ function stage_clear_state:show_retry_screen_async()
 
   self.retry_menu:show_items(retry_menu_items)
 
-  if self.picked_emerald_count < 8 then
-    -- haven't got all emeralds, so eggman is shown
-    self.eggman_legs:play("loop")
-    self.eggman_arm:play("loop")
-  end
+  -- no need to play Eggman animations at this point, they will be called on first frame where it can be shown
 
   -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
   for i = 4, 0, -1 do
@@ -609,9 +622,25 @@ function stage_clear_state:draw_missed_emeralds_juggled(x, y)
       -- simulate juggling by only moving parameter between angles 0 (right side) to 0.5 (left side),
       --  adding an offset based on index
       -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
-      local offset = (num - 1) / 16
-      local param = mid(sin(t() / 5) + offset, 0, 0.5)
-      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
+
+      -- when throwing from left to right (not flipped), emeralds are thrown from the last first
+      -- when throwing from right to left (flipped), emeralds are thrown in order
+      -- so compute delay index (0-based, from 0 to 7) based on this and the emerald original index-1
+      local emerald_throw_delay_index0 = num - 1
+      -- give enough offset between emeralds so they don't overlap except near the hands
+      local emerald_param_offset = emerald_throw_delay_index0 / 8
+      if not self.eggman_body.flip_x then
+        -- when throwing from left to right, delay means negative angle offset
+        emerald_param_offset = -emerald_param_offset
+      end
+
+      -- throw is faster than half-cycle since we must have the latest emerald reach the hand on the opposite
+      --  side despite its delay
+      -- so if a half-cycle is 120 frames, move emeralds in 60 frames
+      local timer_ratio = self.eggman_timer / 60
+      local param = self.eggman_body.flip_x and 1 - timer_ratio or timer_ratio
+      param = ui_animation.lerp_clamped(0, 0.5, param + emerald_param_offset)
+      local draw_position = vector(x - radius * cos(param), y + radius * sin(param))
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

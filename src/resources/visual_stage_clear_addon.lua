@@ -39,9 +39,9 @@ local stage_clear_sprite_data_t = {
 
 local stage_clear_animated_sprite_data_t = {
   eggman_arm_left = {
-    ["middle"] = animated_sprite_data(
+    ["down"] = animated_sprite_data(
       {
-        stage_clear_sprite_data_t.eggman_arm_left_middle,
+        stage_clear_sprite_data_t.eggman_arm_left_down,
       },
       1,
       anim_loop_modes.freeze_last
@@ -73,6 +73,13 @@ local stage_clear_animated_sprite_data_t = {
     ),
   },
   eggman_leg_left = {
+    ["up"] = animated_sprite_data(
+      {
+        stage_clear_sprite_data_t.eggman_leg_up_half_left,
+      },
+      1,
+      anim_loop_modes.freeze_last
+    ),
     ["raise_and_lower"] = animated_sprite_data(
       {
         stage_clear_sprite_data_t.eggman_leg_up_half_left,

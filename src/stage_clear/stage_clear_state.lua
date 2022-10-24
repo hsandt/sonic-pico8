@@ -96,6 +96,18 @@ function mirror_wrapper:draw(spr_object)
 end
 
 
+-- strings
+
+local juggling_mode_strings = {
+  "ping-pong",
+  "shower",
+}
+
+function stage_clear_state:get_current_juggling_mode_string()
+  return juggling_mode_strings[self.emerald_juggling_mode + 1]
+end
+
+
 function stage_clear_state:init()
   base_stage_state.init(self)
 
@@ -108,7 +120,7 @@ function stage_clear_state:init()
   self.is_fading_out_for_retry_screen = false
 
   -- eggman state
-  self.eggman_timer = 0
+  -- self.eggman_timer = nil
   -- self.emerald_juggling_mode = nil
 
   -- postprocessing for fade out effect
@@ -131,8 +143,8 @@ function stage_clear_state:init()
   -- eggman sprites
   -- we don't have a hierarchical sprite system with child offsets yet, so for now, we just work with
   --  separate static or animated sprites
-  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 80)))
-  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, 71)))
+  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 80 + tuned("dy", -6))))
+  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, 71 + tuned("dy", -6))))
 
   -- first arm (initially on the left)
   self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
@@ -172,22 +184,38 @@ end
 function stage_clear_state:change_juggling_mode(juggling_mode)
   self.emerald_juggling_mode = juggling_mode
 
-  self.eggman_arm.position:copy_assign(vector(64 - 9, 71 - 16))
-  self.eggman_arm2.position:copy_assign(vector(64 + 9, 71 - 16))
+  local body_position_y = self.eggman_body.spr_object.position.y
+  self.eggman_arm.position:copy_assign(vector(64 - 9, body_position_y - 16))
+  self.eggman_arm.flip_x = false
+  self.eggman_arm2.position:copy_assign(vector(64 + 9, body_position_y - 16))
   self.eggman_arm2.flip_x = true
+
+  self.eggman_timer = 0
 
   if juggling_mode == 0 then
     -- Ping-pong
-    -- second arm is always in middle position (and switches between left and right regularly)
-    self.eggman_arm2:play("middle")
+    -- second arm is always in down position (and switches between left and right regularly)
+    self.eggman_arm2:play("down")
+    -- legs will play raise_and_lower on first frame in update
   else
     -- Shower juggling
-    -- Start at middle position just to make sure to show something, we'll play more specific animations later
-    self.eggman_arm:play("middle")
-    self.eggman_arm2:play("middle")
+    -- Start at down position just to make sure to show something and so receiving an emerald looks natural,
+    --  we'll play more specific animations later
+    self.eggman_arm:play("down")
+    self.eggman_arm2:play("down")
+    self.eggman_legs.spr_object:play("up")  -- always up in this mode
 
     -- sequence of last known way index (high way: 0, low way: 1), indexed per emerald index-1
+    --  so we can make Eggman hands react when emeralds change directions
     self.last_emerald_way_indices = {0, 0, 0, 0, 0, 0, 0, 0}
+  end
+
+  local juggle_mode_value_label = self.result_overlay.drawables_map["juggle mode value"]
+
+  -- label is an observer, but may not be created at the time change_juggling_mode is called for the first time,
+  --  so we must check for nil
+  if juggle_mode_value_label then
+    juggle_mode_value_label.text = self:get_current_juggling_mode_string()
   end
 end
 
@@ -273,8 +301,24 @@ function stage_clear_state:update()
       self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
     end
   else  -- self.phase == 1
+    -- HACK to test tuned values
+    if input:is_just_pressed(button_ids.x) then
+      -- start fade out in parallel with existing animations to keep things smooth
+      -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
+      self.app:start_coroutine(self.show_retry_screen_async, self)
+    end
+    -- HACK END
+
     if self.picked_emerald_count < 8 then
       -- haven't got all emeralds, so eggman is shown
+
+      -- check input to change juggling mode
+      -- currently, there are only 2, so left and right do, in fact, the same thing
+      if input:is_just_pressed(button_ids.left) then
+        self:change_juggling_mode((self.emerald_juggling_mode - 1) % 2)
+      elseif input:is_just_pressed(button_ids.right) then
+        self:change_juggling_mode((self.emerald_juggling_mode + 1) % 2)
+      end
 
       -- update eggman body parts
 
@@ -378,7 +422,7 @@ function stage_clear_state:render()
 
     --  for retry menu
     if self.retry_menu then
-      self.retry_menu:draw(29, 102)
+      self.retry_menu:draw(29, tuned("y2", 108))
     end
   end
 
@@ -607,7 +651,13 @@ function stage_clear_state:show_retry_screen_async()
   -- change text if player has got all emeralds
   local result_label
   if has_missed_any_emeralds then
-    result_label = label("try again?", vector(45, 88), colors.white)
+    local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(tuned("x0", 23), tuned("y0", 82)), colors.white)
+    -- mind +1 to convert our index-0 to Lua index
+    local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(tuned("xm", 75), tuned("y0", 82)), colors.white)
+    self.result_overlay:add_drawable("juggle mode selector", juggle_mode_selector_label)
+    self.result_overlay:add_drawable("juggle mode value", juggle_mode_value_label)
+
+    result_label = label("try again?", vector(45, tuned("y1", 96)), colors.white)
   else
     result_label = label("congratulations!", vector(35, 45), colors.white)
   end
@@ -674,7 +724,7 @@ end
 -- render every missed emeralds, juggled by Eggman
 function stage_clear_state:render_missed_emeralds_juggled()
   camera()
-  self:draw_missed_emeralds_juggled(64, 52)
+  self:draw_missed_emeralds_juggled(64, 52 + tuned("dy", -6))
 end
 
 -- draw picked emeralds on an invisible circle centered on (x, y)

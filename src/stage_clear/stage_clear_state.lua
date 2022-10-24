@@ -612,35 +612,35 @@ end
 
 -- draw missed emeralds juggled by Eggman on an invisible half circle centered on (x, y)
 function stage_clear_state:draw_missed_emeralds_juggled(x, y)
-  -- draw emeralds around the clock, from top, CW
-  -- usually we iterate from 1 to #self.spawned_emerald_locations
-  -- but here we obviously only defined 8 relative positions,
-  --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
-  for num = 1, 8 do
+  -- draw emeralds starting with the last one, so the lower indices are shown on top,
+  --  as in Sonic 1's Try Again screen
+  for num = 8, 1, -1 do
     if self.result_show_emerald_set_by_number[num] then
       local radius = visual.juggled_emeralds_radius
       -- simulate juggling by only moving parameter between angles 0 (right side) to 0.5 (left side),
       --  adding an offset based on index
       -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
 
-      -- when throwing from left to right (not flipped), emeralds are thrown from the last first
-      -- when throwing from right to left (flipped), emeralds are thrown in order
-      -- so compute delay index (0-based, from 0 to 7) based on this and the emerald original index-1
-      local emerald_throw_delay_index0 = num - 1
-      -- give enough offset between emeralds so they don't overlap except near the hands
-      local emerald_param_offset = emerald_throw_delay_index0 / 8
-      if not self.eggman_body.flip_x then
-        -- when throwing from left to right, delay means negative angle offset
-        emerald_param_offset = -emerald_param_offset
-      end
-
       -- throw is faster than half-cycle since we must have the latest emerald reach the hand on the opposite
       --  side despite its delay
       -- so if a half-cycle is 120 frames, move emeralds in 60 frames
       local timer_ratio = self.eggman_timer / 60
-      local param = self.eggman_body.flip_x and 1 - timer_ratio or timer_ratio
-      param = ui_animation.lerp_clamped(0, 0.5, param + emerald_param_offset)
-      local draw_position = vector(x - radius * cos(param), y + radius * sin(param))
+
+      -- each emerald is placed with offset, the higher the index, the later
+      -- give enough offset between emeralds so they don't overlap except near the hands
+      local emerald_param_offset = (num - 1) / 8
+
+      -- higher index emeralds are late, so subtract offset
+      local param = timer_ratio - emerald_param_offset
+
+      if self.eggman_body.flip_x then
+        -- throwing from right to left, with a small advance to match raised hand
+        param = ui_animation.lerp_clamped(0 + 0.07, 0.5, param)
+      else
+        -- throwing from left to right, with a small advance to match raised hand
+        param = ui_animation.lerp_clamped(0.5 - 0.07, 0, param)
+      end
+      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

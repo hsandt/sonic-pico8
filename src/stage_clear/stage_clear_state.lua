@@ -106,7 +106,10 @@ function stage_clear_state:init()
   -- phase 1: retry menu
   self.phase = 0
   self.is_fading_out_for_retry_screen = false
+
+  -- eggman state
   self.eggman_timer = 0
+  -- self.emerald_juggling_mode = nil
 
   -- postprocessing for fade out effect
   self.postproc = postprocess()
@@ -130,11 +133,12 @@ function stage_clear_state:init()
   --  separate static or animated sprites
   self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 80)))
   self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, 71)))
-  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left, vector(64 - 9, 71 - 16))
 
-  -- the arm that is down starts on the right
-  self.eggman_arm_down = sprite_object(visual.sprite_data_t.eggman_arm_left_down, vector(64 + 9, 71 - 16))
-  self.eggman_arm_down.flip_x = true
+  -- first arm (initially on the left)
+  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
+
+  -- second arm (initially on the right)
+  self.eggman_arm2 = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
 end
 
 function stage_clear_state:on_enter()
@@ -163,6 +167,28 @@ function stage_clear_state:on_enter()
   self:scan_current_region_to_spawn_objects()
 
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
+end
+
+function stage_clear_state:change_juggling_mode(juggling_mode)
+  self.emerald_juggling_mode = juggling_mode
+
+  self.eggman_arm.position:copy_assign(vector(64 - 9, 71 - 16))
+  self.eggman_arm2.position:copy_assign(vector(64 + 9, 71 - 16))
+  self.eggman_arm2.flip_x = true
+
+  if juggling_mode == 0 then
+    -- Ping-pong
+    -- second arm is always in middle position (and switches between left and right regularly)
+    self.eggman_arm2:play("middle")
+  else
+    -- Shower juggling
+    -- Start at middle position just to make sure to show something, we'll play more specific animations later
+    self.eggman_arm:play("middle")
+    self.eggman_arm2:play("middle")
+
+    -- sequence of last known way index (high way: 0, low way: 1), indexed per emerald index-1
+    self.last_emerald_way_indices = {0, 0, 0, 0, 0, 0, 0, 0}
+  end
 end
 
 -- play overall stage clear sequence (coroutine)
@@ -204,6 +230,15 @@ function stage_clear_state:transition_to_retry_screen_async()
   -- -- enter phase 1: retry menu immediately so we can clear screen
   self.phase = 1
 
+  if self.picked_emerald_count < 8 then
+    -- haven't got all emeralds, so eggman is shown
+
+    -- initialize juggling mode
+    -- 0: ping-pong, as in Sonic 1
+    -- 1: shower (cycle with high and low way)
+    self:change_juggling_mode(1)
+  end
+
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
   self:show_retry_screen_async()
@@ -233,6 +268,7 @@ function stage_clear_state:update()
       -- start fade out in parallel with existing animations to keep things smooth
       -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
       -- also fade out result music now (if still playing)
+      -- FIXME: call this after fade out to avoid music starting *afterward*
       music(-1, 500)
       self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
     end
@@ -252,40 +288,53 @@ function stage_clear_state:update()
       --  so they are still passed by reference
       local eggman_body_position_ref = self.eggman_body.spr_object.position
       local eggman_arm_position_ref = self.eggman_arm.position
-      local eggman_arm_down_position_ref = self.eggman_arm_down.position
+      local eggman_arm2_position_ref = self.eggman_arm2.position
       if old_legs_step == 1 and new_legs_step == 2 then
         -- Eggman just flexed his legs, move body and arm down
         eggman_body_position_ref.y = eggman_body_position_ref.y + 1
         eggman_arm_position_ref.y = eggman_arm_position_ref.y + 1
-        eggman_arm_down_position_ref.y = eggman_arm_down_position_ref.y + 1
+        eggman_arm2_position_ref.y = eggman_arm2_position_ref.y + 1
       end
 
       self.eggman_arm:update()
+      self.eggman_arm2:update()
 
-      -- half-cycle: a throw from left to right, or right to left, takes 120 frames
-      if self.eggman_timer % 120 == 0 then
-        self.eggman_timer = 0
+      -- juggling-specific update
 
-        -- flip Eggman's arms
-        local new_global_flip = not self.eggman_arm.flip_x
-        self.eggman_arm.flip_x = new_global_flip
-        local arm_offset = self.eggman_arm.flip_x and 9 or -9
-        self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
+      if self.emerald_juggling_mode == 0 then
+        -- Sonic 1 Try Again screen juggling: half-circle ping-pong
 
-        -- the arm down is always at the opposite of the main (rising) arm
-        self.eggman_arm_down.flip_x = not new_global_flip
-        self.eggman_arm_down.position.x = eggman_body_position_ref.x - arm_offset
+        -- half-cycle: a throw from left to right, or right to left, takes 120 frames
+        if self.eggman_timer % 120 == 0 then
+          self.eggman_timer = 0
 
-        -- play animation again that starts up for most of the cycle, then down just before flipping
-        -- we know that legs spr_object is an animated_sprite_object
-        self.eggman_legs.spr_object:play("once", --[[from_start:]] true)
-        self.eggman_arm:play("once", --[[from_start:]] true)
+          -- flip Eggman's arms
+          local new_global_flip = not self.eggman_arm.flip_x
+          self.eggman_arm.flip_x = new_global_flip
+          local arm_offset = self.eggman_arm.flip_x and 9 or -9
+          self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
 
-        -- as noted above, we manually play the animation whose 1st frame moves Eggman
-        --  up again, so we must move body and arm down at this moment
-        eggman_body_position_ref.y = eggman_body_position_ref.y - 1
-        eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
-        eggman_arm_down_position_ref.y = eggman_arm_down_position_ref.y - 1
+          -- the arm down is always at the opposite of the main (rising) arm
+          self.eggman_arm2.flip_x = not new_global_flip
+          self.eggman_arm2.position.x = eggman_body_position_ref.x - arm_offset
+
+          -- play animation again that starts up for most of the cycle, then down just before flipping
+          -- we know that legs spr_object is an animated_sprite_object
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm:play("raise_and_lower", --[[from_start:]] true)
+
+          -- as noted above, we manually play the animation whose 1st frame moves Eggman
+          --  up again, so we must move body and arm down at this moment
+          eggman_body_position_ref.y = eggman_body_position_ref.y - 1
+          eggman_arm_position_ref.y = eggman_arm_position_ref.y - 1
+          eggman_arm2_position_ref.y = eggman_arm2_position_ref.y - 1
+        end
+      else
+        -- Shower juggling (most of the code is done in rendering)
+
+        if self.eggman_timer % visual.juggled_emeralds_shower_period == 0 then
+          self.eggman_timer = 0
+        end
       end
 
       self.eggman_timer = self.eggman_timer + 1
@@ -320,7 +369,7 @@ function stage_clear_state:render()
       self.eggman_legs:draw()
       self.eggman_body:draw()
       self.eggman_arm:draw()
-      self.eggman_arm_down:draw()
+      self.eggman_arm2:draw()
 
       -- draw juggled emeralds on top of Eggman's hand
       --  when overlapping it
@@ -625,7 +674,7 @@ end
 -- render every missed emeralds, juggled by Eggman
 function stage_clear_state:render_missed_emeralds_juggled()
   camera()
-  self:draw_missed_emeralds_juggled(64, 30 + 14 + 8)
+  self:draw_missed_emeralds_juggled(64, 52)
 end
 
 -- draw picked emeralds on an invisible circle centered on (x, y)
@@ -644,8 +693,16 @@ function stage_clear_state:draw_picked_emeralds(x, y)
   end
 end
 
--- draw missed emeralds juggled by Eggman on an invisible half circle centered on (x, y)
 function stage_clear_state:draw_missed_emeralds_juggled(x, y)
+  if self.emerald_juggling_mode == 0 then
+    self:draw_missed_emeralds_juggled_ping_pong(x, y)
+  else
+    self:draw_missed_emeralds_juggled_shower(x, y)
+  end
+end
+
+-- draw missed emeralds juggled by Eggman on an invisible half circle centered on (x, y)
+function stage_clear_state:draw_missed_emeralds_juggled_ping_pong(x, y)
   -- draw emeralds starting with the last one, so the lower indices are shown on top,
   --  as in Sonic 1's Try Again screen
   for num = 8, 1, -1 do
@@ -674,7 +731,75 @@ function stage_clear_state:draw_missed_emeralds_juggled(x, y)
         -- throwing from left to right, with a small advance to match raised hand
         param = ui_animation.lerp_clamped(0.5 - 0.07, 0, param)
       end
+
       local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
+      emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
+    end
+  end
+end
+
+-- draw missed emeralds juggled by Eggman in a cyclic trajectory, with a higher and lower path
+function stage_clear_state:draw_missed_emeralds_juggled_shower(x, y)
+  for num = 8, 1, -1 do
+    -- only draw if emerald was missed
+    -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
+    if self.result_show_emerald_set_by_number[num] then
+      local timer_ratio = self.eggman_timer / visual.juggled_emeralds_shower_period
+
+      -- each emerald is placed with offset, the higher the index, the later
+      -- give enough offset between emeralds so they don't overlap except near the hands
+      local emerald_param_offset = (num - 1) / 8
+
+      -- higher index emeralds are late, so subtract offset
+      -- apply modulo since emeralds are continuously looping in the shower pattern
+      local param = (timer_ratio - emerald_param_offset) % 1
+
+      local offset_x
+      local offset_y
+
+      -- we're gonna play some animations in sync with emerald reaching hand below
+      -- it's not great to change the state of objects in render, but it allows us to inject the check
+      --  directly in the emerald loop used for rendering
+
+      -- high way takes more time, then low way move is very fast but stops (clamped) in hand
+      --  for a moment, so the param threshold for high is more than 0.5
+      local param_high_threshold = 0.65
+      if param < param_high_threshold then
+        -- first part: high way, from left to right
+
+        if self.last_emerald_way_indices[num] == 1 then
+          self.last_emerald_way_indices[num] = 0
+          -- this emerald just touched the hand on the left to start high way, make it react
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm:play("full_raise_and_lower", --[[from_start:]] true)
+        end
+
+        -- compute local progress ratio inside high way
+        local local_progress_ratio = param / param_high_threshold
+        local normalized_signed_offset_x = ui_animation.lerp_clamped(-1, 1, local_progress_ratio)
+        offset_x = 22 * normalized_signed_offset_x
+        offset_y = 160 * local_progress_ratio * (local_progress_ratio - 1)
+      else  -- param between 0.5 and 1 (excluded)
+        -- second part: low way, from right to left
+
+        if self.last_emerald_way_indices[num] == 0 then
+          self.last_emerald_way_indices[num] = 1
+          -- this emerald just touched the hand on the right to start low way, make it react
+          -- this one only needs to raise to middle level
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm2:play("raise_middle_and_lower", --[[from_start:]] true)
+        end
+
+        -- compute local progress ratio inside low way
+        local local_progress_ratio = (param - param_high_threshold) / (1 - param_high_threshold)
+        -- to make emerald on low way go fast, then stop in hand for a moment,
+        --  multiply the normalized progress and clamp progress itself (so both x and y match it)
+        local_progress_ratio = min(1.3 * local_progress_ratio, 1)
+        offset_x = 22 * ui_animation.lerp_clamped(1, -1, local_progress_ratio)
+        offset_y = 20 * local_progress_ratio * (local_progress_ratio - 1)
+      end
+
+      local draw_position = vector(x + offset_x, y + offset_y)
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

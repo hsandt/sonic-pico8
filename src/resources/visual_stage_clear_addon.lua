@@ -7,7 +7,8 @@ local sspr_data = require("engine/render/sspr_data")
 local stage_clear_visual = {
   fadeout_zigzag_width = 11,  -- doesn't include pixel 0, so actually count +1 pixel in total
   picked_emeralds_radius = 15,
-  juggled_emeralds_radius = 22
+  juggled_emeralds_radius = 22,
+  juggled_emeralds_shower_period = 100,
 }
 
 -- visuals for stage_clear only
@@ -38,17 +39,41 @@ local stage_clear_sprite_data_t = {
 
 local stage_clear_animated_sprite_data_t = {
   eggman_arm_left = {
-    ["once"] = animated_sprite_data(
+    ["middle"] = animated_sprite_data(
+      {
+        stage_clear_sprite_data_t.eggman_arm_left_middle,
+      },
+      1,
+      anim_loop_modes.freeze_last
+    ),
+    ["raise_and_lower"] = animated_sprite_data(
       {
         stage_clear_sprite_data_t.eggman_arm_left_up,
         stage_clear_sprite_data_t.eggman_arm_left_middle,
       },
       110,
       anim_loop_modes.freeze_last
-    )
+    ),
+    ["full_raise_and_lower"] = animated_sprite_data(
+      {
+        stage_clear_sprite_data_t.eggman_arm_left_up,
+        stage_clear_sprite_data_t.eggman_arm_left_middle,
+        stage_clear_sprite_data_t.eggman_arm_left_down,
+      },
+      5,
+      anim_loop_modes.freeze_last
+    ),
+     ["raise_middle_and_lower"] = animated_sprite_data(
+      {
+        stage_clear_sprite_data_t.eggman_arm_left_middle,
+        stage_clear_sprite_data_t.eggman_arm_left_down,
+      },
+      5,
+      anim_loop_modes.freeze_last
+    ),
   },
   eggman_leg_left = {
-    ["once"] = animated_sprite_data(
+    ["raise_and_lower"] = animated_sprite_data(
       {
         stage_clear_sprite_data_t.eggman_leg_up_half_left,
         stage_clear_sprite_data_t.eggman_leg_down_half_left,

@@ -117,9 +117,10 @@ function stage_clear_state:init()
   self.curr_stage_id = 1
 
   -- phase 0: stage result
-  -- phase 1: retry menu
+  -- phase 1: retry menu (not all emeralds)
+  -- phase 2: ending credits (all emeralds)
   self.phase = 0
-  self.is_fading_out_for_retry_screen = false
+  self.is_fading_out_for_ending_screen = false
 
   -- eggman state
   -- self.eggman_timer = nil
@@ -246,12 +247,12 @@ function stage_clear_state:play_stage_clear_sequence_async()
 
   self.app:yield_delay_s(stage_clear_data.fadeout_delay_s)
 
-  self:try_fade_out_and_show_retry_screen_async()
+  self:try_fade_out_and_show_ending_screen_async()
 end
 
-function stage_clear_state:try_fade_out_and_show_retry_screen_async()
-  if not self.is_fading_out_for_retry_screen then
-    self.is_fading_out_for_retry_screen = true
+function stage_clear_state:try_fade_out_and_show_ending_screen_async()
+  if not self.is_fading_out_for_ending_screen then
+    self.is_fading_out_for_ending_screen = true
 
     self:zigzag_fade_out_async()
 
@@ -265,12 +266,19 @@ function stage_clear_state:try_fade_out_and_show_retry_screen_async()
     -- note that we must start a brand new coroutine below for this to work, else we would stop our own coroutine
     self.app:stop_all_coroutines()
 
-    self.app:start_coroutine(self.transition_to_retry_screen_async, self)
+    -- depending on player performance, ending screen will change
+    -- a. got all emeralds -> ending credits screen
+    -- b. missed at least one emerald -> retry screen
+    local got_all_emeralds = self.picked_emerald_count >= 8
+    local transition_to_ending_screen_async_method = got_all_emeralds and
+      self.transition_to_ending_credits_screen_async or self.transition_to_retry_screen_async
+
+    self.app:start_coroutine(transition_to_ending_screen_async_method, self)
   end
 end
 
 function stage_clear_state:transition_to_retry_screen_async()
-  -- -- enter phase 1: retry menu immediately so we can clear screen
+  -- -- enter phase 1: retry menu
   self.phase = 1
 
   if self.picked_emerald_count < 8 then
@@ -285,6 +293,15 @@ function stage_clear_state:transition_to_retry_screen_async()
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
   self:show_retry_screen_async()
+end
+
+function stage_clear_state:transition_to_ending_credits_screen_async()
+  -- -- enter phase 2: ending credits
+  self.phase = 2
+
+  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
+
+  self:show_ending_credits_screen_async()
 end
 
 -- good to know what on_exit should do, but never called since stage_clear cartridge only contains stage_clear state
@@ -306,13 +323,14 @@ end
 
 function stage_clear_state:update()
   if self.phase == 0 then
-    -- check for any input to skip result screen and fade out already to retry menu
+    -- check for any input to skip result screen and fade out already to ending screen
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- start fade out in parallel with existing animations to keep things smooth
       -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
-      self.app:start_coroutine(self.try_fade_out_and_show_retry_screen_async, self)
+      self.app:start_coroutine(self.try_fade_out_and_show_ending_screen_async, self)
     end
-  else  -- self.phase == 1
+  elseif self.phase == 1 then
+    -- retry menu (not all emeralds)
     if self.picked_emerald_count < 8 then
       -- haven't got all emeralds, so eggman is shown
 
@@ -394,6 +412,9 @@ function stage_clear_state:update()
     if self.retry_menu then
       self.retry_menu:update()
     end
+  elseif self.phase == 2 then
+    -- phase 2: ending credits (all emeralds)
+    -- TODO
   end
 end
 
@@ -407,8 +428,8 @@ function stage_clear_state:render()
 
     -- draw picked emeralds
     self:render_picked_emeralds()
-  else
-    -- phase 1: retry menu
+  elseif self.phase == 1 then
+    -- phase 1: retry menu (not all emeralds)
     cls()
 
     if self.picked_emerald_count < 8 then
@@ -429,6 +450,9 @@ function stage_clear_state:render()
     if self.retry_menu then
       self.retry_menu:draw(29, 108)
     end
+  elseif self.phase == 2 then
+    -- phase 2: ending credits (all emeralds)
+    -- TODO
   end
 
   -- draw overlay on top to hide result widgets
@@ -496,8 +520,8 @@ function stage_clear_state:restore_picked_emerald_data()
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
     -- DEBUG: uncomment both lines to simulate getting all emeralds when testing stage_clear directly
-    -- self.picked_emerald_numbers_set[i] = true
-    -- self.picked_emerald_count = 8
+    self.picked_emerald_numbers_set[i] = true
+    self.picked_emerald_count = 8
   end
 end
 
@@ -690,6 +714,16 @@ function stage_clear_state:show_retry_screen_async()
   end
 end
 
+function stage_clear_state:show_ending_credits_screen_async()
+  local result_label = label("congratulations!", vector(35, 45), colors.white)
+  self.result_overlay:add_drawable("result text", result_label)
+
+  -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
+  for i = 4, 0, -1 do
+    self.postproc.darkness = i
+    yield_delay_frames(4)
+  end
+end
 
 -- render
 

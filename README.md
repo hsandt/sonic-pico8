@@ -256,8 +256,9 @@ Alternatively, to edit the spritesheet in your favorite editor:
 ## References
 
 * Classic Sonic games (Sonic the Hedgehog, Sonic the Hedgehog 2, Sonic the Hedgehog 3 & Knuckles)
-* [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide)
-* [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html)
+* [Sonic Physics Guide](http://info.sonicretro.org/Sonic_Physics_Guide) for physics
+* [TASVideos Resources for Sonic the Hedgehog](http://tasvideos.org/GameResources/Genesis/SonicTheHedgehog.html) for physics
+* [The Spriters Resource](https://www.spriters-resource.com) for original sprites
 
 ## Tools and process
 

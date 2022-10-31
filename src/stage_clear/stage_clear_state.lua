@@ -131,6 +131,7 @@ function stage_clear_state:init()
 
   -- postprocessing for fade out effect
   self.postproc = postprocess()
+  self.postproc.use_blue_tint = true
 
   -- result (stage clear) overlay
   self.result_overlay = overlay()
@@ -703,36 +704,50 @@ function stage_clear_state:show_retry_screen_async()
   self:fade_in_async()
 end
 
+local ending_credits_roles = {
+  {"original games", "\14sonic team"},
+  {"programming", "\14komehara"},
+  {"bgm adaptation: famitracker", "\14danooct1"},
+  {"bgm and sfx adaptation: pico-8", "\14komehara"},
+  {"art adaptation", "\14komehara"},
+  {"special thanks", "\14sonic retro\n\14on sonic physics"},
+  {"special thanks", "\14tasvideos\n\14on sonic physics"},
+  {"special thanks", "\14the spriters\n\14resource"},
+}
+
 function stage_clear_state:show_ending_credits_screen_async()
   -- \14 is added for text printed with custom font, equivalent of the tall font in Sonic 3
 
+  -- the sequence is based on Sonic 3 (not Knuckles) Ending Credits
+
   -- big text
-  local custom_font_label = label("\14pico sonic", vector(64, 40), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
+  local custom_font_label = label("\14pico sonic", vector(64, 50), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
   self.result_overlay:add_drawable("title", custom_font_label)
 
   -- normal text
-  local standard_font_label = label("staff", vector(64, 70), alignments.center, colors.white)
+  local standard_font_label = label("staff", vector(64, 80), alignments.center, colors.white)
   self.result_overlay:add_drawable("staff", standard_font_label)
 
   self:fade_in_async()
   self.app:yield_delay_s(3)
   self:fade_out_async()
 
-  standard_font_label.text = "original games"
-  standard_font_label.position:copy_assign(vector(64, 40))
+  -- invert y positions of labels
+  standard_font_label.position:copy_assign(vector(64, 50))
+  custom_font_label.position:copy_assign(vector(64, 80))
 
-  custom_font_label.text = "\14sega & sonic team"
-  custom_font_label.position:copy_assign(vector(64, 70))
+  for ending_credits_role in all(ending_credits_roles) do
+    local role_text = ending_credits_role[1]
+    local name_text = ending_credits_role[2]
 
-  self.app:yield_delay_s(0.5)
-  self:fade_in_async()
-  self.app:yield_delay_s(3)
-  self:fade_out_async()
+    standard_font_label.text = role_text
+    custom_font_label.text = name_text
 
-  standard_font_label.text = "level design"
-  custom_font_label.text = "\14komehara"
-
-  self:fade_out_async()
+    self.app:yield_delay_s(0.5)
+    self:fade_in_async()
+    self.app:yield_delay_s(3)
+    self:fade_out_async()
+  end
 
   -- go back to title menu
   -- prefer passing basename for compatibility with .p8.png

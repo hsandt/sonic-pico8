@@ -711,7 +711,7 @@ function stage_intro_state:show_stage_splash_async()
   self.overlay:add_drawable("banner", banner)
 
   -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
-  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
+  local banner_text = label("pico\nsonic", vector(16, -17), alignments.left, colors.white)
   self.overlay:add_drawable("banner_text", banner_text)
 
   -- make banner enter from the top
@@ -722,7 +722,7 @@ function stage_intro_state:show_stage_splash_async()
   local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
   self.overlay:add_drawable("zone_rect", zone_rectangle)
 
-  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
+  local zone_label = label(self.curr_stage_data.title, vector(129, 43), alignments.left, colors.white)
   self.overlay:add_drawable("zone", zone_label)
 
   -- make text enter from the right, preserving relative offset

@@ -535,14 +535,14 @@ function stage_clear_state:show_result_async()
   -- "got through" is 6 chars after the string start so 24px after "sonic"
   -- using new feature to preserve initial relative offset, pass 0 and 24 now just to set this relative positioning on X,
   --  then we can pass coord_offsets = nil to move_drawables_on_coord_async
-  local sonic_label = label("sonic", vector(0, 14), colors.dark_blue, colors.orange)
+  local sonic_label = label("sonic", vector(0, 14), alignments.left, colors.dark_blue, colors.orange)
   self.result_overlay:add_drawable("sonic", sonic_label)
-  local through_label = label("got through", vector(24, 14), colors.white, colors.black)
+  local through_label = label("got through", vector(24, 14), alignments.left, colors.white, colors.black)
   self.result_overlay:add_drawable("through", through_label)
 
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, nil, -68, 30, 20)
 
-  local stage_label = label("pico island", vector(0, 26), colors.white, colors.black)
+  local stage_label = label("pico island", vector(0, 26), alignments.left, colors.white, colors.black)
   self.result_overlay:add_drawable("stage", stage_label)
 
   -- make text enter screen from right to left (starts on screen edge, so 128)
@@ -608,7 +608,7 @@ function stage_clear_state:assess_result_async()
   end
 
   -- don't mind initial x, move_drawables_on_coord_async now sets it before first render
-  local emerald_label = label(emerald_text, vector(0, 14), colors.white, colors.black)
+  local emerald_label = label(emerald_text, vector(0, 14), alignments.left, colors.white, colors.black)
   self.result_overlay:add_drawable("emerald", emerald_label)
 
   -- move text "sonic got X emeralds" (reusing "sonic" label) from left to right and give some time to player to read
@@ -680,19 +680,14 @@ function stage_clear_state:show_retry_screen_async()
     has_missed_any_emeralds = has_missed_any_emeralds or not has_got_this_emerald
   end
 
-  -- change text if player has got all emeralds
-  local result_label
-  if has_missed_any_emeralds then
-    local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(23, 82), colors.white)
-    -- mind +1 to convert our index-0 to Lua index
-    local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(75, 82), colors.white)
-    self.result_overlay:add_drawable("juggle mode selector", juggle_mode_selector_label)
-    self.result_overlay:add_drawable("juggle mode value", juggle_mode_value_label)
+  -- juggling mode selection
+  local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(23, 82), alignments.left, colors.white)
+  -- mind +1 to convert our index-0 to Lua index
+  local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(75, 82), alignments.left, colors.white)
+  self.result_overlay:add_drawable("juggle mode selector", juggle_mode_selector_label)
+  self.result_overlay:add_drawable("juggle mode value", juggle_mode_value_label)
 
-    result_label = label("try again?", vector(45, 96), colors.white)
-  else
-    result_label = label("congratulations!", vector(35, 45), colors.white)
-  end
+  local result_label = label("try again?", vector(65, 99), alignments.center, colors.white)
   self.result_overlay:add_drawable("result text", result_label)
 
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)

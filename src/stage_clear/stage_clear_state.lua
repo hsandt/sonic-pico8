@@ -279,7 +279,7 @@ function stage_clear_state:transition_to_retry_screen_async()
     -- initialize juggling mode
     -- 0: ping-pong, as in Sonic 1
     -- 1: shower (cycle with high and low way)
-    self:change_juggling_mode(1)
+    self:change_juggling_mode(0)
   end
 
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)

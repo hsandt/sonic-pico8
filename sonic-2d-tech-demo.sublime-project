@@ -95,6 +95,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data (gfx only): custom font",
+			"shell": true,
+			"cmd": ["pico8 -run data/gfx_custom_font.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage1 regions",
 			"shell": true,
 			"working_dir": "${project_path}",
@@ -556,6 +562,14 @@
 					"cmd": ["./build_and_install_single_cartridge_with_data.sh stage_clear release && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh stage_clear release)"]
 				},
 			]
+		},
+		{
+			"name": "Game: build and run generate_font_snippet",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_font_snippet generate_font_snippet && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh generate_font_snippet generate_font_snippet)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
 			"name": "Game: build and run sandbox",

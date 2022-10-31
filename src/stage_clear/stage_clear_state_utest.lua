@@ -364,6 +364,10 @@ describe('stage_clear_state', function ()
             corunner:start_coroutine(stage_clear_state.play_stage_clear_sequence_async, state)
           end)
 
+          after_each(function ()
+            clear_table(pico8.poked_addresses)
+          end)
+
           it('should not crash with a few emeralds', function ()
             -- emerald bitset: 0b10100110
             pico8.poked_addresses[0x5d00] = 0xa6

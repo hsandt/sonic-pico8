@@ -700,6 +700,46 @@ function stage_clear_state:show_retry_screen_async()
 
   -- no need to play Eggman animations at this point, they will be called on first frame where it can be shown
 
+  self:fade_in_async()
+end
+
+function stage_clear_state:show_ending_credits_screen_async()
+  -- \14 is added for text printed with custom font, equivalent of the tall font in Sonic 3
+
+  -- big text
+  local custom_font_label = label("\14pico sonic", vector(64, 40), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
+  self.result_overlay:add_drawable("title", custom_font_label)
+
+  -- normal text
+  local standard_font_label = label("staff", vector(64, 70), alignments.center, colors.white)
+  self.result_overlay:add_drawable("staff", standard_font_label)
+
+  self:fade_in_async()
+  self.app:yield_delay_s(3)
+  self:fade_out_async()
+
+  standard_font_label.text = "original games"
+  standard_font_label.position:copy_assign(vector(64, 40))
+
+  custom_font_label.text = "\14sega & sonic team"
+  custom_font_label.position:copy_assign(vector(64, 70))
+
+  self.app:yield_delay_s(0.5)
+  self:fade_in_async()
+  self.app:yield_delay_s(3)
+  self:fade_out_async()
+
+  standard_font_label.text = "level design"
+  custom_font_label.text = "\14komehara"
+
+  self:fade_out_async()
+
+  -- go back to title menu
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_titlemenu')
+end
+
+function stage_clear_state:fade_in_async()
   -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
   for i = 4, 0, -1 do
     self.postproc.darkness = i
@@ -707,12 +747,9 @@ function stage_clear_state:show_retry_screen_async()
   end
 end
 
-function stage_clear_state:show_ending_credits_screen_async()
-  local result_label = label("congratulations!", vector(35, 45), colors.white)
-  self.result_overlay:add_drawable("result text", result_label)
-
-  -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
-  for i = 4, 0, -1 do
+function stage_clear_state:fade_out_async()
+  -- fade in (we should have been at darkness 0 since last fade in, so start at 1)
+  for i = 1, 5 do
     self.postproc.darkness = i
     yield_delay_frames(4)
   end

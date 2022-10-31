@@ -33,7 +33,7 @@ itest_manager:register_itest('(stage clear) player waits',
 
 end)
 
-itest_manager:register_itest('#solo (stage clear) player skips to try again screen',
+itest_manager:register_itest('(stage clear) player skips to try again screen',
     {':stage_clear'}, function ()
 
   -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap
@@ -58,6 +58,33 @@ itest_manager:register_itest('#solo (stage clear) player skips to try again scre
   --  it won't do anything)
   final_assert(function ()
     return flow.curr_state.retry_menu ~= nil, "retry menu has not been created or has been cleared too early"
+  end)
+
+end)
+
+itest_manager:register_itest('#solo (stage clear) player skips to ending credits (all emeralds)',
+    {':stage_clear'}, function ()
+
+  -- enter stage clear state, simulate data from ingame cartridge and goal plate in tilemap
+  setup_callback(function (app)
+    -- simulate having stored picked emeralds bitset from ingame cartridge
+    -- 0b11111111 -> 255
+    poke(0x4300, 255)
+
+    -- simulate goal plate in level (which starts empty) so render doesn't fail
+    mset(64, 16, visual_ingame_data.goal_plate_base_id)
+
+    flow:change_gamestate_by_type(':stage_clear')
+  end)
+
+  -- skip to ending credits screen
+  short_press(button_ids.o)
+
+  -- let for ending credits to advance enough to spot any crash
+  wait(30, false)
+
+  final_assert(function ()
+    return true, "crash test only"
   end)
 
 end)

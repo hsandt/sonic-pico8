@@ -666,9 +666,6 @@ end
 function stage_clear_state:show_retry_screen_async()
   clear_table(self.result_show_emerald_set_by_number)
 
-  local has_got_any_emeralds = false
-  local has_missed_any_emeralds = false
-
   -- display missed emeralds
   for num = 1, 8 do
     -- not nil is true, and not true is false, so we are effectively filling the set,
@@ -676,8 +673,6 @@ function stage_clear_state:show_retry_screen_async()
     local has_got_this_emerald = self.picked_emerald_numbers_set[num]
     -- remember we show missed emeralds, hence the not
     self.result_show_emerald_set_by_number[num] = not has_got_this_emerald
-    has_got_any_emeralds = has_got_any_emeralds or has_got_this_emerald
-    has_missed_any_emeralds = has_missed_any_emeralds or not has_got_this_emerald
   end
 
   -- juggling mode selection
@@ -694,7 +689,7 @@ function stage_clear_state:show_retry_screen_async()
 
   -- prepare menu items
   local retry_menu_items = {}
-  if has_got_any_emeralds then
+  if self.picked_emerald_count > 0 then
     -- keeping emeralds only makes sense if we got at least one
     add(retry_menu_items, retry_keep_menu_item)
   end

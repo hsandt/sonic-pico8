@@ -58,14 +58,15 @@ audio.jingle_ids = {
 }
 
 audio.music_ids = {
-  -- builtin_data_titlemenu only (overlaps stage bgm in builtin_data_ingame.p8)
+  -- titlemenu only (overlaps stage bgm in builtin_data_ingame.p8)
   title = 0,
-  -- builtin_data_titlemenu
   -- more like looping SFX, but allows intro-loop (first part has higher volume)
   emerald_flying = 8,
-  -- stage_intro
+  -- stage_intro only
   fall_wind = 0,
   fall_leaves = 1,
+  -- stage_clear only
+  staff_roll = 2
   -- note: stage_common_data contains the bgm_id for the stage (always 0)
 }
 

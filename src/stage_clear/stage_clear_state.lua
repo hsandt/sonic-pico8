@@ -720,6 +720,9 @@ function stage_clear_state:show_ending_credits_screen_async()
 
   -- the sequence is based on Sonic 3 (not Knuckles) Ending Credits
 
+  -- play Sonic 3 staff roll demake track
+  music(audio.music_ids.staff_roll)
+
   -- big text
   local custom_font_label = label("\14pico sonic", vector(64, 50), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
   self.result_overlay:add_drawable("title", custom_font_label)

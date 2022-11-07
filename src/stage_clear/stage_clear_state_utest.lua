@@ -61,11 +61,14 @@ describe('stage_clear_state', function ()
       end)
 
       it('should initialize members', function ()
+        local expected_postproc = postprocess()
+        expected_postproc.use_blue_tint = true
+
         assert.are_same({
             ':stage_clear',
             1,
             0,
-            postprocess(),
+            expected_postproc,
             overlay(),
             {},
             0,

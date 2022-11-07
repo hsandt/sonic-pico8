@@ -12,7 +12,7 @@ __lua__
 -- See install_data_cartridges_with_merging.sh
 
 -- Import latest splash screen spritesheet from carts/. Open data with pico8 -run for it to run automatically on launch.
-import "splash_screen_spritesheet.png"
+import "spritesheet_titlemenu_splash_screen.png"
 
 __gfx__
 eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee

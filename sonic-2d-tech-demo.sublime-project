@@ -43,61 +43,61 @@
 		{
 			"name": "Game: edit built-in data: titlemenu",
 			"shell": true,
-			"cmd": ["pico8 -run data/builtin_data_titlemenu.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_titlemenu && pico8 -run data/builtin_data_titlemenu.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: ingame",
 			"shell": true,
-			"cmd": ["pico8 -run data/builtin_data_ingame.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_collision_masks && pico8 -run data/builtin_data_ingame.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_intro",
 			"shell": true,
-			"cmd": ["pico8 -run data/builtin_data_stage_intro.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_collision_masks && pico8 -run data/builtin_data_stage_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit built-in data: stage_clear",
 			"shell": true,
-			"cmd": ["pico8 -run data/builtin_data_stage_clear.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_clear && pico8 -run data/builtin_data_stage_clear.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data: stage1 intro",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_stage1_intro.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_intro && pico8 -run data/data_stage1_intro.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data: stage1 ingame",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_stage1_ingame.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_ingame && pico8 -run data/data_stage1_ingame.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data: stage sonic",
 			"shell": true,
-			"cmd": ["pico8 -run data/data_stage_sonic.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_sonic && pico8 -run data/data_stage_sonic.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data (gfx only): start cinematic",
 			"shell": true,
-			"cmd": ["pico8 -run data/gfx_start_cinematic.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_titlemenu_start_cinematic && pico8 -run data/gfx_start_cinematic.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data (gfx only): splash screen",
 			"shell": true,
-			"cmd": ["pico8 -run data/gfx_splash_screen.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_titlemenu_splash_screen && pico8 -run data/gfx_splash_screen.p8"],
 			"working_dir": "${project_path}"
 		},
 		{
 			"name": "Game: edit data (gfx only): custom font",
 			"shell": true,
-			"cmd": ["pico8 -run data/gfx_custom_font.p8"],
+			"cmd": ["./copy_spritesheet_for_import.sh picosonic_custom_font && pico8 -run data/builtin_data_generate_font_snippet.p8"],
 			"working_dir": "${project_path}"
 		},
 		{

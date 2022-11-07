@@ -101,6 +101,12 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data (music only): staff roll",
+			"shell": true,
+			"cmd": ["pico8 -run data/music_staff_roll.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage1 regions",
 			"shell": true,
 			"working_dir": "${project_path}",

@@ -523,9 +523,11 @@ function stage_clear_state:restore_picked_emerald_data()
       self.picked_emerald_numbers_set[i] = true
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
+--#ifn release
     -- DEBUG: uncomment both lines to simulate getting all emeralds when testing stage_clear directly
     self.picked_emerald_numbers_set[i] = true
     self.picked_emerald_count = 8
+--#endif
   end
 end
 

@@ -7,7 +7,7 @@ local sspr_data = require("engine/render/sspr_data")
 local stage_clear_visual = {
   fadeout_zigzag_width = 11,  -- doesn't include pixel 0, so actually count +1 pixel in total
   picked_emeralds_radius = 15,
-  juggled_emeralds_shower_period = 100,
+  juggled_emeralds_shower_period = 120,
 }
 
 -- visuals for stage_clear only

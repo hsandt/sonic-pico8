@@ -568,7 +568,7 @@ function itest_dsl_parser.parse(dsli_source)
   local dsli = dsl_itest()
 
   -- split source lines (do not collapse \n so we can use blank lines as separator)
-  local lines = strspl(dsli_source, '\n')
+  local lines = split(dsli_source, '\n', --[[convert_numbers:]] false)
 
   -- parse in 2 steps: gamestate and action sequence
   local next_line_index

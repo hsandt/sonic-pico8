@@ -7,11 +7,18 @@ require("engine/pico8/api")
 require("engine/common")
 require("common_generate_font_snippet")
 
-require("ui/font_snippet")
+require("engine/ui/font_snippet")
+
+
+-- this must match value in stage_clear_state.lua
+local default_char_width = 5
+
 
 function _init()
   memset(0x5600,0,0x800)
-  local s=load_from_sprites()
+  -- most characters have width 4, so 5 with space
+  -- we'll still need to use text codes to adjust width individually for thinner/wider characters
+  local s=load_from_sprites(default_char_width)
   printh(s,"@clip")
 end
 
@@ -20,7 +27,8 @@ function _draw()
 
   poke(0x5f58,0x81)
   color(7)
-  api.print("the quick brown")
+  -- in real game, we should replace the characters as part of some pre-build string replacement
+  api.print("\^x4t\^x5he \^x9q\^x5u\^x2i\^x5ck \^x6br\^x9o\^x8w\^x6n")
   api.print("fox jumps over ")
   api.print("the lazy dog.")
   api.print("")

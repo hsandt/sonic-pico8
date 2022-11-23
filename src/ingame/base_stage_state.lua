@@ -596,7 +596,7 @@ function base_stage_state:render_environment_foreground()
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
-  -- CARTRIDGE NOTE: stage_intro only scans and spawns palm trees,
+  -- CARTRIDGE NOTE: stage_intro doesn't need to scan and spawn palm trees anymore
   -- stage clear only scans and spawns goal plate, which is not rendered here.
   -- stage_clear will error on nil self.curr_stage_data anyway, so just skip the whole operation
   --  if stage clear.

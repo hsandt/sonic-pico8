@@ -441,10 +441,8 @@ end
 
 -- render the player character at its current position
 function stage_intro_state:render_player_char()
-  -- we override set_camera_with_origin to loop palm trees,
-  --  so we must call the original implementation to draw the character,
-  --  as it is the only entity unaffecting by the fake vertical looping
-  base_stage_state.set_camera_with_origin(self)
+  -- actually calls base implementation, since not overridden
+  self:set_camera_with_origin()
 
   self.player_char:render()
 end
@@ -530,19 +528,6 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
     -- reverse operation of on_enter
     memcpy(0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 0x4f00 + i * 6, 6)
   end
-end
-
--- base_stage_state override
-function stage_intro_state:set_camera_with_origin(origin)
-  origin = origin or vector.zero()
-
-  local camera_topleft = vector(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
-  if camera_topleft.y < 0 then
-    -- above normal region, loop the decor
-    camera_topleft.y = camera_topleft.y % 128
-  end
-
-  camera(camera_topleft.x, camera_topleft.y)
 end
 
 

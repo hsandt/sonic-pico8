@@ -1,9 +1,16 @@
 local gamestate = require("engine/application/gamestate")
 
-local stage_common_data = require("data/stage_common_data")
 local camera_class = require("ingame/camera")
+--#if stage_intro || ingame
+local stage_common_data = require("data/stage_common_data")
+-- very important to strip player_char out of stage_clear in particular,
+--  to avoid requiring many unnecessary modules in chain that will easily
+--  make compressed size go over 100%
 local player_char = require("ingame/playercharacter")
+--#endif
+--#if ingame
 local visual = require("resources/visual_common")
+--#endif
 
 -- abstract base class for stage_state, stage_intro_state and stage_clear_state
 -- it contains functionality common to all three cartridges showing stage content,

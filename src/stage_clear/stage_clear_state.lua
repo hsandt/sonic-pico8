@@ -17,7 +17,7 @@ local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local ui_animation = require("engine/ui/ui_animation")
 local memory = require("resources/memory")
-local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual = require("resources/visual_common")  -- we should require visual_stage_clear_addon in main
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
 

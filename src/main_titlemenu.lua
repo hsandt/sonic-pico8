@@ -61,6 +61,7 @@ function _init()
     -- ['loop'] = true,
     -- ['...'] = true,
   }
+--(log)
 --#endif
 
 --#if visual_logger

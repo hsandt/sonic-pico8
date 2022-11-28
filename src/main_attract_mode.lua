@@ -65,6 +65,7 @@ function _init()
     ['recorder'] = true,
     -- ['...'] = true,
   }
+--(log)
 --#endif
 
 --#if visual_logger

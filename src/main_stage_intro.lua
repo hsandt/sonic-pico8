@@ -60,6 +60,7 @@ function _init()
     -- game
     -- ['...'] = true,
   }
+--(log)
 --#endif
 
 --#if visual_logger

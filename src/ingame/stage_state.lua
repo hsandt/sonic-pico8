@@ -3,7 +3,10 @@ local volume = require("engine/audio/volume")
 local base_stage_state = require("ingame/base_stage_state")
 local emerald = require("ingame/emerald")
 local emerald_fx = require("ingame/emerald_fx")
+--#if normal_mode
+--(attract mode never sees goal)
 local goal_plate = require("ingame/goal_plate")
+--#endif
 local spring = require("ingame/spring")
 local stage_common_data = require("data/stage_common_data")
 local stage_data = require("data/stage_data")
@@ -267,11 +270,14 @@ function stage_state:spawn_palm_tree_leaves_at(global_loc)
   log("added palm #"..#self.palm_tree_leaves_core_global_locations, "palm")
 end
 
+--#if normal_mode
+--(attract mode never sees goal)
 function stage_state:spawn_goal_plate_at(global_loc)
   assert(self.goal_plate == nil, "stage_state:spawn_goal_plate_at: goal plate already spawned!")
   self.goal_plate = goal_plate(global_loc)
   log("added goal plate at "..global_loc, "goal")
 end
+--#endif
 
 local function generate_spawn_spring_dir_at_callback(direction, global_loc)
   return function (self, global_loc)
@@ -290,7 +296,10 @@ stage_state.spawn_object_callbacks_by_tile_id = {
   --  (but once we're settled, could be added to visual_ingame_numerical_data.lua for more compact code)
   [visual.emerald_repr_sprite_id] = stage_state.spawn_emerald_at,
   [visual_ingame_data.palm_tree_leaves_core_id] = stage_state.spawn_palm_tree_leaves_at,
+--#if normal_mode
+--(attract mode never reaches goal)
   [visual_ingame_data.goal_plate_base_id] = stage_state.spawn_goal_plate_at,
+--#endif
   [visual_ingame_data.spring_up_repr_tile_id] = stage_state.spawn_spring_up_at,
   [visual_ingame_data.spring_left_repr_tile_id] = stage_state.spawn_spring_left_at,
   [visual_ingame_data.spring_right_repr_tile_id] = stage_state.spawn_spring_right_at,
@@ -655,7 +664,10 @@ function stage_state:render_stage_elements()
   self:render_environment_midground()
   self:render_emeralds()
   self:render_springs()
+--#if normal_mode
+--(attract mode never sees goal)
   self:render_goal_plate()
+--#endif
   self:render_player_char()
   self:render_environment_foreground()
 --#if debug_trigger
@@ -714,6 +726,9 @@ function stage_state:render_springs()
   end
 end
 
+--#if normal_mode
+--(attract mode never sees goal)
+
 -- render the goal plate upper body
 function stage_state:render_goal_plate()
   if self.goal_plate then
@@ -721,6 +736,8 @@ function stage_state:render_goal_plate()
     self.goal_plate:render()
   end
 end
+
+--#endif
 
 --#ifn itest
 

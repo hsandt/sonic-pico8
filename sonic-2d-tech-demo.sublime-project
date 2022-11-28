@@ -567,7 +567,15 @@
 			"name": "Game: build and run generate_font_snippet",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_font_snippet generate_font_snippet && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh generate_font_snippet generate_font_snippet)"],
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_font_snippet assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh generate_font_snippet assert)"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Game: build and run generate_gfx_sage_choir_pcm_data (headless)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

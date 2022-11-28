@@ -75,10 +75,10 @@ if ! [[ ${#positional_args[@]} -ge 1 && ${#positional_args[@]} -le 2 ]]; then
   exit 1
 fi
 
-if [[ ${#positional_args[@]} -ge 1 ]]; then
-  cartridge_suffix="${positional_args[0]}"
-fi
+# Required positional arguments
+cartridge_suffix="${positional_args[0]}"
 
+# Optional positional arguments
 if [[ ${#positional_args[@]} -ge 2 ]]; then
   config="${positional_args[1]}"
 fi
@@ -155,9 +155,12 @@ symbols+="$cartridge_suffix"
 
 # Define builtin data to use (in most cases it's just the cartridge suffix)
 if [[ $cartridge_suffix == 'sandbox' ]]; then
-  # for now we just need to test Sonic sprites in sandbox (e.g. rotation)
+  # uncomment to test Sonic sprites in sandbox (e.g. rotation)
   # data_filebasename="data_stage_sonic"
   data_filebasename="data_stage1_ingame"
+elif [[ $cartridge_suffix == 'generate_gfx_sage_choir_pcm_data' ]]; then
+  # no data at all, the cartridge's role is to generate gfx data from pcm string
+  data_filebasename=""
 else
   if [[ $cartridge_suffix == 'attract_mode' ]]; then
     # attract mode reuses same data as ingame, so no need for dedicated data cartridge
@@ -194,7 +197,7 @@ else
     required_relative_dirpath="itests/${cartridge_suffix}"
     cartridge_extra_suffix='itest_all_'
     # Do NOT unify itest cartridges: they rely on [[add_require]] injection being done
-    # after ijecting the app into itest_run, and unification dismantles require order,
+    # after injecting the app into itest_run, and unification dismantles require order,
     # forgetting exact line positioning and only caring about file dependency order.
     unify_option=''
   else
@@ -204,6 +207,13 @@ else
     unify_option="--unify _${cartridge_suffix}"
   fi
   data_filebasename="builtin_data_${builtin_data_suffix}"
+fi
+
+# only pass data option if there is data
+if [[ -n "$data_filebasename" ]]; then
+  data_option="-d \"${data_path}/${data_filebasename}.p8\""
+else
+  data_option=""
 fi
 
 # Define list of paths to modules containing constants to substitute at prebuild time,
@@ -232,7 +242,7 @@ game_constant_module_paths_string_postbuild="${game_src_path}/data/pcm_data.lua"
   "$game_src_path"                                                                      \
   ${main_prefix}main_${cartridge_suffix}.lua                                            \
   ${required_relative_dirpath}                                                          \
-  -d "${data_path}/${data_filebasename}.p8"                                             \
+  ${data_option}                                                                        \
   -M "$data_path/metadata.p8"                                                           \
   -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})"               \
   -p "$build_output_path"                                                               \

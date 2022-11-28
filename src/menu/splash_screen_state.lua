@@ -52,16 +52,13 @@ function splash_screen_state:on_enter()
   self.postproc.use_blue_tint = true
 
   -- PCM
-  -- self.pcm_sample = nil
+  -- self.pcm_sample_length = nil  -- unknown for now, commented out to spare characters
   -- Make sure to start at 1 to avoid pop
   self.pcmpos = 1
   -- Commented out, as false is equivalent to nil in bool check
   -- self.should_play_pcm = false
 
-  -- PICO-8 has extra general memory to use at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
-  -- From v0.2.4, it is unlocked by default
-  poke(0x5f36, 16)
-  self:load_pcm(pcm_data._sage_choir)
+  self:reload_pcm()
 
   -- splash screen data is stored in extra gfx_splash_screen.p8 at edit time (not exported),
   --  and merged into data_stage1_01.p8 (overwriting the tiles gfx, unused at runtime), so instead of:
@@ -406,7 +403,8 @@ function splash_screen_state:draw_speed_lines()
   fillp()
 end
 
--- PCM: play digitized audio samples
+
+-- PCM: play digitized audio samples already stored in memory
 -- Thanks to IMLXH (also carlc27843 and czarlo)
 -- https://www.lexaloffle.com/bbs/?tid=45013
 -- https://colab.research.google.com/drive/1HyiciemxfCDS9DxE98UCtNXas5TrM-5e?usp=sharing
@@ -414,33 +412,42 @@ end
 -- - prefer buffer length of stat(109) - stat(108) following
 --   https://pico-8.fandom.com/wiki/Stat#{108%E2%80%A6109}_5kHz_PCM_Audio
 -- - start pcmpos at 1 instead of 0 to avoid pop at the beginning (see init)
+-- - no need to support backward play
+-- - store pcm sample length in first two bytes, so read sample bytes from 0x8002
 
--- load audio sample
-function splash_screen_state:load_pcm(pcm_sample)
-  self.pcm_sample = pcm_sample
-  local l = #pcm_sample
-  for i = 0, #pcm_sample - 1 do
-    poke(0x8000 + i, ord(pcm_sample, i))
-    -- for backward playback (unused in this project)
-    poke(0xc000 + i, ord(pcm_sample, #pcm_sample - 1 - i))
-  end
+-- reload PCM: unlike the forum examples, we stored the PCM as GFX data, converted from
+--  PCM string at offline time (see main_generate_gfx_sage_choir_pcm_data),
+--  so we must now copy gfx data from the cartridge containing it to extra general memory
+function splash_screen_state:reload_pcm()
+  -- PICO-8 has extra general memory to use at address 0x8000 with a size up to 0x8000
+  --  which is what we need for the huge PCM data coming from GFX and therefore up to
+  --  0x2000 (vs standard general memory which contains up to 0x1b00 only)
+  --  which is unlockable using `poke(0x5f36, 16)` before v0.2.4, so unlock it now.
+  -- From v0.2.4, it is unlocked by default
+  poke(0x5f36, 16)
+
+  -- Copy full gfx section of data_stage1_10.p8 (see install_data_cartridges_with_merging.sh)
+  -- into current extra general memory
+  -- This includes the pcm sample length header
+  reload(0x8000, 0x0, 0x2000, "data_stage1_10.p8")
+
+  -- We stored the PCM sample length in the first two bytes, so read it back,
+  --  now copied at 0x8000
+  self.pcm_sample_length = peek2(0x8000)
 end
 
--- play audio sample
--- if back is true, play sound backward (unused in this project)
-function splash_screen_state:play_pcm(back)
-  if self.pcmpos >= #self.pcm_sample then
+-- play PCM: must be called after reload_pcm
+function splash_screen_state:play_pcm()
+  if self.pcmpos >= self.pcm_sample_length then
     return nil
   end
 
   local l = stat(109) - stat(108)
-  l = min(l, #self.pcm_sample - self.pcmpos)
-  if back then
-    -- backward playback (unused in this project)
-    serial(0x808, 0xc000 + self.pcmpos, l)
-  else
-    serial(0x808, 0x8000 + self.pcmpos, l)
-  end
+  l = min(l, self.pcm_sample_length - self.pcmpos)
+
+  -- make sure to read actual sample bytes after the stored sample length,
+  --  so starting 0x8002
+  serial(0x808, 0x8002 + self.pcmpos, l)
   self.pcmpos = self.pcmpos + l
 end
 

@@ -92,8 +92,9 @@ end
 function tile_collision_data:is_rectangle()
   -- if empty columns are considerer 0-height ground, then (reasonably) assuming we have at least one
   --  non-empty column, we have technically 2 columns with different heights, so we're not a rectangle
-  -- this will allow very low slopes made of 1 row of pixel to be considered like rectangles,
-  --  preventing the usage of their manually defined slope angle
+  -- this will allow very low slopes made of 1 partial row of pixel to be considered like rectangles,
+  --  so we can properly use their manually defined slope angle instead of falling back to angle 0,
+  --  causing the character to periodically move horizontally for 1 frame with a small jitter when running down slopes
   if self.land_on_empty_qcolumn then
     return false
   end

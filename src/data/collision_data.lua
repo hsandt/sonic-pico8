@@ -15,6 +15,9 @@ local mask_tile_angles = transform(
     -- TODO OPTIMIZE CHARS: consider removing key as long as the first entries start at [1] and there is no hole
     -- unfortunately this requires reordering the keys in a non-semantic manner, so check how many chars you really gain
 
+-- strip out tiles not needed in stage intro to spare characters
+--#if ingame
+
     -- low slope descending every 4px with flat ground at every step
     [1]  = {8, 2},
     [2]  = {8, 0},  -- flat tile 6px high
@@ -86,8 +89,12 @@ local mask_tile_angles = transform(
     [26] = {8, -0.0625}, -- 4x6 used for spring oriented up - left part (collider only)
     -- [27] = {8, 0},    -- 8x6 used for spring oriented up - right part (collider only) => same as [2], so removed to spare characters
 
+--#endif
+
     -- 8px-high rectangles (angle still matters for non-8x8 rectangles for tile_collision_data.slope_angle_to_interiors)
-    [29] = {8, 0},   -- 8x8 used for full ground
+    -- stage_intro only uses this tile mask
+    [29] = {8, 0},   -- 8x8 used for full flat ground
+--#if ingame
     [30] = {0, -8},  -- 6x8 used for spring oriented left (ground part only, object is separate)
     [31] = {0, 8},   -- 6x8 used for spring oriented right (ground part only, object is separate)
 
@@ -97,6 +104,7 @@ local mask_tile_angles = transform(
 
     -- 0 slope bump (ground with uniform height 1px)
     [45] = {8, 0},
+--#endif
 
     -- [46], [47]: empty
   },
@@ -109,8 +117,11 @@ local mask_tile_angles = transform(
 -- those flags are important to prevent character from detecting the ground below empty q-columns,
 --  and instead consider empty q-columns like actual ground at q-height 0 with the same slope angle as the other q-columns
 -- it's particularly important to set on regular slope tiles that are repeated periodically to avoid slope factor resetting to 0
---  each time the ground sensor detects flat ground below an empty column
+--  each time the ground sensor detects flat ground below an empty column, causing the character to jitter with
+--  horizontal move for 1 frame every time and then (see tile_collision_data:is_rectangle)
 local mask_tile_land_on_empty_qcolumn_flags = {
+-- stage_intro doesn't need this since it only uses full flat ground
+--#if ingame
   -- low slope descending every 4px with flat ground at every step
   [7] = true,  -- the 4 columns on the right are empty, but physically you should be able to walk on them
     -- low slope ascending every 4px
@@ -127,6 +138,7 @@ local mask_tile_land_on_empty_qcolumn_flags = {
   [35] = true,-- the 2 columns on the left are empty
   -- [22]/[28] and [25] vertical slopes don't really need this, we removed the top pixel to make fall-off easier,
   --  but we don't need to stick the the left/right wall for longer
+--#endif
 }
 
 -- table of tile collision mask ids indexed by tile id
@@ -217,6 +229,9 @@ local mask_tile_ids = {
 --(proto)
 --#endif
 
+-- strip out tiles not needed in stage intro to spare characters
+--#if ingame
+
 -- VISUAL TILES
 -- those tiles are associated to one of the collision masks above
 
@@ -227,6 +242,7 @@ local mask_tile_ids = {
 -- the bottom doesn't matter as one-way, otherwise surface is full, so just use full tile mask
   [35] = 29,
   [36] = 29,
+--(!proto)
 --#endif
 
 -- full tiles
@@ -267,6 +283,13 @@ local mask_tile_ids = {
   [61] = 13,
   [62] = 14,
   [63] = 15,
+
+--(ingame)
+--#endif
+
+-- stage_intro only uses full flat ground
+-- in fact, it really only needs one specific grass tile, but to simplify and as we don't
+--  need to strip so precisely, we just kept all full flat grounds
   [65] = 29,
   [66] = 29,
   [67] = 29,
@@ -281,6 +304,8 @@ local mask_tile_ids = {
   [87] = 29,
   [88] = 29,
   [89] = 29,
+
+--#if ingame
 
   -- 0 slope bumps (grass ground with uniform height 1px)
   [160] = 45,
@@ -376,6 +401,9 @@ local mask_tile_ids = {
   -- upper row
   [228] = 19,
   [229] = 20,
+
+--(ingame)
+--#endif
 
 -- decorative tiles (no collision, but kept commented for tracking purpose)
 --[[

@@ -112,6 +112,14 @@ run_cmd="pico8 ${run_option} ${install_dirpath}/${cartridge_stem}_${cartridge_ex
 # panel would get cleared on reload).
 # https://stackoverflow.com/questions/592620/how-to-check-if-a-program-exists-from-a-bash-script
 if hash gnome-terminal 2>/dev/null; then
+  gnome_terminal_exists=true
+else
+  gnome_terminal_exists=false
+fi
+
+# In headless mode, do not use new terminal even if it exists, since the terminal will close
+# automatically at the end of the operation, preventing debugging of error messages
+if [[ "$gnome_terminal_exists" == true && "$headless" != true ]]; then
 	# gnome-terminal exists
 	echo "> gnome-terminal -- bash -x -c \"$run_cmd\""
 	gnome-terminal -- bash -x -c "$run_cmd"

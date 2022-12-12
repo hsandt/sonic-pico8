@@ -50,7 +50,8 @@ cp data/data_*.p8 "${install_dirpath}/"
 # Merging list
 # data_stage1_00.p8 + gfx_start_cinematic.p8 = data_stage1_00.p8 for release
 # data_stage1_01.p8 + gfx_splash_screen.p8 = data_stage1_01.p8 for release
-# data_stage1_10.p8 + gfx_sage_choir_pcm_data.p8 = data_stage1_10.p8 for release
+# data_stage1_10.p8 + gfx_sage_choir_pcm_data_part1.p8 = data_stage1_10.p8 for release
+# data_stage1_11.p8 + gfx_sage_choir_pcm_data_part2.p8 = data_stage1_11.p8 for release
 
 echo "Merging gfx_start_cinematic.p8 __gfx__ with data_stage1_00.p8 __map__ into ${install_dirpath}/data_stage1_00.p8 ..."
 build_merged_gfx_start_cinematic_cmd="p8tool build --gfx data/gfx_start_cinematic.p8 --map data/data_stage1_00.p8 \"${install_dirpath}/data_stage1_00.p8\""
@@ -62,7 +63,12 @@ build_merged_gfx_splash_screen_cmd="p8tool build --gfx data/gfx_splash_screen.p8
 echo "> $build_merged_gfx_splash_screen_cmd"
 bash -c "$build_merged_gfx_splash_screen_cmd"
 
-echo "Merging gfx_sage_choir_pcm_data.p8 __gfx__ with data_stage1_10.p8 __map__ into ${install_dirpath}/data_stage1_10.p8 ..."
-build_merged_gfx_sage_choir_pcm_data_cmd="p8tool build --gfx data/gfx_sage_choir_pcm_data.p8 --map data/data_stage1_10.p8 \"${install_dirpath}/data_stage1_10.p8\""
-echo "> $build_merged_gfx_sage_choir_pcm_data_cmd"
-bash -c "$build_merged_gfx_sage_choir_pcm_data_cmd"
+echo "Merging gfx_sage_choir_pcm_data_part1.p8 __gfx__ with data_stage1_10.p8 __map__ into ${install_dirpath}/data_stage1_10.p8 ..."
+build_merged_gfx_sage_choir_pcm_data_part1_cmd="p8tool build --gfx data/gfx_sage_choir_pcm_data_part1.p8 --map data/data_stage1_10.p8 \"${install_dirpath}/data_stage1_10.p8\""
+echo "> $build_merged_gfx_sage_choir_pcm_data_part1_cmd"
+bash -c "$build_merged_gfx_sage_choir_pcm_data_part1_cmd"
+
+echo "Merging gfx_sage_choir_pcm_data_part2.p8 __gfx__ with data_stage1_11.p8 __map__ into ${install_dirpath}/data_stage1_11.p8 ..."
+build_merged_gfx_sage_choir_pcm_data_part2_cmd="p8tool build --gfx data/gfx_sage_choir_pcm_data_part2.p8 --map data/data_stage1_11.p8 \"${install_dirpath}/data_stage1_11.p8\""
+echo "> $build_merged_gfx_sage_choir_pcm_data_part2_cmd"
+bash -c "$build_merged_gfx_sage_choir_pcm_data_part2_cmd"

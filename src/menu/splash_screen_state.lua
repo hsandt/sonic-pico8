@@ -426,10 +426,12 @@ function splash_screen_state:reload_pcm()
   -- From v0.2.4, it is unlocked by default
   poke(0x5f36, 16)
 
-  -- Copy full gfx section of data_stage1_10.p8 (see install_data_cartridges_with_merging.sh)
-  -- into current extra general memory
+  -- Copy full gfx sections of data_stage1_10.p8 and data_stage1_11.p8
+  -- concatenated into current extra general memory (see install_data_cartridges_with_merging.sh)
+  -- to reconstruct the full audio pcm sample into current memory, ready to be read.
   -- This includes the pcm sample length header
   reload(0x8000, 0x0, 0x2000, "data_stage1_10.p8")
+  reload(0xa000, 0x0, 0x2000, "data_stage1_11.p8")
 
   -- We stored the PCM sample length in the first two bytes, so read it back,
   --  now copied at 0x8000

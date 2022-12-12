@@ -17,34 +17,75 @@ require("common_generate_gfx_sage_choir_pcm_data")
 local pcm_data = require("data/pcm_data")
 
 
--- PCM: load digitized audio samples stored as string into gfx memory
--- Format:
--- - first two bytes: pcm sample length
--- - remaining bytes (max total size 0x2000): pcm sample bytes
+-- PCM: load digitized audio samples stored as string into gfx memory,
+-- splitting data into up to two cartridges for a total capacity of 0x4000 bytes
+-- (0x3ffe bytes of pure data after removing header space)
+
+-- addr: content description below
+
+-- 1st cart __gfx__
+-- 0x0000-0x0001: [length header]
+-- 0x0002-0x1fff: first part of sample: bytes 0x0001-0x1ffe (starting at 1 for use in ord)
+
+-- 2nd cart __gfx__
+-- 0x0000-0x1fff: second part of sample: bytes 0x1fff-0x3ffe (starting at 1 for use in ord)
+
 -- Thanks to IMLXH (also carlc27843 and czarlo)
 -- https://www.lexaloffle.com/bbs/?tid=45013
 -- https://colab.research.google.com/drive/1HyiciemxfCDS9DxE98UCtNXas5TrM-5e?usp=sharing
 -- The playing part is done in splash_screen_state:play_pcm
-local function load_pcm(pcm_sample)
+
+-- load first part of the sample, with length header
+-- Format:
+-- - first two bytes: pcm sample length
+-- - remaining bytes (max total size 0x2000): pcm sample bytes 0x0001-0x1ffe
+local function load_pcm_first_part(pcm_sample)
   local l = #pcm_sample
-  assert(2 + l <= 0x2000, "pcm_sample length is "..l.." ("..tostr(l, true).."), expected length <= 8190 (0x2000 - 2) to fix in __gfx__ section even with 2 extra bytes to store pcm sample length")
 
   -- store pcm sample length in the first two bytes (since length can be up to 8192,
   --  so 1 byte is not enough)
   poke2(0x0, l)
 
-  for i = 0, l - 1 do
-    -- save sample bytes, skipping the first two bytes reserved to length
-    poke(0x2 + i, ord(pcm_sample, i))
+  -- save 1st part of sample bytes, skipping the first two bytes reserved to length
+  for i = 1, min(0x1ffe, l) do
+    -- i starts at 1, so offset by 0x1 so we start at 0x2, just after the length header
+    -- the last byte we may reach is 0x1fff
+    poke(0x1 + i, ord(pcm_sample, i))
   end
 end
 
--- load audio sample into memory
-load_pcm(pcm_data._sage_choir)
+-- load second part of the sample (if more than 0x1ffe bytes)
+-- Format:
+-- - all bytes (max total size 0x2000): pcm sample bytes 0x1fff-0x3ffe
+local function load_pcm_second_part(pcm_sample)
+  local l = #pcm_sample
 
--- save cartridge (we only care about the __gfx__ section)
-save("gfx_sage_choir_pcm_data.p8")
+  -- here, min is only to avoid poking bad memory in non-assert build
+  -- but we recommend to always build and run assert config for this cartridge
+  for i = 0x1fff, min(0x3ffe, l) do
+    -- it's a new cartridge without any length header, so we must offset the target
+    --  address to start at 0, and reach up to 0x1fff
+    poke(i - 0x1fff, ord(pcm_sample, i))
+  end
+end
 
--- log action, although generally not visible for long since terminal tends to close
---  at the end
-printh("saved carts/gfx_sage_choir_pcm_data.p8")
+local pcm_sample = pcm_data._sage_choir
+local l = #pcm_sample
+assert(2 + l <= 0x4000, "pcm_sample length is "..l.." ("..tostr(l, true).."), expected length <= 16382 (0x4000 - 2) to fit in 2 __gfx__ sections even with 2 extra bytes to store pcm sample length")
+
+-- load audio sample into memory in up to two steps
+
+load_pcm_first_part(pcm_sample)
+
+-- save cartridge for first part (we only care about the __gfx__ section)
+save("gfx_sage_choir_pcm_data_part_1.p8")
+printh("saved carts/gfx_sage_choir_pcm_data_part_1.p8")
+
+if l > 0x1ffe then
+  -- sample is too long to fit in one cart __gfx__, so save a second one
+  load_pcm_second_part(pcm_sample)
+
+  -- save cartridge for second part (we only care about the __gfx__ section)
+  save("gfx_sage_choir_pcm_data_part_2.p8")
+  printh("saved carts/gfx_sage_choir_pcm_data_part_2.p8")
+end

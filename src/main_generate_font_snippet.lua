@@ -1,6 +1,19 @@
 -- main entry file for the generate_font_snippet cartridge
 --  game states: none, it's a custom cartridge run offline to generate a font snippet from a font spritesheet
--- after running it, the font snippet will be saved in the clipboard, just paste it in the script that needs it
+
+-- USAGE
+-- 1. Edit spritesheets/picosonic_custom_font.png
+-- 2. Run
+-- $ ./copy_spritesheet_for_import.sh picosonic_custom_font && pico8 -run data/builtin_data_generate_font_snippet.p8
+-- (Sublime Text command: "Game: edit data (gfx only): custom font")
+-- to let it import the spritesheet
+-- 3. Save the cart
+-- 4. Run (we recommend assert config)
+-- $ ./build_and_install_single_cartridge_with_data.sh generate_font_snippet assert && ./run_cartridge.sh generate_font_snippet assert
+-- (Sublime Text command: "Game: build and run generate_font_snippet")
+-- You will see a message stating that the font snippet was saved in the clipboard
+-- 6. Open the source file that needs the custom font (stage_clear_state.lua) and paste the font snippet under #custom_font
+-- 7. Locate char_width_table under #custom_font_width, and fill it as necessary (for characters not using default_char_width)
 
 -- must require at main top, to be used in any required modules from here
 require("engine/pico8/api")

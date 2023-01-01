@@ -2,7 +2,7 @@
 local itest_manager = require("engine/test/itest_manager")
 local flow = require("engine/application/flow")
 
-itest_manager:register_itest('#solo player waits on splash screen',
+itest_manager:register_itest('player waits on splash screen',
     {':splash_screen'}, function ()
 
   -- enter splash screen
@@ -93,6 +93,30 @@ itest_manager:register_itest('player select credits, confirm',
   -- check that we are now in the credits state
   final_assert(function ()
     return flow.curr_state.type == ':credits', "current game state is not ':credits', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
+itest_manager:register_itest('#solo player scroll in credits',
+    {':credits'}, function ()
+
+  -- enter credits directly
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':credits')
+  end)
+
+  -- player presses down twice to scroll down
+  short_press(button_ids.down)
+  short_press(button_ids.down)
+
+  -- player presses up once to scroll up
+  short_press(button_ids.up)
+
+  -- check that we are now scrolled by speed * (2 - 1) / 60 = 64 / 60
+  final_assert(function ()
+    return flow.curr_state.type == ':credits' and
+      flow.curr_state.current_scrolling == 64 / 60,
+      "current game state is not ':credits' with scrolling 1, has instead type: "..flow.curr_state.type.." and scrolling "..flow.curr_state.current_scrolling
   end)
 
 end)

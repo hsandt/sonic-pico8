@@ -41,7 +41,15 @@ local titlemenu_sprite_data_t = {
   -- true emerald is located where emerald silhouette is in visual_ingame_addon
   emerald = sprite_data(sprite_id_location(10, 0), nil, vector(3, 2), colors.pink),
 
-  title_logo = sspr_data(0, 11, 112, 81, nil, colors.pink),
+  -- background texture used in the credits menu, showing "SONIC" as in Sonic 2
+  -- options menu. Must be drawn with half-offset every other line
+  -- it is drawn as dark green because it overlaps the title logo bounding rectangle,
+  --  so it needs a color not already used in the title logo so it can be seen as transparent on the title logo
+  --  (will be converted to black at runtime)
+  credits_bg_texture_sonic = sspr_data(0, 8, 27, 8, nil, colors.pink),
+
+  -- make dark green transparent so we don't draw credits_bg_texture_sonic overlapping the title logo bounding rectangle
+  title_logo = sspr_data(0, 11, 112, 81, nil, {colors.pink, colors.dark_green}),
   sonic_hand1 = sspr_data(112, 24, 15, 27, vector(3, 26), colors.pink),
   sonic_hand2 = sspr_data(113, 53, 12, 27, vector(8, 26), colors.pink),
 

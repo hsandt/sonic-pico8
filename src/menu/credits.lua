@@ -38,7 +38,7 @@ function credits:update()
 end
 
 function credits:scroll(delta)
-  self.current_scrolling = mid(self.current_scrolling + delta, 0, tuned("max clamping", 242))
+  self.current_scrolling = mid(self.current_scrolling + delta, 0, tuned("max clamping", 260))
 end
 
 function credits:render()
@@ -71,7 +71,7 @@ function credits:render()
 
   -- background
   local hint_bg_width = tuned("w", 128)
-  local hint_bg_height = tuned("h", 15)
+  local hint_bg_height = tuned("h", 14)
   rectfill(0, 128 - hint_bg_height, hint_bg_width - 1, 127, colors.black)
 
   -- text
@@ -81,33 +81,34 @@ end
 function credits:draw_credits_text()
   local text_color = colors.white
   local outline_color = colors.black
-  local role_margin = tuned("role margin", 2)
-  local paragraph_margin = tuned("paragraph margin", 6)
+  local role_margin = tuned("role margin", 1)
+  local paragraph_margin = tuned("paragraph margin", 4)
 
   -- top
-  local y = tuned("top", 20)
+  local y = tuned("top", 8)
+  local extra_line_spacing = tuned("x line spac", 2)
 
-  text_helper.print_aligned("pico sonic - credits", 64, y, alignments.horizontal_center, text_color, outline_color)
-  y = y + character_height + paragraph_margin + 2
+  y = text_helper.print_aligned("pico sonic - credits", 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+  y = y + paragraph_margin + 2
 
   for role_name_pair in all(credits_data.role_name_pairs) do
     local role_text = role_name_pair[1]
     local name_text = role_name_pair[2]
 
-    text_helper.print_aligned(role_text, 64, y, alignments.horizontal_center, text_color, outline_color)
-    y = y + text_helper.compute_text_height(role_text) + role_margin
+    y = text_helper.print_aligned(role_text, 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+    y = y + role_margin
 
-    text_helper.print_aligned(name_text, 64, y, alignments.horizontal_center, text_color, outline_color)
-    y = y + text_helper.compute_text_height(name_text) + paragraph_margin
+    y = text_helper.print_aligned(name_text, 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+    y = y + paragraph_margin
   end
 
-  text_helper.print_aligned(copyright_text, 64, y, alignments.horizontal_center, text_color, outline_color)
-  y = y + text_helper.compute_text_height(copyright_text) + paragraph_margin
+  y = text_helper.print_aligned(copyright_text, 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+  y = y + paragraph_margin
 
-  text_helper.print_aligned("komehara.itch.io/pico-sonic", 64, y, alignments.horizontal_center, text_color, outline_color)
-  y = y + character_height + paragraph_margin
+  y = text_helper.print_aligned("komehara.itch.io/pico-sonic", 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+  y = y + paragraph_margin
 
-  text_helper.print_aligned("https://sonicfangameshq.com/\nforums/showcase/pico-sonic.985", 64, y, alignments.horizontal_center, text_color, outline_color)
+  y = text_helper.print_aligned("https://sonicfangameshq.com/\nforums/showcase/pico-sonic.985", 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
 end
 
 -- export

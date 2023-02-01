@@ -134,6 +134,6 @@ echo "# Copy template and inject PCM string"
 
 pcm_data_filepath="$game_src_path/data/pcm_data.lua"
 cp "$game_src_template_path/pcm_data_template.lua" "$pcm_data_filepath"
-python3 -m pico-boots.scripts.replace_variable_with_file_content "$pcm_data_filepath" "$pcm_string_var" "${output_raw_filepath}.txt"
+python3 -m pico-boots.scripts.replace_variable_with_file_content "$pcm_data_filepath" "$pcm_string_var" "${output_raw_filepath}.txt" --strip-surrounding-quotes
 
 echo "# OK"

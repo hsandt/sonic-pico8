@@ -81,6 +81,9 @@ assert(2 + l <= 0x4000, "pcm_sample length is "..l.." ("..tostr(l, true).."), ex
 
 load_pcm_first_part(pcm_sample)
 
+-- WARNING: when cart already exists, headless script saves over it inconsistently
+-- We recommend always deleting the existing gfx carts before running this script
+
 -- save cartridge for first part (we only care about the __gfx__ section)
 save("gfx_sage_choir_pcm_data_part_1.p8")
 printh("saved carts/gfx_sage_choir_pcm_data_part_1.p8")

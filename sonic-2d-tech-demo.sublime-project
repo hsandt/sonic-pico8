@@ -583,7 +583,7 @@
 			"name": "Game: build and run generate_gfx_sage_choir_pcm_data (headless) (offline)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
+			"cmd": ["rm ~/.lexaloffle/pico-8/carts/gfx_sage_choir_pcm_data_part_*.p8 && ./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -591,7 +591,7 @@
 			"name": "Game: convert sage choir audio to pcm data and generate_gfx_sage_choir_pcm_data (offline)",
 			"working_dir": "${project_path}",
 			"shell": true,
-			"cmd": ["./convert_audio_to_pcm_data.sh sage_choir.ogg sage_choir && ./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
+			"cmd": ["./convert_audio_to_pcm_data.sh sage_choir.ogg sage_choir && rm ~/.lexaloffle/pico-8/carts/gfx_sage_choir_pcm_data_part_*.p8 && ./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

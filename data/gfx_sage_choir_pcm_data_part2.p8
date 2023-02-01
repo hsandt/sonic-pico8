@@ -1,7 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 32
 __lua__
--- generated via main_generate_gfx_sage_choir_pcm_data run headless, after extracting __gfx__ section
+-- generated via main_generate_gfx_sage_choir_pcm_data run headless, after extracting __gfx__ section of part 2
 
 __gfx__
 f7c6d7b708382808f7e767d777f7f7c79808c8c80969595858d677a7b7f8b8e719b6374726186748b8e748c737b727b7d7087898b8e8e8f859f827780647f797

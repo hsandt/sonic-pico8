@@ -102,13 +102,15 @@ function credits:draw_credits_text()
     y = y + paragraph_margin
   end
 
-  y = text_helper.print_aligned(copyright_text, 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
-  y = y + paragraph_margin
-
   y = text_helper.print_aligned("komehara.itch.io/pico-sonic", 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
   y = y + paragraph_margin
 
   y = text_helper.print_aligned("https://sonicfangameshq.com/\nforums/showcase/pico-sonic.985", 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+  y = y + paragraph_margin
+
+  y = text_helper.print_aligned(copyright_text, 64, y, alignments.horizontal_center, text_color, outline_color, false, extra_line_spacing)
+  -- uncommented if you add something more below
+  -- y = y + paragraph_margin
 end
 
 -- export

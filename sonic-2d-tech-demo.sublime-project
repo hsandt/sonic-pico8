@@ -564,7 +564,7 @@
 			]
 		},
 		{
-			"name": "Game: build and run generate_font_snippet",
+			"name": "Game: build and run generate_font_snippet (offline)",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_font_snippet assert && (./pico-boots/scripts/reload.sh || ./run_cartridge.sh generate_font_snippet assert)"],
@@ -572,10 +572,26 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
-			"name": "Game: build and run generate_gfx_sage_choir_pcm_data (headless)",
+			"name": "Game: convert sage choir audio to pcm data (offline)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./convert_audio_to_pcm_data.sh sage_choir.ogg sage_choir"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Game: build and run generate_gfx_sage_choir_pcm_data (headless) (offline)",
 			"working_dir": "${project_path}",
 			"shell": true,
 			"cmd": ["./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
+			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Game: convert sage choir audio to pcm data and generate_gfx_sage_choir_pcm_data (offline)",
+			"working_dir": "${project_path}",
+			"shell": true,
+			"cmd": ["./convert_audio_to_pcm_data.sh sage_choir.ogg sage_choir && ./build_and_install_single_cartridge_with_data.sh generate_gfx_sage_choir_pcm_data assert && ./run_cartridge.sh generate_gfx_sage_choir_pcm_data assert -x"],
 			"file_regex": "(.*\\.sh)(?:\\: line )([\\d]+)(?:\\:)([\\d]+)? (.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
@@ -1411,6 +1427,14 @@
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,
 			"cmd": ["python3 -m scripts.test_unify"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
+			"name": "Engine: Postbuild: test replace_variable_with_file_content",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_replace_variable_with_file_content"],
 			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},

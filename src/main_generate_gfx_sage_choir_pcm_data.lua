@@ -1,10 +1,14 @@
 -- main entry file for the generate_sfx_sage_choir_cartridge cartridge
 --  game states: none, it's a custom cartridge run offline to generate a font snippet from a font spritesheet
 
--- this must be run offline as headless with `pico8 -x` so it can be executed at once and save the result cartridge
+-- you must first prepare the .wav or .ogg audio file in audio/, then run convert_audio_to_pcm_data.sh
 
--- after running it, the sage choir pcm data will be saved as gfx data in cartridge carts/gfx_sage_choir_pcm_data.p8
---  so you can extract the __gfx__ section and save a pure gfx cartridge in the project
+-- then, build and run this cart offline as headless with `pico8 -x` so it can be executed at once and save the result cartridge
+
+-- after running it, the sage choir pcm data will be saved as gfx data in two cartridges:
+--  carts/gfx_sage_choir_pcm_data_part_1.p8 and carts/gfx_sage_choir_pcm_data_part_2.p8
+--  so you can extract their respective __gfx__ section and save them in pure gfx cartridges in the project
+--  (with same name under data/ folder)
 --  (we recommend tracking it in VCS even if redundant with pcm data as string for convenience)
 -- finally, you can merge it into some existing data cartridge that doesn't need its __gfx__ section
 --  (see install_data_cartridges_with_merging.sh)

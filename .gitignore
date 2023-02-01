@@ -1,3 +1,13 @@
+# Intermediate assets
+# The PCM pipeline goes this way: audio/sage_choir.ogg -> sage_choir.raw -> sage_choir.raw.txt
+# -> data/gfx_sage_choir_pcm_data_part1.p8 and _part2.p8
+# So in principle, we only need the original .ogg file, but in practice, it's convenient to keep
+# intermediate file *.raw.txt and final products data/gfx_sage_choir_pcm_data_part1.p8 and _part2.p8
+# so we can track text & hexadecimal diff, and also immediately build game after cloning repository
+# without needing to build and run offline main_generate_gfx_sage_choir_pcm_data
+# However, raw byte files are less interesting, so ignore them
+audio/*.raw
+
 # Build
 /intermediate
 /build

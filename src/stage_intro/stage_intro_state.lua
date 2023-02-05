@@ -441,10 +441,8 @@ end
 
 -- render the player character at its current position
 function stage_intro_state:render_player_char()
-  -- we override set_camera_with_origin to loop palm trees,
-  --  so we must call the original implementation to draw the character,
-  --  as it is the only entity unaffecting by the fake vertical looping
-  base_stage_state.set_camera_with_origin(self)
+  -- actually calls base implementation, since not overridden
+  self:set_camera_with_origin()
 
   self.player_char:render()
 end
@@ -530,19 +528,6 @@ function stage_intro_state:reload_map_region(new_map_region_coords)
     -- reverse operation of on_enter
     memcpy(0x2000 + 0x80 * fg_leaves_center_local_tilemap_top + fg_leaves_local_tilemap_left + i * 0x80, 0x4f00 + i * 6, 6)
   end
-end
-
--- base_stage_state override
-function stage_intro_state:set_camera_with_origin(origin)
-  origin = origin or vector.zero()
-
-  local camera_topleft = vector(self.camera.position.x - screen_width / 2 - origin.x, self.camera.position.y - screen_height / 2 - origin.y)
-  if camera_topleft.y < 0 then
-    -- above normal region, loop the decor
-    camera_topleft.y = camera_topleft.y % 128
-  end
-
-  camera(camera_topleft.x, camera_topleft.y)
 end
 
 
@@ -711,20 +696,22 @@ function stage_intro_state:show_stage_splash_async()
   self.overlay:add_drawable("banner", banner)
 
   -- banner text accompanies text, and ends at y = 89, so starts at y = 89 - 106 = -17
-  local banner_text = label("pico\nsonic", vector(16, -17), colors.white)
+  local banner_text = label("pico\nsonic", vector(16, -17), alignments.left, colors.white)
   self.overlay:add_drawable("banner_text", banner_text)
 
   -- make banner enter from the top
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, -106, 0, 9)
+  -- we've already set banner_text initial y to match relative offset we want, so no need to pass
+  --  coord_offsets = {0, 89}, just pass nil
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, nil, -106, 0, 9)
 
   local zone_rectangle = rectangle(vector(128, 45), 47, 3, colors.black)
   self.overlay:add_drawable("zone_rect", zone_rectangle)
 
-  local zone_label = label(self.curr_stage_data.title, vector(129, 43), colors.white)
+  local zone_label = label(self.curr_stage_data.title, vector(129, 43), alignments.left, colors.white)
   self.overlay:add_drawable("zone", zone_label)
 
-  -- make text enter from the right
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 128, 41, 14)
+  -- make text enter from the right, preserving relative offset
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, nil, 128, 41, 14)
 end
 
 function stage_intro_state:hide_stage_splash_async()
@@ -741,12 +728,14 @@ function stage_intro_state:hide_stage_splash_async()
   end
 
   local banner_text = self.overlay.drawables_map["banner_text"]
-  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, {0, 89}, 0, -106, 8)
+  -- banner and banner_text moved together, so relative offset should be preserved, so just pass nil
+  ui_animation.move_drawables_on_coord_async("y", {banner, banner_text}, nil, 0, -106, 8)
 
   -- make text exit to the right
   local zone_rectangle = self.overlay.drawables_map["zone_rect"]
   local zone_label = self.overlay.drawables_map["zone"]
-  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, {0, 1}, 41, 128, 14)
+  -- zone_rectangle and zone_label moved together, so relative offset should be preserved, so just pass nil
+  ui_animation.move_drawables_on_coord_async("x", {zone_rectangle, zone_label}, nil, 41, 128, 14)
 
   self.overlay:remove_drawable("banner")
   self.overlay:remove_drawable("banner_text")

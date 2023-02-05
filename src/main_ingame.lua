@@ -67,6 +67,7 @@ function _init()
     ['spring'] = true,
     -- ['...'] = true,
   }
+--(log)
 --#endif
 
 --#if visual_logger

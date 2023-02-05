@@ -1,7 +1,5 @@
--- emerald is drawn in both ingame and titlemenu,
---  so exceptionally both bustedhelper work, as long as one of the two
---  visual add-ons are loaded
-require("test/bustedhelper_ingame")
+-- cinematic emerald drawn in titlemenu, so just use bustedhelper for titlemenu
+require("test/bustedhelper_titlemenu")
 
 local postprocess = require("engine/render/postprocess")
 

@@ -1,9 +1,8 @@
 local fx = require("ingame/fx")
-
-local emerald_fx = derived_class(fx)
-
 local emerald_common = require("render/emerald_common")
 local visual = require("resources/visual_common")
+
+local emerald_fx = derived_class(fx)
 
 -- extra attributes:
 -- number    int    number of the represented emerald to color the fx

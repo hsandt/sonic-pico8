@@ -2,6 +2,7 @@ local sprite_data = require("engine/render/sprite_data")
 local animated_sprite_data = require("engine/render/animated_sprite_data")
 
 -- sdt: sprite_data_table
+-- OPTIMIZE CHARS: only spring_jump has different span, so we could default to {2, 2} if passing "nil" or 0
 local sdt = transform(
   -- anim_name below is not protected since accessed via minified member to define animations more below
   --anim_name = sprite_data(
@@ -54,8 +55,8 @@ end)
 local asdt = transform(
   -- access sprite data by non-protected member to allow minification
   -- see animated_sprite_data.lua for anim_loop_modes values
-  --[anim_name] = animated_sprite_data.create(sdt,
-  --        sprite_keys,   step_frames, loop_mode as int)
+  --[anim_name] = animated_sprite_data(
+  --           sprite_keys,     step_frames, loop_mode as int)
   {
     ["idle"] = {{sdt.idle},               1,                2},
     ["walk"] = {{sdt.walk1, sdt.walk2, sdt.walk3, sdt.walk4, sdt.walk5, sdt.walk6},

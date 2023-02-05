@@ -6,6 +6,7 @@
 
 local picosonic_app_base = require("application/picosonic_app_base")
 
+local splash_screen_state = require("menu/splash_screen_state")
 local titlemenu = require("menu/titlemenu")
 local credits = require("menu/credits")
 local memory = require("resources/memory")
@@ -13,7 +14,7 @@ local memory = require("resources/memory")
 local picosonic_app_titlemenu = derived_class(picosonic_app_base)
 
 function picosonic_app_titlemenu:instantiate_gamestates() -- override
-  return {titlemenu(), credits()}
+  return {splash_screen_state(), titlemenu(), credits()}
 end
 
 function picosonic_app_titlemenu:on_pre_start() -- override

@@ -65,17 +65,10 @@ describe('titlemenu', function ()
         picosonic_app.start_coroutine:clear()
       end)
 
-      it('should call start_coroutine_method on play_opening_music_async', function ()
+      it('should initialize frames_before_showing_menu to 0 and reset should_start_attract_mode and is_playing_start_cinematic', function ()
         tm:on_enter()
 
-        assert.spy(picosonic_app.start_coroutine).was_called(1)
-        assert.spy(picosonic_app.start_coroutine).was_called_with(match.ref(tm.app), titlemenu.play_opening_music_async, match.ref(tm))
-      end)
-
-      it('should initialize frames_before_showing_menu for countdown and reset should_start_attract_mode and is_playing_start_cinematic', function ()
-        tm:on_enter()
-
-        assert.are_equal(96, tm.frames_before_showing_menu)
+        assert.are_equal(0, tm.frames_before_showing_menu)
         assert.is_false(tm.should_start_attract_mode)
         assert.is_false(tm.is_playing_start_cinematic)
       end)

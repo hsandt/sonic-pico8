@@ -1,9 +1,14 @@
 local flow = require("engine/application/flow")
+local input = require("engine/input/input")
 local postprocess = require("engine/render/postprocess")
+local animated_sprite_object = require("engine/render/animated_sprite_object")
+local sprite_object = require("engine/render/sprite_object")
+local font_helper = require("engine/ui/font_helper")
 local label = require("engine/ui/label")
 local overlay = require("engine/ui/overlay")
 local rectangle = require("engine/ui/rectangle")
 
+local credits_data = require("data/credits_data")
 local stage_clear_data = require("data/stage_clear_data")
 local base_stage_state = require("ingame/base_stage_state")
 local goal_plate = require("ingame/goal_plate")
@@ -13,9 +18,53 @@ local emerald_common = require("render/emerald_common")
 local audio = require("resources/audio")
 local ui_animation = require("engine/ui/ui_animation")
 local memory = require("resources/memory")
-local visual = require("resources/visual_common")  -- we should require ingameadd-on in main
+local visual = require("resources/visual_common")  -- we should require visual_stage_clear_addon in main
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
+
+-- custom font data
+
+-- char width for characters not key in char_width_table (includes space)
+-- this must match value in main_generate_font_snippet.lua
+local default_char_width = 5
+
+-- width of characters not using default_char_width
+-- THIS INCLUDES THE TRAILING SPACE, SO ADD (at least) 1 PIXEL TO ACTUAL CHAR WIDTH
+-- use hard strings to avoid unwanted minification
+-- #custom_font_width
+local char_width_table = {
+  ["b"] = 6,
+  ["d"] = 7,
+  ["g"] = 6,
+  ["i"] = 2,
+  ["j"] = 4,
+  ["l"] = 4,
+  ["m"] = 8,
+  ["n"] = 6,
+  ["o"] = 9,
+  ["p"] = 6,
+  ["q"] = 9,
+  ["r"] = 6,
+  ["t"] = 4,
+  ["v"] = 6,
+  ["w"] = 8,
+  ["x"] = 6,
+  ["y"] = 6,
+  ["0"] = 9,
+  ["1"] = 3,
+  ["2"] = 6,
+  ["3"] = 6,
+  ["4"] = 6,
+  ["5"] = 6,
+  ["6"] = 7,
+  ["8"] = 7,
+  ["9"] = 7,
+  [":"] = 2,
+  ["-"] = 4,
+  -- we skip upper case letters as we don't use them in labels, and they look the same
+  --  as the lowercase letters in our custom font anyway
+}
+
 
 local stage_clear_state = derived_class(base_stage_state)
 
@@ -64,21 +113,79 @@ function stage_clear_state.back_to_titlemenu_async()
   load('picosonic_titlemenu')
 end
 
+
+-- render helpers
+
+-- a wrapper class to draw the same sprite twice, once normally and once flipped X around its pivot
+--  use a pivot in .5 if the center vertical axis go through through a pixel (for width = odd number of px)
+-- it is a drawable itself
+local mirror_wrapper = new_class()
+
+-- sprite_object  sprite_object|animated_sprite_object   sprite object to draw mirrored on X
+--                                                       must have fields visible, position, flip_x/flip_y and method draw
+function mirror_wrapper:init(spr_object)
+  self.spr_object = spr_object
+end
+
+function mirror_wrapper:update()
+  self.spr_object:update()
+end
+
+function mirror_wrapper:draw(spr_object)
+  self.spr_object:draw()
+
+  -- as a trick, we temporarily swap flip x before the second draw to draw a mirrored image, then revert it
+  local original_flip_x = self.spr_object.flip_x
+  self.spr_object.flip_x = not original_flip_x
+  self.spr_object:draw()
+  self.spr_object.flip_x = original_flip_x
+end
+
+
+-- parameters
+
+local arm_offset_y_from_body = -16
+
+local juggling_mode_strings = {
+  "ping-pong",
+  " shower",  -- space is just to center a little between the arrows
+}
+
+function stage_clear_state:get_current_juggling_mode_string()
+  return juggling_mode_strings[self.emerald_juggling_mode + 1]
+end
+
+
 function stage_clear_state:init()
   base_stage_state.init(self)
+
+  -- load custom font
+  -- after running main_generate_font_snippet cartridge, paste the clipboard here
+  -- #custom_font
+  poke(0x5600,unpack(split"5,8,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,63,63,63,63,63,63,63,0,0,0,63,63,63,0,0,0,0,0,63,51,63,0,0,0,0,0,51,12,51,0,0,0,0,0,51,0,51,0,0,0,0,0,51,51,51,0,0,0,0,48,60,63,60,48,0,0,0,3,15,63,15,3,0,0,62,6,6,6,6,0,0,0,0,0,48,48,48,48,62,0,99,54,28,62,8,62,8,0,0,0,0,24,0,0,0,0,0,0,0,0,0,12,24,0,0,0,0,0,0,12,12,0,0,0,10,10,0,0,0,0,0,4,10,4,0,0,0,0,0,0,0,0,0,0,0,0,12,12,12,12,12,0,12,0,0,54,54,0,0,0,0,0,0,54,127,54,54,127,54,0,8,62,11,62,104,62,8,0,0,51,24,12,6,51,0,0,14,27,27,110,59,59,110,0,12,12,0,0,0,0,0,0,24,12,6,6,6,12,24,0,12,24,48,48,48,24,12,0,0,54,28,127,28,54,0,0,0,12,12,63,12,12,0,0,0,0,0,0,0,12,12,6,0,0,0,7,0,0,0,0,0,0,0,0,0,12,12,0,32,48,24,12,6,3,1,0,60,66,129,129,129,129,66,60,2,3,2,2,2,2,2,2,14,17,17,18,8,4,2,31,30,8,4,14,16,16,17,14,8,12,10,10,9,31,8,8,15,1,1,15,16,16,17,14,4,2,1,31,33,33,33,30,15,8,4,4,2,2,1,1,12,18,12,18,33,33,33,30,30,33,33,33,62,32,16,8,0,0,0,0,0,1,0,1,0,0,12,0,0,12,6,0,48,24,12,6,12,24,48,0,0,0,30,0,30,0,0,0,6,12,24,48,24,12,6,0,30,51,48,24,12,0,12,0,0,30,51,59,59,3,30,0,12,10,15,10,10,10,10,10,3,5,7,9,17,17,17,15,12,2,1,1,1,1,2,12,15,17,33,33,33,33,17,15,14,2,15,2,2,2,2,14,14,2,15,2,2,2,2,2,28,2,17,17,17,17,18,28,10,10,15,10,10,10,10,10,1,1,1,1,1,1,1,1,7,4,4,4,4,4,4,3,9,5,3,3,5,5,9,9,1,1,1,1,1,1,1,7,20,20,42,42,34,65,65,65,19,21,25,17,17,17,17,17,60,66,129,129,129,129,66,60,7,9,17,17,17,9,7,1,60,66,129,129,129,161,66,188,7,9,17,17,17,9,7,9,14,1,1,2,4,8,8,7,7,2,2,2,2,2,2,2,9,9,9,9,9,9,9,6,17,17,17,10,10,10,4,4,65,65,65,34,42,42,20,20,10,10,4,4,10,10,17,17,17,10,4,4,4,4,4,4,15,8,4,4,2,2,1,15,62,6,6,6,6,6,62,0,1,3,6,12,24,48,32,0,62,48,48,48,48,48,62,0,12,30,18,0,0,0,0,0,0,0,0,0,0,0,30,0,12,24,0,0,0,0,0,0,12,10,15,10,10,10,10,10,3,5,7,9,17,17,17,15,12,2,1,1,1,1,2,12,15,17,33,33,33,33,17,15,14,2,15,2,2,2,2,14,14,2,15,2,2,2,2,2,28,2,17,17,17,17,18,28,10,10,15,10,10,10,10,10,1,1,1,1,1,1,1,1,7,4,4,4,4,4,4,3,9,5,3,3,5,5,9,9,1,1,1,1,1,1,1,7,20,20,42,42,34,65,65,65,19,21,25,17,17,17,17,17,60,66,129,129,129,129,66,60,7,9,17,17,17,9,7,1,60,66,129,129,129,161,66,188,7,9,17,17,17,9,7,9,14,1,1,2,4,8,8,7,7,2,2,2,2,2,2,2,9,9,9,9,9,9,9,6,17,17,17,10,10,10,4,4,65,65,65,34,42,42,20,20,10,10,4,4,10,10,17,17,17,10,4,4,4,4,4,4,15,8,4,4,2,2,1,15,56,12,12,7,12,12,56,0,8,8,8,0,8,8,8,0,14,24,24,112,24,24,14,0,0,0,110,59,0,0,0,0,0,0,0,0,0,0,0,0,127,127,127,127,127,127,127,0,85,42,85,42,85,42,85,0,65,99,127,93,93,119,62,0,62,99,99,119,62,65,62,0,17,68,17,68,17,68,17,0,4,12,124,62,31,24,16,0,28,38,95,95,127,62,28,0,34,119,127,127,62,28,8,0,42,28,54,119,54,28,42,0,28,28,62,93,28,20,20,0,8,28,62,127,62,42,58,0,62,103,99,103,62,65,62,0,62,127,93,93,127,99,62,0,24,120,8,8,8,15,7,0,62,99,107,99,62,65,62,0,8,20,42,93,42,20,8,0,0,0,0,85,0,0,0,0,62,115,99,115,62,65,62,0,8,28,127,28,54,34,0,0,127,34,20,8,20,34,127,0,62,119,99,99,62,65,62,0,0,10,4,0,80,32,0,0,17,42,68,0,17,42,68,0,62,107,119,107,62,65,62,0,127,0,127,0,127,0,127,0,85,85,85,85,85,85,85,0"))
 
   -- stage id
   self.curr_stage_id = 1
 
   -- phase 0: stage result
-  -- phase 1: retry menu
+  -- phase 1: retry menu (not all emeralds)
+  -- phase 2: ending credits (all emeralds)
   self.phase = 0
+  self.is_fading_out_for_ending_screen = false
+
+  -- eggman state
+  -- self.eggman_timer = nil
+  -- self.emerald_juggling_mode = nil
 
   -- postprocessing for fade out effect
   self.postproc = postprocess()
+  self.postproc.use_blue_tint = true
 
   -- result (stage clear) overlay
   self.result_overlay = overlay()
+
+  -- fading overlay, should be displayed on top of the rest
+  self.fading_overlay = overlay()
 
   -- emerald variables for result UI animation
   self.picked_emerald_numbers_set = {}
@@ -87,6 +194,19 @@ function stage_clear_state:init()
   self.result_emerald_brightness_levels = {}  -- for emerald bright animation (nil means 0)
 
   -- self.retry_menu starts nil, only created when menu must be shown
+
+  -- eggman sprites
+  -- we don't have a hierarchical sprite system with child offsets yet, so for now, we just work with
+  --  separate static or animated sprites
+  self.eggman_legs = mirror_wrapper(animated_sprite_object(visual.animated_sprite_data_t.eggman_leg_left, vector(64, 74)))
+  self.eggman_body_initial_y = 65
+  self.eggman_body = mirror_wrapper(sprite_object(visual.sprite_data_t.eggman_body_half_left, vector(64, self.eggman_body_initial_y)))
+
+  -- first arm (initially on the left)
+  self.eggman_arm = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
+
+  -- second arm (initially on the right)
+  self.eggman_arm2 = animated_sprite_object(visual.animated_sprite_data_t.eggman_arm_left)
 end
 
 function stage_clear_state:on_enter()
@@ -117,6 +237,52 @@ function stage_clear_state:on_enter()
   self.app:start_coroutine(self.play_stage_clear_sequence_async, self)
 end
 
+function stage_clear_state:change_juggling_mode(juggling_mode)
+  self.emerald_juggling_mode = juggling_mode
+
+  local body_position_y = self.eggman_body.spr_object.position.y
+  self.eggman_arm.position:copy_assign(vector(64 - 9, body_position_y + arm_offset_y_from_body))
+  self.eggman_arm.flip_x = false
+  self.eggman_arm2.position:copy_assign(vector(64 + 9, body_position_y + arm_offset_y_from_body))
+  self.eggman_arm2.flip_x = true
+
+  self.eggman_timer = 0
+
+  if juggling_mode == 0 then
+    -- Ping-pong
+    -- second arm is always in down position (and switches between left and right regularly)
+    self.eggman_arm2:play("down")
+    -- legs will play raise_and_lower and update body/arm position on first frame in update
+  else
+    -- Shower juggling
+    -- Start at down position just to make sure to show something and so receiving an emerald looks natural,
+    --  we'll play more specific animations later
+    self.eggman_arm:play("down")
+    self.eggman_arm2:play("down")
+    self.eggman_legs.spr_object:play("up")  -- always up in this mode
+
+    -- Adjust body and arm position to up position (1px up)
+    local eggman_body_position_ref = self.eggman_body.spr_object.position
+    local eggman_arm_position_ref = self.eggman_arm.position
+    local eggman_arm2_position_ref = self.eggman_arm2.position
+
+    eggman_body_position_ref.y = self.eggman_body_initial_y - 1
+    eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+    eggman_arm2_position_ref.y = eggman_arm_position_ref.y
+
+    -- sequence of last known way index (high way: 0, low way: 1), indexed per emerald index-1
+    --  so we can make Eggman hands react when emeralds change directions
+    self.last_emerald_way_indices = {0, 0, 0, 0, 0, 0, 0, 0}
+  end
+
+  local juggle_mode_value_label = self.result_overlay.drawables_map["juggle mode value"]
+
+  -- label is an observer, but may not be created at the time change_juggling_mode is called for the first time,
+  --  so we must check for nil
+  if juggle_mode_value_label then
+    juggle_mode_value_label.text = self:get_current_juggling_mode_string()
+  end
+end
 
 -- play overall stage clear sequence (coroutine)
 function stage_clear_state:play_stage_clear_sequence_async()
@@ -131,16 +297,63 @@ function stage_clear_state:play_stage_clear_sequence_async()
   --  if we have all the emeralds)
   self:assess_result_async()
 
-  -- fade out and show retry screen
   self.app:yield_delay_s(stage_clear_data.fadeout_delay_s)
-  self:zigzag_fade_out_async()
 
-  -- enter phase 1: retry menu immediately so we can clear screen
+  self:try_fade_out_and_show_ending_screen_async()
+end
+
+function stage_clear_state:try_fade_out_and_show_ending_screen_async()
+  if not self.is_fading_out_for_ending_screen then
+    self.is_fading_out_for_ending_screen = true
+
+    self:zigzag_fade_out_async()
+
+    -- fade out music if any (only useful if player manually skipped result)
+    music(-1, 500)
+
+    -- stop all coroutines before showing retry screen to avoid, in the case of manual skip,
+    --  play_stage_clear_sequence_async and its sub-async methods doing further processing in the background
+    --  and messing up with the sequence
+    -- since we do this after the last async call here, this very coroutine will still finish properly
+    -- note that we must start a brand new coroutine below for this to work, else we would stop our own coroutine
+    self.app:stop_all_coroutines()
+
+    -- depending on player performance, ending screen will change
+    -- a. got all emeralds -> ending credits screen
+    -- b. missed at least one emerald -> retry screen
+    local got_all_emeralds = self.picked_emerald_count >= 8
+    local transition_to_ending_screen_async_method = got_all_emeralds and
+      self.transition_to_ending_credits_screen_async or self.transition_to_retry_screen_async
+
+    self.app:start_coroutine(transition_to_ending_screen_async_method, self)
+  end
+end
+
+function stage_clear_state:transition_to_retry_screen_async()
+  -- -- enter phase 1: retry menu
   self.phase = 1
+
+  if self.picked_emerald_count < 8 then
+    -- haven't got all emeralds, so eggman is shown
+
+    -- initialize juggling mode
+    -- 0: ping-pong, as in Sonic 1
+    -- 1: shower (cycle with high and low way)
+    self:change_juggling_mode(0)
+  end
 
   self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
 
   self:show_retry_screen_async()
+end
+
+function stage_clear_state:transition_to_ending_credits_screen_async()
+  -- -- enter phase 2: ending credits
+  self.phase = 2
+
+  self.app:yield_delay_s(stage_clear_data.delay_after_zigzag_fadeout)
+
+  self:show_ending_credits_screen_async()
 end
 
 -- good to know what on_exit should do, but never called since stage_clear cartridge only contains stage_clear state
@@ -153,6 +366,7 @@ function stage_clear_state:on_exit()
 
   -- clear object state vars
   self.result_overlay:clear_drawables()
+  self.fading_overlay:clear_drawables()
 
   -- reinit camera offset for other states
   camera()
@@ -160,8 +374,99 @@ end
 --]]
 
 function stage_clear_state:update()
-  if self.retry_menu then
-    self.retry_menu:update()
+  if self.phase == 0 then
+    -- check for any input to skip result screen and fade out already to ending screen
+    if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
+      -- start fade out in parallel with existing animations to keep things smooth
+      -- but at the end of fade out, we'll stop all coroutines to avoid sequence overlap
+      self.app:start_coroutine(self.try_fade_out_and_show_ending_screen_async, self)
+    end
+  elseif self.phase == 1 then
+    -- retry menu (not all emeralds)
+    if self.picked_emerald_count < 8 then
+      -- haven't got all emeralds, so eggman is shown
+
+      -- check input to change juggling mode
+      -- currently, there are only 2, so left and right do, in fact, the same thing
+      if input:is_just_pressed(button_ids.left) then
+        self:change_juggling_mode((self.emerald_juggling_mode - 1) % 2)
+      elseif input:is_just_pressed(button_ids.right) then
+        self:change_juggling_mode((self.emerald_juggling_mode + 1) % 2)
+      end
+
+      -- update eggman body parts
+
+      -- we know that legs spr_object is an animated_sprite_object
+      local old_legs_step = self.eggman_legs.spr_object.current_step
+      self.eggman_legs:update()
+      local new_legs_step = self.eggman_legs.spr_object.current_step
+
+      -- sync body vertical offset with legs
+      -- remember that our struct are nothing more than elevated class with copy methods,
+      --  so they are still passed by reference
+      local eggman_body_position_ref = self.eggman_body.spr_object.position
+      local eggman_arm_position_ref = self.eggman_arm.position
+      local eggman_arm2_position_ref = self.eggman_arm2.position
+      if old_legs_step == 1 and new_legs_step == 2 then
+        -- Eggman just flexed his legs, move body and arm down
+        eggman_body_position_ref.y = self.eggman_body_initial_y
+        eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+        eggman_arm2_position_ref.y = eggman_arm_position_ref.y
+      end
+      -- up never happens naturally, only via play, so we'll change position when calling play
+
+      self.eggman_arm:update()
+      self.eggman_arm2:update()
+
+      -- juggling-specific update
+
+      if self.emerald_juggling_mode == 0 then
+        -- Sonic 1 Try Again screen juggling: half-circle ping-pong
+
+        -- half-cycle: a throw from left to right, or right to left, takes 120 frames
+        if self.eggman_timer % 120 == 0 then
+          self.eggman_timer = 0
+
+          -- flip Eggman's arms
+          local new_global_flip = not self.eggman_arm.flip_x
+          self.eggman_arm.flip_x = new_global_flip
+          local arm_offset = self.eggman_arm.flip_x and 9 or -9
+          self.eggman_arm.position.x = eggman_body_position_ref.x + arm_offset
+
+          -- the arm down is always at the opposite of the main (rising) arm
+          self.eggman_arm2.flip_x = not new_global_flip
+          self.eggman_arm2.position.x = eggman_body_position_ref.x - arm_offset
+
+          -- play animation again that starts up for most of the cycle, then down just before flipping
+          -- we know that legs spr_object is an animated_sprite_object
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm:play("raise_and_lower", --[[from_start:]] true)
+
+          -- as noted above, we manually play the animation whose 1st frame moves Eggman
+          --  up again, so we must move body and arm down at this moment
+          eggman_body_position_ref.y = self.eggman_body_initial_y - 1
+          eggman_arm_position_ref.y = eggman_body_position_ref.y + arm_offset_y_from_body
+          eggman_arm2_position_ref.y = eggman_arm_position_ref.y
+        end
+      else
+        -- Shower juggling (most of the code is done in rendering)
+
+        if self.eggman_timer % visual.juggled_emeralds_shower_period == 0 then
+          self.eggman_timer = 0
+        end
+      end
+
+      self.eggman_timer = self.eggman_timer + 1
+    end
+
+    -- retry menu
+
+    if self.retry_menu then
+      self.retry_menu:update()
+    end
+  elseif self.phase == 2 then
+    -- phase 2: ending credits (all emeralds)
+    -- TODO
   end
 end
 
@@ -172,18 +477,35 @@ function stage_clear_state:render()
     -- see set_camera_with_origin for value explanation (we must pass camera position)
     visual_stage.render_background(vector(3376, 328))
     self:render_stage_elements()
-  else
-    -- phase 1: retry menu
+
+    -- draw picked emeralds
+    self:render_picked_emeralds()
+  elseif self.phase == 1 then
+    -- phase 1: retry menu (not all emeralds)
     cls()
+
+    if self.picked_emerald_count < 8 then
+      -- haven't got all emeralds, so eggman is shown juggling emeralds
+
+      -- draw Eggman
+      self.eggman_legs:draw()
+      self.eggman_body:draw()
+      self.eggman_arm:draw()
+      self.eggman_arm2:draw()
+
+      -- draw juggled emeralds on top of Eggman's hand
+      --  when overlapping it
+      self:render_missed_emeralds_juggled()
+    end
 
     --  for retry menu
     if self.retry_menu then
-      self.retry_menu:draw(29, 95)
+      self.retry_menu:draw(29, 108)
     end
+  elseif self.phase == 2 then
+    -- phase 2: ending credits (all emeralds)
+    -- TODO
   end
-
-  -- draw picked/missed emeralds
-  self:render_emeralds()
 
   -- draw overlay on top to hide result widgets
   self:render_overlay()
@@ -249,26 +571,33 @@ function stage_clear_state:restore_picked_emerald_data()
       self.picked_emerald_numbers_set[i] = true
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
+--#ifn release
+    -- DEBUG: uncomment both lines to simulate getting all emeralds when testing stage_clear directly
+    self.picked_emerald_numbers_set[i] = true
+    self.picked_emerald_count = 8
+--#endif
   end
 end
 
 function stage_clear_state:show_result_async()
   -- create "sonic" label separately just for different color
-  local sonic_label = label("sonic", vector(0, 14), colors.dark_blue, colors.orange)
-  self.result_overlay:add_drawable("sonic", sonic_label)
-  local through_label = label("got through", vector(0, 14), colors.white, colors.black)
-  self.result_overlay:add_drawable("through", through_label)
-
   -- "sonic got through": 17 characters, so 17*4 = 68 px wide
   -- make text enter from left to right (starts on screen edge, so -68 with even an extra margin pixel after last char)
   -- "got through" is 6 chars after the string start so 24px after "sonic"
-  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, -68, 30, 20)
+  -- using new feature to preserve initial relative offset, pass 0 and 24 now just to set this relative positioning on X,
+  --  then we can pass coord_offsets = nil to move_drawables_on_coord_async
+  local sonic_label = label("sonic", vector(0, 14), alignments.left, colors.dark_blue, colors.orange)
+  self.result_overlay:add_drawable("sonic", sonic_label)
+  local through_label = label("got through", vector(24, 14), alignments.left, colors.white, colors.black)
+  self.result_overlay:add_drawable("through", through_label)
 
-  local stage_label = label("pico island", vector(0, 26), colors.white, colors.black)
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, nil, -68, 30, 20)
+
+  local stage_label = label("pico island", vector(0, 26), alignments.left, colors.white, colors.black)
   self.result_overlay:add_drawable("stage", stage_label)
 
   -- make text enter screen from right to left (starts on screen edge, so 128)
-  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 128, 42, 20)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, nil, 128, 42, 20)
 end
 
 function stage_clear_state:assess_result_async()
@@ -301,10 +630,10 @@ function stage_clear_state:assess_result_async()
   local stage_label = self.result_overlay.drawables_map["stage"]
 
   -- make text exit to the left (faster)
-  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, {0, 24}, 30, -68, 10)
+  ui_animation.move_drawables_on_coord_async("x", {sonic_label, through_label}, nil, 30, -68, 10)
 
   -- make text exit to the right (faster)
-  ui_animation.move_drawables_on_coord_async("x", {stage_label}, {0}, 40, 128, 10)
+  ui_animation.move_drawables_on_coord_async("x", {stage_label}, nil, 40, 128, 10)
 
   -- clean up labels outside screen, except "sonic" that we will reuse
   -- "sonic" label is already outside screen so it won't bother us until we use it again
@@ -330,7 +659,7 @@ function stage_clear_state:assess_result_async()
   end
 
   -- don't mind initial x, move_drawables_on_coord_async now sets it before first render
-  local emerald_label = label(emerald_text, vector(0, 14), colors.white, colors.black)
+  local emerald_label = label(emerald_text, vector(0, 14), alignments.left, colors.white, colors.black)
   self.result_overlay:add_drawable("emerald", emerald_label)
 
   -- move text "sonic got X emeralds" (reusing "sonic" label) from left to right and give some time to player to read
@@ -339,6 +668,9 @@ function stage_clear_state:assess_result_async()
   -- it comes from the left again, so offset negatively on start -> a = -88
   -- apply offset for shorter label to start and end x
   -- animation takes 20 frames
+  -- this time, sonic_label position on X depends on last movement, so it's not trivial to setup emerald_label
+  --  at the right relative position (we'd need to pass sonic_label.position.x + 24), so in this case, passing coord_offsets
+  --  directly seems better
   ui_animation.move_drawables_on_coord_async("x", {sonic_label, emerald_label}, {0, 24}, -88 + x_offset, 20 + x_offset, 20)
 
   if got_all_emeralds then
@@ -364,8 +696,8 @@ end
 
 function stage_clear_state:zigzag_fade_out_async()
   local fadeout_rect = rectangle(vector(0, 0), 128, 128, colors.black)
-  self.result_overlay:add_drawable("fadeout_rect", fadeout_rect)
-  self.result_overlay:add_drawable("zigzag", zigzag_drawable)
+  self.fading_overlay:add_drawable("fadeout_rect", fadeout_rect)
+  self.fading_overlay:add_drawable("zigzag", zigzag_drawable)
 
   -- swipe sfx must be played during swipe animation
   sfx(audio.sfx_ids.menu_swipe)
@@ -375,17 +707,15 @@ function stage_clear_state:zigzag_fade_out_async()
   --  and the fadeout_rect fully covers the screen, ready to be used as background
   ui_animation.move_drawables_on_coord_async("x", {fadeout_rect, zigzag_drawable}, {-128, 0}, - visual.fadeout_zigzag_width, 128, stage_clear_data.zigzag_fadeout_duration)
 
-  -- at the end of the zigzag fade-out, clear the emerald assessment widgets which are now completely hidden
-  -- also hide the emeralds until we show them again (but it will be the missed ones)
-  -- no need to preserve fadeout_rect either because in phase 2, we cls() on render start anyway
+  -- at the end of the zigzag fade-out, clear all drawables including from fading overlay rect
+  --  and set darkness to max in counterpart, so we don't accidentally show stuff behind until we fade in again
   self.result_overlay:clear_drawables()
-  clear_table(self.result_show_emerald_set_by_number)
+  self.fading_overlay:clear_drawables()
+  self.postproc.darkness = 5
 end
 
 function stage_clear_state:show_retry_screen_async()
-
-  local has_got_any_emeralds = false
-  local has_missed_any_emeralds = false
+  clear_table(self.result_show_emerald_set_by_number)
 
   -- display missed emeralds
   for num = 1, 8 do
@@ -394,24 +724,23 @@ function stage_clear_state:show_retry_screen_async()
     local has_got_this_emerald = self.picked_emerald_numbers_set[num]
     -- remember we show missed emeralds, hence the not
     self.result_show_emerald_set_by_number[num] = not has_got_this_emerald
-    has_got_any_emeralds = has_got_any_emeralds or has_got_this_emerald
-    has_missed_any_emeralds = has_missed_any_emeralds or not has_got_this_emerald
   end
 
-  -- change text if player has got all emeralds
-  local result_label
-  if has_missed_any_emeralds then
-    result_label = label("try again?", vector(45, 30), colors.white)
-  else
-    result_label = label("congratulations!", vector(35, 45), colors.white)
-  end
+  -- juggling mode selection
+  local juggle_mode_selector_label = label("juggling: ##l           ##r", vector(23, 82), alignments.left, colors.white)
+  -- mind +1 to convert our index-0 to Lua index
+  local juggle_mode_value_label = label(self:get_current_juggling_mode_string(), vector(75, 82), alignments.left, colors.white)
+  self.result_overlay:add_drawable("juggle mode selector", juggle_mode_selector_label)
+  self.result_overlay:add_drawable("juggle mode value", juggle_mode_value_label)
+
+  local result_label = label("try again?", vector(65, 99), alignments.center, colors.white)
   self.result_overlay:add_drawable("result text", result_label)
 
   self.retry_menu = menu(self.app, alignments.left, 1, colors.white, visual.sprite_data_t.menu_cursor, 7)
 
   -- prepare menu items
   local retry_menu_items = {}
-  if has_got_any_emeralds then
+  if self.picked_emerald_count > 0 then
     -- keeping emeralds only makes sense if we got at least one
     add(retry_menu_items, retry_keep_menu_item)
   end
@@ -420,13 +749,79 @@ function stage_clear_state:show_retry_screen_async()
 
   self.retry_menu:show_items(retry_menu_items)
 
-  -- fade in (we start from everything black so skip max darkness 5)
+  -- no need to play Eggman animations at this point, they will be called on first frame where it can be shown
+
+  self:fade_in_async()
+end
+
+local function to_custom_font(text)
+  return font_helper.to_custom_font_with_adjusted_char_width(text, char_width_table, default_char_width)
+end
+
+local role_name_with_custom_font_pairs = transform(credits_data.role_name_pairs, function (role_name_pair)
+  return {role_name_pair[1], to_custom_font(role_name_pair[2])}
+end)
+
+function stage_clear_state:show_ending_credits_screen_async()
+  -- \14 is added for text printed with custom font, equivalent of the tall font in Sonic 3
+
+  -- the sequence is based on Sonic 3 (not Knuckles) Ending Credits
+
+  -- play Sonic 3 staff roll demake track
+  music(audio.music_ids.staff_roll)
+
+  -- big text
+  local custom_font_label = label(to_custom_font("pico sonic"), vector(64, 50), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
+  self.result_overlay:add_drawable("title", custom_font_label)
+
+  -- normal text
+  -- technically, Sonic 3 shows outline in the directions: bottom, right, bottom-right
+  -- but for now, outline.print_with_outline doesn't have outline flags to use specific directions, and dark blue is not very striking anyway,
+  --  so we consider it good enough
+  local standard_font_label = label("staff", vector(64, 80), alignments.center, colors.white, colors.dark_blue)
+  self.result_overlay:add_drawable("staff", standard_font_label)
+
+  self:fade_in_async()
+  self.app:yield_delay_s(3)
+  self:fade_out_async()
+
+  -- invert y positions of labels
+  standard_font_label.position:copy_assign(vector(64, 50))
+  custom_font_label.position:copy_assign(vector(64, 80))
+
+  for role_name_pair in all(role_name_with_custom_font_pairs) do
+    local role_text = role_name_pair[1]
+    local name_text = role_name_pair[2]
+
+    standard_font_label.text = role_text
+    custom_font_label.text = name_text
+
+    self.app:yield_delay_s(0.5)
+    self:fade_in_async()
+    self.app:yield_delay_s(3)
+    self:fade_out_async()
+  end
+
+  -- go back to title menu
+  -- prefer passing basename for compatibility with .p8.png
+  load('picosonic_titlemenu')
+end
+
+function stage_clear_state:fade_in_async()
+  -- fade in (we should have been at max darkness 5 since last fade out, so start at 4)
   for i = 4, 0, -1 do
     self.postproc.darkness = i
     yield_delay_frames(4)
   end
 end
 
+function stage_clear_state:fade_out_async()
+  -- fade in (we should have been at darkness 0 since last fade in, so start at 1)
+  for i = 1, 5 do
+    self.postproc.darkness = i
+    yield_delay_frames(4)
+  end
+end
 
 -- render
 
@@ -450,29 +845,149 @@ end
 -- render the result overlay with a fixed ui camera
 function stage_clear_state:render_overlay()
   camera()
+
+  -- draw overlays, make sure to draw fading on top, so in case of manual result skip,
+  --  we draw the labels (added after fading drawables) behind the fading drawables
   self.result_overlay:draw()
+  self.fading_overlay:draw()
 end
 
 -- render every picked/missed emeralds at fixed screen position
-function stage_clear_state:render_emeralds()
+function stage_clear_state:render_picked_emeralds()
   camera()
-
-  self:draw_emeralds(64, 64)
+  self:draw_picked_emeralds(64, 64)
 end
 
--- draw picked/missed emeralds on an invisible circle centered on (x, y)
-function stage_clear_state:draw_emeralds(x, y)
+-- render every missed emeralds, juggled by Eggman
+function stage_clear_state:render_missed_emeralds_juggled()
+  camera()
+  self:draw_missed_emeralds_juggled(63, 45)
+end
+
+-- draw picked emeralds on an invisible circle centered on (x, y)
+function stage_clear_state:draw_picked_emeralds(x, y)
   -- draw emeralds around the clock, from top, CW
   -- usually we iterate from 1 to #self.spawned_emerald_locations
   -- but here we obviously only defined 8 relative positions,
   --  so just iterate to 8 (but if you happen to only place 7, you'll need to update that)
   for num = 1, 8 do
-    -- self.result_show_emerald_set_by_number[num] is only set to true when
-    --  we have missed emerald, so no need to check self.picked_emerald_numbers_set again
     if self.result_show_emerald_set_by_number[num] then
-      local radius = visual.missed_emeralds_radius
-      local draw_position = vector(x + radius * cos(0.25 - (num - 1) / 8),
-        y + radius * sin(0.25 - (num - 1) / 8))
+      local radius = visual.picked_emeralds_radius
+      local param = 0.25 - (num - 1) / 8
+      local draw_position = vector(x + radius * cos(param), y + radius * sin(param))
+      emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
+    end
+  end
+end
+
+function stage_clear_state:draw_missed_emeralds_juggled(x, y)
+  if self.emerald_juggling_mode == 0 then
+    self:draw_missed_emeralds_juggled_ping_pong(x, y)
+  else
+    self:draw_missed_emeralds_juggled_shower(x, y)
+  end
+end
+
+-- draw missed emeralds juggled by Eggman on an invisible half circle centered on (x, y)
+function stage_clear_state:draw_missed_emeralds_juggled_ping_pong(x, y)
+  -- draw emeralds starting with the last one, so the lower indices are shown on top,
+  --  as in Sonic 1's Try Again screen
+  for num = 8, 1, -1 do
+    if self.result_show_emerald_set_by_number[num] then
+      -- simulate juggling by only moving parameter between angles 0 (right side) to 0.5 (left side),
+      --  adding an offset based on index
+      -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
+
+      -- throw is faster than half-cycle since we must have the latest emerald reach the hand on the opposite
+      --  side despite its delay
+      -- so if a half-cycle is 120 frames, move emeralds in 60 frames
+      local timer_ratio = self.eggman_timer / 60
+
+      -- each emerald is placed with offset, the higher the index, the later
+      -- give enough offset between emeralds so they don't overlap except near the hands
+      local emerald_param_offset = (num - 1) / 8
+
+      -- higher index emeralds are late, so subtract offset
+      local param = timer_ratio - emerald_param_offset
+
+      if self.eggman_arm.flip_x then
+        -- throwing from right to left, with a small advance to match raised hand
+        param = ui_animation.lerp_clamped(0 + 0.08, 0.5, param)
+      else
+        -- throwing from left to right, with a small advance to match raised hand
+        param = ui_animation.lerp_clamped(0.5 - 0.08, 0, param)
+      end
+
+      -- amplitude on y is a little bigger than amplitude on x (vertical ellipsis),
+      --  to have emeralds higher
+      local draw_position = vector(x + 22 * cos(param), y + 28 * sin(param))
+      emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
+    end
+  end
+end
+
+-- draw missed emeralds juggled by Eggman in a cyclic trajectory, with a higher and lower path
+function stage_clear_state:draw_missed_emeralds_juggled_shower(x, y)
+  for num = 8, 1, -1 do
+    -- only draw if emerald was missed
+    -- note that there will be a bigger gap between some emeralds if the emerald(s) between has been picked
+    if self.result_show_emerald_set_by_number[num] then
+      local timer_ratio = self.eggman_timer / visual.juggled_emeralds_shower_period
+
+      -- each emerald is placed with offset, the higher the index, the later
+      -- give enough offset between emeralds so they don't overlap except near the hands
+      local emerald_param_offset = (num - 1) / 8
+
+      -- higher index emeralds are late, so subtract offset
+      -- apply modulo since emeralds are continuously looping in the shower pattern
+      local param = (timer_ratio - emerald_param_offset) % 1
+
+      local offset_x
+      local offset_y
+
+      -- we're gonna play some animations in sync with emerald reaching hand below
+      -- it's not great to change the state of objects in render, but it allows us to inject the check
+      --  directly in the emerald loop used for rendering
+
+      -- high way takes more time, then low way move is very fast but stops (clamped) in hand
+      --  for a moment, so the param threshold for high is more than 0.5
+      local param_high_threshold = 0.65
+      if param < param_high_threshold then
+        -- first part: high way, from left to right
+
+        if self.last_emerald_way_indices[num] == 1 then
+          self.last_emerald_way_indices[num] = 0
+          -- this emerald just touched the hand on the left to start high way, make it react
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm:play("full_raise_and_lower", --[[from_start:]] true)
+        end
+
+        -- compute local progress ratio inside high way
+        local local_progress_ratio = param / param_high_threshold
+        local normalized_signed_offset_x = ui_animation.lerp_clamped(-1, 1, local_progress_ratio)
+        offset_x = 22 * normalized_signed_offset_x
+        offset_y = 160 * local_progress_ratio * (local_progress_ratio - 1)
+      else  -- param between 0.5 and 1 (excluded)
+        -- second part: low way, from right to left
+
+        if self.last_emerald_way_indices[num] == 0 then
+          self.last_emerald_way_indices[num] = 1
+          -- this emerald just touched the hand on the right to start low way, make it react
+          -- this one only needs to raise to middle level
+          self.eggman_legs.spr_object:play("raise_and_lower", --[[from_start:]] true)
+          self.eggman_arm2:play("raise_middle_and_lower", --[[from_start:]] true)
+        end
+
+        -- compute local progress ratio inside low way
+        local local_progress_ratio = (param - param_high_threshold) / (1 - param_high_threshold)
+        -- to make emerald on low way go fast, then stop in hand for a moment,
+        --  multiply the normalized progress and clamp progress itself (so both x and y match it)
+        local_progress_ratio = min(1.3 * local_progress_ratio, 1)
+        offset_x = 22 * ui_animation.lerp_clamped(1, -1, local_progress_ratio)
+        offset_y = 20 * local_progress_ratio * (local_progress_ratio - 1)
+      end
+
+      local draw_position = vector(x + offset_x, y + offset_y)
       emerald_common.draw(num, draw_position, self.result_emerald_brightness_levels[num])
     end
   end

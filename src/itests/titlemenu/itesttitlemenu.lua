@@ -1,10 +1,49 @@
--- gamestates: titlemenu
+-- gamestates: splash_screen, titlemenu, credits
 local itest_manager = require("engine/test/itest_manager")
 local flow = require("engine/application/flow")
 
+itest_manager:register_itest('player waits on splash screen',
+    {':splash_screen'}, function ()
+
+  -- enter splash screen
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':splash_screen')
+  end)
+
+  -- wait enough for splash screen to end
+  wait(10.0)
+
+  -- check that we entered titlemenu state automatically
+  final_assert(function ()
+    return flow.curr_state.type == ':titlemenu', "current game state is not ':titlemenu', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
+itest_manager:register_itest('player presses o to skip splash screen',
+    {':splash_screen'}, function ()
+
+  -- enter splash screen
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':splash_screen')
+  end)
+
+  -- player presses o to skip splashscreen
+  short_press(button_ids.o)
+
+  -- wait 100 frame for fade out to finish (30 frames) AND extra wait before entering titlemenu (60 frames)
+  wait(100, true)
+
+  -- check that we are now in the titlemenu state
+  final_assert(function ()
+    return flow.curr_state.type == ':titlemenu', "current game state is not ':titlemenu', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
 -- we still try to test start game now, because we want to verify that the start cinematic
 --  doesn't silently crash (coroutines tend to do that)
-itest_manager:register_itest('#solo player select start, confirm',
+itest_manager:register_itest('player select start, confirm',
     {':titlemenu'}, function ()
 
   -- enter title menu
@@ -12,10 +51,10 @@ itest_manager:register_itest('#solo player select start, confirm',
     flow:change_gamestate_by_type(':titlemenu')
   end)
 
-  -- menu should appear within 2 seconds
-  wait(2.0)
+  -- player presses o again to make menu appear immediately
+  short_press(button_ids.o)
 
-  -- player presses o to confirm 'start' (default selection)
+  -- player presses o again to confirm 'start' (default selection)
   short_press(button_ids.o)
 
   -- wait a moment to cover 90% of the start cinematic
@@ -34,13 +73,13 @@ end)
 itest_manager:register_itest('player select credits, confirm',
     {':titlemenu'}, function ()
 
-  -- enter title menu
+  -- enter title menu directly
   setup_callback(function (app)
     flow:change_gamestate_by_type(':titlemenu')
   end)
 
-  -- menu should appear within 2 seconds
-  wait(2.0)
+  -- player presses o again to make menu appear immediately
+  short_press(button_ids.o)
 
   -- player presses down 1 frame to select 'credits'
   short_press(button_ids.down)
@@ -54,6 +93,30 @@ itest_manager:register_itest('player select credits, confirm',
   -- check that we are now in the credits state
   final_assert(function ()
     return flow.curr_state.type == ':credits', "current game state is not ':credits', has instead type: "..flow.curr_state.type
+  end)
+
+end)
+
+itest_manager:register_itest('#solo player scroll in credits',
+    {':credits'}, function ()
+
+  -- enter credits directly
+  setup_callback(function (app)
+    flow:change_gamestate_by_type(':credits')
+  end)
+
+  -- player presses down twice to scroll down
+  short_press(button_ids.down)
+  short_press(button_ids.down)
+
+  -- player presses up once to scroll up
+  short_press(button_ids.up)
+
+  -- check that we are now scrolled by speed * (2 - 1) / 60 = 64 / 60
+  final_assert(function ()
+    return flow.curr_state.type == ':credits' and
+      flow.curr_state.current_scrolling == 64 / 60,
+      "current game state is not ':credits' with scrolling 1, has instead type: "..flow.curr_state.type.." and scrolling "..flow.curr_state.current_scrolling
   end)
 
 end)

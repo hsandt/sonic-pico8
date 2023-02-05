@@ -61,11 +61,14 @@ describe('stage_clear_state', function ()
       end)
 
       it('should initialize members', function ()
+        local expected_postproc = postprocess()
+        expected_postproc.use_blue_tint = true
+
         assert.are_same({
             ':stage_clear',
             1,
             0,
-            postprocess(),
+            expected_postproc,
             overlay(),
             {},
             0,
@@ -300,24 +303,27 @@ describe('stage_clear_state', function ()
             stub(visual_stage, "render_background")
             stub(stage_clear_state, "render_stage_elements")
             stub(stage_clear_state, "render_overlay")
-            stub(stage_clear_state, "render_emeralds")
+            stub(stage_clear_state, "render_picked_emeralds")
+            stub(stage_clear_state, "render_missed_emeralds_juggled")
           end)
 
           teardown(function ()
             visual_stage.render_background:revert()
             stage_clear_state.render_stage_elements:revert()
             stage_clear_state.render_overlay:revert()
-            stage_clear_state.render_emeralds:revert()
+            stage_clear_state.render_picked_emeralds:revert()
+            stage_clear_state.render_missed_emeralds_juggled:revert()
           end)
 
           after_each(function ()
             visual_stage.render_background:clear()
             stage_clear_state.render_stage_elements:clear()
             stage_clear_state.render_overlay:clear()
-            stage_clear_state.render_emeralds:clear()
+            stage_clear_state.render_picked_emeralds:clear()
+            stage_clear_state.render_missed_emeralds_juggled:clear()
           end)
 
-          it('(phase 0) should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+          it('(phase 0) should call render_background, render_stage_elements, render_overlay, render_picked_emeralds', function ()
             state.phase = 0
 
             state:render()
@@ -326,20 +332,20 @@ describe('stage_clear_state', function ()
             assert.spy(visual_stage.render_background).was_called_with(vector(3376, 328))
             assert.spy(stage_clear_state.render_stage_elements).was_called(1)
             assert.spy(stage_clear_state.render_stage_elements).was_called_with(match.ref(state))
-            assert.spy(stage_clear_state.render_emeralds).was_called(1)
-            assert.spy(stage_clear_state.render_emeralds).was_called_with(match.ref(state))
+            assert.spy(stage_clear_state.render_picked_emeralds).was_called(1)
+            assert.spy(stage_clear_state.render_picked_emeralds).was_called_with(match.ref(state))
             assert.spy(stage_clear_state.render_overlay).was_called(1)
             assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
           end)
 
 
-          it('should call render_background, render_stage_elements, render_overlay, render_emeralds', function ()
+          it('should call render_background, render_stage_elements, render_overlay, render_missed_emeralds_juggled', function ()
             state.phase = 1
 
             state:render()
 
-            assert.spy(stage_clear_state.render_emeralds).was_called(1)
-            assert.spy(stage_clear_state.render_emeralds).was_called_with(match.ref(state))
+            assert.spy(stage_clear_state.render_missed_emeralds_juggled).was_called(1)
+            assert.spy(stage_clear_state.render_missed_emeralds_juggled).was_called_with(match.ref(state))
             assert.spy(stage_clear_state.render_overlay).was_called(1)
             assert.spy(stage_clear_state.render_overlay).was_called_with(match.ref(state))
           end)
@@ -359,6 +365,10 @@ describe('stage_clear_state', function ()
 
             corunner = coroutine_runner()
             corunner:start_coroutine(stage_clear_state.play_stage_clear_sequence_async, state)
+          end)
+
+          after_each(function ()
+            clear_table(pico8.poked_addresses)
           end)
 
           it('should not crash with a few emeralds', function ()
@@ -436,7 +446,7 @@ describe('stage_clear_state', function ()
 
           it('should call result_overlay:draw', function ()
             state:render_overlay()
-            assert.spy(overlay.draw).was_called(1)
+            assert.spy(overlay.draw).was_called(2)
             assert.spy(overlay.draw).was_called_with(match.ref(state.result_overlay))
           end)
 
@@ -520,8 +530,12 @@ describe('stage_clear_state', function ()
 
         describe('extra render methods (no-crash only)', function ()
 
-          it('render_emeralds should not crash', function ()
-            state:render_emeralds()
+          it('render_picked_emeralds should not crash', function ()
+            state:render_picked_emeralds()
+          end)
+
+          it('render_missed_emeralds_juggled should not crash', function ()
+            state:render_missed_emeralds_juggled()
           end)
 
         end)

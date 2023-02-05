@@ -2,11 +2,13 @@ local input = require("engine/input/input")
 local flow = require("engine/application/flow")
 local gamestate = require("engine/application/gamestate")
 local animated_sprite = require("engine/render/animated_sprite")
+local animated_sprite_object = require("engine/render/animated_sprite_object")
+local postprocess = require("engine/render/postprocess")
 local sprite_object = require("engine/render/sprite_object")
 local text_helper = require("engine/ui/text_helper")
 
-local postprocess = require("engine/render/postprocess")
--- it's called ingame, but actually shared with menu
+-- it's in ingame folder, but actually shared with menu
+local fx = require("ingame/fx")
 local emerald_fx = require("ingame/emerald_fx")
 local emerald_cinematic = require("menu/emerald_cinematic")
 local menu_item = require("menu/menu_item")
@@ -92,7 +94,18 @@ local cloud_sprites_per_size_category = {
 -- items                        {menu_item}    sequence of menu items that the menu should display
 
 -- state:
+-- has_reloaded_builtin_gfx     bool            true iff we have already reloaded the builtin gfx (since last splash screen)
+--                                              since the only way to replay the splash screen is to go to attract mode cartridge then
+--                                              back to title menu cartridge, all objects will have been cleared by that point, so
+--                                              no need to clear this field
+-- should_draw_black_overlay    bool            if true, draw black overlay just between spark fx, so we can only see them
+--                                              normally we use postprocess, but if we used it, it would also hide the spark fxs themselves
+-- has_started_fade_or_cut_in   bool            set to true when we start fading in, and kept true from hereon; or if we skipped sparks intro
+--                                              and immediately remove black overlay (cut in)
+--                                              when true, prevents fading in again
+-- title_logo_spark_fx          fx              title logo spark fx (big animated star)
 -- title_logo_drawable          sprite_object   drawable for title logo sprite motion interpolation
+-- title_logo_hand              animated_sprite_object   animated sprite for sonic hand on title logo (should move together with title_logo_drawable)
 -- drawables_sea                {sprite_object} island and reverse horizon, drawn following camera motion
 --                                              and using color palette swap for water shimmers
 -- cinematic_drawables_world    {sprite_object} all other drawables for the start cinematic seen via camera motion
@@ -102,7 +115,7 @@ local cloud_sprites_per_size_category = {
 -- emerald_base_angle           number          angle of first emerald (red, not first emerald to enter) on circle/ellipse
 -- emerald_angular_speed        number          angular speed of emeralds rotating on the circle/ellipse
 -- ellipsis_y_scalable          {scale: number} scalable applied to emerald circle to get ellipsis (shrink on y)
--- emerald_landing_fxs          {fxs}           emerald landing fx (animated star)
+-- emerald_landing_fxs          {emerald_fxs}   emerald landing fxs (animated stars)
 -- clouds                       {sprite_object} sequence of clouds to draw, kept reference for motion
 -- tails_plane                  animated_sprite tails plane animated sprite
 -- tails_plane_position         vector          tails plane position
@@ -120,14 +133,30 @@ local cloud_sprites_per_size_category = {
 
 -- there are more members during the start cinematic, but they will be created when it starts
 function titlemenu:init()
+  self.has_reloaded_builtin_gfx = false
+
   -- sequence of menu items to display, with their target states
   -- this could be static, but defining in init allows us to avoid
   --  outer scope definition, so we don't need to declare local menu_item
   --  at source top for unity build
   self.items = transform(menu_item_params, unpacking(menu_item))
+
+  -- cheat by using a black rectangle to hide stuff below spark fx at the beginning,
+  --  as postprocess darkness 5 would apply to the sparks themselves...
+  -- in counterpart, we must make sure to remove the black overlay and replace it with postprocess darkness 5
+  --  immediately, and between two sparks
+  self.should_draw_black_overlay = true
+  -- self.has_started_fade_or_cut_in = false  -- commented out to spare characters
+  -- self.title_logo_spark_fx = nil  -- commented out to spare characters
+
   self.title_logo_drawable = sprite_object(visual.sprite_data_t.title_logo)
+  self.title_logo_hand = animated_sprite_object(visual.animated_sprite_data_t.sonic_hand)
+
   -- prepare angel island and reverse horizon as drawables for sea (they use color palette swap)
-  self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg), sprite_object(visual.sprite_data_t.reversed_horizon)}
+  -- note that we mix sprite_object + sspr_data and sprite_object + sprite_data, but the uniform interface makes it agnostic
+  self.drawables_sea = {sprite_object(visual.sprite_data_t.angel_island_bg),
+    sprite_object(visual.sprite_data_t.reversed_horizon)}
+
   self.cinematic_drawables_world = {}
   self.cinematic_drawables_screen = {}
   self.emeralds = {}
@@ -165,13 +194,17 @@ function titlemenu:on_enter()
   reload(0x0, 0x0, 0x2000)
 --#endif
 
-  self.app:start_coroutine(self.play_opening_music_async, self)
+  -- if we haven't reloaded builtin GFX since splash screen, do it now
+  -- checking the flag avoids reloading the GFX every time we come back from
+  --  the credits (although with fast_reload patch, it's not perceptible anyway)
+  if not self.has_reloaded_builtin_gfx then
+    -- copy top half of builtin spritesheet previously stored in general memory
+    --  back into top half of current spritesheet
+    -- see splash_screen_state:on_enter
+    memcpy(0x0, 0x4300, 0x1000)
+    self.has_reloaded_builtin_gfx = true
+  end
 
-  -- show menu after short intro of 2 columns
-  -- we assume play_opening_music_async was started at the same time
-  -- title bgm is at SPD 12 so that makes
-  --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
-  self.frames_before_showing_menu = 96
   self.should_start_attract_mode = false
   self.is_playing_start_cinematic = false
   self.is_fading_out_for_stage_intro = false
@@ -180,10 +213,98 @@ function titlemenu:on_enter()
   --  with its pivot at top-left
   self.title_logo_drawable.position = vector(8, 16)
   self.title_logo_drawable.visible = true
+
+  -- place sonic hand relatively to it, and play looping animation
+  -- (from start, just in case we came back from Credits)
+  self.title_logo_hand.position = self.title_logo_drawable.position + vector(65, 36)
+  self.title_logo_hand.visible = true
+  self.title_logo_hand:play("loop", --[[from_start:]] true)
+
   -- place angel island at the bottom of the screen
   self.drawables_sea[1].position = vector(0, 88)
   -- hide reverse horizon for now
   self.drawables_sea[2].visible = false
+
+  -- in case we came from credits and not splash screen state, immediately show black overlay
+  --  to prepare fade in (not darkness, which would cover sparks too)
+  -- do this outside coroutine play_enter_sequence_async to avoid edge case where player presses
+  --  skip input right on that frame, so should_draw_black_overlay is set to false just before
+  --  updating the coroutine and setting should_draw_black_overlay to true, causing sticky overlay
+  self.should_draw_black_overlay = true
+
+  -- run enter sequence wild, as it contains play_opening_music_async which
+  --  self-manages music stop
+  self.app:start_coroutine(self.play_enter_sequence_async, self)
+end
+
+function titlemenu:play_enter_sequence_async()
+  -- show some sparks on future title logo before fading in
+  -- nil is not valid position, but we're going to set spark to correct position before first call to render
+  --  (i.e. before the first yield), so it's okay
+  self.title_logo_spark_fx = fx(nil, visual.animated_sprite_data_t.spark_fx)
+
+  -- work with spark positions relative to title logo as it's easier to check on the spritesheet
+  --  when comparing to Sonic 2's actual intro
+  local relative_spark_positions_and_delay = {
+    {vector(47, 6),  30},
+    {vector(24, 43),  5},
+    {vector(95, 45),  5},
+    {vector(55, 67),  0},
+    {vector(111, 9),  5},
+    {vector(9, 37),   5},
+    {vector(104, 37), 5},
+    {vector(25, 78),  5},
+    {vector(18, 14),  5},
+  }
+
+
+  for i = 1, #relative_spark_positions_and_delay do
+    local relative_spark_position_and_delay = relative_spark_positions_and_delay[i]
+    local position = relative_spark_position_and_delay[1]
+    local delay = relative_spark_position_and_delay[2]
+
+    -- move spark FX
+    self.title_logo_spark_fx.position = self.title_logo_drawable.position + position
+
+    -- force play from start (only required from i = 2) so the animation replays after repositioning
+    self.title_logo_spark_fx.anim_spr:play("once", --[[from_start:]] true)
+
+    -- sfx until a few times after title menu shows (unlike Sonic 2, we stop playing sfx after some point
+    --  as it's a bit striking on top of the BGM)
+    if i < 7 then
+      sfx(audio.sfx_ids.spark)
+    end
+
+    -- wait for spark frame to end (4*4 = 16 frames) + potentially some extra delay
+    yield_delay_frames(16 + delay)
+
+    if i == 4 then
+      -- music starts about time of fade in
+      -- note that this should run wild, as it self-manages music stop
+      self.app:start_coroutine(self.play_opening_music_async, self)
+
+      -- if player presses no input, menu is not shown at this point, and we must fade in and start
+      --  countdown to show menu
+      -- if player skipped this phase, they cut in immediately *and* the menu is shown,
+      --  so we can verify this by checking presence of menu
+      -- if player cut in already, no need to fade in nor set menu countdown
+      if not self.menu then
+        -- show menu after music short intro of 2 columns
+        -- we assume play_opening_music_async was started at the same time
+        -- title bgm is at SPD 12 so that makes
+        --   12 SPD * 4 frames/SPD/column * 2 columns = 96 frames
+        self.frames_before_showing_menu = 96
+
+        -- just at this point, swap black overlay with postprocess
+        -- since we have waited for spark to finish, and also wait for fade_in_async to end before
+        --  next iteration, we guarantee to fade in before the next spark, so we won't incorrectly apply
+        --  post-process to a spark
+        -- note that we can press button to interrupt fade-in into cut-in, see fade_in_async
+        self.should_draw_black_overlay = false
+        self:fade_in_async()
+      end
+    end
+  end
 end
 
 function titlemenu:play_opening_music_async()
@@ -239,6 +360,14 @@ function titlemenu:on_exit()
 end
 
 function titlemenu:update()
+  self:update_spark_fx()
+
+  -- Sonic hand can be seen during core title menu and also short transition to start cinematic,
+  --  so be pragmatic and update animated sprite when visible
+  if self.title_logo_hand.visible then
+    self.title_logo_hand:update()
+  end
+
   if self.is_playing_start_cinematic then
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- immediately start fade out in parallel with existing animations to keep things smooth
@@ -251,7 +380,7 @@ function titlemenu:update()
     self:update_angle()
     self:update_clouds()
     self:update_emeralds()
-    self:update_fx()
+    self:update_emerald_fx()
 
     if self.tails_plane then
       self.tails_plane:update()
@@ -300,18 +429,30 @@ function titlemenu:update()
       self:start_attract_mode()
     end
   else
-    -- menu not shown yet, check for immediate show input vs normal countdown
-
     if input:is_just_pressed(button_ids.o) or input:is_just_pressed(button_ids.x) then
       -- show menu immediately
+      -- if we are still showing sparks with black overlay, cut in immediately
+      -- if we are just during the fade in, interrupt it and cut in too
+
+      -- cut in
+      self.should_draw_black_overlay = false
+      -- in case we interrupted fade in to cut in, we must reset also darkness
+      self.postproc.darkness = 0
+
+      -- reset countdown and show menu
       self.frames_before_showing_menu = 0
-    else
+      self:show_menu()
+    elseif self.frames_before_showing_menu > 0 then
+      -- menu not shown yet AND the counter is running (not still showing full black overlay with sparks,
+      --  at least fade in started)
+
       -- decrement countdown
       self.frames_before_showing_menu = self.frames_before_showing_menu - 1
-    end
 
-    if self.frames_before_showing_menu <= 0 then
-      self:show_menu()
+      if self.frames_before_showing_menu <= 0 then
+        -- countdown over, show menu
+        self:show_menu()
+      end
     end
   end
 end
@@ -328,6 +469,11 @@ function titlemenu:update_angle()
   if #self.cinematic_emeralds_on_circle > 0 then
     -- emeralds rotate clockwise, so negative factor for t()
     self.emerald_base_angle = (self.emerald_base_angle - self.emerald_angular_speed) % 1
+
+    -- update all emeralds positions accordingly
+    for num in all(self.cinematic_emeralds_on_circle) do
+      self.emeralds[num].position = self:calculate_emerald_position_on_circle(num)
+    end
   end
 end
 
@@ -368,27 +514,37 @@ function titlemenu:update_emeralds()
   -- end
 end
 
-function titlemenu:update_fx()
-  local to_delete = {}
+function titlemenu:update_spark_fx()
+  if self.title_logo_spark_fx then
+    self.title_logo_spark_fx:update()
+  end
+end
+
+function titlemenu:update_emerald_fx()
+  local emerald_fx_to_delete = {}
 
   for pfx in all(self.emerald_landing_fxs) do
     pfx:update()
 
     if not pfx:is_active() then
-      add(to_delete, pfx)
+      add(emerald_fx_to_delete, pfx)
     end
   end
 
   -- normally we should deactivate pfx and reuse it for pooling,
   --  but deleting them was simpler (fewer characters) and single-time operation
   --- so CPU cost is OK
-  for pfx in all(to_delete) do
+  for pfx in all(emerald_fx_to_delete) do
     del(self.emerald_landing_fxs, pfx)
   end
 end
 
 function titlemenu:start_attract_mode()
-    load('picosonic_attract_mode')
+  load('picosonic_attract_mode')
+
+--[[#pico8
+  assert(false, "could not load picosonic_attract_mode, make sure cartridge has been built")
+--#pico8]]
 end
 
 function titlemenu:render()
@@ -420,30 +576,12 @@ function titlemenu:render()
     drawable:draw()
   end
 
+  -- draw all cinematic emeralds
+  -- (this supports brightness and negative brightness aka darkness, only we are not using
+  --  it now as it was a bit too epileptic when trying to mimic the original games' emerald blink)
   for num in all(self.cinematic_emeralds_on_circle) do
-    local draw_position = self:calculate_emerald_position_on_circle(num)
-    -- draw at normal brightness (old, works when brightness > 0 though)
-    -- emerald_common.draw(num, draw_position, self.emeralds[num].brightness)
-    local brightness = self.emeralds[num].brightness
-
-    -- inlined and adapted emerald_cinematic:draw to support brightness < 0 aka darkness...
-    -- it would be better to just change either postprocess table or emerald_common.set_color_palette
-    --  to support both brightness and darkness, but a little late now...
-    if brightness < 0 then
-      local darkness = -brightness
-      local light_color, dark_color = unpack(visual.emerald_colors[num])
-      pal(colors.red, postprocess.swap_palette_by_darkness[light_color][darkness])
-      pal(colors.dark_purple, postprocess.swap_palette_by_darkness[dark_color][darkness])
-    else
-      emerald_common.set_color_palette(num, brightness)
-    end
-
-    visual.sprite_data_t.emerald:render(draw_position, false, false, 0)
-
-    pal()
+    self.emeralds[num]:draw(draw_position)
   end
-
-  self:draw_fx()
 
   if self.tails_plane then
     self.tails_plane:render(self.tails_plane_position)
@@ -453,6 +591,14 @@ function titlemenu:render()
       visual.sprite_data_t.sonic_tiny:render(self.tails_plane_position)
     end
   end
+
+  if self.should_draw_black_overlay then
+    -- draw black overlay (we should really just not do all the draw above, but since it's only
+    --  for a few seconds, we accept the performance loss)
+    rectfill(0, 0, 127, 127, colors.black)
+  end
+
+  self:draw_fx()
 
   self.postproc:apply()
 end
@@ -619,6 +765,10 @@ function titlemenu:draw_sea_drawables()
 end
 
 function titlemenu:draw_fx()
+  if self.title_logo_spark_fx then
+    self.title_logo_spark_fx:render()
+  end
+
   for pfx in all(self.emerald_landing_fxs) do
     pfx:render()
   end
@@ -626,6 +776,7 @@ end
 
 function titlemenu:draw_title()
   self.title_logo_drawable:draw()
+  self.title_logo_hand:draw()
 end
 
 function titlemenu:draw_version()
@@ -662,6 +813,12 @@ function titlemenu:change_emerald_angular_speed_async(from_factor, to_factor, n,
 end
 
 function titlemenu:play_start_cinematic()
+  -- stop all coroutines to prevent extra sparks being played, attract mode countdown continuing
+  --  (even though playing attract mode itself is prevented during cinematic), etc.
+  -- thanks to update_spark_fx being outside coroutine, spark fx will still play to the end and
+  --  not freeze, we will only stop spawning new ones
+  self.app:stop_all_coroutines()
+
   -- hide (actually destroy) menu
   self.menu = nil
 
@@ -729,10 +886,12 @@ function titlemenu:play_start_cinematic_async()
   --  logo
   -- for now we just use upper sprites, but to simplify just reload the whole spritesheet
   --  (it contains a copy of pico island, so it won't disappear)
-  -- originally:
-  -- reload(0x0, 0x0, 0x2000, "data_start_cinematic.p8")
-  -- now, we merge start cinematic __gfx__ into data_stage1_00.p8 (overwriting the unused tiles at runtime)
-  --  with install_data_cartridges_with_merging.sh, so:
+
+  -- start cinematic data is stored in extra gfx_start_cinematic.p8 at edit time (not exported),
+  --  and merged into data_stage1_00.p8 (overwriting the tiles gfx, unused at runtime), so instead of:
+  -- reload(0x0, 0x0, 0x2000, "gfx_start_cinematic.p8")
+  --  we must reload full spritesheet from data_stage1_00.p8
+  -- see install_data_cartridges_with_merging.sh
   reload(0x0, 0x0, 0x2000, "data_stage1_00.p8")
 
   -- add drawable clouds high in the sky
@@ -811,8 +970,9 @@ end
 
 function titlemenu:move_title_logo_out_async()
   -- move title logo up until it exists screen, and hide it
-  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable}, {0}, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
+  ui_animation.move_drawables_on_coord_async("y", {self.title_logo_drawable, self.title_logo_hand}, nil, 16, -80, 42 --[[ + tuned("move logo dt", 0)]])
   self.title_logo_drawable.visible = false
+  self.title_logo_hand.visible = false
 end
 
 function titlemenu:complete_camera_motion_async(full_loop_height, camera_y0)
@@ -1007,6 +1167,26 @@ function titlemenu:sonic_landing_star_async()
   self:fade_out_and_load_stage_intro_async()
 end
 
+function titlemenu:fade_in_async()
+  -- fade in (we start from everything black so skip max darkness 5)
+  for i = 4, 0, -1 do
+    -- check if player skipped sparks intro right during the fade-in,
+    --  as this does a cut-in, and we don't want to overwrite the postproc after cut-in
+    --  because of this coroutine (and stopping a specific coroutine without stopping others,
+    --  like sparks which we want to keep, is difficult, because it needs to be accessed by index,
+    --  which may change when other coroutines end, so prefer this inside check;
+    --  if we really want a clean single coroutine stop, we could do it by storing them with string
+    --  keys instead of indices)
+    if self.menu then
+      -- cut-in happened during fade-in, interrupt fade-in
+      return
+    end
+
+    self.postproc.darkness = i
+    yield_delay_frames(3)
+  end
+end
+
 function titlemenu:fade_out_and_load_stage_intro_async()
   if not self.is_fading_out_for_stage_intro then
     self.is_fading_out_for_stage_intro = true
@@ -1017,6 +1197,10 @@ function titlemenu:fade_out_and_load_stage_intro_async()
       yield_delay_frames(6)
     end
 
+    -- normally on gamestate change, we should stop all coroutines at this point to avoid,
+    --  in case of early skip, play_start_cinematic_async still running in the background,
+    --  but in this case we have a hard cartridge load which will clear the whole game state
+    --  anyway
     -- prefer passing basename for compatibility with .p8.png
     load('picosonic_stage_intro')
   end

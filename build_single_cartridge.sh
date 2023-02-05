@@ -75,10 +75,10 @@ if ! [[ ${#positional_args[@]} -ge 1 && ${#positional_args[@]} -le 2 ]]; then
   exit 1
 fi
 
-if [[ ${#positional_args[@]} -ge 1 ]]; then
-  cartridge_suffix="${positional_args[0]}"
-fi
+# Required positional arguments
+cartridge_suffix="${positional_args[0]}"
 
+# Optional positional arguments
 if [[ ${#positional_args[@]} -ge 2 ]]; then
   config="${positional_args[1]}"
 fi
@@ -96,15 +96,18 @@ build_output_path="${build_dir_path}/v${version}_${config}"
 # Define symbols from config
 symbols=''
 
+# Note that config is not automatically added as symbol by build_cartridge.sh,
+# so we manually add a symbol corresponding to the config at the beginning of each symbols list
+# (or two symbols for compounded-configs)
 if [[ $config == 'debug' ]]; then
   # symbols='assert,deprecated,log,visual_logger,tuner,profiler,mouse,cheat,sandbox'
   # lighter config (to remain under 65536 chars)
   # symbols='assert,tostring,dump,log,debug_menu,debug_character'
   # symbols='tostring,dump,log,debug_menu,debug_character,cheat'
   # symbols='debug_menu,debug_character,cheat'
-  symbols='tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat,pfx'
+  symbols='debug,tostring,dump,debug_character,debug_menu,debug_collision_mask,cheat,pfx'
 elif [[ $config == 'debug-ultrafast' ]]; then
-  symbols='assert,tostring,dump,log,cheat,ultrafast'
+  symbols='debug,ultrafast,assert,tostring,dump,log,cheat'
 elif [[ $config == 'cheat' ]]; then
   # symbols='cheat,tostring,dump,log,debug_menu'
   symbols='cheat,tostring,dump,debug_menu'
@@ -119,7 +122,7 @@ elif [[ $config == 'sandbox' ]]; then
   symbols='sandbox,assert,tuner,mouse'
 elif [[ $config == 'assert' ]]; then
   # symbols='assert,tostring,dump'
-  symbols='assert,tostring,debug_collision_mask'
+  symbols='assert,tostring,log,debug_collision_mask'
 elif [[ $config == 'profiler' ]]; then
   # for stage intro and others, full profiler fits
   symbols='profiler,debug_menu'
@@ -135,7 +138,7 @@ elif [[ $config == 'itest' ]]; then
 elif [[ $config == 'release' ]]; then
   # usually release has no symbols except those that help making the code more compact
   # in this game project we define 'release' as a special symbol for that
-  # most fo the time, we could replace `#if release` with
+  # most of the time, we could replace `#if release` with
   # `#if debug_option1 || debug_option2 || debug_option3 ` but the problem is that
   # 2+ OR statements syntax is not supported by preprocess.py yet
   symbols='release'
@@ -152,9 +155,12 @@ symbols+="$cartridge_suffix"
 
 # Define builtin data to use (in most cases it's just the cartridge suffix)
 if [[ $cartridge_suffix == 'sandbox' ]]; then
-  # for now we just need to test Sonic sprites in sandbox (e.g. rotation)
+  # uncomment to test Sonic sprites in sandbox (e.g. rotation)
   # data_filebasename="data_stage_sonic"
   data_filebasename="data_stage1_ingame"
+elif [[ $cartridge_suffix == 'generate_gfx_sage_choir_pcm_data' ]]; then
+  # no data at all, the cartridge's role is to generate gfx data from pcm string
+  data_filebasename=""
 else
   if [[ $cartridge_suffix == 'attract_mode' ]]; then
     # attract mode reuses same data as ingame, so no need for dedicated data cartridge
@@ -191,7 +197,7 @@ else
     required_relative_dirpath="itests/${cartridge_suffix}"
     cartridge_extra_suffix='itest_all_'
     # Do NOT unify itest cartridges: they rely on [[add_require]] injection being done
-    # after ijecting the app into itest_run, and unification dismantles require order,
+    # after injecting the app into itest_run, and unification dismantles require order,
     # forgetting exact line positioning and only caring about file dependency order.
     unify_option=''
   else
@@ -203,14 +209,27 @@ else
   data_filebasename="builtin_data_${builtin_data_suffix}"
 fi
 
-# Define list of data module paths, separated by space (Python argparse nargs='*')
-game_constant_module_paths_string="${game_src_path}/data/camera_data.lua \
+# only pass data option if there is data
+if [[ -n "$data_filebasename" ]]; then
+  data_option="-d \"${data_path}/${data_filebasename}.p8\""
+else
+  data_option=""
+fi
+
+# Define list of paths to modules containing constants to substitute at prebuild time,
+# separated by space (Python argparse nargs='*')
+game_constant_module_paths_string_prebuild="${game_src_path}/data/camera_data.lua \
 ${game_src_path}/data/playercharacter_numerical_data.lua \
 ${game_src_path}/data/stage_clear_data.lua \
 ${game_src_path}/data/stage_common_data.lua \
+${game_src_path}/menu/splash_screen_phase.lua \
 ${game_src_path}/resources/audio.lua \
 ${game_src_path}/resources/memory.lua \
 ${game_src_path}/resources/visual_ingame_numerical_data.lua"
+
+# Define list of paths to modules containing constants to substitute at postbuild time,
+# separated by space (Python argparse nargs='*')
+game_constant_module_paths_string_postbuild="${game_src_path}/data/pcm_data.lua"
 
 # Build cartridges without version nor config appended to name
 #  so we can use PICO-8 load() with a cartridge file name
@@ -219,22 +238,23 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 # Build cartridge
 # See data/cartridges.txt for the list of cartridge names
 # metadata really counts for the entry cartridge (titlemenu)
-"$picoboots_scripts_path/build_cartridge.sh"                              \
-  "$game_src_path"                                                        \
-  ${main_prefix}main_${cartridge_suffix}.lua                              \
-  ${required_relative_dirpath}                                            \
-  -d "${data_path}/${data_filebasename}.p8"                               \
-  -M "$data_path/metadata.p8"                                             \
-  -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})" \
-  -p "$build_output_path"                                                 \
-  -o "${cartridge_stem}_${cartridge_extra_suffix}${cartridge_suffix}"     \
-  -c "$config"                                                            \
-  --no-append-config                                                      \
-  -s "$symbols"                                                           \
-  -g "$game_constant_module_paths_string"                                 \
-  -r "$game_prebuild_path"                                                \
-  -v version="$version"                                                   \
-  --minify-level 3                                                        \
+"$picoboots_scripts_path/build_cartridge.sh"                                            \
+  "$game_src_path"                                                                      \
+  ${main_prefix}main_${cartridge_suffix}.lua                                            \
+  ${required_relative_dirpath}                                                          \
+  ${data_option}                                                                        \
+  -M "$data_path/metadata.p8"                                                           \
+  -a "$author" -t "$title (${cartridge_extra_suffix}${cartridge_suffix})"               \
+  -p "$build_output_path"                                                               \
+  -o "${cartridge_stem}_${cartridge_extra_suffix}${cartridge_suffix}"                   \
+  -c "$config"                                                                          \
+  --no-append-config                                                                    \
+  -s "$symbols"                                                                         \
+  --game-constant-module-paths-prebuild "$game_constant_module_paths_string_prebuild"   \
+  --game-constant-module-paths-postbuild "$game_constant_module_paths_string_postbuild" \
+  -r "$game_prebuild_path"                                                              \
+  -v version="$version"                                                                 \
+  --minify-level 3                                                                      \
   $unify_option
 
 if [[ $? -ne 0 ]]; then

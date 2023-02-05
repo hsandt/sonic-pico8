@@ -1,9 +1,16 @@
 local gamestate = require("engine/application/gamestate")
 
-local stage_common_data = require("data/stage_common_data")
 local camera_class = require("ingame/camera")
+--#if stage_intro || ingame
+local stage_common_data = require("data/stage_common_data")
+-- very important to strip player_char out of stage_clear in particular,
+--  to avoid requiring many unnecessary modules in chain that will easily
+--  make compressed size go over 100%
 local player_char = require("ingame/playercharacter")
+--#endif
+--#if ingame
 local visual = require("resources/visual_common")
+--#endif
 
 -- abstract base class for stage_state, stage_intro_state and stage_clear_state
 -- it contains functionality common to all three cartridges showing stage content,
@@ -84,6 +91,9 @@ function base_stage_state:reload_sonic_spritesheet()
   -- 0x4b00  0x400   0x1000  First 4 double rows of Sonic sprites = first 8 rows of Sonic sprites (sprites occupy 2x2 cells)
   -- 0x5b00  0x1400  0x300   Last 6 Sonic sprites = 12x2 cells located on rows of indices 10-11 (5 spin dash sprites + landing sprite)
   -- 0x5e00  0x1700          This is the end of free memory!
+  -- UPDATE: PICO-8 has in fact more general memory to spare at address 0x8000, which is unlockable using `poke(0x5f36, 16)` before v0.2.4
+  -- (see splash_screen_state.lua). From v0.2.4, it is unlocked by default, so whatever version we use, we should be able to use even more
+  -- general memory for either faster operations or more sprites.
 
   -- Total size for sprites: 0x1300
 
@@ -593,7 +603,7 @@ function base_stage_state:render_environment_foreground()
   self:set_camera_with_region_origin()
   map(0, 0, 0, 0, map_region_tile_width, map_region_tile_height, sprite_masks.foreground)
 
-  -- CARTRIDGE NOTE: stage_intro only scans and spawns palm trees,
+  -- CARTRIDGE NOTE: stage_intro doesn't need to scan and spawn palm trees anymore
   -- stage clear only scans and spawns goal plate, which is not rendered here.
   -- stage_clear will error on nil self.curr_stage_data anyway, so just skip the whole operation
   --  if stage clear.

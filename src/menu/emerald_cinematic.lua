@@ -7,6 +7,7 @@ local postprocess = require("engine/render/postprocess")
 
 local emerald_common = require("render/emerald_common")
 
+-- implements drawable interface {position: vector, draw: function}
 local emerald_cinematic = new_class()
 
 -- number      int            number of the emerald, from 1 to 8

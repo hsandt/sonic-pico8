@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Title menu: upgrade title logo to show Sonic with a moving hand as in Sonic 1. Also update cart label to reflect the new title logo.
 - Title menu: play sparks with SFX because the title logo shows as in Sonic 2. Press O or X to directly jump into the menu (sparks still show).
 - Title menu: fix angel island background top pixels staying during start cinematic
+- Title menu: Credits: revamped menu credits with new background (similar to Sonic 2 options) and more spaced text. In counterpart, player can scroll through the whole page. Also added input hints.
 - Stage clear: press O or X to skip stage result
 - Stage clear: fix 2 red pixels on screen during stage result
 

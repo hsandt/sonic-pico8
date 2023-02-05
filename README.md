@@ -32,7 +32,7 @@ Works with PICO-8 0.2.2.
 
 ## Features
 
-Version: 6.2
+Version: 7.0
 
 ### Physics
 
@@ -57,19 +57,23 @@ Version: 6.2
 
 ### UI
 
-* Title logo, animated background and menu
+* Splash screen
+* Animated title logo, animated background and menu
+* Scrollable menu credits
 * Wait in front of title menu to start the attract mode
 * Full cinematic before starting the stage
 * Zone splash screen on stage start
 * Ingame HUD: list of picked emeralds shown in top-left corner
 * Result screen on stage clear
 * Retry screen to restart stage keeping or dropping emeralds picked so far
+* Retry screen features Eggman juggling with emeralds
+* Ending credits sequence using custom font similar to Sonic 3
 * Fade-in/out effects using gradual color palette swapping
 
 ### Audio
 
-* BGM: Sonic 3 Angel Island BGM demake
-* Jingles: Sonic 3 intro, pick emerald, stage clear
+* BGM: Sonic 3 title menu, Sonic 3 Angel Island BGM demake, Sonic 3 ending
+* Jingles: Splash screen choir, Sonic 3 intro, pick emerald, stage clear
 * SFX: brake, roll, jump, spring jump, rotating goal plate, menu confirm
 
 ### Notable features missing

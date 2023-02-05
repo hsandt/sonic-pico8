@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0] - 2023-02-05
+### Added
+- Ending credits: add "thank you for playing!" text at the end with custom font, adding character "!" + spacing info to custom font
+
+### Changed
+- Ending credits: fix ending text using custom font being offset
+- Ending credits: loop BGM, arranging track a little around the loop so it flows better, and fade out music at the end
+
 ## [6.3] - 2023-02-05
 ### Added
 - Splash screen: add splash screen on cart boot, before title menu. It is based on Sonic 2's splash screen, except it shows "SAGE". The choir voice is played using the new PCM system of PICO-8.
@@ -16,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Title menu: upgrade title logo to show Sonic with a moving hand as in Sonic 1. Also update cart label to reflect the new title logo.
-- Title menu: play sparks with SFX because the title logo shows as in Sonic 2. Press O or X to directly jump into the menu (sparks still show).
+- Title menu: play sparks with SFX before the title logo appears as in Sonic 2. Press O or X to directly jump into the menu (sparks still show).
 - Title menu: fix angel island background top pixels staying during start cinematic
+- Title menu: Credits: revamped menu credits with new background (similar to Sonic 2 options) and more spaced text. In counterpart, player can scroll through the whole page. Also added input hints.
 - Stage clear: press O or X to skip stage result
 - Stage clear: fix 2 red pixels on screen during stage result
 
@@ -309,7 +318,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v6.3...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v7.0...HEAD
+[6.3]: https://github.com/hsandt/sonic-pico8/compare/v6.3...v7.0
 [6.3]: https://github.com/hsandt/sonic-pico8/compare/v6.2...v6.3
 [6.2]: https://github.com/hsandt/sonic-pico8/compare/v6.1...v6.2
 [6.1]: https://github.com/hsandt/sonic-pico8/compare/v6.0...v6.1

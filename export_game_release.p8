@@ -11,7 +11,7 @@ __lua__
 
 -- #version
 -- PICO-8 cannot read data/version.txt, so exceptionally set the version manually here
-local version = "6.3"
+local version = "7.0"
 local export_folder = "picosonic/v"..version.."_release"
 local game_basename = "picosonic_v"..version.."_release"
 local rel_png_folder = game_basename.."_png_cartridges"

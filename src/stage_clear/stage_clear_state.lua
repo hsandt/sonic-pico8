@@ -802,6 +802,11 @@ function stage_clear_state:show_ending_credits_screen_async()
     self:fade_out_async()
   end
 
+  -- end of credits, since the music is looping, fade it out gradually
+  --  over 2 seconds = 2000ms
+  music(-1, 2000)
+  self.app:yield_delay_s(2)
+
   -- go back to title menu
   -- prefer passing basename for compatibility with .p8.png
   load('picosonic_titlemenu')

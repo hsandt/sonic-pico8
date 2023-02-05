@@ -1,9 +1,22 @@
 pico-8 cartridge // http://www.pico-8.com
-version 16
+version 39
 __lua__
 -- pico sonic
 -- by leyn
 -- (title and author above will be overwritten by add_metadata.py, also adding version, so don't mind them too much)
+
+-- Usage:
+-- 1. Capture a good label with F2 while running the game and export it with PICO-8 0.2.4c+ with `export -l metadata_label.png`
+--    or alternatively capture a screenshot with F1 at scale 1.
+-- 2. You can then edit it further (e.g. to remove the version number) with a pixel art editor and save it in data/metadata_label.png
+--    for versioning
+-- 3. Copy it in pico-8 carts folder
+-- 4. Open this file with pico8 -run to run the code below on launch and import it
+-- Note that Sublime Text command: "Game: edit metadata" will automatically do steps 3 and 4
+
+-- Import latest label (requires PICO-8 0.2.4c+)
+import("-l metadata_label.png")
+
 __label__
 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111101111111000111111

@@ -225,16 +225,19 @@ function titlemenu:on_enter()
   -- hide reverse horizon for now
   self.drawables_sea[2].visible = false
 
+  -- in case we came from credits and not splash screen state, immediately show black overlay
+  --  to prepare fade in (not darkness, which would cover sparks too)
+  -- do this outside coroutine play_enter_sequence_async to avoid edge case where player presses
+  --  skip input right on that frame, so should_draw_black_overlay is set to false just before
+  --  updating the coroutine and setting should_draw_black_overlay to true, causing sticky overlay
+  self.should_draw_black_overlay = true
+
   -- run enter sequence wild, as it contains play_opening_music_async which
   --  self-manages music stop
   self.app:start_coroutine(self.play_enter_sequence_async, self)
 end
 
 function titlemenu:play_enter_sequence_async()
-  -- in case we came from credits and not splash screen state, immediately show black overlay
-  --  to prepare fade in (not darkness, which would cover sparks too)
-  self.should_draw_black_overlay = true
-
   -- show some sparks on future title logo before fading in
   -- nil is not valid position, but we're going to set spark to correct position before first call to render
   --  (i.e. before the first yield), so it's okay

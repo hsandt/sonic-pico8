@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3] - 2023-02-05
+### Added
+- Splash screen: add splash screen on cart boot, before title menu. It is based on Sonic 2's splash screen, except it shows "SAGE". The choir voice is played using the new PCM system of PICO-8.
+- Transition: the splash screen fades out and back in into the title menu. Player can also manually skip it by pressing O or X
+- Stage clear: when player missed some emeralds, show Eggman juggling with the missed ones as in Sonic 1 TRY AGAIN screen. Press left/right to switch between 2 juggling modes.
+- Stage clear: when played finished the game with all the emeralds, play ending credits (staff roll) similar to Sonic 3. Use a custom font adapted from "Andes" for PICO-8, using the new custom font feature. The music is adapted from Sonic 3 (not Sonic 3 & Knuckles). Known issue: names are offset and music doesn't loop.
+
+### Changed
+- Title menu: upgrade title logo to show Sonic with a moving hand as in Sonic 1. Also update cart label to reflect the new title logo.
+- Title menu: play sparks with SFX because the title logo shows as in Sonic 2. Press O or X to directly jump into the menu (sparks still show).
+- Title menu: fix angel island background top pixels staying during start cinematic
+- Stage clear: press O or X to skip stage result
+- Stage clear: fix 2 red pixels on screen during stage result
+
 ## [6.2] - 2022-06-13
 ### Added
 - Stage intro: it now shows a full sequence before entering ingame. It follows the Start cinematic played in the title menu, and shows Sonic landing on pico island. It ends with the usual splash screen.
@@ -295,7 +309,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v6.1...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v6.3...HEAD
+[6.3]: https://github.com/hsandt/sonic-pico8/compare/v6.2...v6.3
+[6.2]: https://github.com/hsandt/sonic-pico8/compare/v6.1...v6.2
 [6.1]: https://github.com/hsandt/sonic-pico8/compare/v6.0...v6.1
 [6.0]: https://github.com/hsandt/sonic-pico8/compare/v5.3...v6.0
 [5.3]: https://github.com/hsandt/sonic-pico8/compare/v5.2...v5.3

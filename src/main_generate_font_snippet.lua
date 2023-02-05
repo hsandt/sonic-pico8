@@ -10,7 +10,7 @@
 -- 3. Save the cart
 -- 4. Run (we recommend assert config)
 -- $ ./build_and_install_single_cartridge_with_data.sh generate_font_snippet assert && ./run_cartridge.sh generate_font_snippet assert
--- (Sublime Text command: "Game: build and run generate_font_snippet")
+-- (Sublime Text command: "Game: build and run generate_font_snippet (offline)")
 -- You will see a message stating that the font snippet was saved in the clipboard
 -- 6. Open the source file that needs the custom font (stage_clear_state.lua) and paste the font snippet under #custom_font
 -- 7. Locate char_width_table under #custom_font_width, and fill it as necessary (for characters not using default_char_width)

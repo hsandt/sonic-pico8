@@ -772,14 +772,14 @@ function stage_clear_state:show_ending_credits_screen_async()
 
   -- big text
   local custom_font_label = label(to_custom_font("pico sonic"), vector(64, 50), alignments.center, colors.white, nil, --[[use_custom_font:]] true)
-  self.result_overlay:add_drawable("title", custom_font_label)
+  self.result_overlay:add_drawable("custom_font_label", custom_font_label)
 
   -- normal text
   -- technically, Sonic 3 shows outline in the directions: bottom, right, bottom-right
   -- but for now, outline.print_with_outline doesn't have outline flags to use specific directions, and dark blue is not very striking anyway,
   --  so we consider it good enough
   local standard_font_label = label("staff", vector(64, 80), alignments.center, colors.white, colors.dark_blue)
-  self.result_overlay:add_drawable("staff", standard_font_label)
+  self.result_overlay:add_drawable("standard_font_label", standard_font_label)
 
   self:fade_in_async()
   self.app:yield_delay_s(3)
@@ -793,8 +793,8 @@ function stage_clear_state:show_ending_credits_screen_async()
     local role_text = role_name_pair[1]
     local name_text = role_name_pair[2]
 
-    standard_font_label.text = role_text
-    custom_font_label.text = name_text
+    standard_font_label.text = role_text  -- normal text
+    custom_font_label.text = name_text  -- big text (to_custom_font was pre-applied to role_name_with_custom_font_pairs 2nd element)
 
     self.app:yield_delay_s(0.5)
     self:fade_in_async()
@@ -802,10 +802,24 @@ function stage_clear_state:show_ending_credits_screen_async()
     self:fade_out_async()
   end
 
-  -- end of credits, since the music is looping, fade it out gradually
-  --  over 2 seconds = 2000ms
-  music(-1, 2000)
+  -- remove standard_font_label, only keep custom_font_label for thank you message
+  self.result_overlay:remove_drawable("standard_font_label")
+  self.result_overlay:add_drawable("custom_font_label", custom_font_label)
+  custom_font_label.position.y = 64
+  custom_font_label.text = to_custom_font("thank you\nfor playing!")
+
   self.app:yield_delay_s(2)
+  self:fade_in_async()
+  self.app:yield_delay_s(4)
+
+  -- fade out last text
+  self:fade_out_async()
+
+  -- end of credits, since the music is looping, fade it out gradually
+  --  over 3 seconds = 3000ms
+  music(-1, 3000)
+
+  self.app:yield_delay_s(4)
 
   -- go back to title menu
   -- prefer passing basename for compatibility with .p8.png

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0] - 2023-02-05
+### Added
+- Ending credits: add "thank you for playing!" text at the end with custom font, adding character "!" + spacing info to custom font
+
+### Changed
+- Ending credits: fix ending text using custom font being offset
+- Ending credits: loop BGM, arranging track a little around the loop so it flows better, and fade out music at the end
+
 ## [6.3] - 2023-02-05
 ### Added
 - Splash screen: add splash screen on cart boot, before title menu. It is based on Sonic 2's splash screen, except it shows "SAGE". The choir voice is played using the new PCM system of PICO-8.
@@ -309,7 +317,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Game: in-game: debug character flies X/Y on directional input, go back to title menu on reach goal
 - Test: all busted unit tests in separator folder tests
 
-[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v6.3...HEAD
+[Unreleased]: https://github.com/hsandt/sonic-pico8/compare/v7.0...HEAD
+[6.3]: https://github.com/hsandt/sonic-pico8/compare/v6.3...v7.0
 [6.3]: https://github.com/hsandt/sonic-pico8/compare/v6.2...v6.3
 [6.2]: https://github.com/hsandt/sonic-pico8/compare/v6.1...v6.2
 [6.1]: https://github.com/hsandt/sonic-pico8/compare/v6.0...v6.1

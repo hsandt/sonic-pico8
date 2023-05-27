@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Convert the audio file located in audio/ into PCM data readable by PICO-8 for direct replay
-# Must be called offline once before build. This is not called on every build to avoid extra work,
-# so make sure to call this manually each time you update the audio file.
-
 # Configuration: paths
 audio_path="$(dirname "$0")/audio"
 game_src_path="$(dirname "$0")/src"
@@ -12,7 +8,21 @@ game_src_template_path="$(dirname "$0")/src_template"
 help() {
   echo "Convert the audio file located in audio/ into PCM data readable by PICO-8 for direct replay.
 
-Must be called offline once before build. This is not called on every build to avoid extra work,
+# Usage instructions
+
+## Dependencies
+
+You must have installed the following:
+- ffmpeg
+- p8scii-encoder (https://gitlab.com/dev_urandom/p8scii-encoder)
+
+## Setup
+
+Create the sound file you want to play, e.g. sound.wav, and place it in the audio/ folder
+
+## Running the script
+
+The script must be called offline once before build. This is not called on every build to avoid extra work,
 so make sure to call this manually each time you update the audio file.
 
 After running this, you must still build and run main_generate_gfx_sage_choir_pcm_data cartridge
@@ -61,7 +71,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if ! [[ ${#positional_args[@]} -eq 2 ]]; then
-  echo "Wrong number of positional arguments: found ${#positional_args[@]}, expected 1."
+  echo "Wrong number of positional arguments: found ${#positional_args[@]}, expected 2."
   echo "Passed positional arguments: ${positional_args[@]}"
   usage
   exit 1
@@ -77,6 +87,7 @@ audio_file_fullpath="${audio_path}/${audio_file}"
 # The commands below automate the PCM string generation process explained at:
 # - https://www.lexaloffle.com/bbs/?tid=45013
 # - https://colab.research.google.com/drive/1HyiciemxfCDS9DxE98UCtNXas5TrM-5e?usp=sharing
+# and even go further by injecting the PCM string in some template Lua file to make it usable by PICO-8
 
 # The manual steps are like this:
 # 1. Create the sound file you want to play, e.g. sound.wav
@@ -84,24 +95,23 @@ audio_file_fullpath="${audio_path}/${audio_file}"
 #    $ input_filepath="path/to/sound.wav"
 #    $ output_name="exported_sound"
 #    $ ffmpeg -i "$input_filepath" -f u8 -c:a pcm_u8 -ar 5512 -ac 1 "$output_name".raw
+#    => outputs exported_sound.raw
 # 3. Encode to text for PICO-8:
 #    $ p8scii-encoder "$output_name".raw
 #    => outputs exported_sound.raw.txt
 # 4. Copy the string in exported_sound.raw.txt below
 
-# Below, we automate those steps, adapting them to our needs
-
-# 1. Create the sound file you want to play, e.g. sound.wav, and place it in the audio/ folder
-#    This step must be done before calling this script
-
-# 2. Generate raw bytes found the sound using ffmpeg
+# Since step 1 (place audio file in audio/ folder) must be done before running this script,
+# we automate steps 2-4 below, adapting them to our needs
 
 # Extract file extension and replace it with "raw"
 output_raw_filepath="${audio_file_fullpath%.*}.raw"
 
-echo "# ffmpeg conversion"
+# 2. Generate raw bytes found the sound using ffmpeg
 
-# Convert to raw bytes intermediate file with ffmpeg
+echo "# Conversion to raw bytes with ffmpeg"
+
+# Convert to an intermediate file containing raw bytes with ffmpeg
 # Note the -y to overwrite output file without prompt so the script can work headlessly
 ffmpeg -i "$audio_file_fullpath" -f u8 -c:a pcm_u8 -ar 5512 -ac 1 "$output_raw_filepath" -y
 
@@ -115,7 +125,7 @@ echo "# OK"
 
 # 3. Encode intermediate raw file to text for PICO-8
 
-echo "# p8scii-encoder"
+echo "# Encoding with p8scii-encoder"
 
 # This will output to "$output_raw_filepath.txt"
 p8scii-encoder "$output_raw_filepath"

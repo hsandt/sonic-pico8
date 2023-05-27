@@ -421,7 +421,7 @@ end
 function splash_screen_state:reload_pcm()
   -- PICO-8 has extra general memory to use at address 0x8000 with a size up to 0x8000
   --  which is what we need for the huge PCM data coming from GFX and therefore up to
-  --  0x2000 (vs standard general memory which contains up to 0x1b00 only)
+  --  2*0x2000=0x4000 (vs standard general memory which contains up to 0x1b00 only)
   --  which is unlockable using `poke(0x5f36, 16)` before v0.2.4, so unlock it now.
   -- From v0.2.4, it is unlocked by default
   poke(0x5f36, 16)

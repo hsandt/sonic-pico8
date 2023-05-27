@@ -1415,6 +1415,14 @@
 			"syntax": "Packages/Python/Python.sublime-syntax"
 		},
 		{
+			"name": "Engine: Prebuild: test strip_lua_section_inplace",
+			"working_dir": "${project_path}/pico-boots",
+			"shell": true,
+			"cmd": ["python3 -m scripts.test_strip_lua_section_inplace"],
+			"file_regex": "\"(.*\\.py)\"(?:, line )([\\d]+)(?:\\:)?([\\d]+)?(.*)",
+			"syntax": "Packages/Python/Python.sublime-syntax"
+		},
+		{
 			"name": "Engine: Postbuild: test minify",
 			"working_dir": "${project_path}/pico-boots",
 			"shell": true,

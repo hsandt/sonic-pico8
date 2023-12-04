@@ -77,6 +77,18 @@
 			"working_dir": "${project_path}"
 		},
 		{
+			"name": "Game: edit data: stage1 picomap",
+			"shell": true,
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_ingame && pico8 -run data/picomap_stage1.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
+			"name": "Game: edit data: stage1 picomap assets",
+			"shell": true,
+			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/picomap_stage1_assets.p8"],
+			"working_dir": "${project_path}"
+		},
+		{
 			"name": "Game: edit data: stage sonic",
 			"shell": true,
 			"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_sonic && pico8 -run data/data_stage_sonic.p8"],
@@ -108,35 +120,35 @@
 			[
 				{
 					"name": "00",
-					"cmd": ["pico8 -run data/data_stage1_00.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition_00 && pico8 -run data/data_stage1_00.p8"],
 				},
 				{
 					"name": "01",
-					"cmd": ["pico8 -run data/data_stage1_01.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_01.p8"],
 				},
 				{
 					"name": "10",
-					"cmd": ["pico8 -run data/data_stage1_10.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_10.p8"],
 				},
 				{
 					"name": "11",
-					"cmd": ["pico8 -run data/data_stage1_11.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_11.p8"],
 				},
 				{
 					"name": "20",
-					"cmd": ["pico8 -run data/data_stage1_20.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_20.p8"],
 				},
 				{
 					"name": "21",
-					"cmd": ["pico8 -run data/data_stage1_21.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_21.p8"],
 				},
 				{
 					"name": "30",
-					"cmd": ["pico8 -run data/data_stage1_30.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_30.p8"],
 				},
 				{
 					"name": "31",
-					"cmd": ["pico8 -run data/data_stage1_31.p8"],
+					"cmd": ["./copy_spritesheet_for_import.sh spritesheet_stage_edition && pico8 -run data/data_stage1_31.p8"],
 				},
 			]
 		},

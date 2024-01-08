@@ -18,7 +18,7 @@ local mask_tile_angles = transform(
 -- strip out tiles not needed in stage intro to spare characters
 --#if ingame
 
-    -- low slope descending every 4px with flat ground at every step
+    -- very low slope descending every 4-8px (6px in average) with flat ground at every other tile
     [1]  = {8, 2},
     [2]  = {8, 0},  -- flat tile 6px high
     [3]  = {8, 2},

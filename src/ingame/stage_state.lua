@@ -102,7 +102,7 @@ function stage_state:on_enter()
   --  will not detect ground for 1 frame), so let's just set it to where PC will spawn
   -- this is currently done as part of setup_for_stage, which also stores stage data for later clamping
   self.camera:setup_for_stage(self.curr_stage_data)
-  self:check_reload_map_region()
+  -- self:check_reload_map_region()
 
   -- must be done before spawn_player_char so the player character can access
   --  the initial anim spritesheet in its init > update_sprite_row_and_play_sprite_animation
@@ -174,6 +174,9 @@ end
 --]]
 
 function stage_state:update()
+  -- update PicoMap first so collision checks are correct on first frame
+  self:picomap_update()
+
   self:update_fx()
 
   -- springs can be updated before or after player character,
@@ -194,7 +197,7 @@ function stage_state:update()
 --#endif
 
   self.camera:update()
-  self:check_reload_map_region()
+  -- self:check_reload_map_region()
 end
 
 function stage_state:render()

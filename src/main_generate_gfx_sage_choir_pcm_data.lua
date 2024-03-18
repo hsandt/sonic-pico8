@@ -14,7 +14,6 @@
 --  (see install_data_cartridges_with_merging.sh)
 
 -- must require at main top, to be used in any required modules from here
-require("engine/pico8/api")
 require("engine/common")
 require("common_generate_gfx_sage_choir_pcm_data")
 

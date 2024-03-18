@@ -1,7 +1,6 @@
 -- main source file for all itests, used to run itests in pico8
 
 -- must require at main top, to be used in any required modules from here
-require("engine/pico8/api")
 require("engine/common")
 require("common_ingame")
 

@@ -4,7 +4,6 @@
 -- each utest should be put inside the src/utests folder with the name utest{something}.lua
 
 -- must require at main top, to be used in any required modules from here
-require("engine/pico8/api")
 require("engine/common")
 -- utest_main is neutral, but we might as well require common_ingame which has
 --  more stuff than common_titlemenu

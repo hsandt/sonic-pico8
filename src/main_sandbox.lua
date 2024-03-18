@@ -2,7 +2,6 @@
 --  game states: none, it's a custom cartridge just for testing
 
 -- must require at main top, to be used in any required modules from here
-require("engine/pico8/api")
 require("engine/common")
 require("common_sandbox")
 

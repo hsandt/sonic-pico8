@@ -2,7 +2,6 @@
 --  game states: stage_clear
 
 -- must require at main top, to be used in any required modules from here
-require("engine/pico8/api")
 require("engine/common")
 require("common_stage_clear")
 

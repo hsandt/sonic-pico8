@@ -26,9 +26,9 @@ local vlogger = require("engine/debug/visual_logger")
 local profiler = require("engine/debug/profiler")
 --#endif
 
-local picosonic_app_ingame = require("application/picosonic_app_ingame")
+-- local picosonic_app_ingame = require("application/picosonic_app_ingame")
 
-local app = picosonic_app_ingame()
+-- local app = picosonic_app_ingame()
 
 function _init()
 --#if log
@@ -85,14 +85,14 @@ function _init()
   codetuner.active = true
 --#endif
 
-  app.initial_gamestate = ':stage'
-  app:start()
+  -- app.initial_gamestate = ':stage'
+  -- app:start()
 end
 
 function _update60()
-  app:update()
+  -- app:update()
 end
 
 function _draw()
-  app:draw()
+  -- app:draw()
 end

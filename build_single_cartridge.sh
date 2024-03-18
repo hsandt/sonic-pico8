@@ -229,6 +229,8 @@ ${game_src_path}/resources/visual_ingame_numerical_data.lua"
 
 # Define list of paths to modules containing constants to substitute at postbuild time,
 # separated by space (Python argparse nargs='*')
+# This is for files containing special characters (such as Unicode strings) that may cause
+# trouble with `p8tool listrawlua` done during minify step (just before this in post-build)
 game_constant_module_paths_string_postbuild="${game_src_path}/data/pcm_data.lua"
 
 # Build cartridges without version nor config appended to name

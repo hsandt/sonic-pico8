@@ -22,6 +22,8 @@ require("common_generate_font_snippet")
 
 require("engine/ui/font_snippet")
 
+local text_helper = require("engine/ui/text_helper")
+
 
 -- this must match value in stage_clear_state.lua
 local default_char_width = 5
@@ -41,6 +43,9 @@ function _draw()
   poke(0x5f58,0x81)
   color(7)
   -- in real game, we should replace the characters as part of some pre-build string replacement
+  -- to inject the proper custom character width codes
+  -- (see stage_clear_state.lua > default_char_width, char_width_table, to_custom_font
+  -- which itself uses font_helper.to_custom_font_with_adjusted_char_width)
   api.print("\^x4t\^x5he \^x9q\^x5u\^x2i\^x5ck \^x6br\^x9o\^x8w\^x6n")
   api.print("fox jumps over ")
   api.print("the lazy dog.")
@@ -50,9 +55,17 @@ function _draw()
   api.print("THE LAZY DOG?")
   api.print("")
   api.print("0123456789 +-*/")
-  api.print("█▒🐱⬇️░✽●♥☉웃⌂⬅️😐")
-  api.print("♪🅾️◆…➡️★⧗⬆️ˇ∧❎▤▥")
+
+  -- uncomment to test glyphs
+  -- api.print("█▒🐱⬇️░✽●♥☉웃⌂⬅️😐")
+  -- api.print("♪🅾️◆…➡️★⧗⬆️ˇ∧❎▤▥")
+
   poke(0x5f58,0)
+
+  -- test multi-line (we made sure to clear permanent use custom font byte above
+  -- so \14 is required on each line)
+  text_helper.print_aligned("\14hello\n\14world!", 64, 100, alignments.center, colors.blue, nil, true)
+
   color(13)
   api.print(" [snippet copied to clipboard]",0,120)
   cursor()

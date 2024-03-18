@@ -54,7 +54,7 @@ GAME_SYMBOL_SUBSTITUTE_TABLE = {
 
     # itest_dsl (keep them both here and in code exceptionally, as they need protected names
     # to identify itest commands written as strings)
-    # those definitions uses the enum helper so they cannot currently be parsed by extracting them
+    # those definitions use the enum helper so they cannot currently be parsed by extracting them
     # into an isolated file added to game_constant_module_paths_string in build_single_cartridge.sh
     # so we still write them manually
 

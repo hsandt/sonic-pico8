@@ -561,21 +561,23 @@ function stage_clear_state:restore_picked_emerald_data()
   --  and cache the picked count for assessment
 --#ifn itest
   -- itests do not save (do not call cartdata), so do not call this to avoid error
-  --  "dget called before cardata()"
+  --  "dget called before cartdata()"
   local picked_emerald_byte = dget(memory.persistent_picked_emerald_index)
 --#endif
 
   -- read bitset low-endian, from lowest bit (emerald 1) to highest bit (emerald 8)
   for i = 1, 8 do
-    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
+    if picked_emerald_byte & 1 << i - 1 ~= 0 then
       self.picked_emerald_numbers_set[i] = true
       self.picked_emerald_count = self.picked_emerald_count + 1
     end
+--[[#pico8
 --#ifn release
     -- DEBUG: uncomment both lines to simulate getting all emeralds when testing stage_clear directly
     self.picked_emerald_numbers_set[i] = true
     self.picked_emerald_count = 8
 --#endif
+--#pico8]]
   end
 end
 

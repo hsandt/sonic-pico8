@@ -576,7 +576,7 @@ function stage_state:restore_picked_emerald_data()
   -- consume emerald immediately to avoid sticky emeralds on hard ingame reload (ctrl+R)
 --#ifn itest
   -- itests do not save (do not call cartdata), so do not call this to avoid error
-  --  "dset called before cardata()"
+  --  "dset called before cartdata()"
   dset(memory.persistent_picked_emerald_index, 0)
 --#endif
 
@@ -585,7 +585,7 @@ function stage_state:restore_picked_emerald_data()
   --  from self.emeralds sequence, rearranging them to fill gaps
   -- by iterating backward, we don't have to worry about their index changing
   for i = 8, 1, -1 do
-    if band(picked_emerald_byte, shl(1, i - 1)) ~= 0 then
+    if picked_emerald_byte & 1 << i - 1 ~= 0 then
       -- add emerald number to picked set
       self.picked_emerald_numbers_set[i] = true
 
@@ -602,7 +602,7 @@ function stage_state:store_picked_emerald_data()
   for i = 1, 8 do
     if self.picked_emerald_numbers_set[i] then
       -- technically we want bor (|), but + is shorter to write and equivalent in this case
-      picked_emerald_byte = picked_emerald_byte + shl(1, i - 1)
+      picked_emerald_byte = picked_emerald_byte + (1 << i - 1)
     end
   end
 
@@ -807,7 +807,7 @@ function stage_state:play_bgm()
   -- Angel Island BGM currently uses only 3 channels so it's pretty safe
   --  as there is always a channel left for SFX, but in case we add a 4th one
   --  (or we try to play 2 SFX at once), protect the 3 channels by passing priority mask
-  music(stage_common_data.bgm_id, 0, shl(1, 0) + shl(1, 1) + shl(1, 2))
+  music(stage_common_data.bgm_id, 0, (1 << 0) + (1 << 1) + (1 << 2))
 end
 
 function stage_state:stop_bgm(fade_duration)

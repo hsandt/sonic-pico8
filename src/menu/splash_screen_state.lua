@@ -354,8 +354,7 @@ function splash_screen_state:draw_speed_lines()
     -- - https://github.com/FATH-Mechatronics/luamin
     -- - https://github.com/wolfe-labs/luamin-5.4 (forked from FATH-Mechatronics itself)
     -- then you'll be able to use the bracketed << version commented below:
-    -- full_fill_pattern = 0x0f0f.8 + (speed_line_fill_pattern << 12) + (speed_line_fill_pattern << 4)
-    full_fill_pattern = 0x0f0f.8 + shl(speed_line_fill_pattern, 12) + shl(speed_line_fill_pattern, 4)
+    full_fill_pattern = 0x0f0f.8 + (speed_line_fill_pattern << 12) + (speed_line_fill_pattern << 4)
   else
     -- when going right, fill odd lines only
     --     1111
@@ -366,8 +365,7 @@ function splash_screen_state:draw_speed_lines()
     --  0x0.8 for transparency on 1, and finally add dynamic patterns xxxx (speed_line_fill_pattern)
     --  twice, each time shifted by 4 * row the offset counted from the bottom (2 and 0) = 8 and 0
     -- same remark as below, when you switch to luamin 5.4 you can use commented version below:
-    -- full_fill_pattern = 0xf0f0.8 + (speed_line_fill_pattern << 8) + speed_line_fill_pattern
-    full_fill_pattern = 0xf0f0.8 + shl(speed_line_fill_pattern, 8) + speed_line_fill_pattern
+    full_fill_pattern = 0xf0f0.8 + (speed_line_fill_pattern << 8) + speed_line_fill_pattern
   end
 
   -- we could check phase:

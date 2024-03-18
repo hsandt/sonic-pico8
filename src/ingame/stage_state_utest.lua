@@ -1691,7 +1691,7 @@ describe('stage_state', function ()
             assert.spy(reload).was_called_with(0x3420, 0x3420, 0xc38, "picosonic_ingame.p8")
           end)
 
-          it('play_bgm should start level bgm', function ()
+          it('#solo play_bgm should start level bgm', function ()
             state:play_bgm()
 
             assert.are_same({music=stage_common_data.bgm_id, fadems=0, channel_mask=(1 << 0) + (1 << 1) + (1 << 2)}, pico8.current_music)

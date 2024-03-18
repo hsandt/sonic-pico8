@@ -14,6 +14,7 @@ local overlay = require("engine/ui/overlay")
 local picosonic_app = require("application/picosonic_app_stage_clear")
 local base_stage_state = require("ingame/base_stage_state")
 local goal_plate = require("ingame/goal_plate")
+local memory = require("resources/memory")
 local visual = require("resources/visual_common")
 local visual_ingame_data = require("resources/visual_ingame_numerical_data")
 local visual_stage = require("resources/visual_stage")
@@ -226,6 +227,30 @@ describe('stage_clear_state', function ()
 
         assert.spy(stage_clear_state.spawn_goal_plate_at).was_called(3)
         assert.spy(stage_clear_state.spawn_goal_plate_at).was_called_with(match.ref(state), location(1 + map_region_tile_width * 3, 1 + map_region_tile_height * 1))
+      end)
+
+    end)
+
+    -- we stub restore_picked_emerald_data in (stage state entered) region, so test it outside
+    describe('#solo restore_picked_emerald_data', function ()
+
+      before_each(function ()
+        -- 0b01001001 -> 73 (low-endian, so lowest bit is for emerald 1)
+        dset(memory.persistent_picked_emerald_index, 73)
+      end)
+
+      after_each(function ()
+        dset(memory.persistent_picked_emerald_index, 0)
+      end)
+
+      it('should read 1 byte in persistent memory representing picked emeralds bitset', function ()
+        state:restore_picked_emerald_data()
+
+        assert.are_same({
+          [1] = true,
+          [4] = true,
+          [7] = true,
+        }, state.picked_emerald_numbers_set)
       end)
 
     end)
